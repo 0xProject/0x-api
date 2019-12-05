@@ -1,3 +1,4 @@
+import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
 import * as pino from 'pino';
@@ -8,7 +9,7 @@ export const logger = pino();
  * log middleware
  */
 export function logMiddleware(): core.RequestHandler {
-    const handler = (req: any, res: any, next: core.NextFunction) => {
+    const handler = (req: express.Request, res: express.Response, next: core.NextFunction) => {
         const startTime = Date.now();
         function writeLog(): void {
             const responseTime = Date.now() - startTime;
@@ -29,7 +30,6 @@ export function logMiddleware(): core.RequestHandler {
                 res: {
                     statusCode: res.statusCode,
                     statusMessage: res.statusMessage,
-                    error: res.error,
                 },
                 responseTime,
                 timestamp: Date.now(),
@@ -38,7 +38,6 @@ export function logMiddleware(): core.RequestHandler {
         }
         res.on('finish', writeLog);
         res.on('close', writeLog);
-        req.log = logger;
         next();
     };
     return handler;
