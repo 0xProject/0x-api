@@ -8,39 +8,18 @@ export const createMetaTransactionRouter = (orderBook: OrderBookService): expres
     const router = express.Router();
     const handlers = new MetaTransactionHandlers(orderBook);
     /**
-     * GET AssetPairs endpoint retrieves a list of available asset pairs and the information required to trade them.
-     * http://sra-spec.s3-website-us-east-1.amazonaws.com/#operation/getAssetPairs
+     * GET Transaction endpoint returns an unsigned 0x Transaction that when sent to
+     * `executeTransaction` will execute a specified swap.
+     *
+     * https://0x.org/docs/guides/v3-specification#transaction-message-format
      */
-    router.get('/asset_pairs', asyncHandler(handlers.assetPairsAsync.bind(handlers)));
+    router.get('/transaction', asyncHandler(handlers.getTransactionAsync.bind(handlers)));
     /**
-     * GET Orders endpoint retrieves a list of orders given query parameters.
-     * http://sra-spec.s3-website-us-east-1.amazonaws.com/#operation/getOrders
+     * POST Transaction endpoint takes a signed 0x Transaction and sends it to Ethereum
+     * for execution via `executeTransaction`.
+     *
+     * https://0x.org/docs/guides/v3-specification#executing-a-transaction
      */
-    router.get('/orders', asyncHandler(handlers.ordersAsync.bind(handlers)));
-    /**
-     * GET Orderbook endpoint retrieves the orderbook for a given asset pair.
-     * http://sra-spec.s3-website-us-east-1.amazonaws.com/#operation/getOrderbook
-     */
-    router.get('/orderbook', asyncHandler(handlers.orderbookAsync.bind(handlers)));
-    /**
-     * GET FeeRecepients endpoint retrieves a collection of all fee recipient addresses for a relayer.
-     * http://sra-spec.s3-website-us-east-1.amazonaws.com/v3/fee_recipients
-     */
-    router.get('/fee_recipients', MetaTransactionHandlers.feeRecipients.bind(MetaTransactionHandlers));
-    /**
-     * POST Order config endpoint retrives the values for order fields that the relayer requires.
-     * http://sra-spec.s3-website-us-east-1.amazonaws.com/#operation/getOrderConfig
-     */
-    router.post('/order_config', MetaTransactionHandlers.orderConfig.bind(MetaTransactionHandlers));
-    /**
-     * POST Order endpoint submits an order to the Relayer.
-     * http://sra-spec.s3-website-us-east-1.amazonaws.com/#operation/postOrder
-     */
-    router.post('/order', asyncHandler(handlers.postOrderAsync.bind(handlers)));
-    /**
-     * GET Order endpoint retrieves the order by order hash.
-     * http://sra-spec.s3-website-us-east-1.amazonaws.com/#operation/getOrder
-     */
-    router.get('/order/:orderHash', asyncHandler(handlers.getOrderByHashAsync.bind(handlers)));
+    router.post('/transaction', asyncHandler(handlers.postTransactionAsync.bind(handlers)));
     return router;
 };
