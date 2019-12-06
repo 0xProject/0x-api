@@ -1,27 +1,26 @@
+// tslint:disable: max-classes-per-file
 import {
+    assetDataUtils,
     BigNumber,
-    Order,
+    ChainId,
     generatePseudoRandomSalt,
     getContractAddressesForChainOrThrow,
-    ChainId,
-    assetDataUtils,
+    Order,
     RPCSubprovider,
-    Web3ProviderEngine,
     signatureUtils,
     SignedOrder,
+    Web3ProviderEngine,
 } from '0x.js';
 import { DevUtilsContract, ExchangeContract } from '@0x/contract-wrappers'
 import { ExchangeRevertErrors } from '@0x/contracts-exchange'
-import { Web3Wrapper, SupportedProvider } from '@0x/web3-wrapper';
+import { isValidECSignature, parseSignatureHexAsVRS } from '@0x/order-utils/lib/src/signature_utils';
+import { providerUtils } from '@0x/utils';
+import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
+import * as ethUtil from 'ethereumjs-util';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
-import { NULL_ADDRESS, ZERO } from '../constants';
-import { CHAIN_ID } from '../config';
-import { providerUtils } from '@0x/utils';
-import P = require('pino');
 import _ = require('lodash');
-import { isValidECSignature, parseSignatureHexAsVRS } from '@0x/order-utils/lib/src/signature_utils';
-import * as ethUtil from 'ethereumjs-util';
+import { NULL_ADDRESS, ZERO } from '../constants';
 
 interface Step1Params {
     myAddress: string;
@@ -36,19 +35,17 @@ interface Step1Response {
     payload: {
         order: Order;
         orderHash: string;
-    },
+    };
     toSign: {
         payload: string;
         signatureOutput: string;
-    },
+    };
 }
 
 interface TokenMeta {
     address: string;
     decimals: number;
 }
-
-const devUtils = new DevUtilsContract(NULL_ADDRESS, { isEIP1193: true } as SupportedProvider);
 
 const TOKENS: {[key: string]: TokenMeta} = {
     'DAI': {
@@ -95,7 +92,7 @@ const VALIDATORS: {[key: string]: (s: string) => [boolean, string | null]} = {
     'myAddress': isValidAddress,
 };
 
-const contractAddresses = getContractAddressesForChainOrThrow(ChainId.Mainnet)
+const contractAddresses = getContractAddressesForChainOrThrow(ChainId.Mainnet);
 
 function parseSignatureHexAsRSV(signatureHex: string): ECSignature {
     const { v, r, s } = ethUtil.fromRpcSig(signatureHex);
@@ -107,11 +104,7 @@ function parseSignatureHexAsRSV(signatureHex: string): ECSignature {
     return ecSignature;
 }
 
-
 function parseSignature(signature: string, msgHash: string, signerAddress: string): string {
-    console.log(signature)
-    console.log(msgHash)
-    console.log(signerAddress)
     const normalizedSignerAddress = signerAddress.toLowerCase();
     const prefixedMsgHashHex = signatureUtils.addSignedMessagePrefix(msgHash);
     // const prefixedMsgHashHex = msgHash;
@@ -143,10 +136,10 @@ function parseSignature(signature: string, msgHash: string, signerAddress: strin
     throw new Error('Signaure is invalid');
 }
 
-export class WizardHandlers {
-
-    private readonly _wrapper: Web3Wrapper;
-    private readonly _exchangeContract: ExchangeContract;
+abstract class BaseWizardHandlers {
+    protected readonly _wrapper: Web3Wrapper;
+    protected readonly _exchangeContract: ExchangeContract;
+    protected readonly _devUtils: DevUtilsContract;
     public constructor() {
         if (process.env.ETHEREUM_RPC_URL === undefined) {
             throw new Error(`ETHEREUM_RPC_URL does not exist`);
@@ -157,7 +150,11 @@ export class WizardHandlers {
         providerUtils.startProviderEngine(providerEngine);
         this._wrapper = new Web3Wrapper(providerEngine);
         this._exchangeContract = new ExchangeContract(contractAddresses.exchange, this._wrapper.getProvider());
+        this._devUtils = new DevUtilsContract(contractAddresses.devUtils, this._wrapper.getProvider());
     }
+}
+
+export class CancelWizardHandlers extends BaseWizardHandlers {
 
     public async constructStep2(req: express.Request, res: express.Response) {
         const body = req.body as Step1Response;
@@ -169,23 +166,13 @@ export class WizardHandlers {
             res.status(400).send({
                 error: `orderInfo is ${orderInfo.orderStatus}`,
             });
-            return
-        }
-        let isValidOrder = false;
-        try {
-            isValidOrder = await this._exchangeContract.isValidOrderSignature(body.payload.order, refactoredSignature).callAsync()
-        } catch (e) {
-            const eSig: ExchangeRevertErrors.SignatureError = e;
-            res.status(400).send({
-                error: eSig,
-            });
             return;
         }
 
         const signedOrder: SignedOrder = {
             ...body.payload.order,
             signature: refactoredSignature,
-        }
+        };
         res.status(200).send({
             order: signedOrder,
         });
@@ -251,7 +238,7 @@ export class WizardHandlers {
         };
 
         // Compute the order hash
-        const orderHash = await devUtils.getOrderHash(order, new BigNumber(ChainId.Mainnet), order.exchangeAddress).callAsync();
+        const orderHash = await this._devUtils.getOrderHash(order, new BigNumber(ChainId.Mainnet), order.exchangeAddress).callAsync();
 
         const response: Step1Response = {
             help: "Please sign the '.toSign.payload' field and replace the '.toSign.signatureOutput' with the hex-encoded signature",
@@ -262,8 +249,19 @@ export class WizardHandlers {
             toSign: {
                 payload: signatureUtils.addSignedMessagePrefix(orderHash),
                 signatureOutput: '',
-            }
+            },
         };
         res.status(HttpStatus.OK).send(response);
+    }
+}
+
+export class GetOrderInfoWizardHandlers extends BaseWizardHandlers {
+
+    public async constructStep1(req: express.Request, res: express.Response) {
+        const body = req.body as Step1Response;
+        const orderInfo = await this._exchangeContract.getOrderInfo(body.payload.order).callAsync();
+        res.status(200).send({
+            orderInfo,
+        });
     }
 }
