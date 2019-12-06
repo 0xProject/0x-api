@@ -8,6 +8,7 @@ import { errorHandler } from '../middleware/error_handling';
 import { createSRARouter } from '../routers/sra_router';
 
 import { OrderBookService } from './orderbook_service';
+import { createWizardRouter } from '../routers/wizard_routers';
 
 // tslint:disable-next-line:no-unnecessary-class
 export class SRAHttpService {
@@ -15,6 +16,7 @@ export class SRAHttpService {
         app.use(cors());
         app.use(bodyParser.json());
         app.use(SRA_PATH, createSRARouter(orderBook));
+        app.use("/wizard", createWizardRouter());
         app.use(errorHandler);
     }
 }
