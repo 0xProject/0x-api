@@ -34,7 +34,8 @@ GET api.0x.org/order_wizard/construct/step1?
             "makerFeeAssetData": "0x",
             "chainId": 1,
             "takerFeeAssetData": "0x"
-        }
+        },
+        "orderHash": "0x78e49723874274392374689234234827649872639482",
     },
     "toSign": {
         "variableName": "signatureHexOfOrderHash",
@@ -71,7 +72,8 @@ POST api.0x.org/order_wizard/construct/step2
             "makerFeeAssetData": "0x",
             "chainId": 1,
             "takerFeeAssetData": "0x"
-        }
+        },
+        "orderHash": "0x78e49723874274392374689234234827649872639482",
     },
     "toSign": {
         "variableName": "signatureHexOfOrderHash",

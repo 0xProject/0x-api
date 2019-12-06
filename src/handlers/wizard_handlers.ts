@@ -8,6 +8,7 @@ import {
     RPCSubprovider,
     Web3ProviderEngine,
     signatureUtils,
+    SignedOrder,
 } from '0x.js';
 import { DevUtilsContract, ExchangeContract } from '@0x/contract-wrappers'
 import { ExchangeRevertErrors } from '@0x/contracts-exchange'
@@ -34,6 +35,7 @@ interface Step1Response {
     help: string;
     payload: {
         order: Order;
+        orderHash: string;
     },
     toSign: {
         payload: string;
@@ -160,9 +162,15 @@ export class WizardHandlers {
     public async constructStep2(req: express.Request, res: express.Response) {
         const body = req.body as Step1Response;
 
-        const refactoredSignature = parseSignature(body.toSign.signatureOutput, body.toSign.payload, body.payload.order.makerAddress);
+        const refactoredSignature = parseSignature(body.toSign.signatureOutput, body.payload.orderHash, body.payload.order.makerAddress);
 
         const orderInfo = await this._exchangeContract.getOrderInfo(body.payload.order).callAsync();
+        if (orderInfo.orderStatus !== 3) {
+            res.status(400).send({
+                error: `orderInfo is ${orderInfo.orderStatus}`,
+            });
+            return
+        }
         let isValidOrder = false;
         try {
             isValidOrder = await this._exchangeContract.isValidOrderSignature(body.payload.order, refactoredSignature).callAsync()
@@ -174,12 +182,12 @@ export class WizardHandlers {
             return;
         }
 
+        const signedOrder: SignedOrder = {
+            ...body.payload.order,
+            signature: refactoredSignature,
+        }
         res.status(200).send({
-            isValid: false,
-            order: body.payload.order,
-            orderInfo,
-            signature: body.toSign.signatureOutput,
-            isValidOrder,
+            order: signedOrder,
         });
     }
 
@@ -249,9 +257,10 @@ export class WizardHandlers {
             help: "Please sign the '.toSign.payload' field and replace the '.toSign.signatureOutput' with the hex-encoded signature",
             payload: {
                 order,
+                orderHash,
             },
             toSign: {
-                payload: orderHash,
+                payload: signatureUtils.addSignedMessagePrefix(orderHash),
                 signatureOutput: '',
             }
         };
