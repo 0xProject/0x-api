@@ -1,14 +1,13 @@
-// import { assetDataUtils, BigNumber, SignedOrder } from '0x.js';
+import { BigNumber } from '0x.js';
 // import { schemas } from '@0x/json-schemas';
 import * as express from 'express';
-// import * as HttpStatus from 'http-status-codes';
+import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 
 // import { FEE_RECIPIENT_ADDRESS, WHITELISTED_TOKENS } from '../config';
 // import { NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { OrderBookService } from '../services/orderbook_service';
 // import { orderUtils } from '../utils/order_utils';
-// import { paginationUtils } from '../utils/pagination_utils';
 // import { schemaUtils } from '../utils/schema_utils';
 
 export class MetaTransactionHandlers {
@@ -16,11 +15,9 @@ export class MetaTransactionHandlers {
     constructor(_orderBook: OrderBookService) {
         // this._orderBook = orderBook;
     }
-    public async getTransactionAsync(_req: express.Request, _res: express.Response): Promise<void> {
-        // const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        // const paginatedOrders = await this._orderBook.getOrdersAsync(page, perPage, req.query);
-        // res.status(HttpStatus.OK).send(paginatedOrders);
-        console.log('GET /transaction');
+    public async getTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
+        const { sellToken, buyToken, sellAmount, buyAmount } = parseGetTransactionRequestParams(req);
+        res.status(HttpStatus.OK).send({ sellToken, buyToken, sellAmount, buyAmount });
     }
     public async postTransactionAsync(_req: express.Request, _res: express.Response): Promise<void> {
         // const signedOrder = unmarshallOrder(req.body);
@@ -34,3 +31,17 @@ export class MetaTransactionHandlers {
         console.log('POST /transaction');
     }
 }
+
+interface GetTransactionRequestParams {
+    sellToken: string;
+    buyToken: string;
+    sellAmount?: BigNumber;
+    buyAmount?: BigNumber;
+}
+const parseGetTransactionRequestParams = (req: express.Request): GetTransactionRequestParams => {
+    const sellToken = req.query.sellToken;
+    const buyToken = req.query.buyToken;
+    const sellAmount = req.query.sellAmount === undefined ? undefined : new BigNumber(req.query.sellAmount);
+    const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount);
+    return { sellToken, buyToken, sellAmount, buyAmount };
+};
