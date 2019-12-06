@@ -45,3 +45,11 @@ export const META_TRANSACTION_PATH = '/meta/v0';
 // Docs
 export const SWAP_DOCS_URL = 'https://0x.org/docs/api#swap';
 export const SRA_DOCS_URL = 'https://0x.org/docs/api#sra';
+
+// Sender keys
+export const SENDER_ADDRESS = '0xf145745ffe14fa7e23a4f99225754346b2f597ac';
+export const SENDER_PRIVATE_KEY = '65bfd588778267458bff375b8ab91dc22ddae257313baebf2ad449bbafd9471b';
+
+// Taker keys
+export const TAKER_ADDRESS = '0x9cc9fd7ac00ed2b5e219fa778e545316a19ac212';
+export const TAKER_PRIVATE_KEY = '63533f71849e878235d53587685102af8afcb298d2e577d7aa11c32c8b847a59';

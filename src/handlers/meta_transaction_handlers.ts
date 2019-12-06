@@ -4,13 +4,14 @@ import { DevUtilsContract } from '@0x/contracts-dev-utils';
 import { generatePseudoRandomSalt, ZeroExTransaction } from '@0x/order-utils';
 import { RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, providerUtils } from '@0x/utils';
+import { Web3Wrapper } from '@0x/web3-wrapper';
 import { SupportedProvider } from 'ethereum-types';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 
 import { CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
-import { ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
+import { ONE_SECOND_MS, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TEN_MINUTES_MS } from '../constants';
 import { OrderBookService } from '../services/orderbook_service';
 import { findTokenAddress } from '../utils/token_metadata_utils';
 
@@ -19,6 +20,7 @@ export class MetaTransactionHandlers {
     private readonly _provider: SupportedProvider;
     private readonly _swapQuoter: SwapQuoter;
     private readonly _contractWrappers: ContractWrappers;
+    private readonly _web3Wrapper: Web3Wrapper;
     constructor(_orderBookService: OrderBookService) {
         this._provider = createWeb3Provider(ETHEREUM_RPC_URL);
         const swapQuoterOpts = {
@@ -26,6 +28,7 @@ export class MetaTransactionHandlers {
         };
         this._swapQuoter = SwapQuoter.getSwapQuoterForMeshEndpoint(this._provider, MESH_WEBSOCKET_URI, swapQuoterOpts);
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
+        this._web3Wrapper = new Web3Wrapper(this._provider);
     }
     public async getTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
         // parse query params
@@ -78,7 +81,7 @@ export class MetaTransactionHandlers {
         };
         // use the DevUtils contract to generate the transaction hash
         const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
-        const transactionHash = await devUtils
+        const zeroExTransactionHash = await devUtils
             .getTransactionHash(
                 zeroExTransaction,
                 new BigNumber(CHAIN_ID),
@@ -87,20 +90,34 @@ export class MetaTransactionHandlers {
             .callAsync();
         // return the transaction object and hash
         res.status(HttpStatus.OK).send({
-            transactionHash,
+            zeroExTransactionHash,
             zeroExTransaction,
         });
     }
-    public async postTransactionAsync(_req: express.Request, _res: express.Response): Promise<void> {
-        // const signedOrder = unmarshallOrder(req.body);
-        // if (WHITELISTED_TOKENS !== '*') {
-        //     const allowedTokens: string[] = WHITELISTED_TOKENS;
-        //     validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.makerAssetData, 'makerAssetData');
-        //     validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.takerAssetData, 'takerAssetData');
-        // }
-        // await this._orderBook.addOrderAsync(signedOrder);
-        // res.status(HttpStatus.OK).send();
-        console.log('POST /transaction');
+    public async postTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
+        // parse the request body
+        const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
+        // decode zeroExTransaction data
+        const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
+        const decodedArray = await devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
+        const orders = decodedArray[1];
+        const gas = 800000;
+        const gasPrice = zeroExTransaction.gasPrice;
+        // submit executeTransaction transaction
+        const transactionHash = await this._contractWrappers.exchange
+            .executeTransaction(zeroExTransaction, signature)
+            .sendTransactionAsync({
+                gas,
+                from: SENDER_ADDRESS,
+                gasPrice,
+                value: calculateProtocolFee(orders.length, gasPrice),
+            });
+        // await successful transaction
+        const transactionReceipt = await this._web3Wrapper.awaitTransactionSuccessAsync(transactionHash);
+        // return the transactionReceipt
+        res.status(HttpStatus.OK).send({
+            transactionReceipt,
+        });
     }
 }
 
@@ -124,9 +141,40 @@ const range = (rangeCount: number): number[] => [...Array(rangeCount).keys()];
 const createWeb3Provider = (rpcHost: string): SupportedProvider => {
     const WEB3_RPC_RETRY_COUNT = 3;
     const providerEngine = new Web3ProviderEngine();
-    // providerEngine.addProvider(new PrivateKeyWalletSubprovider(privateKey.replace('0x', '')));
+    providerEngine.addProvider(new PrivateKeyWalletSubprovider(SENDER_PRIVATE_KEY));
     const rpcSubproviders = range(WEB3_RPC_RETRY_COUNT).map((_index: number) => new RPCSubprovider(rpcHost));
     providerEngine.addProvider(new RedundantSubprovider(rpcSubproviders));
     providerUtils.startProviderEngine(providerEngine);
     return providerEngine;
+};
+
+interface ZeroExTransactionWithoutDomain {
+    salt: BigNumber;
+    expirationTimeSeconds: BigNumber;
+    gasPrice: BigNumber;
+    signerAddress: string;
+    data: string;
+}
+interface PostTransactionRequestBody {
+    zeroExTransaction: ZeroExTransactionWithoutDomain;
+    signature: string;
+}
+const parsePostTransactionRequestBody = (req: any): PostTransactionRequestBody => {
+    const requestBody = req.body;
+    const signature = requestBody.signature;
+    const zeroExTransaction: ZeroExTransactionWithoutDomain = {
+        salt: new BigNumber(requestBody.zeroExTransaction.salt),
+        expirationTimeSeconds: new BigNumber(requestBody.zeroExTransaction.expirationTimeSeconds),
+        gasPrice: new BigNumber(requestBody.zeroExTransaction.gasPrice),
+        signerAddress: requestBody.zeroExTransaction.signerAddress,
+        data: requestBody.zeroExTransaction.data,
+    };
+    return {
+        zeroExTransaction,
+        signature,
+    };
+};
+
+const calculateProtocolFee = (numOrders: number, gasPrice: BigNumber): BigNumber => {
+    return new BigNumber(150000).times(gasPrice).times(numOrders);
 };
