@@ -12,17 +12,16 @@ import {
     Web3ProviderEngine,
 } from '0x.js';
 import { DevUtilsContract, ExchangeContract } from '@0x/contract-wrappers'
-import { ExchangeRevertErrors } from '@0x/contracts-exchange'
 import { isValidECSignature, parseSignatureHexAsVRS } from '@0x/order-utils/lib/src/signature_utils';
 import { providerUtils } from '@0x/utils';
-import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
+import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
 import * as ethUtil from 'ethereumjs-util';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
 import { NULL_ADDRESS, ZERO } from '../constants';
 
-interface Step1Params {
+interface Step1CreateOrderParams {
     myAddress: string;
     buy: string;
     sell: string;
@@ -30,7 +29,7 @@ interface Step1Params {
     amountSell: BigNumber;
 }
 
-interface Step1Response {
+interface Step1CreateOrderResponse {
     help: string;
     payload: {
         order: Order;
@@ -40,6 +39,10 @@ interface Step1Response {
         payload: string;
         signatureOutput: string;
     };
+}
+
+interface Step1CancelOrderParams {
+    orders: Order[];
 }
 
 interface TokenMeta {
@@ -154,10 +157,52 @@ abstract class BaseWizardHandlers {
     }
 }
 
-export class CancelWizardHandlers extends BaseWizardHandlers {
+export class CancelOrdersWizardHandlers extends BaseWizardHandlers {
+
+    public async constructStep1(req: express.Request, res: express.Response) {
+        const cancelParams = req.body as Step1CancelOrderParams;
+
+        const makers = new Set()
+        for (const cancel of cancelParams.orders) {
+            makers.add(cancel.makerAddress);
+        }
+        if (makers.size !== 1) {
+            return res.send({
+                error: "There is more than one maker",
+            });
+        }
+        const frm = cancelParams.orders[0].makerAddress;
+
+        let gasUsed: number;
+        let data: string;
+        if (cancelParams.orders.length === 1) {
+            gasUsed = await this._exchangeContract.cancelOrder(cancelParams.orders[0]).estimateGasAsync({
+                from: frm,
+            });
+            data = this._exchangeContract.cancelOrder(cancelParams.orders[0]).getABIEncodedTransactionData();
+        } else {
+            gasUsed = await this._exchangeContract.batchCancelOrders(cancelParams.orders).estimateGasAsync({
+                from: frm,
+            });
+            data = this._exchangeContract.batchCancelOrders(cancelParams.orders).getABIEncodedTransactionData();
+        }
+
+        const response: TxData = {
+            data,
+            from: ethUtil.toChecksumAddress(frm),
+            to: ethUtil.toChecksumAddress(contractAddresses.exchange),
+            gas: gasUsed,
+            gasPrice: 40000000000,
+        }
+        return res.send(response)
+    }
+
+}
+
+export class CreateOrderWizardHandlers extends BaseWizardHandlers {
 
     public async constructStep2(req: express.Request, res: express.Response) {
-        const body = req.body as Step1Response;
+        const body = req.body as Step1CreateOrderResponse;
 
         const refactoredSignature = parseSignature(body.toSign.signatureOutput, body.payload.orderHash, body.payload.order.makerAddress);
 
@@ -198,7 +243,7 @@ export class CancelWizardHandlers extends BaseWizardHandlers {
             }
         }
 
-        const params: Step1Params = {
+        const params: Step1CreateOrderParams = {
             myAddress: req.query.myAddress,
             buy: req.query.buy,
             sell: req.query.sell,
@@ -240,7 +285,7 @@ export class CancelWizardHandlers extends BaseWizardHandlers {
         // Compute the order hash
         const orderHash = await this._devUtils.getOrderHash(order, new BigNumber(ChainId.Mainnet), order.exchangeAddress).callAsync();
 
-        const response: Step1Response = {
+        const response: Step1CreateOrderResponse = {
             help: "Please sign the '.toSign.payload' field and replace the '.toSign.signatureOutput' with the hex-encoded signature",
             payload: {
                 order,
@@ -258,7 +303,7 @@ export class CancelWizardHandlers extends BaseWizardHandlers {
 export class GetOrderInfoWizardHandlers extends BaseWizardHandlers {
 
     public async constructStep1(req: express.Request, res: express.Response) {
-        const body = req.body as Step1Response;
+        const body = req.body as Step1CreateOrderResponse;
         const orderInfo = await this._exchangeContract.getOrderInfo(body.payload.order).callAsync();
         res.status(200).send({
             orderInfo,
