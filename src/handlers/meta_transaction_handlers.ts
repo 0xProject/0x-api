@@ -4,7 +4,6 @@ import { DevUtilsContract } from '@0x/contracts-dev-utils';
 import { generatePseudoRandomSalt, ZeroExTransaction } from '@0x/order-utils';
 import { RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, providerUtils } from '@0x/utils';
-import { Web3Wrapper } from '@0x/web3-wrapper';
 import { SupportedProvider } from 'ethereum-types';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -20,7 +19,6 @@ export class MetaTransactionHandlers {
     private readonly _provider: SupportedProvider;
     private readonly _swapQuoter: SwapQuoter;
     private readonly _contractWrappers: ContractWrappers;
-    private readonly _web3Wrapper: Web3Wrapper;
     constructor(_orderBookService: OrderBookService) {
         this._provider = createWeb3Provider(ETHEREUM_RPC_URL);
         const swapQuoterOpts = {
@@ -28,7 +26,6 @@ export class MetaTransactionHandlers {
         };
         this._swapQuoter = SwapQuoter.getSwapQuoterForMeshEndpoint(this._provider, MESH_WEBSOCKET_URI, swapQuoterOpts);
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
-        this._web3Wrapper = new Web3Wrapper(this._provider);
     }
     public async getTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
         // parse query params
@@ -112,11 +109,9 @@ export class MetaTransactionHandlers {
                 gasPrice,
                 value: calculateProtocolFee(orders.length, gasPrice),
             });
-        // await successful transaction
-        const transactionReceipt = await this._web3Wrapper.awaitTransactionSuccessAsync(transactionHash);
         // return the transactionReceipt
         res.status(HttpStatus.OK).send({
-            transactionReceipt,
+            transactionHash,
         });
     }
 }
