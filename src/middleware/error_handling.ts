@@ -9,6 +9,7 @@ import {
     generalErrorCodeToReason,
     ValidationError,
 } from '../errors';
+import { logger } from '../logger';
 
 /**
  * Wraps an Error with a JSON human readable reason and status code.
@@ -46,13 +47,21 @@ export function generateError(err: Error): ErrorBodyWithHTTPStatusCode {
                 },
             };
         }
+    } else if ((err as any).statusCode) {
+        return {
+            statusCode: HttpStatus.BAD_REQUEST,
+            errorBody: {
+                reason: err.message,
+            },
+        };
+    } else {
+        return {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            errorBody: {
+                reason: err.message,
+            },
+        };
     }
-    return {
-        statusCode: HttpStatus.BAD_REQUEST,
-        errorBody: {
-            reason: err.message,
-        },
-    };
 }
 
 /**
@@ -70,11 +79,14 @@ export function errorHandler(
     if (res.headersSent) {
         return next(err);
     }
-    if ((err as any).isAPIError || (err as any).statusCode) {
-        const { statusCode, errorBody } = generateError(err);
-        res.status(statusCode).send(errorBody);
-        return;
-    } else {
-        return next(err);
+
+    const { statusCode, errorBody } = generateError(err);
+    res.status(statusCode).send(errorBody);
+
+    // If the error is an internal error, log it with the stack!
+    // All other error responses are logged as part of request logging
+    if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+        logger.error(err);
+        next(err);
     }
 }
