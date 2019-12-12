@@ -86,7 +86,8 @@ export function errorHandler(
     // If the error is an internal error, log it with the stack!
     // All other error responses are logged as part of request logging
     if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
-        logger.error(err);
+        // hack (xianny): typeorm errors contain the SQL query which breaks the docker char limit and subsequently breaks log parsing
+        logger.error({ ...err, query: undefined});
         next(err);
     }
 }
