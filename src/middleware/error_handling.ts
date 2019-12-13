@@ -15,11 +15,16 @@ import { logger } from '../logger';
  * Wraps an Error with a JSON human readable reason and status code.
  */
 export function generateError(err: Error): ErrorBodyWithHTTPStatusCode {
+    // handle named errors
     if ((err as any).isAPIError) {
         const apiError = err as APIBaseError;
         const statusCode = apiError.statusCode;
+
+        // populate more information for BAD_REQUEST errors
         if (apiError.statusCode === HttpStatus.BAD_REQUEST) {
             const badRequestError = apiError as BadRequestError;
+
+            // populate validation error information
             if (badRequestError.generalErrorCode === GeneralErrorCodes.ValidationError) {
                 const validationError = badRequestError as ValidationError;
                 return {
@@ -31,6 +36,7 @@ export function generateError(err: Error): ErrorBodyWithHTTPStatusCode {
                     },
                 };
             } else {
+                // if not a validation error, populate the error body with standard bad request text
                 return {
                     statusCode,
                     errorBody: {
@@ -40,6 +46,8 @@ export function generateError(err: Error): ErrorBodyWithHTTPStatusCode {
                 };
             }
         } else {
+            // all named errors that are not BAD_REQUEST
+            // preserve the statusCode and populate the error body with standard status text
             return {
                 statusCode,
                 errorBody: {
@@ -47,14 +55,8 @@ export function generateError(err: Error): ErrorBodyWithHTTPStatusCode {
                 },
             };
         }
-    } else if ((err as any).statusCode) {
-        return {
-            statusCode: HttpStatus.BAD_REQUEST,
-            errorBody: {
-                reason: err.message,
-            },
-        };
     } else {
+        // coerce unnamed errors into generic INTERNAL_SERVER_ERROR
         return {
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
             errorBody: {
@@ -87,7 +89,7 @@ export function errorHandler(
     // All other error responses are logged as part of request logging
     if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
         // hack (xianny): typeorm errors contain the SQL query which breaks the docker char limit and subsequently breaks log parsing
-        logger.error({ ...err, query: undefined});
+        logger.error({ ...err, query: undefined });
         next(err);
     }
 }
