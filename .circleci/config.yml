@@ -7,9 +7,12 @@ jobs:
     build:
         docker:
             - image: circleci/node:8.12.0-browsers
+            - image: postgres
 
         working_directory: ~/repo
-
+        environment:
+            ETHEREUM_RPC_URL: http://localhost:8545
+            CHAIN_ID: 1337
         steps:
             - checkout
             # Download and cache dependencies
@@ -28,3 +31,4 @@ jobs:
             - run: yarn build
             - run: yarn lint
             - run: yarn prettier
+            - run: yarn test
