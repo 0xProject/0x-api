@@ -7,12 +7,14 @@ jobs:
     build:
         docker:
             - image: circleci/node:8.12.0-browsers
-            - image: postgres
-
+            - image: circleci/postgres:9.6.5-alpine-ram
         working_directory: ~/repo
         environment:
             ETHEREUM_RPC_URL: http://localhost:8545
             CHAIN_ID: 1337
+            POSTGRES_USER: postgres
+            POSTGRES_DB: circle_test
+            POSTGRES_URI: 'postgresql://root@localhost/circle_test'
         steps:
             - checkout
             # Download and cache dependencies
