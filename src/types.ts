@@ -157,6 +157,7 @@ export interface EpochPoolStats {
     poolId: string;
     zrxStaked: number;
     operatorShare: number;
+    rewardsShared: number;
     makerAddresses: string[];
     totalProtocolFeesGeneratedInEth: number;
     approximateStakeRatio: number;

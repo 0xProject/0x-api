@@ -101,10 +101,15 @@ export const stakingUtils = {
             total_protocol_fees_generated_in_eth,
             approximate_stake_ratio,
         } = rawEpochPoolStats;
+
+        const operatorShare = Number(operator_share);
+        const rewardsShared = 1 - operatorShare;
+
         return {
             poolId: pool_id,
             zrxStaked: Number(zrx_staked || 0),
-            operatorShare: Number(operator_share),
+            operatorShare,
+            rewardsShared,
             approximateStakeRatio: approximate_stake_ratio ? Number(approximate_stake_ratio) : 0,
             makerAddresses: maker_addresses || [],
             totalProtocolFeesGeneratedInEth: Number(total_protocol_fees_generated_in_eth || 0),
