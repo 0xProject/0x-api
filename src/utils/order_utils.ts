@@ -41,19 +41,19 @@ const DEFAULT_ERC20_ASSET = {
 
 const DEFAULT_ERC1155_ASSET = {
     minAmount: new BigNumber(0),
-    maxAmount: new BigNumber(1),
+    maxAmount: MAX_TOKEN_SUPPLY_POSSIBLE,
     precision: 0,
 };
 
 const DEFAULT_MULTIASSET = {
     minAmount: new BigNumber(0),
-    maxAmount: new BigNumber(1),
+    maxAmount: MAX_TOKEN_SUPPLY_POSSIBLE,
     precision: 0,
 };
 
 const DEFAULT_STATIC_CALL = {
-    minAmount: new BigNumber(0),
-    maxAmount: new BigNumber(1),
+    minAmount: new BigNumber(1),
+    maxAmount: MAX_TOKEN_SUPPLY_POSSIBLE,
     precision: 0,
 };
 const proxyIdToDefaults: { [id: string]: Partial<Asset> } = {
