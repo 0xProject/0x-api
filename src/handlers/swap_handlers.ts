@@ -101,6 +101,11 @@ export class SwapHandlers {
         const filteredTokens = tokens.filter(t => t.address !== NULL_ADDRESS);
         res.status(HttpStatus.OK).send({ records: filteredTokens });
     }
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getTokenPricesAsync(_req: express.Request, res: express.Response): Promise<void> {
+        const prices = await this._swapService.getTokenPricesAsync();
+        res.status(HttpStatus.OK).send({ prices });
+    }
 }
 
 const findTokenAddressOrThrowApiError = (address: string, field: string, chainId: ChainId): string => {
