@@ -1,17 +1,20 @@
 import { Orderbook } from '@0x/asset-swapper';
-import { WSClient } from '@0x/mesh-rpc-client';
 import * as express from 'express';
+// tslint:disable-next-line:no-implicit-dependencies
+import * as core from 'express-serve-static-core';
+import { Server } from 'http';
 
+import { AppDependencies } from '../app';
 import * as config from '../config';
 import { getDBConnectionAsync } from '../db_connection';
 import { logger } from '../logger';
 import { requestLogger } from '../middleware/request_logger';
 import { OrderBookServiceOrderProvider } from '../order_book_service_order_provider';
+import { configureSRAHttpRouter } from '../routers/sra_router';
+import { configureStakingHttpRouter } from '../routers/staking_router';
+import { configureSwapHttpRouter } from '../routers/swap_router';
 import { OrderBookService } from '../services/orderbook_service';
-import { SRAHttpService } from '../services/sra_http_service';
 import { StakingDataService } from '../services/staking_data_service';
-import { StakingHttpService } from '../services/staking_http_service';
-import { SwapHttpService } from '../services/swap_http_service';
 import { SwapService } from '../services/swap_service';
 import { OrderStoreDbAdapter } from '../utils/order_store_db_adapter';
 import { providerUtils } from '../utils/provider_utils';
@@ -27,39 +30,53 @@ process.on('unhandledRejection', err => {
     }
 });
 
+if (require.main === module) {
+    (async () => {
+        await runHttpServiceAsync({}, config);
+    })().catch(error => logger.error(error));
+}
+
 /**
  * This service handles the HTTP requests. This involves fetching from the database
  * as well as adding orders to mesh.
+ * @param dependencies If no mesh client is supplied, the HTTP service will start without it.
+ *                     It will provide defaults for other params.
  */
-(async () => {
-    const connection = await getDBConnectionAsync();
-    const app = express();
+export async function runHttpServiceAsync(
+    dependencies: AppDependencies,
+    _config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string },
+    _app?: core.Express,
+): Promise<Server> {
+    const app = _app || express();
     app.use(requestLogger());
-    app.listen(config.HTTP_PORT, () => {
-        logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!\nConfig: ${JSON.stringify(config, null, 2)}`);
+    const server = app.listen(_config.HTTP_PORT, () => {
+        logger.info(`API (HTTP) listening on port ${_config.HTTP_PORT}!\nConfig: ${JSON.stringify(_config, null, 2)}`);
     });
-    const stakingDataService = new StakingDataService(connection);
-    // tslint:disable-next-line:no-unused-expression
-    new StakingHttpService(app, stakingDataService);
-    let meshClient;
+
+    // staking http service
+    const connection = dependencies.connection || (await getDBConnectionAsync());
+    const stakingDataService = dependencies.stakingDataService || new StakingDataService(connection);
+    configureStakingHttpRouter(app, stakingDataService);
+
+    // SRA http service
+    const orderBookService = dependencies.orderBookService || new OrderBookService(connection, dependencies.meshClient);
+    configureSRAHttpRouter(app, orderBookService);
+
+    // swap/quote http service
     try {
-        meshClient = new WSClient(config.MESH_WEBSOCKET_URI);
+        const swapService = dependencies.swapService || createSwapServiceFromOrderBookService(orderBookService);
+        configureSwapHttpRouter(app, swapService);
     } catch (err) {
         logger.error(err);
     }
-    const orderBookService = new OrderBookService(connection, meshClient);
-    // tslint:disable-next-line:no-unused-expression
-    new SRAHttpService(app, orderBookService);
-    try {
-        // Quote Service
-        const orderStore = new OrderStoreDbAdapter(orderBookService);
+
+    return server;
+
+    function createSwapServiceFromOrderBookService(_orderBookService: OrderBookService): SwapService {
+        const orderStore = new OrderStoreDbAdapter(_orderBookService);
         const orderProvider = new OrderBookServiceOrderProvider(orderStore, orderBookService);
         const orderBook = new Orderbook(orderProvider, orderStore);
-        const provider = providerUtils.createWeb3Provider(config.ETHEREUM_RPC_URL);
-        const swapService = new SwapService(orderBook, provider);
-        // tslint:disable-next-line:no-unused-expression
-        new SwapHttpService(app, swapService);
-    } catch (err) {
-        logger.error(err);
+        const provider = dependencies.provider || providerUtils.createWeb3Provider(_config.ETHEREUM_RPC_URL);
+        return new SwapService(orderBook, provider);
     }
-})().catch(error => logger.error(error));
+}

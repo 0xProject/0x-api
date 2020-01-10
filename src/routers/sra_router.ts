@@ -1,10 +1,23 @@
+import * as bodyParser from 'body-parser';
+import * as cors from 'cors';
 import * as express from 'express';
 import * as asyncHandler from 'express-async-handler';
+// tslint:disable-next-line:no-implicit-dependencies
+import * as core from 'express-serve-static-core';
 
+import { SRA_PATH } from '../constants';
 import { SRAHandlers } from '../handlers/sra_handlers';
+import { errorHandler } from '../middleware/error_handling';
 import { OrderBookService } from '../services/orderbook_service';
 
-export const createSRARouter = (orderBook: OrderBookService): express.Router => {
+export const configureSRAHttpRouter = (app: core.Express, orderBook: OrderBookService): void => {
+    app.use(cors());
+    app.use(bodyParser.json());
+    app.use(SRA_PATH, createSRARouter(orderBook));
+    app.use(errorHandler);
+};
+
+function createSRARouter(orderBook: OrderBookService): express.Router {
     const router = express.Router();
     const handlers = new SRAHandlers(orderBook);
     // Link to docs in the root.
@@ -45,4 +58,4 @@ export const createSRARouter = (orderBook: OrderBookService): express.Router => 
      */
     router.get('/order/:orderHash', asyncHandler(handlers.getOrderByHashAsync.bind(handlers)));
     return router;
-};
+}

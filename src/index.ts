@@ -1,9 +1,17 @@
+import { WSClient } from '@0x/mesh-rpc-client';
+
 import { getAppAsync } from './app';
+import * as config from './config';
+import { getDBConnectionAsync } from './db_connection';
 import { logger } from './logger';
 
-// start the app
-getAppAsync().catch(error => logger.error(error));
-
+if (require.main === module) {
+    (async () => {
+        const connection = await getDBConnectionAsync();
+        const meshClient = new WSClient(config.MESH_WEBSOCKET_URI);
+        await getAppAsync({ connection, meshClient }, config);
+    })().catch(err => logger.error(err));
+}
 process.on('uncaughtException', err => {
     logger.error(err);
     process.exit(1);

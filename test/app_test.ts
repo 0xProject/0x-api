@@ -3,7 +3,6 @@ import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { runMigrationsOnceAsync } from '@0x/migrations';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { Web3Wrapper } from '@0x/web3-wrapper';
-import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
@@ -18,22 +17,19 @@ const testConfig = {
     ...config,
     ETHEREUM_RPC_URL: 'http://localhost:8545',
     CHAIN_ID: 1337,
-    ENVIRONMENT: 'unittest',
 };
 
-let app: express.Application;
+let app: Express.Application;
 
 let web3Wrapper: Web3Wrapper;
 let provider: Web3ProviderEngine;
 let accounts: string[];
-// let contractAddresses: ContractAddresses;
 let blockchainLifecycle: BlockchainLifecycle;
 
 describe('app test', () => {
     before(async () => {
         // start ganache and run contract migrations
         const ganacheConfigs = {
-            total_accounts: 10,
             shouldUseInProcessGanache: true,
             shouldAllowUnlimitedContractSize: true,
         };
@@ -46,7 +42,7 @@ describe('app test', () => {
         await runMigrationsOnceAsync(provider, { from: owner });
 
         // start the 0x-api app
-        app = await getAppAsync(testConfig);
+        app = await getAppAsync({provider}, testConfig); // tslint:disable-line:no-object-literal-type-assertion
 
     });
     it('should not be undefined', () => {
