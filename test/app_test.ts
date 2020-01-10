@@ -1,4 +1,3 @@
-// import { ContractAddresses } from '@0x/contract-addresses';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { runMigrationsOnceAsync } from '@0x/migrations';
 import { Web3ProviderEngine } from '@0x/subproviders';
@@ -42,7 +41,7 @@ describe('app test', () => {
         await runMigrationsOnceAsync(provider, { from: owner });
 
         // start the 0x-api app
-        app = await getAppAsync({provider}, testConfig); // tslint:disable-line:no-object-literal-type-assertion
+        app = await getAppAsync({provider}, testConfig);
 
     });
     it('should not be undefined', () => {

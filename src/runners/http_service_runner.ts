@@ -16,6 +16,7 @@ import { configureSwapHttpRouter } from '../routers/swap_router';
 import { OrderBookService } from '../services/orderbook_service';
 import { StakingDataService } from '../services/staking_data_service';
 import { SwapService } from '../services/swap_service';
+import { WebsocketService } from '../services/websocket_service';
 import { OrderStoreDbAdapter } from '../utils/order_store_db_adapter';
 import { providerUtils } from '../utils/provider_utils';
 
@@ -68,6 +69,14 @@ export async function runHttpServiceAsync(
         configureSwapHttpRouter(app, swapService);
     } catch (err) {
         logger.error(err);
+    }
+
+    // websocket service
+    if (dependencies.meshClient) {
+        // tslint:disable-next-line:no-unused-expression
+        new WebsocketService(server, dependencies.meshClient);
+    } else {
+        logger.warn(`API running without a websocket connection to mesh!`);
     }
 
     return server;

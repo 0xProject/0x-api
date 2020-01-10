@@ -10,7 +10,6 @@ import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_run
 import { OrderBookService } from './services/orderbook_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
-import { WebsocketService } from './services/websocket_service';
 
 export interface AppDependencies {
     connection?: Connection;
@@ -33,12 +32,10 @@ export async function getAppAsync(
     config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string },
 ): Promise<Express.Application> {
     const app = express();
-    const server = await runHttpServiceAsync(dependencies, config, app);
-    const connection = dependencies.connection || (await getDBConnectionAsync());
+    await runHttpServiceAsync(dependencies, config, app);
 
     if (dependencies.meshClient !== undefined) {
-        // tslint:disable-next-line:no-unused-expression
-        new WebsocketService(server, dependencies.meshClient);
+        const connection = dependencies.connection || (await getDBConnectionAsync());
         await runOrderWatcherServiceAsync(connection, dependencies.meshClient);
     } else {
         logger.warn('API starting without a connection to mesh');
