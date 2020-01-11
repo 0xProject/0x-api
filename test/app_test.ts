@@ -8,7 +8,7 @@ import * as request from 'supertest';
 
 import { getAppAsync  } from '../src/app';
 import * as config from '../src/config';
-import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../src/constants';
+import { DEFAULT_PAGE, DEFAULT_PER_PAGE, SRA_PATH } from '../src/constants';
 
 import { expect } from './utils/expect';
 
@@ -49,7 +49,7 @@ describe('app test', () => {
     });
     it('should respond to GET /sra/orders', async () => {
         await request(app)
-            .get('/sra/orders')
+            .get(`${SRA_PATH}/orders`)
             .expect('Content-Type', /json/)
             .expect(HttpStatus.OK)
             .then(response => {
