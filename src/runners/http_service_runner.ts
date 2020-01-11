@@ -1,4 +1,5 @@
 import { Orderbook } from '@0x/asset-swapper';
+import { WSClient } from '@0x/mesh-rpc-client';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
@@ -33,7 +34,8 @@ process.on('unhandledRejection', err => {
 
 if (require.main === module) {
     (async () => {
-        await runHttpServiceAsync({}, config);
+        const meshClient = new WSClient(config.MESH_WEBSOCKET_URI);
+        await runHttpServiceAsync({ meshClient }, config);
     })().catch(error => logger.error(error));
 }
 
@@ -74,7 +76,7 @@ export async function runHttpServiceAsync(
     // websocket service
     if (dependencies.meshClient) {
         // tslint:disable-next-line:no-unused-expression
-        new WebsocketService(server, dependencies.meshClient);
+        new WebsocketService(server, dependencies.meshClient, dependencies.websocketOpts);
     } else {
         logger.warn(`API running without a websocket connection to mesh!`);
     }

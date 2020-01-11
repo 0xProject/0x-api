@@ -10,6 +10,7 @@ import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_run
 import { OrderBookService } from './services/orderbook_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
+import { WebsocketSRAOpts } from './types';
 
 export interface AppDependencies {
     connection?: Connection;
@@ -18,6 +19,7 @@ export interface AppDependencies {
     orderBookService?: OrderBookService;
     swapService?: SwapService;
     provider?: SupportedProvider;
+    websocketOpts?: Partial<WebsocketSRAOpts>;
 }
 
 /**
