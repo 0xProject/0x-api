@@ -13,7 +13,7 @@ import { paginationUtils } from '../utils/pagination_utils';
 
 export class OrderBookService {
     private readonly _meshClient?: WSClient;
-    private readonly _connection: Connection;
+    private _connection: Connection;
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<APIOrder | undefined> {
         const signedOrderEntityIfExists = await this._connection.manager.findOne(SignedOrderEntity, orderHash);
         if (signedOrderEntityIfExists === undefined) {
@@ -67,16 +67,19 @@ export class OrderBookService {
         baseAssetData: string,
         quoteAssetData: string,
     ): Promise<OrderbookResponse> {
-        const bidSignedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
-            where: { takerAssetData: baseAssetData, makerAssetData: quoteAssetData },
-        })) as Array<Required<SignedOrderEntity>>;
-        const askSignedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
-            where: { takerAssetData: quoteAssetData, makerAssetData: baseAssetData },
-        })) as Array<Required<SignedOrderEntity>>;
-        const bidApiOrders: APIOrder[] = bidSignedOrderEntities
+        const [bidSignedOrderEntities, askSignedOrderEntities] = await Promise.all([
+            this._connection.manager.find(SignedOrderEntity, {
+                where: { takerAssetData: baseAssetData, makerAssetData: quoteAssetData },
+            }),
+            this._connection.manager.find(SignedOrderEntity, {
+                where: { takerAssetData: quoteAssetData, makerAssetData: baseAssetData },
+            }),
+        ]);
+        console.log(bidSignedOrderEntities.length, askSignedOrderEntities.length);
+        const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Array<Required<SignedOrderEntity>>)
             .map(orderUtils.deserializeOrderToAPIOrder)
             .sort((orderA, orderB) => orderUtils.compareBidOrder(orderA.order, orderB.order));
-        const askApiOrders: APIOrder[] = askSignedOrderEntities
+        const askApiOrders: APIOrder[] = (askSignedOrderEntities as Array<Required<SignedOrderEntity>>)
             .map(orderUtils.deserializeOrderToAPIOrder)
             .sort((orderA, orderB) => orderUtils.compareAskOrder(orderA.order, orderB.order));
         const paginatedBidApiOrders = paginationUtils.paginate(bidApiOrders, page, perPage);

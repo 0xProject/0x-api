@@ -33,10 +33,20 @@ export class OrderStoreDbAdapter extends OrderStore {
         }
         // Currently not handling deletes as this is handled by Mesh
     }
-    public async hasAsync(assetPairKey: string): Promise<boolean> {
-        const [assetA, assetB] = OrderStore.assetPairKeyToAssets(assetPairKey);
-        const pairs = await this._orderbookService.getAssetPairsAsync(FIRST_PAGE, MAX_QUERY_SIZE, assetA, assetB);
-        return pairs.total !== 0;
+    // tslint:disable-next-line:prefer-function-over-method
+    public async hasAsync(_assetPairKey: string): Promise<boolean> {
+        return true;
+        // const [assetA, assetB] = OrderStore.assetPairKeyToAssets(assetPairKey);
+        // const { bids, asks } = await this._orderbookService.getOrderBookAsync(
+        //     FIRST_PAGE,
+        //     MAX_QUERY_SIZE,
+        //     assetA,
+        //     assetB,
+        // );
+        // return bids.total !== 0 || asks.total !== 0;
+        // const [assetA, assetB] = OrderStore.assetPairKeyToAssets(assetPairKey);
+        // const pairs = await this._orderbookService.getAssetPairsAsync(FIRST_PAGE, MAX_QUERY_SIZE, assetA, assetB);
+        // return pairs.total !== 0;
     }
     public async valuesAsync(assetPairKey: string): Promise<APIOrder[]> {
         return Array.from((await this.getOrderSetForAssetPairAsync(assetPairKey)).values());
