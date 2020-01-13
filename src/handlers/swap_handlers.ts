@@ -102,8 +102,8 @@ export class SwapHandlers {
         res.status(HttpStatus.OK).send({ records: filteredTokens });
     }
     // tslint:disable-next-line:prefer-function-over-method
-    public async getTokenPricesAsync(_req: express.Request, res: express.Response): Promise<void> {
-        const prices = await this._swapService.getTokenPricesAsync();
+    public async getTokenPricesAsync(req: express.Request, res: express.Response): Promise<void> {
+        const prices = await this._swapService.getTokenPricesAsync(req.query.sellToken || 'WETH');
         res.status(HttpStatus.OK).send({ prices });
     }
 }
