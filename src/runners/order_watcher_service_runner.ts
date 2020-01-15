@@ -1,17 +1,30 @@
 import { WSClient } from '@0x/mesh-rpc-client';
 import { Connection } from 'typeorm';
 
-import * as config from '../config';
-import { getDBConnectionAsync } from '../db_connection';
+import { getDefaultAppDependenciesAsync } from '../app';
+import * as defaultConfig from '../config';
 import { logger } from '../logger';
 import { OrderWatcherService } from '../services/order_watcher_service';
+import { providerUtils } from '../utils/provider_utils';
 
 if (require.main === module) {
     (async () => {
-        const connection = await getDBConnectionAsync();
-        const meshClient = new WSClient(config.MESH_WEBSOCKET_URI);
-        await runOrderWatcherServiceAsync(connection, meshClient);
-        logger.info(`Order Watching Service started!\nConfig: ${JSON.stringify(config, null, 2)}`);
+        const provider = providerUtils.createWeb3Provider(defaultConfig.ETHEREUM_RPC_URL);
+        const { connection, meshClient } = await getDefaultAppDependenciesAsync(provider, defaultConfig);
+
+        if (meshClient) {
+            await runOrderWatcherServiceAsync(connection, meshClient);
+
+            logger.info(`Order Watching Service started!\nConfig: ${JSON.stringify(defaultConfig, null, 2)}`);
+        } else {
+            logger.warn(
+                `Order Watching Service could not be started! Could not start mesh client!\nConfig: ${JSON.stringify(
+                    defaultConfig,
+                    null,
+                    2,
+                )}`,
+            );
+        }
     })().catch(error => logger.error(error));
 }
 /**

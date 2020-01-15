@@ -1,17 +1,13 @@
-import { WSClient } from '@0x/mesh-rpc-client';
-
-import { getAppAsync } from './app';
+import { getAppAsync, getDefaultAppDependenciesAsync } from './app';
 import * as config from './config';
-import { SRA_PATH } from './constants';
-import { getDBConnectionAsync } from './db_connection';
 import { logger } from './logger';
+import { providerUtils } from './utils/provider_utils';
 
 if (require.main === module) {
     (async () => {
-        const connection = await getDBConnectionAsync();
-        const meshClient = new WSClient(config.MESH_WEBSOCKET_URI);
-        const websocketOpts = { path: SRA_PATH };
-        await getAppAsync({ connection, meshClient, websocketOpts }, config);
+        const provider = providerUtils.createWeb3Provider(config.ETHEREUM_RPC_URL);
+        const dependencies = await getDefaultAppDependenciesAsync(provider, config);
+        await getAppAsync(dependencies, config);
     })().catch(err => logger.error(err));
 }
 process.on('uncaughtException', err => {

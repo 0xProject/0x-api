@@ -6,7 +6,7 @@ import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
 
-import { getAppAsync  } from '../src/app';
+import { getAppAsync, getDefaultAppDependenciesAsync  } from '../src/app';
 import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, SRA_PATH } from '../src/constants';
 
@@ -40,8 +40,9 @@ describe('app test', () => {
         const owner = accounts[0];
         await runMigrationsOnceAsync(provider, { from: owner });
 
+        const dependencies = await getDefaultAppDependenciesAsync(provider, { MESH_WEBSOCKET_URI: undefined});
         // start the 0x-api app
-        app = await getAppAsync({provider}, testConfig);
+        app = await getAppAsync({...dependencies}, testConfig);
 
     });
     it('should not be undefined', () => {

@@ -1,24 +1,20 @@
-import { Orderbook } from '@0x/asset-swapper';
-import { WSClient } from '@0x/mesh-rpc-client';
+import bodyParser = require('body-parser');
+import * as cors from 'cors';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
 import { Server } from 'http';
 
-import { AppDependencies } from '../app';
-import * as config from '../config';
-import { getDBConnectionAsync } from '../db_connection';
+import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
+import * as defaultConfig from '../config';
+import { SRA_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
 import { logger } from '../logger';
+import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
-import { OrderBookServiceOrderProvider } from '../order_book_service_order_provider';
-import { configureSRAHttpRouter } from '../routers/sra_router';
-import { configureStakingHttpRouter } from '../routers/staking_router';
-import { configureSwapHttpRouter } from '../routers/swap_router';
-import { OrderBookService } from '../services/orderbook_service';
-import { StakingDataService } from '../services/staking_data_service';
-import { SwapService } from '../services/swap_service';
+import { createSRARouter } from '../routers/sra_router';
+import { createStakingRouter } from '../routers/staking_router';
+import { createSwapRouter } from '../routers/swap_router';
 import { WebsocketService } from '../services/websocket_service';
-import { OrderStoreDbAdapter } from '../utils/order_store_db_adapter';
 import { providerUtils } from '../utils/provider_utils';
 
 process.on('uncaughtException', err => {
@@ -34,8 +30,9 @@ process.on('unhandledRejection', err => {
 
 if (require.main === module) {
     (async () => {
-        const meshClient = new WSClient(config.MESH_WEBSOCKET_URI);
-        await runHttpServiceAsync({ meshClient }, config);
+        const provider = providerUtils.createWeb3Provider(defaultConfig.ETHEREUM_RPC_URL);
+        const dependencies = await getDefaultAppDependenciesAsync(provider, defaultConfig);
+        await runHttpServiceAsync(dependencies, defaultConfig);
     })().catch(error => logger.error(error));
 }
 
@@ -47,30 +44,30 @@ if (require.main === module) {
  */
 export async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    _config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string },
+    config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string },
     _app?: core.Express,
 ): Promise<Server> {
     const app = _app || express();
     app.use(requestLogger());
-    const server = app.listen(_config.HTTP_PORT, () => {
-        logger.info(`API (HTTP) listening on port ${_config.HTTP_PORT}!\nConfig: ${JSON.stringify(_config, null, 2)}`);
+    app.use(cors());
+    app.use(bodyParser.json());
+    app.use(errorHandler);
+
+    const server = app.listen(config.HTTP_PORT, () => {
+        logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!\nConfig: ${JSON.stringify(config, null, 2)}`);
     });
 
     // staking http service
-    const connection = dependencies.connection || (await getDBConnectionAsync());
-    const stakingDataService = dependencies.stakingDataService || new StakingDataService(connection);
-    configureStakingHttpRouter(app, stakingDataService);
+    app.use(STAKING_PATH, createStakingRouter(dependencies.stakingDataService));
 
     // SRA http service
-    const orderBookService = dependencies.orderBookService || new OrderBookService(connection, dependencies.meshClient);
-    configureSRAHttpRouter(app, orderBookService);
+    app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
 
     // swap/quote http service
-    try {
-        const swapService = dependencies.swapService || createSwapServiceFromOrderBookService(orderBookService);
-        configureSwapHttpRouter(app, swapService);
-    } catch (err) {
-        logger.error(err);
+    if (dependencies.swapService) {
+        app.use(SWAP_PATH, createSwapRouter(dependencies.swapService));
+    } else {
+        logger.warn(`API running without swap service`);
     }
 
     // websocket service
@@ -82,12 +79,4 @@ export async function runHttpServiceAsync(
     }
 
     return server;
-
-    function createSwapServiceFromOrderBookService(_orderBookService: OrderBookService): SwapService {
-        const orderStore = new OrderStoreDbAdapter(_orderBookService);
-        const orderProvider = new OrderBookServiceOrderProvider(orderStore, orderBookService);
-        const orderBook = new Orderbook(orderProvider, orderStore);
-        const provider = dependencies.provider || providerUtils.createWeb3Provider(_config.ETHEREUM_RPC_URL);
-        return new SwapService(orderBook, provider);
-    }
 }
