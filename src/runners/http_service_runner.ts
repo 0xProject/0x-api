@@ -51,7 +51,6 @@ export async function runHttpServiceAsync(
     app.use(requestLogger());
     app.use(cors());
     app.use(bodyParser.json());
-    app.use(errorHandler);
 
     const server = app.listen(config.HTTP_PORT, () => {
         logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!\nConfig: ${JSON.stringify(config, null, 2)}`);
@@ -69,6 +68,8 @@ export async function runHttpServiceAsync(
     } else {
         logger.warn(`API running without swap service`);
     }
+
+    app.use(errorHandler);
 
     // websocket service
     if (dependencies.meshClient) {
