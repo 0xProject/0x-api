@@ -44,7 +44,7 @@ if (require.main === module) {
  */
 export async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string },
+    config: { HTTP_PORT: string },
     _app?: core.Express,
 ): Promise<Server> {
     const app = _app || express();
@@ -53,7 +53,7 @@ export async function runHttpServiceAsync(
     app.use(bodyParser.json());
 
     const server = app.listen(config.HTTP_PORT, () => {
-        logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!\nConfig: ${JSON.stringify(config, null, 2)}`);
+        logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!`);
     });
 
     // staking http service
