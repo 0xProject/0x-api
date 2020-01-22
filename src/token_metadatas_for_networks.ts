@@ -100,7 +100,7 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         symbol: 'SNX',
         name: 'Synthetix Network Token',
         tokenAddresses: {
-            [ChainId.Mainnet]: '0xc011a72400e58ecd99ee497cf89e3775d4bd732f',
+            [ChainId.Mainnet]: '0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f',
             [ChainId.Kovan]: NULL_ADDRESS,
             [ChainId.Ganache]: NULL_ADDRESS,
         },
@@ -621,6 +621,16 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         name: 'Raiden Network Token',
         tokenAddresses: {
             [ChainId.Mainnet]: '0x255aa6df07540cb5d3d297f0d0d4d84cb52bc8e6',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        decimals: 6,
+        symbol: 'USDT',
+        name: 'Tether USD',
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0xdac17f958d2ee523a2206206994597c13d831ec7',
             [ChainId.Kovan]: NULL_ADDRESS,
             [ChainId.Ganache]: NULL_ADDRESS,
         },

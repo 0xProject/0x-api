@@ -12,6 +12,7 @@ import { Server } from 'http';
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import * as defaultConfig from '../config';
 import { SRA_PATH } from '../constants';
+import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
@@ -47,7 +48,7 @@ async function runHttpServiceAsync(
     app.use(requestLogger());
     app.use(cors());
     app.use(bodyParser.json());
-
+    app.get('/', rootHandler);
     const server = app.listen(config.HTTP_PORT, () => {
         logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!`);
     });

@@ -11,12 +11,8 @@ import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { AbiEncoder, BigNumber, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
 
-import { CHAIN_ID, FEE_RECIPIENT_ADDRESS } from '../config';
-import {
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-    DEFAULT_TOKEN_DECIMALS,
-    QUOTE_ORDER_EXPIRATION_BUFFER_MS,
-} from '../constants';
+import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, FEE_RECIPIENT_ADDRESS } from '../config';
+import { DEFAULT_TOKEN_DECIMALS, QUOTE_ORDER_EXPIRATION_BUFFER_MS } from '../constants';
 import { logger } from '../logger';
 import { CalculateSwapQuoteParams, GetSwapQuoteResponse } from '../types';
 import { orderUtils } from '../utils/order_utils';
@@ -106,9 +102,12 @@ export class SwapService {
 
         const buyTokenDecimals = await this._fetchTokenDecimalsIfRequiredAsync(buyTokenAddress);
         const sellTokenDecimals = await this._fetchTokenDecimalsIfRequiredAsync(sellTokenAddress);
-        const price = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals)
-            .dividedBy(Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals))
-            .decimalPlaces(sellTokenDecimals);
+        const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
+        const unitTakerAssetAMount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
+        const price =
+            buyAmount === undefined
+                ? unitMakerAssetAmount.dividedBy(unitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
+                : unitTakerAssetAMount.dividedBy(unitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
 
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
@@ -119,8 +118,8 @@ export class SwapService {
             from,
             gasPrice,
             protocolFee,
-            makerAssetAmount,
-            totalTakerAssetAmount,
+            buyAmount: makerAssetAmount,
+            sellAmount: totalTakerAssetAmount,
             orders: this._cleanSignedOrderFields(orders),
         };
         return apiSwapQuote;

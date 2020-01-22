@@ -77,7 +77,9 @@ export const poolSevenDayProtocolFeesGeneratedQuery = `
         p.pool_id
         , COALESCE(f.protocol_fees, 0) AS seven_day_protocol_fees_generated_in_eth
     FROM events.staking_pool_created_events p
-    LEFT JOIN pool_7d_fills f ON f.pool_id = p.pool_id;
+    LEFT JOIN pool_7d_fills f ON f.pool_id = p.pool_id
+    WHERE
+        p.pool_id = $1;
 `;
 
 export const sevenDayProtocolFeesGeneratedQuery = `
@@ -102,11 +104,11 @@ export const sevenDayProtocolFeesGeneratedQuery = `
 `;
 
 export const poolTotalProtocolFeesGeneratedQuery = `
-     WITH
+    WITH
             fills_with_epochs AS (
                 SELECT
                     fe.*
-                    , e.epoch_id
+                    , COALESCE(e.epoch_id, ce.epoch_id) AS epoch_id
                 FROM events.fill_events fe
                 LEFT JOIN staking.epochs e ON
                     (
@@ -116,6 +118,11 @@ export const poolTotalProtocolFeesGeneratedQuery = `
                     AND (
                         e.ending_block_number > fe.block_number
                         OR (fe.block_number = e.ending_block_number AND fe.transaction_index < e.ending_transaction_index)
+                    )
+                LEFT JOIN staking.current_epoch ce ON
+                    (
+                        ce.starting_block_number < fe.block_number
+                        OR (fe.block_number = ce.starting_block_number AND fe.transaction_index > ce.starting_transaction_index)
                     )
             )
             SELECT
