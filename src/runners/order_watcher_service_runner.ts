@@ -17,13 +17,14 @@ if (require.main === module) {
 
             logger.info(`Order Watching Service started!\nConfig: ${JSON.stringify(defaultConfig, null, 2)}`);
         } else {
-            logger.warn(
+            logger.error(
                 `Order Watching Service could not be started! Could not start mesh client!\nConfig: ${JSON.stringify(
                     defaultConfig,
                     null,
                     2,
                 )}`,
             );
+            process.exit(1);
         }
     })().catch(error => logger.error(error));
 }
