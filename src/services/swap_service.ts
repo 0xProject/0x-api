@@ -30,7 +30,7 @@ export class SwapService {
             expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
-        this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider);
+        this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
         this._web3Wrapper = new Web3Wrapper(this._provider);
     }
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
