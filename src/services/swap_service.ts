@@ -83,10 +83,6 @@ export class SwapService {
             toAddress: to,
         } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(attributedSwapQuote, {
             useExtensionContract: extensionContractType,
-            extensionContractOpts: {
-                // Apply the Fee Recipient for the Forwarder
-                feeRecipient: FEE_RECIPIENT_ADDRESS,
-            },
         });
 
         let gas;
