@@ -40,7 +40,7 @@ describe('app test', () => {
         const owner = accounts[0];
         await runMigrationsOnceAsync(provider, { from: owner });
 
-        const dependencies = await getDefaultAppDependenciesAsync(provider, { MESH_WEBSOCKET_URI: undefined});
+        const dependencies = await getDefaultAppDependenciesAsync(provider, testConfig);
         // start the 0x-api app
         app = await getAppAsync({...dependencies}, testConfig);
 
