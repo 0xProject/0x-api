@@ -13,7 +13,7 @@ import { paginationUtils } from '../utils/pagination_utils';
 
 export class OrderBookService {
     private readonly _meshClient?: WSClient;
-    private _connection: Connection;
+    private readonly _connection: Connection;
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<APIOrder | undefined> {
         const signedOrderEntityIfExists = await this._connection.manager.findOne(SignedOrderEntity, orderHash);
         if (signedOrderEntityIfExists === undefined) {

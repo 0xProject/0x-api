@@ -18,9 +18,9 @@ import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, FEE_RECIPIENT_ADDRESS } fro
 import { DEFAULT_TOKEN_DECIMALS, PERCENTAGE_SIG_DIGITS, QUOTE_ORDER_EXPIRATION_BUFFER_MS, ZERO } from '../constants';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
-import { CalculateSwapQuoteParams, GetSwapQuoteResponse, GetSwapQuoteResponseLiquiditySource } from '../types';
+import { CalculateSwapQuoteParams, GetSwapQuoteResponse, GetSwapQuoteResponseLiquiditySource,  GetTokenPricesResponse, TokenMetadata } from '../types';
 import { orderUtils } from '../utils/order_utils';
-import { findTokenDecimalsIfExists, getTokenMetadataIfExists } from '../utils/token_metadata_utils';
+import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
 export class SwapService {
     private readonly _provider: SupportedProvider;
@@ -137,14 +137,12 @@ export class SwapService {
         return apiSwapQuote;
     }
 
-    public async getTokenPricesAsync(baseAssetSymbol: string): Promise<Array<{ symbol: string; price: BigNumber }>> {
-        const baseAsset = getTokenMetadataIfExists(baseAssetSymbol, CHAIN_ID);
-        if (!baseAsset) {
-            throw new Error('Invalid Base Asset');
-        }
-        const unitAmount = new BigNumber(1);
-        const takerAssetData = assetDataUtils.encodeERC20AssetData(baseAsset.tokenAddress);
-        const queryAssetData = TokenMetadatasForChains.filter(m => m.symbol !== baseAssetSymbol);
+    public async getTokenPricesAsync(sellToken: TokenMetadata, unitAmount: BigNumber): Promise<GetTokenPricesResponse> {
+        // Gets the price for buying 1 unit (not base unit as this is different between tokens with differing decimals)
+        // returns price in sellToken units, e.g What is the price of 1 ZRX (in DAI)
+        // Equivalent to performing multiple swap quotes selling sellToken and buying 1 whole buy token
+        const takerAssetData = assetDataUtils.encodeERC20AssetData(sellToken.tokenAddress);
+        const queryAssetData = TokenMetadatasForChains.filter(m => m.symbol !== sellToken.symbol);
         const chunkSize = 10;
         const assetDataChunks = _.chunk(queryAssetData, chunkSize);
         const allResults = _.flatten(
@@ -175,13 +173,13 @@ export class SwapService {
                 return { symbol: queryAssetData[i].symbol, price: ZERO };
             }
             const buyTokenDecimals = queryAssetData[i].decimals;
-            const sellTokenDecimals = baseAsset.decimals;
+            const sellTokenDecimals = sellToken.decimals;
             const { makerAssetAmount, totalTakerAssetAmount } = quote.bestCaseQuoteInfo;
             const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
-            const unitTakerAssetAMount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
-            const price = unitMakerAssetAmount
-                .dividedBy(unitTakerAssetAMount)
-                .decimalPlaces(sellTokenDecimals);
+            const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
+            const price = unitTakerAssetAmount
+                .dividedBy(unitMakerAssetAmount)
+                .decimalPlaces(buyTokenDecimals);
             return {
                 symbol: queryAssetData[i].symbol,
                 price,
