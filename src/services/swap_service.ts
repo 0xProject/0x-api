@@ -91,11 +91,15 @@ export class SwapService {
 
         let gas;
         if (from) {
+            // Force a revert error if the takerAddress does not have enough ETH.
+            const txDataValue = extensionContractType === ExtensionContractType.Forwarder
+                ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
+                : value;
             gas = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data,
                 from,
-                value,
+                value: txDataValue,
                 gasPrice,
             });
         }
