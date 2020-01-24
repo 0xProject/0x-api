@@ -82,11 +82,14 @@ export async function getAppAsync(
 ): Promise<Express.Application> {
     const app = express();
     await runHttpServiceAsync(dependencies, config, app);
-
     if (dependencies.meshClient !== undefined) {
-        await runOrderWatcherServiceAsync(dependencies.connection, dependencies.meshClient);
+        try {
+            await runOrderWatcherServiceAsync(dependencies.connection, dependencies.meshClient);
+        } catch (e) {
+            logger.error(`Error attempting to start Order Watcher service, [${e}]`);
+        }
     } else {
-        logger.warn('API running without Order Watcher connection to mesh');
+        logger.warn('No mesh client provided, API running without Order Watcher');
     }
     return app;
 }

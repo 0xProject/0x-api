@@ -10,8 +10,9 @@ jobs:
             - image: circleci/postgres:9.6.5-alpine-ram
         working_directory: ~/repo
         environment:
-            ETHEREUM_RPC_URL: http://localhost:8545
+            ETHEREUM_RPC_URL: http://0.0.0.0:8545
             CHAIN_ID: 1337
+            MESH_WEBSOCKET_URI: ws://0.0.0.0:60557
             POSTGRES_USER: postgres
             POSTGRES_DB: circle_test
             POSTGRES_URI: 'postgresql://root@localhost/circle_test'
@@ -23,9 +24,8 @@ jobs:
                       - v1-dependencies-{{ checksum "yarn.lock" }}
                       # fallback to using the latest cache if no exact match is found
                       - v1-dependencies-
-
+            - setup_remote_docker
             - run: yarn install
-
             - save_cache:
                   paths:
                       - node_modules
@@ -33,4 +33,4 @@ jobs:
             - run: yarn build
             - run: yarn lint
             - run: yarn prettier
-            - run: yarn test
+            - run: docker-compose up -d && sleep 120 && yarn test

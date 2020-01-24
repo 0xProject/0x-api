@@ -12,12 +12,6 @@ import { DEFAULT_PAGE, DEFAULT_PER_PAGE, SRA_PATH } from '../src/constants';
 
 import { expect } from './utils/expect';
 
-const testConfig = {
-    ...config,
-    ETHEREUM_RPC_URL: 'http://localhost:8545',
-    CHAIN_ID: 1337,
-};
-
 let app: Express.Application;
 
 let web3Wrapper: Web3Wrapper;
@@ -29,8 +23,9 @@ describe('app test', () => {
     before(async () => {
         // start ganache and run contract migrations
         const ganacheConfigs = {
-            shouldUseInProcessGanache: true,
+            shouldUseInProcessGanache: false,
             shouldAllowUnlimitedContractSize: true,
+            rpcUrl: config.ETHEREUM_RPC_URL,
         };
         provider = web3Factory.getRpcProvider(ganacheConfigs);
         web3Wrapper = new Web3Wrapper(provider);
@@ -40,9 +35,9 @@ describe('app test', () => {
         const owner = accounts[0];
         await runMigrationsOnceAsync(provider, { from: owner });
 
-        const dependencies = await getDefaultAppDependenciesAsync(provider, testConfig);
+        const dependencies = await getDefaultAppDependenciesAsync(provider, config);
         // start the 0x-api app
-        app = await getAppAsync({...dependencies}, testConfig);
+        app = await getAppAsync({...dependencies}, config);
 
     });
     it('should not be undefined', () => {
