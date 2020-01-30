@@ -1,9 +1,8 @@
 // tslint:disable:no-console
 // tslint:disable:no-unbound-method
 
-import { Web3ProviderEngine } from '0x.js';
 import { signatureUtils } from '@0x/order-utils';
-import { PrivateKeyWalletSubprovider } from '@0x/subproviders';
+import { PrivateKeyWalletSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { providerUtils } from '@0x/utils';
 import axios from 'axios';
 
