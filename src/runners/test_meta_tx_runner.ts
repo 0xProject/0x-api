@@ -23,17 +23,17 @@ const mainAsync = async () => {
     const buyAmount = '1000000000000000000'; // 1 DAI
     const takerAddress = '0x9cc9fd7ac00ed2b5e219fa778e545316a19ac212';
 
-    // 1. GET /meta/tx
+    // 1. GET /meta_transaction/quote
     const { data } = await axios.get(
-        `http://localhost:3000/meta/tx?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${buyAmount}&takerAddress=${takerAddress}`,
+        `http://localhost:3000/meta_transaction/v0/quote?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${buyAmount}&takerAddress=${takerAddress}`,
     );
     const { zeroExTransactionHash, zeroExTransaction } = data;
 
     // 2. Sign the meta tx
     const signature = await signatureUtils.ecSignHashAsync(provider, zeroExTransactionHash, takerAddress);
 
-    // 3. POST /meta/tx
-    const { status, statusText } = await axios.post('http://localhost:3000/meta/tx', { zeroExTransaction, signature });
+    // 3. POST /meta_transaction/fill
+    const { status, statusText } = await axios.post('http://localhost:3000/meta_transaction/v0/fill', { zeroExTransaction, signature });
 
     console.log(`${status} ${statusText}`);
 };
