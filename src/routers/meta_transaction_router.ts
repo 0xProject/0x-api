@@ -2,11 +2,11 @@ import * as express from 'express';
 import * as asyncHandler from 'express-async-handler';
 
 import { MetaTransactionHandlers } from '../handlers/meta_transaction_handlers';
-import { OrderBookService } from '../services/orderbook_service';
+import { MetaTransactionService } from '../services/meta_transaction_service';
 
-export const createMetaTransactionRouter = (orderBook: OrderBookService): express.Router => {
+export const createMetaTransactionRouter = (metaTransactionService: MetaTransactionService): express.Router => {
     const router = express.Router();
-    const handlers = new MetaTransactionHandlers(orderBook);
+    const handlers = new MetaTransactionHandlers(metaTransactionService);
     /**
      * GET Transaction endpoint returns an unsigned 0x Transaction that when sent to
      * `executeTransaction` will execute a specified swap.

@@ -45,6 +45,7 @@ export const META_TRANSACTION_PATH = '/meta_transaction/v0';
 // Docs
 export const SWAP_DOCS_URL = 'https://0x.org/docs/api#swap';
 export const SRA_DOCS_URL = 'https://0x.org/docs/api#sra';
+export const META_TRANSACTION_DOCS_URL = 'https://0x.org/docs/api#meta_transaction';
 
 // Sender keys
 export const SENDER_ADDRESS = '0xf145745ffe14fa7e23a4f99225754346b2f597ac';

@@ -1,114 +1,84 @@
-import { SwapQuoter } from '@0x/asset-swapper';
-import { ContractWrappers } from '@0x/contract-wrappers';
-import { DevUtilsContract } from '@0x/contracts-dev-utils';
-import { generatePseudoRandomSalt, ZeroExTransaction } from '@0x/order-utils';
-import { PrivateKeyWalletSubprovider, RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
-import { BigNumber, providerUtils } from '@0x/utils';
-import { SupportedProvider } from 'ethereum-types';
+import { SwapQuoterError } from '@0x/asset-swapper';
+import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 
-import { CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
-import { ONE_SECOND_MS, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TEN_MINUTES_MS } from '../constants';
-import { OrderBookService } from '../services/orderbook_service';
+import { CHAIN_ID } from '../config';
+import { DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL } from '../constants';
+import { InternalServerError, RevertAPIError, ValidationError, ValidationErrorCodes } from '../errors';
+import { logger } from '../logger';
+import { isAPIError, isRevertError } from '../middleware/error_handling';
+import { MetaTransactionService } from '../services/meta_transaction_service';
+import { ChainId, GetTransactionRequestParams, ZeroExTransactionWithoutDomain } from '../types';
 import { findTokenAddress } from '../utils/token_metadata_utils';
 
 export class MetaTransactionHandlers {
-    // private readonly _orderBook: OrderBookService;
-    private readonly _provider: SupportedProvider;
-    private readonly _swapQuoter: SwapQuoter;
-    private readonly _contractWrappers: ContractWrappers;
-    constructor(_orderBookService: OrderBookService) {
-        this._provider = createWeb3Provider(ETHEREUM_RPC_URL);
-        const swapQuoterOpts = {
-            chainId: CHAIN_ID,
-        };
-        this._swapQuoter = SwapQuoter.getSwapQuoterForMeshEndpoint(this._provider, MESH_WEBSOCKET_URI, swapQuoterOpts);
-        this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
+    private readonly _metaTransactionService: MetaTransactionService;
+    public static rootAsync(_req: express.Request, res: express.Response): void {
+        const message = `This is the root of the Meta Transaction API. Visit ${META_TRANSACTION_DOCS_URL} for details about this API.`;
+        res.status(HttpStatus.OK).send({ message });
+    }
+    constructor(metaTransactionService: MetaTransactionService) {
+        this._metaTransactionService = metaTransactionService;
     }
     public async getTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
         // parse query params
-        const { takerAddress, sellToken, buyToken, sellAmount, buyAmount } = parseGetTransactionRequestParams(req);
-        const sellTokenAddress = findTokenAddress(sellToken, CHAIN_ID);
-        const buyTokenAddress = findTokenAddress(buyToken, CHAIN_ID);
-        // generate txData for marketSellOrdersFillOrKill or marketBuyOrdersFillOrKill
-        let txData;
-        if (sellAmount !== undefined) {
-            const marketSellSwapQuote = await this._swapQuoter.getMarketSellSwapQuoteAsync(
-                buyTokenAddress,
-                sellTokenAddress,
-                sellAmount,
-            );
-            const orders = marketSellSwapQuote.orders;
-            const signatures = orders.map(order => order.signature);
-            txData = this._contractWrappers.exchange
-                .marketSellOrdersFillOrKill(orders, sellAmount, signatures)
-                .getABIEncodedTransactionData();
-        } else if (buyAmount !== undefined) {
-            const marketBuySwapQuote = await this._swapQuoter.getMarketBuySwapQuoteAsync(
+        const { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage } = parseGetTransactionRequestParams(req);
+        const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
+        const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
+        try {
+            const metaTransactionQuote = await this._metaTransactionService.calculateMetaTransactionQuoteAsync({
+                takerAddress,
                 buyTokenAddress,
                 sellTokenAddress,
                 buyAmount,
-            );
-            const orders = marketBuySwapQuote.orders;
-            const signatures = orders.map(order => order.signature);
-            txData = this._contractWrappers.exchange
-                .marketBuyOrdersFillOrKill(orders, buyAmount, signatures)
-                .getABIEncodedTransactionData();
-        } else {
-            throw new Error('sellAmount or buyAmount required');
+                sellAmount,
+                from: takerAddress,
+                slippagePercentage,
+            });
+            res.status(HttpStatus.OK).send(metaTransactionQuote);
+        } catch (e) {
+            // If this is already a transformed error then just re-throw
+            if (isAPIError(e)) {
+                throw e;
+            }
+            // Wrap a Revert error as an API revert error
+            if (isRevertError(e)) {
+                throw new RevertAPIError(e);
+            }
+            const errorMessage: string = e.message;
+            // TODO AssetSwapper can throw raw Errors or InsufficientAssetLiquidityError
+            if (
+                errorMessage.startsWith(SwapQuoterError.InsufficientAssetLiquidity) ||
+                errorMessage.startsWith('NO_OPTIMAL_PATH')
+            ) {
+                throw new ValidationError([
+                    {
+                        field: buyAmount ? 'buyAmount' : 'sellAmount',
+                        code: ValidationErrorCodes.ValueOutOfRange,
+                        reason: SwapQuoterError.InsufficientAssetLiquidity,
+                    },
+                ]);
+            }
+            if (errorMessage.startsWith(SwapQuoterError.AssetUnavailable)) {
+                throw new ValidationError([
+                    {
+                        field: 'token',
+                        code: ValidationErrorCodes.ValueOutOfRange,
+                        reason: e.message,
+                    },
+                ]);
+            }
+            logger.info('Uncaught error', e);
+            throw new InternalServerError(e.message);
         }
-        // generate the zeroExTransaction object
-        const takerTransactionSalt = generatePseudoRandomSalt();
-        const gasPrice = new BigNumber(40000000000); // 40 gwei
-        const expirationTimeSeconds = new BigNumber(Date.now() + TEN_MINUTES_MS)
-            .div(ONE_SECOND_MS)
-            .integerValue(BigNumber.ROUND_CEIL);
-        const zeroExTransaction: ZeroExTransaction = {
-            data: txData,
-            salt: takerTransactionSalt,
-            signerAddress: takerAddress,
-            gasPrice,
-            expirationTimeSeconds,
-            domain: {
-                chainId: CHAIN_ID,
-                verifyingContract: this._contractWrappers.contractAddresses.exchange,
-            },
-        };
-        // use the DevUtils contract to generate the transaction hash
-        const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
-        const zeroExTransactionHash = await devUtils
-            .getTransactionHash(
-                zeroExTransaction,
-                new BigNumber(CHAIN_ID),
-                this._contractWrappers.contractAddresses.exchange,
-            )
-            .callAsync();
-        // return the transaction object and hash
-        res.status(HttpStatus.OK).send({
-            zeroExTransactionHash,
-            zeroExTransaction,
-        });
     }
+    // TODO(fabio): Refactor bulk of logic into metaTransactionService
     public async postTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
-        // decode zeroExTransaction data
-        const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
-        const decodedArray = await devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
-        const orders = decodedArray[1];
-        const gas = 800000;
-        const gasPrice = zeroExTransaction.gasPrice;
-        // submit executeTransaction transaction
-        const transactionHash = await this._contractWrappers.exchange
-            .executeTransaction(zeroExTransaction, signature)
-            .sendTransactionAsync({
-                gas,
-                from: SENDER_ADDRESS,
-                gasPrice,
-                value: calculateProtocolFee(orders.length, gasPrice),
-            });
+        const { transactionHash } = await this._metaTransactionService.postTransactionAsync(zeroExTransaction, signature);
         // return the transactionReceipt
         res.status(HttpStatus.OK).send({
             transactionHash,
@@ -116,40 +86,16 @@ export class MetaTransactionHandlers {
     }
 }
 
-interface GetTransactionRequestParams {
-    takerAddress: string;
-    sellToken: string;
-    buyToken: string;
-    sellAmount?: BigNumber;
-    buyAmount?: BigNumber;
-}
 const parseGetTransactionRequestParams = (req: express.Request): GetTransactionRequestParams => {
     const takerAddress = req.query.takerAddress;
     const sellToken = req.query.sellToken;
     const buyToken = req.query.buyToken;
     const sellAmount = req.query.sellAmount === undefined ? undefined : new BigNumber(req.query.sellAmount);
     const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount);
-    return { takerAddress, sellToken, buyToken, sellAmount, buyAmount };
+    const slippagePercentage = Number.parseFloat(req.query.slippagePercentage || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE);
+    return { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage };
 };
 
-const range = (rangeCount: number): number[] => [...Array(rangeCount).keys()];
-const createWeb3Provider = (rpcHost: string): SupportedProvider => {
-    const WEB3_RPC_RETRY_COUNT = 3;
-    const providerEngine = new Web3ProviderEngine();
-    providerEngine.addProvider(new PrivateKeyWalletSubprovider(SENDER_PRIVATE_KEY));
-    const rpcSubproviders = range(WEB3_RPC_RETRY_COUNT).map((_index: number) => new RPCSubprovider(rpcHost));
-    providerEngine.addProvider(new RedundantSubprovider(rpcSubproviders));
-    providerUtils.startProviderEngine(providerEngine);
-    return providerEngine;
-};
-
-interface ZeroExTransactionWithoutDomain {
-    salt: BigNumber;
-    expirationTimeSeconds: BigNumber;
-    gasPrice: BigNumber;
-    signerAddress: string;
-    data: string;
-}
 interface PostTransactionRequestBody {
     zeroExTransaction: ZeroExTransactionWithoutDomain;
     signature: string;
@@ -170,6 +116,16 @@ const parsePostTransactionRequestBody = (req: any): PostTransactionRequestBody =
     };
 };
 
-const calculateProtocolFee = (numOrders: number, gasPrice: BigNumber): BigNumber => {
-    return new BigNumber(150000).times(gasPrice).times(numOrders);
+const findTokenAddressOrThrowApiError = (address: string, field: string, chainId: ChainId): string => {
+    try {
+        return findTokenAddress(address, chainId);
+    } catch (e) {
+        throw new ValidationError([
+            {
+                field,
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: e.message,
+            },
+        ]);
+    }
 };
