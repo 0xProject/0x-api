@@ -1,3 +1,4 @@
+import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 
 import { ObjectMap } from '../types';
@@ -17,7 +18,6 @@ export const utils = {
             return acc;
         }, initialMap);
     },
-
     /**
      * Executes JSON-RPC response validation
      * Copied from https://github.com/ethereum/web3.js/blob/79a165a205074cfdc14f59a61c41ba9ef5d25172/packages/web3-providers/src/validators/JsonRpcResponseValidator.js
@@ -71,5 +71,26 @@ export const utils = {
             chunkedItems.push(currChunk);
         }
         return chunkedItems;
+    },
+    convertAmountToBigNumber(value: string | number | BigNumber): BigNumber {
+        const num = value || 0;
+        const isBigNumber = BigNumber.isBigNumber(num);
+        if (isBigNumber) {
+            return num as BigNumber;
+        }
+
+        if (_.isString(num) && (num.indexOf('0x') === 0 || num.indexOf('-0x') === 0)) {
+            return new BigNumber(num.replace('0x', ''), 16);
+        }
+
+        const baseTen = 10;
+        return new BigNumber((num as number).toString(baseTen), baseTen);
+    },
+    encodeAmountAsHexString(value: string | number | BigNumber): string {
+        const valueBigNumber = utils.convertAmountToBigNumber(value);
+        const hexBase = 16;
+        const valueHex = valueBigNumber.toString(hexBase);
+
+        return valueBigNumber.isLessThan(0) ? `-0x${valueHex.substr(1)}` : `0x${valueHex}`;
     },
 };

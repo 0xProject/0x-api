@@ -1,49 +1,47 @@
 import {
-    MarketBuySwapQuote,
-    MarketSellSwapQuote,
-    SignedOrder,
     SwapQuoter,
 } from '@0x/asset-swapper';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
-import { assetDataUtils, generatePseudoRandomSalt, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
-import { PrivateKeyWalletSubprovider, RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
-import { AbiEncoder, BigNumber, providerUtils } from '@0x/utils';
+import { generatePseudoRandomSalt, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
+import { NonceTrackerSubprovider, PartialTxParams, PrivateKeyWalletSubprovider, RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
+import { BigNumber, providerUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
-import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, FEE_RECIPIENT_ADDRESS, MESH_WEBSOCKET_URI } from '../config';
-import { DEFAULT_TOKEN_DECIMALS, ONE_SECOND_MS, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TEN_MINUTES_MS } from '../constants';
-import { logger } from '../logger';
+import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
+import { ONE_SECOND_MS, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TEN_MINUTES_MS } from '../constants';
 import { CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse, PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
-import { orderUtils } from '../utils/order_utils';
-import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
+import { serviceUtils } from '../utils/service_utils';
+import { utils } from '../utils/utils';
 
 export class MetaTransactionService {
     private readonly _provider: SupportedProvider;
+    private readonly _nonceTrackerSubprovider: NonceTrackerSubprovider;
+    private readonly _privateWalletSubprovider: PrivateKeyWalletSubprovider;
     private readonly _swapQuoter: SwapQuoter;
     private readonly _contractWrappers: ContractWrappers;
     private readonly _web3Wrapper: Web3Wrapper;
 
-    private static _createWeb3Provider(rpcHost: string): SupportedProvider {
+    private static _createWeb3Provider(rpcHost: string, privateWalletSubprovider: PrivateKeyWalletSubprovider, nonceTrackerSubprovider: NonceTrackerSubprovider): SupportedProvider {
         const WEB3_RPC_RETRY_COUNT = 3;
         const providerEngine = new Web3ProviderEngine();
-        providerEngine.addProvider(new PrivateKeyWalletSubprovider(SENDER_PRIVATE_KEY));
+        providerEngine.addProvider(nonceTrackerSubprovider);
+        providerEngine.addProvider(privateWalletSubprovider);
         const rpcSubproviders = MetaTransactionService._range(WEB3_RPC_RETRY_COUNT).map((_index: number) => new RPCSubprovider(rpcHost));
         providerEngine.addProvider(new RedundantSubprovider(rpcSubproviders));
         providerUtils.startProviderEngine(providerEngine);
         return providerEngine;
     }
-
     private static _range(rangeCount: number): number[] {
         return [...Array(rangeCount).keys()];
     }
-
     private static _calculateProtocolFee = (numOrders: number, gasPrice: BigNumber): BigNumber => {
         return new BigNumber(150000).times(gasPrice).times(numOrders);
     }
-
     constructor() {
-        this._provider = MetaTransactionService._createWeb3Provider(ETHEREUM_RPC_URL);
+        this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(SENDER_PRIVATE_KEY);
+        this._nonceTrackerSubprovider = new NonceTrackerSubprovider();
+        this._provider = MetaTransactionService._createWeb3Provider(ETHEREUM_RPC_URL, this._privateWalletSubprovider, this._nonceTrackerSubprovider);
         const swapQuoterOpts = {
             chainId: CHAIN_ID,
         };
@@ -51,7 +49,6 @@ export class MetaTransactionService {
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
     }
-
     public async calculateMetaTransactionQuoteAsync(params: CalculateMetaTransactionQuoteParams): Promise<GetMetaTransactionQuoteResponse> {
         const {
             takerAddress,
@@ -80,7 +77,7 @@ export class MetaTransactionService {
             );
             makerAssetAmount = marketSellSwapQuote.bestCaseQuoteInfo.makerAssetAmount;
             totalTakerAssetAmount = marketSellSwapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
-            const attributedSwapQuote = this._attributeSwapQuoteOrders(marketSellSwapQuote);
+            const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(marketSellSwapQuote);
             orders = attributedSwapQuote.orders;
             const signatures = orders.map(order => order.signature);
             txData = this._contractWrappers.exchange
@@ -95,7 +92,7 @@ export class MetaTransactionService {
             );
             makerAssetAmount = marketBuySwapQuote.bestCaseQuoteInfo.makerAssetAmount;
             totalTakerAssetAmount = marketBuySwapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
-            const attributedSwapQuote = this._attributeSwapQuoteOrders(marketBuySwapQuote);
+            const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(marketBuySwapQuote);
             orders = attributedSwapQuote.orders;
             const signatures = orders.map(order => order.signature);
             txData = this._contractWrappers.exchange
@@ -131,8 +128,8 @@ export class MetaTransactionService {
             )
             .callAsync();
 
-        const buyTokenDecimals = await this._fetchTokenDecimalsIfRequiredAsync(buyTokenAddress);
-        const sellTokenDecimals = await this._fetchTokenDecimalsIfRequiredAsync(sellTokenAddress);
+        const buyTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(buyTokenAddress, this._web3Wrapper);
+        const sellTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(sellTokenAddress, this._web3Wrapper);
         const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
         const unitTakerAssetAMount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
         const price =
@@ -146,11 +143,10 @@ export class MetaTransactionService {
             zeroExTransaction,
             buyAmount: makerAssetAmount,
             sellAmount: totalTakerAssetAmount,
-            orders: this._cleanSignedOrderFields(orders),
+            orders: serviceUtils.cleanSignedOrderFields(orders),
         };
         return apiMetaTransactionQuote;
     }
-
     public async postTransactionAsync(zeroExTransaction: ZeroExTransactionWithoutDomain, signature: string): Promise<PostTransactionResponse> {
         // decode zeroExTransaction data
         const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
@@ -158,94 +154,40 @@ export class MetaTransactionService {
         const orders = decodedArray[1];
         const gas = 800000;
         const gasPrice = zeroExTransaction.gasPrice;
+        const protocolFee = MetaTransactionService._calculateProtocolFee(orders.length, gasPrice);
         // submit executeTransaction transaction
+        const executeTxnCalldata = await this._contractWrappers.exchange
+            .executeTransaction(zeroExTransaction, signature).getABIEncodedTransactionData();
+
+        const ethereumTxn: PartialTxParams = {
+            data: executeTxnCalldata,
+            gas: utils.encodeAmountAsHexString(gas),
+            from: SENDER_ADDRESS,
+            gasPrice: utils.encodeAmountAsHexString(gasPrice),
+            value: utils.encodeAmountAsHexString(protocolFee),
+            to: this._contractWrappers.exchange.address,
+            nonce: this._getSenderNonce(),
+            chainId: CHAIN_ID,
+        };
+        const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxn);
+
         const transactionHash = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .sendTransactionAsync({
                 gas,
                 from: SENDER_ADDRESS,
                 gasPrice,
-                value: MetaTransactionService._calculateProtocolFee(orders.length, gasPrice),
+                value: protocolFee,
             });
 
         return {
             transactionHash,
+            signedEthereumTransaction,
         };
     }
-
-    // TODO(fabio): Dedup this with copy in swap_servicec.ts
-    // tslint:disable-next-line:prefer-function-over-method
-    private _attributeSwapQuoteOrders(
-        swapQuote: MarketSellSwapQuote | MarketBuySwapQuote,
-    ): MarketSellSwapQuote | MarketBuySwapQuote {
-        // Where possible, attribute any fills of these orders to the Fee Recipient Address
-        const attributedOrders = swapQuote.orders.map(o => {
-            try {
-                const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData);
-                if (orderUtils.isBridgeAssetData(decodedAssetData)) {
-                    return {
-                        ...o,
-                        feeRecipientAddress: FEE_RECIPIENT_ADDRESS,
-                    };
-                }
-                // tslint:disable-next-line:no-empty
-            } catch (err) {}
-            // Default to unmodified order
-            return o;
-        });
-        const attributedSwapQuote = {
-            ...swapQuote,
-            orders: attributedOrders,
-        };
-        return attributedSwapQuote;
-    }
-
-    // tslint:disable-next-line:prefer-function-over-method
-    private _cleanSignedOrderFields(orders: SignedOrder[]): SignedOrder[] {
-        return orders.map(o => ({
-            chainId: o.chainId,
-            exchangeAddress: o.exchangeAddress,
-            makerAddress: o.makerAddress,
-            takerAddress: o.takerAddress,
-            feeRecipientAddress: o.feeRecipientAddress,
-            senderAddress: o.senderAddress,
-            makerAssetAmount: o.makerAssetAmount,
-            takerAssetAmount: o.takerAssetAmount,
-            makerFee: o.makerFee,
-            takerFee: o.takerFee,
-            expirationTimeSeconds: o.expirationTimeSeconds,
-            salt: o.salt,
-            makerAssetData: o.makerAssetData,
-            takerAssetData: o.takerAssetData,
-            makerFeeAssetData: o.makerFeeAssetData,
-            takerFeeAssetData: o.takerFeeAssetData,
-            signature: o.signature,
-        }));
-    }
-    private async _fetchTokenDecimalsIfRequiredAsync(tokenAddress: string): Promise<number> {
-        // HACK(dekz): Our ERC20Wrapper does not have decimals as it is optional
-        // so we must encode this ourselves
-        let decimals = findTokenDecimalsIfExists(tokenAddress, CHAIN_ID);
-        if (!decimals) {
-            const decimalsEncoder = new AbiEncoder.Method({
-                constant: true,
-                inputs: [],
-                name: 'decimals',
-                outputs: [{ name: '', type: 'uint8' }],
-                payable: false,
-                stateMutability: 'view',
-                type: 'function',
-            });
-            const encodedCallData = decimalsEncoder.encode(tokenAddress);
-            try {
-                const result = await this._web3Wrapper.callAsync({ data: encodedCallData, to: tokenAddress });
-                decimals = decimalsEncoder.strictDecodeReturnValue<BigNumber>(result).toNumber();
-                logger.info(`Unmapped token decimals ${tokenAddress} ${decimals}`);
-            } catch (err) {
-                logger.error(`Error fetching token decimals ${tokenAddress}`);
-                decimals = DEFAULT_TOKEN_DECIMALS;
-            }
-        }
-        return decimals;
+    private _getSenderNonce(): string {
+        // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
+        // to use to we fetch it from it's private instance variable
+        return (this._nonceTrackerSubprovider as any)._nonceCache[SENDER_ADDRESS];
     }
 }

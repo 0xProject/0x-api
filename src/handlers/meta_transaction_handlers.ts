@@ -74,7 +74,6 @@ export class MetaTransactionHandlers {
             throw new InternalServerError(e.message);
         }
     }
-    // TODO(fabio): Refactor bulk of logic into metaTransactionService
     public async postTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
