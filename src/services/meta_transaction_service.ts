@@ -5,7 +5,7 @@ import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
 import { generatePseudoRandomSalt, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
 import { NonceTrackerSubprovider, PartialTxParams, PrivateKeyWalletSubprovider, RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
-import { BigNumber, providerUtils } from '@0x/utils';
+import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
@@ -152,12 +152,32 @@ export class MetaTransactionService {
         const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
         const decodedArray = await devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
         const orders = decodedArray[1];
-        const gas = 800000;
         const gasPrice = zeroExTransaction.gasPrice;
         const protocolFee = MetaTransactionService._calculateProtocolFee(orders.length, gasPrice);
-        // submit executeTransaction transaction
+
         const executeTxnCalldata = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature).getABIEncodedTransactionData();
+
+        try {
+            await this._contractWrappers.exchange
+            .executeTransaction(zeroExTransaction, signature)
+            .callAsync({
+                from: SENDER_ADDRESS,
+                gasPrice,
+                value: protocolFee,
+            });
+        } catch (err) {
+            const decodedCallData = RevertError.decode(err.values.errorData, false);
+            throw decodedCallData;
+        }
+
+        const gas = await this._contractWrappers.exchange
+        .executeTransaction(zeroExTransaction, signature)
+        .estimateGasAsync({
+            from: SENDER_ADDRESS,
+            gasPrice,
+            value: protocolFee,
+        });
 
         const ethereumTxn: PartialTxParams = {
             data: executeTxnCalldata,
