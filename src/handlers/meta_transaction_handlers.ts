@@ -83,11 +83,24 @@ export class MetaTransactionHandlers {
 
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
-        const { transactionHash } = await this._metaTransactionService.postTransactionAsync(zeroExTransaction, signature);
-        // return the transactionReceipt
-        res.status(HttpStatus.OK).send({
-            transactionHash,
-        });
+        try {
+            const { transactionHash } = await this._metaTransactionService.postTransactionAsync(zeroExTransaction, signature);
+            // return the transactionReceipt
+            res.status(HttpStatus.OK).send({
+                transactionHash,
+            });
+        } catch (e) {
+            // If this is already a transformed error then just re-throw
+            if (isAPIError(e)) {
+                throw e;
+            }
+            // Wrap a Revert error as an API revert error
+            if (isRevertError(e)) {
+                throw new RevertAPIError(e);
+            }
+            logger.info('Uncaught error', e);
+            throw new InternalServerError(e.message);
+        }
     }
 }
 
