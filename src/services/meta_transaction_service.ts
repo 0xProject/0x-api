@@ -186,7 +186,7 @@ export class MetaTransactionService {
             gasPrice: utils.encodeAmountAsHexString(gasPrice),
             value: utils.encodeAmountAsHexString(protocolFee),
             to: this._contractWrappers.exchange.address,
-            nonce: this._getSenderNonce(),
+            nonce: await this._getNonceAsync(SENDER_ADDRESS),
             chainId: CHAIN_ID,
         };
         const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxn);
@@ -205,9 +205,20 @@ export class MetaTransactionService {
             signedEthereumTransaction,
         };
     }
-    private _getSenderNonce(): string {
+    private async _getNonceAsync(senderAddress: string): Promise<string> {
         // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
         // to use to we fetch it from it's private instance variable
-        return (this._nonceTrackerSubprovider as any)._nonceCache[SENDER_ADDRESS];
+        let nonce = (this._nonceTrackerSubprovider as any)._nonceCache[senderAddress];
+        if (nonce === undefined) {
+            nonce = await this._getTransactionCountAsync(senderAddress);
+        }
+        return nonce;
+    }
+    private async _getTransactionCountAsync(address: string): Promise<string> {
+        const nonceHex = await this._web3Wrapper.sendRawPayloadAsync<string>({
+            method: 'eth_getTransactionCount',
+            params: [address, 'latest'],
+        });
+        return nonceHex;
     }
 }
