@@ -9,8 +9,10 @@ import { DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL } from '..
 import { InternalServerError, RevertAPIError, ValidationError, ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
+import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import { ChainId, GetTransactionRequestParams, ZeroExTransactionWithoutDomain } from '../types';
+import { schemaUtils } from '../utils/schema_utils';
 import { findTokenAddress } from '../utils/token_metadata_utils';
 
 export class MetaTransactionHandlers {
@@ -23,6 +25,8 @@ export class MetaTransactionHandlers {
         this._metaTransactionService = metaTransactionService;
     }
     public async getTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
+        // HACK typescript typing does not allow this valid json-schema
+        schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
         // parse query params
         const { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage } = parseGetTransactionRequestParams(req);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
@@ -75,6 +79,8 @@ export class MetaTransactionHandlers {
         }
     }
     public async postTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
+        schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
+
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
         const { transactionHash } = await this._metaTransactionService.postTransactionAsync(zeroExTransaction, signature);
