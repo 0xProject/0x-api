@@ -9,6 +9,7 @@ import {
     SwapQuoteOrdersBreakdown,
     SwapQuoter,
 } from '@0x/asset-swapper';
+import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { AbiEncoder, BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
@@ -16,7 +17,7 @@ import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, FEE_RECIPIENT_ADDRESS } from '../config';
 import { DEFAULT_TOKEN_DECIMALS, PERCENTAGE_SIG_DIGITS, QUOTE_ORDER_EXPIRATION_BUFFER_MS } from '../constants';
 import { logger } from '../logger';
-import { CalculateSwapQuoteParams, GetSwapQuoteResponse, GetSwapQuoteResponseLiquiditySource } from '../types';
+import { CalculateSwapQuoteParams, ChainId, GetSwapQuoteResponse, GetSwapQuoteResponseLiquiditySource } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
@@ -27,9 +28,19 @@ export class SwapService {
     private readonly _web3Wrapper: Web3Wrapper;
     constructor(orderbook: Orderbook, provider: SupportedProvider) {
         this._provider = provider;
+        const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
         const swapQuoterOpts = {
             chainId: CHAIN_ID,
             expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
+            contractAddresses: {
+                ...contractAddresses,
+                // HACK(dekz): We are temporarily setting the Kovan sampler to this fixed address
+                // it contains a gas stipend on the DevUtils contract
+                erc20BridgeSampler:
+                    CHAIN_ID === ChainId.Kovan
+                        ? '0x39f2a0dba5e6ea855369e2f09967169032173470'
+                        : contractAddresses.erc20BridgeSampler,
+            },
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
@@ -92,9 +103,10 @@ export class SwapService {
         let gas;
         if (from) {
             // Force a revert error if the takerAddress does not have enough ETH.
-            const txDataValue = extensionContractType === ExtensionContractType.Forwarder
-                ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
-                : value;
+            const txDataValue =
+                extensionContractType === ExtensionContractType.Forwarder
+                    ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
+                    : value;
             gas = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data,
@@ -133,14 +145,22 @@ export class SwapService {
     }
 
     // tslint:disable-next-line: prefer-function-over-method
-    private _convertSourceBreakdownToArray(sourceBreakdown: SwapQuoteOrdersBreakdown): GetSwapQuoteResponseLiquiditySource[] {
+    private _convertSourceBreakdownToArray(
+        sourceBreakdown: SwapQuoteOrdersBreakdown,
+    ): GetSwapQuoteResponseLiquiditySource[] {
         const breakdown: GetSwapQuoteResponseLiquiditySource[] = [];
-        return Object.entries(sourceBreakdown).reduce((acc: GetSwapQuoteResponseLiquiditySource[], [source, percentage]) => {
-            return [...acc, {
-                name: source === ERC20BridgeSource.Native ? '0x' : source,
-                proportion: new BigNumber(percentage.toPrecision(PERCENTAGE_SIG_DIGITS)),
-            }];
-        }, breakdown);
+        return Object.entries(sourceBreakdown).reduce(
+            (acc: GetSwapQuoteResponseLiquiditySource[], [source, percentage]) => {
+                return [
+                    ...acc,
+                    {
+                        name: source === ERC20BridgeSource.Native ? '0x' : source,
+                        proportion: new BigNumber(percentage.toPrecision(PERCENTAGE_SIG_DIGITS)),
+                    },
+                ];
+            },
+            breakdown,
+        );
     }
     private async _estimateGasOrThrowRevertErrorAsync(txData: Partial<TxData>): Promise<BigNumber> {
         // Perform this concurrently
