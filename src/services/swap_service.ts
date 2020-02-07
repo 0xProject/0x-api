@@ -38,7 +38,7 @@ export class SwapService {
                 // it contains a gas stipend on the DevUtils contract
                 erc20BridgeSampler:
                     CHAIN_ID === ChainId.Kovan
-                        ? '0x39f2a0dba5e6ea855369e2f09967169032173470'
+                        ? '0x76a3d21fc9c16afd29eb12a5bdcedd5ddbf24357'
                         : contractAddresses.erc20BridgeSampler,
             },
         };
