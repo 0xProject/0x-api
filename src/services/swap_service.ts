@@ -36,10 +36,23 @@ export class SwapService {
                 ...contractAddresses,
                 // HACK(dekz): We are temporarily setting the Kovan sampler to this fixed address
                 // it contains a gas stipend on the DevUtils contract
+                // This dependency is returning 0x00.. on deployment, pulling in 4.3.0?
                 erc20BridgeSampler:
                     CHAIN_ID === ChainId.Kovan
                         ? '0x76a3d21fc9c16afd29eb12a5bdcedd5ddbf24357'
                         : contractAddresses.erc20BridgeSampler,
+                uniswapBridge:
+                    CHAIN_ID === ChainId.Kovan
+                        ? '0x8224aa8fe5c9f07d5a59c735386ff6cc6aaeb568'
+                        : contractAddresses.uniswapBridge,
+                eth2DaiBridge:
+                    CHAIN_ID === ChainId.Kovan
+                        ? '0x9485d65c6a2fae0d519cced5bd830e57c41998a9'
+                        : contractAddresses.eth2DaiBridge,
+                kyberBridge:
+                    CHAIN_ID === ChainId.Kovan
+                        ? '0xde7b2747624a647600fdb349184d0448ab954929'
+                        : contractAddresses.kyberBridge,
             },
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
