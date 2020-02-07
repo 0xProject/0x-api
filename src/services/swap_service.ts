@@ -183,9 +183,7 @@ export class SwapService {
 
     // tslint:disable-next-line:prefer-function-over-method
     private _attributeCallData(data: string, affiliateAddress?: string): string {
-        if (!affiliateAddress) {
-            return data;
-        }
+        const affiliateAddressOrDefault = affiliateAddress ? affiliateAddress : FEE_RECIPIENT_ADDRESS;
         const affiliateCallDataEncoder = new AbiEncoder.Method({
             constant: true,
             outputs: [],
@@ -195,7 +193,7 @@ export class SwapService {
             stateMutability: 'view',
             type: 'function',
         });
-        const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddress]);
+        const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault]);
         const affiliatedData = `${data}${encodedAffiliateData.slice(2)}`;
         return affiliatedData;
     }
