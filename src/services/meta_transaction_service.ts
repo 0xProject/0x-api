@@ -68,6 +68,7 @@ export class MetaTransactionService {
         let orders;
         let makerAssetAmount;
         let totalTakerAssetAmount;
+        let gasPrice;
         if (sellAmount !== undefined) {
             const marketSellSwapQuote = await this._swapQuoter.getMarketSellSwapQuoteAsync(
                 buyTokenAddress,
@@ -77,6 +78,7 @@ export class MetaTransactionService {
             );
             makerAssetAmount = marketSellSwapQuote.bestCaseQuoteInfo.makerAssetAmount;
             totalTakerAssetAmount = marketSellSwapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
+            gasPrice = marketSellSwapQuote.gasPrice;
             const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(marketSellSwapQuote);
             orders = attributedSwapQuote.orders;
             const signatures = orders.map(order => order.signature);
@@ -92,6 +94,7 @@ export class MetaTransactionService {
             );
             makerAssetAmount = marketBuySwapQuote.bestCaseQuoteInfo.makerAssetAmount;
             totalTakerAssetAmount = marketBuySwapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
+            gasPrice = marketBuySwapQuote.gasPrice;
             const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(marketBuySwapQuote);
             orders = attributedSwapQuote.orders;
             const signatures = orders.map(order => order.signature);
@@ -102,14 +105,12 @@ export class MetaTransactionService {
             throw new Error('sellAmount or buyAmount required');
         }
         // generate the zeroExTransaction object
-        const takerTransactionSalt = generatePseudoRandomSalt();
-        const gasPrice = new BigNumber(40000000000); // 40 gwei
         const expirationTimeSeconds = new BigNumber(Date.now() + TEN_MINUTES_MS)
             .div(ONE_SECOND_MS)
             .integerValue(BigNumber.ROUND_CEIL);
         const zeroExTransaction: ZeroExTransaction = {
             data: txData,
-            salt: takerTransactionSalt,
+            salt: generatePseudoRandomSalt(),
             signerAddress: takerAddress,
             gasPrice,
             expirationTimeSeconds,
