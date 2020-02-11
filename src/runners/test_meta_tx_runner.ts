@@ -2,16 +2,17 @@
 // tslint:disable:no-unbound-method
 
 import { signatureUtils } from '@0x/order-utils';
-import { PrivateKeyWalletSubprovider, Web3ProviderEngine } from '@0x/subproviders';
+import { PrivateKeyWalletSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { providerUtils } from '@0x/utils';
 import axios from 'axios';
 
-import { TAKER_PRIVATE_KEY } from '../constants';
+import { TAKER_ADDRESS, TAKER_PRIVATE_KEY } from '../constants';
 
 const mainAsync = async () => {
     // create ethereum provider (server)
     const provider = new Web3ProviderEngine();
     provider.addProvider(new PrivateKeyWalletSubprovider(TAKER_PRIVATE_KEY));
+    provider.addProvider(new RPCSubprovider('https://eth-mainnet.alchemyapi.io/jsonrpc/KeUFQuuW7d-WHLGY62WYrHv8V_W7KYU5'));
     providerUtils.startProviderEngine(provider);
 
     // create ethereum provider (browser)
@@ -20,8 +21,8 @@ const mainAsync = async () => {
     // swap parameters
     const sellToken = 'WETH';
     const buyToken = 'DAI';
-    const buyAmount = '1000000000000000000'; // 1 DAI
-    const takerAddress = '0x9cc9fd7ac00ed2b5e219fa778e545316a19ac212';
+    const buyAmount = '500000000000000000'; // 0.5 DAI
+    const takerAddress = TAKER_ADDRESS;
 
     // 1. GET /meta_transaction/quote
     const { data } = await axios.get(
