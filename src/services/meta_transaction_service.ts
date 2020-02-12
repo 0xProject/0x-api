@@ -1,15 +1,18 @@
 import {
-    SwapQuoter,
+    MarketBuySwapQuote, MarketSellSwapQuote, SwapQuoter,
 } from '@0x/asset-swapper';
+import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
-import { generatePseudoRandomSalt, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
+import { generatePseudoRandomSalt, signatureUtils, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
 import { NonceTrackerSubprovider, PartialTxParams, PrivateKeyWalletSubprovider, RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
-import { BigNumber, providerUtils, RevertError } from '@0x/utils';
+import { Order, SignedOrder } from '@0x/types';
+import { BigNumber, NULL_ADDRESS, NULL_BYTES, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import * as _ from 'lodash';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
-import { ONE_SECOND_MS, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TEN_MINUTES_MS } from '../constants';
+import { ERC20_BRIDGE_ASSET_PREFIX, ONE_SECOND_MS, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TEN_MINUTES_MS } from '../constants';
 import { CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse, PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
@@ -38,6 +41,32 @@ export class MetaTransactionService {
     private static readonly _calculateProtocolFee = (numOrders: number, gasPrice: BigNumber): BigNumber => {
         return new BigNumber(150000).times(gasPrice).times(numOrders);
     }
+    private static _hasBridgeOrder(orders: SignedOrder[]): boolean {
+        const bridgeOrders = orders.filter(order => {
+            return order.makerAssetData.startsWith(ERC20_BRIDGE_ASSET_PREFIX);
+        });
+        return bridgeOrders.length > 0;
+    }
+    private static _getMakerDenominatedPriceFromOrders(orders: SignedOrder[]): BigNumber {
+        let totalTakerAssetAmount = new BigNumber(0);
+        let totalMakerAssetAmount = new BigNumber(0);
+        orders.forEach(order => {
+            totalMakerAssetAmount = totalMakerAssetAmount.plus(order.makerAssetAmount);
+            totalTakerAssetAmount = totalTakerAssetAmount.plus(order.takerAssetAmount);
+        });
+        return totalMakerAssetAmount.div(totalTakerAssetAmount);
+    }
+    private static _addRelayFeeToFirstBridgeOrder(orders: SignedOrder[], feeAssetData: string, feeAmount: BigNumber): SignedOrder[] {
+       for (const order of orders) {
+            if (order.makerAssetData.startsWith(ERC20_BRIDGE_ASSET_PREFIX)) {
+                order.feeRecipientAddress = SENDER_ADDRESS;
+                order.takerFeeAssetData = feeAssetData;
+                order.takerFee = feeAmount;
+                break;
+            }
+       }
+       return orders;
+    }
     constructor() {
         this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(SENDER_PRIVATE_KEY);
         this._nonceTrackerSubprovider = new NonceTrackerSubprovider();
@@ -59,68 +88,137 @@ export class MetaTransactionService {
             slippagePercentage,
         } = params;
 
-        // generate txData for marketSellOrdersFillOrKill or marketBuyOrdersFillOrKill
         const assetSwapperOpts = {
             slippagePercentage,
             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
         };
-        let txData;
-        let orders;
-        let makerAssetAmount;
-        let totalTakerAssetAmount;
-        let gasPrice;
+
+        const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
+        const mustFetchTakerAssetPriceInWETH = buyTokenAddress !== contractAddresses.etherToken && sellTokenAddress !== contractAddresses.etherToken;
+        const swapQuotePromises: Array<Promise<MarketSellSwapQuote|MarketBuySwapQuote>> = [];
+        if (mustFetchTakerAssetPriceInWETH) {
+            swapQuotePromises.push(this._swapQuoter.getMarketBuySwapQuoteAsync(
+                contractAddresses.etherToken,
+                sellTokenAddress,
+                new BigNumber(1000000000000000000), // 1 ETH
+                assetSwapperOpts,
+            ));
+        } else {
+            swapQuotePromises.push(new Promise((resolve, _reject) => {resolve(); }));
+        }
+
         if (sellAmount !== undefined) {
-            const marketSellSwapQuote = await this._swapQuoter.getMarketSellSwapQuoteAsync(
+            swapQuotePromises.push(this._swapQuoter.getMarketSellSwapQuoteAsync(
                 buyTokenAddress,
                 sellTokenAddress,
                 sellAmount,
                 assetSwapperOpts,
-            );
-            makerAssetAmount = marketSellSwapQuote.bestCaseQuoteInfo.makerAssetAmount;
-            totalTakerAssetAmount = marketSellSwapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
-            gasPrice = marketSellSwapQuote.gasPrice;
-            const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(marketSellSwapQuote);
-            orders = attributedSwapQuote.orders;
-            const signatures = orders.map(order => order.signature);
-            txData = this._contractWrappers.exchange
-                .marketSellOrdersFillOrKill(orders, sellAmount, signatures)
-                .getABIEncodedTransactionData();
+            ));
         } else if (buyAmount !== undefined) {
-            const marketBuySwapQuote = await this._swapQuoter.getMarketBuySwapQuoteAsync(
+            swapQuotePromises.push(this._swapQuoter.getMarketBuySwapQuoteAsync(
                 buyTokenAddress,
                 sellTokenAddress,
                 buyAmount,
                 assetSwapperOpts,
-            );
-            makerAssetAmount = marketBuySwapQuote.bestCaseQuoteInfo.makerAssetAmount;
-            totalTakerAssetAmount = marketBuySwapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
-            gasPrice = marketBuySwapQuote.gasPrice;
-            const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(marketBuySwapQuote);
-            orders = attributedSwapQuote.orders;
-            const signatures = orders.map(order => order.signature);
-            txData = this._contractWrappers.exchange
-                .marketBuyOrdersFillOrKill(orders, buyAmount, signatures)
-                .getABIEncodedTransactionData();
+            ));
         } else {
             throw new Error('sellAmount or buyAmount required');
         }
-        // generate the zeroExTransaction object
-        const expirationTimeSeconds = new BigNumber(Date.now() + TEN_MINUTES_MS)
-            .div(ONE_SECOND_MS)
-            .integerValue(BigNumber.ROUND_CEIL);
-        const zeroExTransaction: ZeroExTransaction = {
-            data: txData,
-            salt: generatePseudoRandomSalt(),
-            signerAddress: takerAddress,
-            gasPrice,
-            expirationTimeSeconds,
-            domain: {
-                chainId: CHAIN_ID,
-                verifyingContract: this._contractWrappers.contractAddresses.exchange,
-            },
-        };
-        // use the DevUtils contract to generate the transaction hash
+
+        const [marketBuyWETHSwapQuote, swapQuote] = await Promise.all(swapQuotePromises);
+        const makerAssetAmount = swapQuote.bestCaseQuoteInfo.makerAssetAmount;
+        const totalTakerAssetAmount = swapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
+        const gasPrice = swapQuote.gasPrice;
+        const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
+        let orders = attributedSwapQuote.orders;
+        const signatures = orders.map(order => order.signature);
+
         const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
+        const placeholderRelayFee = new BigNumber('1192960000000000'); // $0.30 USD @ ETH $250
+        const wethRelayAssetData = await devUtils.encodeERC20AssetData(contractAddresses.etherToken).callAsync();
+        const hasBridgeOrder = MetaTransactionService._hasBridgeOrder(orders);
+        let placeholderOrders = _.clone(orders);
+        if (hasBridgeOrder) {
+            // Add fee to first bridge order
+            placeholderOrders = MetaTransactionService._addRelayFeeToFirstBridgeOrder(placeholderOrders, wethRelayAssetData, placeholderRelayFee);
+        } else {
+            // Add affiliate order
+            const affiliateOrder = await this._createAffiliateOrderAsync(wethRelayAssetData, placeholderRelayFee);
+            placeholderOrders.push(affiliateOrder);
+        }
+
+        const placeholderZeroExTransaction = this._generateZeroExTransaction(placeholderOrders, sellAmount, buyAmount, signatures, takerAddress, gasPrice);
+
+        // By setting the `from` address to the 0x transaction `signerAddress`, the 0x txn signature
+        // is not checked by the smart contracts. This allows us to estimate the gas of the Ethereum txn
+        // before having the 0x txn signature from the taker. This estimate will always be slightly less
+        // than the gas used in actuality, since the signature verification must be performed when it is
+        // actually submitted.
+        // TODO(fabio): Compute the gas difference between w/ and w/o signature verification and add this gas
+        // amount to the estimate returned here.
+        // TODO(fabio): Since we must run the gas estimation with the `takerAddress` as the `from` address AND
+        // protocol fees must be paid in ETH/WETH, this approach still necessitates the taker to have ETH in their
+        // account. This does not yet allow for takers without _any_ ETH to take orders.
+        const protocolFee = MetaTransactionService._calculateProtocolFee(placeholderOrders.length, gasPrice);
+        const DUMMY_SIGNATURE = '0x04';
+
+        try {
+            await this._contractWrappers.exchange
+            .executeTransaction(placeholderZeroExTransaction, DUMMY_SIGNATURE)
+            .callAsync({
+                from: takerAddress,
+                gasPrice,
+                value: protocolFee,
+            });
+        } catch (err) {
+            if (err.values && err.values.errorData && err.values.errorData !== '0x') {
+                const decodedCallData = RevertError.decode(err.values.errorData, false);
+                throw decodedCallData;
+            }
+            throw err;
+        }
+
+        const estimatedGas = new BigNumber(await this._contractWrappers.exchange
+            .executeTransaction(placeholderZeroExTransaction, DUMMY_SIGNATURE)
+            .estimateGasAsync({
+                from: takerAddress,
+                gasPrice,
+                value: protocolFee,
+            }));
+
+        // Estimated relayFeeInETH
+        const estimatedProtocolFee = MetaTransactionService._calculateProtocolFee(placeholderOrders.length, gasPrice);
+        const estimateRelayFeeInETH = (gasPrice.times(estimatedGas))
+            .plus(estimatedProtocolFee)
+            .integerValue(BigNumber.ROUND_FLOOR);
+
+        // Convert fee from ETH to takerAssetAmount if possible
+        // TODO(fabio): Allow taker to force fee to ETH
+        let relayAssetData = wethRelayAssetData;
+        let relayFeeAmount = estimateRelayFeeInETH;
+        if (sellTokenAddress !== contractAddresses.etherToken) {
+            if (buyTokenAddress === contractAddresses.etherToken) {
+                const priceDenominatedInMakerAsset = MetaTransactionService._getMakerDenominatedPriceFromOrders(orders);
+                relayAssetData = await devUtils.encodeERC20AssetData(sellTokenAddress).callAsync();
+                relayFeeAmount = estimateRelayFeeInETH.div(priceDenominatedInMakerAsset).integerValue(BigNumber.ROUND_FLOOR);
+            } else {
+                const priceDenominatedInMakerAsset = MetaTransactionService._getMakerDenominatedPriceFromOrders(marketBuyWETHSwapQuote.orders);
+                relayAssetData = await devUtils.encodeERC20AssetData(sellTokenAddress).callAsync();
+                relayFeeAmount = estimateRelayFeeInETH.div(priceDenominatedInMakerAsset).integerValue(BigNumber.ROUND_FLOOR);
+            }
+        }
+
+        if (hasBridgeOrder) {
+            // Add fee to first bridge order
+            orders = MetaTransactionService._addRelayFeeToFirstBridgeOrder(orders, relayAssetData, relayFeeAmount);
+        } else {
+            // Add affiliate order
+            const affiliateOrder = await this._createAffiliateOrderAsync(relayAssetData, relayFeeAmount);
+            orders.push(affiliateOrder);
+        }
+        const zeroExTransaction = this._generateZeroExTransaction(orders, sellAmount, buyAmount, signatures, takerAddress, gasPrice);
+
+        // use the DevUtils contract to generate the transaction hash
         const zeroExTransactionHash = await devUtils
             .getTransactionHash(
                 zeroExTransaction,
@@ -168,8 +266,11 @@ export class MetaTransactionService {
                 value: protocolFee,
             });
         } catch (err) {
-            const decodedCallData = RevertError.decode(err.values.errorData, false);
-            throw decodedCallData;
+            if (err.values && err.values.errorData && err.values.errorData !== '0x') {
+                const decodedCallData = RevertError.decode(err.values.errorData, false);
+                throw decodedCallData;
+            }
+            throw err;
         }
 
         const gas = await this._contractWrappers.exchange
@@ -195,7 +296,6 @@ export class MetaTransactionService {
         const transactionHash = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .sendTransactionAsync({
-                gas,
                 from: SENDER_ADDRESS,
                 gasPrice,
                 value: protocolFee,
@@ -205,6 +305,65 @@ export class MetaTransactionService {
             transactionHash,
             signedEthereumTransaction,
         };
+    }
+    private _generateZeroExTransaction(orders: SignedOrder[], sellAmount: BigNumber|undefined, buyAmount: BigNumber|undefined, signatures: string[], takerAddress: string, gasPrice: BigNumber): ZeroExTransaction {
+
+        // generate txData for marketSellOrdersFillOrKill or marketBuyOrdersFillOrKill
+        let txData;
+        if (sellAmount !== undefined) {
+            txData = this._contractWrappers.exchange
+                .marketSellOrdersFillOrKill(orders, sellAmount, signatures)
+                .getABIEncodedTransactionData();
+        } else if (buyAmount !== undefined) {
+            txData = this._contractWrappers.exchange
+                .marketBuyOrdersFillOrKill(orders, buyAmount, signatures)
+                .getABIEncodedTransactionData();
+        } else {
+            throw new Error('sellAmount or buyAmount required');
+        }
+
+        // generate the zeroExTransaction object
+        const expirationTimeSeconds = new BigNumber(Date.now() + TEN_MINUTES_MS)
+            .div(ONE_SECOND_MS)
+            .integerValue(BigNumber.ROUND_CEIL);
+        const zeroExTransaction: ZeroExTransaction = {
+            data: txData,
+            salt: generatePseudoRandomSalt(),
+            signerAddress: takerAddress,
+            gasPrice,
+            expirationTimeSeconds,
+            domain: {
+                chainId: CHAIN_ID,
+                verifyingContract: this._contractWrappers.contractAddresses.exchange,
+            },
+        };
+        return zeroExTransaction;
+    }
+    private async _createAffiliateOrderAsync(feeAssetData: string, feeAmount: BigNumber): Promise<SignedOrder> {
+        const staticCallToNullAddressAssetData = '0xc339d10a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a4700000000000000000000000000000000000000000000000000000000000000000';
+        // Converts to 0xff00000000000000000000000000000000000000000000000000000000000000 (large, lots of cheap zero bytes)
+        const largeExpiryWithManyZeroBytes = new BigNumber('115339776388732929035197660848497720713218148788040405586178452820382218977280');
+        const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
+        const order: Order = {
+            makerAddress: SENDER_ADDRESS,
+            makerAssetData: staticCallToNullAddressAssetData,
+            makerAssetAmount: feeAmount,
+            makerFeeAssetData: NULL_BYTES,
+            takerAddress: NULL_ADDRESS,
+            takerAssetAmount: feeAmount,
+            takerAssetData: feeAssetData,
+            takerFeeAssetData: NULL_BYTES,
+            expirationTimeSeconds: largeExpiryWithManyZeroBytes,
+            makerFee: new BigNumber(0),
+            takerFee: new BigNumber(0),
+            salt: new BigNumber(0),
+            feeRecipientAddress: NULL_ADDRESS,
+            chainId: CHAIN_ID,
+            senderAddress: NULL_ADDRESS,
+            exchangeAddress: contractAddresses.exchange,
+        };
+        const signedOrder = await signatureUtils.ecSignOrderAsync(this._provider, order, SENDER_ADDRESS);
+        return signedOrder;
     }
     private async _getNonceAsync(senderAddress: string): Promise<string> {
         // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
