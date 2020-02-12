@@ -84,10 +84,11 @@ export class MetaTransactionHandlers {
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
         try {
-            const { transactionHash } = await this._metaTransactionService.postTransactionAsync(zeroExTransaction, signature);
+            const { transactionHash, signedEthereumTransaction } = await this._metaTransactionService.postTransactionAsync(zeroExTransaction, signature);
             // return the transactionReceipt
             res.status(HttpStatus.OK).send({
                 transactionHash,
+                signedEthereumTransaction,
             });
         } catch (e) {
             // If this is already a transformed error then just re-throw
