@@ -11,7 +11,7 @@ import {
     SignedOrder,
     Web3ProviderEngine,
 } from '0x.js';
-import { DevUtilsContract, ExchangeContract } from '@0x/contract-wrappers'
+import { DevUtilsContract, ERC20TokenContract, ExchangeContract } from '@0x/contract-wrappers'
 import { isValidECSignature, parseSignatureHexAsVRS } from '@0x/order-utils/lib/src/signature_utils';
 import { providerUtils } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
@@ -157,18 +157,40 @@ abstract class BaseWizardHandlers {
     }
 }
 
+export class AllowanceWizardHandlers extends BaseWizardHandlers {
+    public async constructStep1(req: express.Request, res: express.Response) {
+        const token = req.query.token;
+        const myAddress = req.query.myAddress;
+        const tokenAddress = TOKENS[token].address;
+        const erc20Token = new ERC20TokenContract(tokenAddress, this._wrapper.getProvider());
+        const UNLIMITED_ALLOWANCE_IN_BASE_UNITS = new BigNumber(2).pow(256).minus(1);
+        const data = erc20Token.approve(contractAddresses.erc20Proxy, UNLIMITED_ALLOWANCE_IN_BASE_UNITS).getABIEncodedTransactionData();
+        const gasUsed = await erc20Token.approve(contractAddresses.erc20Proxy, UNLIMITED_ALLOWANCE_IN_BASE_UNITS).estimateGasAsync({
+            from: myAddress,
+        });
+        const response: TxData = {
+            data,
+            from: ethUtil.toChecksumAddress(myAddress),
+            to: ethUtil.toChecksumAddress(tokenAddress),
+            gas: gasUsed,
+            gasPrice: 40000000000,
+        };
+        return res.send(response);
+    }
+}
+
 export class CancelOrdersWizardHandlers extends BaseWizardHandlers {
 
     public async constructStep1(req: express.Request, res: express.Response) {
         const cancelParams = req.body as Step1CancelOrderParams;
 
-        const makers = new Set()
+        const makers = new Set();
         for (const cancel of cancelParams.orders) {
             makers.add(cancel.makerAddress);
         }
         if (makers.size !== 1) {
             return res.send({
-                error: "There is more than one maker",
+                error: 'There is more than one maker',
             });
         }
         const frm = cancelParams.orders[0].makerAddress;
@@ -193,8 +215,8 @@ export class CancelOrdersWizardHandlers extends BaseWizardHandlers {
             to: ethUtil.toChecksumAddress(contractAddresses.exchange),
             gas: gasUsed,
             gasPrice: 40000000000,
-        }
-        return res.send(response)
+        };
+        return res.send(response);
     }
 
 }
@@ -202,6 +224,7 @@ export class CancelOrdersWizardHandlers extends BaseWizardHandlers {
 export class CreateOrderWizardHandlers extends BaseWizardHandlers {
 
     public async constructStep2(req: express.Request, res: express.Response) {
+
         const body = req.body as Step1CreateOrderResponse;
 
         const refactoredSignature = parseSignature(body.toSign.signatureOutput, body.payload.orderHash, body.payload.order.makerAddress);
@@ -305,8 +328,20 @@ export class GetOrderInfoWizardHandlers extends BaseWizardHandlers {
     public async constructStep1(req: express.Request, res: express.Response) {
         const body = req.body as Step1CreateOrderResponse;
         const orderInfo = await this._exchangeContract.getOrderInfo(body.payload.order).callAsync();
+        const [balance, proxyAllowance] = await this._devUtils.getBalanceAndAssetProxyAllowance(body.payload.order.makerAddress, body.payload.order.makerAssetData).callAsync();
+
+        const tokenAddress = assetDataUtils.decodeERC20AssetData(body.payload.order.makerAssetData).tokenAddress;
+        const token = Object.values(TOKENS).find(el => el.address.toLowerCase() === tokenAddress.toLowerCase());
+        if (token === undefined) {
+            return res.status(400).send({
+                error: `Token ${tokenAddress} not found.`,
+            });
+        }
+
         res.status(200).send({
             orderInfo,
+            balanceInUnit: Web3Wrapper.toUnitAmount(balance, token.decimals),
+            allowanceInUnit: Web3Wrapper.toUnitAmount(proxyAllowance, token.decimals),
         });
     }
 }
