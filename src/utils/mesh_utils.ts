@@ -20,14 +20,14 @@ export const meshUtils = {
     addOrdersToMeshAsync: async (
         meshClient: WSClient,
         orders: SignedOrder[],
-        batchSize: number = 100,
+        batchSize: number = 200,
     ): Promise<ValidationResults> => {
         // Mesh rpc client can't handle a large amount of orders. This results in a fragmented
         // send which Mesh cannot accept.
         const validationResults: ValidationResults = { accepted: [], rejected: [] };
         const chunks = _.chunk(orders, batchSize);
         for (const chunk of chunks) {
-            const results = await meshClient.addOrdersAsync(chunk as any);
+            const results = await meshClient.addOrdersAsync(chunk);
             validationResults.accepted = [...validationResults.accepted, ...results.accepted];
             validationResults.rejected = [...validationResults.rejected, ...results.rejected];
         }

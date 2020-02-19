@@ -182,7 +182,7 @@ export class OrderBookService {
     }
     public async addOrdersAsync(signedOrders: SignedOrder[]): Promise<void> {
         if (this._meshClient) {
-            const { rejected } = await this._meshClient.addOrdersAsync(signedOrders as any);
+            const { rejected } = await meshUtils.addOrdersToMeshAsync(this._meshClient, signedOrders);
             if (rejected.length !== 0) {
                 const validationErrors = rejected.map((r, i) => ({
                     field: `signedOrder[${i}]`,
