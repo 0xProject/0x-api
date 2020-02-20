@@ -46,5 +46,6 @@ process.on('unhandledRejection', err => {
  */
 export async function runOrderWatcherServiceAsync(connection: Connection, meshClient: WSClient): Promise<void> {
     const orderWatcherService = new OrderWatcherService(connection, meshClient);
+    logger.info(`OrderWatcherService starting up!`);
     await orderWatcherService.syncOrderbookAsync();
 }
