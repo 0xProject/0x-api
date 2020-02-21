@@ -107,7 +107,7 @@ export class SwapService {
                 value: txDataValue,
                 gasPrice,
             });
-            gas = gasEstimate.times(GAS_LIMIT_BUFFER_PERCENTAGE + 1);
+            gas = gasEstimate.times(GAS_LIMIT_BUFFER_PERCENTAGE + 1).integerValue();
         }
 
         const buyTokenDecimals = await this._fetchTokenDecimalsIfRequiredAsync(buyTokenAddress);
