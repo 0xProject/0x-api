@@ -13,6 +13,7 @@ import { paginationUtils } from '../utils/pagination_utils';
 
 export class OrderBookService {
     private readonly _meshClient?: WSClient;
+    private readonly _meshHttpEndpoint?: string;
     private readonly _connection: Connection;
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<APIOrder | undefined> {
         const signedOrderEntityIfExists = await this._connection.manager.findOne(SignedOrderEntity, orderHash);
@@ -173,16 +174,21 @@ export class OrderBookService {
         const paginatedApiOrders = paginationUtils.paginate(apiOrders, page, perPage);
         return paginatedApiOrders;
     }
-    constructor(connection: Connection, meshClient?: WSClient) {
+    constructor(connection: Connection, meshClient?: WSClient, meshHttpEndpoint?: string) {
         this._meshClient = meshClient;
+        this._meshHttpEndpoint = meshHttpEndpoint;
         this._connection = connection;
     }
     public async addOrderAsync(signedOrder: SignedOrder): Promise<void> {
         return this.addOrdersAsync([signedOrder]);
     }
     public async addOrdersAsync(signedOrders: SignedOrder[]): Promise<void> {
-        if (this._meshClient) {
-            const { rejected } = await meshUtils.addOrdersToMeshAsync(this._meshClient, signedOrders);
+        if (this._meshClient && this._meshHttpEndpoint) {
+            const { rejected } = await meshUtils.addOrdersToMeshAsync(
+                this._meshHttpEndpoint,
+                this._meshClient,
+                signedOrders,
+            );
             if (rejected.length !== 0) {
                 const validationErrors = rejected.map((r, i) => ({
                     field: `signedOrder[${i}]`,

@@ -15,6 +15,12 @@ export const ONE_SECOND_MS = 1000;
 export const ONE_MINUTE_MS = ONE_SECOND_MS * 60;
 export const TEN_MINUTES_MS = ONE_MINUTE_MS * 10;
 
+// Mesh can't handle a large amount of orders over websocket. If the orders submitted are greater than
+// MESH_WEBSOCKET_ORDER_BATCH_LIMIT, we send via HTTP instead
+export const MESH_WEBSOCKET_ORDER_BATCH_LIMIT = 50;
+export const MESH_WEBSOCKET_DEFAULT_ORDER_BATCH_SIZE = 10;
+export const MESH_HTTP_DEFAULT_ORDER_BATCH_SIZE = 100;
+
 // Swap Quoter
 export const QUOTE_ORDER_EXPIRATION_BUFFER_MS = ONE_SECOND_MS * 90; // Ignore orders that expire in 90 seconds
 export const GAS_LIMIT_BUFFER_PERCENTAGE = 0.2; // Add 20% to the estimated gas limit

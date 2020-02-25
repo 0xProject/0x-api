@@ -13,7 +13,7 @@ if (require.main === module) {
         const { connection, meshClient } = await getDefaultAppDependenciesAsync(provider, defaultConfig);
 
         if (meshClient) {
-            await runOrderWatcherServiceAsync(connection, meshClient);
+            await runOrderWatcherServiceAsync(connection, meshClient, defaultConfig.MESH_HTTP_URI);
 
             logger.info(`Order Watching Service started!\nConfig: ${JSON.stringify(defaultConfig, null, 2)}`);
         } else {
@@ -44,8 +44,12 @@ process.on('unhandledRejection', err => {
  * or an order update it will be persisted to the database. It also is responsible
  * for syncing the database with Mesh on start or after a disconnect.
  */
-export async function runOrderWatcherServiceAsync(connection: Connection, meshClient: WSClient): Promise<void> {
-    const orderWatcherService = new OrderWatcherService(connection, meshClient);
+export async function runOrderWatcherServiceAsync(
+    connection: Connection,
+    meshClient: WSClient,
+    meshHttpEndpoint: string,
+): Promise<void> {
+    const orderWatcherService = new OrderWatcherService(connection, meshClient, meshHttpEndpoint);
     logger.info(`OrderWatcherService starting up!`);
     await orderWatcherService.syncOrderbookAsync();
 }

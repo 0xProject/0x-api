@@ -36,6 +36,7 @@ export async function getDefaultAppDependenciesAsync(
         // to catch initialisation errors. Allow the calling function to skip Mesh initialization by
         // not providing a websocket URI
         MESH_WEBSOCKET_URI?: string;
+        MESH_HTTP_URI?: string;
     },
 ): Promise<AppDependencies> {
     const connection = await getDBConnectionAsync();
@@ -48,7 +49,7 @@ export async function getDefaultAppDependenciesAsync(
         logger.warn(`Skipping Mesh client creation because no URI provided`);
     }
 
-    const orderBookService = new OrderBookService(connection, meshClient);
+    const orderBookService = new OrderBookService(connection, meshClient, config.MESH_HTTP_URI);
 
     let swapService: SwapService | undefined;
     try {
@@ -78,13 +79,13 @@ export async function getDefaultAppDependenciesAsync(
  */
 export async function getAppAsync(
     dependencies: AppDependencies,
-    config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string },
+    config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string; MESH_HTTP_URI: string },
 ): Promise<Express.Application> {
     const app = express();
     await runHttpServiceAsync(dependencies, config, app);
     if (dependencies.meshClient !== undefined) {
         try {
-            await runOrderWatcherServiceAsync(dependencies.connection, dependencies.meshClient);
+            await runOrderWatcherServiceAsync(dependencies.connection, dependencies.meshClient, config.MESH_HTTP_URI);
         } catch (e) {
             logger.error(`Error attempting to start Order Watcher service, [${e}]`);
         }
