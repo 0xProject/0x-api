@@ -77,9 +77,11 @@ export class OrderBookService {
         ]);
         const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Array<Required<SignedOrderEntity>>)
             .map(orderUtils.deserializeOrderToAPIOrder)
+            .filter(apiOrder => !orderUtils.isIgnoredOrder(apiOrder))
             .sort((orderA, orderB) => orderUtils.compareBidOrder(orderA.order, orderB.order));
         const askApiOrders: APIOrder[] = (askSignedOrderEntities as Array<Required<SignedOrderEntity>>)
             .map(orderUtils.deserializeOrderToAPIOrder)
+            .filter(apiOrder => !orderUtils.isIgnoredOrder(apiOrder))
             .sort((orderA, orderB) => orderUtils.compareAskOrder(orderA.order, orderB.order));
         const paginatedBidApiOrders = paginationUtils.paginate(bidApiOrders, page, perPage);
         const paginatedAskApiOrders = paginationUtils.paginate(askApiOrders, page, perPage);
@@ -114,6 +116,8 @@ export class OrderBookService {
         let apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder);
         // Post-filters
         apiOrders = apiOrders
+            // Remove any ignored addresses
+            .filter(apiOrder => !orderUtils.isIgnoredOrder(apiOrder))
             .filter(
                 // traderAddress
                 apiOrder =>
@@ -169,7 +173,9 @@ export class OrderBookService {
         const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
             where: filterObject,
         })) as Array<Required<SignedOrderEntity>>;
-        const apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder);
+        const apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder).filter(
+            apiOrder => !orderUtils.isIgnoredOrder(apiOrder),
+        );
         const paginatedApiOrders = paginationUtils.paginate(apiOrders, page, perPage);
         return paginatedApiOrders;
     }

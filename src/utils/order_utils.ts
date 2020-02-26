@@ -19,6 +19,7 @@ import {
     CHAIN_ID,
     DEFAULT_ERC20_TOKEN_PRECISION,
     FEE_RECIPIENT_ADDRESS,
+    IGNORED_ADDRESSES,
     MAKER_FEE_ASSET_DATA,
     MAKER_FEE_UNIT_AMOUNT,
     TAKER_FEE_ASSET_DATA,
@@ -78,6 +79,13 @@ const assetDataToAsset = (assetData: string): Asset => {
 };
 
 export const orderUtils = {
+    isIgnoredOrder: (apiOrder: APIOrder): boolean => {
+        return (
+            IGNORED_ADDRESSES.includes(apiOrder.order.makerAddress) ||
+            orderUtils.includesTokenAddresses(apiOrder.order.makerAssetData, IGNORED_ADDRESSES) ||
+            orderUtils.includesTokenAddresses(apiOrder.order.takerAssetData, IGNORED_ADDRESSES)
+        );
+    },
     isMultiAssetData: (decodedAssetData: AssetData): decodedAssetData is MultiAssetData => {
         return decodedAssetData.assetProxyId === AssetProxyId.MultiAsset;
     },
@@ -123,19 +131,22 @@ export const orderUtils = {
         }
         return orderA.expirationTimeSeconds.comparedTo(orderB.expirationTimeSeconds);
     },
-    includesTokenAddress: (assetData: string, tokenAddress: string): boolean => {
+    includesTokenAddresses: (assetData: string, tokenAddresses: string[]): boolean => {
         const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(assetData);
         if (orderUtils.isMultiAssetData(decodedAssetData)) {
             for (const [, nestedAssetDataElement] of decodedAssetData.nestedAssetData.entries()) {
-                if (orderUtils.includesTokenAddress(nestedAssetDataElement, tokenAddress)) {
+                if (orderUtils.includesTokenAddresses(nestedAssetDataElement, tokenAddresses)) {
                     return true;
                 }
             }
             return false;
         } else if (orderUtils.isTokenAssetData(decodedAssetData)) {
-            return decodedAssetData.tokenAddress === tokenAddress;
+            return tokenAddresses.find(a => a === decodedAssetData.tokenAddress) !== undefined;
         }
         return false;
+    },
+    includesTokenAddress: (assetData: string, tokenAddress: string): boolean => {
+        return orderUtils.includesTokenAddresses(assetData, [tokenAddress]);
     },
     deserializeOrder: (signedOrderEntity: Required<SignedOrderEntity>): SignedOrder => {
         const signedOrder: SignedOrder = {
