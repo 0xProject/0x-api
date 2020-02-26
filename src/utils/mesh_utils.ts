@@ -1,4 +1,3 @@
-import { SignedOrder } from '@0x/asset-swapper';
 import {
     AcceptedOrderInfo,
     OrderEvent,
@@ -6,74 +5,15 @@ import {
     OrderInfo,
     RejectedCode,
     RejectedOrderInfo,
-    ValidationResults,
-    WSClient,
 } from '@0x/mesh-rpc-client';
-import axios from 'axios';
 import * as _ from 'lodash';
 
-import {
-    MESH_HTTP_DEFAULT_ORDER_BATCH_SIZE,
-    MESH_WEBSOCKET_DEFAULT_ORDER_BATCH_SIZE,
-    MESH_WEBSOCKET_ORDER_BATCH_LIMIT,
-    ZERO,
-} from '../constants';
+import { ZERO } from '../constants';
 import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { AddedRemovedUpdate, APIOrderWithMetaData } from '../types';
 
-import { utils } from './utils';
-
 export const meshUtils = {
-    addOrdersToMeshAsync: async (
-        meshHttpEndpoint: string,
-        meshClient: WSClient,
-        orders: SignedOrder[],
-    ): Promise<ValidationResults> => {
-        // Mesh rpc client can't handle a large amount of orders over websocket. This results in a fragmented
-        // send which Mesh cannot accept. We check how many orders are being added, and use HTTP if there are
-        // too many.
-        const shouldSendViaHttp = orders.length > MESH_WEBSOCKET_ORDER_BATCH_LIMIT;
-        const batchSize = shouldSendViaHttp
-            ? MESH_HTTP_DEFAULT_ORDER_BATCH_SIZE
-            : MESH_WEBSOCKET_DEFAULT_ORDER_BATCH_SIZE;
-        const validationResults: ValidationResults = { accepted: [], rejected: [] };
-        const chunks = _.chunk(orders, batchSize);
-        for (const chunk of chunks) {
-            const results = shouldSendViaHttp
-                ? await meshUtils.addOrdersViaHttp(meshHttpEndpoint, chunk)
-                : await meshClient.addOrdersAsync(chunk);
-            validationResults.accepted = [...validationResults.accepted, ...results.accepted];
-            validationResults.rejected = [...validationResults.rejected, ...results.rejected];
-        }
-        return validationResults;
-    },
-    // this logic mirrors the mesh RPC client and WebsocketProvider implementations
-    addOrdersViaHttp: async (
-        meshHttpEndpoint: string,
-        orders: SignedOrder[],
-        pinned: boolean = true,
-    ): Promise<ValidationResults> => {
-        // format the JSON-RPC payload
-        const data = {
-            jsonrpc: '2.0',
-            id: +new Date(),
-            method: 'mesh_addOrders',
-            params: [orders, { pinned }],
-        };
-
-        // send the request
-        const response = await axios({
-            method: 'post',
-            url: meshHttpEndpoint,
-            data,
-        });
-
-        // validate the response
-        utils.isValidJsonRpcResponseOrThrow(response.data, data as any);
-
-        return response.data.result;
-    },
     orderInfosToApiOrders: (
         orderEvent: Array<OrderEvent | AcceptedOrderInfo | RejectedOrderInfo | OrderInfo>,
     ): APIOrderWithMetaData[] => {

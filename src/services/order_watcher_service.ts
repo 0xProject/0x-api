@@ -1,16 +1,15 @@
-import { WSClient } from '@0x/mesh-rpc-client';
 import * as _ from 'lodash';
 import { Connection } from 'typeorm';
 
 import { SignedOrderEntity } from '../entities';
 import { logger } from '../logger';
 import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents } from '../types';
+import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 
 export class OrderWatcherService {
-    private readonly _meshClient: WSClient;
-    private readonly _meshHttpEndpoint: string;
+    private readonly _meshClient: MeshClient;
     private readonly _connection: Connection;
     public async syncOrderbookAsync(): Promise<void> {
         logger.info('OrderWatcherService syncing orderbook with Mesh');
@@ -24,11 +23,7 @@ export class OrderWatcherService {
         // in the future we can attempt to retry these a few times. Ultimately if we
         // cannot validate the order we cannot keep the order around
         // Validate the local state and notify the order watcher of any missed orders
-        const { accepted, rejected } = await meshUtils.addOrdersToMeshAsync(
-            this._meshHttpEndpoint,
-            this._meshClient,
-            signedOrders,
-        );
+        const { accepted, rejected } = await this._meshClient.addOrdersAsync(signedOrders);
         logger.info('OrderWatcherService sync', {
             accepted: accepted.length,
             rejected: rejected.length,
@@ -50,10 +45,9 @@ export class OrderWatcherService {
         }
         logger.info('OrderWatcherService sync complete');
     }
-    constructor(connection: Connection, meshClient: WSClient, meshHttpEndpoint: string) {
+    constructor(connection: Connection, meshClient: MeshClient) {
         this._connection = connection;
         this._meshClient = meshClient;
-        this._meshHttpEndpoint = meshHttpEndpoint;
         void this._meshClient.subscribeToOrdersAsync(async orders => {
             const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);

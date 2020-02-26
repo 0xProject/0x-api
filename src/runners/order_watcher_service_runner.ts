@@ -1,10 +1,10 @@
-import { WSClient } from '@0x/mesh-rpc-client';
 import { Connection } from 'typeorm';
 
 import { getDefaultAppDependenciesAsync } from '../app';
 import * as defaultConfig from '../config';
 import { logger } from '../logger';
 import { OrderWatcherService } from '../services/order_watcher_service';
+import { MeshClient } from '../utils/mesh_client';
 import { providerUtils } from '../utils/provider_utils';
 
 if (require.main === module) {
@@ -13,7 +13,7 @@ if (require.main === module) {
         const { connection, meshClient } = await getDefaultAppDependenciesAsync(provider, defaultConfig);
 
         if (meshClient) {
-            await runOrderWatcherServiceAsync(connection, meshClient, defaultConfig.MESH_HTTP_URI);
+            await runOrderWatcherServiceAsync(connection, meshClient);
 
             logger.info(`Order Watching Service started!\nConfig: ${JSON.stringify(defaultConfig, null, 2)}`);
         } else {
@@ -44,12 +44,8 @@ process.on('unhandledRejection', err => {
  * or an order update it will be persisted to the database. It also is responsible
  * for syncing the database with Mesh on start or after a disconnect.
  */
-export async function runOrderWatcherServiceAsync(
-    connection: Connection,
-    meshClient: WSClient,
-    meshHttpEndpoint: string,
-): Promise<void> {
-    const orderWatcherService = new OrderWatcherService(connection, meshClient, meshHttpEndpoint);
+export async function runOrderWatcherServiceAsync(connection: Connection, meshClient: MeshClient): Promise<void> {
+    const orderWatcherService = new OrderWatcherService(connection, meshClient);
     logger.info(`OrderWatcherService starting up!`);
     await orderWatcherService.syncOrderbookAsync();
 }
