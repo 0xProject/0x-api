@@ -24,7 +24,7 @@ export class OrderWatcherService {
         // cannot validate the order we cannot keep the order around
         // Mesh websocket fails if there are too many orders, so we use HTTP instead
         // Validate the local state and notify the order watcher of any missed orders
-        const { accepted, rejected } = await this._meshClient.addOrdersViaHttpAsync(signedOrders);
+        const { accepted, rejected } = await this._meshClient.addOrdersAsync(signedOrders);
         logger.info('OrderWatcherService sync', {
             accepted: accepted.length,
             rejected: rejected.length,
