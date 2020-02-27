@@ -7,7 +7,7 @@ import { MESH_ORDERS_BATCH_SIZE } from '../constants';
 import { utils } from './utils';
 
 export class MeshClient extends WSClient {
-    public async addOrdersAsync(orders: SignedOrder[], pinned: boolean = false): Promise<ValidationResults> {
+    public async addOrdersViaHttpAsync(orders: SignedOrder[], pinned: boolean = false): Promise<ValidationResults> {
         const validationResults: ValidationResults = { accepted: [], rejected: [] };
         const chunks = _.chunk(orders, MESH_ORDERS_BATCH_SIZE);
         chunks.forEach(async chunk => {
