@@ -43,7 +43,7 @@ export async function getDefaultAppDependenciesAsync(
     const stakingDataService = new StakingDataService(connection);
 
     let meshClient: MeshClient | undefined;
-    if (config.MESH_WEBSOCKET_URI !== undefined && config.MESH_HTTP_URI !== undefined) {
+    if (config.MESH_WEBSOCKET_URI !== undefined) {
         meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
     } else {
         logger.warn(`Skipping Mesh client creation because no URI provided`);
@@ -79,7 +79,7 @@ export async function getDefaultAppDependenciesAsync(
  */
 export async function getAppAsync(
     dependencies: AppDependencies,
-    config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string; MESH_HTTP_URI: string },
+    config: { HTTP_PORT: string; ETHEREUM_RPC_URL: string },
 ): Promise<Express.Application> {
     const app = express();
     await runHttpServiceAsync(dependencies, config, app);
