@@ -42,6 +42,21 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.3.1-gitpkg":
+  version "4.3.1"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/1d0f528b77d3bb703d51d75231121506312b222a"
+  dependencies:
+    "@0x/assert" "^3.0.7"
+    "@0x/contract-addresses" "^4.7.0"
+    "@0x/contract-wrappers" "^13.6.1"
+    "@0x/json-schemas" "^5.0.7"
+    "@0x/order-utils" "^10.2.2"
+    "@0x/orderbook" "^2.2.3"
+    "@0x/utils" "^5.4.1"
+    "@0x/web3-wrapper" "^7.0.7"
+    heartbeats "^5.0.1"
+    lodash "^4.17.11"
+
 "@0x/asset-swapper@^4.3.0":
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-4.3.0.tgz#79ee72db240d91458ee571c3a8e099d03fe4fdd5"
@@ -153,6 +168,11 @@
   dependencies:
     lodash "^4.17.11"
 
+"@0x/contract-addresses@^4.8.0":
+  version "4.8.0"
+  resolved "https://registry.npmjs.org/@0x/contract-addresses/-/contract-addresses-4.8.0.tgz#9d1867195834186b504c28c0c6200ae0598129ef"
+  integrity sha512-L/VSYl2K0oh87UXXvTMHR6EHDK//aWqPXBnhLkjKcDQHdYhUyCB42RVtO/ayqPxkJqErtGnXZZqFt+H3wwvU8g==
+
 "@0x/contract-artifacts@^3.2.0":
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-artifacts/-/contract-artifacts-3.2.0.tgz#a013ab50862f6c4d16fbbaa2bfc2299c630379d8"
@@ -178,6 +198,21 @@
     "@0x/assert" "^3.0.7"
     "@0x/base-contract" "^6.2.1"
     "@0x/contract-addresses" "^4.7.0"
+    "@0x/json-schemas" "^5.0.7"
+    "@0x/types" "^3.1.2"
+    "@0x/utils" "^5.4.1"
+    "@0x/web3-wrapper" "^7.0.7"
+    ethereum-types "^3.1.0"
+    ethers "~4.0.4"
+
+"@0x/contract-wrappers@^13.6.2":
+  version "13.6.2"
+  resolved "https://registry.npmjs.org/@0x/contract-wrappers/-/contract-wrappers-13.6.2.tgz#d46573f18402b1667e8eba3490a95951c9883573"
+  integrity sha512-F/rRYCaR19Epd5tgq7RXc66R4HR9FFz+Usnbu6J8EVlHZPdVvT6QUWV+/dvRNI5D4V5JY6CA/V1oa7DAC1/2OQ==
+  dependencies:
+    "@0x/assert" "^3.0.7"
+    "@0x/base-contract" "^6.2.1"
+    "@0x/contract-addresses" "^4.8.0"
     "@0x/json-schemas" "^5.0.7"
     "@0x/types" "^3.1.2"
     "@0x/utils" "^5.4.1"
@@ -226,6 +261,13 @@
 "@0x/contracts-dev-utils@^1.3.0":
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/@0x/contracts-dev-utils/-/contracts-dev-utils-1.3.0.tgz#9e31978ff20718270f0333e27de6d697b0d8a8ba"
+  dependencies:
+    "@0x/base-contract" "^6.2.1"
+
+"@0x/contracts-dev-utils@^1.3.2":
+  version "1.3.2"
+  resolved "https://registry.npmjs.org/@0x/contracts-dev-utils/-/contracts-dev-utils-1.3.2.tgz#ee304d8b592d460283bb9f385c69fec0c59f734f"
+  integrity sha512-BKdck7eUgo8yZWUkMtOob9BcsC6mEZYweVpehH7rtOiCPyzIwMUc1fr0YnyEa/Dsz+9GYLGLKnlkvwDPGMovog==
   dependencies:
     "@0x/base-contract" "^6.2.1"
 
@@ -526,6 +568,20 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
+"@0x/order-utils@^10.2.3":
+  version "10.2.3"
+  resolved "https://registry.npmjs.org/@0x/order-utils/-/order-utils-10.2.3.tgz#bf1fb0669612c5ee9b4a06f7c79e75bd4330eb58"
+  integrity sha512-vayF3teXLn6798Z+i9teXZFQd/JHv3skgJIwscuyMDbP2a1ysy3K8BTZav/IlJfv1FlJ+oSzOF+q0USoED7U+g==
+  dependencies:
+    "@0x/assert" "^3.0.7"
+    "@0x/contract-wrappers" "^13.6.2"
+    "@0x/json-schemas" "^5.0.7"
+    "@0x/utils" "^5.4.1"
+    "@0x/web3-wrapper" "^7.0.7"
+    ethereumjs-util "^5.1.1"
+    ethers "~4.0.4"
+    lodash "^4.17.11"
+
 "@0x/orderbook@^2.2.2":
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/@0x/orderbook/-/orderbook-2.2.2.tgz#fe3884c6569a054ed49e6aff005b3af6f8967dd4"
@@ -535,6 +591,18 @@
     "@0x/contracts-dev-utils" "^1.3.0"
     "@0x/mesh-rpc-client" "^7.0.4-beta-0xv3"
     "@0x/order-utils" "^10.2.2"
+    "@0x/utils" "^5.4.1"
+
+"@0x/orderbook@^2.2.3":
+  version "2.2.4"
+  resolved "https://registry.npmjs.org/@0x/orderbook/-/orderbook-2.2.4.tgz#ddd2ce9873323494c59a3707293c32200b748a45"
+  integrity sha512-uvoODBgqK4CD0rp/Lf2Z0eINxWKAAu9QeG2HSSnWpGZ+rVgkx8YXqShUBtndgSIzl5y62NKRX6rOcADzehwCyw==
+  dependencies:
+    "@0x/assert" "^3.0.7"
+    "@0x/connect" "^6.0.7"
+    "@0x/contracts-dev-utils" "^1.3.2"
+    "@0x/mesh-rpc-client" "^7.0.4-beta-0xv3"
+    "@0x/order-utils" "^10.2.3"
     "@0x/utils" "^5.4.1"
 
 "@0x/sol-compiler@^4.0.2":
