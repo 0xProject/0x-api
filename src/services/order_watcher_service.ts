@@ -70,7 +70,8 @@ export class OrderWatcherService {
         switch (lifecycleEvent) {
             case OrderWatcherLifeCycleEvents.Updated:
             case OrderWatcherLifeCycleEvents.Added: {
-                const signedOrdersModel = orders.map(o => orderUtils.serializeOrder(o));
+                const allowedOrders = orders.filter(apiOrder => !orderUtils.isIgnoredOrder(apiOrder));
+                const signedOrdersModel = allowedOrders.map(o => orderUtils.serializeOrder(o));
                 // MAX SQL variable size is 999. This limit is imposed via Sqlite.
                 // The SELECT query is not entirely effecient and pulls in all attributes
                 // so we need to leave space for the attributes on the model represented

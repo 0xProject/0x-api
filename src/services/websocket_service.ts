@@ -150,7 +150,8 @@ export class WebsocketService {
             channel: MessageChannels.Orders,
             payload: apiOrders,
         };
-        for (const order of apiOrders) {
+        const allowedOrders = apiOrders.filter(apiOrder => !orderUtils.isIgnoredOrder(apiOrder));
+        for (const order of allowedOrders) {
             // Future optimisation is to invert this structure so the order isn't duplicated over many request ids
             // order->requestIds it is less likely to get multiple order updates and more likely
             // to have many subscribers and a single order
