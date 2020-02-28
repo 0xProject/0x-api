@@ -40,10 +40,19 @@ export const WHITELISTED_TOKENS: string[] | '*' = _.isEmpty(process.env.WHITELIS
     ? TokenMetadatasForChains.map(tm => tm.tokenAddresses[CHAIN_ID])
     : assertEnvVarType('WHITELIST_ALL_TOKENS', process.env.WHITELIST_ALL_TOKENS, EnvVarType.WhitelistAllTokens);
 
-// Ignored addresses
+// Ignored addresses. These are ignored at the ingress level and are never stored.
 export const IGNORED_ADDRESSES: string[] = _.isEmpty(process.env.IGNORED_ADDRESSES)
     ? []
     : assertEnvVarType('IGNORED_ADDRESSES', process.env.IGNORED_ADDRESSES, EnvVarType.AddressList);
+
+// Ignored addresses only for Swap Quote (still present in database and SRA).
+export const SWAP_QUOTE_IGNORED_ADDRESSES: string[] = _.isEmpty(process.env.SWAP_QUOTE_HIDDEN_ADDRESSES)
+    ? []
+    : assertEnvVarType(
+          'SWAP_QUOTE_IGNORED_ADDRESSES',
+          process.env.SWAP_QUOTE_IGNORED_ADDRESSES,
+          EnvVarType.AddressList,
+      );
 
 // Ethereum RPC Url
 export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.Url);

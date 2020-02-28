@@ -19,7 +19,6 @@ import {
     CHAIN_ID,
     DEFAULT_ERC20_TOKEN_PRECISION,
     FEE_RECIPIENT_ADDRESS,
-    IGNORED_ADDRESSES,
     MAKER_FEE_ASSET_DATA,
     MAKER_FEE_UNIT_AMOUNT,
     TAKER_FEE_ASSET_DATA,
@@ -79,11 +78,11 @@ const assetDataToAsset = (assetData: string): Asset => {
 };
 
 export const orderUtils = {
-    isIgnoredOrder: (apiOrder: APIOrder): boolean => {
+    isIgnoredOrder: (addressesToIgnore: string[], apiOrder: APIOrder): boolean => {
         return (
-            IGNORED_ADDRESSES.includes(apiOrder.order.makerAddress) ||
-            orderUtils.includesTokenAddresses(apiOrder.order.makerAssetData, IGNORED_ADDRESSES) ||
-            orderUtils.includesTokenAddresses(apiOrder.order.takerAssetData, IGNORED_ADDRESSES)
+            addressesToIgnore.includes(apiOrder.order.makerAddress) ||
+            orderUtils.includesTokenAddresses(apiOrder.order.makerAssetData, addressesToIgnore) ||
+            orderUtils.includesTokenAddresses(apiOrder.order.takerAssetData, addressesToIgnore)
         );
     },
     isMultiAssetData: (decodedAssetData: AssetData): decodedAssetData is MultiAssetData => {
