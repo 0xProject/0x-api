@@ -1,6 +1,6 @@
 import { AddedRemovedOrders, APIOrder, OrderSet, OrderStore } from '@0x/asset-swapper';
 
-import { SWAP_QUOTE_IGNORED_ADDRESSES } from '../config';
+import { SWAP_IGNORED_ADDRESSES } from '../config';
 import { FIRST_PAGE } from '../constants';
 import { OrderBookService } from '../services/orderbook_service';
 
@@ -28,7 +28,7 @@ export class OrderStoreDbAdapter extends OrderStore {
         const orderSet = new OrderSet();
         const allOrders = [...bids.records, ...asks.records];
         const allowedOrders = allOrders.filter(
-            apiOrder => !orderUtils.isIgnoredOrder(SWAP_QUOTE_IGNORED_ADDRESSES, apiOrder),
+            apiOrder => !orderUtils.isIgnoredOrder(SWAP_IGNORED_ADDRESSES, apiOrder),
         );
         await orderSet.addManyAsync(allowedOrders);
         return orderSet;
@@ -55,7 +55,7 @@ export class OrderStoreDbAdapter extends OrderStore {
             takerAssetDatas.forEach(t => (orderSets[OrderStore.getKeyForAssetPair(m, t)] = new OrderSet())),
         );
         const allowedOrders = apiOrders.filter(
-            apiOrder => !orderUtils.isIgnoredOrder(SWAP_QUOTE_IGNORED_ADDRESSES, apiOrder),
+            apiOrder => !orderUtils.isIgnoredOrder(SWAP_IGNORED_ADDRESSES, apiOrder),
         );
         await Promise.all(
             allowedOrders.map(async o =>
