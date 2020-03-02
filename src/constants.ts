@@ -28,6 +28,13 @@ export const DEFAULT_TOKEN_DECIMALS = 18;
 export const FIRST_PAGE = 1;
 export const PERCENTAGE_SIG_DIGITS = 4;
 
+// JSON RPC ID Namespaces
+export const JSON_RPC_NAMESPACE = {
+    SWAP_QUOTER: 'swap-quoter',
+    SWAP_QUOTE_CONSUMER: 'swap-quote-consumer',
+    SWAP_SERVICE: 'swap-service',
+};
+
 // API namespaces
 export const SRA_PATH = '/sra/v3';
 export const STAKING_PATH = '/staking';

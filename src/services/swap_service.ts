@@ -18,6 +18,7 @@ import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, FEE_RECIPIENT_ADDRESS } fro
 import {
     DEFAULT_TOKEN_DECIMALS,
     GAS_LIMIT_BUFFER_PERCENTAGE,
+    JSON_RPC_NAMESPACE,
     ONE_SECOND_MS,
     PERCENTAGE_SIG_DIGITS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -44,10 +45,17 @@ export class SwapService {
         const swapQuoterOpts = {
             chainId: CHAIN_ID,
             expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
+            jsonRpcIdNameSpace: JSON_RPC_NAMESPACE.SWAP_QUOTER,
         };
+
+        const swapQuoteConsumerOpts = {
+            ...swapQuoterOpts,
+            jsonRpcIdNameSpace: JSON_RPC_NAMESPACE.SWAP_QUOTE_CONSUMER,
+        };
+
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
-        this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
-        this._web3Wrapper = new Web3Wrapper(this._provider);
+        this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoteConsumerOpts);
+        this._web3Wrapper = new Web3Wrapper(this._provider, undefined, JSON_RPC_NAMESPACE.SWAP_SERVICE);
     }
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
         let swapQuote;
