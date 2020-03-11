@@ -8,7 +8,7 @@
     "scripts": {
         "clean": "shx rm -rf lib 0x_mesh/db",
         "build": "tsc -p tsconfig.json",
-        "test": "ETHEREUM_RPC_URL=http://localhost:8545 mocha --require source-map-support/register --require make-promises-safe lib/test/**/*_test.js --timeout 100000 --exit",
+        "test": "ETHEREUM_RPC_URL=http://localhost:8545 CHAIN_ID=1337 mocha --require source-map-support/register --require make-promises-safe lib/test/**/*_test.js --timeout 100000 --exit",
         "dev": "nodemon -r dotenv/config src/index.ts | pino-pretty",
         "dev:service:http": "nodemon -r dotenv/config src/runners/http_service_runner.ts | pino-pretty",
         "dev:service:sra_http": "nodemon -r dotenv/config src/runners/http_sra_service_runner.ts | pino-pretty",
