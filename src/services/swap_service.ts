@@ -99,11 +99,11 @@ export class SwapService {
             makerAssetAmount,
             totalTakerAssetAmount,
             protocolFeeInWeiAmount: protocolFee,
-            gas,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const {
-            makerAssetAmount: minMakerAssetAmount,
-            totalTakerAssetAmount: minTotalTakerAssetAmount,
+            makerAssetAmount: worstMakerAssetAmount,
+            totalTakerAssetAmount: worstTotalTakerAssetAmount,
+            gas,
         } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
 
@@ -149,8 +149,8 @@ export class SwapService {
                 ? unitMakerAssetAmount.dividedBy(unitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
                 : unitTakerAssetAMount.dividedBy(unitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
         // Min price before revert occurs
-        const minUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(minMakerAssetAmount, buyTokenDecimals);
-        const minUnitTakerAssetAMount = Web3Wrapper.toUnitAmount(minTotalTakerAssetAmount, sellTokenDecimals);
+        const minUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(worstMakerAssetAmount, buyTokenDecimals);
+        const minUnitTakerAssetAMount = Web3Wrapper.toUnitAmount(worstTotalTakerAssetAmount, sellTokenDecimals);
         const minPrice =
             buyAmount === undefined
                 ? minUnitMakerAssetAmount.dividedBy(minUnitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
