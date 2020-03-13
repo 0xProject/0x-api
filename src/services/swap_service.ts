@@ -101,8 +101,8 @@ export class SwapService {
             protocolFeeInWeiAmount: protocolFee,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const {
-            makerAssetAmount: worstMakerAssetAmount,
-            totalTakerAssetAmount: worstTotalTakerAssetAmount,
+            makerAssetAmount: guaranteedMakerAssetAmount,
+            totalTakerAssetAmount: guaranteedTotalTakerAssetAmount,
             gas,
         } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
@@ -148,17 +148,24 @@ export class SwapService {
             buyAmount === undefined
                 ? unitMakerAssetAmount.dividedBy(unitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
                 : unitTakerAssetAMount.dividedBy(unitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
-        // Min price before revert occurs
-        const minUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(worstMakerAssetAmount, buyTokenDecimals);
-        const minUnitTakerAssetAMount = Web3Wrapper.toUnitAmount(worstTotalTakerAssetAmount, sellTokenDecimals);
-        const minPrice =
+        // Guaranteed price before revert occurs
+        const guaranteedUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAssetAmount, buyTokenDecimals);
+        const guaranteedUnitTakerAssetAMount = Web3Wrapper.toUnitAmount(
+            guaranteedTotalTakerAssetAmount,
+            sellTokenDecimals,
+        );
+        const guaranteedPrice =
             buyAmount === undefined
-                ? minUnitMakerAssetAmount.dividedBy(minUnitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
-                : minUnitTakerAssetAMount.dividedBy(minUnitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
+                ? guaranteedUnitMakerAssetAmount
+                      .dividedBy(guaranteedUnitTakerAssetAMount)
+                      .decimalPlaces(sellTokenDecimals)
+                : guaranteedUnitTakerAssetAMount
+                      .dividedBy(guaranteedUnitMakerAssetAmount)
+                      .decimalPlaces(buyTokenDecimals);
 
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
-            minPrice,
+            guaranteedPrice,
             to,
             data: affiliatedData,
             value,

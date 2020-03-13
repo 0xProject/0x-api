@@ -309,7 +309,7 @@ export interface TokenMetadata {
 
 export interface GetSwapQuoteResponse {
     price: BigNumber;
-    minPrice: BigNumber;
+    guaranteedPrice: BigNumber;
     to: string;
     data: string;
     gasPrice: BigNumber;
