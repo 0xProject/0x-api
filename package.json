@@ -8,8 +8,8 @@
     "scripts": {
         "clean": "shx rm -rf lib 0x_mesh/db",
         "build": "tsc -p tsconfig.json",
-        "test": "ETHEREUM_RPC_URL=http://localhost:8545 CHAIN_ID=1337 mocha --require source-map-support/register --require make-promises-safe lib/test/**/*_test.js --timeout 100000 --exit",
-        "dev": "nodemon -r dotenv/config src/index.ts | pino-pretty",
+        "test": "ETHEREUM_RPC_URL=http://localhost:8545 CHAIN_ID=1337 RFQT_API_KEY_WHITELIST='[\"koolApiKey1\"]' RFQT_MAKER_ENDPOINTS='[\"http://localhost:4000\"]' mocha --require source-map-support/register --require make-promises-safe lib/test/**/*_test.js --timeout 100000 --exit",
+        "dev": "ETHEREUM_RPC_URL=http://localhost:8545 CHAIN_ID=1337 RFQT_API_KEY_WHITELIST='[\"koolApiKey1\"]' RFQT_MAKER_ENDPOINTS='[\"http://localhost:4000\"]' nodemon -r dotenv/config src/index.ts | pino-pretty",
         "dev:service:http": "nodemon -r dotenv/config src/runners/http_service_runner.ts | pino-pretty",
         "dev:service:sra_http": "nodemon -r dotenv/config src/runners/http_sra_service_runner.ts | pino-pretty",
         "dev:service:staking_http": "nodemon -r dotenv/config src/runners/http_staking_service_runner.ts | pino-pretty",
@@ -24,7 +24,8 @@
         "start:service:staking_http": "node -r dotenv/config lib/src/runners/http_staking_service_runner.js",
         "start:service:swap_http": "node -r dotenv/config lib/src/runners/http_swap_service_runner.js",
         "start:service:order_watcher": "node -r dotenv/config lib/src/runners/order_watcher_service_runner.js",
-        "lint": "tslint --project . --format stylish"
+        "lint": "tslint --project . --format stylish",
+        "docker:login": "eval $(aws ecr get-login --no-include-email --region \"us-east-1\") # to pull private quoter repo. see https://docs.aws.amazon.com/cli/latest/reference/ecr/get-login.html"
     },
     "resolutions": {
         "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-58b6c25d5",

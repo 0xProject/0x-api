@@ -100,6 +100,10 @@ export const LIQUIDITY_POOL_REGISTRY_ADDRESS: string | undefined = _.isEmpty(
           EnvVarType.ETHAddressHex,
       );
 
+export const RFQT_API_KEY_WHITELIST: string[] = JSON.parse(process.env.RFQT_API_KEY_WHITELIST || '[]');
+
+export const RFQT_MAKER_ENDPOINTS: string[] = JSON.parse(process.env.RFQT_MAKER_ENDPOINTS || '[]');
+
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision

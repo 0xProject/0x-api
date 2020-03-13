@@ -36,6 +36,7 @@ export class SwapHandlers {
             gasPrice,
             excludedSources,
             affiliateAddress,
+            intentOnFilling,
         } = parseGetSwapQuoteRequestParams(req);
         const isETHSell = isETHSymbol(sellToken);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
@@ -63,6 +64,8 @@ export class SwapHandlers {
                 gasPrice,
                 excludedSources,
                 affiliateAddress,
+                apiKey: takerAddress && takerAddress !== NULL_ADDRESS ? req.header('0x-api-key') : undefined,
+                intentOnFilling,
             });
             res.status(HttpStatus.OK).send(swapQuote);
         } catch (e) {
@@ -166,6 +169,8 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
             ? undefined
             : parseStringArrForERC20BridgeSources(req.query.excludedSources.split(','));
     const affiliateAddress = req.query.affiliateAddress;
+    // tslint:disable-next-line:boolean-naming
+    const intentOnFilling = req.query.intentOnFilling === undefined ? false : true;
     return {
         takerAddress,
         sellToken,
@@ -176,5 +181,6 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
         gasPrice,
         excludedSources,
         affiliateAddress,
+        intentOnFilling,
     };
 };
