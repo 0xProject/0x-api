@@ -254,8 +254,7 @@ export class MetaTransactionService {
         const gasPrice = zeroExTransaction.gasPrice;
         const protocolFee = MetaTransactionService._calculateProtocolFee(orders.length, gasPrice);
 
-        const executeTxnCalldata = await this._contractWrappers.exchange
-            .executeTransaction(zeroExTransaction, signature).getABIEncodedTransactionData();
+        // TODO(fabio): Verify that the 0x transaction is one we have issued via the 0x API
 
         try {
             await this._contractWrappers.exchange
@@ -280,6 +279,9 @@ export class MetaTransactionService {
             gasPrice,
             value: protocolFee,
         });
+
+        const executeTxnCalldata = await this._contractWrappers.exchange
+        .executeTransaction(zeroExTransaction, signature).getABIEncodedTransactionData();
 
         const ethereumTxn: PartialTxParams = {
             data: executeTxnCalldata,

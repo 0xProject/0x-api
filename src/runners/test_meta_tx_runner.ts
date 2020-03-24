@@ -19,9 +19,9 @@ const mainAsync = async () => {
     // const provider = window.ethereum;
 
     // swap parameters
-    const sellToken = 'WETH';
-    const buyToken = 'DAI';
-    const buyAmount = '500000000000000000'; // 0.5 DAI
+    const sellToken = 'DAI';
+    const buyToken = 'MKR';
+    const buyAmount = '856369570000000'; // 0.5 DAI
     const takerAddress = TAKER_ADDRESS;
 
     // 1. GET /meta_transaction/quote
@@ -29,14 +29,15 @@ const mainAsync = async () => {
         `http://localhost:3000/meta_transaction/v0/quote?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${buyAmount}&takerAddress=${takerAddress}`,
     );
     const { zeroExTransactionHash, zeroExTransaction } = data;
+    console.log('DATA:', JSON.stringify(data));
 
     // 2. Sign the meta tx
     const signature = await signatureUtils.ecSignHashAsync(provider, zeroExTransactionHash, takerAddress);
 
     // 3. POST /meta_transaction/fill
-    const { status, statusText } = await axios.post('http://localhost:3000/meta_transaction/v0/fill', { zeroExTransaction, signature });
+    const response = await axios.post('http://localhost:3000/meta_transaction/v0/fill', { zeroExTransaction, signature });
 
-    console.log(`${status} ${statusText}`);
+    console.log('RESPONSE: ', JSON.stringify(response.data), response.status, response.statusText);
 };
 
 mainAsync().catch(console.error);
