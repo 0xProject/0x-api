@@ -2,7 +2,7 @@ import { APIOrder, OrderbookResponse, PaginatedCollection } from '@0x/connect';
 import { assetDataUtils } from '@0x/order-utils';
 import { AssetPairsItem, OrdersRequestOpts, SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
-import { Connection, In } from 'typeorm';
+import { Connection, In, MoreThan } from 'typeorm';
 
 import { SignedOrderEntity } from '../entities';
 import { ValidationError } from '../errors';
@@ -69,10 +69,18 @@ export class OrderBookService {
     ): Promise<OrderbookResponse> {
         const [bidSignedOrderEntities, askSignedOrderEntities] = await Promise.all([
             this._connection.manager.find(SignedOrderEntity, {
-                where: { takerAssetData: baseAssetData, makerAssetData: quoteAssetData },
+                where: {
+                    takerAssetData: baseAssetData,
+                    makerAssetData: quoteAssetData,
+                    expirationTimeSeconds: MoreThan(new Date().getTime()),
+                },
             }),
             this._connection.manager.find(SignedOrderEntity, {
-                where: { takerAssetData: quoteAssetData, makerAssetData: baseAssetData },
+                where: {
+                    takerAssetData: quoteAssetData,
+                    makerAssetData: baseAssetData,
+                    expirationTimeSeconds: MoreThan(new Date().getTime()),
+                },
             }),
         ]);
         const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Array<Required<SignedOrderEntity>>)
@@ -109,7 +117,10 @@ export class OrderBookService {
         };
         const filterObject = _.pickBy(filterObjectWithValuesIfExist, _.identity.bind(_));
         const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
-            where: filterObject,
+            where: {
+                expirationTimeSeconds: MoreThan(new Date().getTime()),
+                ...filterObject,
+            },
         })) as Array<Required<SignedOrderEntity>>;
         let apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder);
         // Post-filters
@@ -167,7 +178,10 @@ export class OrderBookService {
             takerAssetData: In(takerAssetDatas),
         };
         const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
-            where: filterObject,
+            where: {
+                expirationTimeSeconds: MoreThan(new Date().getTime()),
+                ...filterObject,
+            },
         })) as Array<Required<SignedOrderEntity>>;
         const apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder);
         const paginatedApiOrders = paginationUtils.paginate(apiOrders, page, perPage);
