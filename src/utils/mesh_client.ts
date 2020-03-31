@@ -8,13 +8,14 @@ import { utils } from './utils';
 
 export class MeshClient extends WSClient {
     public async addOrdersAsync(orders: SignedOrder[], pinned: boolean = false): Promise<ValidationResults> {
-        if (_.isEmpty(this.httpURI) || orders.length <= MESH_ORDERS_BATCH_SIZE) {
-            // send via websocket
-            // break into chunks because mesh websocket fails when the msg is too big
+        if (orders.length <= MESH_ORDERS_BATCH_SIZE) {
+            // break orders into chunks as sending more orders at a time offers
+            // no performance benefits because Mesh cannot send more than 500
+            // orders per request to an Ethereum RPC endpoint.
             const validationResults: ValidationResults = { accepted: [], rejected: [] };
             const chunks = _.chunk(orders, MESH_ORDERS_BATCH_SIZE);
             for (const chunk of chunks) {
-                const results = await super.addOrdersAsync(chunk, pinned);
+                const results = await this.addOrdersAsync(chunk, pinned);
                 validationResults.accepted = [...validationResults.accepted, ...results.accepted];
                 validationResults.rejected = [...validationResults.rejected, ...results.rejected];
             }
