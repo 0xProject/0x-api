@@ -71,10 +71,10 @@ export class OrderBookService {
     ): Promise<OrderbookResponse> {
         const [bidSignedOrderEntities, askSignedOrderEntities] = await Promise.all([
             this._connection.manager.find(SignedOrderEntity, {
-                where: { takerAssetData: baseAssetData, makerAssetData: quoteAssetData },
+                where: { takerAssetData: baseAssetData.toLowerCase(), makerAssetData: quoteAssetData.toLowerCase() },
             }),
             this._connection.manager.find(SignedOrderEntity, {
-                where: { takerAssetData: quoteAssetData, makerAssetData: baseAssetData },
+                where: { takerAssetData: quoteAssetData.toLowerCase(), makerAssetData: baseAssetData.toLowerCase() },
             }),
         ]);
         const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Array<Required<SignedOrderEntity>>)
@@ -110,8 +110,9 @@ export class OrderBookService {
             takerFeeAssetData: ordersFilterParams.takerFeeAssetData,
         };
         const filterObject = _.pickBy(filterObjectWithValuesIfExist, _.identity.bind(_));
+        const normalizedFilterObject = normalizeValuesToLowerCase(filterObject);
         const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
-            where: filterObject,
+            where: normalizedFilterObject,
         })) as Array<Required<SignedOrderEntity>>;
         const apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder);
         // Post-filters
@@ -164,4 +165,14 @@ export class OrderBookService {
         }
         throw new Error('Could not add order to mesh.');
     }
+}
+
+// DB is case-sensitive and looks for exact matches
+// we should normalize addresses to lower case before filtering in the DB
+function normalizeValuesToLowerCase<V>(obj: { [key: string]: V }): { [key: string]: V } {
+    const normalizedObj: { [key: string]: V } = {};
+    for (const [key, value] of Object.entries(obj)) {
+        normalizedObj[key] = value instanceof String ? ((value.toLowerCase() as any) as V) : value;
+    }
+    return normalizedObj;
 }

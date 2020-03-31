@@ -163,7 +163,7 @@ export class SwapHandlers {
 
 const findTokenAddressOrThrowApiError = (address: string, field: string, chainId: ChainId): string => {
     try {
-        return findTokenAddress(address, chainId);
+        return findTokenAddress(address.toLowerCase(), chainId);
     } catch (e) {
         throw new ValidationError([
             {
@@ -188,7 +188,7 @@ const parseStringArrForERC20BridgeSources = (excludedSources: string[]): ERC20Br
 const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteRequestParams => {
     // HACK typescript typing does not allow this valid json-schema
     schemaUtils.validateSchema(req.query, schemas.swapQuoteRequestSchema as any);
-    const takerAddress = req.query.takerAddress;
+    const takerAddress = req.query.takerAddress.toLowerCase();
     const sellToken = req.query.sellToken;
     const buyToken = req.query.buyToken;
     const sellAmount = req.query.sellAmount === undefined ? undefined : new BigNumber(req.query.sellAmount);
@@ -199,7 +199,7 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
         req.query.excludedSources === undefined
             ? undefined
             : parseStringArrForERC20BridgeSources(req.query.excludedSources.split(','));
-    const affiliateAddress = req.query.affiliateAddress;
+    const affiliateAddress = req.query.affiliateAddress.toLowerCase();
     return {
         takerAddress,
         sellToken,
