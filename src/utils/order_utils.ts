@@ -281,8 +281,8 @@ export const orderUtils = {
         return filteredOrders;
     },
     // splitOrdersByPinning splits the orders into those we wish to pin in our Mesh node and
-    // those we wish not to pin. We wish to pin the orders of MMers with a track record of being
-    // benign.
+    // those we wish not to pin. We wish to pin the orders of MMers with a lot of ZRX at stake and
+    // who have a track record of acting benevolently.
     async splitOrdersByPinningAsync(connection: Connection, signedOrders: SignedOrder[]): Promise<PinResult> {
         const currentPoolStats = await connection.query(queries.currentEpochPoolsStatsQuery);
         const trustedPoolIds = [
