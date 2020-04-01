@@ -1,6 +1,4 @@
-import {
-    MarketBuySwapQuote, MarketSellSwapQuote, SwapQuoter,
-} from '@0x/asset-swapper';
+import { MarketBuySwapQuote, MarketSellSwapQuote, SwapQuoter } from '@0x/asset-swapper';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
@@ -25,7 +23,9 @@ export class MetaTransactionService {
     private static _createWeb3Provider(rpcHost: string): SupportedProvider {
         const WEB3_RPC_RETRY_COUNT = 3;
         const providerEngine = new Web3ProviderEngine();
-        const rpcSubproviders = MetaTransactionService._range(WEB3_RPC_RETRY_COUNT).map((_index: number) => new RPCSubprovider(rpcHost));
+        const rpcSubproviders = MetaTransactionService._range(WEB3_RPC_RETRY_COUNT).map(
+            (_index: number) => new RPCSubprovider(rpcHost),
+        );
         providerEngine.addProvider(new RedundantSubprovider(rpcSubproviders));
         providerUtils.startProviderEngine(providerEngine);
         return providerEngine;
@@ -35,7 +35,7 @@ export class MetaTransactionService {
     }
     private static readonly _calculateProtocolFee = (numOrders: number, gasPrice: BigNumber): BigNumber => {
         return new BigNumber(150000).times(gasPrice).times(numOrders);
-    }
+    };
     private static _hasBridgeOrder(orders: SignedOrder[]): boolean {
         const bridgeOrders = orders.filter(order => {
             return order.makerAssetData.startsWith(ERC20_BRIDGE_ASSET_PREFIX);
@@ -51,16 +51,20 @@ export class MetaTransactionService {
         });
         return totalMakerAssetAmount.div(totalTakerAssetAmount);
     }
-    private static _addRelayFeeToFirstBridgeOrder(orders: SignedOrder[], feeAssetData: string, feeAmount: BigNumber): SignedOrder[] {
-       for (const order of orders) {
+    private static _addRelayFeeToFirstBridgeOrder(
+        orders: SignedOrder[],
+        feeAssetData: string,
+        feeAmount: BigNumber,
+    ): SignedOrder[] {
+        for (const order of orders) {
             if (order.makerAssetData.startsWith(ERC20_BRIDGE_ASSET_PREFIX)) {
                 order.feeRecipientAddress = SENDER_ADDRESS;
                 order.takerFeeAssetData = feeAssetData;
                 order.takerFee = feeAmount;
                 break;
             }
-       }
-       return orders;
+        }
+        return orders;
     }
     constructor() {
         this._provider = MetaTransactionService._createWeb3Provider(ETHEREUM_RPC_URL);
@@ -71,15 +75,10 @@ export class MetaTransactionService {
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
     }
-    public async calculateMetaTransactionQuoteAsync(params: CalculateMetaTransactionQuoteParams): Promise<GetMetaTransactionQuoteResponse> {
-        const {
-            takerAddress,
-            sellAmount,
-            buyAmount,
-            buyTokenAddress,
-            sellTokenAddress,
-            slippagePercentage,
-        } = params;
+    public async calculateMetaTransactionQuoteAsync(
+        params: CalculateMetaTransactionQuoteParams,
+    ): Promise<GetMetaTransactionQuoteResponse> {
+        const { takerAddress, sellAmount, buyAmount, buyTokenAddress, sellTokenAddress, slippagePercentage } = params;
 
         const assetSwapperOpts = {
             slippagePercentage,
@@ -87,33 +86,44 @@ export class MetaTransactionService {
         };
 
         const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
-        const shouldFetchTakerAssetPriceInWETH = buyTokenAddress !== contractAddresses.etherToken && sellTokenAddress !== contractAddresses.etherToken;
-        const swapQuotePromises: Array<Promise<MarketSellSwapQuote|MarketBuySwapQuote>> = [];
+        const shouldFetchTakerAssetPriceInWETH =
+            buyTokenAddress !== contractAddresses.etherToken && sellTokenAddress !== contractAddresses.etherToken;
+        const swapQuotePromises: Array<Promise<MarketSellSwapQuote | MarketBuySwapQuote>> = [];
         if (shouldFetchTakerAssetPriceInWETH) {
-            swapQuotePromises.push(this._swapQuoter.getMarketBuySwapQuoteAsync(
-                contractAddresses.etherToken,
-                sellTokenAddress,
-                new BigNumber(1000000000000000000), // 1 ETH
-                assetSwapperOpts,
-            ));
+            swapQuotePromises.push(
+                this._swapQuoter.getMarketBuySwapQuoteAsync(
+                    contractAddresses.etherToken,
+                    sellTokenAddress,
+                    new BigNumber(1000000000000000000), // 1 ETH
+                    assetSwapperOpts,
+                ),
+            );
         } else {
-            swapQuotePromises.push(new Promise((resolve, _reject) => {resolve(); }));
+            swapQuotePromises.push(
+                new Promise((resolve, _reject) => {
+                    resolve();
+                }),
+            );
         }
 
         if (sellAmount !== undefined) {
-            swapQuotePromises.push(this._swapQuoter.getMarketSellSwapQuoteAsync(
-                buyTokenAddress,
-                sellTokenAddress,
-                sellAmount,
-                assetSwapperOpts,
-            ));
+            swapQuotePromises.push(
+                this._swapQuoter.getMarketSellSwapQuoteAsync(
+                    buyTokenAddress,
+                    sellTokenAddress,
+                    sellAmount,
+                    assetSwapperOpts,
+                ),
+            );
         } else if (buyAmount !== undefined) {
-            swapQuotePromises.push(this._swapQuoter.getMarketBuySwapQuoteAsync(
-                buyTokenAddress,
-                sellTokenAddress,
-                buyAmount,
-                assetSwapperOpts,
-            ));
+            swapQuotePromises.push(
+                this._swapQuoter.getMarketBuySwapQuoteAsync(
+                    buyTokenAddress,
+                    sellTokenAddress,
+                    buyAmount,
+                    assetSwapperOpts,
+                ),
+            );
         } else {
             throw new Error('sellAmount or buyAmount required');
         }
@@ -133,14 +143,25 @@ export class MetaTransactionService {
         let placeholderOrders = _.clone(orders);
         if (hasBridgeOrder) {
             // Add fee to first bridge order
-            placeholderOrders = MetaTransactionService._addRelayFeeToFirstBridgeOrder(placeholderOrders, wethRelayAssetData, placeholderRelayFee);
+            placeholderOrders = MetaTransactionService._addRelayFeeToFirstBridgeOrder(
+                placeholderOrders,
+                wethRelayAssetData,
+                placeholderRelayFee,
+            );
         } else {
             // Add affiliate order
             const affiliateOrder = await this._createAffiliateOrderAsync(wethRelayAssetData, placeholderRelayFee);
             placeholderOrders.push(affiliateOrder);
         }
 
-        const placeholderZeroExTransaction = this._generateZeroExTransaction(placeholderOrders, sellAmount, buyAmount, signatures, takerAddress, gasPrice);
+        const placeholderZeroExTransaction = this._generateZeroExTransaction(
+            placeholderOrders,
+            sellAmount,
+            buyAmount,
+            signatures,
+            takerAddress,
+            gasPrice,
+        );
 
         // By setting the `from` address to the 0x transaction `signerAddress`, the 0x txn signature
         // is not checked by the smart contracts. This allows us to estimate the gas of the Ethereum txn
@@ -157,12 +178,12 @@ export class MetaTransactionService {
 
         try {
             await this._contractWrappers.exchange
-            .executeTransaction(placeholderZeroExTransaction, DUMMY_SIGNATURE)
-            .callAsync({
-                from: takerAddress,
-                gasPrice,
-                value: protocolFee,
-            });
+                .executeTransaction(placeholderZeroExTransaction, DUMMY_SIGNATURE)
+                .callAsync({
+                    from: takerAddress,
+                    gasPrice,
+                    value: protocolFee,
+                });
         } catch (err) {
             if (err.values && err.values.errorData && err.values.errorData !== '0x') {
                 const decodedCallData = RevertError.decode(err.values.errorData, false);
@@ -171,17 +192,20 @@ export class MetaTransactionService {
             throw err;
         }
 
-        const estimatedGas = new BigNumber(await this._contractWrappers.exchange
-            .executeTransaction(placeholderZeroExTransaction, DUMMY_SIGNATURE)
-            .estimateGasAsync({
-                from: takerAddress,
-                gasPrice,
-                value: protocolFee,
-            }));
+        const estimatedGas = new BigNumber(
+            await this._contractWrappers.exchange
+                .executeTransaction(placeholderZeroExTransaction, DUMMY_SIGNATURE)
+                .estimateGasAsync({
+                    from: takerAddress,
+                    gasPrice,
+                    value: protocolFee,
+                }),
+        );
 
         // Estimated relayFeeInETH
         const estimatedProtocolFee = MetaTransactionService._calculateProtocolFee(placeholderOrders.length, gasPrice);
-        const estimateRelayFeeInETH = (gasPrice.times(estimatedGas))
+        const estimateRelayFeeInETH = gasPrice
+            .times(estimatedGas)
             .plus(estimatedProtocolFee)
             .integerValue(BigNumber.ROUND_FLOOR);
 
@@ -193,11 +217,17 @@ export class MetaTransactionService {
             if (buyTokenAddress === contractAddresses.etherToken) {
                 const priceDenominatedInMakerAsset = MetaTransactionService._getMakerDenominatedPriceFromOrders(orders);
                 relayAssetData = await devUtils.encodeERC20AssetData(sellTokenAddress).callAsync();
-                relayFeeAmount = estimateRelayFeeInETH.div(priceDenominatedInMakerAsset).integerValue(BigNumber.ROUND_FLOOR);
+                relayFeeAmount = estimateRelayFeeInETH
+                    .div(priceDenominatedInMakerAsset)
+                    .integerValue(BigNumber.ROUND_FLOOR);
             } else {
-                const priceDenominatedInMakerAsset = MetaTransactionService._getMakerDenominatedPriceFromOrders(marketBuyWETHSwapQuote.orders);
+                const priceDenominatedInMakerAsset = MetaTransactionService._getMakerDenominatedPriceFromOrders(
+                    marketBuyWETHSwapQuote.orders,
+                );
                 relayAssetData = await devUtils.encodeERC20AssetData(sellTokenAddress).callAsync();
-                relayFeeAmount = estimateRelayFeeInETH.div(priceDenominatedInMakerAsset).integerValue(BigNumber.ROUND_FLOOR);
+                relayFeeAmount = estimateRelayFeeInETH
+                    .div(priceDenominatedInMakerAsset)
+                    .integerValue(BigNumber.ROUND_FLOOR);
             }
         }
 
@@ -209,7 +239,14 @@ export class MetaTransactionService {
             const affiliateOrder = await this._createAffiliateOrderAsync(relayAssetData, relayFeeAmount);
             orders.push(affiliateOrder);
         }
-        const zeroExTransaction = this._generateZeroExTransaction(orders, sellAmount, buyAmount, signatures, takerAddress, gasPrice);
+        const zeroExTransaction = this._generateZeroExTransaction(
+            orders,
+            sellAmount,
+            buyAmount,
+            signatures,
+            takerAddress,
+            gasPrice,
+        );
 
         // use the DevUtils contract to generate the transaction hash
         const zeroExTransactionHash = await devUtils
@@ -220,14 +257,20 @@ export class MetaTransactionService {
             )
             .callAsync();
 
-        const buyTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(buyTokenAddress, this._web3Wrapper);
-        const sellTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(sellTokenAddress, this._web3Wrapper);
+        const buyTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(
+            buyTokenAddress,
+            this._web3Wrapper,
+        );
+        const sellTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(
+            sellTokenAddress,
+            this._web3Wrapper,
+        );
         const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
         const unitTakerAssetAMount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
         const price =
-                buyAmount === undefined
-                    ? unitMakerAssetAmount.dividedBy(unitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
-                    : unitTakerAssetAMount.dividedBy(unitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
+            buyAmount === undefined
+                ? unitMakerAssetAmount.dividedBy(unitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
+                : unitTakerAssetAMount.dividedBy(unitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
 
         const apiMetaTransactionQuote: GetMetaTransactionQuoteResponse = {
             price,
@@ -239,8 +282,14 @@ export class MetaTransactionService {
         };
         return apiMetaTransactionQuote;
     }
-    private _generateZeroExTransaction(orders: SignedOrder[], sellAmount: BigNumber|undefined, buyAmount: BigNumber|undefined, signatures: string[], takerAddress: string, gasPrice: BigNumber): ZeroExTransaction {
-
+    private _generateZeroExTransaction(
+        orders: SignedOrder[],
+        sellAmount: BigNumber | undefined,
+        buyAmount: BigNumber | undefined,
+        signatures: string[],
+        takerAddress: string,
+        gasPrice: BigNumber,
+    ): ZeroExTransaction {
         // generate txData for marketSellOrdersFillOrKill or marketBuyOrdersFillOrKill
         let txData;
         if (sellAmount !== undefined) {
@@ -273,9 +322,12 @@ export class MetaTransactionService {
         return zeroExTransaction;
     }
     private async _createAffiliateOrderAsync(feeAssetData: string, feeAmount: BigNumber): Promise<SignedOrder> {
-        const staticCallToNullAddressAssetData = '0xc339d10a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a4700000000000000000000000000000000000000000000000000000000000000000';
+        const staticCallToNullAddressAssetData =
+            '0xc339d10a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a4700000000000000000000000000000000000000000000000000000000000000000';
         // Converts to 0xff00000000000000000000000000000000000000000000000000000000000000 (large, lots of cheap zero bytes)
-        const largeExpiryWithManyZeroBytes = new BigNumber('115339776388732929035197660848497720713218148788040405586178452820382218977280');
+        const largeExpiryWithManyZeroBytes = new BigNumber(
+            '115339776388732929035197660848497720713218148788040405586178452820382218977280',
+        );
         const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
         const order: Order = {
             makerAddress: SENDER_ADDRESS,

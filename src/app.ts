@@ -60,7 +60,7 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
-    const metaTransactionService =  new MetaTransactionService();
+    const metaTransactionService = new MetaTransactionService();
 
     const websocketOpts = { path: SRA_PATH };
 

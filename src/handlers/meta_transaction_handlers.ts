@@ -28,7 +28,14 @@ export class MetaTransactionHandlers {
         // HACK typescript typing does not allow this valid json-schema
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
         // parse query params
-        const { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage } = parseGetTransactionRequestParams(req);
+        const {
+            takerAddress,
+            sellToken,
+            buyToken,
+            sellAmount,
+            buyAmount,
+            slippagePercentage,
+        } = parseGetTransactionRequestParams(req);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
         try {

@@ -26,7 +26,10 @@ export class SignerHandlers {
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
         try {
-            const { transactionHash, signedEthereumTransaction } = await this._signerService.signAndSubmitZeroExTransactionAsync(zeroExTransaction, signature);
+            const {
+                transactionHash,
+                signedEthereumTransaction,
+            } = await this._signerService.signAndSubmitZeroExTransactionAsync(zeroExTransaction, signature);
             // return the transactionReceipt
             res.status(HttpStatus.OK).send({
                 transactionHash,

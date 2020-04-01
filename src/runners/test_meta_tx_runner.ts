@@ -12,7 +12,9 @@ const mainAsync = async () => {
     // create ethereum provider (server)
     const provider = new Web3ProviderEngine();
     provider.addProvider(new PrivateKeyWalletSubprovider(TAKER_PRIVATE_KEY));
-    provider.addProvider(new RPCSubprovider('https://eth-mainnet.alchemyapi.io/jsonrpc/KeUFQuuW7d-WHLGY62WYrHv8V_W7KYU5'));
+    provider.addProvider(
+        new RPCSubprovider('https://eth-mainnet.alchemyapi.io/jsonrpc/KeUFQuuW7d-WHLGY62WYrHv8V_W7KYU5'),
+    );
     providerUtils.startProviderEngine(provider);
 
     // create ethereum provider (browser)
@@ -35,7 +37,10 @@ const mainAsync = async () => {
     const signature = await signatureUtils.ecSignHashAsync(provider, zeroExTransactionHash, takerAddress);
 
     // 3. POST /meta_transaction/fill
-    const response = await axios.post('http://localhost:3000/meta_transaction/v0/fill', { zeroExTransaction, signature });
+    const response = await axios.post('http://localhost:3000/meta_transaction/v0/fill', {
+        zeroExTransaction,
+        signature,
+    });
 
     console.log('RESPONSE: ', JSON.stringify(response.data), response.status, response.statusText);
 };
