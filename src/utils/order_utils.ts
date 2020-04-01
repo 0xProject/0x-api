@@ -15,6 +15,7 @@ import {
     StaticCallAssetData,
 } from '@0x/types';
 import { BigNumber, errorUtils } from '@0x/utils';
+import { Connection } from 'typeorm';
 
 import {
     CHAIN_ID,
@@ -28,7 +29,8 @@ import {
 } from '../config';
 import { MAX_TOKEN_SUPPLY_POSSIBLE, NULL_ADDRESS, ONE_SECOND_MS } from '../constants';
 import { SignedOrderEntity } from '../entities';
-import { APIOrderWithMetaData } from '../types';
+import * as queries from '../queries/staking_queries';
+import { APIOrderWithMetaData, PinResult, RawEpochPoolStats } from '../types';
 
 const DEFAULT_ERC721_ASSET = {
     minAmount: new BigNumber(0),
@@ -277,5 +279,34 @@ export const orderUtils = {
             );
         }
         return filteredOrders;
+    },
+    // splitOrdersByPinning splits the orders into those we wish to pin in our Mesh node and
+    // those we wish not to pin. We wish to pin the orders of MMers with a track record of being
+    // benign.
+    async splitOrdersByPinningAsync(connection: Connection, signedOrders: SignedOrder[]): Promise<PinResult> {
+        const currentPoolStats = await connection.query(queries.currentEpochPoolsStatsQuery);
+        const trustedPoolIds = [
+            '12', // DUST
+            '20', // Prycto
+        ];
+        let makerAddresses: string[] = [];
+        currentPoolStats.forEach((poolStats: RawEpochPoolStats) => {
+            if (!trustedPoolIds.includes(poolStats.pool_id)) {
+                return;
+            }
+            makerAddresses = [...makerAddresses, ...poolStats.maker_addresses];
+        });
+        const pinResult: PinResult = {
+            pin: [],
+            doNotPin: [],
+        };
+        signedOrders.forEach(signedOrder => {
+            if (makerAddresses.includes(signedOrder.makerAddress)) {
+                pinResult.pin.push(signedOrder);
+            } else {
+                pinResult.doNotPin.push(signedOrder);
+            }
+        });
+        return pinResult;
     },
 };
