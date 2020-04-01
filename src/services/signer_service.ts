@@ -46,9 +46,9 @@ export class SignerService {
     private static _range(rangeCount: number): number[] {
         return [...Array(rangeCount).keys()];
     }
-    private static readonly _calculateProtocolFee = (numOrders: number, gasPrice: BigNumber): BigNumber => {
+    private static _calculateProtocolFee(numOrders: number, gasPrice: BigNumber): BigNumber {
         return new BigNumber(150000).times(gasPrice).times(numOrders);
-    };
+    }
     constructor() {
         this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(SENDER_PRIVATE_KEY);
         this._nonceTrackerSubprovider = new NonceTrackerSubprovider();
