@@ -10,7 +10,7 @@ import { AbiEncoder, BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS } from '../config';
-import { DEFAULT_TOKEN_DECIMALS, PERCENTAGE_SIG_DIGITS, ZERO } from '../constants';
+import { DEFAULT_TOKEN_DECIMALS, ONE_SECOND_MS, PERCENTAGE_SIG_DIGITS, ZERO } from '../constants';
 import { logger } from '../logger';
 import { GetSwapQuoteResponseLiquiditySource } from '../types';
 import { orderUtils } from '../utils/order_utils';
