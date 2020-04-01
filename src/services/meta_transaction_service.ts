@@ -87,9 +87,9 @@ export class MetaTransactionService {
         };
 
         const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
-        const mustFetchTakerAssetPriceInWETH = buyTokenAddress !== contractAddresses.etherToken && sellTokenAddress !== contractAddresses.etherToken;
+        const shouldFetchTakerAssetPriceInWETH = buyTokenAddress !== contractAddresses.etherToken && sellTokenAddress !== contractAddresses.etherToken;
         const swapQuotePromises: Array<Promise<MarketSellSwapQuote|MarketBuySwapQuote>> = [];
-        if (mustFetchTakerAssetPriceInWETH) {
+        if (shouldFetchTakerAssetPriceInWETH) {
             swapQuotePromises.push(this._swapQuoter.getMarketBuySwapQuoteAsync(
                 contractAddresses.etherToken,
                 sellTokenAddress,
