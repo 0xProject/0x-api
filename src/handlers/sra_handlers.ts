@@ -76,8 +76,8 @@ export class SRAHandlers {
             validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.takerAssetData, 'takerAssetData');
         }
         const pinResult = await this._orderBook.splitOrdersByPinningAsync([signedOrder]);
-        const pinned = pinResult.pin.length === 1;
-        await this._orderBook.addOrderAsync(signedOrder, pinned);
+        const isPinned = pinResult.pin.length === 1;
+        await this._orderBook.addOrderAsync(signedOrder, isPinned);
         res.status(HttpStatus.OK).send();
     }
     public async postOrdersAsync(req: express.Request, res: express.Response): Promise<void> {
