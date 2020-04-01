@@ -11,7 +11,7 @@ import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
-import { ChainId, GetTransactionRequestParams, ZeroExTransactionWithoutDomain } from '../types';
+import { ChainId, GetTransactionRequestParams } from '../types';
 import { schemaUtils } from '../utils/schema_utils';
 import { findTokenAddress } from '../utils/token_metadata_utils';
 
@@ -78,31 +78,6 @@ export class MetaTransactionHandlers {
             throw new InternalServerError(e.message);
         }
     }
-    public async postTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
-
-        // parse the request body
-        const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
-        try {
-            const { transactionHash, signedEthereumTransaction } = await this._metaTransactionService.postTransactionAsync(zeroExTransaction, signature);
-            // return the transactionReceipt
-            res.status(HttpStatus.OK).send({
-                transactionHash,
-                signedEthereumTransaction,
-            });
-        } catch (e) {
-            // If this is already a transformed error then just re-throw
-            if (isAPIError(e)) {
-                throw e;
-            }
-            // Wrap a Revert error as an API revert error
-            if (isRevertError(e)) {
-                throw new RevertAPIError(e);
-            }
-            logger.info('Uncaught error', e);
-            throw new InternalServerError(e.message);
-        }
-    }
 }
 
 const parseGetTransactionRequestParams = (req: express.Request): GetTransactionRequestParams => {
@@ -113,26 +88,6 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount);
     const slippagePercentage = Number.parseFloat(req.query.slippagePercentage || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE);
     return { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage };
-};
-
-interface PostTransactionRequestBody {
-    zeroExTransaction: ZeroExTransactionWithoutDomain;
-    signature: string;
-}
-const parsePostTransactionRequestBody = (req: any): PostTransactionRequestBody => {
-    const requestBody = req.body;
-    const signature = requestBody.signature;
-    const zeroExTransaction: ZeroExTransactionWithoutDomain = {
-        salt: new BigNumber(requestBody.zeroExTransaction.salt),
-        expirationTimeSeconds: new BigNumber(requestBody.zeroExTransaction.expirationTimeSeconds),
-        gasPrice: new BigNumber(requestBody.zeroExTransaction.gasPrice),
-        signerAddress: requestBody.zeroExTransaction.signerAddress,
-        data: requestBody.zeroExTransaction.data,
-    };
-    return {
-        zeroExTransaction,
-        signature,
-    };
 };
 
 const findTokenAddressOrThrowApiError = (address: string, field: string, chainId: ChainId): string => {

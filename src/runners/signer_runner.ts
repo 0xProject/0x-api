@@ -2,15 +2,12 @@ import bodyParser = require('body-parser');
 import * as cors from 'cors';
 import * as express from 'express';
 import * as asyncHandler from 'express-async-handler';
-import { Connection } from 'typeorm';
 
-import * as defaultConfig from '../config';
 import { SignerHandlers } from '../handlers/signer_handlers';
 import { logger } from '../logger';
 import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
 import { SignerService } from '../services/signer_service';
-import { providerUtils } from '../utils/provider_utils';
 
 if (require.main === module) {
     (async () => {
@@ -21,8 +18,13 @@ if (require.main === module) {
 
         const signerService = new SignerService();
         const handlers = new SignerHandlers(signerService);
-        app.post('/sign', asyncHandler(handlers.signZeroExTransactionAsync.bind(handlers)));
-        app.post('/whitelist', asyncHandler(handlers.whitelistZeroExTransactionAsync.bind(handlers)));
+        /**
+         * POST Transaction endpoint takes a signed 0x Transaction and sends it to Ethereum
+         * for execution via `executeTransaction`.
+         *
+         * https://0x.org/docs/guides/v3-specification#executing-a-transaction
+         */
+        app.post('/fill', asyncHandler(handlers.signAndSubmitZeroExTransactionAsync.bind(handlers)));
 
         app.use(errorHandler);
 

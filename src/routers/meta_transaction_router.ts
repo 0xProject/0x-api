@@ -15,12 +15,5 @@ export const createMetaTransactionRouter = (metaTransactionService: MetaTransact
      * https://0x.org/docs/guides/v3-specification#transaction-message-format
      */
     router.get('/quote', asyncHandler(handlers.getTransactionAsync.bind(handlers)));
-    /**
-     * POST Transaction endpoint takes a signed 0x Transaction and sends it to Ethereum
-     * for execution via `executeTransaction`.
-     *
-     * https://0x.org/docs/guides/v3-specification#executing-a-transaction
-     */
-    router.post('/fill', asyncHandler(handlers.postTransactionAsync.bind(handlers)));
     return router;
 };

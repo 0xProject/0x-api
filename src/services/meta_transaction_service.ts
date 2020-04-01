@@ -5,31 +5,26 @@ import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
 import { generatePseudoRandomSalt, signatureUtils, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
-import { NonceTrackerSubprovider, PartialTxParams, PrivateKeyWalletSubprovider, RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
+import { RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { Order, SignedOrder } from '@0x/types';
 import { BigNumber, NULL_ADDRESS, NULL_BYTES, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
-import { ERC20_BRIDGE_ASSET_PREFIX, ONE_SECOND_MS, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TEN_MINUTES_MS } from '../constants';
-import { CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse, PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
+import { ERC20_BRIDGE_ASSET_PREFIX, ONE_SECOND_MS, SENDER_ADDRESS, TEN_MINUTES_MS } from '../constants';
+import { CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse } from '../types';
 import { serviceUtils } from '../utils/service_utils';
-import { utils } from '../utils/utils';
 
 export class MetaTransactionService {
     private readonly _provider: SupportedProvider;
-    private readonly _nonceTrackerSubprovider: NonceTrackerSubprovider;
-    private readonly _privateWalletSubprovider: PrivateKeyWalletSubprovider;
     private readonly _swapQuoter: SwapQuoter;
     private readonly _contractWrappers: ContractWrappers;
     private readonly _web3Wrapper: Web3Wrapper;
 
-    private static _createWeb3Provider(rpcHost: string, privateWalletSubprovider: PrivateKeyWalletSubprovider, nonceTrackerSubprovider: NonceTrackerSubprovider): SupportedProvider {
+    private static _createWeb3Provider(rpcHost: string): SupportedProvider {
         const WEB3_RPC_RETRY_COUNT = 3;
         const providerEngine = new Web3ProviderEngine();
-        providerEngine.addProvider(nonceTrackerSubprovider);
-        providerEngine.addProvider(privateWalletSubprovider);
         const rpcSubproviders = MetaTransactionService._range(WEB3_RPC_RETRY_COUNT).map((_index: number) => new RPCSubprovider(rpcHost));
         providerEngine.addProvider(new RedundantSubprovider(rpcSubproviders));
         providerUtils.startProviderEngine(providerEngine);
@@ -68,9 +63,7 @@ export class MetaTransactionService {
        return orders;
     }
     constructor() {
-        this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(SENDER_PRIVATE_KEY);
-        this._nonceTrackerSubprovider = new NonceTrackerSubprovider();
-        this._provider = MetaTransactionService._createWeb3Provider(ETHEREUM_RPC_URL, this._privateWalletSubprovider, this._nonceTrackerSubprovider);
+        this._provider = MetaTransactionService._createWeb3Provider(ETHEREUM_RPC_URL);
         const swapQuoterOpts = {
             chainId: CHAIN_ID,
         };
@@ -246,68 +239,6 @@ export class MetaTransactionService {
         };
         return apiMetaTransactionQuote;
     }
-    public async postTransactionAsync(zeroExTransaction: ZeroExTransactionWithoutDomain, signature: string): Promise<PostTransactionResponse> {
-        // decode zeroExTransaction data
-        const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
-        const decodedArray = await devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
-        const orders = decodedArray[1];
-        const gasPrice = zeroExTransaction.gasPrice;
-        const protocolFee = MetaTransactionService._calculateProtocolFee(orders.length, gasPrice);
-
-        // TODO(fabio): Verify that the 0x transaction is one we have issued via the 0x API
-
-        try {
-            await this._contractWrappers.exchange
-            .executeTransaction(zeroExTransaction, signature)
-            .callAsync({
-                from: SENDER_ADDRESS,
-                gasPrice,
-                value: protocolFee,
-            });
-        } catch (err) {
-            if (err.values && err.values.errorData && err.values.errorData !== '0x') {
-                const decodedCallData = RevertError.decode(err.values.errorData, false);
-                throw decodedCallData;
-            }
-            throw err;
-        }
-
-        const gas = await this._contractWrappers.exchange
-        .executeTransaction(zeroExTransaction, signature)
-        .estimateGasAsync({
-            from: SENDER_ADDRESS,
-            gasPrice,
-            value: protocolFee,
-        });
-
-        const executeTxnCalldata = await this._contractWrappers.exchange
-        .executeTransaction(zeroExTransaction, signature).getABIEncodedTransactionData();
-
-        const ethereumTxn: PartialTxParams = {
-            data: executeTxnCalldata,
-            gas: utils.encodeAmountAsHexString(gas),
-            from: SENDER_ADDRESS,
-            gasPrice: utils.encodeAmountAsHexString(gasPrice),
-            value: utils.encodeAmountAsHexString(protocolFee),
-            to: this._contractWrappers.exchange.address,
-            nonce: await this._getNonceAsync(SENDER_ADDRESS),
-            chainId: CHAIN_ID,
-        };
-        const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxn);
-
-        const transactionHash = await this._contractWrappers.exchange
-            .executeTransaction(zeroExTransaction, signature)
-            .sendTransactionAsync({
-                from: SENDER_ADDRESS,
-                gasPrice,
-                value: protocolFee,
-            });
-
-        return {
-            transactionHash,
-            signedEthereumTransaction,
-        };
-    }
     private _generateZeroExTransaction(orders: SignedOrder[], sellAmount: BigNumber|undefined, buyAmount: BigNumber|undefined, signatures: string[], takerAddress: string, gasPrice: BigNumber): ZeroExTransaction {
 
         // generate txData for marketSellOrdersFillOrKill or marketBuyOrdersFillOrKill
@@ -366,21 +297,5 @@ export class MetaTransactionService {
         };
         const signedOrder = await signatureUtils.ecSignOrderAsync(this._provider, order, SENDER_ADDRESS);
         return signedOrder;
-    }
-    private async _getNonceAsync(senderAddress: string): Promise<string> {
-        // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
-        // to use to we fetch it from it's private instance variable
-        let nonce = (this._nonceTrackerSubprovider as any)._nonceCache[senderAddress];
-        if (nonce === undefined) {
-            nonce = await this._getTransactionCountAsync(senderAddress);
-        }
-        return nonce;
-    }
-    private async _getTransactionCountAsync(address: string): Promise<string> {
-        const nonceHex = await this._web3Wrapper.sendRawPayloadAsync<string>({
-            method: 'eth_getTransactionCount',
-            params: [address, 'latest'],
-        });
-        return nonceHex;
     }
 }
