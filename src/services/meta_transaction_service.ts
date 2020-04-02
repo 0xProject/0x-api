@@ -9,8 +9,8 @@ import { BigNumber, NULL_ADDRESS, NULL_BYTES, providerUtils, RevertError } from 
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
-import { ERC20_BRIDGE_ASSET_PREFIX, ONE_SECOND_MS, SENDER_ADDRESS, TEN_MINUTES_MS } from '../constants';
+import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI, SENDER_ADDRESS } from '../config';
+import { ERC20_BRIDGE_ASSET_PREFIX, ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
 import { CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse } from '../types';
 import { serviceUtils } from '../utils/service_utils';
 

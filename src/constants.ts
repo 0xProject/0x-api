@@ -50,11 +50,3 @@ export const SIGN_PATH = '/sign';
 export const SWAP_DOCS_URL = 'https://0x.org/docs/api#swap';
 export const SRA_DOCS_URL = 'https://0x.org/docs/api#sra';
 export const META_TRANSACTION_DOCS_URL = 'https://0x.org/docs/api#meta_transaction';
-
-// Sender keys
-export const SENDER_ADDRESS = '0xccd3d176bc555c8905be150e122d7f3e121381d5';
-export const SENDER_PRIVATE_KEY = '6d15b7a4a12a94a844c0e40984f01b5ce2b967af9e14190a29643b8d36b987a5';
-
-// Taker keys
-export const TAKER_ADDRESS = '0xa3ece5d5b6319fa785efc10d3112769a46c6e149';
-export const TAKER_PRIVATE_KEY = '965a7f431d229aad724b2cca424420b721df64539f7956f466c0c3eadf0011a6';

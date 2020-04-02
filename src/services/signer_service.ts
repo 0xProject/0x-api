@@ -15,8 +15,7 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as ethUtil from 'ethereumjs-util';
 import * as _ from 'lodash';
 
-import { CHAIN_ID, ETHEREUM_RPC_URL } from '../config';
-import { SENDER_ADDRESS, SENDER_PRIVATE_KEY } from '../constants';
+import { CHAIN_ID, ETHEREUM_RPC_URL, SENDER_ADDRESS, SENDER_PRIVATE_KEY } from '../config';
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
 import { utils } from '../utils/utils';
 

@@ -2,13 +2,20 @@
 // tslint:disable:no-unbound-method
 
 import { NonceTrackerSubprovider, PrivateKeyWalletSubprovider, Web3ProviderEngine } from '@0x/subproviders';
-import { providerUtils } from '@0x/utils';
+import { NULL_ADDRESS, providerUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import axios from 'axios';
 
-import { TAKER_ADDRESS, TAKER_PRIVATE_KEY } from '../constants';
+import { TAKER_ADDRESS, TAKER_PRIVATE_KEY } from '../config';
 
 const mainAsync = async () => {
+    if (TAKER_ADDRESS === NULL_ADDRESS) {
+        throw new Error(`TAKER_ADDRESS must be specified`);
+    }
+    if (TAKER_PRIVATE_KEY === '') {
+        throw new Error(`TAKER_PRIVATE_KEY must be specified`);
+    }
+
     // create ethereum provider (server)
     const provider = new Web3ProviderEngine();
     provider.addProvider(new NonceTrackerSubprovider());
