@@ -139,8 +139,7 @@ export class MetaTransactionService {
         const signatures = orders.map(order => order.signature);
 
         const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
-        // TODO(fabio): How to use a more future-resistant placeholder fee estimate?
-        const placeholderRelayFee = new BigNumber('1192960000000000'); // $0.17 USD @ ETH $140
+        const placeholderRelayFee = new BigNumber('1'); // Non-zero
         const wethRelayAssetData = await devUtils.encodeERC20AssetData(contractAddresses.etherToken).callAsync();
         const hasBridgeOrder = MetaTransactionService._hasBridgeOrder(orders);
         let placeholderOrders = _.clone(orders);
