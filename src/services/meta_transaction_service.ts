@@ -78,11 +78,13 @@ export class MetaTransactionService {
     public async calculateMetaTransactionQuoteAsync(
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<GetMetaTransactionQuoteResponse> {
-        const { takerAddress, sellAmount, buyAmount, buyTokenAddress, sellTokenAddress, slippagePercentage } = params;
+        const { takerAddress, sellAmount, buyAmount, buyTokenAddress, sellTokenAddress, slippagePercentage, excludedSources } = params;
 
         const assetSwapperOpts = {
-            slippagePercentage,
             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+            slippagePercentage,
+            bridgeSlippage: slippagePercentage,
+            excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
         };
 
         const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);

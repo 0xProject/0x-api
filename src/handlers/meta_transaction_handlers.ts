@@ -12,6 +12,7 @@ import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import { ChainId, GetTransactionRequestParams } from '../types';
+import { parseUtils } from '../utils/parse_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { findTokenAddress } from '../utils/token_metadata_utils';
 
@@ -35,6 +36,7 @@ export class MetaTransactionHandlers {
             sellAmount,
             buyAmount,
             slippagePercentage,
+            excludedSources,
         } = parseGetTransactionRequestParams(req);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
@@ -47,6 +49,7 @@ export class MetaTransactionHandlers {
                 sellAmount,
                 from: takerAddress,
                 slippagePercentage,
+                excludedSources,
             });
             res.status(HttpStatus.OK).send(metaTransactionQuote);
         } catch (e) {
@@ -94,7 +97,11 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     const sellAmount = req.query.sellAmount === undefined ? undefined : new BigNumber(req.query.sellAmount);
     const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount);
     const slippagePercentage = Number.parseFloat(req.query.slippagePercentage || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE);
-    return { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage };
+    const excludedSources =
+        req.query.excludedSources === undefined
+            ? undefined
+            : parseUtils.parseStringArrForERC20BridgeSources(req.query.excludedSources.split(','));
+    return { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage, excludedSources };
 };
 
 const findTokenAddressOrThrowApiError = (address: string, field: string, chainId: ChainId): string => {
