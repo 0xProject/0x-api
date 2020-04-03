@@ -10,7 +10,7 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI, SENDER_ADDRESS } from '../config';
-import { ERC20_BRIDGE_ASSET_PREFIX, ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
+import { ERC20_BRIDGE_ASSET_PREFIX, ONE_ETH, ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
 import { CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse } from '../types';
 import { serviceUtils } from '../utils/service_utils';
 
@@ -96,7 +96,9 @@ export class MetaTransactionService {
                 this._swapQuoter.getMarketBuySwapQuoteAsync(
                     contractAddresses.etherToken,
                     sellTokenAddress,
-                    new BigNumber(1000000000000000000), // 1 ETH
+                    // We don't actually try and fill this quote, we just use it as a pricefeed for the
+                    // meta-txn relay fee conversion so the amount here doesn't matter too much
+                    ONE_ETH,
                     assetSwapperOpts,
                 ),
             );
