@@ -28,9 +28,9 @@ const mainAsync = async () => {
     // const provider = window.ethereum;
 
     // swap parameters
-    const sellToken = 'DAI';
-    const buyToken = 'MKR';
-    const buyAmount = '856369570000000'; // 0.5 DAI
+    const sellToken = 'MKR';
+    const buyToken = 'ETH';
+    const buyAmount = '50000000';
     const takerAddress = TAKER_ADDRESS;
 
     // 1. GET /meta_transaction/quote
