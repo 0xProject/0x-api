@@ -3,6 +3,7 @@ import * as cors from 'cors';
 import * as express from 'express';
 import * as asyncHandler from 'express-async-handler';
 
+import { META_TRANSACTION_PATH } from '../constants';
 import { SignerHandlers } from '../handlers/signer_handlers';
 import { logger } from '../logger';
 import { errorHandler } from '../middleware/error_handling';
@@ -24,7 +25,7 @@ if (require.main === module) {
          *
          * https://0x.org/docs/guides/v3-specification#executing-a-transaction
          */
-        app.post('/fill', asyncHandler(handlers.signAndSubmitZeroExTransactionAsync.bind(handlers)));
+        app.post(`${META_TRANSACTION_PATH}/fill`, asyncHandler(handlers.signAndSubmitZeroExTransactionAsync.bind(handlers)));
 
         app.use(errorHandler);
 

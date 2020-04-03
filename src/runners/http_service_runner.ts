@@ -1,6 +1,7 @@
 import bodyParser = require('body-parser');
 import * as cors from 'cors';
 import * as express from 'express';
+import * as asyncHandler from 'express-async-handler';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
 import { Server } from 'http';
@@ -9,6 +10,7 @@ import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import * as defaultConfig from '../config';
 import { META_TRANSACTION_PATH, SRA_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
+import { SignerHandlers } from '../handlers/signer_handlers';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
@@ -17,6 +19,7 @@ import { createMetaTransactionRouter } from '../routers/meta_transaction_router'
 import { createSRARouter } from '../routers/sra_router';
 import { createStakingRouter } from '../routers/staking_router';
 import { createSwapRouter } from '../routers/swap_router';
+import { SignerService } from '../services/signer_service';
 import { WebsocketService } from '../services/websocket_service';
 import { providerUtils } from '../utils/provider_utils';
 
@@ -77,6 +80,9 @@ export async function runHttpServiceAsync(
     } else {
         logger.error(`API running without meta transactions service`);
     }
+    const signerService = new SignerService();
+    const handlers = new SignerHandlers(signerService);
+    app.post(`${META_TRANSACTION_PATH}/fill`, asyncHandler(handlers.signAndSubmitZeroExTransactionAsync.bind(handlers)));
 
     // swap/quote http service
     if (dependencies.swapService) {
