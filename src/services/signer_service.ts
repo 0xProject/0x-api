@@ -1,7 +1,6 @@
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
 import { SupportedProvider } from '@0x/order-utils';
-import { isValidECSignature } from '@0x/order-utils/lib/src/signature_utils';
 import {
     NonceTrackerSubprovider,
     PartialTxParams,
@@ -12,7 +11,6 @@ import {
 } from '@0x/subproviders';
 import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
-import * as ethUtil from 'ethereumjs-util';
 import * as _ from 'lodash';
 
 import { CHAIN_ID, ETHEREUM_RPC_URL, SENDER_ADDRESS, SENDER_PRIVATE_KEY } from '../config';
@@ -71,27 +69,7 @@ export class SignerService {
             throw new Error('zeroExTransaction expirationTimeSeconds in less than 60 seconds from now');
         }
 
-        // Hash 0x txn
         const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
-        const zeroExTransactionHash = await devUtils
-            .getTransactionHash(
-                zeroExTransaction,
-                new BigNumber(CHAIN_ID),
-                this._contractWrappers.contractAddresses.exchange,
-            )
-            .callAsync();
-
-        // ECRecover the signature to make sure it's the signerAddress specified in the 0x txn
-        const ecSignatureRSV = parseSignatureHexAsRSV(signature);
-        const isValidSignature = isValidECSignature(
-            zeroExTransactionHash,
-            ecSignatureRSV,
-            zeroExTransaction.signerAddress,
-        );
-        if (!isValidSignature) {
-            throw new Error("Supplied signature doesn't correspond to ZeroExTransaction signerAddress");
-        }
-
         const decodedArray = await devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
         const orders = decodedArray[1];
 
@@ -174,14 +152,4 @@ export class SignerService {
         });
         return nonceHex;
     }
-}
-
-function parseSignatureHexAsRSV(signatureHex: string): ECSignature {
-    const { v, r, s } = ethUtil.fromRpcSig(signatureHex);
-    const ecSignature: ECSignature = {
-        v,
-        r: ethUtil.bufferToHex(r),
-        s: ethUtil.bufferToHex(s),
-    };
-    return ecSignature;
 }
