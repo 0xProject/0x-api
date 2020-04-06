@@ -17,7 +17,7 @@ import { CHAIN_ID, ETHEREUM_RPC_URL, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TAKER_A
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
 import { utils } from '../utils/utils';
 
-const whitelistedAddresses: string[] = [TAKER_ADDRESS];
+const whitelistedAddresses: string[] = [];
 
 export class SignerService {
     private readonly _provider: SupportedProvider;
