@@ -1,5 +1,4 @@
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
-import { runMigrationsOnceAsync } from '@0x/migrations';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as HttpStatus from 'http-status-codes';
@@ -32,8 +31,6 @@ describe('app test', () => {
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
         await blockchainLifecycle.startAsync();
         accounts = await web3Wrapper.getAvailableAddressesAsync();
-        const owner = accounts[0];
-        await runMigrationsOnceAsync(provider, { from: owner });
 
         const dependencies = await getDefaultAppDependenciesAsync(provider, config);
         // start the 0x-api app
