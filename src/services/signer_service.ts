@@ -13,9 +13,11 @@ import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { CHAIN_ID, ETHEREUM_RPC_URL, SENDER_ADDRESS, SENDER_PRIVATE_KEY } from '../config';
+import { CHAIN_ID, ETHEREUM_RPC_URL, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TAKER_ADDRESS } from '../config';
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
 import { utils } from '../utils/utils';
+
+const whitelistedAddresses: string[] = [TAKER_ADDRESS];
 
 export class SignerService {
     private readonly _provider: SupportedProvider;
@@ -23,6 +25,9 @@ export class SignerService {
     private readonly _privateWalletSubprovider: PrivateKeyWalletSubprovider;
     private readonly _contractWrappers: ContractWrappers;
     private readonly _web3Wrapper: Web3Wrapper;
+    public static isEligibleForFreeMetaTxn(takerAddress: string): boolean {
+        return whitelistedAddresses.includes(takerAddress);
+    }
 
     private static _createWeb3Provider(
         rpcHost: string,
@@ -57,11 +62,10 @@ export class SignerService {
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
     }
-
-    public async signAndSubmitZeroExTransactionAsync(
+    public async validateZeroExTransactionFillAsync(
         zeroExTransaction: ZeroExTransactionWithoutDomain,
         signature: string,
-    ): Promise<PostTransactionResponse> {
+    ): Promise<BigNumber> {
         // Verify 0x txn won't expire in next 60 seconds
         // tslint:disable-next-line:custom-no-magic-numbers
         const sixtySecondsFromNow = new BigNumber(+new Date() + 60);
@@ -80,8 +84,6 @@ export class SignerService {
             }
         });
 
-        // TODO(fabio): Verify that proper affiliate fee is included
-
         const gasPrice = zeroExTransaction.gasPrice;
         const protocolFee = SignerService._calculateProtocolFee(orders.length, gasPrice);
 
@@ -99,6 +101,14 @@ export class SignerService {
             throw err;
         }
 
+        return protocolFee;
+    }
+    public async generateExecuteTransactionEthereumTransactionAsync(
+        zeroExTransaction: ZeroExTransactionWithoutDomain,
+        signature: string,
+        protocolFee: BigNumber,
+    ): Promise<PartialTxParams> {
+        const gasPrice = zeroExTransaction.gasPrice;
         const gas = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .estimateGasAsync({
@@ -111,7 +121,7 @@ export class SignerService {
             .executeTransaction(zeroExTransaction, signature)
             .getABIEncodedTransactionData();
 
-        const ethereumTxn: PartialTxParams = {
+        const ethereumTxnParams: PartialTxParams = {
             data: executeTxnCalldata,
             gas: utils.encodeAmountAsHexString(gas),
             from: SENDER_ADDRESS,
@@ -121,13 +131,23 @@ export class SignerService {
             nonce: await this._getNonceAsync(SENDER_ADDRESS),
             chainId: CHAIN_ID,
         };
-        const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxn);
+
+        return ethereumTxnParams;
+    }
+    public async signAndSubmitZeroExTransactionAsync(
+        zeroExTransaction: ZeroExTransactionWithoutDomain,
+        signature: string,
+        protocolFee: BigNumber,
+    ): Promise<PostTransactionResponse> {
+        const ethereumTxnParams = await this.generateExecuteTransactionEthereumTransactionAsync(zeroExTransaction, signature, protocolFee);
+
+        const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxnParams);
 
         const transactionHash = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .sendTransactionAsync({
                 from: SENDER_ADDRESS,
-                gasPrice,
+                gasPrice: zeroExTransaction.gasPrice,
                 value: protocolFee,
             });
 

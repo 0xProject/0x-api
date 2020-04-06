@@ -91,6 +91,7 @@ export enum GeneralErrorCodes {
     Throttled = 103,
     NotImplemented = 104,
     TransactionInvalid = 105,
+    UnableToSubmitOnBehalfOfTaker = 106,
 }
 
 export const generalErrorCodeToReason: { [key in GeneralErrorCodes]: string } = {

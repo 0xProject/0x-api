@@ -3,7 +3,7 @@ import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 
-import { InternalServerError, RevertAPIError } from '../errors';
+import { GeneralErrorCodes, InternalServerError, RevertAPIError } from '../errors';
 import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
@@ -26,15 +26,35 @@ export class SignerHandlers {
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
         try {
-            const {
-                transactionHash,
-                signedEthereumTransaction,
-            } = await this._signerService.signAndSubmitZeroExTransactionAsync(zeroExTransaction, signature);
-            // return the transactionReceipt
-            res.status(HttpStatus.OK).send({
-                transactionHash,
-                signedEthereumTransaction,
-            });
+            const protocolFee = await this._signerService.validateZeroExTransactionFillAsync(zeroExTransaction, signature);
+
+            // If eligible for free txn relay, submit it, otherwise, return unsigned Ethereum txn
+            if (SignerService.isEligibleForFreeMetaTxn(zeroExTransaction.signerAddress)) {
+                const {
+                    transactionHash,
+                    signedEthereumTransaction,
+                } = await this._signerService.signAndSubmitZeroExTransactionAsync(zeroExTransaction, signature, protocolFee);
+                // return the transactionReceipt
+                res.status(HttpStatus.OK).send({
+                    transactionHash,
+                    signedEthereumTransaction,
+                });
+            } else {
+                const ethereumTxn = await this._signerService.generateExecuteTransactionEthereumTransactionAsync(zeroExTransaction, signature, protocolFee);
+                res.status(HttpStatus.BAD_GATEWAY).send({
+                    code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
+                    reason: 'Unable to submit on behalf of taker',
+                    transaction: {
+                        data: ethereumTxn.data,
+                        gasPrice: ethereumTxn.gasPrice,
+                        gas: ethereumTxn.gas,
+                        value: ethereumTxn.value,
+                        to: ethereumTxn.to,
+                        nonce: ethereumTxn.nonce,
+                    },
+                });
+            }
+
         } catch (e) {
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {
