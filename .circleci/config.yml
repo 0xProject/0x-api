@@ -9,6 +9,9 @@ jobs:
             - image: circleci/node:8.12.0-browsers
             - image: circleci/postgres:9.6.5-alpine-ram
             - image: 0xorg/ganache-cli:6.0.0
+              environment:
+                SNAPSHOT_NAME: 0x_ganache_snapshot_gene
+                VERSION: 6.2.4
             - image: 0xorg/mesh:9.0.1
               environment:
                 ETHEREUM_RPC_URL: http://0.0.0.0:8545
