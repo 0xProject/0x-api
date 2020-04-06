@@ -25,7 +25,7 @@ export class MetaTransactionHandlers {
     constructor(metaTransactionService: MetaTransactionService) {
         this._metaTransactionService = metaTransactionService;
     }
-    public async getTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         // HACK typescript typing does not allow this valid json-schema
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
         // parse query params
@@ -52,6 +52,74 @@ export class MetaTransactionHandlers {
                 excludedSources,
             });
             res.status(HttpStatus.OK).send(metaTransactionQuote);
+        } catch (e) {
+            // If this is already a transformed error then just re-throw
+            if (isAPIError(e)) {
+                throw e;
+            }
+            // Wrap a Revert error as an API revert error
+            if (isRevertError(e)) {
+                throw new RevertAPIError(e);
+            }
+            const errorMessage: string = e.message;
+            // TODO AssetSwapper can throw raw Errors or InsufficientAssetLiquidityError
+            if (
+                errorMessage.startsWith(SwapQuoterError.InsufficientAssetLiquidity) ||
+                errorMessage.startsWith('NO_OPTIMAL_PATH')
+            ) {
+                throw new ValidationError([
+                    {
+                        field: buyAmount ? 'buyAmount' : 'sellAmount',
+                        code: ValidationErrorCodes.ValueOutOfRange,
+                        reason: SwapQuoterError.InsufficientAssetLiquidity,
+                    },
+                ]);
+            }
+            if (errorMessage.startsWith(SwapQuoterError.AssetUnavailable)) {
+                throw new ValidationError([
+                    {
+                        field: 'token',
+                        code: ValidationErrorCodes.ValueOutOfRange,
+                        reason: e.message,
+                    },
+                ]);
+            }
+            logger.info('Uncaught error', e);
+            throw new InternalServerError(e.message);
+        }
+    }
+    public async getPriceAsync(req: express.Request, res: express.Response): Promise<void> {
+        // HACK typescript typing does not allow this valid json-schema
+        schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
+        // parse query params
+        const {
+            takerAddress,
+            sellToken,
+            buyToken,
+            sellAmount,
+            buyAmount,
+            slippagePercentage,
+            excludedSources,
+        } = parseGetTransactionRequestParams(req);
+        const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
+        const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
+        try {
+            const metaTransactionPrice = await this._metaTransactionService.calculateMetaTransactionPriceAsync({
+                takerAddress,
+                buyTokenAddress,
+                sellTokenAddress,
+                buyAmount,
+                sellAmount,
+                from: takerAddress,
+                slippagePercentage,
+                excludedSources,
+            });
+            const metaTransactionPriceResponse = {
+                price: metaTransactionPrice.price,
+                buyAmount: metaTransactionPrice.buyAmount,
+                sellAmount: metaTransactionPrice.sellAmount,
+            };
+            res.status(HttpStatus.OK).send(metaTransactionPriceResponse);
         } catch (e) {
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {

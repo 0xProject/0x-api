@@ -1,4 +1,4 @@
-import { ERC20BridgeSource } from '@0x/asset-swapper';
+import { ERC20BridgeSource, MarketBuySwapQuote, MarketSellSwapQuote } from '@0x/asset-swapper';
 import { AcceptedOrderInfo, RejectedOrderInfo } from '@0x/mesh-rpc-client';
 import {
     APIOrder,
@@ -362,6 +362,21 @@ export interface GetMetaTransactionQuoteResponse {
     orders: SignedOrder[];
     buyAmount: BigNumber;
     sellAmount: BigNumber;
+}
+
+export interface GetMetaTransactionPriceResponse {
+    price: BigNumber;
+    buyAmount: BigNumber;
+    sellAmount: BigNumber;
+}
+
+// takerAddress, sellAmount, buyAmount, swapQuote, price
+export interface CalculateMetaTransactionPriceResponse {
+    price: BigNumber;
+    buyAmount: BigNumber | undefined;
+    sellAmount: BigNumber | undefined;
+    takerAddress: string;
+    swapQuote: MarketSellSwapQuote | MarketBuySwapQuote;
 }
 
 export interface PostTransactionResponse {

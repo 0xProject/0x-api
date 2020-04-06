@@ -10,7 +10,7 @@ import * as _ from 'lodash';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
 import { ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
-import { CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse } from '../types';
+import { CalculateMetaTransactionPriceResponse, CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse } from '../types';
 import { serviceUtils } from '../utils/service_utils';
 
 export class MetaTransactionService {
@@ -41,9 +41,9 @@ export class MetaTransactionService {
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
     }
-    public async calculateMetaTransactionQuoteAsync(
+    public async calculateMetaTransactionPriceAsync(
         params: CalculateMetaTransactionQuoteParams,
-    ): Promise<GetMetaTransactionQuoteResponse> {
+    ): Promise<CalculateMetaTransactionPriceResponse> {
         const { takerAddress, sellAmount, buyAmount, buyTokenAddress, sellTokenAddress, slippagePercentage, excludedSources } = params;
 
         const assetSwapperOpts = {
@@ -74,30 +74,6 @@ export class MetaTransactionService {
 
         const makerAssetAmount = swapQuote.bestCaseQuoteInfo.makerAssetAmount;
         const totalTakerAssetAmount = swapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
-        const gasPrice = swapQuote.gasPrice;
-        const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
-        const orders = attributedSwapQuote.orders;
-        const signatures = orders.map(order => order.signature);
-
-        const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
-
-        const zeroExTransaction = this._generateZeroExTransaction(
-            orders,
-            sellAmount,
-            buyAmount,
-            signatures,
-            takerAddress,
-            gasPrice,
-        );
-
-        // use the DevUtils contract to generate the transaction hash
-        const zeroExTransactionHash = await devUtils
-            .getTransactionHash(
-                zeroExTransaction,
-                new BigNumber(CHAIN_ID),
-                this._contractWrappers.contractAddresses.exchange,
-            )
-            .callAsync();
 
         const buyTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(
             buyTokenAddress,
@@ -114,6 +90,47 @@ export class MetaTransactionService {
                 ? unitMakerAssetAmount.dividedBy(unitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
                 : unitTakerAssetAMount.dividedBy(unitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
 
+        const response: CalculateMetaTransactionPriceResponse = {
+            takerAddress,
+            sellAmount,
+            buyAmount,
+            swapQuote,
+            price,
+        };
+        return response;
+    }
+    public async calculateMetaTransactionQuoteAsync(
+        params: CalculateMetaTransactionQuoteParams,
+    ): Promise<GetMetaTransactionQuoteResponse> {
+
+        const { takerAddress, sellAmount, buyAmount, swapQuote, price } = await this.calculateMetaTransactionPriceAsync(params);
+
+        const gasPrice = swapQuote.gasPrice;
+        const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
+        const orders = attributedSwapQuote.orders;
+        const signatures = orders.map(order => order.signature);
+
+        const zeroExTransaction = this._generateZeroExTransaction(
+            orders,
+            sellAmount,
+            buyAmount,
+            signatures,
+            takerAddress,
+            gasPrice,
+        );
+
+        // use the DevUtils contract to generate the transaction hash
+        const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
+        const zeroExTransactionHash = await devUtils
+            .getTransactionHash(
+                zeroExTransaction,
+                new BigNumber(CHAIN_ID),
+                this._contractWrappers.contractAddresses.exchange,
+            )
+            .callAsync();
+
+        const makerAssetAmount = swapQuote.bestCaseQuoteInfo.makerAssetAmount;
+        const totalTakerAssetAmount = swapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
         const apiMetaTransactionQuote: GetMetaTransactionQuoteResponse = {
             price,
             zeroExTransactionHash,

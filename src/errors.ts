@@ -101,6 +101,7 @@ export const generalErrorCodeToReason: { [key in GeneralErrorCodes]: string } = 
     [GeneralErrorCodes.Throttled]: 'Throttled',
     [GeneralErrorCodes.NotImplemented]: 'Not Implemented',
     [GeneralErrorCodes.TransactionInvalid]: 'Transaction Invalid',
+    [GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker]: 'Unable to submit transaction on behalf of taker',
 };
 
 export enum ValidationErrorCodes {

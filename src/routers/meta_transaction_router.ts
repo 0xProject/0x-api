@@ -9,11 +9,16 @@ export const createMetaTransactionRouter = (metaTransactionService: MetaTransact
     const handlers = new MetaTransactionHandlers(metaTransactionService);
     router.get('/', asyncHandler(MetaTransactionHandlers.rootAsync.bind(MetaTransactionHandlers)));
     /**
-     * GET Transaction endpoint returns an unsigned 0x Transaction that when sent to
+     * GET price endpoint returns the price the taker can expect to receive by
+     * calling /quote
+     */
+    router.get('/price', asyncHandler(handlers.getPriceAsync.bind(handlers)));
+    /**
+     * GET quote endpoint returns an unsigned 0x Transaction that when sent to
      * `executeTransaction` will execute a specified swap.
      *
      * https://0x.org/docs/guides/v3-specification#transaction-message-format
      */
-    router.get('/quote', asyncHandler(handlers.getTransactionAsync.bind(handlers)));
+    router.get('/quote', asyncHandler(handlers.getQuoteAsync.bind(handlers)));
     return router;
 };

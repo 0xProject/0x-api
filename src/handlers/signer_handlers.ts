@@ -3,7 +3,7 @@ import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 
-import { GeneralErrorCodes, InternalServerError, RevertAPIError } from '../errors';
+import { GeneralErrorCodes, generalErrorCodeToReason, InternalServerError, RevertAPIError } from '../errors';
 import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
@@ -43,7 +43,7 @@ export class SignerHandlers {
                 const ethereumTxn = await this._signerService.generateExecuteTransactionEthereumTransactionAsync(zeroExTransaction, signature, protocolFee);
                 res.status(HttpStatus.BAD_GATEWAY).send({
                     code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
-                    reason: 'Unable to submit on behalf of taker',
+                    reason: generalErrorCodeToReason[GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker],
                     transaction: {
                         data: ethereumTxn.data,
                         gasPrice: ethereumTxn.gasPrice,
