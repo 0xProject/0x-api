@@ -50,6 +50,7 @@
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
         "dirty-chai": "^2.0.1",
+        "make-promises-safe": "^5.1.0",
         "mocha": "^6.2.2",
         "nodemon": "^1.19.4",
         "pino-pretty": "^3.2.2",
