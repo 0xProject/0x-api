@@ -23,6 +23,8 @@ import {
     FEE_RECIPIENT_ADDRESS,
     MAKER_FEE_ASSET_DATA,
     MAKER_FEE_UNIT_AMOUNT,
+    PINNED_MM_ADDRESSES,
+    PINNED_POOL_IDS,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     TAKER_FEE_ASSET_DATA,
     TAKER_FEE_UNIT_AMOUNT,
@@ -285,13 +287,9 @@ export const orderUtils = {
     // who have a track record of acting benevolently.
     async splitOrdersByPinningAsync(connection: Connection, signedOrders: SignedOrder[]): Promise<PinResult> {
         const currentPoolStats = await connection.query(queries.currentEpochPoolsStatsQuery);
-        const trustedPoolIds = [
-            '12', // DUST
-            '20', // Prycto
-        ];
-        let makerAddresses: string[] = [];
+        let makerAddresses: string[] = PINNED_MM_ADDRESSES;
         currentPoolStats.forEach((poolStats: RawEpochPoolStats) => {
-            if (!trustedPoolIds.includes(poolStats.pool_id)) {
+            if (!PINNED_POOL_IDS.includes(poolStats.pool_id)) {
                 return;
             }
             makerAddresses = [...makerAddresses, ...poolStats.maker_addresses];
