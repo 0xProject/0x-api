@@ -1,15 +1,11 @@
 import { SignedOrder, ValidationResults, WSClient, WSOpts } from '@0x/mesh-rpc-client';
-import Axios from 'axios';
 import * as _ from 'lodash';
-import * as rax from 'retry-axios';
 
-import { MESH_ORDERS_BATCH_SIZE } from '../constants';
+import { MESH_ORDERS_BATCH_HTTP_BYTE_LENGTH, MESH_ORDERS_BATCH_SIZE } from '../constants';
 import { logger } from '../logger';
 
+import { axios } from './axios_utils';
 import { utils } from './utils';
-
-// Attach retry-axios to the global instance
-rax.attach();
 
 export class MeshClient extends WSClient {
     public async addOrdersAsync(orders: SignedOrder[], pinned: boolean = false): Promise<ValidationResults> {
@@ -24,11 +20,8 @@ export class MeshClient extends WSClient {
                 validationResults.rejected = [...validationResults.rejected, ...results.rejected];
             }
         } else {
-            // TODO chunk by byte length of the payload rather than order length
-            // tslint:disable-next-line:custom-no-magic-numbers
-            const chunks = _.chunk(orders, 500);
+            const chunks = utils.chunkByByteLength<SignedOrder>(orders, MESH_ORDERS_BATCH_HTTP_BYTE_LENGTH);
             for (const [i, chunk] of chunks.entries()) {
-                logger.info(`Mesh HTTP sync ${i + 1}/${chunks.length}`);
                 // send via http
                 // format JSON-RPC request payload
                 const data = {
@@ -41,18 +34,13 @@ export class MeshClient extends WSClient {
                 try {
                     const startTime = Date.now();
                     // send the request
-                    const response = await Axios({
+                    const response = await axios({
                         method: 'post',
                         url: this.httpURI,
                         data,
-                        // retry config
                         raxConfig: {
-                            // Retry 3 times
-                            retry: 3,
-                            // ETIMEDOUT etc
-                            noResponseRetries: 2,
-                            onRetryAttempt: _err =>
-                                logger.warn(`Mesh HTTP sync retry ${i + 1}/${chunks.length} #${_err.message}`),
+                            httpMethodsToRetry: ['POST'],
+                            retryDelay: 3000,
                         },
                     });
                     const endTime = Date.now();
