@@ -1,4 +1,13 @@
-import { SignedOrder, ValidationResults, WSClient, WSOpts } from '@0x/mesh-rpc-client';
+import {
+    RejectedCode,
+    RejectedKind,
+    RejectedOrderInfo,
+    SignedOrder,
+    ValidationResults,
+    WSClient,
+    WSOpts,
+} from '@0x/mesh-rpc-client';
+import { orderHashUtils } from '@0x/order-utils';
 import * as _ from 'lodash';
 
 import { MESH_ORDERS_BATCH_HTTP_BYTE_LENGTH, MESH_ORDERS_BATCH_SIZE } from '../constants';
@@ -53,7 +62,19 @@ export class MeshClient extends WSClient {
                     logger.info(`Mesh HTTP sync ${i + 1}/${chunks.length} complete ${endTime - startTime}ms`);
                 } catch (err) {
                     logger.error(`Mesh HTTP sync ${i + 1}/${chunks.length} failed ${err.message}`);
-                    // TODO if we can't validate orders, and have exhausted retries, then we need to reject
+                    // If we can't validate orders, and have exhausted retries, then we need to reject
+                    const rejected: RejectedOrderInfo[] = await Promise.all(
+                        orders.map(async o => ({
+                            orderHash: await orderHashUtils.getOrderHashAsync(o),
+                            signedOrder: o,
+                            kind: RejectedKind.MeshError,
+                            status: {
+                                code: RejectedCode.NetworkRequestFailed,
+                                message: 'Unable to verify order with Mesh',
+                            },
+                        })),
+                    );
+                    validationResults.rejected = [...validationResults.rejected, ...rejected];
                 }
             }
         }
