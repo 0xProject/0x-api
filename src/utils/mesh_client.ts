@@ -25,6 +25,7 @@ export class MeshClient extends WSClient {
             }
         } else {
             // TODO chunk by byte length of the payload rather than order length
+            // tslint:disable-next-line:custom-no-magic-numbers
             const chunks = _.chunk(orders, 500);
             for (const [i, chunk] of chunks.entries()) {
                 logger.info(`Mesh HTTP sync ${i + 1}/${chunks.length}`);
