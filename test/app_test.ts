@@ -1,7 +1,5 @@
-import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
-import { runMigrationsOnceAsync } from '@0x/migrations';
+import { web3Factory } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
-import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
@@ -10,34 +8,28 @@ import { getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, SRA_PATH } from '../src/constants';
 
+import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { expect } from './utils/expect';
 
 let app: Express.Application;
 
-let web3Wrapper: Web3Wrapper;
 let provider: Web3ProviderEngine;
-let accounts: string[];
-let blockchainLifecycle: BlockchainLifecycle;
 
 describe('app test', () => {
     before(async () => {
-        // start ganache and run contract migrations
         const ganacheConfigs = {
             shouldUseInProcessGanache: false,
             shouldAllowUnlimitedContractSize: true,
             rpcUrl: config.ETHEREUM_RPC_URL,
         };
         provider = web3Factory.getRpcProvider(ganacheConfigs);
-        web3Wrapper = new Web3Wrapper(provider);
-        blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
-        await blockchainLifecycle.startAsync();
-        accounts = await web3Wrapper.getAvailableAddressesAsync();
-        const owner = accounts[0];
-        await runMigrationsOnceAsync(provider, { from: owner });
-
+        await setupDependenciesAsync();
         const dependencies = await getDefaultAppDependenciesAsync(provider, config);
         // start the 0x-api app
         app = await getAppAsync({ ...dependencies }, config);
+    });
+    after(async () => {
+        await teardownDependenciesAsync();
     });
     it('should not be undefined', () => {
         expect(app).to.not.be.undefined();
