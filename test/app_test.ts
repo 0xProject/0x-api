@@ -9,29 +9,30 @@ import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
 
-import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, SRA_PATH, SWAP_PATH } from '../src/constants';
+import { getDBConnectionAsync } from '../src/db_connection';
 import { SignedOrderEntity } from '../src/entities';
 
 import * as orderFixture from './fixtures/order.json';
+import { setupApiAsync, teardownApiAsync } from './utils/deployment';
 import { expect } from './utils/expect';
 import { ganacheZrxWethOrder1 } from './utils/mocks';
-
-let app: Express.Application;
 
 let web3Wrapper: Web3Wrapper;
 let provider: Web3ProviderEngine;
 let accounts: string[];
 let blockchainLifecycle: BlockchainLifecycle;
 
-let dependencies: AppDependencies;
-
+const API_BASE_URL = 'http://localhost:3000';
 // tslint:disable-next-line:custom-no-magic-numbers
 const MAX_UINT256 = new BigNumber(2).pow(256).minus(1);
 
 describe('app test', () => {
     before(async () => {
+        // start the 0x-api app
+        await setupApiAsync({ shouldPrintApiLogs: true });
+
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
             shouldUseInProcessGanache: false,
@@ -43,17 +44,12 @@ describe('app test', () => {
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
         await blockchainLifecycle.startAsync();
         accounts = await web3Wrapper.getAvailableAddressesAsync();
-
-        dependencies = await getDefaultAppDependenciesAsync(provider, config);
-
-        // start the 0x-api app
-        app = await getAppAsync({ ...dependencies }, config);
     });
-    it('should not be undefined', () => {
-        expect(app).to.not.be.undefined();
+    after(async () => {
+        await teardownApiAsync();
     });
     it('should respond to GET /sra/orders', async () => {
-        await request(app)
+        await request(API_BASE_URL)
             .get(`${SRA_PATH}/orders`)
             .expect('Content-Type', /json/)
             .expect(HttpStatus.OK)
@@ -77,8 +73,9 @@ describe('app test', () => {
         });
 
         const apiOrderResponse = { chainId: config.CHAIN_ID, ...orderFixture, expirationTimeSeconds };
-        await dependencies.connection.manager.save(orderModel);
-        await request(app)
+        const dbConnection = await getDBConnectionAsync();
+        await dbConnection.manager.save(orderModel);
+        await request(API_BASE_URL)
             .get(`${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}`)
             .expect('Content-Type', /json/)
             .expect(HttpStatus.OK)
@@ -88,11 +85,11 @@ describe('app test', () => {
                 expect(response.body.total).to.equal(1);
                 expect(response.body.records[0].order).to.deep.equal(apiOrderResponse);
             });
-        await dependencies.connection.manager.remove(orderModel);
+        await dbConnection.manager.remove(orderModel);
     });
     describe('should respond to GET /swap/quote', () => {
         it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
-            await request(app)
+            await request(API_BASE_URL)
                 .get(
                     `${SWAP_PATH}/quote?buyToken=DAI&sellToken=WETH&buyAmount=100000000000000000&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
                 )
@@ -153,7 +150,7 @@ describe('app test', () => {
                             },
                         ],
                         async () => {
-                            const appResponse = await request(app)
+                            const appResponse = await request(API_BASE_URL)
                                 .get(
                                     `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
                                 )
@@ -170,7 +167,7 @@ describe('app test', () => {
                 it('should fail when taker address is not supplied', async () => {
                     const sellAmount = new BigNumber(100000000000000000);
 
-                    const appResponse = await request(app)
+                    const appResponse = await request(API_BASE_URL)
                         .get(
                             `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
                         )
@@ -208,7 +205,7 @@ describe('app test', () => {
                             },
                         ],
                         async () => {
-                            const appResponse = await request(app)
+                            const appResponse = await request(API_BASE_URL)
                                 .get(
                                     `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
                                 )
@@ -251,7 +248,7 @@ describe('app test', () => {
                             },
                         ],
                         async () => {
-                            const appResponse = await request(app)
+                            const appResponse = await request(API_BASE_URL)
                                 .get(
                                     `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
                                 )
@@ -290,7 +287,7 @@ describe('app test', () => {
                             },
                         ],
                         async () => {
-                            await request(app)
+                            await request(API_BASE_URL)
                                 .get(
                                     `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
                                 )
@@ -337,7 +334,7 @@ describe('app test', () => {
                         },
                     ],
                     async () => {
-                        const appResponse = await request(app)
+                        const appResponse = await request(API_BASE_URL)
                             .get(
                                 `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
                             )

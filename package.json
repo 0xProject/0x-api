@@ -53,6 +53,7 @@
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
         "dirty-chai": "^2.0.1",
+        "gitpkg": "https://github.com/0xProject/gitpkg.git",
         "make-promises-safe": "^5.1.0",
         "mocha": "^6.2.2",
         "nodemon": "^1.19.4",
