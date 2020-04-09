@@ -64,7 +64,7 @@ export class SwapHandlers {
                 gasPrice,
                 excludedSources,
                 affiliateAddress,
-                apiKey: takerAddress && takerAddress !== NULL_ADDRESS ? req.header('0x-api-key') : undefined,
+                apiKey: req.header('0x-api-key'),
                 intentOnFilling,
             });
             res.status(HttpStatus.OK).send(swapQuote);
