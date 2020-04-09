@@ -84,8 +84,13 @@ export class SwapService {
             gasPrice: providedGasPrice,
             excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
             apiKey,
-            intentOnFilling,
-            takerAddress: from,
+            rfqt:
+                rfqt === undefined || from === undefined
+                    ? undefined
+                    : {
+                          ...rfqt,
+                          takerAddress: from,
+                      },
         };
         if (sellAmount !== undefined) {
             swapQuote = await this._swapQuoter.getMarketSellSwapQuoteAsync(
