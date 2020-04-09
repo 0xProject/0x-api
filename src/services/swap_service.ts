@@ -52,9 +52,10 @@ export class SwapService {
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             chainId: CHAIN_ID,
             expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
-            liquidityProviderRegistryAddress: LIQUIDITY_POOL_REGISTRY_ADDRESS,
-            rfqtTakerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
-            rfqtMakerEndpoints: RFQT_MAKER_ENDPOINTS,
+            rfqt: {
+                takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
+                makerEndpoints: RFQT_MAKER_ENDPOINTS,
+            },
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
