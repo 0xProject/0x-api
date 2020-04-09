@@ -342,7 +342,6 @@ export interface GetSwapQuoteRequestParams {
     gasPrice?: BigNumber;
     excludedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
-    apiKey?: string;
     intentOnFilling?: boolean;
 }
 
