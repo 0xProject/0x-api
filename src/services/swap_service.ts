@@ -75,7 +75,7 @@ export class SwapService {
             excludedSources,
             affiliateAddress,
             apiKey,
-            intentOnFilling,
+            rfqt,
         } = params;
         const assetSwapperOpts = {
             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
