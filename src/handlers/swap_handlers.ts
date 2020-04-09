@@ -170,7 +170,7 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
             : parseStringArrForERC20BridgeSources(req.query.excludedSources.split(','));
     const affiliateAddress = req.query.affiliateAddress;
     // tslint:disable-next-line:boolean-naming
-    const intentOnFilling = req.query.intentOnFilling === undefined ? false : true;
+    const intentOnFilling = req.query.intentOnFilling === 'true' ? true : false;
     return {
         takerAddress,
         sellToken,
