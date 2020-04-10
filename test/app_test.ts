@@ -1,3 +1,4 @@
+import { rfqtMocker } from '@0x/asset-swapper';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
@@ -13,6 +14,7 @@ import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, SRA_PATH, SWAP_PATH } from '../src/constants';
 
 import { expect } from './utils/expect';
+import { ganacheZrxWethOrder1 } from './utils/mocks';
 
 let app: Express.Application;
 
@@ -74,8 +76,6 @@ describe('app test', () => {
     });
     describe('should hit RFQ-T when apropriate', () => {
         it('should get a quote from an RFQ-T provider', async () => {
-            // the 0xorg/test-quoter is running and serving RFQT quotes, using accounts[0] as its maker address.
-            // the API will exclude unfillable RFQ-T orders, so we need to set the maker's balances and allowances.
             const [makerAddress, takerAddress] = accounts;
             const sellAmount = new BigNumber(100000000000000000);
 
@@ -96,20 +96,37 @@ describe('app test', () => {
             );
             // done setting balances and allowances
 
-            await request(app)
-                .get(
-                    `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
-                )
-                .set('0x-api-key', 'koolApiKey1')
-                .expect(HttpStatus.OK)
-                .expect('Content-Type', /json/)
-                .then(response => {
-                    const responseJson = JSON.parse(response.text);
-                    expect(responseJson.orders.length).to.equal(1); // the one from 0xorg/test-quoter
-                    expect(responseJson.orders[0].takerAddress.toLowerCase()).to.equal(takerAddress);
-                    expect(responseJson.orders[0].makerAddress.toLowerCase()).to.equal(makerAddress);
-                    expect(responseJson.orders[0].takerAssetAmount).to.equal(sellAmount.toString());
-                });
+            const mockedApiParams = {
+                sellToken: contractAddresses.etherToken,
+                buyToken: contractAddresses.zrxToken,
+                sellAmount: sellAmount.toString(),
+                buyAmount: undefined,
+                takerAddress,
+            };
+            return rfqtMocker.withMockedRfqtFirmQuotes(
+                [
+                    {
+                        endpoint: 'https://mock-rfqt1.club',
+                        responseData: ganacheZrxWethOrder1,
+                        responseCode: 200,
+                        requestApiKey: 'koolApiKey1',
+                        requestParams: mockedApiParams,
+                    },
+                ],
+                async () => {
+                    const appResponse = await request(app)
+                        .get(
+                            `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                        )
+                        .set('0x-api-key', 'koolApiKey1')
+                        .expect(HttpStatus.OK)
+                        .expect('Content-Type', /json/);
+
+                    const responseJson = JSON.parse(appResponse.text);
+                    expect(responseJson.orders.length).to.equal(1);
+                    expect(responseJson.orders[0]).to.eql(ganacheZrxWethOrder1);
+                },
+            );
         });
     });
 });
