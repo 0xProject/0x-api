@@ -10,6 +10,7 @@ import {
     SwapQuoter,
     SwapQuoterOpts,
 } from '@0x/asset-swapper';
+import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { AbiEncoder, BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
@@ -26,6 +27,7 @@ import {
 import {
     DEFAULT_TOKEN_DECIMALS,
     GAS_LIMIT_BUFFER_PERCENTAGE,
+    NULL_ADDRESS,
     ONE_SECOND_MS,
     PERCENTAGE_SIG_DIGITS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -85,11 +87,11 @@ export class SwapService {
             excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
             apiKey,
             rfqt:
-                rfqt === undefined || from === undefined
+                rfqt === undefined || from === undefined || from === NULL_ADDRESS
                     ? undefined
                     : {
                           ...rfqt,
-                          takerAddress: from,
+                          takerAddress: isETHSell ? getContractAddressesForChainOrThrow(CHAIN_ID).forwarder : from,
                       },
         };
         if (sellAmount !== undefined) {
