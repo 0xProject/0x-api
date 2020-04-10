@@ -83,6 +83,7 @@ export class SwapHandlers {
             gasPrice,
             excludedSources,
             affiliateAddress,
+            apiKey: req.header('0x-api-key'),
         };
 
         try {

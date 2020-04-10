@@ -372,6 +372,7 @@ export interface CalculateSwapQuoteParams {
     gasPrice?: BigNumber;
     excludedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
+    apiKey?: string;
 }
 
 export interface GetSwapQuoteResponseLiquiditySource {
