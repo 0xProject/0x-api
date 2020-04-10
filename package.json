@@ -27,8 +27,7 @@
         "start:service:staking_http": "node -r dotenv/config lib/src/runners/http_staking_service_runner.js",
         "start:service:swap_http": "node -r dotenv/config lib/src/runners/http_swap_service_runner.js",
         "start:service:order_watcher": "node -r dotenv/config lib/src/runners/order_watcher_service_runner.js",
-        "lint": "tslint --project . --format stylish && yarn prettier:ci",
-        "docker:login": "eval $(aws ecr get-login --no-include-email --region \"us-east-1\") # to pull private quoter repo. see https://docs.aws.amazon.com/cli/latest/reference/ecr/get-login.html"
+        "lint": "tslint --project . --format stylish && yarn prettier:ci"
     },
     "resolutions": {
         "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-264407b70",
