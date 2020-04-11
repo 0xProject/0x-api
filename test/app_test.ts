@@ -1,5 +1,6 @@
 import { rfqtMocker } from '@0x/asset-swapper';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
+import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber } from '@0x/utils';
@@ -75,12 +76,25 @@ describe('app test', () => {
     });
     describe('should hit RFQ-T when apropriate', () => {
         it('should get a quote from an RFQ-T provider', async () => {
-            const takerAddress = accounts[1];
+            const [makerAddress, takerAddress] = accounts;
             const sellAmount = new BigNumber(100000000000000000);
 
             const contractAddresses: ContractAddresses = getContractAddressesForChainOrThrow(
                 parseInt(process.env.CHAIN_ID || '1337', 10),
             );
+
+            const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
+            await wethContract.deposit().sendTransactionAsync({ value: sellAmount, from: takerAddress });
+            await wethContract
+                .approve(contractAddresses.erc20Proxy, sellAmount)
+                .sendTransactionAsync({ from: takerAddress });
+
+            const zrxToken = new ERC20TokenContract(contractAddresses.zrxToken, provider);
+            await zrxToken.approve(contractAddresses.erc20Proxy, sellAmount).sendTransactionAsync(
+                // using buyAmount based on assumption that the RFQ-T provider will be using a "one-to-one" strategy.
+                { from: makerAddress },
+            );
+            // done setting balances and allowances
 
             const mockedApiParams = {
                 sellToken: contractAddresses.etherToken,
