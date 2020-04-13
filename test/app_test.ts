@@ -60,8 +60,9 @@ describe('app test', () => {
             .then(response => {
                 expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
                 expect(response.body.page).to.equal(DEFAULT_PAGE);
-                expect(response.body.total).to.equal(0);
-                expect(response.body.records).to.deep.equal([]);
+                expect(response.body.total).to.be.an('number');
+                expect(response.body.records).to.be.an('array');
+            });
             });
     });
     it('should normalize addresses to lowercase', async () => {
