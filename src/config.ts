@@ -3,6 +3,7 @@ import { assert } from '@0x/assert';
 import { ERC20BridgeSource, SwapQuoteRequestOpts } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
+import * as validateUUID from 'uuid-validate';
 
 import {
     DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
@@ -29,6 +30,7 @@ enum EnvVarType {
     FeeAssetData,
     NonEmptyString,
     String,
+    APIKeys,
 }
 
 // Network port to listen on
@@ -153,6 +155,16 @@ export const RFQT_API_KEY_WHITELIST: string[] =
 
 export const RFQT_MAKER_ENDPOINTS: string[] =
     process.env.RFQT_MAKER_ENDPOINTS === undefined ? [] : process.env.RFQT_MAKER_ENDPOINTS.split(',');
+
+// Whitelisted 0x API keys that can use the meta-txn /fill endpoint
+export const WHITELISTED_API_KEYS_META_TXN_FILLS: string[] =
+    process.env.WHITELISTED_API_KEYS_META_TXN_FILLS === undefined
+        ? []
+        : assertEnvVarType(
+              'WHITELISTED_API_KEYS_META_TXN_FILLS',
+              process.env.WHITELISTED_API_KEYS_META_TXN_FILLS,
+              EnvVarType.APIKeys,
+          );
 
 // The meta-txn relay sender address
 export const SENDER_ADDRESS = _.isEmpty(process.env.SENDER_ADDRESS)
@@ -290,6 +302,16 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 throw new Error(`${name} must be supplied`);
             }
             return value;
+        case EnvVarType.APIKeys:
+            assert.isString(name, value);
+            const apiKeys = (value as string).split(',');
+            apiKeys.forEach(apiKey => {
+                const isValidUUID = validateUUID(apiKey);
+                if (!isValidUUID) {
+                    throw new Error(`API Key ${apiKey} isn't UUID compliant`);
+                }
+            });
+            return apiKeys;
         default:
             throw new Error(`Unrecognised EnvVarType: ${expectedType} encountered for variable ${name}.`);
     }

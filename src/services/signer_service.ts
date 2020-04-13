@@ -13,11 +13,9 @@ import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { CHAIN_ID, ETHEREUM_RPC_URL, SENDER_ADDRESS, SENDER_PRIVATE_KEY, TAKER_ADDRESS } from '../config';
+import { CHAIN_ID, ETHEREUM_RPC_URL, SENDER_ADDRESS, SENDER_PRIVATE_KEY, WHITELISTED_API_KEYS_META_TXN_FILLS } from '../config';
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
 import { utils } from '../utils/utils';
-
-const whitelistedAddresses: string[] = [];
 
 export class SignerService {
     private readonly _provider: SupportedProvider;
@@ -25,8 +23,8 @@ export class SignerService {
     private readonly _privateWalletSubprovider: PrivateKeyWalletSubprovider;
     private readonly _contractWrappers: ContractWrappers;
     private readonly _web3Wrapper: Web3Wrapper;
-    public static isEligibleForFreeMetaTxn(takerAddress: string): boolean {
-        return whitelistedAddresses.includes(takerAddress);
+    public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
+        return WHITELISTED_API_KEYS_META_TXN_FILLS.includes(apiKey);
     }
 
     private static _createWeb3Provider(

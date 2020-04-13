@@ -698,6 +698,16 @@
   version "1.9.3"
   resolved "https://registry.yarnpkg.com/@types/underscore/-/underscore-1.9.3.tgz#d7d9dc5a5ff76fa3d001b29bc7cc95ab0ccfe85e"
 
+"@types/uuid-validate@^0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@types/uuid-validate/-/uuid-validate-0.0.1.tgz#b4eedecbd9db25851490d65a58f13feaa89dd509"
+  integrity sha512-RbX9q0U00SLoV+l7loYX0Wrtv4QTClBC0QcdNts6x2b5G1HJN8NI9YlS1HNA6THrI9EH3OXSgya6eMQIlDjKFA==
+
+"@types/uuid@^7.0.2":
+  version "7.0.2"
+  resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-7.0.2.tgz#d680a9c596ef84abf5c4c07a32ffd66d582526f8"
+  integrity sha512-8Ly3zIPTnT0/8RCU6Kg/G3uTICf9sRwYOpUzSIM3503tLIKcnJPRuinHhXngJUy2MntrEf6dlpOHXJju90Qh5w==
+
 "@types/web3-provider-engine@^14.0.0":
   version "14.0.0"
   resolved "https://registry.yarnpkg.com/@types/web3-provider-engine/-/web3-provider-engine-14.0.0.tgz#43adc3b39dc9812b82aef8cd2d66577665ad59b0"
@@ -3763,6 +3773,14 @@ global-prefix@^1.0.1:
     is-windows "^1.0.1"
     which "^1.2.14"
 
+global@^4.4.0:
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/global/-/global-4.4.0.tgz#3e7b105179006a323ed71aafca3e9c57a5cc6406"
+  integrity sha512-wv/LAoHdRE3BeTGz53FAamhGlPLhlssK45usmGFThIi4XqnBmjKQ16u+RNbP7WvigRZDxUsM0J3gcQ5yicaL0w==
+  dependencies:
+    min-document "^2.19.0"
+    process "^0.11.10"
+
 global@~4.3.0:
   version "4.3.2"
   resolved "https://registry.yarnpkg.com/global/-/global-4.3.2.tgz#e76989268a6c74c38908b1305b10fc0e394e9d0f"
@@ -5750,6 +5768,11 @@ process-nextick-args@^2.0.0, process-nextick-args@~2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/process-nextick-args/-/process-nextick-args-2.0.1.tgz#7820d9b16120cc55ca9ae7792680ae7dba6d7fe2"
 
+process@^0.11.10:
+  version "0.11.10"
+  resolved "https://registry.yarnpkg.com/process/-/process-0.11.10.tgz#7332300e840161bda3e69a1d1d91a7d4bc16f182"
+  integrity sha1-czIwDoQBYb2j5podHZGn1LwW8YI=
+
 process@~0.5.1:
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/process/-/process-0.5.2.tgz#1638d8a8e34c2f440a91db95ab9aeb677fc185cf"
@@ -7417,6 +7440,11 @@ utils-merge@1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/utils-merge/-/utils-merge-1.0.1.tgz#9f95710f50a267947b2ccc124741c1028427e713"
 
+uuid-validate@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/uuid-validate/-/uuid-validate-0.0.3.tgz#e30617f75dc742a0e4f95012a11540faf9d39ab4"
+  integrity sha512-Fykw5U4eZESbq739BeLvEBFRuJODfrlmjx5eJux7W817LjRaq4b7/i4t2zxQmhcX+fAj4nMfRdTzO4tmwLKn0w==
+
 uuid@2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-2.0.1.tgz#c2a30dedb3e535d72ccf82e343941a50ba8533ac"
@@ -7432,6 +7460,11 @@ uuid@3.3.2:
 uuid@^3.3.2:
   version "3.4.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.4.0.tgz#b23e4358afa8a202fe7a100af1f5f883f02007ee"
+
+uuid@^7.0.3:
+  version "7.0.3"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-7.0.3.tgz#c5c9f2c8cf25dc0a372c4df1441c41f5bd0c680b"
+  integrity sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==
 
 v8flags@^3.0.1:
   version "3.1.3"
