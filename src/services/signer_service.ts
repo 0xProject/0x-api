@@ -13,7 +13,7 @@ import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { CHAIN_ID, ETHEREUM_RPC_URL, SENDER_ADDRESS, SENDER_PRIVATE_KEY, WHITELISTED_API_KEYS_META_TXN_FILLS } from '../config';
+import { CHAIN_ID, ETHEREUM_RPC_URL, META_TXN_RELAY_ADDRESS, META_TXN_RELAY_PRIVATE_KEY, WHITELISTED_API_KEYS_META_TXN_FILLS } from '../config';
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
 import { utils } from '../utils/utils';
 
@@ -50,7 +50,7 @@ export class SignerService {
         return new BigNumber(150000).times(gasPrice).times(numOrders);
     }
     constructor() {
-        this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(SENDER_PRIVATE_KEY);
+        this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(META_TXN_RELAY_PRIVATE_KEY);
         this._nonceTrackerSubprovider = new NonceTrackerSubprovider();
         this._provider = SignerService._createWeb3Provider(
             ETHEREUM_RPC_URL,
@@ -87,7 +87,7 @@ export class SignerService {
 
         try {
             await this._contractWrappers.exchange.executeTransaction(zeroExTransaction, signature).callAsync({
-                from: SENDER_ADDRESS,
+                from: META_TXN_RELAY_ADDRESS,
                 gasPrice,
                 value: protocolFee,
             });
@@ -110,7 +110,7 @@ export class SignerService {
         const gas = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .estimateGasAsync({
-                from: SENDER_ADDRESS,
+                from: META_TXN_RELAY_ADDRESS,
                 gasPrice,
                 value: protocolFee,
             });
@@ -122,11 +122,11 @@ export class SignerService {
         const ethereumTxnParams: PartialTxParams = {
             data: executeTxnCalldata,
             gas: utils.encodeAmountAsHexString(gas),
-            from: SENDER_ADDRESS,
+            from: META_TXN_RELAY_ADDRESS,
             gasPrice: utils.encodeAmountAsHexString(gasPrice),
             value: utils.encodeAmountAsHexString(protocolFee),
             to: this._contractWrappers.exchange.address,
-            nonce: await this._getNonceAsync(SENDER_ADDRESS),
+            nonce: await this._getNonceAsync(META_TXN_RELAY_ADDRESS),
             chainId: CHAIN_ID,
         };
 
@@ -144,7 +144,7 @@ export class SignerService {
         const transactionHash = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .sendTransactionAsync({
-                from: SENDER_ADDRESS,
+                from: META_TXN_RELAY_ADDRESS,
                 gasPrice: zeroExTransaction.gasPrice,
                 value: protocolFee,
             });
