@@ -2,7 +2,7 @@ import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
-import * as validateUUID from 'uuid-validate';
+import * as isValidUUID from 'uuid-validate';
 
 import { GeneralErrorCodes, generalErrorCodeToReason, InternalServerError, InvalidAPIKeyError, RevertAPIError } from '../errors';
 import { logger } from '../logger';
@@ -22,9 +22,8 @@ export class SignerHandlers {
         this._signerService = signerService;
     }
     public async signAndSubmitZeroExTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
-        const apiKey = req.header('0x-api-key') || '';
-        const isValidUUID = validateUUID(apiKey);
-        if (!isValidUUID) {
+        const apiKey = req.header('0x-api-key');
+        if (apiKey !== undefined && !isValidUUID(apiKey)) {
             throw new InvalidAPIKeyError();
         }
         schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
@@ -35,7 +34,7 @@ export class SignerHandlers {
             const protocolFee = await this._signerService.validateZeroExTransactionFillAsync(zeroExTransaction, signature);
 
             // If eligible for free txn relay, submit it, otherwise, return unsigned Ethereum txn
-            if (SignerService.isEligibleForFreeMetaTxn(apiKey)) {
+            if (apiKey !== undefined && SignerService.isEligibleForFreeMetaTxn(apiKey)) {
                 const {
                     transactionHash,
                     signedEthereumTransaction,
