@@ -11,15 +11,10 @@ import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { SwapService } from '../services/swap_service';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
-import { CalculateSwapQuoteParams, ChainId, GetSwapQuoteRequestParams, GetSwapQuoteResponse } from '../types';
+import { CalculateSwapQuoteParams, GetSwapQuoteRequestParams, GetSwapQuoteResponse } from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { schemaUtils } from '../utils/schema_utils';
-import {
-    findTokenAddress,
-    getTokenMetadataIfExists,
-    isETHSymbol,
-    isWETHSymbolOrAddress,
-} from '../utils/token_metadata_utils';
+import { findTokenAddressOrThrowApiError, getTokenMetadataIfExists, isETHSymbol, isWETHSymbolOrAddress } from '../utils/token_metadata_utils';
 
 export class SwapHandlers {
     private readonly _swapService: SwapService;
@@ -172,20 +167,6 @@ export class SwapHandlers {
         res.status(HttpStatus.OK).send({ records });
     }
 }
-
-const findTokenAddressOrThrowApiError = (address: string, field: string, chainId: ChainId): string => {
-    try {
-        return findTokenAddress(address.toLowerCase(), chainId);
-    } catch (e) {
-        throw new ValidationError([
-            {
-                field,
-                code: ValidationErrorCodes.ValueOutOfRange,
-                reason: e.message,
-            },
-        ]);
-    }
-};
 
 const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteRequestParams => {
     // HACK typescript typing does not allow this valid json-schema

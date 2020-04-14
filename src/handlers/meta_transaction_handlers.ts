@@ -11,10 +11,10 @@ import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
-import { ChainId, GetTransactionRequestParams } from '../types';
+import { GetTransactionRequestParams } from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { schemaUtils } from '../utils/schema_utils';
-import { findTokenAddress } from '../utils/token_metadata_utils';
+import { findTokenAddressOrThrowApiError } from '../utils/token_metadata_utils';
 
 export class MetaTransactionHandlers {
     private readonly _metaTransactionService: MetaTransactionService;
@@ -170,18 +170,4 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
             ? undefined
             : parseUtils.parseStringArrForERC20BridgeSources(req.query.excludedSources.split(','));
     return { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage, excludedSources };
-};
-
-const findTokenAddressOrThrowApiError = (address: string, field: string, chainId: ChainId): string => {
-    try {
-        return findTokenAddress(address, chainId);
-    } catch (e) {
-        throw new ValidationError([
-            {
-                field,
-                code: ValidationErrorCodes.ValueOutOfRange,
-                reason: e.message,
-            },
-        ]);
-    }
 };
