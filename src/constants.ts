@@ -18,6 +18,8 @@ export const TEN_MINUTES_MS = ONE_MINUTE_MS * 10;
 
 // The number of orders to post to Mesh at one time
 export const MESH_ORDERS_BATCH_SIZE = 200;
+// 5242880 appears to be the max HTTP content length with Mesh
+export const MESH_ORDERS_BATCH_HTTP_BYTE_LENGTH = 2500000;
 
 // Swap Quoter
 export const QUOTE_ORDER_EXPIRATION_BUFFER_MS = ONE_SECOND_MS * 90; // Ignore orders that expire in 90 seconds
@@ -32,8 +34,8 @@ export const DEFAULT_TOKEN_DECIMALS = 18;
 export const FIRST_PAGE = 1;
 export const PERCENTAGE_SIG_DIGITS = 4;
 export const PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS = 6000;
-export const UNWRAP_QUOTE_GAS = new BigNumber(40000);
-export const WRAP_QUOTE_GAS = new BigNumber(30000);
+export const UNWRAP_QUOTE_GAS = new BigNumber(60000);
+export const WRAP_QUOTE_GAS = new BigNumber(40000);
 
 // API namespaces
 export const SRA_PATH = '/sra/v3';

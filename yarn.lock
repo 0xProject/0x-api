@@ -42,9 +42,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.4.0-424cbd483":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.4.0-0e196a59d":
   version "4.4.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/e4b2db507e221a4021b104ee7985db537bb641f6"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/9638449b075d747499ed617bf8740ed2a0f6c9ad"
   dependencies:
     "@0x/assert" "^3.0.7"
     "@0x/contract-addresses" "^4.9.0"
@@ -119,17 +119,17 @@
     uuid "^3.3.2"
     websocket "^1.0.26"
 
-"@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-424cbd483", "@0x/contract-addresses@^4.1.0", "@0x/contract-addresses@^4.9.0":
+"@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-0e196a59d", "@0x/contract-addresses@^4.1.0", "@0x/contract-addresses@^4.9.0":
   version "4.9.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/3f47358b79aa71331eb9f55caf6ea9fd2422d4d9"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/d3ac2d5e4afed6518a0066e19e0d522f5ed0be58"
 
 "@0x/contract-artifacts@^3.2.0":
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-artifacts/-/contract-artifacts-3.2.0.tgz#a013ab50862f6c4d16fbbaa2bfc2299c630379d8"
 
-"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-424cbd483", "@0x/contract-wrappers@^13.3.0", "@0x/contract-wrappers@^13.4.0", "@0x/contract-wrappers@^13.6.3":
+"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-0e196a59d", "@0x/contract-wrappers@^13.3.0", "@0x/contract-wrappers@^13.4.0", "@0x/contract-wrappers@^13.6.3":
   version "13.6.3"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/3f73b1a23ef148c26d45b4b2210dca8415a9485e"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/8bc7a7ffe50b0c4c345d49aa979af9a6f8738b4c"
   dependencies:
     "@0x/assert" "^3.0.7"
     "@0x/base-contract" "^6.2.1"
@@ -6977,6 +6977,10 @@ resumer@~0.0.0:
 ret@~0.1.10:
   version "0.1.15"
   resolved "https://registry.yarnpkg.com/ret/-/ret-0.1.15.tgz#b8a4825d5bdb1fc3f6f53c2bc33f81388681c7bc"
+
+retry-axios@^2.1.2:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/retry-axios/-/retry-axios-2.1.2.tgz#78a8041bc34047a205aa4098af23f943ec58abd2"
 
 rimraf@^2.2.8, rimraf@^2.6.2, rimraf@^2.6.3:
   version "2.7.1"
