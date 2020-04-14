@@ -13,7 +13,13 @@ import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { CHAIN_ID, ETHEREUM_RPC_URL, META_TXN_RELAY_ADDRESS, META_TXN_RELAY_PRIVATE_KEY, WHITELISTED_API_KEYS_META_TXN_FILLS } from '../config';
+import {
+    CHAIN_ID,
+    ETHEREUM_RPC_URL,
+    META_TXN_RELAY_ADDRESS,
+    META_TXN_RELAY_PRIVATE_KEY,
+    WHITELISTED_API_KEYS_META_TXN_FILLS,
+} from '../config';
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
 import { utils } from '../utils/utils';
 
@@ -137,7 +143,11 @@ export class SignerService {
         signature: string,
         protocolFee: BigNumber,
     ): Promise<PostTransactionResponse> {
-        const ethereumTxnParams = await this.generateExecuteTransactionEthereumTransactionAsync(zeroExTransaction, signature, protocolFee);
+        const ethereumTxnParams = await this.generateExecuteTransactionEthereumTransactionAsync(
+            zeroExTransaction,
+            signature,
+            protocolFee,
+        );
 
         const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxnParams);
 

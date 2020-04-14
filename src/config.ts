@@ -172,7 +172,11 @@ export const META_TXN_RELAY_ADDRESS = _.isEmpty(process.env.META_TXN_RELAY_ADDRE
     : assertEnvVarType('META_TXN_RELAY_ADDRESS', process.env.META_TXN_RELAY_ADDRESS, EnvVarType.ETHAddressHex);
 
 // The meta-txn relay sender private key
-export const META_TXN_RELAY_PRIVATE_KEY = assertEnvVarType('META_TXN_RELAY_PRIVATE_KEY', process.env.META_TXN_RELAY_PRIVATE_KEY, EnvVarType.NonEmptyString);
+export const META_TXN_RELAY_PRIVATE_KEY = assertEnvVarType(
+    'META_TXN_RELAY_PRIVATE_KEY',
+    process.env.META_TXN_RELAY_PRIVATE_KEY,
+    EnvVarType.NonEmptyString,
+);
 
 // The meta-txn runner test example taker address
 export const TAKER_ADDRESS = _.isEmpty(process.env.TAKER_ADDRESS)

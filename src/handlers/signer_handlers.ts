@@ -4,7 +4,13 @@ import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 import * as isValidUUID from 'uuid-validate';
 
-import { GeneralErrorCodes, generalErrorCodeToReason, InternalServerError, InvalidAPIKeyError, RevertAPIError } from '../errors';
+import {
+    GeneralErrorCodes,
+    generalErrorCodeToReason,
+    InternalServerError,
+    InvalidAPIKeyError,
+    RevertAPIError,
+} from '../errors';
 import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
@@ -31,21 +37,32 @@ export class SignerHandlers {
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
         try {
-            const protocolFee = await this._signerService.validateZeroExTransactionFillAsync(zeroExTransaction, signature);
+            const protocolFee = await this._signerService.validateZeroExTransactionFillAsync(
+                zeroExTransaction,
+                signature,
+            );
 
             // If eligible for free txn relay, submit it, otherwise, return unsigned Ethereum txn
             if (apiKey !== undefined && SignerService.isEligibleForFreeMetaTxn(apiKey)) {
                 const {
                     transactionHash,
                     signedEthereumTransaction,
-                } = await this._signerService.signAndSubmitZeroExTransactionAsync(zeroExTransaction, signature, protocolFee);
+                } = await this._signerService.signAndSubmitZeroExTransactionAsync(
+                    zeroExTransaction,
+                    signature,
+                    protocolFee,
+                );
                 // return the transactionReceipt
                 res.status(HttpStatus.OK).send({
                     transactionHash,
                     signedEthereumTransaction,
                 });
             } else {
-                const ethereumTxn = await this._signerService.generateExecuteTransactionEthereumTransactionAsync(zeroExTransaction, signature, protocolFee);
+                const ethereumTxn = await this._signerService.generateExecuteTransactionEthereumTransactionAsync(
+                    zeroExTransaction,
+                    signature,
+                    protocolFee,
+                );
                 res.status(HttpStatus.BAD_GATEWAY).send({
                     code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
                     reason: generalErrorCodeToReason[GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker],
@@ -59,7 +76,6 @@ export class SignerHandlers {
                     },
                 });
             }
-
         } catch (e) {
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {

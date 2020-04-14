@@ -25,7 +25,10 @@ if (require.main === module) {
          *
          * https://0x.org/docs/guides/v3-specification#executing-a-transaction
          */
-        app.post(`${META_TRANSACTION_PATH}/fill`, asyncHandler(handlers.signAndSubmitZeroExTransactionAsync.bind(handlers)));
+        app.post(
+            `${META_TRANSACTION_PATH}/fill`,
+            asyncHandler(handlers.signAndSubmitZeroExTransactionAsync.bind(handlers)),
+        );
 
         app.use(errorHandler);
 

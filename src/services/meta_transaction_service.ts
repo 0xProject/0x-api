@@ -10,7 +10,11 @@ import * as _ from 'lodash';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
 import { ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
-import { CalculateMetaTransactionPriceResponse, CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse } from '../types';
+import {
+    CalculateMetaTransactionPriceResponse,
+    CalculateMetaTransactionQuoteParams,
+    GetMetaTransactionQuoteResponse,
+} from '../types';
 import { serviceUtils } from '../utils/service_utils';
 
 export class MetaTransactionService {
@@ -44,7 +48,15 @@ export class MetaTransactionService {
     public async calculateMetaTransactionPriceAsync(
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<CalculateMetaTransactionPriceResponse> {
-        const { takerAddress, sellAmount, buyAmount, buyTokenAddress, sellTokenAddress, slippagePercentage, excludedSources } = params;
+        const {
+            takerAddress,
+            sellAmount,
+            buyAmount,
+            buyTokenAddress,
+            sellTokenAddress,
+            slippagePercentage,
+            excludedSources,
+        } = params;
 
         const assetSwapperOpts = {
             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
@@ -56,18 +68,18 @@ export class MetaTransactionService {
         let swapQuote;
         if (sellAmount !== undefined) {
             swapQuote = await this._swapQuoter.getMarketSellSwapQuoteAsync(
-                    buyTokenAddress,
-                    sellTokenAddress,
-                    sellAmount,
-                    assetSwapperOpts,
-                );
+                buyTokenAddress,
+                sellTokenAddress,
+                sellAmount,
+                assetSwapperOpts,
+            );
         } else if (buyAmount !== undefined) {
             swapQuote = await this._swapQuoter.getMarketBuySwapQuoteAsync(
-                    buyTokenAddress,
-                    sellTokenAddress,
-                    buyAmount,
-                    assetSwapperOpts,
-                );
+                buyTokenAddress,
+                sellTokenAddress,
+                buyAmount,
+                assetSwapperOpts,
+            );
         } else {
             throw new Error('sellAmount or buyAmount required');
         }
@@ -102,8 +114,9 @@ export class MetaTransactionService {
     public async calculateMetaTransactionQuoteAsync(
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<GetMetaTransactionQuoteResponse> {
-
-        const { takerAddress, sellAmount, buyAmount, swapQuote, price } = await this.calculateMetaTransactionPriceAsync(params);
+        const { takerAddress, sellAmount, buyAmount, swapQuote, price } = await this.calculateMetaTransactionPriceAsync(
+            params,
+        );
 
         const gasPrice = swapQuote.gasPrice;
         const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
