@@ -29,7 +29,6 @@ enum EnvVarType {
     Boolean,
     FeeAssetData,
     NonEmptyString,
-    String,
     APIKeys,
 }
 
@@ -178,16 +177,6 @@ export const META_TXN_RELAY_PRIVATE_KEY = assertEnvVarType(
     EnvVarType.NonEmptyString,
 );
 
-// The meta-txn runner test example taker address
-export const TAKER_ADDRESS = _.isEmpty(process.env.TAKER_ADDRESS)
-    ? NULL_ADDRESS
-    : assertEnvVarType('TAKER_ADDRESS', process.env.TAKER_ADDRESS, EnvVarType.ETHAddressHex);
-
-// The meta-txn runner test example taker private key
-export const TAKER_PRIVATE_KEY = _.isEmpty(process.env.TAKER_PRIVATE_KEY)
-    ? '' // optional
-    : assertEnvVarType('TAKER_PRIVATE_KEY', process.env.TAKER_PRIVATE_KEY, EnvVarType.String);
-
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision
@@ -291,9 +280,6 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.WhitelistAllTokens:
             return '*';
         case EnvVarType.FeeAssetData:
-            assert.isString(name, value);
-            return value;
-        case EnvVarType.String:
             assert.isString(name, value);
             return value;
         case EnvVarType.NonEmptyString:
