@@ -110,13 +110,13 @@ export const serviceUtils = {
     },
 
     convertSourceBreakdownToArray(sourceBreakdown: SwapQuoteOrdersBreakdown): GetSwapQuoteResponseLiquiditySource[] {
-    const defaultSourceBreakdown: SwapQuoteOrdersBreakdown = Object.assign(
+        const defaultSourceBreakdown: SwapQuoteOrdersBreakdown = Object.assign(
             {},
             ...Object.values(ERC20BridgeSource).map(s => ({ [s]: ZERO })),
         );
 
-    const breakdown: GetSwapQuoteResponseLiquiditySource[] = [];
-    return Object.entries({ ...defaultSourceBreakdown, ...sourceBreakdown }).reduce(
+        const breakdown: GetSwapQuoteResponseLiquiditySource[] = [];
+        return Object.entries({ ...defaultSourceBreakdown, ...sourceBreakdown }).reduce(
             (acc: GetSwapQuoteResponseLiquiditySource[], [source, percentage]) => {
                 return [
                     ...acc,

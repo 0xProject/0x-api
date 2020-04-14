@@ -14,7 +14,12 @@ import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import { CalculateSwapQuoteParams, GetSwapQuoteRequestParams, GetSwapQuoteResponse } from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { schemaUtils } from '../utils/schema_utils';
-import { findTokenAddressOrThrowApiError, getTokenMetadataIfExists, isETHSymbol, isWETHSymbolOrAddress } from '../utils/token_metadata_utils';
+import {
+    findTokenAddressOrThrowApiError,
+    getTokenMetadataIfExists,
+    isETHSymbol,
+    isWETHSymbolOrAddress,
+} from '../utils/token_metadata_utils';
 
 export class SwapHandlers {
     private readonly _swapService: SwapService;
