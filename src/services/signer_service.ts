@@ -166,7 +166,7 @@ export class SignerService {
     }
     private async _getNonceAsync(senderAddress: string): Promise<string> {
         // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
-        // to use to we fetch it from it's private instance variable
+        // to use so we fetch it from it's private instance variable
         let nonce = (this._nonceTrackerSubprovider as any)._nonceCache[senderAddress];
         if (nonce === undefined) {
             nonce = await this._getTransactionCountAsync(senderAddress);
