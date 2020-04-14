@@ -30,6 +30,8 @@ describe('app test', () => {
     });
     after(async () => {
         await teardownDependenciesAsync();
+        // NOTE(jalextowle): The app should be torn down. I'm not going to worry
+        // about it because this test will be refactored so this will be a non-issue.
     });
     it('should not be undefined', () => {
         expect(app).to.not.be.undefined();

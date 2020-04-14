@@ -1,0 +1,96 @@
+import 'mocha';
+
+import { setupApiAsync, teardownApiAsync } from './deployment';
+import { expect } from './expect';
+
+// FIXME(jalextowle): Lock this down to only the actions that have been created.
+export type ActionType = string;
+
+// FIXME(jalextowle): Lock this down to only the assetions that have been created.
+export type AssertionType = string;
+
+// tslint:disable-next-line:interface-over-type-literal
+export type ActionResult = {} | undefined;
+
+export interface ActionInfo {
+    actionType: ActionType;
+    // FIXME(jalextowle): Lock this down to only the actions that have been created.
+    input: any;
+}
+
+export interface AssertionInfo {
+    assertionType: AssertionType;
+    expectedResult: ActionResult;
+}
+
+export interface TestCase {
+    description: string;
+    action: ActionInfo;
+    assertion: AssertionInfo;
+}
+
+type Action = (input: any) => Promise<any>;
+type Assertion = (expectedResult: ActionResult, actualResult: ActionResult) => boolean;
+
+export class TestManager {
+    constructor(
+        protected _actionsAsync: Record<string, Action>,
+        protected _assertionsAsync: Record<string, Assertion>,
+    ) {}
+
+    /**
+     * NOTE(jalextowle): This function cannot be called from an `async` function.
+     *                   This will lead to undefined behavior and is a limitation
+     *                   of Mocha. Source: https://github.com/mochajs/mocha/issues/3347
+     * Executes a test suite defined by the appropriate data structure.
+     * @param description A meaningful description of the test suite's purpose.
+     * @param testSuite The set of test cases that should be executed (in order)
+     *        in this suite.
+     */
+    public executeTestSuite(description: string, testSuite: TestCase[]): void {
+        if (!testSuite.length) {
+            throw new Error(`[test-manager] suite '${description}' is empty`);
+        }
+
+        // Execute each of the test cases.
+        describe(description, () => {
+            beforeEach(async () => {
+                // Setup the 0x-api instance.
+                await setupApiAsync();
+            });
+
+            afterEach(async () => {
+                // Teardown the 0x-api instance.
+                await teardownApiAsync();
+            });
+
+            for (const testCase of testSuite) {
+                it(testCase.description, async () => {
+                    await this._executeTestCaseAsync(testCase);
+                });
+            }
+        });
+    }
+
+    protected async _executeTestCaseAsync(testCase: TestCase): Promise<void> {
+        const actionResult = await this._executeActionAsync(testCase.action);
+        const didAssertionPass = await this._executeAssertionAsync(testCase.assertion, actionResult);
+        expect(didAssertionPass).to.be.true();
+    }
+
+    protected async _executeActionAsync(action: ActionInfo): Promise<ActionResult> {
+        const actionAsync = this._actionsAsync[action.actionType];
+        if (!actionAsync) {
+            throw new Error('[test-manager] action is not registered');
+        }
+        return actionAsync(action.input);
+    }
+
+    protected async _executeAssertionAsync(assertion: AssertionInfo, actualResult: ActionResult): Promise<boolean> {
+        const assertionAsync = this._assertionsAsync[assertion.assertionType];
+        if (!assertionAsync) {
+            throw new Error('[test-manager] assertion is not registered');
+        }
+        return assertionAsync(assertion.expectedResult, actualResult);
+    }
+}
