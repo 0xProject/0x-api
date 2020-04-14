@@ -110,9 +110,8 @@ export class OrderBookService {
             takerFeeAssetData: ordersFilterParams.takerFeeAssetData,
         };
         const filterObject = _.pickBy(filterObjectWithValuesIfExist, _.identity.bind(_));
-        const normalizedFilterObject = normalizeValuesToLowerCase(filterObject);
         const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
-            where: normalizedFilterObject,
+            where: filterObject,
         })) as Array<Required<SignedOrderEntity>>;
         const apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder);
         // Post-filters
@@ -165,14 +164,4 @@ export class OrderBookService {
         }
         throw new Error('Could not add order to mesh.');
     }
-}
-
-// DB is case-sensitive and looks for exact matches
-// we should normalize addresses to lower case before filtering in the DB
-function normalizeValuesToLowerCase<V>(obj: { [key: string]: V }): { [key: string]: V } {
-    const normalizedObj: { [key: string]: V } = {};
-    for (const [key, value] of Object.entries(obj)) {
-        normalizedObj[key] = value instanceof String ? ((value.toLowerCase() as any) as V) : value;
-    }
-    return normalizedObj;
 }

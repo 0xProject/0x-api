@@ -1,6 +1,5 @@
 import { schemas } from '@0x/json-schemas';
 import { assetDataUtils, SignedOrder } from '@0x/order-utils';
-import { OrdersRequestOpts } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -56,9 +55,8 @@ export class SRAHandlers {
     }
     public async ordersAsync(req: express.Request, res: express.Response): Promise<void> {
         schemaUtils.validateSchema(req.query, schemas.ordersRequestOptsSchema);
-        const ordersRequestOpts = parseGetOrdersRequestParams(req);
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const paginatedOrders = await this._orderBook.getOrdersAsync(page, perPage, ordersRequestOpts);
+        const paginatedOrders = await this._orderBook.getOrdersAsync(page, perPage, req.query);
         res.status(HttpStatus.OK).send(paginatedOrders);
     }
     public async orderbookAsync(req: express.Request, res: express.Response): Promise<void> {
@@ -133,19 +131,4 @@ function unmarshallOrders(signedOrdersRaw: any[]): SignedOrder[] {
     return signedOrdersRaw.map(signedOrderRaw => {
         return unmarshallOrder(signedOrderRaw);
     });
-}
-
-function parseGetOrdersRequestParams(req: express.Request): OrdersRequestOpts {
-    schemaUtils.validateSchema(req.query, schemas.ordersRequestOptsSchema);
-    // normalize addresses to lowercase
-    const addressKeys = Object.keys(req.query).filter(key => key.match(/\w+Address/));
-    const normalized: { [key: string]: any } = {};
-    for (const key of addressKeys) {
-        normalized[key] = req.query[key].toLowerCase();
-    }
-    const res = {
-        ...req.query,
-        ...normalized,
-    };
-    return res;
 }
