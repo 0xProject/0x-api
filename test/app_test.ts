@@ -72,7 +72,7 @@ describe('app test', () => {
         const apiOrderResponse = { chainId: config.CHAIN_ID, ...orderFixture, expirationTimeSeconds };
         await dependencies.connection.manager.save(orderModel);
         await request(app)
-            .get(`${SRA_PATH}/orders?makerAddress=0x${orderFixture.makerAddress.slice(2).toUpperCase()}`) // todo: update json-schema to accept 0X
+            .get(`${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}`)
             .expect('Content-Type', /json/)
             .expect(HttpStatus.OK)
             .then(response => {
