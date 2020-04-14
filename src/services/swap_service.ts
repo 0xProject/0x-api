@@ -29,7 +29,6 @@ import {
 import {
     DEFAULT_TOKEN_DECIMALS,
     GAS_LIMIT_BUFFER_PERCENTAGE,
-    NULL_ADDRESS,
     ONE,
     ONE_SECOND_MS,
     PERCENTAGE_SIG_DIGITS,
@@ -97,23 +96,24 @@ export class SwapService {
             // tslint:disable-next-line:boolean-naming
             skipValidation,
         } = params;
+        let _rfqt;
+        if (apiKey !== undefined && (isETHSell || from !== undefined)) {
+            _rfqt = {
+                ...rfqt,
+                apiKey,
+                // If this is a forwarder transaction, then we want to request quotes with the taker as the
+                // forwarder contract. If it's not, then we want to request quotes with the taker set to the
+                // API's takerAddress query parameter, which in this context is known as `from`.
+                takerAddress: isETHSell ? getContractAddressesForChainOrThrow(CHAIN_ID).forwarder : from || '',
+            };
+        }
         const assetSwapperOpts = {
             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
             slippagePercentage,
             bridgeSlippage: slippagePercentage,
             gasPrice: providedGasPrice,
             excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
-            apiKey,
-            rfqt:
-                rfqt === undefined || from === undefined || from === NULL_ADDRESS
-                    ? undefined
-                    : {
-                          ...rfqt,
-                          // If this is a forwarder transaction, then we want to request quotes with the taker as the
-                          // forwarder contract. If it's not, then we want to request quotes with the taker set to the
-                          // API's takerAddress query parameter, which in this context is known as `from`.
-                          takerAddress: isETHSell ? getContractAddressesForChainOrThrow(CHAIN_ID).forwarder : from,
-                      },
+            rfqt: _rfqt,
         };
         if (sellAmount !== undefined) {
             swapQuote = await this._swapQuoter.getMarketSellSwapQuoteAsync(
