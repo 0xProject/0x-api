@@ -1,6 +1,10 @@
-import { ObjectMap } from '@0x/types';
+import { APIOrder, ObjectMap, SignedOrder } from '@0x/types';
 import { RevertError } from '@0x/utils';
 import * as HttpStatus from 'http-status-codes';
+
+import { MAX_EXPIRATION_ALERT_THRESHOLD_SECONDS } from './config';
+import { ONE_SECOND_MS } from './constants';
+import { logger } from './logger';
 
 // tslint:disable:max-classes-per-file
 
@@ -111,4 +115,44 @@ export enum ValidationErrorCodes {
     InvalidOrder = 1007,
     InternalError = 1008,
     TokenNotSupported = 1009,
+}
+
+export abstract class AlertError {
+    public abstract message: string;
+    public shouldAlert: boolean = true;
+}
+
+export class ExpiredOrderError extends AlertError {
+    public message = `Found expired order! `;
+    public expiry: number;
+    public expiredForSeconds: number;
+    constructor(public order: SignedOrder, public currentThreshold: number, public details?: string) {
+        super();
+        this.expiry = order.expirationTimeSeconds.toNumber();
+        this.expiredForSeconds = Date.now() / ONE_SECOND_MS - this.expiry;
+    }
+}
+
+export class OrderWatcherSyncError extends AlertError {
+    public message = `Error syncing OrderWatcher!`;
+    constructor(public details?: string) {
+        super();
+    }
+}
+
+/**
+ * If the max age of expired orders exceeds the configured threshold, this function
+ * logs an error capturing the details of the expired orders
+ */
+export function alertOnExpiredOrders(expired: APIOrder[], details?: string): void {
+    if (expired.length > 0) {
+        const descSort = expired.sort((a, b) =>
+            b.order.expirationTimeSeconds.minus(a.order.expirationTimeSeconds).toNumber(),
+        );
+        const maxExpiration = descSort[0].order.expirationTimeSeconds;
+        if (maxExpiration > MAX_EXPIRATION_ALERT_THRESHOLD_SECONDS) {
+            const error = new ExpiredOrderError(descSort[0].order, MAX_EXPIRATION_ALERT_THRESHOLD_SECONDS, details);
+            logger.error(error);
+        }
+    }
 }

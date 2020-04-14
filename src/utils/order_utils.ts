@@ -25,7 +25,7 @@ import {
     TAKER_FEE_ASSET_DATA,
     TAKER_FEE_UNIT_AMOUNT,
 } from '../config';
-import { MAX_TOKEN_SUPPLY_POSSIBLE, NULL_ADDRESS } from '../constants';
+import { MAX_TOKEN_SUPPLY_POSSIBLE, NULL_ADDRESS, ONE_SECOND_MS } from '../constants';
 import { SignedOrderEntity } from '../entities';
 import { APIOrderWithMetaData } from '../types';
 
@@ -106,6 +106,19 @@ export const orderUtils = {
             default:
                 return false;
         }
+    },
+    groupByFreshness: <T extends APIOrder>(
+        apiOrders: T[],
+        freshnessBufferSeconds: number,
+    ): { fresh: T[]; expired: T[] } => {
+        const dateNowSeconds = Date.now() / ONE_SECOND_MS;
+        const accumulator = { fresh: [] as T[], expired: [] as T[] };
+        for (const order of apiOrders) {
+            order.order.expirationTimeSeconds.gt(dateNowSeconds + freshnessBufferSeconds)
+                ? accumulator.fresh.push(order)
+                : accumulator.expired.push(order);
+        }
+        return accumulator;
     },
     compareAskOrder: (orderA: SignedOrder, orderB: SignedOrder): number => {
         const orderAPrice = orderA.takerAssetAmount.div(orderA.makerAssetAmount);
