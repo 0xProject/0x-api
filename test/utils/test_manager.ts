@@ -1,16 +1,18 @@
 import 'mocha';
 
-import { setupApiAsync, teardownApiAsync } from './deployment';
+import { LoggingConfig, setupApiAsync, teardownApiAsync } from './deployment';
 import { expect } from './expect';
 
 // FIXME(jalextowle): Lock this down to only the actions that have been created.
 export type ActionType = string;
 
 // FIXME(jalextowle): Lock this down to only the assetions that have been created.
+//                    The TestManager should remain flexible, but not when it is
+//                    being used normally.
 export type AssertionType = string;
 
 // tslint:disable-next-line:interface-over-type-literal
-export type ActionResult = {} | undefined;
+export type ActionResult = any;
 
 export interface ActionInfo {
     actionType: ActionType;
@@ -20,7 +22,7 @@ export interface ActionInfo {
 
 export interface AssertionInfo {
     assertionType: AssertionType;
-    expectedResult: ActionResult;
+    input: any;
 }
 
 export interface TestCase {
@@ -30,12 +32,13 @@ export interface TestCase {
 }
 
 type Action = (input: any) => Promise<any>;
-type Assertion = (expectedResult: ActionResult, actualResult: ActionResult) => boolean;
+type Assertion = (expectedResult: ActionResult, actualResult: ActionResult) => Promise<boolean>;
 
 export class TestManager {
     constructor(
         protected _actionsAsync: Record<string, Action>,
         protected _assertionsAsync: Record<string, Assertion>,
+        protected readonly _loggingConfig?: LoggingConfig,
     ) {}
 
     /**
@@ -56,12 +59,12 @@ export class TestManager {
         describe(description, () => {
             beforeEach(async () => {
                 // Setup the 0x-api instance.
-                await setupApiAsync();
+                await setupApiAsync(this._loggingConfig);
             });
 
             afterEach(async () => {
                 // Teardown the 0x-api instance.
-                await teardownApiAsync();
+                await teardownApiAsync(this._loggingConfig);
             });
 
             for (const testCase of testSuite) {
@@ -91,6 +94,6 @@ export class TestManager {
         if (!assertionAsync) {
             throw new Error('[test-manager] assertion is not registered');
         }
-        return assertionAsync(assertion.expectedResult, actualResult);
+        return assertionAsync(assertion.input, actualResult);
     }
 }

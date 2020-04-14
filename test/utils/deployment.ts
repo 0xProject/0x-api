@@ -22,18 +22,18 @@ export interface LoggingConfig {
 
 /**
  * Sets up a 0x-api instance.
- * @param logConfig Whether or not the logs from the setup functions should
+ * @param loggingConfig Whether or not the logs from the setup functions should
  *        be printed.
  */
-export async function setupApiAsync(logConfig: LoggingConfig = {}): Promise<void> {
+export async function setupApiAsync(loggingConfig: LoggingConfig = {}): Promise<void> {
     if (yarnStartProcess) {
         throw new Error('Old 0x-api instance has not been torn down');
     }
-    await setupDependenciesAsync(logConfig.shouldPrintDependencyLogs || false);
+    await setupDependenciesAsync(loggingConfig.shouldPrintDependencyLogs || false);
     yarnStartProcess = spawn('yarn', ['start'], {
         cwd: apiRootDir,
     });
-    if (logConfig.shouldPrintApiLogs) {
+    if (loggingConfig.shouldPrintApiLogs) {
         yarnStartProcess.stdout.on('data', chunk => {
             neatlyPrintChunk('[0x-api]', chunk);
         });
@@ -44,20 +44,20 @@ export async function setupApiAsync(logConfig: LoggingConfig = {}): Promise<void
     // Wait for the API to boot up
     // HACK(jalextowle): This should really be replaced by log-scraping, but it
     // does appear to work for now.
-    await sleepAsync(2500); // tslint:disable-line:custom-no-magic-numbers
+    await sleepAsync(5000); // tslint:disable-line:custom-no-magic-numbers
 }
 
 /**
  * Tears down the old 0x-api instance.
- * @param logConfig Whether or not the logs from the teardown functions should
+ * @param loggingConfig Whether or not the logs from the teardown functions should
  *        be printed.
  */
-export async function teardownApiAsync(logConfig: LoggingConfig = {}): Promise<void> {
+export async function teardownApiAsync(loggingConfig: LoggingConfig = {}): Promise<void> {
     if (!yarnStartProcess) {
         throw new Error('There is no 0x-api instance to tear down');
     }
     yarnStartProcess.kill();
-    await teardownDependenciesAsync(logConfig.shouldPrintDependencyLogs || false);
+    await teardownDependenciesAsync(loggingConfig.shouldPrintDependencyLogs || false);
 }
 
 /**

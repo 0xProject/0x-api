@@ -1,51 +1,54 @@
-import { web3Factory } from '@0x/dev-utils';
-import { Web3ProviderEngine } from '@0x/subproviders';
+import { APIOrder, PaginatedCollection } from '@0x/connect';
 import * as HttpStatus from 'http-status-codes';
-import 'mocha';
 import * as request from 'supertest';
 
-import { getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
-import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, SRA_PATH } from '../src/constants';
 
-import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { expect } from './utils/expect';
+import { TestCase, TestManager } from './utils/test_manager';
 
-let app: Express.Application;
+const API_HTTP_ADDRESS = 'http://localhost:3000';
 
-let provider: Web3ProviderEngine;
+async function apiGetRequestAsync(url: string): Promise<request.Response> {
+    return request(API_HTTP_ADDRESS).get(url);
+}
 
-describe('app test', () => {
-    before(async () => {
-        const ganacheConfigs = {
-            shouldUseInProcessGanache: false,
-            shouldAllowUnlimitedContractSize: true,
-            rpcUrl: config.ETHEREUM_RPC_URL,
-        };
-        provider = web3Factory.getRpcProvider(ganacheConfigs);
-        await setupDependenciesAsync();
-        const dependencies = await getDefaultAppDependenciesAsync(provider, config);
-        // start the 0x-api app
-        app = await getAppAsync({ ...dependencies }, config);
-    });
-    after(async () => {
-        await teardownDependenciesAsync();
-        // NOTE(jalextowle): The app should be torn down. I'm not going to worry
-        // about it because this test will be refactored so this will be a non-issue.
-    });
-    it('should not be undefined', () => {
-        expect(app).to.not.be.undefined();
-    });
-    it('should respond to GET /sra/orders', async () => {
-        await request(app)
-            .get(`${SRA_PATH}/orders`)
-            .expect('Content-Type', /json/)
-            .expect(HttpStatus.OK)
-            .then(response => {
-                expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-                expect(response.body.page).to.equal(DEFAULT_PAGE);
-                expect(response.body.total).to.equal(0);
-                expect(response.body.records).to.deep.equal([]);
-            });
-    });
-});
+async function assertCorrectGetBodyAsync(
+    expectedBody: PaginatedCollection<APIOrder>,
+    actualResponse: request.Response,
+): Promise<boolean> {
+    expect(actualResponse.type).to.match(/json/);
+    expect(actualResponse.status).to.be.eq(HttpStatus.OK);
+    expect(actualResponse.body).to.be.deep.eq(expectedBody);
+    return true;
+}
+
+const manager = new TestManager(
+    {
+        apiGetRequestAsync,
+    },
+    {
+        assertCorrectGetBodyAsync,
+    },
+);
+
+const suite: TestCase[] = [
+    {
+        description: 'should respond to GET /sra/orders',
+        action: {
+            actionType: 'apiGetRequestAsync',
+            input: `${SRA_PATH}/orders`,
+        },
+        assertion: {
+            assertionType: 'assertCorrectGetBodyAsync',
+            // This is the body of the expected HTTP request.
+            input: {
+                perPage: DEFAULT_PER_PAGE,
+                page: DEFAULT_PAGE,
+                total: 0,
+                records: [],
+            },
+        },
+    },
+];
+manager.executeTestSuite('app test', suite);
