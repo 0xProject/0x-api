@@ -84,7 +84,7 @@ export async function runHttpServiceAsync(
     const handlers = new SignerHandlers(signerService);
     app.post(
         `${META_TRANSACTION_PATH}/fill`,
-        asyncHandler(handlers.signAndSubmitZeroExTransactionAsync.bind(handlers)),
+        asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
     );
 
     // swap/quote http service

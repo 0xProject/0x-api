@@ -27,7 +27,7 @@ if (require.main === module) {
          */
         app.post(
             `${META_TRANSACTION_PATH}/fill`,
-            asyncHandler(handlers.signAndSubmitZeroExTransactionAsync.bind(handlers)),
+            asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
         );
 
         app.use(errorHandler);

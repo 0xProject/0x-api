@@ -138,7 +138,7 @@ export class SignerService {
 
         return ethereumTxnParams;
     }
-    public async signAndSubmitZeroExTransactionAsync(
+    public async submitZeroExTransactionIfWhitelistedAsync(
         zeroExTransaction: ZeroExTransactionWithoutDomain,
         signature: string,
         protocolFee: BigNumber,

@@ -27,7 +27,7 @@ export class SignerHandlers {
     constructor(signerService: SignerService) {
         this._signerService = signerService;
     }
-    public async signAndSubmitZeroExTransactionAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async submitZeroExTransactionIfWhitelistedAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             throw new InvalidAPIKeyError();
@@ -47,7 +47,7 @@ export class SignerHandlers {
                 const {
                     transactionHash,
                     signedEthereumTransaction,
-                } = await this._signerService.signAndSubmitZeroExTransactionAsync(
+                } = await this._signerService.submitZeroExTransactionIfWhitelistedAsync(
                     zeroExTransaction,
                     signature,
                     protocolFee,
