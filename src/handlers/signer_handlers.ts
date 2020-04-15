@@ -45,7 +45,7 @@ export class SignerHandlers {
             // If eligible for free txn relay, submit it, otherwise, return unsigned Ethereum txn
             if (apiKey !== undefined && SignerService.isEligibleForFreeMetaTxn(apiKey)) {
                 const {
-                    transactionHash,
+                    ethereumTransactionHash,
                     signedEthereumTransaction,
                 } = await this._signerService.submitZeroExTransactionIfWhitelistedAsync(
                     zeroExTransaction,
@@ -54,7 +54,7 @@ export class SignerHandlers {
                 );
                 // return the transactionReceipt
                 res.status(HttpStatus.OK).send({
-                    transactionHash,
+                    ethereumTransactionHash,
                     signedEthereumTransaction,
                 });
             } else {

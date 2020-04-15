@@ -153,7 +153,7 @@ export class SignerService {
 
         const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxnParams);
 
-        const transactionHash = await this._contractWrappers.exchange
+        const ethereumTransactionHash = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .sendTransactionAsync({
                 from: META_TXN_RELAY_ADDRESS,
@@ -164,7 +164,7 @@ export class SignerService {
             });
 
         return {
-            transactionHash,
+            ethereumTransactionHash,
             signedEthereumTransaction,
         };
     }

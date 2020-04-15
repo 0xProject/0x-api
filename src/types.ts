@@ -381,7 +381,7 @@ export interface CalculateMetaTransactionPriceResponse {
 }
 
 export interface PostTransactionResponse {
-    transactionHash: string;
+    ethereumTransactionHash: string;
     signedEthereumTransaction: string;
 }
 
