@@ -1,15 +1,14 @@
-import { SwapQuoter } from '@0x/asset-swapper';
+import { Orderbook, SwapQuoter, SwapQuoterOpts } from '@0x/asset-swapper';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
 import { generatePseudoRandomSalt, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
-import { RedundantSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { SignedOrder } from '@0x/types';
-import { BigNumber, providerUtils } from '@0x/utils';
+import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, ETHEREUM_RPC_URL, MESH_WEBSOCKET_URI } from '../config';
-import { ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
+import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, LIQUIDITY_POOL_REGISTRY_ADDRESS } from '../config';
+import { ONE_SECOND_MS, QUOTE_ORDER_EXPIRATION_BUFFER_MS, TEN_MINUTES_MS } from '../constants';
 import {
     CalculateMetaTransactionPriceResponse,
     CalculateMetaTransactionQuoteParams,
@@ -23,25 +22,14 @@ export class MetaTransactionService {
     private readonly _contractWrappers: ContractWrappers;
     private readonly _web3Wrapper: Web3Wrapper;
 
-    private static _createWeb3Provider(rpcHost: string): SupportedProvider {
-        const WEB3_RPC_RETRY_COUNT = 3;
-        const providerEngine = new Web3ProviderEngine();
-        const rpcSubproviders = MetaTransactionService._range(WEB3_RPC_RETRY_COUNT).map(
-            (_index: number) => new RPCSubprovider(rpcHost),
-        );
-        providerEngine.addProvider(new RedundantSubprovider(rpcSubproviders));
-        providerUtils.startProviderEngine(providerEngine);
-        return providerEngine;
-    }
-    private static _range(rangeCount: number): number[] {
-        return [...Array(rangeCount).keys()];
-    }
-    constructor() {
-        this._provider = MetaTransactionService._createWeb3Provider(ETHEREUM_RPC_URL);
-        const swapQuoterOpts = {
+    constructor(orderbook: Orderbook, provider: SupportedProvider) {
+        this._provider = provider;
+        const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             chainId: CHAIN_ID,
+            expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
+            liquidityProviderRegistryAddress: LIQUIDITY_POOL_REGISTRY_ADDRESS,
         };
-        this._swapQuoter = SwapQuoter.getSwapQuoterForMeshEndpoint(this._provider, MESH_WEBSOCKET_URI, swapQuoterOpts);
+        this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
     }
