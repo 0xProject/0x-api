@@ -4,9 +4,9 @@ import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
 
 import { SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
-import { ONE_SECOND_MS } from '../constants';
 import { SignedOrderEntity } from '../entities';
-import { alertOnExpiredOrders, ValidationError } from '../errors';
+import { ValidationError } from '../errors';
+import { alertOnExpiredOrders } from '../logger';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -80,11 +80,11 @@ export class OrderBookService {
         ]);
         const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Array<Required<SignedOrderEntity>>)
             .map(orderUtils.deserializeOrderToAPIOrder)
-            .filter(isFreshOrder)
+            .filter(orderUtils.isFreshOrder)
             .sort((orderA, orderB) => orderUtils.compareBidOrder(orderA.order, orderB.order));
         const askApiOrders: APIOrder[] = (askSignedOrderEntities as Array<Required<SignedOrderEntity>>)
             .map(orderUtils.deserializeOrderToAPIOrder)
-            .filter(isFreshOrder)
+            .filter(orderUtils.isFreshOrder)
             .sort((orderA, orderB) => orderUtils.compareAskOrder(orderA.order, orderB.order));
         const paginatedBidApiOrders = paginationUtils.paginate(bidApiOrders, page, perPage);
         const paginatedAskApiOrders = paginationUtils.paginate(askApiOrders, page, perPage);
@@ -173,9 +173,4 @@ export class OrderBookService {
         }
         throw new Error('Could not add order to mesh.');
     }
-}
-
-function isFreshOrder(apiOrder: APIOrder): boolean {
-    const dateNowSeconds = Date.now() / ONE_SECOND_MS;
-    return apiOrder.order.expirationTimeSeconds.gt(dateNowSeconds + SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
 }

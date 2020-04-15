@@ -3,8 +3,8 @@ import { Connection } from 'typeorm';
 
 import { MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
 import { SignedOrderEntity } from '../entities';
-import { alertOnExpiredOrders, OrderWatcherSyncError } from '../errors';
-import { logger } from '../logger';
+import { OrderWatcherSyncError } from '../errors';
+import { alertOnExpiredOrders, logger } from '../logger';
 import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
@@ -26,7 +26,7 @@ export class OrderWatcherService {
         // 2. Get orders from Mesh
         const { ordersInfos } = await this._meshClient.getOrdersAsync();
 
-        // 3. Validate local cache state
+        // 3. Validate local cache state by posting to Mesh
         // TODO(dekz): Mesh can reject due to InternalError or EthRPCRequestFailed.
         // in the future we can attempt to retry these a few times. Ultimately if we
         // cannot validate the order we cannot keep the order around
@@ -37,7 +37,7 @@ export class OrderWatcherService {
             sent: signedOrders.length,
         });
 
-        // 4. Post accepted orders to Mesh and notify if any expired orders were accepted
+        // 4. Notify if any expired orders were accepted by Mesh
         const acceptedApiOrders = meshUtils.orderInfosToApiOrders(accepted);
         const { expired } = orderUtils.groupByFreshness(acceptedApiOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
         alertOnExpiredOrders(expired, `Erroneously accepted when posting to Mesh`);

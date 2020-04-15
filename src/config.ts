@@ -100,11 +100,11 @@ export const TAKER_FEE_ASSET_DATA = _.isEmpty(process.env.TAKER_FEE_ASSET_DATA)
     : assertEnvVarType('TAKER_FEE_ASSET_DATA', process.env.TAKER_FEE_ASSET_DATA, EnvVarType.FeeAssetData);
 
 // If there are any orders in the orderbook that are expired by more than x seconds, log an error
-export const MAX_EXPIRATION_ALERT_THRESHOLD_SECONDS = _.isEmpty(process.env.MAX_EXPIRATION_ALERT_THRESHOLD_SECONDS)
+export const MAX_ORDER_EXPIRATION_BUFFER_SECONDS: number = _.isEmpty(process.env.MAX_ORDER_EXPIRATION_BUFFER_SECONDS)
     ? 3 * 60
     : assertEnvVarType(
-          'MAX_EXPIRATION_ALERT_THRESHOLD_SECONDS',
-          process.env.MAX_EXPIRATION_ALERT_THRESHOLD_SECONDS,
+          'MAX_ORDER_EXPIRATION_BUFFER_SECONDS',
+          process.env.MAX_ORDER_EXPIRATION_BUFFER_SECONDS,
           EnvVarType.KeepAliveTimeout,
       );
 

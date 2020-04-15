@@ -22,6 +22,7 @@ import {
     FEE_RECIPIENT_ADDRESS,
     MAKER_FEE_ASSET_DATA,
     MAKER_FEE_UNIT_AMOUNT,
+    SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     TAKER_FEE_ASSET_DATA,
     TAKER_FEE_UNIT_AMOUNT,
 } from '../config';
@@ -107,14 +108,20 @@ export const orderUtils = {
                 return false;
         }
     },
+    isFreshOrder: (
+        apiOrder: APIOrder,
+        expirationBufferSeconds: number = SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
+    ): boolean => {
+        const dateNowSeconds = Date.now() / ONE_SECOND_MS;
+        return apiOrder.order.expirationTimeSeconds.gt(dateNowSeconds + expirationBufferSeconds);
+    },
     groupByFreshness: <T extends APIOrder>(
         apiOrders: T[],
-        freshnessBufferSeconds: number,
+        expirationBufferSeconds: number,
     ): { fresh: T[]; expired: T[] } => {
-        const dateNowSeconds = Date.now() / ONE_SECOND_MS;
         const accumulator = { fresh: [] as T[], expired: [] as T[] };
         for (const order of apiOrders) {
-            order.order.expirationTimeSeconds.gt(dateNowSeconds + freshnessBufferSeconds)
+            orderUtils.isFreshOrder(order, expirationBufferSeconds)
                 ? accumulator.fresh.push(order)
                 : accumulator.expired.push(order);
         }
