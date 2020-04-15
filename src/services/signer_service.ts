@@ -159,6 +159,8 @@ export class SignerService {
                 from: META_TXN_RELAY_ADDRESS,
                 gasPrice: zeroExTransaction.gasPrice,
                 value: protocolFee,
+            }, {
+                shouldValidate: false,
             });
 
         return {
