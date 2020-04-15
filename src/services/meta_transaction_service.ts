@@ -21,6 +21,7 @@ export class MetaTransactionService {
     private readonly _swapQuoter: SwapQuoter;
     private readonly _contractWrappers: ContractWrappers;
     private readonly _web3Wrapper: Web3Wrapper;
+    private readonly _devUtils: DevUtilsContract;
 
     constructor(orderbook: Orderbook, provider: SupportedProvider) {
         this._provider = provider;
@@ -32,6 +33,8 @@ export class MetaTransactionService {
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
+        this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
+
     }
     public async calculateMetaTransactionPriceAsync(
         params: CalculateMetaTransactionQuoteParams,
@@ -122,8 +125,7 @@ export class MetaTransactionService {
         );
 
         // use the DevUtils contract to generate the transaction hash
-        const devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
-        const zeroExTransactionHash = await devUtils
+        const zeroExTransactionHash = await this._devUtils
             .getTransactionHash(
                 zeroExTransaction,
                 new BigNumber(CHAIN_ID),
