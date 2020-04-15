@@ -180,7 +180,7 @@ export class SignerService {
     private async _getTransactionCountAsync(address: string): Promise<string> {
         const nonceHex = await this._web3Wrapper.sendRawPayloadAsync<string>({
             method: 'eth_getTransactionCount',
-            params: [address, 'latest'],
+            params: [address, 'pending'],
         });
         return nonceHex;
     }
