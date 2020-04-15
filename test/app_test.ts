@@ -1,4 +1,3 @@
-import { APIOrder, PaginatedCollection } from '@0x/connect';
 import * as HttpStatus from 'http-status-codes';
 import * as request from 'supertest';
 
@@ -13,14 +12,19 @@ async function apiGetRequestAsync(url: string): Promise<request.Response> {
     return request(API_HTTP_ADDRESS).get(url);
 }
 
-async function assertCorrectGetBodyAsync(
-    expectedBody: PaginatedCollection<APIOrder>,
+async function assertResponseContentTypeAsync(
+    expectedContentRegex: RegExp,
     actualResponse: request.Response,
-): Promise<boolean> {
-    expect(actualResponse.type).to.match(/json/);
-    expect(actualResponse.status).to.be.eq(HttpStatus.OK);
+): Promise<void> {
+    expect(actualResponse.type).to.match(expectedContentRegex);
+}
+
+async function assertResponseStatusAsync(expectedCode: number, actualResponse: request.Response): Promise<void> {
+    expect(actualResponse.status).to.be.eq(expectedCode);
+}
+
+async function assertResponseBodyAsync(expectedBody: string, actualResponse: request.Response): Promise<void> {
     expect(actualResponse.body).to.be.deep.eq(expectedBody);
-    return true;
 }
 
 const manager = new TestManager(
@@ -28,10 +32,11 @@ const manager = new TestManager(
         apiGetRequestAsync,
     },
     {
-        assertCorrectGetBodyAsync,
+        assertResponseBodyAsync,
+        assertResponseStatusAsync,
+        assertResponseContentTypeAsync,
     },
 );
-
 const suite: TestCase[] = [
     {
         description: 'should respond to GET /sra/orders',
@@ -39,16 +44,25 @@ const suite: TestCase[] = [
             actionType: 'apiGetRequestAsync',
             input: `${SRA_PATH}/orders`,
         },
-        assertion: {
-            assertionType: 'assertCorrectGetBodyAsync',
-            // This is the body of the expected HTTP request.
-            input: {
-                perPage: DEFAULT_PER_PAGE,
-                page: DEFAULT_PAGE,
-                total: 0,
-                records: [],
+        assertions: [
+            {
+                assertionType: 'assertResponseStatusAsync',
+                input: HttpStatus.OK,
             },
-        },
+            {
+                assertionType: 'assertResponseContentTypeAsync',
+                input: /json/,
+            },
+            {
+                assertionType: 'assertResponseBodyAsync',
+                input: {
+                    perPage: DEFAULT_PER_PAGE,
+                    page: DEFAULT_PAGE,
+                    total: 0,
+                    records: [],
+                },
+            },
+        ],
     },
 ];
 manager.executeTestSuite('app test', suite);

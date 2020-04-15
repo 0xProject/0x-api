@@ -1,7 +1,6 @@
 import 'mocha';
 
 import { LoggingConfig, setupApiAsync, teardownApiAsync } from './deployment';
-import { expect } from './expect';
 
 // FIXME(jalextowle): Lock this down to only the actions that have been created.
 export type ActionType = string;
@@ -28,11 +27,11 @@ export interface AssertionInfo {
 export interface TestCase {
     description: string;
     action: ActionInfo;
-    assertion: AssertionInfo;
+    assertions: AssertionInfo[];
 }
 
 type Action = (input: any) => Promise<any>;
-type Assertion = (expectedResult: ActionResult, actualResult: ActionResult) => Promise<boolean>;
+type Assertion = (expectedResult: ActionResult, actualResult: ActionResult) => Promise<void>;
 
 export class TestManager {
     constructor(
@@ -77,8 +76,9 @@ export class TestManager {
 
     protected async _executeTestCaseAsync(testCase: TestCase): Promise<void> {
         const actionResult = await this._executeActionAsync(testCase.action);
-        const didAssertionPass = await this._executeAssertionAsync(testCase.assertion, actionResult);
-        expect(didAssertionPass).to.be.true();
+        for (const assertion of testCase.assertions) {
+            await this._executeAssertionAsync(assertion, actionResult);
+        }
     }
 
     protected async _executeActionAsync(action: ActionInfo): Promise<ActionResult> {
@@ -89,7 +89,7 @@ export class TestManager {
         return actionAsync(action.input);
     }
 
-    protected async _executeAssertionAsync(assertion: AssertionInfo, actualResult: ActionResult): Promise<boolean> {
+    protected async _executeAssertionAsync(assertion: AssertionInfo, actualResult: ActionResult): Promise<void> {
         const assertionAsync = this._assertionsAsync[assertion.assertionType];
         if (!assertionAsync) {
             throw new Error('[test-manager] assertion is not registered');
