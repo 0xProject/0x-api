@@ -362,6 +362,7 @@ export interface GetMetaTransactionQuoteResponse {
     orders: SignedOrder[];
     buyAmount: BigNumber;
     sellAmount: BigNumber;
+    sources: GetSwapQuoteResponseLiquiditySource[];
 }
 
 export interface GetMetaTransactionPriceResponse {

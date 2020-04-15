@@ -112,7 +112,7 @@ export class MetaTransactionService {
         const floatGasPrice = swapQuote.gasPrice;
         const gasPrice = floatGasPrice.integerValue(BigNumber.ROUND_UP);
         const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
-        const orders = attributedSwapQuote.orders;
+        const { orders, sourceBreakdown } = attributedSwapQuote;
         const signatures = orders.map(order => order.signature);
 
         const zeroExTransaction = this._generateZeroExTransaction(
@@ -142,6 +142,7 @@ export class MetaTransactionService {
             buyAmount: makerAssetAmount,
             sellAmount: totalTakerAssetAmount,
             orders: serviceUtils.cleanSignedOrderFields(orders),
+            sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
         };
         return apiMetaTransactionQuote;
     }
