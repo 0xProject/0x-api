@@ -40,8 +40,8 @@ export class SRAHandlers {
         const assetPairs = await this._orderBook.getAssetPairsAsync(
             page,
             perPage,
-            req.query.assetDataA.toLowerCase(),
-            req.query.assetDataB.toLowerCase(),
+            req.query.assetDataA && req.query.assetDataA.toLowerCase(),
+            req.query.assetDataB && req.query.assetDataB.toLowerCase(),
         );
         res.status(HttpStatus.OK).send(assetPairs);
     }
