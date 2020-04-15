@@ -176,6 +176,48 @@ describe('app test', () => {
                         },
                     );
                 });
+                it('should fail when bad api key used', async () => {
+                    const sellAmount = new BigNumber(100000000000000000);
+
+                    const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
+                    await wethContract
+                        .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                        .sendTransactionAsync({ from: takerAddress });
+
+                    // this RFQ-T mock should never actually get hit b/c of the bad api key
+                    // but in the case in which the bad api key was _not_ blocked
+                    // this would cause the API to respond with RFQ-T liquidity
+                    const mockedApiParams = {
+                        sellToken: contractAddresses.etherToken,
+                        buyToken: contractAddresses.zrxToken,
+                        sellAmount: sellAmount.toString(),
+                        buyAmount: undefined,
+                        takerAddress,
+                    };
+                    return rfqtMocker.withMockedRfqtFirmQuotes(
+                        [
+                            {
+                                endpoint: 'https://mock-rfqt1.club',
+                                responseData: ganacheZrxWethOrder1,
+                                responseCode: 200,
+                                requestApiKey: 'badApiKey',
+                                requestParams: mockedApiParams,
+                            },
+                        ],
+                        async () => {
+                            const appResponse = await request(app)
+                                .get(
+                                    `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                                )
+                                .set('0x-api-key', 'badApiKey')
+                                .expect(HttpStatus.BAD_REQUEST)
+                                .expect('Content-Type', /json/);
+                            const validationErrors = appResponse.body.validationErrors;
+                            expect(validationErrors.length).to.eql(1);
+                            expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
+                        },
+                    );
+                });
                 it('should fail validation when taker balances are not set', async () => {
                     const sellAmount = new BigNumber(100000000000000000);
 
