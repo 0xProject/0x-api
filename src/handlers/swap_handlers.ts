@@ -181,7 +181,7 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
         req.query.intentOnFilling === undefined
             ? undefined
             : {
-                  intentOnFilling: req.query.intentOnFilling === 'true' ? true : false,
+                  intentOnFilling: ['true', ''].includes(req.query.intentOnFilling) ? true : false,
               };
     // tslint:disable-next-line:boolean-naming
     const skipValidation =
