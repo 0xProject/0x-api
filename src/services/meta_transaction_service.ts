@@ -106,7 +106,8 @@ export class MetaTransactionService {
             params,
         );
 
-        const gasPrice = swapQuote.gasPrice;
+        const floatGasPrice = swapQuote.gasPrice;
+        const gasPrice = floatGasPrice.integerValue(BigNumber.ROUND_UP);
         const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
         const orders = attributedSwapQuote.orders;
         const signatures = orders.map(order => order.signature);
