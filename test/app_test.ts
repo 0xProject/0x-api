@@ -16,7 +16,7 @@ import { SignedOrderEntity } from '../src/entities';
 
 import * as orderFixture from './fixtures/order.json';
 import { expect } from './utils/expect';
-import { ganacheZrxWethOrder1 } from './utils/mocks';
+import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
 
 let app: Express.Application;
 
@@ -297,6 +297,48 @@ describe('app test', () => {
                                 .set('0x-api-key', 'koolApiKey1')
                                 .expect(HttpStatus.BAD_REQUEST)
                                 .expect('Content-Type', /json/);
+                        },
+                    );
+                });
+                it('should get an indicative quote from an RFQ-T provider', async () => {
+                    const sellAmount = new BigNumber(100000000000000000);
+
+                    const mockedApiParams = {
+                        sellToken: contractAddresses.etherToken,
+                        buyToken: contractAddresses.zrxToken,
+                        sellAmount: sellAmount.toString(),
+                        buyAmount: undefined,
+                        takerAddress,
+                    };
+                    return rfqtMocker.withMockedRfqtIndicativeQuotes(
+                        [
+                            {
+                                endpoint: 'https://mock-rfqt1.club',
+                                responseData: rfqtIndicativeQuoteResponse,
+                                responseCode: 200,
+                                requestApiKey: 'koolApiKey1',
+                                requestParams: mockedApiParams,
+                            },
+                        ],
+                        async () => {
+                            const appResponse = await request(app)
+                                .get(
+                                    `${SWAP_PATH}/price?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                                )
+                                .set('0x-api-key', 'koolApiKey1')
+                                .expect(HttpStatus.OK)
+                                .expect('Content-Type', /json/);
+
+                            const responseJson = JSON.parse(appResponse.text);
+                            delete responseJson.gas;
+                            delete responseJson.gasPrice;
+                            delete responseJson.protocolFee;
+                            delete responseJson.value;
+                            expect(responseJson).to.eql({
+                                buyAmount: '100000000000000000',
+                                price: '1',
+                                sellAmount: '100000000000000000',
+                            });
                         },
                     );
                 });

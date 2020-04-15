@@ -30,7 +30,55 @@ export class SwapHandlers {
         this._swapService = swapService;
     }
     public async getSwapQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        // parse query params
+        res.status(HttpStatus.OK).send(
+            await this._calculateSwapQuoteAsync(parseGetSwapQuoteRequestParams(req), req.header('0x-api-key')),
+        );
+    }
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getSwapTokensAsync(_req: express.Request, res: express.Response): Promise<void> {
+        const tokens = TokenMetadatasForChains.map(tm => ({
+            symbol: tm.symbol,
+            address: tm.tokenAddresses[CHAIN_ID],
+            name: tm.name,
+            decimals: tm.decimals,
+        }));
+        const filteredTokens = tokens.filter(t => t.address !== NULL_ADDRESS);
+        res.status(HttpStatus.OK).send({ records: filteredTokens });
+    }
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getSwapPriceAsync(req: express.Request, res: express.Response): Promise<void> {
+        const params = parseGetSwapQuoteRequestParams(req);
+        if (params.rfqt === undefined) {
+            params.rfqt = {
+                intentOnFilling: false,
+            };
+        }
+        params.skipValidation = true;
+        const quote = await this._calculateSwapQuoteAsync(params, req.header('0x-api-key'));
+        const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount } = quote;
+        res.status(HttpStatus.OK).send({ price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount });
+    }
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getTokenPricesAsync(req: express.Request, res: express.Response): Promise<void> {
+        const symbolOrAddress = req.query.sellToken || 'WETH';
+        const baseAsset = getTokenMetadataIfExists(symbolOrAddress, CHAIN_ID);
+        if (!baseAsset) {
+            throw new ValidationError([
+                {
+                    field: 'sellToken',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: `Could not find token ${symbolOrAddress}`,
+                },
+            ]);
+        }
+        const unitAmount = new BigNumber(1);
+        const records = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount);
+        res.status(HttpStatus.OK).send({ records });
+    }
+    private async _calculateSwapQuoteAsync(
+        params: GetSwapQuoteRequestParams,
+        apiKey?: string,
+    ): Promise<GetSwapQuoteResponse> {
         const {
             sellToken,
             buyToken,
@@ -44,7 +92,7 @@ export class SwapHandlers {
             rfqt,
             // tslint:disable-next-line:boolean-naming
             skipValidation,
-        } = parseGetSwapQuoteRequestParams(req);
+        } = params;
 
         const isETHSell = isETHSymbol(sellToken);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
@@ -86,7 +134,7 @@ export class SwapHandlers {
             gasPrice,
             excludedSources,
             affiliateAddress,
-            apiKey: req.header('0x-api-key'),
+            apiKey,
             rfqt:
                 rfqt === undefined
                     ? undefined
@@ -105,7 +153,7 @@ export class SwapHandlers {
             } else {
                 swapQuote = await this._swapService.calculateSwapQuoteAsync(calculateSwapQuoteParams);
             }
-            res.status(HttpStatus.OK).send(swapQuote);
+            return swapQuote;
         } catch (e) {
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {
@@ -141,34 +189,6 @@ export class SwapHandlers {
             logger.info('Uncaught error', e);
             throw new InternalServerError(e.message);
         }
-    }
-    // tslint:disable-next-line:prefer-function-over-method
-    public async getSwapTokensAsync(_req: express.Request, res: express.Response): Promise<void> {
-        const tokens = TokenMetadatasForChains.map(tm => ({
-            symbol: tm.symbol,
-            address: tm.tokenAddresses[CHAIN_ID],
-            name: tm.name,
-            decimals: tm.decimals,
-        }));
-        const filteredTokens = tokens.filter(t => t.address !== NULL_ADDRESS);
-        res.status(HttpStatus.OK).send({ records: filteredTokens });
-    }
-    // tslint:disable-next-line:prefer-function-over-method
-    public async getTokenPricesAsync(req: express.Request, res: express.Response): Promise<void> {
-        const symbolOrAddress = req.query.sellToken || 'WETH';
-        const baseAsset = getTokenMetadataIfExists(symbolOrAddress, CHAIN_ID);
-        if (!baseAsset) {
-            throw new ValidationError([
-                {
-                    field: 'sellToken',
-                    code: ValidationErrorCodes.ValueOutOfRange,
-                    reason: `Could not find token ${symbolOrAddress}`,
-                },
-            ]);
-        }
-        const unitAmount = new BigNumber(1);
-        const records = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount);
-        res.status(HttpStatus.OK).send({ records });
     }
 }
 
