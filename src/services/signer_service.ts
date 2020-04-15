@@ -114,6 +114,7 @@ export class SignerService {
         protocolFee: BigNumber,
     ): Promise<PartialTxParams> {
         const gasPrice = zeroExTransaction.gasPrice;
+        // TODO(dekz): our pattern is to eth_call and estimateGas in parallel and return the result of eth_call validations
         const gas = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .estimateGasAsync({
