@@ -137,7 +137,7 @@ describe('app test', () => {
                         },
                     );
                 });
-                it('should succeed when taker balances are not set but we skip validation', async () => {
+                it('should succeed when taker can not actually fill but we skip validation', async () => {
                     const sellAmount = new BigNumber(100000000000000000);
 
                     const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
@@ -180,6 +180,7 @@ describe('app test', () => {
                     const sellAmount = new BigNumber(100000000000000000);
 
                     const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
+                    await wethContract.deposit().sendTransactionAsync({ value: sellAmount, from: takerAddress });
                     await wethContract
                         .approve(contractAddresses.erc20Proxy, new BigNumber(0))
                         .sendTransactionAsync({ from: takerAddress });
@@ -218,7 +219,7 @@ describe('app test', () => {
                         },
                     );
                 });
-                it('should fail validation when taker balances are not set', async () => {
+                it('should fail validation when taker can not actually fill', async () => {
                     const sellAmount = new BigNumber(100000000000000000);
 
                     const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
