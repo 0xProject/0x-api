@@ -87,7 +87,7 @@ describe('app test', () => {
             [makerAddress, takerAddress] = accounts;
         });
 
-        context('with MM allowances set', async () => {
+        context('with maker allowances set', async () => {
             beforeEach(async () => {
                 const zrxToken = new ERC20TokenContract(contractAddresses.zrxToken, provider);
                 await zrxToken
@@ -212,6 +212,56 @@ describe('app test', () => {
                         },
                     );
                 });
+            });
+        });
+
+        context('without maker allowances set', async () => {
+            beforeEach(async () => {
+                const zrxToken = new ERC20TokenContract(contractAddresses.zrxToken, provider);
+                await zrxToken
+                    .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                    .sendTransactionAsync({ from: makerAddress });
+            });
+
+            it('should not return order if maker allowances are not set', async () => {
+                const sellAmount = new BigNumber(100000000000000000);
+
+                const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
+                await wethContract
+                    .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                    .sendTransactionAsync({ from: takerAddress });
+
+                const mockedApiParams = {
+                    sellToken: contractAddresses.etherToken,
+                    buyToken: contractAddresses.zrxToken,
+                    sellAmount: sellAmount.toString(),
+                    buyAmount: undefined,
+                    takerAddress,
+                };
+                return rfqtMocker.withMockedRfqtFirmQuotes(
+                    [
+                        {
+                            endpoint: 'https://mock-rfqt1.club',
+                            responseData: ganacheZrxWethOrder1,
+                            responseCode: 200,
+                            requestApiKey: 'koolApiKey1',
+                            requestParams: mockedApiParams,
+                        },
+                    ],
+                    async () => {
+                        const appResponse = await request(app)
+                            .get(
+                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                            )
+                            .set('0x-api-key', 'koolApiKey1')
+                            .expect(HttpStatus.BAD_REQUEST)
+                            .expect('Content-Type', /json/);
+
+                        const validationErrors = appResponse.body.validationErrors;
+                        expect(validationErrors.length).to.eql(1);
+                        expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
+                    },
+                );
             });
         });
     });
