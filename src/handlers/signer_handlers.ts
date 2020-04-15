@@ -66,7 +66,7 @@ export class SignerHandlers {
                 res.status(HttpStatus.BAD_GATEWAY).send({
                     code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
                     reason: generalErrorCodeToReason[GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker],
-                    transaction: {
+                    ethereumTransaction: {
                         data: ethereumTxn.data,
                         gasPrice: ethereumTxn.gasPrice,
                         gas: ethereumTxn.gas,
