@@ -98,6 +98,7 @@ export class MetaTransactionService {
             sellAmount,
             buyAmount,
             price,
+            swapQuote,
             sources: serviceUtils.convertSourceBreakdownToArray(swapQuote.sourceBreakdown),
         };
         return response;

@@ -377,6 +377,7 @@ export interface CalculateMetaTransactionPriceResponse {
     buyAmount: BigNumber | undefined;
     sellAmount: BigNumber | undefined;
     takerAddress: string;
+    swapQuote: MarketSellSwapQuote | MarketBuySwapQuote;
     sources: GetSwapQuoteResponseLiquiditySource[];
 }
 
