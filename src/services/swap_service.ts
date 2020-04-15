@@ -79,6 +79,8 @@ export class SwapService {
             affiliateAddress,
             apiKey,
             rfqt,
+            // tslint:disable-next-line:boolean-naming
+            skipValidation,
         } = params;
         const assetSwapperOpts = {
             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
@@ -138,7 +140,7 @@ export class SwapService {
         const affiliatedData = this._attributeCallData(data, affiliateAddress);
 
         let suggestedGasEstimate = new BigNumber(gas);
-        if (from) {
+        if (!skipValidation && from) {
             // Force a revert error if the takerAddress does not have enough ETH.
             const txDataValue =
                 extensionContractType === ExtensionContractType.Forwarder

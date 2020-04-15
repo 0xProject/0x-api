@@ -37,6 +37,8 @@ export class SwapHandlers {
             excludedSources,
             affiliateAddress,
             rfqt,
+            // tslint:disable-next-line:boolean-naming
+            skipValidation,
         } = parseGetSwapQuoteRequestParams(req);
         const isETHSell = isETHSymbol(sellToken);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
@@ -71,6 +73,7 @@ export class SwapHandlers {
                         : {
                               intentOnFilling: rfqt.intentOnFilling,
                           },
+                skipValidation,
             });
             res.status(HttpStatus.OK).send(swapQuote);
         } catch (e) {
@@ -180,6 +183,9 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
             : {
                   intentOnFilling: req.query.intentOnFilling === 'true' ? true : false,
               };
+    // tslint:disable-next-line:boolean-naming
+    const skipValidation =
+        req.query.skipValidation === undefined ? false : ['true', ''].includes(req.query.skipValidation) ? true : false;
     return {
         takerAddress,
         sellToken,
@@ -191,5 +197,6 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
         excludedSources,
         affiliateAddress,
         rfqt,
+        skipValidation,
     };
 };

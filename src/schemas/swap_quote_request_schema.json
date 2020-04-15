@@ -21,6 +21,10 @@
         },
         "excludedSources": {
             "type": "string"
+        },
+        "skipValidation": {
+            "type": "string",
+            "allowEmptyValue": true
         }
     },
     "required": ["sellToken", "buyToken"],

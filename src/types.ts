@@ -345,6 +345,7 @@ export interface GetSwapQuoteRequestParams {
     rfqt?: {
         intentOnFilling: boolean;
     };
+    skipValidation: boolean;
 }
 
 export interface CalculateSwapQuoteParams {
@@ -362,6 +363,7 @@ export interface CalculateSwapQuoteParams {
     rfqt?: {
         intentOnFilling: boolean;
     };
+    skipValidation: boolean;
 }
 
 export interface GetSwapQuoteResponseLiquiditySource {
