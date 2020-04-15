@@ -118,6 +118,8 @@ export class MetaTransactionHandlers {
                 price: metaTransactionPrice.price,
                 buyAmount: metaTransactionPrice.buyAmount,
                 sellAmount: metaTransactionPrice.sellAmount,
+                sellTokenAddress,
+                buyTokenAddress,
             };
             res.status(HttpStatus.OK).send(metaTransactionPriceResponse);
         } catch (e) {
