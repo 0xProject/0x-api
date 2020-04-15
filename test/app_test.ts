@@ -137,6 +137,81 @@ describe('app test', () => {
                         },
                     );
                 });
+                it('should succeed when taker balances are not set but we skip validation', async () => {
+                    const sellAmount = new BigNumber(100000000000000000);
+
+                    const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
+                    await wethContract
+                        .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                        .sendTransactionAsync({ from: takerAddress });
+
+                    const mockedApiParams = {
+                        sellToken: contractAddresses.etherToken,
+                        buyToken: contractAddresses.zrxToken,
+                        sellAmount: sellAmount.toString(),
+                        buyAmount: undefined,
+                        takerAddress,
+                    };
+                    return rfqtMocker.withMockedRfqtFirmQuotes(
+                        [
+                            {
+                                endpoint: 'https://mock-rfqt1.club',
+                                responseData: ganacheZrxWethOrder1,
+                                responseCode: 200,
+                                requestApiKey: 'koolApiKey1',
+                                requestParams: mockedApiParams,
+                            },
+                        ],
+                        async () => {
+                            const appResponse = await request(app)
+                                .get(
+                                    `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                                )
+                                .set('0x-api-key', 'koolApiKey1')
+                                .expect(HttpStatus.OK)
+                                .expect('Content-Type', /json/);
+                            const responseJson = JSON.parse(appResponse.text);
+                            expect(responseJson.orders.length).to.equal(1);
+                            expect(responseJson.orders[0]).to.eql(ganacheZrxWethOrder1);
+                        },
+                    );
+                });
+                it('should fail validation when taker balances are not set', async () => {
+                    const sellAmount = new BigNumber(100000000000000000);
+
+                    const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
+                    await wethContract
+                        .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                        .sendTransactionAsync({ from: takerAddress });
+
+                    const mockedApiParams = {
+                        sellToken: contractAddresses.etherToken,
+                        buyToken: contractAddresses.zrxToken,
+                        sellAmount: sellAmount.toString(),
+                        buyAmount: undefined,
+                        takerAddress,
+                    };
+                    return rfqtMocker.withMockedRfqtFirmQuotes(
+                        [
+                            {
+                                endpoint: 'https://mock-rfqt1.club',
+                                responseData: ganacheZrxWethOrder1,
+                                responseCode: 200,
+                                requestApiKey: 'koolApiKey1',
+                                requestParams: mockedApiParams,
+                            },
+                        ],
+                        async () => {
+                            await request(app)
+                                .get(
+                                    `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                                )
+                                .set('0x-api-key', 'koolApiKey1')
+                                .expect(HttpStatus.BAD_REQUEST)
+                                .expect('Content-Type', /json/);
+                        },
+                    );
+                });
             });
         });
     });
