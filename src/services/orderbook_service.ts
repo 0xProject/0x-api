@@ -71,10 +71,10 @@ export class OrderBookService {
     ): Promise<OrderbookResponse> {
         const [bidSignedOrderEntities, askSignedOrderEntities] = await Promise.all([
             this._connection.manager.find(SignedOrderEntity, {
-                where: { takerAssetData: baseAssetData.toLowerCase(), makerAssetData: quoteAssetData.toLowerCase() },
+                where: { takerAssetData: baseAssetData, makerAssetData: quoteAssetData },
             }),
             this._connection.manager.find(SignedOrderEntity, {
-                where: { takerAssetData: quoteAssetData.toLowerCase(), makerAssetData: baseAssetData.toLowerCase() },
+                where: { takerAssetData: quoteAssetData, makerAssetData: baseAssetData },
             }),
         ]);
         const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Array<Required<SignedOrderEntity>>)
