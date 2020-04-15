@@ -1,21 +1,34 @@
+/// FIXME(jalextowle): I have a plan for making this file type safe (with useful
+/// default types). This will make writing tests significantly easier.
 import 'mocha';
 
-import { LoggingConfig, setupApiAsync, teardownApiAsync } from './deployment';
+import { LoggingConfig, setupApiAsync, teardownApiAsync } from '../utils/deployment';
 
-// FIXME(jalextowle): Lock this down to only the actions that have been created.
+import * as actions from './actions';
+import * as assertions from './assertions';
+
+/**
+ * Constructs the default `TestManager` class.
+ * @returns TestManager Returns a `TestManager` that has been given default actions
+ *          and assertions.
+ */
+export function defaultTestManager(): TestManager {
+    return new TestManager(
+        {
+            apiGetRequestAsync: actions.apiGetRequestAsync,
+        },
+        {
+            assertFieldEqualsAsync: assertions.assertFieldEqualsAsync,
+        },
+    );
+}
+
 export type ActionType = string;
 
-// FIXME(jalextowle): Lock this down to only the assetions that have been created.
-//                    The TestManager should remain flexible, but not when it is
-//                    being used normally.
 export type AssertionType = string;
-
-// tslint:disable-next-line:interface-over-type-literal
-export type ActionResult = any;
 
 export interface ActionInfo {
     actionType: ActionType;
-    // FIXME(jalextowle): Lock this down to only the actions that have been created.
     input: any;
 }
 
@@ -31,7 +44,7 @@ export interface TestCase {
 }
 
 type Action = (input: any) => Promise<any>;
-type Assertion = (expectedResult: ActionResult, actualResult: ActionResult) => Promise<void>;
+type Assertion = (actualResult: any, input: any) => Promise<void>;
 
 export class TestManager {
     constructor(
@@ -81,7 +94,7 @@ export class TestManager {
         }
     }
 
-    protected async _executeActionAsync(action: ActionInfo): Promise<ActionResult> {
+    protected async _executeActionAsync(action: ActionInfo): Promise<any> {
         const actionAsync = this._actionsAsync[action.actionType];
         if (!actionAsync) {
             throw new Error('[test-manager] action is not registered');
@@ -89,7 +102,7 @@ export class TestManager {
         return actionAsync(action.input);
     }
 
-    protected async _executeAssertionAsync(assertion: AssertionInfo, actualResult: ActionResult): Promise<void> {
+    protected async _executeAssertionAsync(assertion: AssertionInfo, actualResult: any): Promise<void> {
         const assertionAsync = this._assertionsAsync[assertion.assertionType];
         if (!assertionAsync) {
             throw new Error('[test-manager] assertion is not registered');
