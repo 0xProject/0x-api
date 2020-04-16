@@ -80,12 +80,6 @@ export async function runHttpServiceAsync(
     } else {
         logger.error(`API running without meta transactions service`);
     }
-    const signerService = new SignerService();
-    const handlers = new SignerHandlers(signerService);
-    app.post(
-        `${META_TRANSACTION_PATH}/fill`,
-        asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
-    );
 
     // swap/quote http service
     if (dependencies.swapService) {
