@@ -94,6 +94,9 @@ export class SwapService {
                     ? undefined
                     : {
                           ...rfqt,
+                          // If this is a forwarder transaction, then we want to request quotes with the taker as the
+                          // forwarder contract. If it's not, then we want to request quotes with the taker set to the
+                          // API's takerAddress query parameter, which in this context is known as `from`.
                           takerAddress: isETHSell ? getContractAddressesForChainOrThrow(CHAIN_ID).forwarder : from,
                       },
         };
