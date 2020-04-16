@@ -2,17 +2,18 @@ import * as actions from './actions';
 import * as assertions from './assertions';
 import { TestCase, TestManager } from './test_manager';
 
-export const STRICT_ACTIONS = {
-    HTTP_GET: 'httpGetAsync' as StrictActionType,
+export const ACTIONS = {
+    HTTP_GET: 'httpGetAsync' as ActionType,
 };
 
-export const STRICT_ASSERTIONS = {
-    EQUALS: 'assertEqualsAsync' as StrictAssertionType,
+export const ASSERTIONS = {
+    EQUALS: 'assertEqualsAsync' as AssertionType,
+    MATCHES: 'assertMatchesAsync' as AssertionType,
 };
 
-export type StrictActionType = 'httpGetAsync';
-export type StrictAssertionType = 'assertEqualsAsync';
-export type StrictTestCaseType = TestCase<StrictActionType, StrictAssertionType>;
+export type ActionType = 'httpGetAsync';
+export type AssertionType = 'assertEqualsAsync' | 'assertMatchesAsync';
+export type TestCaseType = TestCase<ActionType, AssertionType>;
 
 /**
  * Constructs the default `TestManager` class, which uses strict type declarations
@@ -20,13 +21,14 @@ export type StrictTestCaseType = TestCase<StrictActionType, StrictAssertionType>
  * @returns TestManager Returns a `TestManager` that has been given default actions
  *          and assertions.
  */
-export function strictTestManager(): TestManager<StrictActionType, StrictAssertionType> {
+export function createTestManager(): TestManager<ActionType, AssertionType> {
     return new TestManager(
         {
             httpGetAsync: actions.httpGetAsync,
         },
         {
             assertEqualsAsync: assertions.assertEqualsAsync,
+            assertMatchesAsync: assertions.assertMatchesAsync,
         },
     );
 }

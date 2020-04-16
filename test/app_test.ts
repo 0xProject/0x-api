@@ -2,37 +2,37 @@ import * as HttpStatus from 'http-status-codes';
 
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, SRA_PATH } from '../src/constants';
 
-import { STRICT_ACTIONS, STRICT_ASSERTIONS, StrictTestCaseType, strictTestManager } from './framework/strict_utils';
+import { ACTIONS, ASSERTIONS, createTestManager, TestCaseType } from './framework';
 
-const manager = strictTestManager();
-const suite: StrictTestCaseType[] = [
+const manager = createTestManager();
+const suite: TestCaseType[] = [
     {
         description: 'should respond to GET /sra/orders',
         action: {
-            actionType: STRICT_ACTIONS.HTTP_GET,
+            actionType: ACTIONS.HTTP_GET,
             input: {
                 route: `${SRA_PATH}/orders`,
             },
         },
         assertions: [
             {
-                assertionType: STRICT_ASSERTIONS.EQUALS,
+                assertionType: ASSERTIONS.EQUALS,
                 input: {
-                    field: 'status',
+                    path: 'status',
                     value: HttpStatus.OK,
                 },
             },
             {
-                assertionType: STRICT_ASSERTIONS.EQUALS,
+                assertionType: ASSERTIONS.MATCHES,
                 input: {
-                    field: 'type',
+                    path: 'type',
                     value: /json/,
                 },
             },
             {
-                assertionType: STRICT_ASSERTIONS.EQUALS,
+                assertionType: ASSERTIONS.EQUALS,
                 input: {
-                    field: 'body',
+                    path: 'body',
                     value: {
                         perPage: DEFAULT_PER_PAGE,
                         page: DEFAULT_PAGE,

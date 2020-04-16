@@ -1,5 +1,3 @@
-/// FIXME(jalextowle): I have a plan for making this file type safe (with useful
-/// default types). This will make writing tests significantly easier.
 import 'mocha';
 
 import { LoggingConfig, setupApiAsync, teardownApiAsync } from '../utils/deployment';
@@ -78,7 +76,7 @@ export class TestManager<TActionType extends string, TAssertionType extends stri
     protected async _executeActionAsync(action: ActionInfo<TActionType>): Promise<any> {
         const actionAsync = this._actionsAsync[action.actionType];
         if (!actionAsync) {
-            throw new Error('[test-manager] action is not registered');
+            throw new Error(`[test-manager] action ${action.actionType} is not registered`);
         }
         const input = action.inputPath ? this._data[action.inputPath] : {};
         const result = await actionAsync({
@@ -94,8 +92,8 @@ export class TestManager<TActionType extends string, TAssertionType extends stri
     protected async _executeAssertionAsync(assertion: AssertionInfo<TAssertionType>, actualResult: any): Promise<void> {
         const assertionAsync = this._assertionsAsync[assertion.assertionType];
         if (!assertionAsync) {
-            throw new Error('[test-manager] assertion is not registered');
+            throw new Error(`[test-manager] assertion ${assertion.assertionType} is not registered`);
         }
-        return assertionAsync(assertion.input, actualResult);
+        return assertionAsync(actualResult, assertion.input);
     }
 }
