@@ -23,6 +23,11 @@ import { SignerService } from '../services/signer_service';
 import { WebsocketService } from '../services/websocket_service';
 import { providerUtils } from '../utils/provider_utils';
 
+/**
+ * http_service_runner hosts endpoints for staking, sra, swap and meta-txns (minus the /fill endpoint)
+ * and can be horizontally scaled as needed
+ */
+
 process.on('uncaughtException', err => {
     logger.error(err);
     process.exit(1);
