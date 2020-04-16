@@ -110,7 +110,10 @@ export class MetaTransactionService {
         );
 
         const floatGasPrice = swapQuote.gasPrice;
-        const gasPrice = floatGasPrice.div(ONE_GWEI).integerValue(BigNumber.ROUND_UP).times(ONE_GWEI);
+        const gasPrice = floatGasPrice
+            .div(ONE_GWEI)
+            .integerValue(BigNumber.ROUND_UP)
+            .times(ONE_GWEI);
         const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
         const { orders, sourceBreakdown } = attributedSwapQuote;
         const signatures = orders.map(order => order.signature);
