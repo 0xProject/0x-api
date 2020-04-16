@@ -4,9 +4,6 @@ services:
         image: "0xorg/ganache-cli:6.0.0"
         ports:
             - "8545:8545"
-        environment:
-            SNAPSHOT_NAME: 0x_ganache_snapshot_gene
-            VERSION: 6.2.4
     postgres:
         image: postgres:9.6
         environment:
