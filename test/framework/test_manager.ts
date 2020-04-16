@@ -4,52 +4,33 @@ import 'mocha';
 
 import { LoggingConfig, setupApiAsync, teardownApiAsync } from '../utils/deployment';
 
-import * as actions from './actions';
-import * as assertions from './assertions';
-
-/**
- * Constructs the default `TestManager` class.
- * @returns TestManager Returns a `TestManager` that has been given default actions
- *          and assertions.
- */
-export function defaultTestManager(): TestManager {
-    return new TestManager(
-        {
-            apiGetRequestAsync: actions.apiGetRequestAsync,
-        },
-        {
-            assertFieldEqualsAsync: assertions.assertFieldEqualsAsync,
-        },
-    );
+export interface ActionInfo<TType extends string> {
+    actionType: TType;
+    input?: any;
+    inputPath?: string;
+    outputPath?: string;
 }
 
-export type ActionType = string;
-
-export type AssertionType = string;
-
-export interface ActionInfo {
-    actionType: ActionType;
+export interface AssertionInfo<TType extends string> {
+    assertionType: TType;
     input: any;
 }
 
-export interface AssertionInfo {
-    assertionType: AssertionType;
-    input: any;
-}
-
-export interface TestCase {
+export interface TestCase<TActionType extends string, TAssertionType extends string> {
     description: string;
-    action: ActionInfo;
-    assertions: AssertionInfo[];
+    action: ActionInfo<TActionType>;
+    assertions: Array<AssertionInfo<TAssertionType>>;
 }
 
 type Action = (input: any) => Promise<any>;
 type Assertion = (actualResult: any, input: any) => Promise<void>;
 
-export class TestManager {
+export class TestManager<TActionType extends string, TAssertionType extends string> {
+    protected _data: any = {};
+
     constructor(
-        protected _actionsAsync: Record<string, Action>,
-        protected _assertionsAsync: Record<string, Assertion>,
+        protected _actionsAsync: Record<TActionType, Action>,
+        protected _assertionsAsync: Record<TAssertionType, Assertion>,
         protected readonly _loggingConfig?: LoggingConfig,
     ) {}
 
@@ -62,7 +43,7 @@ export class TestManager {
      * @param testSuite The set of test cases that should be executed (in order)
      *        in this suite.
      */
-    public executeTestSuite(description: string, testSuite: TestCase[]): void {
+    public executeTestSuite(description: string, testSuite: Array<TestCase<TActionType, TAssertionType>>): void {
         if (!testSuite.length) {
             throw new Error(`[test-manager] suite '${description}' is empty`);
         }
@@ -87,22 +68,30 @@ export class TestManager {
         });
     }
 
-    protected async _executeTestCaseAsync(testCase: TestCase): Promise<void> {
+    protected async _executeTestCaseAsync(testCase: TestCase<TActionType, TAssertionType>): Promise<void> {
         const actionResult = await this._executeActionAsync(testCase.action);
         for (const assertion of testCase.assertions) {
             await this._executeAssertionAsync(assertion, actionResult);
         }
     }
 
-    protected async _executeActionAsync(action: ActionInfo): Promise<any> {
+    protected async _executeActionAsync(action: ActionInfo<TActionType>): Promise<any> {
         const actionAsync = this._actionsAsync[action.actionType];
         if (!actionAsync) {
             throw new Error('[test-manager] action is not registered');
         }
-        return actionAsync(action.input);
+        const input = action.inputPath ? this._data[action.inputPath] : {};
+        const result = await actionAsync({
+            ...input,
+            ...action.input,
+        });
+        if (action.outputPath) {
+            this._data[action.outputPath] = result;
+        }
+        return result;
     }
 
-    protected async _executeAssertionAsync(assertion: AssertionInfo, actualResult: any): Promise<void> {
+    protected async _executeAssertionAsync(assertion: AssertionInfo<TAssertionType>, actualResult: any): Promise<void> {
         const assertionAsync = this._assertionsAsync[assertion.assertionType];
         if (!assertionAsync) {
             throw new Error('[test-manager] assertion is not registered');

@@ -1,8 +1,11 @@
 import { logUtils as log } from '@0x/utils';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { resolve as resolvePath } from 'path';
+import * as rimraf from 'rimraf';
+import { promisify } from 'util';
 
 const apiRootDir = resolvePath(`${__dirname}/../../../`);
+const rimrafAsync = promisify(rimraf);
 
 let yarnStartProcess: ChildProcessWithoutNullStreams;
 
@@ -85,7 +88,7 @@ export async function setupDependenciesAsync(shouldPrintLogs: boolean = false): 
     // Wait for the dependencies to boot up.
     // HACK(jalextowle): This should really be replaced by log-scraping, but it
     // does appear to work for now.
-    await sleepAsync(10000); // tslint:disable-line:custom-no-magic-numbers
+    await sleepAsync(17500); // tslint:disable-line:custom-no-magic-numbers
 }
 
 /**
@@ -105,6 +108,9 @@ export async function teardownDependenciesAsync(shouldPrintLogs: boolean = false
             neatlyPrintChunk('[docker-compose down | error]', chunk);
         });
     }
+    // TODO(jalextowle): Add archival logic.
+    await rimrafAsync(`${apiRootDir}/0x_mesh`);
+    await rimrafAsync(`${apiRootDir}/postgres`);
 }
 
 function neatlyPrintChunk(prefix: string, chunk: Buffer): void {

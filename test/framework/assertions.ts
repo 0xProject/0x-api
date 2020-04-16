@@ -6,7 +6,7 @@ import { expect } from '../utils/expect';
  * @param input Specifies both the field and the expected value of the field that
  *        should be compared with the actual result.
  */
-export async function assertFieldEqualsAsync(
+export async function assertEqualsAsync(
     actual: any,
     input: {
         field: string;
