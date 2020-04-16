@@ -10,7 +10,7 @@
         "takerAddress": {
             "$ref": "/addressSchema"
         },
-        "slippage": {
+        "slippagePercentage": {
             "$ref": "/numberSchema"
         }
     },

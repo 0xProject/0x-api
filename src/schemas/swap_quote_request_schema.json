@@ -16,7 +16,7 @@
         "gasPrice": {
             "$ref": "/wholeNumberSchema"
         },
-        "slippage": {
+        "slippagePercentage": {
             "$ref": "/numberSchema"
         },
         "excludedSources": {
