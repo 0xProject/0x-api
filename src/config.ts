@@ -18,6 +18,7 @@ import { ChainId } from './types';
 enum EnvVarType {
     AddressList,
     Port,
+    KeepAliveTimeout,
     ChainId,
     ETHAddressHex,
     UnitAmount,
@@ -31,6 +32,22 @@ enum EnvVarType {
 export const HTTP_PORT = _.isEmpty(process.env.HTTP_PORT)
     ? 3000
     : assertEnvVarType('HTTP_PORT', process.env.HTTP_PORT, EnvVarType.Port);
+
+// Number of milliseconds of inactivity the servers waits for additional
+// incoming data aftere it finished writing last response before a socket will
+// be destroyed.
+// Ref: https://nodejs.org/api/http.html#http_server_keepalivetimeout
+export const HTTP_KEEP_ALIVE_TIMEOUT = _.isEmpty(process.env.HTTP_KEEP_ALIVE_TIMEOUT)
+    ? 76 * 1000
+    : assertEnvVarType('HTTP_KEEP_ALIVE_TIMEOUT', process.env.HTTP_KEEP_ALIVE_TIMEOUT, EnvVarType.KeepAliveTimeout);
+
+// Limit the amount of time the parser will wait to receive the complete HTTP headers.
+// NOTE: This value HAS to be higher than HTTP_KEEP_ALIVE_TIMEOUT.
+// Ref: https://nodejs.org/api/http.html#http_server_headerstimeout
+export const HTTP_HEADERS_TIMEOUT = _.isEmpty(process.env.HTTP_HEADERS_TIMEOUT)
+    ? 77 * 1000
+    : assertEnvVarType('HTTP_HEADERS_TIMEOUT', process.env.HTTP_HEADERS_TIMEOUT, EnvVarType.KeepAliveTimeout);
+
 // Default chain id to use when not specified
 export const CHAIN_ID: ChainId = _.isEmpty(process.env.CHAIN_ID)
     ? ChainId.Kovan
@@ -82,6 +99,24 @@ export const TAKER_FEE_ASSET_DATA = _.isEmpty(process.env.TAKER_FEE_ASSET_DATA)
     ? NULL_BYTES
     : assertEnvVarType('TAKER_FEE_ASSET_DATA', process.env.TAKER_FEE_ASSET_DATA, EnvVarType.FeeAssetData);
 
+// If there are any orders in the orderbook that are expired by more than x seconds, log an error
+export const MAX_ORDER_EXPIRATION_BUFFER_SECONDS: number = _.isEmpty(process.env.MAX_ORDER_EXPIRATION_BUFFER_SECONDS)
+    ? 3 * 60
+    : assertEnvVarType(
+          'MAX_ORDER_EXPIRATION_BUFFER_SECONDS',
+          process.env.MAX_ORDER_EXPIRATION_BUFFER_SECONDS,
+          EnvVarType.KeepAliveTimeout,
+      );
+
+// Ignore orders greater than x seconds when responding to SRA requests
+export const SRA_ORDER_EXPIRATION_BUFFER_SECONDS: number = _.isEmpty(process.env.SRA_ORDER_EXPIRATION_BUFFER_SECONDS)
+    ? 10
+    : assertEnvVarType(
+          'SRA_ORDER_EXPIRATION_BUFFER_SECONDS',
+          process.env.SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
+          EnvVarType.KeepAliveTimeout,
+      );
+
 export const POSTGRES_URI = _.isEmpty(process.env.POSTGRES_URI)
     ? DEFAULT_LOCAL_POSTGRES_URI
     : assertEnvVarType('POSTGRES_URI', process.env.POSTGRES_URI, EnvVarType.Url);
@@ -125,7 +160,7 @@ const EXCLUDED_SOURCES = (() => {
 const gasSchedule: { [key in ERC20BridgeSource]: number } = {
     [ERC20BridgeSource.Native]: 1.5e5,
     [ERC20BridgeSource.Uniswap]: 3e5,
-    [ERC20BridgeSource.LiquidityProvider]: 4.5e5,
+    [ERC20BridgeSource.LiquidityProvider]: 3e5,
     [ERC20BridgeSource.Eth2Dai]: 5.5e5,
     [ERC20BridgeSource.Kyber]: 8e5,
     [ERC20BridgeSource.CurveUsdcDai]: 9e5,
@@ -163,6 +198,13 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 }
             } catch (err) {
                 throw new Error(`${name} must be between 0 to 65535, found ${value}.`);
+            }
+            return returnValue;
+        case EnvVarType.KeepAliveTimeout:
+            try {
+                returnValue = parseInt(value, 10);
+            } catch (err) {
+                throw new Error(`${name} must be a valid integer, found ${value}.`);
             }
             return returnValue;
         case EnvVarType.ChainId:

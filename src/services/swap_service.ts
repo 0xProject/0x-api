@@ -4,6 +4,7 @@ import {
     MarketBuySwapQuote,
     MarketSellSwapQuote,
     Orderbook,
+    ProtocolFeeUtils,
     SignedOrder,
     SwapQuoteConsumer,
     SwapQuoteOrdersBreakdown,
@@ -11,6 +12,7 @@ import {
     SwapQuoterOpts,
 } from '@0x/asset-swapper';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
+import { WETH9Contract } from '@0x/contract-wrappers';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { AbiEncoder, BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
@@ -28,9 +30,14 @@ import {
     DEFAULT_TOKEN_DECIMALS,
     GAS_LIMIT_BUFFER_PERCENTAGE,
     NULL_ADDRESS,
+    ONE,
     ONE_SECOND_MS,
     PERCENTAGE_SIG_DIGITS,
+    PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
+    UNWRAP_QUOTE_GAS,
+    WRAP_QUOTE_GAS,
+    ZERO,
 } from '../constants';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
@@ -49,6 +56,9 @@ export class SwapService {
     private readonly _swapQuoter: SwapQuoter;
     private readonly _swapQuoteConsumer: SwapQuoteConsumer;
     private readonly _web3Wrapper: Web3Wrapper;
+    private readonly _wethContract: WETH9Contract;
+    private readonly _protocolFeeUtils: ProtocolFeeUtils;
+
     constructor(orderbook: Orderbook, provider: SupportedProvider) {
         this._provider = provider;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
@@ -63,7 +73,12 @@ export class SwapService {
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
         this._web3Wrapper = new Web3Wrapper(this._provider);
+
+        const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
+        this._wethContract = new WETH9Contract(contractAddresses.etherToken, this._provider);
+        this._protocolFeeUtils = new ProtocolFeeUtils(PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
     }
+
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
         let swapQuote;
         const {
@@ -206,6 +221,14 @@ export class SwapService {
         return apiSwapQuote;
     }
 
+    public async getSwapQuoteForWrapAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
+        return this._getSwapQuoteForWethAsync(params, false);
+    }
+
+    public async getSwapQuoteForUnwrapAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
+        return this._getSwapQuoteForWethAsync(params, true);
+    }
+
     public async getTokenPricesAsync(sellToken: TokenMetadata, unitAmount: BigNumber): Promise<GetTokenPricesResponse> {
         // Gets the price for buying 1 unit (not base unit as this is different between tokens with differing decimals)
         // returns price in sellToken units, e.g What is the price of 1 ZRX (in DAI)
@@ -256,12 +279,62 @@ export class SwapService {
             .filter(p => p) as GetTokenPricesResponse;
         return prices;
     }
+    private async _getSwapQuoteForWethAsync(
+        params: CalculateSwapQuoteParams,
+        isUnwrap: boolean,
+    ): Promise<GetSwapQuoteResponse> {
+        const {
+            from,
+            buyTokenAddress,
+            sellTokenAddress,
+            buyAmount,
+            sellAmount,
+            affiliateAddress,
+            gasPrice: providedGasPrice,
+        } = params;
+        const amount = buyAmount || sellAmount;
+        if (amount === undefined) {
+            throw new Error('sellAmount or buyAmount required');
+        }
+        const data = (isUnwrap
+            ? this._wethContract.withdraw(amount)
+            : this._wethContract.deposit()
+        ).getABIEncodedTransactionData();
+        const value = isUnwrap ? ZERO : amount;
+        const affiliatedData = this._attributeCallData(data, affiliateAddress);
+        // TODO: consider not using protocol fee utils due to lack of need for an aggresive gas price for wrapping/unwrapping
+        const gasPrice = providedGasPrice || (await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync());
+        const gasEstimate = isUnwrap ? UNWRAP_QUOTE_GAS : WRAP_QUOTE_GAS;
+        const apiSwapQuote: GetSwapQuoteResponse = {
+            price: ONE,
+            guaranteedPrice: ONE,
+            to: this._wethContract.address,
+            data: affiliatedData,
+            value,
+            gas: gasEstimate,
+            from,
+            gasPrice,
+            protocolFee: ZERO,
+            buyTokenAddress,
+            sellTokenAddress,
+            buyAmount: amount,
+            sellAmount: amount,
+            sources: [],
+            orders: [],
+        };
+        return apiSwapQuote;
+    }
     // tslint:disable-next-line: prefer-function-over-method
     private _convertSourceBreakdownToArray(
         sourceBreakdown: SwapQuoteOrdersBreakdown,
     ): GetSwapQuoteResponseLiquiditySource[] {
+        const defaultSourceBreakdown: SwapQuoteOrdersBreakdown = Object.assign(
+            {},
+            ...Object.values(ERC20BridgeSource).map(s => ({ [s]: ZERO })),
+        );
+
         const breakdown: GetSwapQuoteResponseLiquiditySource[] = [];
-        return Object.entries(sourceBreakdown).reduce(
+        return Object.entries({ ...defaultSourceBreakdown, ...sourceBreakdown }).reduce(
             (acc: GetSwapQuoteResponseLiquiditySource[], [source, percentage]) => {
                 return [
                     ...acc,
@@ -274,6 +347,7 @@ export class SwapService {
             breakdown,
         );
     }
+
     private async _estimateGasOrThrowRevertErrorAsync(txData: Partial<TxData>): Promise<BigNumber> {
         // Perform this concurrently
         // if the call fails the gas estimation will also fail, we can throw a more helpful

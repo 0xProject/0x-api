@@ -1,6 +1,8 @@
-import { ObjectMap } from '@0x/types';
+import { ObjectMap, SignedOrder } from '@0x/types';
 import { RevertError } from '@0x/utils';
 import * as HttpStatus from 'http-status-codes';
+
+import { ONE_SECOND_MS } from './constants';
 
 // tslint:disable:max-classes-per-file
 
@@ -110,4 +112,28 @@ export enum ValidationErrorCodes {
     UnsupportedOption = 1006,
     InvalidOrder = 1007,
     InternalError = 1008,
+    TokenNotSupported = 1009,
+}
+
+export abstract class AlertError {
+    public abstract message: string;
+    public shouldAlert: boolean = true;
+}
+
+export class ExpiredOrderError extends AlertError {
+    public message = `Found expired order!`;
+    public expiry: number;
+    public expiredForSeconds: number;
+    constructor(public order: SignedOrder, public currentThreshold: number, public details?: string) {
+        super();
+        this.expiry = order.expirationTimeSeconds.toNumber();
+        this.expiredForSeconds = Date.now() / ONE_SECOND_MS - this.expiry;
+    }
+}
+
+export class OrderWatcherSyncError extends AlertError {
+    public message = `Error syncing OrderWatcher!`;
+    constructor(public details?: string) {
+        super();
+    }
 }

@@ -12,16 +12,6 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/assert@^3.0.2":
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/@0x/assert/-/assert-3.0.3.tgz#18f92aa4e5d87824259b3ddd1cc1882b59f29e8e"
-  dependencies:
-    "@0x/json-schemas" "^5.0.3"
-    "@0x/typescript-typings" "^5.0.1"
-    "@0x/utils" "^5.1.2"
-    lodash "^4.17.11"
-    valid-url "^1.0.9"
-
 "@0x/assert@^3.0.4":
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/@0x/assert/-/assert-3.0.4.tgz#640bcd42d0b6286d45ee622e5622f71325ec63b4"
@@ -32,7 +22,7 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/assert@^3.0.7":
+"@0x/assert@^3.0.6", "@0x/assert@^3.0.7":
   version "3.0.7"
   resolved "https://registry.yarnpkg.com/@0x/assert/-/assert-3.0.7.tgz#fb616533ed00480bd642f8419d28e88b547c30df"
   dependencies:
@@ -109,9 +99,9 @@
   version "4.9.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/93578492c2db18a5fb88709156fe50aa00b086aa"
 
-"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-e3f3bb670", "@0x/contract-wrappers@^13.4.0", "@0x/contract-wrappers@^13.6.3":
+"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-0e196a59d", "@0x/contract-wrappers@^13.4.0", "@0x/contract-wrappers@^13.6.3":
   version "13.6.3"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/eda9bb7e81dc9dc7e63f23e6332858e322786235"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/8bc7a7ffe50b0c4c345d49aa979af9a6f8738b4c"
   dependencies:
     "@0x/assert" "^3.0.7"
     "@0x/base-contract" "^6.2.1"
@@ -156,7 +146,7 @@
     jsonschema "^1.2.0"
     lodash.values "^4.3.0"
 
-"@0x/json-schemas@^5.0.3", "@0x/json-schemas@^5.0.4":
+"@0x/json-schemas@^5.0.4":
   version "5.0.4"
   resolved "https://registry.yarnpkg.com/@0x/json-schemas/-/json-schemas-5.0.4.tgz#c2963b59e72a12362a43c8cfc3c572abd9d567ad"
   dependencies:
@@ -187,14 +177,15 @@
     uuid "^3.3.2"
     websocket "^1.0.29"
 
-"@0x/mesh-rpc-client@^9.0.1":
-  version "9.0.1"
-  resolved "https://registry.npmjs.org/@0x/mesh-rpc-client/-/mesh-rpc-client-9.0.1.tgz#c3bebf7876cf52a254411ee73e78bdbf16f9330c"
+"@0x/mesh-rpc-client@^9.2.1":
+  version "9.2.1"
+  resolved "https://registry.yarnpkg.com/@0x/mesh-rpc-client/-/mesh-rpc-client-9.2.1.tgz#52540e2492e8c3a5c54127532e80f7ffb622fbea"
+  integrity sha512-VuAt8J1RpY4s2nCyfLIpPLTTLiYX0Wg0R7b+OT0B1p4JahrEcbfklHAyJM8YOT78wIllWeeTWDZ7/PL9EYPpTA==
   dependencies:
-    "@0x/assert" "^3.0.2"
-    "@0x/types" "^3.1.1"
-    "@0x/typescript-typings" "^5.0.1"
-    "@0x/utils" "^5.1.1"
+    "@0x/assert" "^3.0.6"
+    "@0x/types" "^3.1.2"
+    "@0x/typescript-typings" "^5.0.2"
+    "@0x/utils" "^5.4.0"
     uuid "^3.3.2"
     web3-providers "^2.0.0-alpha.1"
     websocket "^1.0.29"
@@ -345,25 +336,7 @@
     js-sha3 "^0.7.0"
     lodash "^4.17.11"
 
-"@0x/utils@^5.1.1":
-  version "5.1.2"
-  resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-5.1.2.tgz#defc545a42343729c9bf7252f0b7413d7ba47694"
-  dependencies:
-    "@0x/types" "^3.1.1"
-    "@0x/typescript-typings" "^5.0.1"
-    "@types/node" "*"
-    abortcontroller-polyfill "^1.1.9"
-    bignumber.js "~9.0.0"
-    chalk "^2.3.0"
-    detect-node "2.0.3"
-    ethereum-types "^3.0.0"
-    ethereumjs-util "^5.1.1"
-    ethers "~4.0.4"
-    isomorphic-fetch "2.2.1"
-    js-sha3 "^0.7.0"
-    lodash "^4.17.11"
-
-"@0x/utils@^5.1.2", "@0x/utils@^5.2.0":
+"@0x/utils@^5.2.0":
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-5.2.0.tgz#313c0fcf18d9614bf7a227fde3a084bdfbc459d4"
   dependencies:
@@ -381,7 +354,7 @@
     js-sha3 "^0.7.0"
     lodash "^4.17.11"
 
-"@0x/utils@^5.4.1":
+"@0x/utils@^5.4.0", "@0x/utils@^5.4.1":
   version "5.4.1"
   resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-5.4.1.tgz#5ec5f0d08dad38543b6ff8199bdf8f3d0e63488e"
   dependencies:
@@ -6252,6 +6225,11 @@ resumer@~0.0.0:
 ret@~0.1.10:
   version "0.1.15"
   resolved "https://registry.yarnpkg.com/ret/-/ret-0.1.15.tgz#b8a4825d5bdb1fc3f6f53c2bc33f81388681c7bc"
+
+retry-axios@^2.1.2:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/retry-axios/-/retry-axios-2.1.2.tgz#78a8041bc34047a205aa4098af23f943ec58abd2"
+  integrity sha512-MVNOizOgcM+dXK/kJCMnHPCGjp2Z0o3Ngznh7SfJkIVrqemHmDcgUEAbEHs3RyR3lbJtSyamq9k3gmgGSaow1g==
 
 rimraf@^2.6.3:
   version "2.7.1"

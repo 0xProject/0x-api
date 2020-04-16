@@ -34,7 +34,7 @@
     },
     "resolutions": {
         "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-110e1afa8",
-        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-e3f3bb670"
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-0e196a59d"
     },
     "devDependencies": {
         "@0x/dev-utils": "^3.1.1",
@@ -69,9 +69,9 @@
         "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v4.4.0-110e1afa8",
         "@0x/connect": "^6.0.4",
         "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-110e1afa8",
-        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-e3f3bb670",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-0e196a59d",
         "@0x/json-schemas": "^5.0.4",
-        "@0x/mesh-rpc-client": "^9.0.1",
+        "@0x/mesh-rpc-client": "^9.2.1",
         "@0x/order-utils": "^10.1.1",
         "@0x/subproviders": "^6.0.4",
         "@0x/utils": "^5.2.0",
@@ -89,6 +89,7 @@
         "lodash": "^4.17.15",
         "pg": "^7.12.1",
         "pino": "^5.13.5",
+        "retry-axios": "^2.1.2",
         "typeorm": "0.2.18",
         "ws": "^7.1.2"
     }

@@ -14,6 +14,7 @@ import * as defaultConfig from '../config';
 import { STAKING_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
+import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
 import { createStakingRouter } from '../routers/staking_router';
@@ -40,17 +41,20 @@ if (require.main === module) {
 
 async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    config: { HTTP_PORT: string },
+    config: { HTTP_PORT: string; HTTP_KEEP_ALIVE_TIMEOUT: number; HTTP_HEADERS_TIMEOUT: number },
     _app?: core.Express,
 ): Promise<Server> {
     const app = _app || express();
     app.use(requestLogger());
     app.use(cors());
     app.use(bodyParser.json());
+    app.use(addressNormalizer);
     app.get('/', rootHandler);
     const server = app.listen(config.HTTP_PORT, () => {
         logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!`);
     });
+    server.keepAliveTimeout = config.HTTP_KEEP_ALIVE_TIMEOUT;
+    server.headersTimeout = config.HTTP_HEADERS_TIMEOUT;
 
     // staking http service
     app.use(STAKING_PATH, createStakingRouter(dependencies.stakingDataService));

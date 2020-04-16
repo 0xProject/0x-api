@@ -10,6 +10,7 @@ import * as defaultConfig from '../config';
 import { SRA_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
+import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
 import { createSRARouter } from '../routers/sra_router';
@@ -45,7 +46,7 @@ if (require.main === module) {
  */
 export async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    config: { HTTP_PORT: string },
+    config: { HTTP_PORT: string; HTTP_KEEP_ALIVE_TIMEOUT: number; HTTP_HEADERS_TIMEOUT: number },
     _app?: core.Express,
 ): Promise<Server> {
     const app = _app || express();
@@ -57,6 +58,11 @@ export async function runHttpServiceAsync(
     const server = app.listen(config.HTTP_PORT, () => {
         logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!`);
     });
+    server.keepAliveTimeout = config.HTTP_KEEP_ALIVE_TIMEOUT;
+    server.headersTimeout = config.HTTP_HEADERS_TIMEOUT;
+
+    // transform all values of `req.query.[xx]Address` to lowercase
+    app.use(addressNormalizer);
 
     // staking http service
     app.use(STAKING_PATH, createStakingRouter(dependencies.stakingDataService));

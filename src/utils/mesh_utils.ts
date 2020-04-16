@@ -6,7 +6,6 @@ import {
     RejectedCode,
     RejectedOrderInfo,
 } from '@0x/mesh-rpc-client';
-import * as _ from 'lodash';
 
 import { ZERO } from '../constants';
 import { ValidationErrorCodes } from '../errors';
@@ -26,9 +25,7 @@ export const meshUtils = {
             ? (orderEvent as OrderEvent).fillableTakerAssetAmount
             : ZERO;
         return {
-            // TODO remove the any when packages are all published and updated with latest types
-            // tslint:disable-next-line:no-unnecessary-type-assertion
-            order: orderEvent.signedOrder as any,
+            order: orderEvent.signedOrder,
             metaData: {
                 orderHash: orderEvent.orderHash,
                 remainingFillableTakerAssetAmount,
@@ -68,13 +65,16 @@ export const meshUtils = {
                     added.push(apiOrder);
                     break;
                 }
+                case OrderEventEndState.Invalid:
                 case OrderEventEndState.Cancelled:
                 case OrderEventEndState.Expired:
                 case OrderEventEndState.FullyFilled:
+                case OrderEventEndState.StoppedWatching:
                 case OrderEventEndState.Unfunded: {
                     removed.push(apiOrder);
                     break;
                 }
+                case OrderEventEndState.Unexpired:
                 case OrderEventEndState.FillabilityIncreased:
                 case OrderEventEndState.Filled: {
                     updated.push(apiOrder);

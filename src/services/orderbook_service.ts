@@ -1,11 +1,12 @@
 import { APIOrder, OrderbookResponse, PaginatedCollection } from '@0x/connect';
-import { assetDataUtils } from '@0x/order-utils';
 import { AssetPairsItem, OrdersRequestOpts, SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
 
+import { SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
 import { SignedOrderEntity } from '../entities';
 import { ValidationError } from '../errors';
+import { alertOnExpiredOrders } from '../logger';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -34,7 +35,6 @@ export class OrderBookService {
         const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity)) as Array<
             Required<SignedOrderEntity>
         >;
-
         const assetPairsItems: AssetPairsItem[] = signedOrderEntities
             .map(orderUtils.deserializeOrder)
             .map(orderUtils.signedOrderToAssetPair);
@@ -52,7 +52,10 @@ export class OrderBookService {
                 assetPair.assetDataA.assetData === assetData || assetPair.assetDataB.assetData === assetData;
             nonPaginatedFilteredAssetPairs = assetPairsItems.filter(containsAssetData);
         }
-        const uniqueNonPaginatedFilteredAssetPairs = _.uniqWith(nonPaginatedFilteredAssetPairs, _.isEqual.bind(_));
+        const uniqueNonPaginatedFilteredAssetPairs = _.uniqBy(
+            nonPaginatedFilteredAssetPairs,
+            assetPair => `${assetPair.assetDataA.assetData}/${assetPair.assetDataB.assetData}`,
+        );
         const paginatedFilteredAssetPairs = paginationUtils.paginate(
             uniqueNonPaginatedFilteredAssetPairs,
             page,
@@ -77,9 +80,11 @@ export class OrderBookService {
         ]);
         const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Array<Required<SignedOrderEntity>>)
             .map(orderUtils.deserializeOrderToAPIOrder)
+            .filter(orderUtils.isFreshOrder)
             .sort((orderA, orderB) => orderUtils.compareBidOrder(orderA.order, orderB.order));
         const askApiOrders: APIOrder[] = (askSignedOrderEntities as Array<Required<SignedOrderEntity>>)
             .map(orderUtils.deserializeOrderToAPIOrder)
+            .filter(orderUtils.isFreshOrder)
             .sort((orderA, orderB) => orderUtils.compareAskOrder(orderA.order, orderB.order));
         const paginatedBidApiOrders = paginationUtils.paginate(bidApiOrders, page, perPage);
         const paginatedAskApiOrders = paginationUtils.paginate(askApiOrders, page, perPage);
@@ -88,6 +93,7 @@ export class OrderBookService {
             asks: paginatedAskApiOrders,
         };
     }
+
     // TODO:(leo) Do all filtering and pagination in a DB (requires stored procedures or redundant fields)
     // tslint:disable-next-line:prefer-function-over-method
     public async getOrdersAsync(
@@ -111,49 +117,15 @@ export class OrderBookService {
         const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
             where: filterObject,
         })) as Array<Required<SignedOrderEntity>>;
-        let apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder);
+        const apiOrders = signedOrderEntities.map(orderUtils.deserializeOrderToAPIOrder);
+
+        // check for expired orders
+        const { fresh, expired } = orderUtils.groupByFreshness(apiOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
+        alertOnExpiredOrders(expired);
+
         // Post-filters
-        apiOrders = apiOrders
-            .filter(
-                // traderAddress
-                apiOrder =>
-                    ordersFilterParams.traderAddress === undefined ||
-                    apiOrder.order.makerAddress === ordersFilterParams.traderAddress ||
-                    apiOrder.order.takerAddress === ordersFilterParams.traderAddress,
-            )
-            .filter(
-                // makerAssetAddress
-                apiOrder =>
-                    ordersFilterParams.makerAssetAddress === undefined ||
-                    orderUtils.includesTokenAddress(
-                        apiOrder.order.makerAssetData,
-                        ordersFilterParams.makerAssetAddress,
-                    ),
-            )
-            .filter(
-                // takerAssetAddress
-                apiOrder =>
-                    ordersFilterParams.takerAssetAddress === undefined ||
-                    orderUtils.includesTokenAddress(
-                        apiOrder.order.takerAssetData,
-                        ordersFilterParams.takerAssetAddress,
-                    ),
-            )
-            .filter(
-                // makerAssetProxyId
-                apiOrder =>
-                    ordersFilterParams.makerAssetProxyId === undefined ||
-                    assetDataUtils.decodeAssetDataOrThrow(apiOrder.order.makerAssetData).assetProxyId ===
-                        ordersFilterParams.makerAssetProxyId,
-            )
-            .filter(
-                // takerAssetProxyId
-                apiOrder =>
-                    ordersFilterParams.takerAssetProxyId === undefined ||
-                    assetDataUtils.decodeAssetDataOrThrow(apiOrder.order.takerAssetData).assetProxyId ===
-                        ordersFilterParams.takerAssetProxyId,
-            );
-        const paginatedApiOrders = paginationUtils.paginate(apiOrders, page, perPage);
+        const filteredApiOrders = orderUtils.filterOrders(fresh, ordersFilterParams);
+        const paginatedApiOrders = paginationUtils.paginate(filteredApiOrders, page, perPage);
         return paginatedApiOrders;
     }
     public async getBatchOrdersAsync(
@@ -169,8 +141,13 @@ export class OrderBookService {
         const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
             where: filterObject,
         })) as Array<Required<SignedOrderEntity>>;
-        const apiOrders = _.map(signedOrderEntities, orderUtils.deserializeOrderToAPIOrder);
-        const paginatedApiOrders = paginationUtils.paginate(apiOrders, page, perPage);
+        const apiOrders = signedOrderEntities.map(orderUtils.deserializeOrderToAPIOrder);
+
+        // check for expired orders
+        const { fresh, expired } = orderUtils.groupByFreshness(apiOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
+        alertOnExpiredOrders(expired);
+
+        const paginatedApiOrders = paginationUtils.paginate(fresh, page, perPage);
         return paginatedApiOrders;
     }
     constructor(connection: Connection, meshClient?: MeshClient) {
