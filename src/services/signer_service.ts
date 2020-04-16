@@ -155,13 +155,16 @@ export class SignerService {
 
         const ethereumTransactionHash = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
-            .sendTransactionAsync({
-                from: META_TXN_RELAY_ADDRESS,
-                gasPrice: zeroExTransaction.gasPrice,
-                value: protocolFee,
-            }, {
-                shouldValidate: false,
-            });
+            .sendTransactionAsync(
+                {
+                    from: META_TXN_RELAY_ADDRESS,
+                    gasPrice: zeroExTransaction.gasPrice,
+                    value: protocolFee,
+                },
+                {
+                    shouldValidate: false,
+                },
+            );
 
         return {
             ethereumTransactionHash,
