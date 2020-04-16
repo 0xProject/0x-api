@@ -27,11 +27,11 @@
         },
         "intentOnFilling": {
             "type": "string",
-            "allowEmptyValue": true
+            "enum": ["true", "false"]
         },
         "skipValidation": {
             "type": "string",
-            "allowEmptyValue": true
+            "enum": ["true", "false"]
         }
     },
     "required": ["sellToken", "buyToken"],

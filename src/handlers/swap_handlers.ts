@@ -180,12 +180,10 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
     const rfqt =
         req.query.intentOnFilling === undefined
             ? undefined
-            : {
-                  intentOnFilling: ['true', ''].includes(req.query.intentOnFilling) ? true : false,
-              };
+            : { intentOnFilling: req.query.intentOnFilling === 'true' ? true : false };
     // tslint:disable-next-line:boolean-naming
     const skipValidation =
-        req.query.skipValidation === undefined ? false : ['true', ''].includes(req.query.skipValidation) ? true : false;
+        req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true' ? true : false;
     return {
         takerAddress,
         sellToken,
