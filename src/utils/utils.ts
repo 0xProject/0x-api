@@ -1,4 +1,3 @@
-import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 
 import { ObjectMap } from '../types';
