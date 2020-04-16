@@ -11,6 +11,7 @@ import {
 } from '@0x/subproviders';
 import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import * as _ from 'lodash';
 
 import {
@@ -22,7 +23,6 @@ import {
 } from '../config';
 import { ETH_GAS_STATION_API_BASE_URL } from '../constants';
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
-import { utils } from '../utils/utils';
 
 export class SignerService {
     private readonly _provider: SupportedProvider;
@@ -137,10 +137,10 @@ export class SignerService {
 
         const ethereumTxnParams: PartialTxParams = {
             data: executeTxnCalldata,
-            gas: utils.encodeAmountAsHexString(gas),
+            gas: web3WrapperUtils.encodeAmountAsHexString(gas),
             from: META_TXN_RELAY_ADDRESS,
-            gasPrice: utils.encodeAmountAsHexString(gasPrice),
-            value: utils.encodeAmountAsHexString(protocolFee),
+            gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
+            value: web3WrapperUtils.encodeAmountAsHexString(protocolFee),
             to: this._contractWrappers.exchange.address,
             nonce: await this._getNonceAsync(META_TXN_RELAY_ADDRESS),
             chainId: CHAIN_ID,
