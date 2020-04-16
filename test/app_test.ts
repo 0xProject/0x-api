@@ -137,6 +137,21 @@ describe('app test', () => {
                         },
                     );
                 });
+                it('should fail when taker address is not supplied', async () => {
+                    const sellAmount = new BigNumber(100000000000000000);
+
+                    const appResponse = await request(app)
+                        .get(
+                            `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                        )
+                        .set('0x-api-key', 'koolApiKey1')
+                        .expect(HttpStatus.BAD_REQUEST)
+                        .expect('Content-Type', /json/);
+
+                    const validationErrors = appResponse.body.validationErrors;
+                    expect(validationErrors.length).to.eql(1);
+                    expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
+                });
                 it('should succeed when taker can not actually fill but we skip validation', async () => {
                     const sellAmount = new BigNumber(100000000000000000);
 
