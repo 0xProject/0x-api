@@ -46,3 +46,6 @@ export const META_TRANSACTION_PATH = '/meta_transaction/v0';
 export const SWAP_DOCS_URL = 'https://0x.org/docs/api#swap';
 export const SRA_DOCS_URL = 'https://0x.org/docs/api#sra';
 export const META_TRANSACTION_DOCS_URL = 'https://0x.org/docs/api#meta_transaction';
+
+// Signer
+export const ETH_GAS_STATION_API_BASE_URL = 'https://ethgasstation.info';

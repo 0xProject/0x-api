@@ -20,6 +20,7 @@ import {
     META_TXN_RELAY_PRIVATE_KEY,
     WHITELISTED_API_KEYS_META_TXN_FILLS,
 } from '../config';
+import { ETH_GAS_STATION_API_BASE_URL } from '../constants';
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
 import { utils } from '../utils/utils';
 
@@ -90,6 +91,13 @@ export class SignerService {
         });
 
         const gasPrice = zeroExTransaction.gasPrice;
+        const currentFastGasPrice = await this._getGasPriceFromGasStationOrThrowAsync();
+        // Make sure gasPrice is not 3X the current fast EthGasStation gas price
+        // tslint:disable-next-line:custom-no-magic-numbers
+        if (currentFastGasPrice < gasPrice && (gasPrice.minus(currentFastGasPrice)) > (currentFastGasPrice.times(3))) {
+            throw new Error('Gas price too high');
+        }
+
         const protocolFee = SignerService._calculateProtocolFee(orders.length, gasPrice);
 
         try {
@@ -186,5 +194,22 @@ export class SignerService {
             params: [address, 'pending'],
         });
         return nonceHex;
+    }
+    // tslint:disable-next-line: prefer-function-over-method
+    private async _getGasPriceFromGasStationOrThrowAsync(): Promise<BigNumber> {
+        try {
+            const res = await fetch(`${ETH_GAS_STATION_API_BASE_URL}/json/ethgasAPI.json`);
+            const gasInfo = await res.json();
+            // Eth Gas Station result is gwei * 10
+            // tslint:disable-next-line:custom-no-magic-numbers
+            const BASE_TEN = 10;
+            const gasPriceGwei = new BigNumber(gasInfo.fast / BASE_TEN);
+            // tslint:disable-next-line:custom-no-magic-numbers
+            const unit = new BigNumber(BASE_TEN).pow(9);
+            const gasPriceWei = unit.times(gasPriceGwei);
+            return gasPriceWei;
+        } catch (e) {
+            throw new Error('Failed to fetch gas price from EthGasStation');
+        }
     }
 }
