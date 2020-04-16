@@ -35,6 +35,7 @@ export const PERCENTAGE_SIG_DIGITS = 4;
 export const PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS = 6000;
 export const UNWRAP_QUOTE_GAS = new BigNumber(60000);
 export const WRAP_QUOTE_GAS = new BigNumber(40000);
+export const ONE_GWEI = new BigNumber(1000000000);
 
 // API namespaces
 export const SRA_PATH = '/sra/v3';

@@ -8,7 +8,7 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, LIQUIDITY_POOL_REGISTRY_ADDRESS } from '../config';
-import { ONE_SECOND_MS, QUOTE_ORDER_EXPIRATION_BUFFER_MS, TEN_MINUTES_MS } from '../constants';
+import { ONE_GWEI, ONE_SECOND_MS, QUOTE_ORDER_EXPIRATION_BUFFER_MS, TEN_MINUTES_MS } from '../constants';
 import {
     CalculateMetaTransactionPriceResponse,
     CalculateMetaTransactionQuoteParams,
@@ -110,7 +110,7 @@ export class MetaTransactionService {
         );
 
         const floatGasPrice = swapQuote.gasPrice;
-        const gasPrice = floatGasPrice.integerValue(BigNumber.ROUND_UP);
+        const gasPrice = floatGasPrice.div(ONE_GWEI).integerValue(BigNumber.ROUND_UP).times(ONE_GWEI);
         const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
         const { orders, sourceBreakdown } = attributedSwapQuote;
         const signatures = orders.map(order => order.signature);
