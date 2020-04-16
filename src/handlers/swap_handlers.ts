@@ -178,12 +178,9 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
             : parseStringArrForERC20BridgeSources(req.query.excludedSources.split(','));
     const affiliateAddress = req.query.affiliateAddress;
     const rfqt =
-        req.query.intentOnFilling === undefined
-            ? undefined
-            : { intentOnFilling: req.query.intentOnFilling === 'true' ? true : false };
+        req.query.intentOnFilling === undefined ? undefined : { intentOnFilling: req.query.intentOnFilling === 'true' };
     // tslint:disable-next-line:boolean-naming
-    const skipValidation =
-        req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true' ? true : false;
+    const skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
     return {
         takerAddress,
         sellToken,
