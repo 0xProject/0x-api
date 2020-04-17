@@ -3,17 +3,16 @@ import * as express from 'express';
 import * as asyncHandler from 'express-async-handler';
 import { Connection } from 'typeorm';
 
-import { SignerHandlers } from '../handlers/signer_handlers';
-import { SignerService } from '../services/signer_service';
-
 import { META_TRANSACTION_PATH, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
+import { SignerHandlers } from './handlers/signer_handlers';
 import { logger } from './logger';
 import { OrderBookServiceOrderProvider } from './order_book_service_order_provider';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
+import { SignerService } from './services/signer_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { WebsocketSRAOpts } from './types';
