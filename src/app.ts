@@ -1,8 +1,12 @@
 import { Orderbook, SupportedProvider } from '@0x/asset-swapper';
 import * as express from 'express';
+import * as asyncHandler from 'express-async-handler';
 import { Connection } from 'typeorm';
 
-import { SRA_PATH } from './constants';
+import { SignerHandlers } from '../handlers/signer_handlers';
+import { SignerService } from '../services/signer_service';
+
+import { META_TRANSACTION_PATH, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { logger } from './logger';
 import { OrderBookServiceOrderProvider } from './order_book_service_order_provider';
@@ -76,7 +80,8 @@ export async function getDefaultAppDependenciesAsync(
     };
 }
 /**
- * starts the app with dependencies injected
+ * starts the app with dependencies injected. This entry-point is used when running a single instance 0x API
+ * deployment and in tests. It is not used in production deployments where scaling is required.
  * @param dependencies  all values are optional and will be filled with reasonable defaults, with one
  *                      exception. if a `meshClient` is not provided, the API will start without a
  *                      connection to mesh.
@@ -102,6 +107,15 @@ export async function getAppAsync(
     } else {
         logger.warn('No mesh client provided, API running without Order Watcher');
     }
+
+    // Add signer service when spinning up app
+    const signerService = new SignerService();
+    const handlers = new SignerHandlers(signerService);
+    app.post(
+        `${META_TRANSACTION_PATH}/fill`,
+        asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
+    );
+
     return app;
 }
 
