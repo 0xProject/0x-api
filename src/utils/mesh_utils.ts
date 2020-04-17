@@ -27,6 +27,7 @@ export const meshUtils = {
             ? (orderEvent as OrderEvent).fillableTakerAssetAmount
             : ZERO;
         return {
+            // orderEvent.signedOrder comes from mesh with string fields, needs to be serialized into SignedOrder
             order: orderUtils.deserializeOrder(orderEvent.signedOrder as any), // tslint:disable-line:no-unnecessary-type-assertion
             metaData: {
                 orderHash: orderEvent.orderHash,
