@@ -4,13 +4,7 @@ import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 import * as isValidUUID from 'uuid-validate';
 
-import {
-    GeneralErrorCodes,
-    generalErrorCodeToReason,
-    InternalServerError,
-    InvalidAPIKeyError,
-    RevertAPIError,
-} from '../errors';
+import { GeneralErrorCodes, generalErrorCodeToReason, InternalServerError, RevertAPIError } from '../errors';
 import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
@@ -30,7 +24,11 @@ export class SignerHandlers {
     public async submitZeroExTransactionIfWhitelistedAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
-            throw new InvalidAPIKeyError();
+            res.status(HttpStatus.BAD_REQUEST).send({
+                code: GeneralErrorCodes.InvalidAPIKey,
+                reason: generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey],
+            });
+            return;
         }
         schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
 
