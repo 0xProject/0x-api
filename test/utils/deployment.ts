@@ -108,9 +108,9 @@ export async function teardownDependenciesAsync(shouldPrintLogs: boolean = false
             neatlyPrintChunk('[docker-compose down | error]', chunk);
         });
     }
-    await new Promise<void>((resolve, reject) => {
-        down.on('close', code => {
-            code ? reject(code) : resolve();
+    await new Promise<void>(resolve => {
+        down.on('close', () => {
+            resolve();
         });
     });
     await rimrafAsync(`${apiRootDir}/0x_mesh`);
