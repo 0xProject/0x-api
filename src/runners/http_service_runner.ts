@@ -21,7 +21,7 @@ import { WebsocketService } from '../services/websocket_service';
 import { providerUtils } from '../utils/provider_utils';
 
 /**
- * http_service_runner hosts endpoints for staking, sra, swap and meta-txns (minus the /fill endpoint)
+ * http_service_runner hosts endpoints for staking, sra, swap and meta-txns (minus the /submit endpoint)
  * and can be horizontally scaled as needed
  */
 

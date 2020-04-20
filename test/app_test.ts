@@ -67,7 +67,7 @@ describe('app test', () => {
     });
     it('should return InvalidAPIKey error if invalid UUID supplied as API Key', async () => {
         await request(app)
-            .post(`${META_TRANSACTION_PATH}/fill`)
+            .post(`${META_TRANSACTION_PATH}/submit`)
             .set('0x-api-key', 'foobar')
             .expect('Content-Type', /json/)
             .expect(HttpStatus.BAD_REQUEST)

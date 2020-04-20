@@ -19,7 +19,7 @@ import {
     ETHEREUM_RPC_URL,
     META_TXN_RELAY_ADDRESS,
     META_TXN_RELAY_PRIVATE_KEY,
-    WHITELISTED_API_KEYS_META_TXN_FILLS,
+    WHITELISTED_API_KEYS_META_TXN_SUBMIT,
 } from '../config';
 import { ETH_GAS_STATION_API_BASE_URL } from '../constants';
 import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
@@ -32,7 +32,7 @@ export class SignerService {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _devUtils: DevUtilsContract;
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
-        return WHITELISTED_API_KEYS_META_TXN_FILLS.includes(apiKey);
+        return WHITELISTED_API_KEYS_META_TXN_SUBMIT.includes(apiKey);
     }
 
     private static _createWeb3Provider(

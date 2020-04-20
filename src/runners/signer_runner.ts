@@ -26,7 +26,7 @@ if (require.main === module) {
          * https://0x.org/docs/guides/v3-specification#executing-a-transaction
          */
         app.post(
-            `${META_TRANSACTION_PATH}/fill`,
+            `${META_TRANSACTION_PATH}/submit`,
             asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
         );
 

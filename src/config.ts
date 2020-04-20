@@ -155,13 +155,13 @@ export const RFQT_API_KEY_WHITELIST: string[] =
 export const RFQT_MAKER_ENDPOINTS: string[] =
     process.env.RFQT_MAKER_ENDPOINTS === undefined ? [] : process.env.RFQT_MAKER_ENDPOINTS.split(',');
 
-// Whitelisted 0x API keys that can use the meta-txn /fill endpoint
-export const WHITELISTED_API_KEYS_META_TXN_FILLS: string[] =
-    process.env.WHITELISTED_API_KEYS_META_TXN_FILLS === undefined
+// Whitelisted 0x API keys that can use the meta-txn /submit endpoint
+export const WHITELISTED_API_KEYS_META_TXN_SUBMIT: string[] =
+    process.env.WHITELISTED_API_KEYS_META_TXN_SUBMIT === undefined
         ? []
         : assertEnvVarType(
-              'WHITELISTED_API_KEYS_META_TXN_FILLS',
-              process.env.WHITELISTED_API_KEYS_META_TXN_FILLS,
+              'WHITELISTED_API_KEYS_META_TXN_SUBMIT',
+              process.env.WHITELISTED_API_KEYS_META_TXN_SUBMIT,
               EnvVarType.APIKeys,
           );
 

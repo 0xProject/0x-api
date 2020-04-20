@@ -111,7 +111,7 @@ export async function getAppAsync(
     const signerService = new SignerService();
     const handlers = new SignerHandlers(signerService);
     app.post(
-        `${META_TRANSACTION_PATH}/fill`,
+        `${META_TRANSACTION_PATH}/submit`,
         asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
     );
 
