@@ -45,9 +45,7 @@ export async function setupApiAsync(logConfig: LoggingConfig = {}): Promise<void
         });
     }
     // Wait for the API to boot up
-    // HACK(jalextowle): This should really be replaced by log-scraping, but it
-    // does appear to work for now.
-    await sleepAsync(10000); // tslint:disable-line:custom-no-magic-numbers
+    await waitForApiStartupAsync(yarnStartProcess);
 }
 
 /**
@@ -69,6 +67,11 @@ export async function teardownApiAsync(logConfig: LoggingConfig = {}): Promise<v
  *        should be printed.
  */
 export async function setupDependenciesAsync(shouldPrintLogs: boolean = false): Promise<void> {
+    // Remove the saved volumes to ensure a sandboxed testing environment.
+    await rimrafAsync(`${apiRootDir}/0x_mesh`);
+    await rimrafAsync(`${apiRootDir}/postgres`);
+
+    // Spin up the 0x-api dependencies
     const up = spawn('docker-compose', ['up'], {
         cwd: apiRootDir,
         env: {
@@ -85,10 +88,9 @@ export async function setupDependenciesAsync(shouldPrintLogs: boolean = false): 
             neatlyPrintChunk('[docker-compose up | error]', chunk);
         });
     }
+
     // Wait for the dependencies to boot up.
-    // HACK(jalextowle): This should really be replaced by log-scraping, but it
-    // does appear to work for now.
-    await sleepAsync(23000); // tslint:disable-line:custom-no-magic-numbers
+    await waitForDependencyStartupAsync(up);
 }
 
 /**
@@ -124,8 +126,37 @@ function neatlyPrintChunk(prefix: string, chunk: Buffer): void {
     });
 }
 
-async function sleepAsync(duration: number): Promise<void> {
+async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
     return new Promise<void>(resolve => {
-        setTimeout(resolve, duration);
+        logStream.stdout.on('data', (chunk: Buffer) => {
+            const data = chunk.toString().split('\n');
+            for (const datum of data) {
+                if (/API (HTTP) listening on port 3000!/.test(datum)) {
+                    resolve();
+                }
+            }
+        });
+    });
+}
+
+async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
+    return new Promise<void>(resolve => {
+        const hasSeenLog = [false, false, false];
+        logStream.stdout.on('data', (chunk: Buffer) => {
+            const data = chunk.toString().split('\n');
+            for (const datum of data) {
+                if (!hasSeenLog[0] && /.*mesh.*started HTTP RPC server/.test(datum)) {
+                    hasSeenLog[0] = true;
+                } else if (!hasSeenLog[1] && /.*mesh.*started WS RPC server/.test(datum)) {
+                    hasSeenLog[1] = true;
+                } else if (!hasSeenLog[2] && /.*postgres.*database system is ready to accept connections/.test(datum)) {
+                    hasSeenLog[2] = true;
+                }
+
+                if (hasSeenLog[0] === true && hasSeenLog[1] === true && hasSeenLog[2] === true) {
+                    resolve();
+                }
+            }
+        });
     });
 }
