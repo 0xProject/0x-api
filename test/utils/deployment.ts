@@ -141,19 +141,25 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
 
 async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
     return new Promise<void>(resolve => {
-        const hasSeenLog = [false, false, false];
+        const hasSeenLog = [0, 0, 0];
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
             for (const datum of data) {
-                if (!hasSeenLog[0] && /.*mesh.*started HTTP RPC server/.test(datum)) {
-                    hasSeenLog[0] = true;
-                } else if (!hasSeenLog[1] && /.*mesh.*started WS RPC server/.test(datum)) {
-                    hasSeenLog[1] = true;
-                } else if (!hasSeenLog[2] && /.*postgres.*database system is ready to accept connections/.test(datum)) {
-                    hasSeenLog[2] = true;
+                if (hasSeenLog[0] < 2 && /.*mesh.*started HTTP RPC server/.test(datum)) {
+                    hasSeenLog[0]++;
+                } else if (hasSeenLog[1] < 2 && /.*mesh.*started WS RPC server/.test(datum)) {
+                    hasSeenLog[1]++;
+                } else if (
+                    // NOTE(jalextowle): Because the `postgres` database is deleted before every
+                    // test run, we must skip over the "autovacuming" step that creates a new
+                    // postgres table.
+                    hasSeenLog[2] < 2 &&
+                    /.*postgres.*database system is ready to accept connections/.test(datum)
+                ) {
+                    hasSeenLog[2]++;
                 }
 
-                if (hasSeenLog[0] === true && hasSeenLog[1] === true && hasSeenLog[2] === true) {
+                if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 2) {
                     resolve();
                 }
             }
