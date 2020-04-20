@@ -1,5 +1,6 @@
 import { logUtils as log } from '@0x/utils';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
 import { promisify } from 'util';
@@ -7,42 +8,51 @@ import { promisify } from 'util';
 const apiRootDir = path.normalize(path.resolve(`${__dirname}/../../../`));
 const rimrafAsync = promisify(rimraf);
 
-let yarnStartProcess: ChildProcessWithoutNullStreams;
-
-/**
- * The configuration object that provides information on how verbose the logs
- * should be.
- * @param shouldPrintApiLogs Whether or not the 0x-api logs should be surfaced.
- * @param shouldPrintDependencyLogs Whether or not the 0x-api's dependencies
- *        should surface their logs.
- * TODO(jalextowle): It would be a good improvement to be able to specify log
- * files where the logs should actually be written.
- */
-export interface LoggingConfig {
-    shouldPrintApiLogs?: boolean;
-    shouldPrintDependencyLogs?: boolean;
+export enum LogType {
+    Hidden,
+    Console,
+    File,
 }
 
 /**
- * Sets up a 0x-api instance.
- * @param logConfig Whether or not the logs from the setup functions should
- *        be printed.
+ * The configuration object that provides information on how verbose the logs
+ * should be and where they should be located.
+ * @param apiLogType The location where the API logs should be logged.
+ * @param dependencyLogType The location where the API's dependency logs should be logged.
  */
-export async function setupApiAsync(logConfig: LoggingConfig = {}): Promise<void> {
+export interface LoggingConfig {
+    apiLogType: LogType;
+    dependencyLogType: LogType;
+}
+
+let yarnStartProcess: ChildProcessWithoutNullStreams;
+
+/**
+ * Sets up a 0x-api instance.
+ * @param logConfig Where logs should be directed.
+ */
+export async function setupApiAsync(
+    logConfig: LoggingConfig = { apiLogType: LogType.Hidden, dependencyLogType: LogType.Hidden },
+): Promise<void> {
     if (yarnStartProcess) {
         throw new Error('Old 0x-api instance has not been torn down');
     }
-    await setupDependenciesAsync(logConfig.shouldPrintDependencyLogs || false);
+    await setupDependenciesAsync(logConfig.dependencyLogType);
     yarnStartProcess = spawn('yarn', ['start'], {
         cwd: apiRootDir,
     });
-    if (logConfig.shouldPrintApiLogs) {
+    if (logConfig.apiLogType === LogType.Console) {
         yarnStartProcess.stdout.on('data', chunk => {
             neatlyPrintChunk('[0x-api]', chunk);
         });
         yarnStartProcess.stderr.on('data', chunk => {
             neatlyPrintChunk('[0x-api | error]', chunk);
         });
+    } else if (logConfig.apiLogType === LogType.File) {
+        const logStream = fs.createWriteStream(`${apiRootDir}/api_logs`, { flags: 'a' });
+        const errorStream = fs.createWriteStream(`${apiRootDir}/api_errors`, { flags: 'a' });
+        yarnStartProcess.stdout.pipe(logStream);
+        yarnStartProcess.stderr.pipe(errorStream);
     }
     // Wait for the API to boot up
     await waitForApiStartupAsync(yarnStartProcess);
@@ -50,23 +60,20 @@ export async function setupApiAsync(logConfig: LoggingConfig = {}): Promise<void
 
 /**
  * Tears down the old 0x-api instance.
- * @param logConfig Whether or not the logs from the teardown functions should
- *        be printed.
  */
-export async function teardownApiAsync(logConfig: LoggingConfig = {}): Promise<void> {
+export async function teardownApiAsync(): Promise<void> {
     if (!yarnStartProcess) {
         throw new Error('There is no 0x-api instance to tear down');
     }
     yarnStartProcess.kill();
-    await teardownDependenciesAsync(logConfig.shouldPrintDependencyLogs || false);
+    await teardownDependenciesAsync();
 }
 
 /**
  * Sets up 0x-api's dependencies.
- * @param shouldPrintLogs Whether or not the logs from `docker-compose up`
- *        should be printed.
+ * @param logType Indicates where logs should be directed.
  */
-export async function setupDependenciesAsync(shouldPrintLogs: boolean = false): Promise<void> {
+export async function setupDependenciesAsync(logType: LogType = LogType.Hidden): Promise<void> {
     // Remove the saved volumes to ensure a sandboxed testing environment.
     await rimrafAsync(`${apiRootDir}/0x_mesh`);
     await rimrafAsync(`${apiRootDir}/postgres`);
@@ -80,13 +87,20 @@ export async function setupDependenciesAsync(shouldPrintLogs: boolean = false): 
             ETHEREUM_CHAIN_ID: '1337',
         },
     });
-    if (shouldPrintLogs) {
+
+    // Direct the logs to the appropriate locations.
+    if (logType === LogType.Console) {
         up.stdout.on('data', chunk => {
             neatlyPrintChunk('[docker-compose up]', chunk);
         });
         up.stderr.on('data', chunk => {
             neatlyPrintChunk('[docker-compose up | error]', chunk);
         });
+    } else if (logType === LogType.File) {
+        const logStream = fs.createWriteStream(`${apiRootDir}/dependency_logs`, { flags: 'a' });
+        const errorStream = fs.createWriteStream(`${apiRootDir}/dependency_errors`, { flags: 'a' });
+        up.stdout.pipe(logStream);
+        up.stderr.pipe(errorStream);
     }
 
     // Wait for the dependencies to boot up.
@@ -95,21 +109,11 @@ export async function setupDependenciesAsync(shouldPrintLogs: boolean = false): 
 
 /**
  * Tears down 0x-api's dependencies.
- * @param shouldPrintLogs Whether or not the logs from `docker-compose down`
- *        should be printed.
  */
-export async function teardownDependenciesAsync(shouldPrintLogs: boolean = false): Promise<void> {
+export async function teardownDependenciesAsync(): Promise<void> {
     const down = spawn('docker-compose', ['down'], {
         cwd: apiRootDir,
     });
-    if (shouldPrintLogs) {
-        down.stdout.on('data', chunk => {
-            neatlyPrintChunk('[docker-compose down]', chunk);
-        });
-        down.stderr.on('data', chunk => {
-            neatlyPrintChunk('[docker-compose down | error]', chunk);
-        });
-    }
     await new Promise<void>(resolve => {
         down.on('close', () => {
             resolve();
