@@ -159,7 +159,6 @@ const EXCLUDED_SOURCES = (() => {
 
 const gasSchedule: { [key in ERC20BridgeSource]: number } = {
     [ERC20BridgeSource.Native]: 1.5e5,
-    [ERC20BridgeSource.Rfqt]: 1.5e5,
     [ERC20BridgeSource.Uniswap]: 3e5,
     [ERC20BridgeSource.LiquidityProvider]: 3e5,
     [ERC20BridgeSource.Eth2Dai]: 5.5e5,
