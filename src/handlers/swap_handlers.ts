@@ -56,6 +56,7 @@ export class SwapHandlers {
         params.skipValidation = true;
         const quote = await this._calculateSwapQuoteAsync(params, req.header('0x-api-key'));
         const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources, orders } = quote;
+        logger.info(`Serving indicative quote based on the following orders: ${JSON.stringify(orders)}`);
         res.status(HttpStatus.OK).send({ price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources });
     }
     // tslint:disable-next-line:prefer-function-over-method
