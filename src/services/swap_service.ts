@@ -102,6 +102,7 @@ export class SwapService {
         if (apiKey !== undefined && (isETHSell || from !== undefined)) {
             _rfqt = {
                 ...rfqt,
+                intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
                 apiKey,
                 // If this is a forwarder transaction, then we want to request quotes with the taker as the
                 // forwarder contract. If it's not, then we want to request quotes with the taker set to the
