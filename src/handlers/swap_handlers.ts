@@ -55,8 +55,8 @@ export class SwapHandlers {
         }
         params.skipValidation = true;
         const quote = await this._calculateSwapQuoteAsync(params, req.header('0x-api-key'));
-        const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount } = quote;
-        res.status(HttpStatus.OK).send({ price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount });
+        const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources, orders } = quote;
+        res.status(HttpStatus.OK).send({ price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources });
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getTokenPricesAsync(req: express.Request, res: express.Response): Promise<void> {

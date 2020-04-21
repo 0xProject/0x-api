@@ -338,6 +338,44 @@ describe('app test', () => {
                                 buyAmount: '100000000000000000',
                                 price: '1',
                                 sellAmount: '100000000000000000',
+                                sources: [
+                                    {
+                                        name: '0x',
+                                        proportion: '1',
+                                    },
+                                    {
+                                        name: 'Uniswap',
+                                        proportion: '0',
+                                    },
+                                    {
+                                        name: 'Eth2Dai',
+                                        proportion: '0',
+                                    },
+                                    {
+                                        name: 'Kyber',
+                                        proportion: '0',
+                                    },
+                                    {
+                                        name: 'Curve_USDC_DAI',
+                                        proportion: '0',
+                                    },
+                                    {
+                                        name: 'Curve_USDC_DAI_USDT',
+                                        proportion: '0',
+                                    },
+                                    {
+                                        name: 'Curve_USDC_DAI_USDT_TUSD',
+                                        proportion: '0',
+                                    },
+                                    {
+                                        name: 'LiquidityProvider',
+                                        proportion: '0',
+                                    },
+                                    {
+                                        name: 'Curve_USDC_DAI_USDT_BUSD',
+                                        proportion: '0',
+                                    },
+                                ],
                             });
                         },
                     );
