@@ -17,7 +17,7 @@ import { SignedOrderEntity } from '../src/entities';
 import { GeneralErrorCodes, generalErrorCodeToReason } from '../src/errors';
 
 import * as orderFixture from './fixtures/order.json';
-import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
+import { LogType, setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { expect } from './utils/expect';
 import { ganacheZrxWethOrder1 } from './utils/mocks';
 
@@ -36,7 +36,7 @@ const MAX_UINT256 = new BigNumber(2).pow(256).minus(1);
 describe('app test', () => {
     before(async () => {
         // start the 0x-api app
-        await setupDependenciesAsync();
+        await setupDependenciesAsync(LogType.Console);
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -56,7 +56,7 @@ describe('app test', () => {
         app = await getAppAsync({ ...dependencies }, config);
     });
     after(async () => {
-        await teardownDependenciesAsync();
+        await teardownDependenciesAsync(LogType.Console);
     });
     it('should respond to GET /sra/orders', async () => {
         await request(app)

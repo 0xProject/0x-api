@@ -9,7 +9,6 @@ const apiRootDir = path.normalize(path.resolve(`${__dirname}/../../../`));
 const rimrafAsync = promisify(rimraf);
 
 export enum LogType {
-    Hidden,
     Console,
     File,
 }
@@ -21,65 +20,61 @@ export enum LogType {
  * @param dependencyLogType The location where the API's dependency logs should be logged.
  */
 export interface LoggingConfig {
-    apiLogType: LogType;
-    dependencyLogType: LogType;
+    apiLogType?: LogType;
+    dependencyLogType?: LogType;
 }
 
-let yarnStartProcess: ChildProcessWithoutNullStreams;
+let start: ChildProcessWithoutNullStreams;
 
 /**
  * Sets up a 0x-api instance.
  * @param logConfig Where logs should be directed.
  */
-export async function setupApiAsync(
-    logConfig: LoggingConfig = { apiLogType: LogType.Hidden, dependencyLogType: LogType.Hidden },
-): Promise<void> {
-    if (yarnStartProcess) {
+export async function setupApiAsync(logConfig: LoggingConfig = {}): Promise<void> {
+    if (start) {
         throw new Error('Old 0x-api instance has not been torn down');
     }
     await setupDependenciesAsync(logConfig.dependencyLogType);
-    yarnStartProcess = spawn('yarn', ['start'], {
+    start = spawn('yarn', ['start'], {
         cwd: apiRootDir,
     });
-    if (logConfig.apiLogType === LogType.Console) {
-        yarnStartProcess.stdout.on('data', chunk => {
-            neatlyPrintChunk('[0x-api]', chunk);
-        });
-        yarnStartProcess.stderr.on('data', chunk => {
-            neatlyPrintChunk('[0x-api | error]', chunk);
-        });
-    } else if (logConfig.apiLogType === LogType.File) {
-        const logStream = fs.createWriteStream(`${apiRootDir}/api_logs`, { flags: 'a' });
-        const errorStream = fs.createWriteStream(`${apiRootDir}/api_errors`, { flags: 'a' });
-        yarnStartProcess.stdout.pipe(logStream);
-        yarnStartProcess.stderr.pipe(errorStream);
-    }
-    // Wait for the API to boot up
-    await waitForApiStartupAsync(yarnStartProcess);
+
+    await waitForApiStartupAsync(start);
 }
 
 /**
  * Tears down the old 0x-api instance.
  */
-export async function teardownApiAsync(): Promise<void> {
-    if (!yarnStartProcess) {
+export async function teardownApiAsync(logType?: LogType): Promise<void> {
+    if (!start) {
         throw new Error('There is no 0x-api instance to tear down');
     }
-    yarnStartProcess.kill();
-    await teardownDependenciesAsync();
+    start.kill();
+    await teardownDependenciesAsync(logType);
 }
+
+// NOTE(jalextowle): This is used to avoid calling teardown logic redundantly.
+let didTearDown = false;
 
 /**
  * Sets up 0x-api's dependencies.
  * @param logType Indicates where logs should be directed.
  */
-export async function setupDependenciesAsync(logType: LogType = LogType.Hidden): Promise<void> {
-    // Remove the saved volumes to ensure a sandboxed testing environment.
-    await rimrafAsync(`${apiRootDir}/0x_mesh`);
-    await rimrafAsync(`${apiRootDir}/postgres`);
+export async function setupDependenciesAsync(logType?: LogType): Promise<void> {
+    // Tear down any existing dependencies or lingering data if a tear-down has
+    // not been called yet.
+    if (!didTearDown) {
+        await teardownDependenciesAsync(logType);
+    }
+
+    const pull = spawn('docker-compose', ['pull'], {
+        cwd: apiRootDir,
+    });
+    directLogs(pull, 'pull', logType);
+    await waitForCloseAsync(pull);
 
     // Spin up the 0x-api dependencies
-    const up = spawn('docker-compose', ['up'], {
+    const up = spawn('docker-compose', ['up', '--build'], {
         cwd: apiRootDir,
         env: {
             ...process.env,
@@ -87,21 +82,8 @@ export async function setupDependenciesAsync(logType: LogType = LogType.Hidden):
             ETHEREUM_CHAIN_ID: '1337',
         },
     });
-
-    // Direct the logs to the appropriate locations.
-    if (logType === LogType.Console) {
-        up.stdout.on('data', chunk => {
-            neatlyPrintChunk('[docker-compose up]', chunk);
-        });
-        up.stderr.on('data', chunk => {
-            neatlyPrintChunk('[docker-compose up | error]', chunk);
-        });
-    } else if (logType === LogType.File) {
-        const logStream = fs.createWriteStream(`${apiRootDir}/dependency_logs`, { flags: 'a' });
-        const errorStream = fs.createWriteStream(`${apiRootDir}/dependency_errors`, { flags: 'a' });
-        up.stdout.pipe(logStream);
-        up.stderr.pipe(errorStream);
-    }
+    directLogs(up, 'up', logType);
+    didTearDown = false;
 
     // Wait for the dependencies to boot up.
     await waitForDependencyStartupAsync(up);
@@ -109,24 +91,51 @@ export async function setupDependenciesAsync(logType: LogType = LogType.Hidden):
 
 /**
  * Tears down 0x-api's dependencies.
+ * @param logType Indicates where logs should be directed.
  */
-export async function teardownDependenciesAsync(): Promise<void> {
-    const down = spawn('docker-compose', ['down'], {
+export async function teardownDependenciesAsync(logType?: LogType): Promise<void> {
+    // Tear down any existing docker containers from the `docker-compose.yml` file.
+    const rm = spawn('docker-compose', ['rm', '-f'], {
         cwd: apiRootDir,
     });
-    await new Promise<void>(resolve => {
-        down.on('close', () => {
-            resolve();
-        });
-    });
+    directLogs(rm, 'rm', logType);
+    await waitForCloseAsync(rm);
+
+    // Remove any persisted files.
     await rimrafAsync(`${apiRootDir}/0x_mesh`);
     await rimrafAsync(`${apiRootDir}/postgres`);
+
+    didTearDown = true;
+}
+
+function directLogs(stream: ChildProcessWithoutNullStreams, command: string, logType?: LogType): void {
+    if (logType === LogType.Console) {
+        stream.stdout.on('data', chunk => {
+            neatlyPrintChunk(`[${command}]`, chunk);
+        });
+        stream.stderr.on('data', chunk => {
+            neatlyPrintChunk(`[${command} | error]`, chunk);
+        });
+    } else if (logType === LogType.File) {
+        const logStream = fs.createWriteStream(`${apiRootDir}/${command}_logs`, { flags: 'a' });
+        const errorStream = fs.createWriteStream(`${apiRootDir}/${command}_errors`, { flags: 'a' });
+        stream.stdout.pipe(logStream);
+        stream.stderr.pipe(errorStream);
+    }
 }
 
 function neatlyPrintChunk(prefix: string, chunk: Buffer): void {
     const data = chunk.toString().split('\n');
     data.filter((datum: string) => datum !== '').map((datum: string) => {
         log.log(prefix, datum.trim());
+    });
+}
+
+async function waitForCloseAsync(stream: ChildProcessWithoutNullStreams): Promise<void> {
+    return new Promise<void>(resolve => {
+        stream.on('close', () => {
+            resolve();
+        });
     });
 }
 
