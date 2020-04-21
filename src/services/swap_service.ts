@@ -57,6 +57,7 @@ export class SwapService {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _wethContract: WETH9Contract;
     private readonly _protocolFeeUtils: ProtocolFeeUtils;
+    private readonly _forwarderAddress: string;
 
     constructor(orderbook: Orderbook, provider: SupportedProvider) {
         this._provider = provider;
@@ -76,6 +77,7 @@ export class SwapService {
         const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
         this._wethContract = new WETH9Contract(contractAddresses.etherToken, this._provider);
         this._protocolFeeUtils = new ProtocolFeeUtils(PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
+        this._forwarderAddress = contractAddresses.forwarder;
     }
 
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
@@ -104,7 +106,7 @@ export class SwapService {
                 // If this is a forwarder transaction, then we want to request quotes with the taker as the
                 // forwarder contract. If it's not, then we want to request quotes with the taker set to the
                 // API's takerAddress query parameter, which in this context is known as `from`.
-                takerAddress: isETHSell ? getContractAddressesForChainOrThrow(CHAIN_ID).forwarder : from || '',
+                takerAddress: isETHSell ? this._forwarderAddress : from || '',
             };
         }
         const assetSwapperOpts = {
