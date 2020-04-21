@@ -30,9 +30,7 @@ export class SwapHandlers {
         this._swapService = swapService;
     }
     public async getSwapQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        res.status(HttpStatus.OK).send(
-            await this._calculateSwapQuoteAsync(parseGetSwapQuoteRequestParams(req), req.header('0x-api-key')),
-        );
+        res.status(HttpStatus.OK).send(await this._calculateSwapQuoteAsync(parseGetSwapQuoteRequestParams(req)));
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getSwapTokensAsync(_req: express.Request, res: express.Response): Promise<void> {
@@ -54,7 +52,7 @@ export class SwapHandlers {
             };
         }
         params.skipValidation = true;
-        const quote = await this._calculateSwapQuoteAsync(params, req.header('0x-api-key'));
+        const quote = await this._calculateSwapQuoteAsync(params);
         const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources, orders } = quote;
         logger.info(`Serving indicative quote based on the following orders: ${JSON.stringify(orders)}`);
         res.status(HttpStatus.OK).send({ price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources });
@@ -76,10 +74,7 @@ export class SwapHandlers {
         const records = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount);
         res.status(HttpStatus.OK).send({ records });
     }
-    private async _calculateSwapQuoteAsync(
-        params: GetSwapQuoteRequestParams,
-        apiKey?: string,
-    ): Promise<GetSwapQuoteResponse> {
+    private async _calculateSwapQuoteAsync(params: GetSwapQuoteRequestParams): Promise<GetSwapQuoteResponse> {
         const {
             sellToken,
             buyToken,
@@ -93,6 +88,7 @@ export class SwapHandlers {
             rfqt,
             // tslint:disable-next-line:boolean-naming
             skipValidation,
+            apiKey,
         } = params;
 
         const isETHSell = isETHSymbol(sellToken);
@@ -236,6 +232,7 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
         req.query.intentOnFilling === undefined ? undefined : { intentOnFilling: req.query.intentOnFilling === 'true' };
     // tslint:disable-next-line:boolean-naming
     const skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
+    const apiKey = req.header('0x-api-key');
     return {
         takerAddress,
         sellToken,
@@ -248,5 +245,6 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
         affiliateAddress,
         rfqt,
         skipValidation,
+        apiKey,
     };
 };

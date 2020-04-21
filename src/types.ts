@@ -363,6 +363,7 @@ export interface GetSwapQuoteRequestParams {
         intentOnFilling?: boolean;
     };
     skipValidation: boolean;
+    apiKey?: string;
 }
 
 export interface CalculateSwapQuoteParams {
