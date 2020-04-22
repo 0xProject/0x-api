@@ -17,7 +17,7 @@ import { SignedOrderEntity } from '../src/entities';
 import { GeneralErrorCodes, generalErrorCodeToReason } from '../src/errors';
 
 import * as orderFixture from './fixtures/order.json';
-import { LogType, setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
+import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { expect } from './utils/expect';
 import { ganacheZrxWethOrder1 } from './utils/mocks';
 
@@ -32,11 +32,12 @@ let dependencies: AppDependencies;
 
 // tslint:disable-next-line:custom-no-magic-numbers
 const MAX_UINT256 = new BigNumber(2).pow(256).minus(1);
+const SUITE_NAME = 'app_test';
 
-describe('app test', () => {
+describe(SUITE_NAME, () => {
     before(async () => {
         // start the 0x-api app
-        await setupDependenciesAsync(LogType.Console);
+        await setupDependenciesAsync(SUITE_NAME);
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -56,7 +57,7 @@ describe('app test', () => {
         app = await getAppAsync({ ...dependencies }, config);
     });
     after(async () => {
-        await teardownDependenciesAsync(LogType.Console);
+        await teardownDependenciesAsync(SUITE_NAME);
     });
     it('should respond to GET /sra/orders', async () => {
         await request(app)
@@ -130,10 +131,10 @@ describe('app test', () => {
         let makerAddress: string;
         let takerAddress: string;
 
-        const CHAIN_ID = await web3Wrapper.getChainIdAsync();
-
         beforeEach(async () => {
-            contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
+            contractAddresses = getContractAddressesForChainOrThrow(
+                process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID, 10) : await web3Wrapper.getChainIdAsync(),
+            );
             [makerAddress, takerAddress] = accounts;
         });
 

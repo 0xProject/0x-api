@@ -30,26 +30,30 @@ let start: ChildProcessWithoutNullStreams;
  * Sets up a 0x-api instance.
  * @param logConfig Where logs should be directed.
  */
-export async function setupApiAsync(logConfig: LoggingConfig = {}): Promise<void> {
+export async function setupApiAsync(suiteName: string, logConfig: LoggingConfig = {}): Promise<void> {
     if (start) {
         throw new Error('Old 0x-api instance has not been torn down');
     }
-    await setupDependenciesAsync(logConfig.dependencyLogType);
+    await setupDependenciesAsync(suiteName, logConfig.dependencyLogType);
     start = spawn('yarn', ['start'], {
         cwd: apiRootDir,
     });
+    directLogs(start, suiteName, 'start', logConfig.apiLogType);
     await waitForApiStartupAsync(start);
 }
 
 /**
  * Tears down the old 0x-api instance.
+ * @param suiteName The name of the test suite that is using this function. This
+ *        helps to make the logs more intelligible.
+ * @param logType Indicates where logs should be directed.
  */
-export async function teardownApiAsync(logType?: LogType): Promise<void> {
+export async function teardownApiAsync(suiteName: string, logType?: LogType): Promise<void> {
     if (!start) {
         throw new Error('There is no 0x-api instance to tear down');
     }
     start.kill();
-    await teardownDependenciesAsync(logType);
+    await teardownDependenciesAsync(suiteName, logType);
 }
 
 // NOTE(jalextowle): This is used to avoid calling teardown logic redundantly.
@@ -57,20 +61,23 @@ let didTearDown = false;
 
 /**
  * Sets up 0x-api's dependencies.
+ * @param suiteName The name of the test suite that is using this function. This
+ *        helps to make the logs more intelligible.
  * @param logType Indicates where logs should be directed.
  */
-export async function setupDependenciesAsync(logType?: LogType): Promise<void> {
+export async function setupDependenciesAsync(suiteName: string, logType?: LogType): Promise<void> {
     // Tear down any existing dependencies or lingering data if a tear-down has
     // not been called yet.
     if (!didTearDown) {
-        await teardownDependenciesAsync(logType);
+        await teardownDependenciesAsync(suiteName, logType);
     }
 
     const pull = spawn('docker-compose', ['pull'], {
         cwd: apiRootDir,
     });
-    directLogs(pull, 'pull', logType);
-    await waitForCloseAsync(pull);
+    directLogs(pull, suiteName, 'pull', logType);
+    const pullTimeout = 5000;
+    await waitForCloseAsync(pull, pullTimeout);
 
     // Spin up the 0x-api dependencies
     const up = spawn('docker-compose', ['up', '--build'], {
@@ -81,7 +88,7 @@ export async function setupDependenciesAsync(logType?: LogType): Promise<void> {
             ETHEREUM_CHAIN_ID: '1337',
         },
     });
-    directLogs(up, 'up', logType);
+    directLogs(up, suiteName, 'up', logType);
     didTearDown = false;
 
     // Wait for the dependencies to boot up.
@@ -90,15 +97,18 @@ export async function setupDependenciesAsync(logType?: LogType): Promise<void> {
 
 /**
  * Tears down 0x-api's dependencies.
+ * @param suiteName The name of the test suite that is using this function. This
+ *        helps to make the logs more intelligible.
  * @param logType Indicates where logs should be directed.
  */
-export async function teardownDependenciesAsync(logType?: LogType): Promise<void> {
+export async function teardownDependenciesAsync(suiteName: string, logType?: LogType): Promise<void> {
     // Tear down any existing docker containers from the `docker-compose.yml` file.
     const rm = spawn('docker-compose', ['rm', '-f'], {
         cwd: apiRootDir,
     });
-    directLogs(rm, 'rm', logType);
-    await waitForCloseAsync(rm);
+    directLogs(rm, suiteName, 'rm', logType);
+    const rmTimeout = 5000;
+    await waitForCloseAsync(rm, rmTimeout);
 
     // Remove any persisted files.
     await rimrafAsync(`${apiRootDir}/0x_mesh`);
@@ -107,17 +117,22 @@ export async function teardownDependenciesAsync(logType?: LogType): Promise<void
     didTearDown = true;
 }
 
-function directLogs(stream: ChildProcessWithoutNullStreams, command: string, logType?: LogType): void {
+function directLogs(
+    stream: ChildProcessWithoutNullStreams,
+    suiteName: string,
+    command: string,
+    logType?: LogType,
+): void {
     if (logType === LogType.Console) {
         stream.stdout.on('data', chunk => {
-            neatlyPrintChunk(`[${command}]`, chunk);
+            neatlyPrintChunk(`[${suiteName}-${command}]`, chunk);
         });
         stream.stderr.on('data', chunk => {
-            neatlyPrintChunk(`[${command} | error]`, chunk);
+            neatlyPrintChunk(`[${suiteName}-${command} | error]`, chunk);
         });
     } else if (logType === LogType.File) {
-        const logStream = fs.createWriteStream(`${apiRootDir}/${command}_logs`, { flags: 'a' });
-        const errorStream = fs.createWriteStream(`${apiRootDir}/${command}_errors`, { flags: 'a' });
+        const logStream = fs.createWriteStream(`${apiRootDir}/${suiteName}_${command}_logs`, { flags: 'a' });
+        const errorStream = fs.createWriteStream(`${apiRootDir}/${suiteName}_${command}_errors`, { flags: 'a' });
         stream.stdout.pipe(logStream);
         stream.stderr.pipe(errorStream);
     }
@@ -130,11 +145,14 @@ function neatlyPrintChunk(prefix: string, chunk: Buffer): void {
     });
 }
 
-async function waitForCloseAsync(stream: ChildProcessWithoutNullStreams): Promise<void> {
-    return new Promise<void>(resolve => {
+async function waitForCloseAsync(stream: ChildProcessWithoutNullStreams, timeout: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
         stream.on('close', () => {
             resolve();
         });
+        setTimeout(() => {
+            reject(new Error('Timed out waiting for stream to close'));
+        }, timeout);
     });
 }
 
