@@ -76,8 +76,8 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
         cwd: apiRootDir,
     });
     directLogs(pull, suiteName, 'pull', logType);
-    const pullTimeout = 5000;
-    await waitForCloseAsync(pull, pullTimeout);
+    const pullTimeout = 10000;
+    await waitForCloseAsync(pull, 'pull', pullTimeout);
 
     // Spin up the 0x-api dependencies
     const up = spawn('docker-compose', ['up', '--build'], {
@@ -108,7 +108,7 @@ export async function teardownDependenciesAsync(suiteName: string, logType?: Log
     });
     directLogs(rm, suiteName, 'rm', logType);
     const rmTimeout = 5000;
-    await waitForCloseAsync(rm, rmTimeout);
+    await waitForCloseAsync(rm, 'rm', rmTimeout);
 
     // Remove any persisted files.
     await rimrafAsync(`${apiRootDir}/0x_mesh`);
@@ -145,13 +145,17 @@ function neatlyPrintChunk(prefix: string, chunk: Buffer): void {
     });
 }
 
-async function waitForCloseAsync(stream: ChildProcessWithoutNullStreams, timeout: number): Promise<void> {
+async function waitForCloseAsync(
+    stream: ChildProcessWithoutNullStreams,
+    command: string,
+    timeout: number,
+): Promise<void> {
     return new Promise<void>((resolve, reject) => {
         stream.on('close', () => {
             resolve();
         });
         setTimeout(() => {
-            reject(new Error('Timed out waiting for stream to close'));
+            reject(new Error(`Timed out waiting for "${command}" to close`));
         }, timeout);
     });
 }
