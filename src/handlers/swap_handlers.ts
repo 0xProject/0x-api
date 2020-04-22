@@ -53,8 +53,7 @@ export class SwapHandlers {
         params.rfqt.isIndicative = true;
         params.skipValidation = true;
         const quote = await this._calculateSwapQuoteAsync(params);
-        const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources, orders } = quote;
-        logger.info(`Serving indicative quote based on the following orders: ${JSON.stringify(orders)}`);
+        const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources } = quote;
         res.status(HttpStatus.OK).send({ price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources });
     }
     // tslint:disable-next-line:prefer-function-over-method
