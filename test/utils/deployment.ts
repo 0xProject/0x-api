@@ -38,7 +38,6 @@ export async function setupApiAsync(logConfig: LoggingConfig = {}): Promise<void
     start = spawn('yarn', ['start'], {
         cwd: apiRootDir,
     });
-
     await waitForApiStartupAsync(start);
 }
 
@@ -140,7 +139,7 @@ async function waitForCloseAsync(stream: ChildProcessWithoutNullStreams): Promis
 }
 
 async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve, reject) => {
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
             for (const datum of data) {
@@ -149,11 +148,14 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
                 }
             }
         });
+        setTimeout(() => {
+            reject(new Error('Timed out waiting for 0x-api logs'));
+        }, 5000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
 async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve, reject) => {
         const hasSeenLog = [0, 0, 0];
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
@@ -177,5 +179,8 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
                 }
             }
         });
+        setTimeout(() => {
+            reject(new Error('Timed out waiting for dependency logs'));
+        }, 22500); // tslint:disable-line:custom-no-magic-numbers
     });
 }

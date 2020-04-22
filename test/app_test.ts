@@ -130,8 +130,10 @@ describe('app test', () => {
         let makerAddress: string;
         let takerAddress: string;
 
-        beforeEach(() => {
-            contractAddresses = getContractAddressesForChainOrThrow(parseInt(process.env.CHAIN_ID || '1337', 10));
+        const CHAIN_ID = await web3Wrapper.getChainIdAsync();
+
+        beforeEach(async () => {
+            contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
             [makerAddress, takerAddress] = accounts;
         });
 
