@@ -1,12 +1,9 @@
-import Axios, { AxiosPromise, AxiosRequestConfig } from 'axios';
+import Axios from 'axios';
 import * as rax from 'retry-axios';
 
 import { logger } from '../logger';
 
-// Attach retry-axios to the global instance
-rax.attach();
-
-const DEFAULT_RETRY_CONFIG: rax.RetryConfig = {
+export const DEFAULT_AXIOS_RETRY_CONFIG: rax.RetryConfig = {
     // Retry 3 times
     retry: 3,
     // Retry twice on no response (ETIMEDOUT)
@@ -21,12 +18,9 @@ const DEFAULT_RETRY_CONFIG: rax.RetryConfig = {
     },
 };
 
-export const axios = (config: AxiosRequestConfig): AxiosPromise => {
-    return Axios({
-        ...config,
-        raxConfig: {
-            ...DEFAULT_RETRY_CONFIG,
-            ...config.raxConfig,
-        },
-    });
+export const retryableAxios = Axios.create();
+retryableAxios.defaults.raxConfig = {
+    instance: retryableAxios,
+    ...DEFAULT_AXIOS_RETRY_CONFIG,
 };
+rax.attach(retryableAxios);
