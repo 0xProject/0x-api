@@ -76,7 +76,10 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
         cwd: apiRootDir,
     });
     directLogs(pull, suiteName, 'pull', logType);
-    const pullTimeout = 10000;
+    // NOTE(jalextowle): This doesn't usually take this long locally, but CI takes
+    // considerably longer. The reason for this could have to do with the fact that
+    // we are using Docker-in-Docker to run the tests.
+    const pullTimeout = 20000;
     await waitForCloseAsync(pull, 'pull', pullTimeout);
 
     // Spin up the 0x-api dependencies
