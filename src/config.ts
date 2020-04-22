@@ -171,11 +171,9 @@ export const META_TXN_RELAY_ADDRESS = _.isEmpty(process.env.META_TXN_RELAY_ADDRE
     : assertEnvVarType('META_TXN_RELAY_ADDRESS', process.env.META_TXN_RELAY_ADDRESS, EnvVarType.ETHAddressHex);
 
 // The meta-txn relay sender private key
-export const META_TXN_RELAY_PRIVATE_KEY = assertEnvVarType(
-    'META_TXN_RELAY_PRIVATE_KEY',
-    process.env.META_TXN_RELAY_PRIVATE_KEY,
-    EnvVarType.NonEmptyString,
-);
+export const META_TXN_RELAY_PRIVATE_KEY = _.isEmpty(process.env.META_TXN_RELAY_PRIVATE_KEY)
+    ? undefined
+    : assertEnvVarType('META_TXN_RELAY_PRIVATE_KEY', process.env.META_TXN_RELAY_PRIVATE_KEY, EnvVarType.NonEmptyString);
 
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
