@@ -47,10 +47,10 @@ export class SwapHandlers {
     public async getSwapPriceAsync(req: express.Request, res: express.Response): Promise<void> {
         const params = parseGetSwapQuoteRequestParams(req);
         if (params.rfqt === undefined) {
-            params.rfqt = {
-                intentOnFilling: false,
-            };
+            params.rfqt = {};
         }
+        params.rfqt.intentOnFilling = false;
+        params.rfqt.isIndicative = true;
         params.skipValidation = true;
         const quote = await this._calculateSwapQuoteAsync(params);
         const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources, orders } = quote;
@@ -137,6 +137,7 @@ export class SwapHandlers {
                     ? undefined
                     : {
                           intentOnFilling: rfqt.intentOnFilling,
+                          isIndicative: rfqt.isIndicative,
                       },
             skipValidation,
         };

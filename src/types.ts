@@ -361,6 +361,7 @@ export interface GetSwapQuoteRequestParams {
     affiliateAddress?: string;
     rfqt?: {
         intentOnFilling?: boolean;
+        isIndicative?: boolean;
     };
     skipValidation: boolean;
     apiKey?: string;
@@ -380,6 +381,7 @@ export interface CalculateSwapQuoteParams {
     apiKey?: string;
     rfqt?: {
         intentOnFilling?: boolean;
+        isIndicative?: boolean;
     };
     skipValidation: boolean;
 }
