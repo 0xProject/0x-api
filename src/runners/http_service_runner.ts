@@ -51,10 +51,7 @@ export async function runHttpServiceAsync(
 ): Promise<Server> {
     const app = _app || express();
     app.use(requestLogger());
-    app.use(cors({
-        origin: '*',
-        allowedHeaders: ['Content-Type', '0x-api-key'],
-    }));
+    app.use(cors());
     app.use(bodyParser.json());
 
     app.get('/', rootHandler);
