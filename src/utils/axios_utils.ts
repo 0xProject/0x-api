@@ -29,5 +29,5 @@ export const retryableAxios = (config: AxiosRequestConfig): AxiosPromise => {
         },
     });
 };
-// Attach retry-axios to the global instance
+// Attach retry-axios only to our specific instance
 rax.attach(retryableAxiosInstance);
