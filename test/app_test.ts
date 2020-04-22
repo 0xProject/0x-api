@@ -167,6 +167,47 @@ describe('app test', () => {
                         },
                     );
                 });
+                it('should not include an RFQ-T order when intentOnFilling === false', async () => {
+                    const sellAmount = new BigNumber(100000000000000000);
+
+                    const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
+                    await wethContract.deposit().sendTransactionAsync({ value: sellAmount, from: takerAddress });
+                    await wethContract
+                        .approve(contractAddresses.erc20Proxy, sellAmount)
+                        .sendTransactionAsync({ from: takerAddress });
+
+                    const mockedApiParams = {
+                        sellToken: contractAddresses.etherToken,
+                        buyToken: contractAddresses.zrxToken,
+                        sellAmount: sellAmount.toString(),
+                        buyAmount: undefined,
+                        takerAddress,
+                    };
+                    return rfqtMocker.withMockedRfqtIndicativeQuotes(
+                        [
+                            {
+                                endpoint: 'https://mock-rfqt1.club',
+                                responseData: rfqtIndicativeQuoteResponse,
+                                responseCode: 200,
+                                requestApiKey: 'koolApiKey1',
+                                requestParams: mockedApiParams,
+                            },
+                        ],
+                        async () => {
+                            const appResponse = await request(app)
+                                .get(
+                                    `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=false&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                                )
+                                .set('0x-api-key', 'koolApiKey1')
+                                .expect(HttpStatus.BAD_REQUEST)
+                                .expect('Content-Type', /json/);
+
+                            const validationErrors = appResponse.body.validationErrors;
+                            expect(validationErrors.length).to.eql(1);
+                            expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
+                        },
+                    );
+                });
                 it('should fail when taker address is not supplied', async () => {
                     const sellAmount = new BigNumber(100000000000000000);
 
