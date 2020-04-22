@@ -31,7 +31,9 @@ export class SwapHandlers {
         this._swapService = swapService;
     }
     public async getSwapQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        res.status(HttpStatus.OK).send(await this._calculateSwapQuoteAsync(parseGetSwapQuoteRequestParams(req)));
+        res.status(HttpStatus.OK).send(
+            await this._calculateSwapQuoteAsync(parseGetSwapQuoteRequestParams(req, 'quote')),
+        );
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getSwapTokensAsync(_req: express.Request, res: express.Response): Promise<void> {
@@ -46,12 +48,7 @@ export class SwapHandlers {
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getSwapPriceAsync(req: express.Request, res: express.Response): Promise<void> {
-        const params = parseGetSwapQuoteRequestParams(req);
-        if (params.rfqt === undefined) {
-            params.rfqt = {};
-        }
-        params.rfqt.intentOnFilling = false;
-        params.rfqt.isIndicative = true;
+        const params = parseGetSwapQuoteRequestParams(req, 'price');
         params.skipValidation = true;
         const quote = await this._calculateSwapQuoteAsync(params);
         const { price, value, gasPrice, gas, protocolFee, buyAmount, sellAmount, sources } = quote;
@@ -190,7 +187,10 @@ export class SwapHandlers {
     }
 }
 
-const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteRequestParams => {
+const parseGetSwapQuoteRequestParams = (
+    req: express.Request,
+    endpoint: 'price' | 'quote',
+): GetSwapQuoteRequestParams => {
     // HACK typescript typing does not allow this valid json-schema
     schemaUtils.validateSchema(req.query, schemas.swapQuoteRequestSchema as any);
     const takerAddress = req.query.takerAddress;
@@ -205,11 +205,16 @@ const parseGetSwapQuoteRequestParams = (req: express.Request): GetSwapQuoteReque
             ? undefined
             : parseUtils.parseStringArrForERC20BridgeSources(req.query.excludedSources.split(','));
     const affiliateAddress = req.query.affiliateAddress;
+    const apiKey = req.header('0x-api-key');
     const rfqt =
-        req.query.intentOnFilling === undefined ? undefined : { intentOnFilling: req.query.intentOnFilling === 'true' };
+        takerAddress && apiKey
+            ? {
+                  intentOnFilling: endpoint === 'quote' && req.query.intentOnFilling === 'true',
+                  isIndicative: endpoint === 'price',
+              }
+            : undefined;
     // tslint:disable-next-line:boolean-naming
     const skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
-    const apiKey = req.header('0x-api-key');
     return {
         takerAddress,
         sellToken,
