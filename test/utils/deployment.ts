@@ -77,7 +77,7 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     }
 
     // Spin up the 0x-api dependencies
-    const up = spawn('docker-compose', ['up', '--build'], {
+    const up = spawn('docker-compose', ['up', '--build', '--force-recreate'], {
         cwd: testRootDir,
         env: {
             ...process.env,
@@ -100,12 +100,22 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
  */
 export async function teardownDependenciesAsync(suiteName: string, logType?: LogType): Promise<void> {
     // Tear down any existing docker containers from the `docker-compose.yml` file.
-    const rm = spawn('docker-compose', ['rm', '-f'], {
-        cwd: testRootDir,
+    const down = spawn('docker-compose', ['down', '-v', '--rmi', 'all'], {
+        cwd: apiRootDir,
+    });
+    directLogs(down, suiteName, 'down', logType);
+    const downTimeout = 20000;
+    await waitForCloseAsync(down, 'down', downTimeout);
+
+    // Tear down any existing docker containers from the `docker-compose.yml` file.
+    /*
+    const rm = spawn('docker-compose', ['rm', '-v', '-f'], {
+        cwd: apiRootDir,
     });
     directLogs(rm, suiteName, 'rm', logType);
     const rmTimeout = 5000;
     await waitForCloseAsync(rm, 'rm', rmTimeout);
+    */
 
     didTearDown = true;
 }
@@ -168,14 +178,14 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
             for (const datum of data) {
-                if (/API (HTTP) listening on port 3000!/.test(datum)) {
+                if (/API \(HTTP\) listening on port 3000!/.test(datum)) {
                     resolve();
                 }
             }
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for 0x-api logs'));
-        }, 5000); // tslint:disable-line:custom-no-magic-numbers
+        }, 10000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
