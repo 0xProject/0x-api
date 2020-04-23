@@ -6,6 +6,7 @@ import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
@@ -23,6 +24,7 @@ import { expect } from './utils/expect';
 import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
 
 let app: Express.Application;
+let server: Server;
 
 let web3Wrapper: Web3Wrapper;
 let provider: Web3ProviderEngine;
@@ -55,10 +57,18 @@ describe(SUITE_NAME, () => {
         dependencies = await getDefaultAppDependenciesAsync(provider, config);
 
         // start the 0x-api app
-        app = await getAppAsync({ ...dependencies }, config);
+        ({ app, server } = await getAppAsync({ ...dependencies }, config));
     });
     after(async () => {
         await teardownDependenciesAsync(SUITE_NAME);
+        await new Promise((resolve, reject) => {
+            server.close((err?: Error) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve();
+            });
+        });
     });
     it('should respond to GET /sra/orders', async () => {
         await request(app)
