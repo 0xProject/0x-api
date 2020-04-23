@@ -33,7 +33,9 @@ export const utils = {
 
             if (payload && response.id !== payload.id) {
                 throw new Error(
-                    `Validation error: Invalid JSON-RPC response ID (request: ${payload.id} / response: ${response.id})`,
+                    `Validation error: Invalid JSON-RPC response ID (request: ${payload.id} / response: ${
+                        response.id
+                    })`,
                 );
             }
 
@@ -70,5 +72,8 @@ export const utils = {
             chunkedItems.push(currChunk);
         }
         return chunkedItems;
+    },
+    delay: (ms: number): Promise<{}> => {
+        return new Promise(resolve => setTimeout(resolve, ms));
     },
 };

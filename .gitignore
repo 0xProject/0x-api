@@ -83,4 +83,9 @@ db/database.sqlite
 # postgres docker volume
 postgres
 
+# Emacs org-mode projectile TODOs
+TODOs.org
+
+.DS_Store
+
 TODO.txt

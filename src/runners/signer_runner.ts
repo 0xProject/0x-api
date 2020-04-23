@@ -4,6 +4,7 @@ import * as express from 'express';
 import * as asyncHandler from 'express-async-handler';
 
 import { META_TRANSACTION_PATH } from '../constants';
+import { getDBConnectionAsync } from '../db_connection';
 import { SignerHandlers } from '../handlers/signer_handlers';
 import { logger } from '../logger';
 import { errorHandler } from '../middleware/error_handling';
@@ -16,8 +17,9 @@ if (require.main === module) {
         app.use(requestLogger());
         app.use(cors());
         app.use(bodyParser.json());
+        const connection = await getDBConnectionAsync();
 
-        const signerService = new SignerService();
+        const signerService = new SignerService(connection);
         const handlers = new SignerHandlers(signerService);
         /**
          * POST Transaction endpoint takes a signed 0x Transaction and sends it to Ethereum

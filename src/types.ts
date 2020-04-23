@@ -8,6 +8,7 @@ import {
     ZeroExTransaction,
 } from '@0x/types';
 import { BigNumber } from '@0x/utils';
+import { Emitter } from 'bnc-sdk/dist/types/src/interfaces';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
@@ -460,4 +461,43 @@ export interface CalculateMetaTransactionQuoteParams {
     from: string | undefined;
     slippagePercentage?: number;
     excludedSources?: ERC20BridgeSource[];
+}
+
+export enum TransactionStates {
+    Unsubmitted = 'unsubmitted',
+    Submitted = 'submitted',
+    Mempool = 'mempool',
+    Stuck = 'stuck',
+    Confirmed = 'confirmed',
+    Dropped = 'dropped',
+    Failed = 'failed',
+}
+
+export interface EmitterMapping {
+    [key: string]: Emitter;
+}
+
+export enum BlockNativeEvents {
+    // ref: https://docs.blocknative.com/notify-sdk#event-codes
+    // Will be called for all events that are associated with that emitter. If a
+    // more specific listener exists for that event, then that will be called
+    // instead. This is useful to catch any remaining events that you haven't
+    // specified a handler for
+    All = 'all',
+    // Transaction has been sent to the network
+    TxSent = 'txSent',
+    // Transaction is in the mempool and is pending
+    TxPool = 'txPool',
+    // Transaction has been mined
+    TxConfirmed = 'txConfirmed',
+    // Transaction has failed
+    TxFailed = 'txFailed',
+    // A new transaction has been submitted with the same nonce and a higher gas
+    // price, replacing the original transaction
+    TxSpeedUp = 'txSpeedUp',
+    // A new transaction has been submitted with the same nonce, a higher gas
+    // price, a value of zero and sent to an external address (not a contract)
+    TxCancel = 'txCancel',
+    // Transaction was dropped from the mempool without being added to a block
+    TxDropped = 'txDropped',
 }

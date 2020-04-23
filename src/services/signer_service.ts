@@ -13,6 +13,7 @@ import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import * as _ from 'lodash';
+import { Connection, Repository } from 'typeorm';
 
 import {
     CHAIN_ID,
@@ -21,8 +22,9 @@ import {
     META_TXN_RELAY_PRIVATE_KEY,
     WHITELISTED_API_KEYS_META_TXN_SUBMIT,
 } from '../config';
-import { ETH_GAS_STATION_API_BASE_URL } from '../constants';
-import { PostTransactionResponse, ZeroExTransactionWithoutDomain } from '../types';
+import { ETH_GAS_STATION_API_BASE_URL, EXPECTED_MINED_IN_S } from '../constants';
+import { PostTransactionResponse, ZeroExTransactionWithoutDomain, TransactionStates } from '../types';
+import { TransactionEntity } from '../entities';
 
 export class SignerService {
     private readonly _provider: SupportedProvider;
@@ -31,6 +33,8 @@ export class SignerService {
     private readonly _contractWrappers: ContractWrappers;
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _devUtils: DevUtilsContract;
+    private readonly _transactionEntityRepository: Repository<TransactionEntity>;
+
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
         return WHITELISTED_API_KEYS_META_TXN_SUBMIT.includes(apiKey);
     }
@@ -57,7 +61,7 @@ export class SignerService {
     private static _calculateProtocolFee(numOrders: number, gasPrice: BigNumber): BigNumber {
         return new BigNumber(150000).times(gasPrice).times(numOrders);
     }
-    constructor() {
+    constructor(dbConnection: Connection) {
         this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(META_TXN_RELAY_PRIVATE_KEY);
         this._nonceTrackerSubprovider = new NonceTrackerSubprovider();
         this._provider = SignerService._createWeb3Provider(
@@ -68,6 +72,7 @@ export class SignerService {
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
         this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
+        this._transactionEntityRepository = dbConnection.getRepository(TransactionEntity);
     }
     public async validateZeroExTransactionFillAsync(
         zeroExTransaction: ZeroExTransactionWithoutDomain,
@@ -173,6 +178,17 @@ export class SignerService {
                     shouldValidate: false,
                 },
             );
+
+        const transactionEntity = new TransactionEntity({
+            hash: ethereumTransactionHash,
+            status: TransactionStates.Submitted,
+            nonce: ethereumTxnParams.nonce,
+            gasPrice: zeroExTransaction.gasPrice.toString(),
+            metaTxnRelayerAddress: META_TXN_RELAY_ADDRESS,
+            expectedMinedInSec: EXPECTED_MINED_IN_S,
+        });
+
+        await this._transactionEntityRepository.save(transactionEntity);
 
         return {
             ethereumTransactionHash,

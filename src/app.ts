@@ -108,7 +108,7 @@ export async function getAppAsync(
     }
 
     // Add signer service when spinning up app
-    const signerService = new SignerService();
+    const signerService = new SignerService(dependencies.connection);
     const handlers = new SignerHandlers(signerService);
     app.post(
         `${META_TRANSACTION_PATH}/submit`,

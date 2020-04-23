@@ -177,6 +177,13 @@ export const META_TXN_RELAY_PRIVATE_KEY = assertEnvVarType(
     EnvVarType.NonEmptyString,
 );
 
+// Blocknative API KEY used for transaction watcher.
+export const BLOCK_NATIVE_API_KEY = assertEnvVarType(
+    'BLOCK_NATIVE_API_KEY',
+    process.env.BLOCK_NATIVE_API_KEY,
+    EnvVarType.NonEmptyString,
+);
+
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision
