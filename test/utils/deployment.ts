@@ -206,6 +206,6 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for dependency logs'));
-        }, 40000); // tslint:disable-line:custom-no-magic-numbers
+        }, 60000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
