@@ -2,6 +2,7 @@
 import { rfqtMocker } from '@0x/asset-swapper';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
+import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber } from '@0x/utils';
@@ -20,7 +21,6 @@ import { GeneralErrorCodes, generalErrorCodeToReason } from '../src/errors';
 
 import * as orderFixture from './fixtures/order.json';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { expect } from './utils/expect';
 import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
 
 let app: Express.Application;
