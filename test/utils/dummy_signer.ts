@@ -9,6 +9,7 @@ import { BigNumber, providerUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Connection, QueryFailedError, Repository } from 'typeorm';
+// import { Transaction as EthTransaction, TxData } from 'ethereumjs-tx';
 
 import { TransactionEntity } from '../../src/entities';
 import { logger } from '../../src/logger';
@@ -21,6 +22,7 @@ export class DummySigner {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _transactionEntityRepository: Repository<TransactionEntity>;
     private readonly _signerAddress: string;
+    // private readonly _privateKeyBuffer: Buffer;
 
     private static _createWeb3Provider(
         rpcURL: string,
@@ -46,6 +48,7 @@ export class DummySigner {
         );
         this._web3Wrapper = new Web3Wrapper(this._provider);
         this._signerAddress = address;
+        // this._privateKeyBuffer = Buffer.from(privateKey, 'hex');
     }
 
     public async sendUnstickingTransaction(gasPrice: BigNumber, nonce: number): Promise<string> {
@@ -61,17 +64,19 @@ export class DummySigner {
     }
 
     public async sendTransactionToItself(gasPrice: BigNumber, expectedMinedInSec: number = 120): Promise<string> {
+        const nonce = await this._getNonceAsync(this._signerAddress);
         const txHash = await this._web3Wrapper.sendTransactionAsync({
             from: this._signerAddress,
             to: this._signerAddress,
             value: 1337,
             gasPrice,
+            nonce: web3WrapperUtils.convertHexToNumber(nonce),
         });
 
         const transactionEntity = new TransactionEntity({
             hash: txHash,
             status: TransactionStates.Submitted,
-            nonce: await this._getNonceAsync(this._signerAddress),
+            nonce,
             gasPrice: gasPrice.toString(),
             metaTxnRelayerAddress: this._signerAddress,
             expectedMinedInSec,
@@ -107,6 +112,12 @@ export class DummySigner {
 
         return unstuckingTransactions;
     }
+
+    // public _createSignedTransaction(txData: TxData): {} {
+    //     const tx = new EthTransaction(txData);
+    //     tx.sign(this._privateKeyBuffer);
+    //     return { tx: tx.serialize(), hash: tx.hash(true) };
+    // }
 
     private async _getNonceAsync(senderAddress: string): Promise<string> {
         // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce

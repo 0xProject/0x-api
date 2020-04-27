@@ -32,7 +32,6 @@ async function waitUntilStatus(
     repository: Repository<TransactionEntity>,
 ): Promise<void> {
     for (let i = 0; i < NUMBER_OF_RETRIES; i++) {
-        console.log(`awaiting ${i}`);
         const tx = await repository.findOne(txHash);
         if (tx !== undefined && tx.status === status) {
             return;
@@ -40,7 +39,7 @@ async function waitUntilStatus(
         await delay(5 * 1000);
     }
 
-    throw new Error('failed to grab transaction');
+    throw new Error(`failed to grab transaction: ${txHash} in a ${status} state`);
 }
 
 describe('transaction watcher service', () => {
@@ -91,7 +90,7 @@ describe('transaction watcher service', () => {
         const txHash = await signer.sendTransactionToItself(new BigNumber(1337), 30);
         console.log(`stuck hash: ${txHash}`);
         await waitUntilStatus(txHash, TransactionStates.Stuck, transactionEntityRepository);
-        console.log('detected stuck');
+        console.log('detected stuck transaction');
         const storedTx = await transactionEntityRepository.findOne(txHash);
         if (storedTx === undefined) {
             throw new Error('stored tx is undefined');
