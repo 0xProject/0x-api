@@ -469,5 +469,4 @@ export enum TransactionStates {
     Stuck = 'stuck',
     Confirmed = 'confirmed',
     Dropped = 'dropped',
-    Failed = 'failed',
 }
