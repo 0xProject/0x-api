@@ -5,18 +5,17 @@ import { generatePseudoRandomSalt, SupportedProvider, ZeroExTransaction } from '
 import { SignedOrder } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
-import * as _ from 'lodash';
 import { Connection, Repository } from 'typeorm';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, LIQUIDITY_POOL_REGISTRY_ADDRESS } from '../config';
 import { ONE_GWEI, ONE_SECOND_MS, QUOTE_ORDER_EXPIRATION_BUFFER_MS, TEN_MINUTES_MS } from '../constants';
+import { TransactionEntity } from '../entities';
 import {
     CalculateMetaTransactionPriceResponse,
     CalculateMetaTransactionQuoteParams,
     GetMetaTransactionQuoteResponse,
 } from '../types';
 import { serviceUtils } from '../utils/service_utils';
-import { TransactionEntity } from '../entities';
 
 export class MetaTransactionService {
     private readonly _provider: SupportedProvider;
@@ -155,7 +154,7 @@ export class MetaTransactionService {
         };
         return apiMetaTransactionQuote;
     }
-    public async findTransactionByHash(txHash: string): Promise<TransactionEntity | undefined> {
+    public async findTransactionByHashAsync(txHash: string): Promise<TransactionEntity | undefined> {
         return this._transactionEntityRepository.findOne(txHash);
     }
     private _generateZeroExTransaction(

@@ -160,7 +160,7 @@ export class MetaTransactionHandlers {
 
     public async getTransactionStatusAsync(req: express.Request, res: express.Response): Promise<void> {
         const transactionHash = req.params.txHash;
-        const tx = await this._metaTransactionService.findTransactionByHash(transactionHash);
+        const tx = await this._metaTransactionService.findTransactionByHashAsync(transactionHash);
         if (tx === undefined) {
             throw new NotFoundError();
         } else {

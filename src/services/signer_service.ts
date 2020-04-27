@@ -1,6 +1,5 @@
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
-import EthereumTx = require('ethereumjs-tx');
 import { SupportedProvider } from '@0x/order-utils';
 import {
     NonceTrackerSubprovider,
@@ -13,6 +12,7 @@ import {
 import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
+import EthereumTx = require('ethereumjs-tx');
 import { Connection, Repository } from 'typeorm';
 
 import {
@@ -24,10 +24,10 @@ import {
 } from '../config';
 import {
     ETH_GAS_STATION_API_BASE_URL,
-    EXPECTED_MINED_IN_S,
-    UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
     ETH_TRANSFER_GAS_LIMIT,
+    EXPECTED_MINED_IN_S,
     SIGNER_POLLING_INTERVAL_IN_MS,
+    UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
 } from '../constants';
 import { TransactionEntity } from '../entities';
 import { logger } from '../logger';
@@ -83,7 +83,8 @@ export class SignerService {
         this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
         this._transactionEntityRepository = dbConnection.getRepository(TransactionEntity);
         this._privateKeyBuffer = Buffer.from(META_TXN_RELAY_PRIVATE_KEY, 'hex');
-        this._watchForStuckTransactions();
+        // tslint:disable-next-line
+        this._watchForStuckTransactionsAsync();
     }
     public async validateZeroExTransactionFillAsync(
         zeroExTransaction: ZeroExTransactionWithoutDomain,
@@ -204,13 +205,13 @@ export class SignerService {
                     shouldValidate: false,
                 },
             );
-        this._updateTransactionEntityToSubmitted(txHashHex);
+        await this._updateTransactionEntityToSubmittedAsync(txHashHex);
         return {
             ethereumTransactionHash,
             signedEthereumTransaction,
         };
     }
-    private async _watchForStuckTransactions(): Promise<void> {
+    private async _watchForStuckTransactionsAsync(): Promise<void> {
         while (true) {
             logger.trace('watching for stuck transactions');
             try {
@@ -224,7 +225,7 @@ export class SignerService {
                 const targetGasPrice = await this._getGasPriceFromGasStationOrThrowAsync();
                 for (const tx of stuckTransactions) {
                     try {
-                        await this._unstickTransaction(
+                        await this._unstickTransactionAsync(
                             tx,
                             targetGasPrice.multipliedBy(new BigNumber(UNSTICKING_TRANSACTION_GAS_MULTIPLIER)),
                         );
@@ -238,7 +239,7 @@ export class SignerService {
             await utils.delay(SIGNER_POLLING_INTERVAL_IN_MS);
         }
     }
-    private async _unstickTransaction(tx: TransactionEntity, gasPrice: BigNumber): Promise<string> {
+    private async _unstickTransactionAsync(tx: TransactionEntity, gasPrice: BigNumber): Promise<string> {
         const ethereumTxnParams: PartialTxParams = {
             from: META_TXN_RELAY_ADDRESS,
             to: META_TXN_RELAY_ADDRESS,
@@ -266,12 +267,12 @@ export class SignerService {
             method: 'eth_sendRawTransaction',
             params: [rawTx],
         });
-        this._updateTransactionEntityToSubmitted(txHashHex);
+        await this._updateTransactionEntityToSubmittedAsync(txHashHex);
         transactionEntity.status = TransactionStates.Submitted;
         await this._transactionEntityRepository.save(transactionEntity);
         return txHashHex;
     }
-    private async _updateTransactionEntityToSubmitted(txHash: string): Promise<boolean> {
+    private async _updateTransactionEntityToSubmittedAsync(txHash: string): Promise<boolean> {
         // if the transaction was not updated in the meantime, we change its status to Submitted.
         try {
             await this._transactionEntityRepository.manager.transaction(async transactionEntityManager => {
@@ -279,7 +280,7 @@ export class SignerService {
                 const newTx = await repo.findOne(txHash);
                 if (newTx !== undefined && newTx.status === TransactionStates.Unsubmitted) {
                     newTx.status = TransactionStates.Submitted;
-                    transactionEntityManager.save(newTx);
+                    await transactionEntityManager.save(newTx);
                 }
             });
             return true;

@@ -1,6 +1,5 @@
 import { RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, providerUtils } from '@0x/utils';
-import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import * as chai from 'chai';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
@@ -9,6 +8,7 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { TransactionWatcherService } from '../src/services/transaction_watcher_service';
 import { TransactionStates } from '../src/types';
+import { utils } from '../src/utils/utils';
 
 import { TEST_RINKEBY_PRIVATE_KEY, TEST_RINKEBY_PUBLIC_ADDRESS, TEST_RINKEBY_RPC_URL } from './config';
 import { DummySigner } from './utils/dummy_signer';
@@ -16,16 +16,19 @@ import { DummySigner } from './utils/dummy_signer';
 const { expect } = chai;
 const NUMBER_OF_RETRIES = 20;
 
-const delay = (ms: number): Promise<{}> => {
-    return new Promise(resolve => setTimeout(resolve, ms));
-};
-
 let providerEngine: Web3ProviderEngine;
 let signer: DummySigner;
 let transactionEntityRepository: Repository<TransactionEntity>;
 let txWatcher: TransactionWatcherService;
+let connection: Connection;
 
-async function waitUntilStatus(
+const LOW_GAS_PRICE = 1337;
+const MID_GAS_PRICE = 4000000000;
+const HIGH_GAS_PRICE = 9000000000;
+const WAIT_DELAY_IN_MS = 5000;
+const SHORT_EXPECTED_MINE_TIME_IN_S = 15;
+
+async function waitUntilStatusAsync(
     txHash: string,
     status: TransactionStates,
     repository: Repository<TransactionEntity>,
@@ -35,21 +38,17 @@ async function waitUntilStatus(
         if (tx !== undefined && tx.status === status) {
             return;
         }
-        await delay(5 * 1000);
+        await utils.delay(WAIT_DELAY_IN_MS);
     }
 
     throw new Error(`failed to grab transaction: ${txHash} in a ${status} state`);
 }
 
 describe('transaction watcher service', () => {
-    let connection: Connection;
-
     before(async () => {
         providerEngine = new Web3ProviderEngine();
         providerEngine.addProvider(new RPCSubprovider(TEST_RINKEBY_RPC_URL));
         providerUtils.startProviderEngine(providerEngine);
-
-        // connection = await getInMemorySQLiteConnectionAsync('transation_watcher_svc_test_db');
         connection = await getDBConnectionAsync();
         transactionEntityRepository = connection.getRepository(TransactionEntity);
         signer = new DummySigner(
@@ -59,37 +58,33 @@ describe('transaction watcher service', () => {
             TEST_RINKEBY_RPC_URL,
         );
         txWatcher = new TransactionWatcherService(connection, providerEngine);
+        // tslint:disable-next-line
         txWatcher.startAsync();
     });
-
     it('monitors the transaction lifecycle correctly', async () => {
         // send tx with 1 gwei gas price
-        const txHash = await signer.sendTransactionToItself(new BigNumber(4000000000));
-        console.log(`sent tx with hash ${txHash}`);
-        await waitUntilStatus(txHash, TransactionStates.Confirmed, transactionEntityRepository);
-
+        const txHash = await signer.sendTransactionToItselfAsync(new BigNumber(MID_GAS_PRICE));
+        await waitUntilStatusAsync(txHash, TransactionStates.Confirmed, transactionEntityRepository);
         const storedTx = await transactionEntityRepository.findOne(txHash);
-
         expect(storedTx).to.not.be.undefined();
         expect(storedTx).to.include({ hash: txHash });
         expect(storedTx).to.include({ status: TransactionStates.Confirmed });
     });
-
     it('unstucks a transaction correctly', async () => {
         // send a transaction with a very low gas price
-        const txHash = await signer.sendTransactionToItself(new BigNumber(1337), 30);
-        console.log(`stuck hash: ${txHash}`);
-        await waitUntilStatus(txHash, TransactionStates.Stuck, transactionEntityRepository);
-        console.log('detected stuck transaction');
+        const txHash = await signer.sendTransactionToItselfAsync(
+            new BigNumber(LOW_GAS_PRICE),
+            SHORT_EXPECTED_MINE_TIME_IN_S,
+        );
+        await waitUntilStatusAsync(txHash, TransactionStates.Stuck, transactionEntityRepository);
         const storedTx = await transactionEntityRepository.findOne(txHash);
         if (storedTx === undefined) {
             throw new Error('stored tx is undefined');
         }
-
-        const nonce = web3WrapperUtils.convertHexToNumber(storedTx.nonce);
-        console.log(`transaction ${txHash} is currently being attempted to be unstuck with nonce ${nonce}`);
-        const unstickTxHash = await signer.sendUnstickingTransaction(new BigNumber(9000000000), storedTx.nonce);
-        console.log(`unsticking txHash: ${unstickTxHash}`);
-        await waitUntilStatus(unstickTxHash, TransactionStates.Confirmed, transactionEntityRepository);
+        const unstickTxHash = await signer.sendUnstickingTransactionAsync(
+            new BigNumber(HIGH_GAS_PRICE),
+            storedTx.nonce,
+        );
+        await waitUntilStatusAsync(unstickTxHash, TransactionStates.Confirmed, transactionEntityRepository);
     });
 });

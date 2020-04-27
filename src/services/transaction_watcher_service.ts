@@ -23,18 +23,18 @@ export class TransactionWatcherService {
             // notifications from blocknative.
             logger.trace('syncing transaciton status');
             try {
-                await this.syncTransactionStatus();
+                await this.syncTransactionStatusAsync();
             } catch (err) {
                 logger.error(`order watcher failed to sync transaction status`, { err: err.stack });
             }
             await utils.delay(TX_WATCHER_POLLING_INTERVAL_IN_MS);
         }
     }
-    public async syncTransactionStatus(): Promise<void> {
-        await this._syncTransactionStatus();
+    public async syncTransactionStatusAsync(): Promise<void> {
+        await this._syncTransactionStatusAsync();
     }
 
-    public async _syncTransactionStatus(): Promise<void> {
+    public async _syncTransactionStatusAsync(): Promise<void> {
         const transactionsToCheck = await this._transactionRepository.find({
             where: [
                 { status: TransactionStates.Unsubmitted },
@@ -66,7 +66,7 @@ export class TransactionWatcherService {
         //     ],
         // });
         const now = new Date();
-        const expired = tx.expectedAt <= now;
+        const isExpired = tx.expectedAt <= now;
         try {
             const txInBlockchain = await this._web3Wrapper.getTransactionByHashAsync(tx.hash);
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
@@ -79,16 +79,16 @@ export class TransactionWatcherService {
                     );
 
                     tx.status = TransactionStates.Confirmed;
-                    return this._saveTransaction(tx);
-                } else if (!expired && tx.status !== TransactionStates.Mempool) {
+                    return this._saveTransactionAsync(tx);
+                } else if (!isExpired && tx.status !== TransactionStates.Mempool) {
                     logger.info(`a transaction with a ${tx.status} status is pending, updating status to mempool`, {
                         hash: txInBlockchain.hash,
                     });
                     tx.status = TransactionStates.Mempool;
-                    return this._saveTransaction(tx);
-                } else if (expired) {
+                    return this._saveTransactionAsync(tx);
+                } else if (isExpired) {
                     tx.status = TransactionStates.Stuck;
-                    return this._saveTransaction(tx);
+                    return this._saveTransactionAsync(tx);
                 }
             }
         } catch (err) {
@@ -101,14 +101,14 @@ export class TransactionWatcherService {
             // at Object.next (/Users/overmorrow/projects/0x/0x-api/node_modules/@0x/web3-wrapper/lib/src/web3_wrapper.js:24:53)
             // at fulfilled (/Users/overmorrow/projects/0x/0x-api/node_modules/@0x/web3-wrapper/lib/src/web3_wrapper.js:15:58)
             // at process._tickCallback (internal/process/next_tick.js:68:7)
-            if (expired) {
+            if (isExpired) {
                 tx.status = TransactionStates.Dropped;
-                return this._saveTransaction(tx);
+                return this._saveTransactionAsync(tx);
             }
         }
         return tx;
     }
-    private async _saveTransaction(tx: TransactionEntity): Promise<TransactionEntity> {
+    private async _saveTransactionAsync(tx: TransactionEntity): Promise<TransactionEntity> {
         await this._transactionRepository.manager.transaction(async transactionalEntityManager => {
             const repo = transactionalEntityManager.getRepository(TransactionEntity);
             await repo.save(tx);

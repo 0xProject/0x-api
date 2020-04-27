@@ -1,5 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
+import { ONE_SECOND_MS } from '../constants';
+
 import { TransactionEntityOpts } from './types';
 
 @Entity({ name: 'transactions' })
@@ -53,6 +55,6 @@ export class TransactionEntity {
         this.gasPrice = opts.gasPrice;
         this.metaTxnRelayerAddress = opts.metaTxnRelayerAddress;
         const now = new Date();
-        this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * 1000);
+        this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * ONE_SECOND_MS);
     }
 }

@@ -1,22 +1,25 @@
-import EthereumTx = require('ethereumjs-tx');
 import { SupportedProvider } from '@0x/order-utils';
 import {
     NonceTrackerSubprovider,
+    PartialTxParams,
     PrivateKeyWalletSubprovider,
     RPCSubprovider,
     Web3ProviderEngine,
-    PartialTxParams,
 } from '@0x/subproviders';
 import { BigNumber, providerUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
+import EthereumTx = require('ethereumjs-tx');
 import { Connection, Repository } from 'typeorm';
-// import { Transaction as EthTransaction, TxData } from 'ethereumjs-tx';
 
+import { ETH_TRANSFER_GAS_LIMIT, EXPECTED_MINED_IN_S } from '../../src/constants';
 import { TransactionEntity } from '../../src/entities';
+import { logger } from '../../src/logger';
 import { TransactionStates } from '../../src/types';
 import { TEST_RINKEBY_CHAIN_ID } from '../config';
-import { ETH_TRANSFER_GAS_LIMIT, EXPECTED_MINED_IN_S } from '../../src/constants';
+
+const DEFAULT_TX_VALUE = 1337;
+const HIGH_GAS_PRICE_FOR_UNSTICKING = 13000000000;
 
 export class DummySigner {
     private readonly _provider: SupportedProvider;
@@ -54,26 +57,26 @@ export class DummySigner {
         this._privateKeyBuffer = Buffer.from(privateKey, 'hex');
     }
 
-    public async sendUnstickingTransaction(gasPrice: BigNumber, nonce: string): Promise<string> {
-        return this._sendTransaction(1337, nonce, gasPrice);
+    public async sendUnstickingTransactionAsync(gasPrice: BigNumber, nonce: string): Promise<string> {
+        return this._sendTransactionAsync(DEFAULT_TX_VALUE, nonce, gasPrice);
     }
 
-    public async sendTransactionToItself(gasPrice: BigNumber, expectedMinedInSec: number = 120): Promise<string> {
+    public async sendTransactionToItselfAsync(gasPrice: BigNumber, expectedMinedInSec: number = 120): Promise<string> {
         const nonce = await this._getNonceAsync(this._signerAddress);
-        return this._sendTransaction(1337, nonce, gasPrice, expectedMinedInSec);
+        return this._sendTransactionAsync(DEFAULT_TX_VALUE, nonce, gasPrice, expectedMinedInSec);
     }
 
-    public async unstickAll(): Promise<string[]> {
+    public async unstickAllAsync(): Promise<string[]> {
         const unstuckingTransactions: string[] = [];
         const pending = web3WrapperUtils.convertHexToNumber(await this._getTransactionCountAsync(this._signerAddress));
         const confirmed = web3WrapperUtils.convertHexToNumber(
             await this._getConfirmedTransactionCountAsync(this._signerAddress),
         );
-        console.log(`THE DIFF IS: ${pending} - ${confirmed} = `, pending - confirmed);
+        logger.info(`THE DIFF IS: ${pending} - ${confirmed} = `, pending - confirmed);
         let nonceToUnstick = confirmed;
         while (nonceToUnstick < pending) {
-            const txHash = await this.sendUnstickingTransaction(
-                new BigNumber(13000000000),
+            const txHash = await this.sendUnstickingTransactionAsync(
+                new BigNumber(HIGH_GAS_PRICE_FOR_UNSTICKING),
                 web3WrapperUtils.encodeAmountAsHexString(nonceToUnstick),
             );
             unstuckingTransactions.push(txHash);
@@ -83,7 +86,7 @@ export class DummySigner {
         return unstuckingTransactions;
     }
 
-    private async _sendTransaction(
+    private async _sendTransactionAsync(
         value: number,
         nonce: string,
         gasPrice: BigNumber,
@@ -102,8 +105,8 @@ export class DummySigner {
         ethTx.sign(this._privateKeyBuffer, true);
         const txHash = ethTx.hash() as Buffer;
         const txHashHex = `0x${txHash.toString('hex')}`;
-        console.log('hashed: ', txHashHex);
-        console.log('nonce: ', nonce);
+        logger.info('hashed: ', txHashHex);
+        logger.info('nonce: ', nonce);
         const transactionEntity = new TransactionEntity({
             hash: txHashHex,
             status: TransactionStates.Unsubmitted,
@@ -121,12 +124,12 @@ export class DummySigner {
         try {
             await this._transactionEntityRepository.manager.transaction(async transactionEntityManager => {
                 transactionEntity.status = TransactionStates.Submitted;
-                transactionEntityManager.save(transactionEntity);
+                await transactionEntityManager.save(transactionEntity);
             });
         } catch (err) {
             // the TransacitonEntity was updated in the meantime. This will
             // rollback the database transaction.
-            console.warn('failed to store transaction with submitted status, rolling back', { err });
+            logger.warn('failed to store transaction with submitted status, rolling back', { err });
         }
         return txHashHex;
     }

@@ -73,7 +73,8 @@ export const utils = {
         }
         return chunkedItems;
     },
-    delay: (ms: number): Promise<{}> => {
+    delay: async (ms: number): Promise<{}> => {
+        // tslint:disable-next-line
         return new Promise(resolve => setTimeout(resolve, ms));
     },
 };
