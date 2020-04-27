@@ -1,6 +1,6 @@
 import { Connection, createConnection } from 'typeorm';
 
-import { config, inMemorySQLiteConfig } from './ormconfig';
+import { config } from './ormconfig';
 
 let connection: Connection;
 
@@ -12,11 +12,4 @@ export async function getDBConnectionAsync(): Promise<Connection> {
         connection = await createConnection(config);
     }
     return connection;
-}
-
-/**
- * Creates an in-memory SQLite DB connection used for testing.
- */
-export async function getInMemorySQLiteConnectionAsync(connectionName: string): Promise<Connection> {
-    return createConnection({ ...inMemorySQLiteConfig, name: connectionName });
 }

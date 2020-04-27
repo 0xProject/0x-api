@@ -16,12 +16,3 @@ export const config: ConnectionOptions = {
         connectionLimit: 50,
     },
 };
-
-export const inMemorySQLiteConfig: ConnectionOptions = {
-    name: 'inmemorySqlite',
-    type: 'sqlite',
-    entities,
-    database: ':memory:',
-    logging: true,
-    synchronize: true,
-};
