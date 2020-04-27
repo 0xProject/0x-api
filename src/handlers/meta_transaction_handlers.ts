@@ -2,11 +2,10 @@ import { SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
-import * as _ from 'lodash';
 
 import { CHAIN_ID } from '../config';
 import { DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL } from '../constants';
-import { InternalServerError, RevertAPIError, ValidationError, ValidationErrorCodes } from '../errors';
+import { InternalServerError, NotFoundError, RevertAPIError, ValidationError, ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
@@ -156,6 +155,20 @@ export class MetaTransactionHandlers {
             }
             logger.info('Uncaught error', e);
             throw new InternalServerError(e.message);
+        }
+    }
+
+    public async getTransactionStatusAsync(req: express.Request, res: express.Response): Promise<void> {
+        const transactionHash = req.params.txHash;
+        const tx = await this._metaTransactionService.findTransactionByHash(transactionHash);
+        if (tx === undefined) {
+            throw new NotFoundError();
+        } else {
+            const resp = {
+                hash: tx.hash,
+                status: tx.status,
+            };
+            res.status(HttpStatus.OK).send(resp);
         }
     }
 }

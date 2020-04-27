@@ -20,5 +20,9 @@ export const createMetaTransactionRouter = (metaTransactionService: MetaTransact
      * https://0x.org/docs/guides/v3-specification#transaction-message-format
      */
     router.get('/quote', asyncHandler(handlers.getQuoteAsync.bind(handlers)));
+    /**
+     * GET status endpoint retrieves the transaction status by its hash.
+     */
+    router.get('/status/:txHash', asyncHandler(handlers.getTransactionStatusAsync.bind(handlers)));
     return router;
 };

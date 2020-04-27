@@ -6,6 +6,7 @@ import { SignedOrder } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
+import { Connection, Repository } from 'typeorm';
 
 import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, LIQUIDITY_POOL_REGISTRY_ADDRESS } from '../config';
 import { ONE_GWEI, ONE_SECOND_MS, QUOTE_ORDER_EXPIRATION_BUFFER_MS, TEN_MINUTES_MS } from '../constants';
@@ -15,6 +16,7 @@ import {
     GetMetaTransactionQuoteResponse,
 } from '../types';
 import { serviceUtils } from '../utils/service_utils';
+import { TransactionEntity } from '../entities';
 
 export class MetaTransactionService {
     private readonly _provider: SupportedProvider;
@@ -22,8 +24,10 @@ export class MetaTransactionService {
     private readonly _contractWrappers: ContractWrappers;
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _devUtils: DevUtilsContract;
+    private readonly _connection: Connection;
+    private readonly _transactionEntityRepository: Repository<TransactionEntity>;
 
-    constructor(orderbook: Orderbook, provider: SupportedProvider) {
+    constructor(orderbook: Orderbook, provider: SupportedProvider, dbConnection: Connection) {
         this._provider = provider;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             chainId: CHAIN_ID,
@@ -34,6 +38,8 @@ export class MetaTransactionService {
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
         this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
+        this._connection = dbConnection;
+        this._transactionEntityRepository = this._connection.getRepository(TransactionEntity);
     }
     public async calculateMetaTransactionPriceAsync(
         params: CalculateMetaTransactionQuoteParams,
@@ -148,6 +154,9 @@ export class MetaTransactionService {
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
         };
         return apiMetaTransactionQuote;
+    }
+    public async findTransactionByHash(txHash: string): Promise<TransactionEntity | undefined> {
+        return this._transactionEntityRepository.findOne(txHash);
     }
     private _generateZeroExTransaction(
         orders: SignedOrder[],

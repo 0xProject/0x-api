@@ -63,7 +63,7 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
-    const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider);
+    const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
 
     const websocketOpts = { path: SRA_PATH };
 
@@ -131,9 +131,10 @@ function createSwapServiceFromOrderBookService(
 function createMetaTxnServiceFromOrderBookService(
     orderBookService: OrderBookService,
     provider: SupportedProvider,
+    dbConnection: Connection,
 ): MetaTransactionService {
     const orderStore = new OrderStoreDbAdapter(orderBookService);
     const orderProvider = new OrderBookServiceOrderProvider(orderStore, orderBookService);
     const orderBook = new Orderbook(orderProvider, orderStore);
-    return new MetaTransactionService(orderBook, provider);
+    return new MetaTransactionService(orderBook, provider, dbConnection);
 }
