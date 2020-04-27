@@ -4,13 +4,12 @@ import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import * as chai from 'chai';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
-import * as WebSocket from 'ws'; // only neccessary in server environments
 
-import * as config from '../src/config';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { TransactionWatcherService } from '../src/services/transaction_watcher_service';
 import { TransactionStates } from '../src/types';
+
 import { TEST_RINKEBY_PRIVATE_KEY, TEST_RINKEBY_PUBLIC_ADDRESS, TEST_RINKEBY_RPC_URL } from './config';
 import { DummySigner } from './utils/dummy_signer';
 
@@ -59,16 +58,7 @@ describe('transaction watcher service', () => {
             TEST_RINKEBY_PUBLIC_ADDRESS,
             TEST_RINKEBY_RPC_URL,
         );
-        txWatcher = new TransactionWatcherService(
-            connection,
-            providerEngine,
-            {
-                dappId: config.BLOCK_NATIVE_API_KEY,
-                networkId: 4,
-                ws: WebSocket, // only neccessary in server environments
-            },
-            [TEST_RINKEBY_PUBLIC_ADDRESS],
-        );
+        txWatcher = new TransactionWatcherService(connection, providerEngine);
         txWatcher.startAsync();
     });
 
@@ -98,7 +88,7 @@ describe('transaction watcher service', () => {
 
         const nonce = web3WrapperUtils.convertHexToNumber(storedTx.nonce);
         console.log(`transaction ${txHash} is currently being attempted to be unstuck with nonce ${nonce}`);
-        const unstickTxHash = await signer.sendUnstickingTransaction(new BigNumber(9000000000), nonce);
+        const unstickTxHash = await signer.sendUnstickingTransaction(new BigNumber(9000000000), storedTx.nonce);
         console.log(`unsticking txHash: ${unstickTxHash}`);
         await waitUntilStatus(unstickTxHash, TransactionStates.Confirmed, transactionEntityRepository);
     });

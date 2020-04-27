@@ -1,5 +1,6 @@
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
+import EthereumTx = require('ethereumjs-tx');
 import { SupportedProvider } from '@0x/order-utils';
 import {
     NonceTrackerSubprovider,
@@ -12,7 +13,6 @@ import {
 import { BigNumber, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
-import * as _ from 'lodash';
 import { Connection, Repository } from 'typeorm';
 
 import {
@@ -22,9 +22,17 @@ import {
     META_TXN_RELAY_PRIVATE_KEY,
     WHITELISTED_API_KEYS_META_TXN_SUBMIT,
 } from '../config';
-import { ETH_GAS_STATION_API_BASE_URL, EXPECTED_MINED_IN_S } from '../constants';
-import { PostTransactionResponse, ZeroExTransactionWithoutDomain, TransactionStates } from '../types';
+import {
+    ETH_GAS_STATION_API_BASE_URL,
+    EXPECTED_MINED_IN_S,
+    UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
+    ETH_TRANSFER_GAS_LIMIT,
+    SIGNER_POLLING_INTERVAL_IN_MS,
+} from '../constants';
 import { TransactionEntity } from '../entities';
+import { logger } from '../logger';
+import { PostTransactionResponse, TransactionStates, ZeroExTransactionWithoutDomain } from '../types';
+import { utils } from '../utils/utils';
 
 export class SignerService {
     private readonly _provider: SupportedProvider;
@@ -34,6 +42,7 @@ export class SignerService {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _devUtils: DevUtilsContract;
     private readonly _transactionEntityRepository: Repository<TransactionEntity>;
+    private readonly _privateKeyBuffer: Buffer;
 
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
         return WHITELISTED_API_KEYS_META_TXN_SUBMIT.includes(apiKey);
@@ -73,6 +82,8 @@ export class SignerService {
         this._web3Wrapper = new Web3Wrapper(this._provider);
         this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
         this._transactionEntityRepository = dbConnection.getRepository(TransactionEntity);
+        this._privateKeyBuffer = Buffer.from(META_TXN_RELAY_PRIVATE_KEY, 'hex');
+        this._watchForStuckTransactions();
     }
     public async validateZeroExTransactionFillAsync(
         zeroExTransaction: ZeroExTransactionWithoutDomain,
@@ -163,9 +174,24 @@ export class SignerService {
             signature,
             protocolFee,
         );
-
         const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxnParams);
-
+        // HACK(oskar) - we use EthereumTx directly to get the hash of the
+        // underlying transaction to store it as unsubmitted before we broadcast
+        // it. We do it after calling `signTransactionAsync` because web3Wrapper
+        // does some checks for txParams.
+        const tx = new EthereumTx(ethereumTxnParams);
+        tx.sign(this._privateKeyBuffer, true);
+        const txHash = tx.hash() as Buffer;
+        const txHashHex = `0x${txHash.toString('hex')}`;
+        const transactionEntity = new TransactionEntity({
+            hash: txHashHex,
+            status: TransactionStates.Unsubmitted,
+            nonce: ethereumTxnParams.nonce,
+            gasPrice: zeroExTransaction.gasPrice.toString(),
+            metaTxnRelayerAddress: META_TXN_RELAY_ADDRESS,
+            expectedMinedInSec: EXPECTED_MINED_IN_S,
+        });
+        await this._transactionEntityRepository.save(transactionEntity);
         const ethereumTransactionHash = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .sendTransactionAsync(
@@ -178,22 +204,92 @@ export class SignerService {
                     shouldValidate: false,
                 },
             );
-
-        const transactionEntity = new TransactionEntity({
-            hash: ethereumTransactionHash,
-            status: TransactionStates.Submitted,
-            nonce: ethereumTxnParams.nonce,
-            gasPrice: zeroExTransaction.gasPrice.toString(),
-            metaTxnRelayerAddress: META_TXN_RELAY_ADDRESS,
-            expectedMinedInSec: EXPECTED_MINED_IN_S,
-        });
-
-        await this._transactionEntityRepository.save(transactionEntity);
-
+        this._updateTransactionEntityToSubmitted(txHashHex);
         return {
             ethereumTransactionHash,
             signedEthereumTransaction,
         };
+    }
+    private async _watchForStuckTransactions(): Promise<void> {
+        while (true) {
+            logger.trace('watching for stuck transactions');
+            try {
+                // NOTE(oskar): we currently cancel all transactions that are in the
+                // "stuck" state. A better solution might be to unstick
+                // transactions one by one and observing if they unstick the
+                // subsequent transactions.
+                const stuckTransactions = await this._transactionEntityRepository.find({
+                    where: { status: TransactionStates.Stuck },
+                });
+                const targetGasPrice = await this._getGasPriceFromGasStationOrThrowAsync();
+                for (const tx of stuckTransactions) {
+                    try {
+                        await this._unstickTransaction(
+                            tx,
+                            targetGasPrice.multipliedBy(new BigNumber(UNSTICKING_TRANSACTION_GAS_MULTIPLIER)),
+                        );
+                    } catch (err) {
+                        logger.error(`failed to unstick transaction ${tx.hash}`, { err });
+                    }
+                }
+            } catch (err) {
+                logger.error('failed to query stuck transactions', { err });
+            }
+            await utils.delay(SIGNER_POLLING_INTERVAL_IN_MS);
+        }
+    }
+    private async _unstickTransaction(tx: TransactionEntity, gasPrice: BigNumber): Promise<string> {
+        const ethereumTxnParams: PartialTxParams = {
+            from: META_TXN_RELAY_ADDRESS,
+            to: META_TXN_RELAY_ADDRESS,
+            value: web3WrapperUtils.encodeAmountAsHexString(0),
+            nonce: tx.nonce,
+            chainId: CHAIN_ID,
+            gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
+            gas: web3WrapperUtils.encodeAmountAsHexString(ETH_TRANSFER_GAS_LIMIT),
+        };
+        const ethTx = new EthereumTx(ethereumTxnParams);
+        ethTx.sign(this._privateKeyBuffer, true);
+        const txHash = ethTx.hash() as Buffer;
+        const txHashHex = `0x${txHash.toString('hex')}`;
+        const transactionEntity = new TransactionEntity({
+            hash: txHashHex,
+            status: TransactionStates.Unsubmitted,
+            nonce: tx.nonce,
+            gasPrice: gasPrice.toString(),
+            metaTxnRelayerAddress: META_TXN_RELAY_ADDRESS,
+            expectedMinedInSec: EXPECTED_MINED_IN_S,
+        });
+        await this._transactionEntityRepository.save(transactionEntity);
+        const rawTx = `0x${ethTx.serialize().toString('hex')}`;
+        await this._web3Wrapper.sendRawPayloadAsync({
+            method: 'eth_sendRawTransaction',
+            params: [rawTx],
+        });
+        this._updateTransactionEntityToSubmitted(txHashHex);
+        transactionEntity.status = TransactionStates.Submitted;
+        await this._transactionEntityRepository.save(transactionEntity);
+        return txHashHex;
+    }
+    private async _updateTransactionEntityToSubmitted(txHash: string): Promise<boolean> {
+        // if the transaction was not updated in the meantime, we change its status to Submitted.
+        try {
+            await this._transactionEntityRepository.manager.transaction(async transactionEntityManager => {
+                const repo = transactionEntityManager.getRepository(TransactionEntity);
+                const newTx = await repo.findOne(txHash);
+                if (newTx !== undefined && newTx.status === TransactionStates.Unsubmitted) {
+                    newTx.status = TransactionStates.Submitted;
+                    transactionEntityManager.save(newTx);
+                }
+            });
+            return true;
+        } catch (err) {
+            // the TransacitonEntity was updated in the meantime. This will
+            // rollback the database transaction.
+            logger.warn('failed to store transaction with submitted status, rolling back', { err });
+        }
+
+        return false;
     }
     private async _getNonceAsync(senderAddress: string): Promise<string> {
         // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce

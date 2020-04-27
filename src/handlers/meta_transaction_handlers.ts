@@ -167,6 +167,8 @@ export class MetaTransactionHandlers {
             const resp = {
                 hash: tx.hash,
                 status: tx.status,
+                gasPrice: tx.gasPrice,
+                updatedAt: tx.updatedAt,
             };
             res.status(HttpStatus.OK).send(resp);
         }

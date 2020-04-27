@@ -50,6 +50,9 @@ export const META_TRANSACTION_DOCS_URL = 'https://0x.org/docs/api#meta_transacti
 
 // Signer
 export const ETH_GAS_STATION_API_BASE_URL = 'https://ethgasstation.info';
+export const UNSTICKING_TRANSACTION_GAS_MULTIPLIER = 1.5;
+export const ETH_TRANSFER_GAS_LIMIT = 21000;
+export const SIGNER_POLLING_INTERVAL_IN_MS = 5 * 1000;
 
 // TransactionWatcher
 export const EXPECTED_MINED_IN_S = 120 * 1.5;
