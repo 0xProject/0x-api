@@ -22,7 +22,7 @@ describe.only('meta transactions test', () => {
     let orderFactory: OrderFactory;
 
     before(async () => {
-        await setupApiAsync('/price tests', { /* apiLogType: LogType.Console, */ dependencyLogType: LogType.Console });
+        await setupApiAsync('/price tests', { apiLogType: LogType.Console });
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -66,7 +66,8 @@ describe.only('meta transactions test', () => {
     describe('/price tests', () => {
         it('/price test', async () => {
             const orders = [await orderFactory.newSignedOrderAsync({})];
-            await meshClient.addOrdersAsync(orders);
+            const validationResults = await meshClient.addOrdersAsync(orders);
+            console.log(JSON.stringify(validationResults));
 
             const response = await httpGetAsync({
                 route: `${META_TRANSACTION_PATH}/price?buyToken=ZRX&sellToken=WETH&buyAmount=${constants.STATIC_ORDER_PARAMS.takerAssetAmount}&takerAddress=${takerAddress}&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
