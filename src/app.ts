@@ -18,6 +18,7 @@ import { SwapService } from './services/swap_service';
 import { WebsocketSRAOpts } from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
+import { TransactionWatcherService } from './services/transaction_watcher_service';
 
 export interface AppDependencies {
     connection: Connection;
@@ -28,6 +29,7 @@ export interface AppDependencies {
     metaTransactionService?: MetaTransactionService;
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
+    transactionWatcherService?: TransactionWatcherService;
 }
 
 /**
@@ -65,6 +67,8 @@ export async function getDefaultAppDependenciesAsync(
 
     const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
 
+    const transactionWatcherService = new TransactionWatcherService(connection, provider);
+
     const websocketOpts = { path: SRA_PATH };
 
     return {
@@ -76,6 +80,7 @@ export async function getDefaultAppDependenciesAsync(
         metaTransactionService,
         provider,
         websocketOpts,
+        transactionWatcherService,
     };
 }
 /**
@@ -110,6 +115,13 @@ export async function getAppAsync(
     // Add signer service when spinning up app
     const signerService = new SignerService(dependencies.connection);
     const handlers = new SignerHandlers(signerService);
+    if (dependencies.transactionWatcherService !== undefined) {
+        try {
+            dependencies.transactionWatcherService.startAsync();
+        } catch (e) {
+            logger.error(`Error running TransactionWatcherService, [${JSON.stringify(e)}]`);
+        }
+    }
     app.post(
         `${META_TRANSACTION_PATH}/submit`,
         asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
