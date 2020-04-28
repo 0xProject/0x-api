@@ -69,7 +69,7 @@ describe('transaction watcher service', () => {
         const storedTx = await transactionEntityRepository.findOne(txHash);
         expect(storedTx).to.not.be.undefined();
         expect(storedTx).to.include({ hash: txHash });
-        expect(storedTx).to.include({ status: TransactionStates.Confirmed });
+        expect(storedTx).to.not.include({ blockNumber: null });
     });
     it('unstucks a transaction correctly', async () => {
         // send a transaction with a very low gas price
