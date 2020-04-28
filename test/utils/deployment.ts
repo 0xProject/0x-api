@@ -90,6 +90,15 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
 
     // Wait for the dependencies to boot up.
     await waitForDependencyStartupAsync(up);
+
+    await sleepAsync(3); // tslint:disable-line:custom-no-magic-numbers
+}
+
+// FIXME(jalextowle): Delete this function.
+async function sleepAsync(timeSeconds: number): Promise<void> {
+    return new Promise<void>(resolve => {
+        setTimeout(resolve, timeSeconds * 1000); // tslint:disable-line:custom-no-magic-numbers
+    });
 }
 
 /**
@@ -101,7 +110,7 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
 export async function teardownDependenciesAsync(suiteName: string, logType?: LogType): Promise<void> {
     // Tear down any existing docker containers from the `docker-compose.yml` file.
     const down = spawn('docker-compose', ['down', '-v', '--rmi', 'all'], {
-        cwd: apiRootDir,
+        cwd: testRootDir,
     });
     directLogs(down, suiteName, 'down', logType);
     const downTimeout = 20000;
