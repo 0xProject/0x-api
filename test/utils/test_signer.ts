@@ -12,7 +12,7 @@ import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import EthereumTx = require('ethereumjs-tx');
 import { Connection, Repository } from 'typeorm';
 
-import { ETH_TRANSFER_GAS_LIMIT, EXPECTED_MINED_IN_S } from '../../src/constants';
+import { ETH_TRANSFER_GAS_LIMIT, EXPECTED_MINED_SEC } from '../../src/constants';
 import { TransactionEntity } from '../../src/entities';
 import { logger } from '../../src/logger';
 import { TransactionStates } from '../../src/types';
@@ -21,7 +21,7 @@ import { TEST_RINKEBY_CHAIN_ID } from '../config';
 const DEFAULT_TX_VALUE = 1337;
 const HIGH_GAS_PRICE_FOR_UNSTICKING = 13000000000;
 
-export class DummySigner {
+export class TestSigner {
     private readonly _provider: SupportedProvider;
     private readonly _nonceTrackerSubprovider: NonceTrackerSubprovider;
     private readonly _privateWalletSubprovider: PrivateKeyWalletSubprovider;
@@ -47,7 +47,7 @@ export class DummySigner {
         this._transactionEntityRepository = dbConnection.getRepository(TransactionEntity);
         this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(privateKey);
         this._nonceTrackerSubprovider = new NonceTrackerSubprovider();
-        this._provider = DummySigner._createWeb3Provider(
+        this._provider = TestSigner._createWeb3Provider(
             rpcURL,
             this._privateWalletSubprovider,
             this._nonceTrackerSubprovider,
@@ -90,7 +90,7 @@ export class DummySigner {
         value: number,
         nonce: string,
         gasPrice: BigNumber,
-        expectedMinedInSec: number = EXPECTED_MINED_IN_S,
+        expectedMinedInSec: number = EXPECTED_MINED_SEC,
     ): Promise<string> {
         const ethereumTxnParams: PartialTxParams = {
             from: this._signerAddress,
@@ -110,8 +110,8 @@ export class DummySigner {
         const transactionEntity = new TransactionEntity({
             hash: txHashHex,
             status: TransactionStates.Unsubmitted,
-            nonce,
-            gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
+            nonce: web3WrapperUtils.convertHexToNumber(nonce),
+            gasPrice,
             metaTxnRelayerAddress: this._signerAddress,
             expectedMinedInSec,
         });

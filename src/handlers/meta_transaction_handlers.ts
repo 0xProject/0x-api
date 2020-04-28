@@ -1,3 +1,4 @@
+import { assert } from '@0x/assert';
 import { SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
@@ -160,6 +161,17 @@ export class MetaTransactionHandlers {
 
     public async getTransactionStatusAsync(req: express.Request, res: express.Response): Promise<void> {
         const transactionHash = req.params.txHash;
+        try {
+            assert.isHexString('transactionHash', transactionHash);
+        } catch (e) {
+            throw new ValidationError([
+                {
+                    field: 'transactionHash',
+                    code: ValidationErrorCodes.InvalidSignatureOrHash,
+                    reason: e.message,
+                },
+            ]);
+        }
         const tx = await this._metaTransactionService.findTransactionByHashAsync(transactionHash);
         if (tx === undefined) {
             throw new NotFoundError();
@@ -169,6 +181,7 @@ export class MetaTransactionHandlers {
                 status: tx.status,
                 gasPrice: tx.gasPrice,
                 updatedAt: tx.updatedAt,
+                blockNumber: tx.blockNumber,
             };
             res.status(HttpStatus.OK).send(resp);
         }

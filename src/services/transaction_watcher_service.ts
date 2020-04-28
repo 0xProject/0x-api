@@ -1,7 +1,7 @@
 import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
-import { Connection, Repository } from 'typeorm';
+import { Connection, Not, Repository } from 'typeorm';
 
-import { TX_WATCHER_POLLING_INTERVAL_IN_MS } from '../constants';
+import { TX_WATCHER_POLLING_INTERVAL_MS } from '../constants';
 import { TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates } from '../types';
@@ -19,22 +19,16 @@ export class TransactionWatcherService {
     }
     public async startAsync(): Promise<void> {
         while (true) {
-            // finding transactions that need updating for which we have missed
-            // notifications from blocknative.
-            logger.trace('syncing transaciton status');
+            logger.trace('syncing transaction status');
             try {
                 await this.syncTransactionStatusAsync();
             } catch (err) {
-                logger.error(`order watcher failed to sync transaction status`, { err: err.stack });
+                logger.error({ message: `order watcher failed to sync transaction status`, err: err.stack });
             }
-            await utils.delay(TX_WATCHER_POLLING_INTERVAL_IN_MS);
+            await utils.delay(TX_WATCHER_POLLING_INTERVAL_MS);
         }
     }
     public async syncTransactionStatusAsync(): Promise<void> {
-        await this._syncTransactionStatusAsync();
-    }
-
-    public async _syncTransactionStatusAsync(): Promise<void> {
         const transactionsToCheck = await this._transactionRepository.find({
             where: [
                 { status: TransactionStates.Unsubmitted },
@@ -48,69 +42,75 @@ export class TransactionWatcherService {
             await this._findTransactionStatusAndUpdateAsync(tx);
         }
     }
-
-    private async _findTransactionStatusAndUpdateAsync(tx: TransactionEntity): Promise<TransactionEntity> {
-        // TODO(oskar) - we are checking expiry inline, because TypeORM failed
-        // to work with LessThanOrEqual:
-        // const now = new Date();
-        // const transactionsToCheck = await this._transactionRepository.find({
-        //     where: [
-        //         {
-        //             status: TransactionStates.Mempool,
-        //             expiresAt: LessThanOrEqual(now),
-        //         },
-        //         {
-        //             status: TransactionStates.Submitted,
-        //             expiresAt: LessThanOrEqual(now),
-        //         },
-        //     ],
-        // });
+    private async _findTransactionStatusAndUpdateAsync(txEntity: TransactionEntity): Promise<TransactionEntity> {
+        // TODO(oskar) - LessThan does not work on dates in TypeORM queries,
+        // ref: https://github.com/typeorm/typeorm/issues/3959
         const now = new Date();
-        const isExpired = tx.expectedAt <= now;
+        const isExpired = txEntity.expectedAt <= now;
         try {
-            const txInBlockchain = await this._web3Wrapper.getTransactionByHashAsync(tx.hash);
+            const txInBlockchain = await this._web3Wrapper.getTransactionByHashAsync(txEntity.hash);
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
-                    logger.info(
-                        `a transaction with a ${tx.status} status is already on the blockchain, updating status to confirmed`,
-                        { hash: txInBlockchain.hash },
-                    );
-
-                    tx.status = TransactionStates.Confirmed;
-                    return this._saveTransactionAsync(tx);
-                } else if (!isExpired && tx.status !== TransactionStates.Mempool) {
-                    logger.info(`a transaction with a ${tx.status} status is pending, updating status to mempool`, {
+                    logger.trace({
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is already on the blockchain, updating status to confirmed`,
                         hash: txInBlockchain.hash,
                     });
-                    tx.status = TransactionStates.Mempool;
-                    return this._saveTransactionAsync(tx);
+                    txEntity.status = TransactionStates.Confirmed;
+                    txEntity.blockNumber = txInBlockchain.blockNumber;
+                    await this._transactionRepository.save(txEntity);
+                    await this._abortTransactionsWithTheSameNonceAsync(txEntity);
+                    return txEntity;
+                    // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
+                } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
+                    logger.trace({
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is pending, updating status to mempool`,
+                        hash: txInBlockchain.hash,
+                    });
+                    txEntity.status = TransactionStates.Mempool;
+                    return this._transactionRepository.save(txEntity);
                 } else if (isExpired) {
-                    tx.status = TransactionStates.Stuck;
-                    return this._saveTransactionAsync(tx);
+                    // NOTE(oskar): we currently cancel all transactions that are in the
+                    // "stuck" state. A better solution might be to unstick
+                    // transactions one by one and observing if they unstick the
+                    // subsequent transactions.
+                    txEntity.status = TransactionStates.Stuck;
+                    return this._transactionRepository.save(txEntity);
                 }
             }
         } catch (err) {
-            // TODO(oskar) this throws a type error when calling a tx that was
-            // already dropped. Can we catch this specific error?
-            // TypeError: Cannot read property 'blockNumber' of null
-            // at Object.unmarshalTransaction (/Users/overmorrow/projects/0x/0x-api/node_modules/@0x/web3-wrapper/src/marshaller.ts:85:32)
-            // at Web3Wrapper.<anonymous> (/Users/overmorrow/projects/0x/0x-api/node_modules/@0x/web3-wrapper/src/web3_wrapper.ts:253:40)
-            // at step (/Users/overmorrow/projects/0x/0x-api/node_modules/@0x/web3-wrapper/lib/src/web3_wrapper.js:43:23)
-            // at Object.next (/Users/overmorrow/projects/0x/0x-api/node_modules/@0x/web3-wrapper/lib/src/web3_wrapper.js:24:53)
-            // at fulfilled (/Users/overmorrow/projects/0x/0x-api/node_modules/@0x/web3-wrapper/lib/src/web3_wrapper.js:15:58)
-            // at process._tickCallback (internal/process/next_tick.js:68:7)
-            if (isExpired) {
-                tx.status = TransactionStates.Dropped;
-                return this._saveTransactionAsync(tx);
+            if (err instanceof TypeError) {
+                // TODO(oskar) `getTransactionByHashAsync` throws a TypeError
+                // when tx returned from `eth_getTransactionByHash` is null.
+                if (isExpired) {
+                    txEntity.status = TransactionStates.Dropped;
+                    return this._transactionRepository.save(txEntity);
+                }
+            } else {
+                // if the error is not from a typeerror, we rethrow
+                throw err;
             }
         }
-        return tx;
+        return txEntity;
     }
-    private async _saveTransactionAsync(tx: TransactionEntity): Promise<TransactionEntity> {
-        await this._transactionRepository.manager.transaction(async transactionalEntityManager => {
-            const repo = transactionalEntityManager.getRepository(TransactionEntity);
-            await repo.save(tx);
+    // Sets the transaction status to 'aborted' for transactions with the same nonce as the passed in txEntity
+    private async _abortTransactionsWithTheSameNonceAsync(txEntity: TransactionEntity): Promise<TransactionEntity[]> {
+        const transactionsToAbort = await this._transactionRepository.find({
+            where: {
+                nonce: txEntity.nonce,
+                hash: Not(txEntity.hash),
+                // if the transaction has already been marked as dropped, we can skip it
+                status: Not(TransactionStates.Dropped),
+            },
         });
-        return tx;
+        for (const tx of transactionsToAbort) {
+            tx.status = TransactionStates.Aborted;
+            await this._transactionRepository.save(tx);
+        }
+
+        return transactionsToAbort;
     }
 }

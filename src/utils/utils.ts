@@ -72,7 +72,7 @@ export const utils = {
         return chunkedItems;
     },
     delay: async (ms: number): Promise<{}> => {
-        // tslint:disable-next-line
+        // tslint:disable-next-line:no-inferred-empty-object-type
         return new Promise(resolve => setTimeout(resolve, ms));
     },
 };

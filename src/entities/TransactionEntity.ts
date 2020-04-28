@@ -1,12 +1,14 @@
+import { BigNumber } from '@0x/utils';
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 import { ONE_SECOND_MS } from '../constants';
 
+import { BigNumberTransformer } from './transformers';
 import { TransactionEntityOpts } from './types';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
-    @PrimaryColumn({ name: 'ethereum_tx_hash', type: 'varchar' })
+    @PrimaryColumn({ name: 'hash', type: 'varchar' })
     public hash: string;
 
     @Column({ name: 'status', type: 'varchar' })
@@ -15,11 +17,14 @@ export class TransactionEntity {
     @Column({ name: 'expected_mined_in_sec', type: 'int' })
     public expectedMinedInSec?: number;
 
-    @Column({ name: 'nonce', type: 'varchar' })
-    public nonce: string;
+    @Column({ name: 'nonce', type: 'bigint' })
+    public nonce: number;
 
-    @Column({ name: 'gas_price', type: 'varchar' })
-    public gasPrice: string;
+    @Column({ name: 'gas_price', type: 'varchar', transformer: BigNumberTransformer })
+    public gasPrice: BigNumber;
+
+    @Column({ name: 'block_number', type: 'bigint', nullable: true })
+    public blockNumber?: number;
 
     @Column({ name: 'meta_txn_relayer_address', type: 'varchar' })
     public metaTxnRelayerAddress: string;
@@ -43,8 +48,8 @@ export class TransactionEntity {
             hash: '',
             status: '',
             expectedMinedInSec: 120,
-            nonce: '',
-            gasPrice: '',
+            nonce: 0,
+            gasPrice: new BigNumber(0),
             metaTxnRelayerAddress: '',
         },
     ) {
@@ -53,6 +58,7 @@ export class TransactionEntity {
         this.expectedMinedInSec = opts.expectedMinedInSec;
         this.nonce = opts.nonce;
         this.gasPrice = opts.gasPrice;
+        this.blockNumber = opts.blockNumber;
         this.metaTxnRelayerAddress = opts.metaTxnRelayerAddress;
         const now = new Date();
         this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * ONE_SECOND_MS);

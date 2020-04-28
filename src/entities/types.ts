@@ -1,8 +1,11 @@
+import { BigNumber } from '@0x/utils';
+
 export interface TransactionEntityOpts {
     hash: string;
     status: string;
     expectedMinedInSec: number;
-    nonce: string;
-    gasPrice: string;
+    nonce: number;
+    gasPrice: BigNumber;
+    blockNumber?: number;
     metaTxnRelayerAddress: string;
 }

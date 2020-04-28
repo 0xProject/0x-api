@@ -1,5 +1,6 @@
 import { RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, providerUtils } from '@0x/utils';
+import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import * as chai from 'chai';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
@@ -11,13 +12,13 @@ import { TransactionStates } from '../src/types';
 import { utils } from '../src/utils/utils';
 
 import { TEST_RINKEBY_PRIVATE_KEY, TEST_RINKEBY_PUBLIC_ADDRESS, TEST_RINKEBY_RPC_URL } from './config';
-import { DummySigner } from './utils/dummy_signer';
+import { TestSigner } from './utils/test_signer';
 
 const { expect } = chai;
 const NUMBER_OF_RETRIES = 20;
 
 let providerEngine: Web3ProviderEngine;
-let signer: DummySigner;
+let signer: TestSigner;
 let transactionEntityRepository: Repository<TransactionEntity>;
 let txWatcher: TransactionWatcherService;
 let connection: Connection;
@@ -26,7 +27,7 @@ const LOW_GAS_PRICE = 1337;
 const MID_GAS_PRICE = 4000000000;
 const HIGH_GAS_PRICE = 9000000000;
 const WAIT_DELAY_IN_MS = 5000;
-const SHORT_EXPECTED_MINE_TIME_IN_S = 15;
+const SHORT_EXPECTED_MINE_TIME_SEC = 15;
 
 async function waitUntilStatusAsync(
     txHash: string,
@@ -51,14 +52,14 @@ describe('transaction watcher service', () => {
         providerUtils.startProviderEngine(providerEngine);
         connection = await getDBConnectionAsync();
         transactionEntityRepository = connection.getRepository(TransactionEntity);
-        signer = new DummySigner(
+        signer = new TestSigner(
             connection,
             TEST_RINKEBY_PRIVATE_KEY,
             TEST_RINKEBY_PUBLIC_ADDRESS,
             TEST_RINKEBY_RPC_URL,
         );
         txWatcher = new TransactionWatcherService(connection, providerEngine);
-        // tslint:disable-next-line
+        // tslint:disable-next-line:no-floating-promises
         txWatcher.startAsync();
     });
     it('monitors the transaction lifecycle correctly', async () => {
@@ -74,7 +75,7 @@ describe('transaction watcher service', () => {
         // send a transaction with a very low gas price
         const txHash = await signer.sendTransactionToItselfAsync(
             new BigNumber(LOW_GAS_PRICE),
-            SHORT_EXPECTED_MINE_TIME_IN_S,
+            SHORT_EXPECTED_MINE_TIME_SEC,
         );
         await waitUntilStatusAsync(txHash, TransactionStates.Stuck, transactionEntityRepository);
         const storedTx = await transactionEntityRepository.findOne(txHash);
@@ -83,7 +84,7 @@ describe('transaction watcher service', () => {
         }
         const unstickTxHash = await signer.sendUnstickingTransactionAsync(
             new BigNumber(HIGH_GAS_PRICE),
-            storedTx.nonce,
+            web3WrapperUtils.encodeAmountAsHexString(storedTx.nonce),
         );
         await waitUntilStatusAsync(unstickTxHash, TransactionStates.Confirmed, transactionEntityRepository);
     });
