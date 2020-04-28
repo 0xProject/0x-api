@@ -72,9 +72,7 @@ export class TransactionWatcherService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.info(
-                        `a transaction with a ${
-                            tx.status
-                        } status is already on the blockchain, updating status to confirmed`,
+                        `a transaction with a ${tx.status} status is already on the blockchain, updating status to confirmed`,
                         { hash: txInBlockchain.hash },
                     );
 
