@@ -54,6 +54,7 @@ export class SwapService {
                 takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
                 makerEndpoints: RFQT_MAKER_ENDPOINTS,
                 warningLogger: logger.warn.bind(logger),
+                infoLogger: logger.info.bind(logger),
             },
             permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
         };
