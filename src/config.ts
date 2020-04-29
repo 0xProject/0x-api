@@ -1,6 +1,6 @@
 // tslint:disable:custom-no-magic-numbers
 import { assert } from '@0x/assert';
-import { ERC20BridgeSource, SwapQuoteRequestOpts } from '@0x/asset-swapper';
+import { ERC20BridgeSource, RfqtMakerAssetOfferings, SwapQuoteRequestOpts } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
@@ -30,6 +30,7 @@ enum EnvVarType {
     FeeAssetData,
     NonEmptyString,
     APIKeys,
+    RfqtMakerAssetOfferings,
 }
 
 // Network port to listen on
@@ -152,8 +153,13 @@ export const LIQUIDITY_POOL_REGISTRY_ADDRESS: string | undefined = _.isEmpty(
 export const RFQT_API_KEY_WHITELIST: string[] =
     process.env.RFQT_API_KEY_WHITELIST === undefined ? [] : process.env.RFQT_API_KEY_WHITELIST.split(',');
 
-export const RFQT_MAKER_ENDPOINTS: string[] =
-    process.env.RFQT_MAKER_ENDPOINTS === undefined ? [] : process.env.RFQT_MAKER_ENDPOINTS.split(',');
+export const RFQT_MAKER_ASSET_OFFERINGS: RfqtMakerAssetOfferings = _.isEmpty(process.env.RFQT_MAKER_ASSET_OFFERINGS)
+    ? {}
+    : assertEnvVarType(
+          'RFQT_MAKER_ASSET_OFFERINGS',
+          process.env.RFQT_MAKER_ASSET_OFFERINGS,
+          EnvVarType.RfqtMakerAssetOfferings,
+      );
 
 // Whitelisted 0x API keys that can use the meta-txn /submit endpoint
 export const WHITELISTED_API_KEYS_META_TXN_SUBMIT: string[] =
@@ -297,6 +303,33 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 }
             });
             return apiKeys;
+
+        case EnvVarType.RfqtMakerAssetOfferings:
+            const offerings: RfqtMakerAssetOfferings = JSON.parse(value);
+            // tslint:disable-next-line:forin
+            for (const makerEndpoint in offerings) {
+                assert.isWebUri('market maker endpoint', makerEndpoint);
+
+                const assetOffering = offerings[makerEndpoint];
+                assert.isArray(`value in maker endpoint mapping, for index ${makerEndpoint},`, assetOffering);
+                assetOffering.forEach((assetPair, i) => {
+                    assert.isArray(`asset pair array ${i} for maker endpoint ${makerEndpoint}`, assetPair);
+                    assert.assert(
+                        assetPair.length === 2,
+                        `asset pair array ${i} for maker endpoint ${makerEndpoint} does not consist of exactly two elements.`,
+                    );
+                    assert.isETHAddressHex(
+                        `first token address for asset pair ${i} for maker endpoint ${makerEndpoint}`,
+                        assetPair[0],
+                    );
+                    assert.isETHAddressHex(
+                        `second token address for asset pair ${i} for maker endpoint ${makerEndpoint}`,
+                        assetPair[1],
+                    );
+                });
+            }
+            return offerings;
+
         default:
             throw new Error(`Unrecognised EnvVarType: ${expectedType} encountered for variable ${name}.`);
     }
