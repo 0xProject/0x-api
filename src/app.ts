@@ -15,10 +15,10 @@ import { OrderBookService } from './services/orderbook_service';
 import { SignerService } from './services/signer_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
+import { TransactionWatcherService } from './services/transaction_watcher_service';
 import { WebsocketSRAOpts } from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
-import { TransactionWatcherService } from './services/transaction_watcher_service';
 
 export interface AppDependencies {
     connection: Connection;
@@ -117,6 +117,8 @@ export async function getAppAsync(
     const handlers = new SignerHandlers(signerService);
     if (dependencies.transactionWatcherService !== undefined) {
         try {
+            // NOTE(oskar): Kicking off the transaction watcher to run in the background
+            // tslint:disable-next-line:no-floating-promises
             dependencies.transactionWatcherService.startAsync();
         } catch (e) {
             logger.error(`Error running TransactionWatcherService, [${JSON.stringify(e)}]`);
