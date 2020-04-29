@@ -91,12 +91,12 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     // Wait for the dependencies to boot up.
     await waitForDependencyStartupAsync(up);
 
-    await sleepAsync(3); // tslint:disable-line:custom-no-magic-numbers
+    await sleepAsync(10); // tslint:disable-line:custom-no-magic-numbers
 }
 
 // FIXME(jalextowle): Delete this function.
 async function sleepAsync(timeSeconds: number): Promise<void> {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(resolve => {
         setTimeout(resolve, timeSeconds * 1000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
