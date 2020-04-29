@@ -107,7 +107,7 @@ export class TestSigner {
         const txHashHex = `0x${txHash.toString('hex')}`;
         logger.info('hashed: ', txHashHex);
         logger.info('nonce: ', nonce);
-        const transactionEntity = new TransactionEntity({
+        const transactionEntity = TransactionEntity.make({
             hash: txHashHex,
             status: TransactionStates.Unsubmitted,
             nonce: web3WrapperUtils.convertHexToNumber(nonce),

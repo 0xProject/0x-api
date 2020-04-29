@@ -1,7 +1,9 @@
+import { assert } from '@0x/assert';
 import { BigNumber } from '@0x/utils';
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 import { ONE_SECOND_MS } from '../constants';
+import { TransactionStates } from '../types';
 
 import { BigNumberTransformer } from './transformers';
 import { TransactionEntityOpts } from './types';
@@ -30,7 +32,6 @@ export class TransactionEntity {
     public metaTxnRelayerAddress: string;
 
     @CreateDateColumn({ name: 'created_at' })
-    // tslint:ignore-next-line
     public createdAt?: Date;
 
     @UpdateDateColumn({ name: 'updated_at' })
@@ -39,11 +40,19 @@ export class TransactionEntity {
     @Column({ name: 'expected_at', type: 'timestamptz' })
     public expectedAt: Date;
 
-    // HACK(oskar) we want all fields to be set, otherwise we should not accept
-    // a transaction entity, however because of this issue:
+    public static make(opts: TransactionEntityOpts): TransactionEntity {
+        assert.isHexString('hash', opts.hash);
+        assert.isETHAddressHex('metaTxnRelayerAddress', opts.metaTxnRelayerAddress);
+        assert.doesBelongToStringEnum('status', opts.status, TransactionStates);
+        return new TransactionEntity(opts);
+    }
+
+    // HACK(oskar) we want all fields to be set and valid, otherwise we should
+    // not accept a transaction entity, however because of this issue:
     // https://github.com/typeorm/typeorm/issues/1772 we cannot accept undefined
-    // as an argument to the constructor, to not break migrations with serialize
-    constructor(
+    // as an argument to the constructor, to not break migrations with
+    // serialize. Please use the public static make method instead.
+    private constructor(
         opts: TransactionEntityOpts = {
             hash: '',
             status: '',

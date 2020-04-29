@@ -193,7 +193,7 @@ export class SignerService {
         // not yet exposed by the package.
         (PrivateKeyWalletSubprovider as any)._validateTxParams(ethereumTxnParams);
         const { signedEthereumTransaction, txHash } = this._getTransactionHashAndRawTxString(ethereumTxnParams);
-        const transactionEntity = new TransactionEntity({
+        const transactionEntity = TransactionEntity.make({
             hash: txHash,
             status: TransactionStates.Unsubmitted,
             nonce: web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce),
@@ -248,7 +248,7 @@ export class SignerService {
             gas: web3WrapperUtils.encodeAmountAsHexString(ETH_TRANSFER_GAS_LIMIT),
         };
         const { signedEthereumTransaction, txHash } = this._getTransactionHashAndRawTxString(ethereumTxnParams);
-        const transactionEntity = new TransactionEntity({
+        const transactionEntity = TransactionEntity.make({
             hash: txHash,
             status: TransactionStates.Unsubmitted,
             nonce: tx.nonce,
