@@ -38,7 +38,11 @@
         "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-49e4ade66"
     },
     "release": {
-        "plugins": ["@semantic-release/commit-analyzer", "@semantic-release/release-notes-generator", "@semantic-release/github"]
+        "plugins": [
+            "@semantic-release/commit-analyzer",
+            "@semantic-release/release-notes-generator",
+            "@semantic-release/github"
+        ]
     },
     "devDependencies": {
         "@0x/dev-utils": "^3.1.1",
