@@ -9,7 +9,7 @@ import {
     RPCSubprovider,
     Web3ProviderEngine,
 } from '@0x/subproviders';
-import { BigNumber, providerUtils, RevertError } from '@0x/utils';
+import { BigNumber, intervalUtils, providerUtils, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import EthereumTx = require('ethereumjs-tx');
@@ -32,7 +32,6 @@ import {
 import { TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { PostTransactionResponse, TransactionStates, ZeroExTransactionWithoutDomain } from '../types';
-import { utils } from '../utils/utils';
 
 export class SignerService {
     private readonly _provider: SupportedProvider;
@@ -43,6 +42,7 @@ export class SignerService {
     private readonly _devUtils: DevUtilsContract;
     private readonly _transactionEntityRepository: Repository<TransactionEntity>;
     private readonly _privateKeyBuffer: Buffer;
+    private readonly _stuckTransactionWatcherTimer: NodeJS.Timer;
 
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
         return WHITELISTED_API_KEYS_META_TXN_SUBMIT.includes(apiKey);
@@ -83,9 +83,22 @@ export class SignerService {
         this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
         this._transactionEntityRepository = dbConnection.getRepository(TransactionEntity);
         this._privateKeyBuffer = Buffer.from(META_TXN_RELAY_PRIVATE_KEY, 'hex');
-        // NOTE(oskar): Kicking off the stuck watcher to run in the background
-        // tslint:disable-next-line:no-floating-promises
-        this._watchForStuckTransactionsAsync();
+        this._stuckTransactionWatcherTimer = intervalUtils.setAsyncExcludingInterval(
+            async () => {
+                logger.trace('watching for stuck transactions');
+                await this._checkForStuckTransactionsAsync();
+            },
+            STUCK_TX_POLLING_INTERVAL_MS,
+            (err: Error) => {
+                logger.error({
+                    message: `stuck transaction watcher failed to check for stuck transactions`,
+                    err: err.stack,
+                });
+            },
+        );
+    }
+    public stopStuckTransacitonWatcher(): void {
+        intervalUtils.clearAsyncExcludingInterval(this._stuckTransactionWatcherTimer);
     }
     public async validateZeroExTransactionFillAsync(
         zeroExTransaction: ZeroExTransactionWithoutDomain,
@@ -207,26 +220,21 @@ export class SignerService {
             signedEthereumTransaction,
         };
     }
-    private async _watchForStuckTransactionsAsync(): Promise<void> {
-        while (true) {
-            logger.trace('watching for stuck transactions');
+    private async _checkForStuckTransactionsAsync(): Promise<void> {
+        const stuckTransactions = await this._transactionEntityRepository.find({
+            where: { status: TransactionStates.Stuck },
+        });
+        if (stuckTransactions.length === 0) {
+            return;
+        }
+        const gasStationPrice = await this._getGasPriceFromGasStationOrThrowAsync();
+        const targetGasPrice = gasStationPrice.multipliedBy(UNSTICKING_TRANSACTION_GAS_MULTIPLIER);
+        for (const tx of stuckTransactions) {
             try {
-                const stuckTransactions = await this._transactionEntityRepository.find({
-                    where: { status: TransactionStates.Stuck },
-                });
-                const gasStationPrice = await this._getGasPriceFromGasStationOrThrowAsync();
-                const targetGasPrice = gasStationPrice.multipliedBy(UNSTICKING_TRANSACTION_GAS_MULTIPLIER);
-                for (const tx of stuckTransactions) {
-                    try {
-                        await this._unstickTransactionAsync(tx, targetGasPrice.multipliedBy(targetGasPrice));
-                    } catch (err) {
-                        logger.error(`failed to unstick transaction ${tx.hash}`, { err });
-                    }
-                }
+                await this._unstickTransactionAsync(tx, targetGasPrice.multipliedBy(targetGasPrice));
             } catch (err) {
-                logger.error('failed to query stuck transactions', { err });
+                logger.error(`failed to unstick transaction ${tx.hash}`, { err });
             }
-            await utils.delay(STUCK_TX_POLLING_INTERVAL_MS);
         }
     }
     private async _unstickTransactionAsync(tx: TransactionEntity, gasPrice: BigNumber): Promise<string> {

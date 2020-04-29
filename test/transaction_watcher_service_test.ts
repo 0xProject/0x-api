@@ -58,6 +58,8 @@ describe('transaction watcher service', () => {
             TEST_RINKEBY_PUBLIC_ADDRESS,
             TEST_RINKEBY_RPC_URL,
         );
+        // if the there are any pending transactions, we unstick them before running these tests.
+        await signer.unstickAllAsync();
         txWatcher = new TransactionWatcherService(connection, providerEngine);
         await txWatcher.syncTransactionStatusAsync();
     });
@@ -70,7 +72,7 @@ describe('transaction watcher service', () => {
         expect(storedTx).to.include({ hash: txHash });
         expect(storedTx).to.not.include({ blockNumber: null });
     });
-    it('unstucks a transaction correctly', async () => {
+    it('unsticks a transaction correctly', async () => {
         // send a transaction with a very low gas price
         const txHash = await signer.sendTransactionToItselfAsync(
             new BigNumber(LOW_GAS_PRICE),
