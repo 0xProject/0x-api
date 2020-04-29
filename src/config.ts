@@ -10,6 +10,7 @@ import {
     DEFAULT_LOCAL_POSTGRES_URI,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
+    DEFAULT_RFQT_SKIP_BUY_REQUESTS,
     NULL_ADDRESS,
     NULL_BYTES,
 } from './constants';
@@ -161,6 +162,11 @@ export const RFQT_MAKER_ASSET_OFFERINGS: RfqtMakerAssetOfferings = _.isEmpty(pro
           process.env.RFQT_MAKER_ASSET_OFFERINGS,
           EnvVarType.RfqtMakerAssetOfferings,
       );
+
+// tslint:disable-next-line:boolean-naming
+export const RFQT_SKIP_BUY_REQUESTS: boolean = _.isEmpty(process.env.RFQT_SKIP_BUY_REQUESTS)
+    ? DEFAULT_RFQT_SKIP_BUY_REQUESTS
+    : assertEnvVarType('RFQT_SKIP_BUY_REQUESTS', process.env.RFQT_SKIP_BUY_REQUESTS, EnvVarType.Boolean);
 
 // Whitelisted 0x API keys that can use the meta-txn /submit endpoint
 export const WHITELISTED_API_KEYS_META_TXN_SUBMIT: string[] =

@@ -435,6 +435,7 @@ export interface CalculateSwapQuoteParams {
     rfqt?: {
         intentOnFilling?: boolean;
         isIndicative?: boolean;
+        skipBuyRequests?: boolean;
     };
     skipValidation: boolean;
 }
