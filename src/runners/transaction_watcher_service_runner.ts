@@ -28,18 +28,13 @@ process.on('unhandledRejection', err => {
 
 /**
  * This service tracks transactions and their state changes sent by the meta
- * transaction relays and persists them to the database.
+ * transaction relays and updates them in the database.
  */
 export async function runTransactionWatcherServiceAsync(
     connection: Connection,
     provider: SupportedProvider,
 ): Promise<void> {
     const transactionWatcherService = new TransactionWatcherService(connection, provider);
+    await transactionWatcherService.syncTransactionStatusAsync();
     logger.info(`TransactionWatcherService starting up!`);
-    try {
-        await transactionWatcherService.startAsync();
-    } catch (err) {
-        const logError = new Error(`Error on starting TransactionWatcher service: [${err.stack}]`);
-        throw logError;
-    }
 }

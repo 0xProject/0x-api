@@ -176,8 +176,9 @@ export class SignerService {
             signature,
             protocolFee,
         );
+        // HACK(oskar): Using private method to validate txParams since it is
+        // not yet exposed by the package.
         (PrivateKeyWalletSubprovider as any)._validateTxParams(ethereumTxnParams);
-        // const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxnParams);
         const { signedEthereumTransaction, txHash } = this._getTransactionHashAndRawTxString(ethereumTxnParams);
         const transactionEntity = new TransactionEntity({
             hash: txHash,

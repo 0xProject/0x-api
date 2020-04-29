@@ -1,3 +1,4 @@
+import { intervalUtils } from '@0x/utils';
 import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
 import { Connection, Not, Repository } from 'typeorm';
 
@@ -5,28 +6,30 @@ import { TX_WATCHER_POLLING_INTERVAL_MS } from '../constants';
 import { TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates } from '../types';
-import { utils } from '../utils/utils';
 
 export class TransactionWatcherService {
     private readonly _transactionRepository: Repository<TransactionEntity>;
     private readonly _provider: SupportedProvider;
     private readonly _web3Wrapper: Web3Wrapper;
+    private readonly _transactionWatcherTimer: NodeJS.Timer;
 
     constructor(dbConnection: Connection, provider: SupportedProvider) {
         this._transactionRepository = dbConnection.getRepository(TransactionEntity);
         this._provider = provider;
         this._web3Wrapper = new Web3Wrapper(this._provider);
-    }
-    public async startAsync(): Promise<void> {
-        while (true) {
-            logger.trace('syncing transaction status');
-            try {
+        this._transactionWatcherTimer = intervalUtils.setAsyncExcludingInterval(
+            async () => {
+                logger.trace('syncing transaction status');
                 await this.syncTransactionStatusAsync();
-            } catch (err) {
+            },
+            TX_WATCHER_POLLING_INTERVAL_MS,
+            (err: Error) => {
                 logger.error({ message: `order watcher failed to sync transaction status`, err: err.stack });
-            }
-            await utils.delay(TX_WATCHER_POLLING_INTERVAL_MS);
-        }
+            },
+        );
+    }
+    public stop(): void {
+        intervalUtils.clearAsyncExcludingInterval(this._transactionWatcherTimer);
     }
     public async syncTransactionStatusAsync(): Promise<void> {
         const transactionsToCheck = await this._transactionRepository.find({
@@ -43,8 +46,8 @@ export class TransactionWatcherService {
         }
     }
     private async _findTransactionStatusAndUpdateAsync(txEntity: TransactionEntity): Promise<TransactionEntity> {
-        // TODO(oskar) - LessThan does not work on dates in TypeORM queries,
-        // ref: https://github.com/typeorm/typeorm/issues/3959
+        // TODO(oskar) - LessThanOrEqual and LessThan do not work on dates in
+        // TypeORM queries, ref: https://github.com/typeorm/typeorm/issues/3959
         const now = new Date();
         const isExpired = txEntity.expectedAt <= now;
         try {
@@ -52,9 +55,7 @@ export class TransactionWatcherService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is already on the blockchain, updating status to confirmed`,
+                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Confirmed`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Confirmed;
@@ -65,9 +66,7 @@ export class TransactionWatcherService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is pending, updating status to mempool`,
+                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -83,8 +82,11 @@ export class TransactionWatcherService {
             }
         } catch (err) {
             if (err instanceof TypeError) {
-                // TODO(oskar) `getTransactionByHashAsync` throws a TypeError
-                // when tx returned from `eth_getTransactionByHash` is null.
+                // HACK(oskar): web3Wrapper.getTransactionByHashAsync throws a
+                // TypeError if the Ethereum node cannot find the transaction
+                // and returns NULL instead of the transaction object. We
+                // therefore use this to detect this case until @0x/web3-wrapper
+                // is fixed.
                 if (isExpired) {
                     txEntity.status = TransactionStates.Dropped;
                     return this._transactionRepository.save(txEntity);
@@ -102,8 +104,7 @@ export class TransactionWatcherService {
             where: {
                 nonce: txEntity.nonce,
                 hash: Not(txEntity.hash),
-                // if the transaction has already been marked as dropped, we can skip it
-                status: Not(TransactionStates.Dropped),
+                metaTxnRelayerAddress: txEntity.metaTxnRelayerAddress,
             },
         });
         for (const tx of transactionsToAbort) {

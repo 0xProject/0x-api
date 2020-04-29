@@ -59,8 +59,7 @@ describe('transaction watcher service', () => {
             TEST_RINKEBY_RPC_URL,
         );
         txWatcher = new TransactionWatcherService(connection, providerEngine);
-        // tslint:disable-next-line:no-floating-promises
-        txWatcher.startAsync();
+        await txWatcher.syncTransactionStatusAsync();
     });
     it('monitors the transaction lifecycle correctly', async () => {
         // send tx with 1 gwei gas price

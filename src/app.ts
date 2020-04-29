@@ -115,15 +115,6 @@ export async function getAppAsync(
     // Add signer service when spinning up app
     const signerService = new SignerService(dependencies.connection);
     const handlers = new SignerHandlers(signerService);
-    if (dependencies.transactionWatcherService !== undefined) {
-        try {
-            // NOTE(oskar): Kicking off the transaction watcher to run in the background
-            // tslint:disable-next-line:no-floating-promises
-            dependencies.transactionWatcherService.startAsync();
-        } catch (e) {
-            logger.error(`Error running TransactionWatcherService, [${JSON.stringify(e)}]`);
-        }
-    }
     app.post(
         `${META_TRANSACTION_PATH}/submit`,
         asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
