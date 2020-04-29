@@ -91,7 +91,7 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     // Wait for the dependencies to boot up.
     await waitForDependencyStartupAsync(up);
 
-    await sleepAsync(3); // tslint:disable-line:custom-no-magic-numbers
+    await sleepAsync(10); // tslint:disable-line:custom-no-magic-numbers
 }
 
 // FIXME(jalextowle): Delete this function.
