@@ -55,10 +55,7 @@ export class SwapService {
                 makerEndpoints: RFQT_MAKER_ENDPOINTS,
                 warningLogger: logger.warn.bind(logger),
             },
-            permittedOrderFeeTypes: new Set([
-                OrderPrunerPermittedFeeTypes.NoFees,
-                OrderPrunerPermittedFeeTypes.TakerDenominatedTakerFee,
-            ]),
+            permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
