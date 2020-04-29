@@ -45,11 +45,7 @@ export class SignerHandlers {
                 const {
                     ethereumTransactionHash,
                     signedEthereumTransaction,
-                } = await this._signerService.submitZeroExTransactionIfWhitelistedAsync(
-                    zeroExTransaction,
-                    signature,
-                    protocolFee,
-                );
+                } = await this._signerService.submitZeroExTransactionAsync(zeroExTransaction, signature, protocolFee);
                 // return the transactionReceipt
                 res.status(HttpStatus.OK).send({
                     ethereumTransactionHash,
