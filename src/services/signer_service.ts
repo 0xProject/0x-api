@@ -97,7 +97,7 @@ export class SignerService {
             },
         );
     }
-    public stopStuckTransacitonWatcher(): void {
+    public stopStuckTransactionWatcher(): void {
         intervalUtils.clearAsyncExcludingInterval(this._stuckTransactionWatcherTimer);
     }
     public async validateZeroExTransactionFillAsync(
