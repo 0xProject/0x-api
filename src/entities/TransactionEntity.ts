@@ -44,6 +44,12 @@ export class TransactionEntity {
         assert.isHexString('hash', opts.hash);
         assert.isETHAddressHex('metaTxnRelayerAddress', opts.metaTxnRelayerAddress);
         assert.doesBelongToStringEnum('status', opts.status, TransactionStates);
+        if (!Number.isInteger(opts.nonce) && opts.nonce >= 0) {
+            throw new Error(`Expected nonce to be an integer, encountered: ${opts.nonce}`);
+        }
+        if (opts.blockNumber !== undefined && !Number.isInteger(opts.blockNumber) && opts.blockNumber <= 0) {
+            throw new Error(`Expected blockNumber to be a positive integer, encountered: ${opts.blockNumber}`);
+        }
         return new TransactionEntity(opts);
     }
 
