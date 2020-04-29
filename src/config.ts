@@ -150,8 +150,9 @@ export const LIQUIDITY_POOL_REGISTRY_ADDRESS: string | undefined = _.isEmpty(
           EnvVarType.ETHAddressHex,
       );
 
-export const RFQT_API_KEY_WHITELIST: string[] =
-    process.env.RFQT_API_KEY_WHITELIST === undefined ? [] : process.env.RFQT_API_KEY_WHITELIST.split(',');
+export const RFQT_API_KEY_WHITELIST: string[] = _.isEmpty(process.env.RFQT_API_KEY_WHITELIST)
+    ? []
+    : assertEnvVarType('RFQT_API_KEY_WHITELIST', process.env.RFQT_API_KEY_WHITELIST, EnvVarType.StringList);
 
 export const RFQT_MAKER_ASSET_OFFERINGS: RfqtMakerAssetOfferings = _.isEmpty(process.env.RFQT_MAKER_ASSET_OFFERINGS)
     ? {}
