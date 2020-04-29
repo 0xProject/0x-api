@@ -231,7 +231,7 @@ export class SignerService {
         const targetGasPrice = gasStationPrice.multipliedBy(UNSTICKING_TRANSACTION_GAS_MULTIPLIER);
         for (const tx of stuckTransactions) {
             try {
-                await this._unstickTransactionAsync(tx, targetGasPrice.multipliedBy(targetGasPrice));
+                await this._unstickTransactionAsync(tx, targetGasPrice);
             } catch (err) {
                 logger.error(`failed to unstick transaction ${tx.hash}`, { err });
             }
