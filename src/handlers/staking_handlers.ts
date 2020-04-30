@@ -46,7 +46,7 @@ export class StakingHandlers {
             if (!(_req.query.withFees === 'true' || _req.query.withFees === 'false')) {
                 res.status(HttpStatus.BAD_REQUEST).send(`Invalid value for withFees`);
             }
-            isWithFees = (_req.query.withFees === 'true');
+            isWithFees = _req.query.withFees === 'true';
         } else {
             isWithFees = false;
         }
@@ -63,8 +63,8 @@ export class StakingHandlers {
             };
         } else {
             const [currentEpoch, nextEpoch] = await Promise.all([
-            this._stakingDataService.getCurrentEpochAsync(),
-            this._stakingDataService.getNextEpochAsync(),
+                this._stakingDataService.getCurrentEpochAsync(),
+                this._stakingDataService.getNextEpochAsync(),
             ]);
             response = {
                 currentEpoch,

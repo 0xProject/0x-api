@@ -44,7 +44,9 @@ export class StakingDataService {
     }
 
     public async getCurrentEpochWithFeesAsync(): Promise<EpochWithFees> {
-        const rawEpochWithFees: RawEpochWithFees | undefined = _.head(await this._connection.query(queries.currentEpochWithFeesQuery));
+        const rawEpochWithFees: RawEpochWithFees | undefined = _.head(
+            await this._connection.query(queries.currentEpochWithFeesQuery),
+        );
         if (!rawEpochWithFees) {
             throw new Error('Could not find the current epoch.');
         }
