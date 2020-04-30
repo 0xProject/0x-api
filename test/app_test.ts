@@ -54,9 +54,8 @@ describe(SUITE_NAME, () => {
         await blockchainLifecycle.startAsync();
         accounts = await web3Wrapper.getAvailableAddressesAsync();
 
-        dependencies = await getDefaultAppDependenciesAsync(provider, config);
-
         // start the 0x-api app
+        dependencies = await getDefaultAppDependenciesAsync(provider, config);
         ({ app, server } = await getAppAsync({ ...dependencies }, config));
     });
     after(async () => {
