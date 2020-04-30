@@ -2,7 +2,7 @@ import { intervalUtils } from '@0x/utils';
 import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
 import { Connection, Not, Repository } from 'typeorm';
 
-import { TX_WATCHER_POLLING_INTERVAL_MS } from '../constants';
+import { TX_WATCHER_POLLING_INTERVAL_MS, ONE_SECOND_MS } from '../constants';
 import { TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates } from '../types';
@@ -116,6 +116,6 @@ export class TransactionWatcherService {
     }
     private async _getLatestBlockDateAsync(): Promise<Date> {
         const latestBlockTimestamp = await this._web3Wrapper.getBlockTimestampAsync('latest');
-        return new Date(latestBlockTimestamp * 1000);
+        return new Date(latestBlockTimestamp * ONE_SECOND_MS);
     }
 }

@@ -67,8 +67,6 @@ export async function getDefaultAppDependenciesAsync(
 
     const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
 
-    const transactionWatcherService = new TransactionWatcherService(connection, provider);
-
     const websocketOpts = { path: SRA_PATH };
 
     return {
@@ -80,7 +78,6 @@ export async function getDefaultAppDependenciesAsync(
         metaTransactionService,
         provider,
         websocketOpts,
-        transactionWatcherService,
     };
 }
 /**
