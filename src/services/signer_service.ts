@@ -291,6 +291,11 @@ export class SignerService {
             logger.warn('failed to store transaction with submitted status, rolling back', { err });
         }
     }
+    /**
+     * creates a transaction and signs it with the private key of SignerService.
+     * @param ethereumTxnParams transaction parameters
+     * @return the SIGNED raw ethereum transaction and transaction hash
+     */
     private _getSignedTxHashAndRawTxString(
         ethereumTxnParams: PartialTxParams,
     ): { signedEthereumTransaction: string; txHash: string } {
