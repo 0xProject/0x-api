@@ -130,17 +130,20 @@ export class MetaTransactionHandlers {
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
         try {
-            const metaTransactionPrice = await this._metaTransactionService.calculateMetaTransactionPriceAsync({
-                takerAddress,
-                buyTokenAddress,
-                sellTokenAddress,
-                buyAmount,
-                sellAmount,
-                from: takerAddress,
-                slippagePercentage,
-                excludedSources,
-                apiKey,
-            }, 'price');
+            const metaTransactionPrice = await this._metaTransactionService.calculateMetaTransactionPriceAsync(
+                {
+                    takerAddress,
+                    buyTokenAddress,
+                    sellTokenAddress,
+                    buyAmount,
+                    sellAmount,
+                    from: takerAddress,
+                    slippagePercentage,
+                    excludedSources,
+                    apiKey,
+                },
+                'price',
+            );
             const metaTransactionPriceResponse = {
                 price: metaTransactionPrice.price,
                 buyAmount: metaTransactionPrice.buyAmount,
