@@ -4,7 +4,7 @@ import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/cont
 import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
-import { BigNumber } from '@0x/utils';
+import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
@@ -12,15 +12,23 @@ import * as request from 'supertest';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
-import { DEFAULT_PAGE, DEFAULT_PER_PAGE, META_TRANSACTION_PATH, SRA_PATH, SWAP_PATH } from '../src/constants';
-import { getDBConnectionAsync } from '../src/db_connection';
+import {
+    DEFAULT_PAGE,
+    DEFAULT_PER_PAGE,
+    META_TRANSACTION_PATH,
+    ONE_MINUTE_MS,
+    ONE_SECOND_MS,
+    SRA_PATH,
+    SWAP_PATH,
+} from '../src/constants';
 import { SignedOrderEntity } from '../src/entities';
-import { GeneralErrorCodes, generalErrorCodeToReason } from '../src/errors';
+import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
+import { orderUtils } from '../src/utils/order_utils';
 
 import * as orderFixture from './fixtures/order.json';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { expect } from './utils/expect';
-import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
+import { ganacheZrxWethOrder1, generateOrderModel, rfqtIndicativeQuoteResponse } from './utils/mocks';
 
 let app: Express.Application;
 
@@ -30,10 +38,15 @@ let accounts: string[];
 let blockchainLifecycle: BlockchainLifecycle;
 
 let dependencies: AppDependencies;
-
 // tslint:disable-next-line:custom-no-magic-numbers
 const MAX_UINT256 = new BigNumber(2).pow(256).minus(1);
 const SUITE_NAME = 'app_test';
+
+async function addOrderAsync(): Promise<SignedOrderEntity> {
+    const orderModel = generateOrderModel(orderFixture);
+    await dependencies.connection.manager.save(orderModel);
+    return orderModel;
+}
 
 describe(SUITE_NAME, () => {
     before(async () => {
@@ -60,17 +73,203 @@ describe(SUITE_NAME, () => {
     after(async () => {
         await teardownDependenciesAsync(SUITE_NAME);
     });
-    it('should respond to GET /sra/orders', async () => {
-        await request(app)
-            .get(`${SRA_PATH}/orders`)
-            .expect('Content-Type', /json/)
-            .expect(HttpStatus.OK)
-            .then(response => {
-                expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-                expect(response.body.page).to.equal(DEFAULT_PAGE);
-                expect(response.body.total).to.be.an('number');
-                expect(response.body.records).to.be.an('array');
+    describe('SRA endpoints', () => {
+        describe('/fee_recipients', () => {
+            it('should return the list of fee recipients', async () => {
+                await request(app)
+                    .get(`${SRA_PATH}/fee_recipients`)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .then(response => {
+                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                        expect(response.body.page).to.equal(DEFAULT_PAGE);
+                        expect(response.body.total).to.be.an('number');
+                        expect(response.body.records[0]).to.equal(NULL_ADDRESS);
+                    });
             });
+        });
+        describe('/orders', () => {
+            it('should return empty response when no orders', async () => {
+                await request(app)
+                    .get(`${SRA_PATH}/orders`)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .then(response => {
+                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                        expect(response.body.page).to.equal(DEFAULT_PAGE);
+                        expect(response.body.total).to.be.an('number');
+                        expect(response.body.records).to.deep.equal([]);
+                    });
+            });
+            it('should return orders in the local cache', async () => {
+                const orderEntity = await addOrderAsync();
+                await request(app)
+                    .get(`${SRA_PATH}/orders`)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .then(response => {
+                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                        expect(response.body.page).to.equal(DEFAULT_PAGE);
+                        expect(response.body.total).to.be.an('number');
+                        expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
+                    });
+                await dependencies.connection.manager.remove(orderEntity);
+            });
+            it('should return orders filtered by query params', async () => {
+                const orderEntity = await addOrderAsync();
+                await request(app)
+                    .get(`${SRA_PATH}/orders?makerAddress=${orderEntity.makerAddress}`)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .then(response => {
+                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                        expect(response.body.page).to.equal(DEFAULT_PAGE);
+                        expect(response.body.total).to.be.an('number');
+                        expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
+                    });
+                await dependencies.connection.manager.remove(orderEntity);
+            });
+            it('should return empty response when filtered by query params', async () => {
+                const orderEntity = await addOrderAsync();
+                await request(app)
+                    .get(`${SRA_PATH}/orders?makerAddress=${NULL_ADDRESS}`)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .then(response => {
+                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                        expect(response.body.page).to.equal(DEFAULT_PAGE);
+                        expect(response.body.total).to.be.an('number');
+                        expect(response.body.records).to.deep.equal([]);
+                    });
+                await dependencies.connection.manager.remove(orderEntity);
+            });
+            it('should normalize addresses to lowercase', async () => {
+                const orderEntity = await addOrderAsync();
+                await request(app)
+                    .get(`${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}`)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .then(response => {
+                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                        expect(response.body.page).to.equal(DEFAULT_PAGE);
+                        expect(response.body.total).to.equal(1);
+                        expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
+                    });
+                await dependencies.connection.manager.remove(orderEntity);
+            });
+        });
+        describe('GET /order', () => {
+            it('should return order by order hash', async () => {
+                const orderEntity = await addOrderAsync();
+                await request(app)
+                    .get(`${SRA_PATH}/order/${orderEntity.hash}`)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .then(response => {
+                        expect(orderUtils.serializeOrder(response.body)).to.deep.equal(orderEntity);
+                    });
+                await dependencies.connection.manager.remove(orderEntity);
+            });
+            it('should return 404 if order is not found', async () => {
+                const orderEntity = await addOrderAsync();
+                await dependencies.connection.manager.remove(orderEntity);
+                await request(app)
+                    .get(`${SRA_PATH}/order/${orderEntity.hash}`)
+                    .expect(HttpStatus.NOT_FOUND);
+            });
+        });
+        describe('POST /order', () => {
+            it('should return 201 on success', async () => {
+                await request(app)
+                    .post(`${SRA_PATH}/order`)
+                    .send({
+                        chainId: config.CHAIN_ID,
+                        expirationTimeSeconds: Math.floor((Date.now() + ONE_MINUTE_MS) / ONE_SECOND_MS).toString(),
+                        ...orderFixture,
+                    })
+                    .then(response => {
+                        expect(response.body).to.not.be.undefined();
+                    });
+            });
+            it('should return an informative error message');
+        });
+        describe('GET /asset_pairs', () => {
+            it('should respond to GET request', async () => {
+                await request(app)
+                    .get(`${SRA_PATH}/asset_pairs`)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .then(response => {
+                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                        expect(response.body.page).to.equal(DEFAULT_PAGE);
+                        expect(response.body.total).to.be.an('number');
+                        expect(response.body.records).to.be.an('array');
+                    });
+            });
+        });
+        describe('GET /orderbook', () => {
+            it('should return orderbook for a given pair');
+        });
+        describe('POST /order_config', () => {
+            it('should return 200 on success', async () => {
+                const requestBody = {
+                    exchangeAddress: orderFixture.exchangeAddress,
+                    makerAddress: orderFixture.makerAddress,
+                    takerAddress: orderFixture.takerAddress,
+                    makerAssetAmount: orderFixture.makerAssetAmount,
+                    makerAssetData: orderFixture.makerAssetData,
+                    takerAssetAmount: orderFixture.takerAssetAmount,
+                    takerAssetData: orderFixture.takerAssetData,
+                    expirationTimeSeconds: Math.floor((Date.now() + ONE_MINUTE_MS) / ONE_SECOND_MS),
+                };
+                const expectedResponse = {
+                    senderAddress: NULL_ADDRESS,
+                    feeRecipientAddress: NULL_ADDRESS,
+                    makerFee: '0',
+                    takerFee: '0',
+                    makerFeeAssetData: '0x',
+                    takerFeeAssetData: '0x',
+                };
+                await request(app)
+                    .post(`${SRA_PATH}/order_config`)
+                    .send(requestBody)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.OK)
+                    .expect(expectedResponse);
+            });
+            it('should return informative error when missing fields', async () => {
+                const requestBody = {
+                    exchangeAddress: orderFixture.exchangeAddress,
+                    makerAddress: orderFixture.makerAddress,
+                    makerAssetAmount: orderFixture.makerAssetAmount,
+                    makerAssetData: orderFixture.makerAssetData,
+                    takerAssetAmount: orderFixture.takerAssetAmount,
+                    takerAssetData: orderFixture.takerAssetData,
+                };
+                const validationError: ErrorBody = {
+                    code: GeneralErrorCodes.ValidationError,
+                    reason: generalErrorCodeToReason[GeneralErrorCodes.ValidationError],
+                    validationErrors: [
+                        {
+                            field: 'takerAddress',
+                            code: ValidationErrorCodes.RequiredField,
+                            reason: 'requires property "takerAddress"',
+                        },
+                        {
+                            field: 'expirationTimeSeconds',
+                            code: ValidationErrorCodes.RequiredField,
+                            reason: 'requires property "expirationTimeSeconds"',
+                        },
+                    ],
+                };
+                await request(app)
+                    .post(`${SRA_PATH}/order_config`)
+                    .send(requestBody)
+                    .expect('Content-Type', /json/)
+                    .expect(HttpStatus.BAD_REQUEST)
+                    .expect(validationError);
+            });
+        });
     });
     it('should return InvalidAPIKey error if invalid UUID supplied as API Key', async () => {
         await request(app)
@@ -82,33 +281,6 @@ describe(SUITE_NAME, () => {
                 expect(response.body.code).to.equal(GeneralErrorCodes.InvalidAPIKey);
                 expect(response.body.reason).to.equal(generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey]);
             });
-    });
-    it('should normalize addresses to lowercase', async () => {
-        const metaData = {
-            hash: '123',
-            remainingFillableTakerAssetAmount: '1',
-        };
-        const expirationTimeSeconds = (new Date().getTime() / 1000 + 600).toString(); // tslint:disable-line:custom-no-magic-numbers
-        const orderModel = new SignedOrderEntity({
-            ...metaData,
-            ...orderFixture,
-            expirationTimeSeconds,
-        });
-
-        const apiOrderResponse = { chainId: config.CHAIN_ID, ...orderFixture, expirationTimeSeconds };
-        const dbConnection = await getDBConnectionAsync();
-        await dbConnection.manager.save(orderModel);
-        await request(app)
-            .get(`${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}`)
-            .expect('Content-Type', /json/)
-            .expect(HttpStatus.OK)
-            .then(response => {
-                expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-                expect(response.body.page).to.equal(DEFAULT_PAGE);
-                expect(response.body.total).to.equal(1);
-                expect(response.body.records[0].order).to.deep.equal(apiOrderResponse);
-            });
-        await dbConnection.manager.remove(orderModel);
     });
     describe('should respond to GET /swap/quote', () => {
         it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {

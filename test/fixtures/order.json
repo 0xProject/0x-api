@@ -10,7 +10,7 @@
     "makerAssetData": "0xf47261b0000000000000000000000000ac9ce326e95f51b5005e9fe1dd8085a01f18450c",
     "takerAssetData": "0xf47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
     "salt": "1585263646862",
-    "exchangeAddress": "0x61935cbdd02287b511119ddb11aeb42f1593b7ef",
+    "exchangeAddress": "0x48BaCB9266a570d521063EF5dD96e61686DbE788",
     "feeRecipientAddress": "0x5265bde27f57e738be6c1f6ab3544e82cdc92a8f",
     "makerFeeAssetData": "0x",
     "takerFeeAssetData": "0xf47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
