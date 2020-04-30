@@ -192,7 +192,7 @@ export class SignerService {
         // HACK(oskar): Using private method to validate txParams since it is
         // not yet exposed by the package.
         (PrivateKeyWalletSubprovider as any)._validateTxParams(ethereumTxnParams);
-        const { signedEthereumTransaction, txHash } = this._getTransactionHashAndRawTxString(ethereumTxnParams);
+        const { signedEthereumTransaction, txHash } = this._getSignedTxHashAndRawTxString(ethereumTxnParams);
         const transactionEntity = TransactionEntity.make({
             hash: txHash,
             status: TransactionStates.Unsubmitted,
@@ -230,6 +230,16 @@ export class SignerService {
         const gasStationPrice = await this._getGasPriceFromGasStationOrThrowAsync();
         const targetGasPrice = gasStationPrice.multipliedBy(UNSTICKING_TRANSACTION_GAS_MULTIPLIER);
         for (const tx of stuckTransactions) {
+            if (tx.gasPrice.isGreaterThanOrEqualTo(targetGasPrice)) {
+                logger.warn({
+                    message:
+                        'unsticking of transaction skipped as the targetGasPrice is less than or equal to the gas price it was submitted with',
+                    txHash: tx.hash,
+                    txGasPrice: tx.gasPrice,
+                    targetGasPrice,
+                });
+                continue;
+            }
             try {
                 await this._unstickTransactionAsync(tx, targetGasPrice);
             } catch (err) {
@@ -247,7 +257,7 @@ export class SignerService {
             gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
             gas: web3WrapperUtils.encodeAmountAsHexString(ETH_TRANSFER_GAS_LIMIT),
         };
-        const { signedEthereumTransaction, txHash } = this._getTransactionHashAndRawTxString(ethereumTxnParams);
+        const { signedEthereumTransaction, txHash } = this._getSignedTxHashAndRawTxString(ethereumTxnParams);
         const transactionEntity = TransactionEntity.make({
             hash: txHash,
             status: TransactionStates.Unsubmitted,
@@ -281,7 +291,7 @@ export class SignerService {
             logger.warn('failed to store transaction with submitted status, rolling back', { err });
         }
     }
-    private _getTransactionHashAndRawTxString(
+    private _getSignedTxHashAndRawTxString(
         ethereumTxnParams: PartialTxParams,
     ): { signedEthereumTransaction: string; txHash: string } {
         const tx = new EthereumTx(ethereumTxnParams);

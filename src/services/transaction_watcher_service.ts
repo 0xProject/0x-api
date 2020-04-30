@@ -48,8 +48,8 @@ export class TransactionWatcherService {
     private async _findTransactionStatusAndUpdateAsync(txEntity: TransactionEntity): Promise<TransactionEntity> {
         // TODO(oskar) - LessThanOrEqual and LessThan do not work on dates in
         // TypeORM queries, ref: https://github.com/typeorm/typeorm/issues/3959
-        const now = new Date();
-        const isExpired = txEntity.expectedAt <= now;
+        const latestBlockDate = await this._getLatestBlockDateAsync();
+        const isExpired = txEntity.expectedAt <= latestBlockDate;
         try {
             const txInBlockchain = await this._web3Wrapper.getTransactionByHashAsync(txEntity.hash);
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
@@ -113,5 +113,9 @@ export class TransactionWatcherService {
         }
 
         return transactionsToAbort;
+    }
+    private async _getLatestBlockDateAsync(): Promise<Date> {
+        const latestBlockTimestamp = await this._web3Wrapper.getBlockTimestampAsync('latest');
+        return new Date(latestBlockTimestamp * 1000);
     }
 }
