@@ -7,5 +7,5 @@ export interface TransactionEntityOpts {
     nonce: number;
     gasPrice: BigNumber;
     blockNumber?: number;
-    metaTxnRelayerAddress: string;
+    from: string;
 }

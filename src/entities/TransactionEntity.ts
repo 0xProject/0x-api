@@ -28,8 +28,8 @@ export class TransactionEntity {
     @Column({ name: 'block_number', type: 'bigint', nullable: true })
     public blockNumber?: number;
 
-    @Column({ name: 'meta_txn_relayer_address', type: 'varchar' })
-    public metaTxnRelayerAddress: string;
+    @Column({ name: 'from', type: 'varchar' })
+    public from: string;
 
     @CreateDateColumn({ name: 'created_at' })
     public createdAt?: Date;
@@ -42,7 +42,7 @@ export class TransactionEntity {
 
     public static make(opts: TransactionEntityOpts): TransactionEntity {
         assert.isHexString('hash', opts.hash);
-        assert.isETHAddressHex('metaTxnRelayerAddress', opts.metaTxnRelayerAddress);
+        assert.isETHAddressHex('from', opts.from);
         assert.doesBelongToStringEnum('status', opts.status, TransactionStates);
         if (!Number.isInteger(opts.nonce) && opts.nonce >= 0) {
             throw new Error(`Expected nonce to be an integer, encountered: ${opts.nonce}`);
@@ -65,7 +65,7 @@ export class TransactionEntity {
             expectedMinedInSec: 120,
             nonce: 0,
             gasPrice: new BigNumber(0),
-            metaTxnRelayerAddress: '',
+            from: '',
         },
     ) {
         this.hash = opts.hash;
@@ -74,7 +74,7 @@ export class TransactionEntity {
         this.nonce = opts.nonce;
         this.gasPrice = opts.gasPrice;
         this.blockNumber = opts.blockNumber;
-        this.metaTxnRelayerAddress = opts.metaTxnRelayerAddress;
+        this.from = opts.from;
         const now = new Date();
         this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * ONE_SECOND_MS);
     }

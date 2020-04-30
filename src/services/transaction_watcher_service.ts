@@ -104,7 +104,7 @@ export class TransactionWatcherService {
             where: {
                 nonce: txEntity.nonce,
                 hash: Not(txEntity.hash),
-                metaTxnRelayerAddress: txEntity.metaTxnRelayerAddress,
+                from: txEntity.from,
             },
         });
         for (const tx of transactionsToAbort) {

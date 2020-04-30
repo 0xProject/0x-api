@@ -112,7 +112,7 @@ export class TestSigner {
             status: TransactionStates.Unsubmitted,
             nonce: web3WrapperUtils.convertHexToNumber(nonce),
             gasPrice,
-            metaTxnRelayerAddress: this._signerAddress,
+            from: this._signerAddress,
             expectedMinedInSec,
         });
         await this._transactionEntityRepository.save(transactionEntity);

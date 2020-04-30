@@ -198,7 +198,7 @@ export class SignerService {
             status: TransactionStates.Unsubmitted,
             nonce: web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce),
             gasPrice: zeroExTransaction.gasPrice,
-            metaTxnRelayerAddress: META_TXN_RELAY_ADDRESS,
+            from: META_TXN_RELAY_ADDRESS,
             expectedMinedInSec: EXPECTED_MINED_SEC,
         });
         await this._transactionEntityRepository.save(transactionEntity);
@@ -263,7 +263,7 @@ export class SignerService {
             status: TransactionStates.Unsubmitted,
             nonce: tx.nonce,
             gasPrice,
-            metaTxnRelayerAddress: META_TXN_RELAY_ADDRESS,
+            from: META_TXN_RELAY_ADDRESS,
             expectedMinedInSec: EXPECTED_MINED_SEC,
         });
         await this._transactionEntityRepository.save(transactionEntity);
