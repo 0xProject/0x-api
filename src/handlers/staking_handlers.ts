@@ -5,6 +5,7 @@ import { StakingDataService } from '../services/staking_data_service';
 import {
     StakingDelegatorResponse,
     StakingEpochsResponse,
+    StakingEpochsWithFeesResponse,
     StakingPoolResponse,
     StakingPoolsResponse,
     StakingStatsResponse,
@@ -39,14 +40,37 @@ export class StakingHandlers {
         res.status(HttpStatus.OK).send(response);
     }
     public async getStakingEpochsAsync(_req: express.Request, res: express.Response): Promise<void> {
-        const [currentEpoch, nextEpoch] = await Promise.all([
+        // optional query string to include fees
+        let isWithFees: boolean;
+        if (_req.query.withFees) {
+            if (!(_req.query.withFees === 'true' || _req.query.withFees === 'false')) {
+                res.status(HttpStatus.BAD_REQUEST).send(`Invalid value for withFees`);
+            }
+            isWithFees = (_req.query.withFees === 'true');
+        } else {
+            isWithFees = false;
+        }
+
+        let response: StakingEpochsResponse | StakingEpochsWithFeesResponse;
+        if (isWithFees) {
+            const [currentEpoch, nextEpoch] = await Promise.all([
+                this._stakingDataService.getCurrentEpochWithFeesAsync(),
+                this._stakingDataService.getNextEpochWithFeesAsync(),
+            ]);
+            response = {
+                currentEpoch,
+                nextEpoch,
+            };
+        } else {
+            const [currentEpoch, nextEpoch] = await Promise.all([
             this._stakingDataService.getCurrentEpochAsync(),
             this._stakingDataService.getNextEpochAsync(),
-        ]);
-        const response: StakingEpochsResponse = {
-            currentEpoch,
-            nextEpoch,
-        };
+            ]);
+            response = {
+                currentEpoch,
+                nextEpoch,
+            };
+        }
         res.status(HttpStatus.OK).send(response);
     }
     public async getStakingStatsAsync(_req: express.Request, res: express.Response): Promise<void> {
