@@ -1,6 +1,7 @@
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 
+import { schemas } from '../schemas/schemas';
 import { StakingDataService } from '../services/staking_data_service';
 import {
     StakingDelegatorResponse,
@@ -10,6 +11,7 @@ import {
     StakingPoolsResponse,
     StakingStatsResponse,
 } from '../types';
+import { schemaUtils } from '../utils/schema_utils';
 
 export class StakingHandlers {
     private readonly _stakingDataService: StakingDataService;
@@ -39,17 +41,10 @@ export class StakingHandlers {
 
         res.status(HttpStatus.OK).send(response);
     }
-    public async getStakingEpochsAsync(_req: express.Request, res: express.Response): Promise<void> {
+    public async getStakingEpochsAsync(req: express.Request, res: express.Response): Promise<void> {
         // optional query string to include fees
-        let isWithFees: boolean;
-        if (_req.query.withFees) {
-            if (!(_req.query.withFees === 'true' || _req.query.withFees === 'false')) {
-                res.status(HttpStatus.BAD_REQUEST).send(`Invalid value for withFees`);
-            }
-            isWithFees = _req.query.withFees === 'true';
-        } else {
-            isWithFees = false;
-        }
+        schemaUtils.validateSchema(req.query, schemas.stakingEpochRequestSchema as any);
+        const isWithFees = req.query.withFees ? req.query.withFees === 'true' : false;
 
         let response: StakingEpochsResponse | StakingEpochsWithFeesResponse;
         if (isWithFees) {
