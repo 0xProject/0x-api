@@ -166,7 +166,7 @@ export class MetaTransactionHandlers {
         } catch (e) {
             throw new ValidationError([
                 {
-                    field: 'transactionHash',
+                    field: 'txHash',
                     code: ValidationErrorCodes.InvalidSignatureOrHash,
                     reason: e.message,
                 },
@@ -182,6 +182,7 @@ export class MetaTransactionHandlers {
                 gasPrice: tx.gasPrice,
                 updatedAt: tx.updatedAt,
                 blockNumber: tx.blockNumber,
+                expectedMinedInSec: tx.expectedMinedInSec,
             };
             res.status(HttpStatus.OK).send(resp);
         }

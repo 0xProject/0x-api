@@ -39,7 +39,7 @@ async function waitUntilStatusAsync(
         if (tx !== undefined && tx.status === status) {
             return;
         }
-        await utils.delay(WAIT_DELAY_IN_MS);
+        await utils.delayAsync(WAIT_DELAY_IN_MS);
     }
 
     throw new Error(`failed to grab transaction: ${txHash} in a ${status} state`);

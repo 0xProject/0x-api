@@ -264,7 +264,7 @@ export class SignerService {
         await this._updateTransactionEntityToSubmittedAsync(txHash);
         return txHash;
     }
-    private async _updateTransactionEntityToSubmittedAsync(txHash: string): Promise<boolean> {
+    private async _updateTransactionEntityToSubmittedAsync(txHash: string): Promise<void> {
         // if the transaction was not updated in the meantime, we change its status to Submitted.
         try {
             await this._transactionEntityRepository.manager.transaction(async transactionEntityManager => {
@@ -275,14 +275,11 @@ export class SignerService {
                     await transactionEntityManager.save(txn);
                 }
             });
-            return true;
         } catch (err) {
             // the TransacitonEntity was updated in the meantime. This will
             // rollback the database transaction.
             logger.warn('failed to store transaction with submitted status, rolling back', { err });
         }
-
-        return false;
     }
     private _getTransactionHashAndRawTxString(
         ethereumTxnParams: PartialTxParams,

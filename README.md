@@ -42,6 +42,7 @@ These are services that make sure the data being served is present and up-to-dat
 | ------------------------------------------------------------------------ | ---------------------------------------- | --------------------------------------------------------- | ------------------------------------ | ----------------------------- |
 | Order Watcher (keep database in sync with Mesh)                          | `yarn start:service:order_watcher`       | Yes                                                       | No                                   | Yes                           |
 | [Staking Event Pipeline](https://github.com/0xProject/0x-event-pipeline) | `docker run 0xorg/event-pipeline:latest` | No                                                        | Yes                                  | Yes                           |
+| Transaction Watcher (monitor meta transactions)                          | `yarn start:service:transaction_watcher` | No                                                        | Yes                                  | Yes                           |
 
 ## Getting started
 

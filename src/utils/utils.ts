@@ -71,8 +71,8 @@ export const utils = {
         }
         return chunkedItems;
     },
-    delay: async (ms: number): Promise<{}> => {
+    delayAsync: async (ms: number): Promise<void> => {
         // tslint:disable-next-line:no-inferred-empty-object-type
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise<void>(resolve => setTimeout(resolve, ms));
     },
 };
