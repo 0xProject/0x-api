@@ -97,7 +97,7 @@ export async function getAppAsync(
     },
 ): Promise<{ app: Express.Application; server: Server }> {
     const app = express();
-    const server = await runHttpServiceAsync(dependencies, config, app);
+    const { server, wsService } = await runHttpServiceAsync(dependencies, config, app);
     if (dependencies.meshClient !== undefined) {
         try {
             await runOrderWatcherServiceAsync(dependencies.connection, dependencies.meshClient);
@@ -115,6 +115,13 @@ export async function getAppAsync(
         `${META_TRANSACTION_PATH}/submit`,
         asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
     );
+
+    // Register a shutdown event listener.
+    server.on('close', async () => {
+        dependencies.connection.close();
+        dependencies.meshClient.destroy();
+        wsService.destroy();
+    });
 
     return { app, server };
 }
