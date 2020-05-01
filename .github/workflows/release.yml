@@ -28,8 +28,10 @@ jobs:
             @semantic-release/git
             @semantic-release/exec
             semantic-release-docker
+            semantic-release-slack-bot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          SLACK_WEBHOOK: ${{ secrets.RELEASE_SLACK_WEBHOOK }}
           DEBUG: true
