@@ -75,7 +75,7 @@ export class SignerService {
     ): Promise<BigNumber> {
         // Verify 0x txn won't expire in next 60 seconds
         // tslint:disable-next-line:custom-no-magic-numbers
-        const sixtySecondsFromNow = new BigNumber(new Date().getTime() / ONE_SECOND_MS + 60);
+        const sixtySecondsFromNow = new BigNumber(Math.floor(new Date().getTime() / ONE_SECOND_MS) + 60);
         if (zeroExTransaction.expirationTimeSeconds.lte(sixtySecondsFromNow)) {
             throw new Error('zeroExTransaction expirationTimeSeconds in less than 60 seconds from now');
         }
