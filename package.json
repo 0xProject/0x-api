@@ -6,7 +6,7 @@
     "author": "Francesco Agosti <francesco@0x.org>",
     "license": "Apache-2.0",
     "scripts": {
-        "install": "sed -ie 's!import { Provider as Web3Provider } from \"web3/providers\";!import { Web3EthereumProvider as Web3Provider } from \"web3-providers\";!' node_modules/ganache-core/typings/index.d.ts # see https://github.com/trufflesuite/ganache-core/issues/465#issuecomment-610005598",
+        "install": "[ -f node_modules/ganache-core/typings/index.d.ts ] && sed -ie 's!import { Provider as Web3Provider } from \"web3/providers\";!import { Web3EthereumProvider as Web3Provider } from \"web3-providers\";!' node_modules/ganache-core/typings/index.d.ts || exit 0 # see https://github.com/trufflesuite/ganache-core/issues/465#issuecomment-610005598",
         "clean": "yarn clean:ts && yarn clean:docker",
         "clean:ts": "shx rm -rf lib",
         "clean:docker": "shx rm -rf 0x_mesh/db",
