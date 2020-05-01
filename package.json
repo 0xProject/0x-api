@@ -42,12 +42,19 @@
         "plugins": [
             "@semantic-release/commit-analyzer",
             "@semantic-release/release-notes-generator",
-            ["@sematic-release/npm", {
-                "npmPublish": false
-            }],
+            [
+                "@sematic-release/npm",
+                {
+                    "npmPublish": false
+                }
+            ],
             "@semantic-release/github",
             "@semantic-release/changelog",
-            "@semantic-release/git"
+            "@semantic-release/git",
+            ["@semantic-release/exec", {
+                "prepareCmd": "docker build -t 0xorg/0x-api ."
+            }],
+            "semantic-release-docker"
         ]
     },
     "devDependencies": {
@@ -56,6 +63,7 @@
         "@0x/types": "^3.1.1",
         "@0x/typescript-typings": "^5.0.1",
         "@semantic-release/changelog": "^5.0.1",
+        "@semantic-release/exec": "^5.0.0",
         "@semantic-release/git": "^9.0.0",
         "@types/cors": "^2.8.6",
         "@types/dotenv": "^6.1.1",
@@ -76,6 +84,7 @@
         "pino-pretty": "^3.2.2",
         "prettier": "^1.18.2",
         "rimraf": "^3.0.2",
+        "semantic-release-docker": "^2.2.0",
         "shx": "^0.3.2",
         "supertest": "^4.0.2",
         "ts-node": "^8.4.1",
