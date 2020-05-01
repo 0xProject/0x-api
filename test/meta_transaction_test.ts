@@ -30,7 +30,6 @@ describe(SUITE_NAME, () => {
     let blockchainLifecycle: BlockchainLifecycle;
 
     before(async () => {
-        // TODO(jalextowle): Perhaps the errors should be surfaced and cause a failing test somewhere?
         await setupApiAsync(SUITE_NAME);
 
         // connect to ganache and run contract migrations
@@ -77,48 +76,97 @@ describe(SUITE_NAME, () => {
     describe('/price tests', () => {
         const basePath = `${META_TRANSACTION_PATH}/price`;
 
-        context('schema validation', () => {
-            it('missing query params', async () => {
-                const response = await httpGetAsync({ route: basePath });
-                expect(response.type).to.be.eq('application/json');
-                expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
-                expect(response.body).to.be.deep.eq({
-                    code: 100,
-                    reason: 'Validation Failed',
-                    validationErrors: [
-                        { field: 'sellToken', code: 1000, reason: 'requires property "sellToken"' },
-                        { field: 'buyToken', code: 1000, reason: 'requires property "buyToken"' },
-                        { field: 'takerAddress', code: 1000, reason: 'requires property "takerAddress"' },
-                        { field: 'instance', code: 1001, reason: 'is not exactly one from <sellAmount>,<buyAmount>' },
-                    ],
-                });
-            });
+        interface TestCase {
+            description: string;
+            route: string;
+            body: any;
+        }
 
-            it('`sellAmount` and `buyAmount`', async () => {
-                const invalidPriceRequestRoute =
-                    `${META_TRANSACTION_PATH}/price` +
-                    `?buyToken=ZRX` +
-                    `&sellToken=WETH` +
-                    `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
-                    `&sellAmount=${constants.STATIC_ORDER_PARAMS.takerAssetAmount.toString()}` +
-                    `&takerAddress=${takerAddress}` +
-                    `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`;
+        it('input validation', async () => {
+            const testCases: TestCase[] = [
+                {
+                    description: 'missing query params',
+                    route: basePath,
+                    body: {
+                        code: 100,
+                        reason: 'Validation Failed',
+                        validationErrors: [
+                            { field: 'sellToken', code: 1000, reason: 'requires property "sellToken"' },
+                            { field: 'buyToken', code: 1000, reason: 'requires property "buyToken"' },
+                            { field: 'takerAddress', code: 1000, reason: 'requires property "takerAddress"' },
+                            { field: 'instance', code: 1001, reason: 'is not exactly one from <sellAmount>,<buyAmount>' },
+                        ],
+                    },
+                },
+                {
+                    description: 'both `sellAmount` and `buyAmount`',
+                    route: `${META_TRANSACTION_PATH}/price` +
+                        `?buyToken=ZRX` +
+                        `&sellToken=WETH` +
+                        `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
+                        `&sellAmount=${constants.STATIC_ORDER_PARAMS.takerAssetAmount.toString()}` +
+                        `&takerAddress=${takerAddress}` +
+                        `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                    body: {
+                        code: 100,
+                        reason: 'Validation Failed',
+                        validationErrors: [
+                            {
+                                field: 'instance',
+                                code: 1001,
+                                reason: 'is not exactly one from <sellAmount>,<buyAmount>',
+                            },
+                        ],
+                    },
+                },
+                {
+                    description: 'Invalid `buyToken`',
+                    route: `${META_TRANSACTION_PATH}/price` +
+                        `?buyToken=INVALID` +
+                        `&sellToken=WETH` +
+                        `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
+                        `&takerAddress=${takerAddress}` +
+                        `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                    body: {
+                        code: 100,
+                        reason: 'Validation Failed',
+                        validationErrors: [
+                            {
+                                field: 'buyToken',
+                                code: 1004,
+                                reason: 'Could not find token `INVALID`',
+                            },
+                        ],
+                    },
+                },
+                {
+                    description: 'Invalid `sellToken`',
+                    route: `${META_TRANSACTION_PATH}/price` +
+                        `?buyToken=ZRX` +
+                        `&sellToken=INVALID` +
+                        `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
+                        `&takerAddress=${takerAddress}` +
+                        `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                    body: {
+                        code: 100,
+                        reason: 'Validation Failed',
+                        validationErrors: [
+                            {
+                                field: 'sellToken',
+                                code: 1004,
+                                reason: 'Could not find token `INVALID`',
+                            },
+                        ],
+                    },
+                },
+            ];
 
-                const response = await httpGetAsync({ route: invalidPriceRequestRoute });
-                expect(response.type).to.be.eq('application/json');
-                expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
-                expect(response.body).to.be.deep.eq({
-                    code: 100,
-                    reason: 'Validation Failed',
-                    validationErrors: [
-                        {
-                            field: 'instance',
-                            code: 1001,
-                            reason: 'is not exactly one from <sellAmount>,<buyAmount>',
-                        },
-                    ],
-                });
-            });
+            for (const testCase of testCases) {
+                const response = await httpGetAsync({ route: testCase.route, });
+                expect(response.type, `${testCase.description} - content type`).to.be.eq('application/json');
+                expect(response.status, `${testCase.description} - status code`).to.be.eq(HttpStatus.BAD_REQUEST);
+                expect(response.body, `${testCase.description} - body`).to.be.deep.eq(testCase.body);
+            }
         });
 
         context('success tests', () => {
@@ -165,6 +213,10 @@ describe(SUITE_NAME, () => {
                 });
             });
         });
+    });
+
+    describe('/quote tests', () => {
+
     });
 
     describe('/submit tests', () => {
