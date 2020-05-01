@@ -216,7 +216,7 @@
     uuid "^3.3.2"
     websocket "^1.0.29"
 
-"@0x/mesh-rpc-client@^9.2.1":
+"@0x/mesh-rpc-client@^9.3.0":
   version "9.3.0"
   resolved "https://registry.yarnpkg.com/@0x/mesh-rpc-client/-/mesh-rpc-client-9.3.0.tgz#8508aa5199b31e9facd12be1c5533c8e3edbd264"
   integrity sha512-RfRW3dZThYhq0SezeMQ52eKRDUoZL1tk2mJYdv72V8yIiROOvILmDu2weZ+6ET5HP3zVou2YAQDnHb1M7iPiAg==

@@ -36,6 +36,7 @@ export async function setupApiAsync(suiteName: string, logConfig: LoggingConfig 
     await setupDependenciesAsync(suiteName, logConfig.dependencyLogType);
     start = spawn('yarn', ['start'], {
         cwd: apiRootDir,
+        env: process.env,
     });
     directLogs(start, suiteName, 'start', logConfig.apiLogType);
     await waitForApiStartupAsync(start);
@@ -52,6 +53,7 @@ export async function teardownApiAsync(suiteName: string, logType?: LogType): Pr
         throw new Error('There is no 0x-api instance to tear down');
     }
     start.kill();
+    start = undefined;
     await teardownDependenciesAsync(suiteName, logType);
 }
 
@@ -262,12 +264,13 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
                 }
 
                 if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 2) {
-                    setTimeout(resolve, 20000); // tslint:disable-line
+                    // TODO(jalextowle): Is this necessary?
+                    setTimeout(resolve, 10000); // tslint:disable-line:custom-no-magic-numbers
                 }
             }
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for dependency logs'));
-        }, 100000); // tslint:disable-line:custom-no-magic-numbers
+        }, 120000); // tslint:disable-line:custom-no-magic-numbers
     });
 }

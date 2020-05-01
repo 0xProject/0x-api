@@ -55,7 +55,7 @@ export class WebsocketService {
     private readonly _requestIdToSubscriptionOpts: Map<
         string,
         OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
-    > = new Map(); // requestId -> { base, quote }
+        > = new Map(); // requestId -> { base, quote }
     private _meshSubscriptionId?: string;
     private static _decodedContractAndAssetData(assetData: string): { assetProxyId: string; data: string[] } {
         let data: string[] = [assetData];
@@ -135,7 +135,7 @@ export class WebsocketService {
             .subscribeToOrdersAsync(e => this.orderUpdate(meshUtils.orderInfosToApiOrders(e)))
             .then(subscriptionId => (this._meshSubscriptionId = subscriptionId));
     }
-    public destroy(): void {
+    public async destroyAsync(): Promise<void> {
         clearInterval(this._pongIntervalId);
         for (const ws of this._server.clients) {
             ws.terminate();
@@ -144,7 +144,7 @@ export class WebsocketService {
         this._requestIdToSubscriptionOpts.clear();
         this._server.close();
         if (this._meshSubscriptionId) {
-            void this._meshClient.unsubscribeAsync(this._meshSubscriptionId);
+            await this._meshClient.unsubscribeAsync(this._meshSubscriptionId);
             delete this._meshSubscriptionId;
         }
     }

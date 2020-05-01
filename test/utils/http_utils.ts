@@ -1,4 +1,4 @@
-import * as request from 'supertest';
+import * as httpRequest from 'supertest';
 
 const API_HTTP_ADDRESS = 'http://localhost:3000';
 
@@ -7,6 +7,23 @@ const API_HTTP_ADDRESS = 'http://localhost:3000';
  * @param input Specifies the route and the base URL that should be used to make
  *        the HTTP GET request.
  */
-export async function httpGetAsync(input: { route: string; baseURL?: string }): Promise<request.Response> {
-    return request(input.baseURL || API_HTTP_ADDRESS).get(input.route);
+export async function httpGetAsync(input: { route: string; baseURL?: string }): Promise<httpRequest.Response> {
+    return httpRequest(input.baseURL || API_HTTP_ADDRESS).get(input.route);
+}
+
+/**
+ * Makes a HTTP POST request.
+ * @param input Specifies the route and the base URL that should be used to make
+ *        the HTTP POST request.
+ */
+export async function httpPostAsync(input: {
+    route: string;
+    baseURL?: string;
+    headers: { [field: string]: string };
+}): Promise<httpRequest.Response> {
+    const request = httpRequest(input.baseURL || API_HTTP_ADDRESS).post(input.route);
+    for (const [field, value] of Object.entries(input.headers)) {
+        request.set(field, value);
+    }
+    return request;
 }
