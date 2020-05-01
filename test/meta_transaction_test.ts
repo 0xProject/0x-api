@@ -10,7 +10,7 @@ import 'mocha';
 
 import * as config from '../src/config';
 import { META_TRANSACTION_PATH } from '../src/constants';
-import { GeneralErrorCodes, generalErrorCodeToReason } from '../src/errors';
+import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { httpGetAsync, httpPostAsync } from './utils/http_utils';
@@ -88,19 +88,36 @@ describe(SUITE_NAME, () => {
                     description: 'missing query params',
                     route: basePath,
                     body: {
-                        code: 100,
+                        code: GeneralErrorCodes.ValidationError,
                         reason: 'Validation Failed',
                         validationErrors: [
-                            { field: 'sellToken', code: 1000, reason: 'requires property "sellToken"' },
-                            { field: 'buyToken', code: 1000, reason: 'requires property "buyToken"' },
-                            { field: 'takerAddress', code: 1000, reason: 'requires property "takerAddress"' },
-                            { field: 'instance', code: 1001, reason: 'is not exactly one from <sellAmount>,<buyAmount>' },
+                            {
+                                field: 'sellToken',
+                                code: ValidationErrorCodes.RequiredField,
+                                reason: 'requires property "sellToken"',
+                            },
+                            {
+                                field: 'buyToken',
+                                code: ValidationErrorCodes.RequiredField,
+                                reason: 'requires property "buyToken"',
+                            },
+                            {
+                                field: 'takerAddress',
+                                code: ValidationErrorCodes.RequiredField,
+                                reason: 'requires property "takerAddress"',
+                            },
+                            {
+                                field: 'instance',
+                                code: ValidationErrorCodes.IncorrectFormat,
+                                reason: 'is not exactly one from <sellAmount>,<buyAmount>',
+                            },
                         ],
                     },
                 },
                 {
                     description: 'both `sellAmount` and `buyAmount`',
-                    route: `${META_TRANSACTION_PATH}/price` +
+                    route:
+                        `${META_TRANSACTION_PATH}/price` +
                         `?buyToken=ZRX` +
                         `&sellToken=WETH` +
                         `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
@@ -108,12 +125,12 @@ describe(SUITE_NAME, () => {
                         `&takerAddress=${takerAddress}` +
                         `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
                     body: {
-                        code: 100,
+                        code: GeneralErrorCodes.ValidationError,
                         reason: 'Validation Failed',
                         validationErrors: [
                             {
                                 field: 'instance',
-                                code: 1001,
+                                code: ValidationErrorCodes.IncorrectFormat,
                                 reason: 'is not exactly one from <sellAmount>,<buyAmount>',
                             },
                         ],
@@ -121,19 +138,21 @@ describe(SUITE_NAME, () => {
                 },
                 {
                     description: 'Invalid `buyToken`',
-                    route: `${META_TRANSACTION_PATH}/price` +
+                    route:
+                        `${META_TRANSACTION_PATH}/price` +
                         `?buyToken=INVALID` +
                         `&sellToken=WETH` +
                         `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
                         `&takerAddress=${takerAddress}` +
                         `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
                     body: {
-                        code: 100,
+                        code: GeneralErrorCodes.ValidationError,
                         reason: 'Validation Failed',
                         validationErrors: [
                             {
                                 field: 'buyToken',
-                                code: 1004,
+                                // TODO(jalextowle): This seems like the wrong error message.
+                                code: ValidationErrorCodes.ValueOutOfRange,
                                 reason: 'Could not find token `INVALID`',
                             },
                         ],
@@ -141,19 +160,21 @@ describe(SUITE_NAME, () => {
                 },
                 {
                     description: 'Invalid `sellToken`',
-                    route: `${META_TRANSACTION_PATH}/price` +
+                    route:
+                        `${META_TRANSACTION_PATH}/price` +
                         `?buyToken=ZRX` +
                         `&sellToken=INVALID` +
                         `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
                         `&takerAddress=${takerAddress}` +
                         `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
                     body: {
-                        code: 100,
+                        code: GeneralErrorCodes.ValidationError,
                         reason: 'Validation Failed',
                         validationErrors: [
                             {
                                 field: 'sellToken',
-                                code: 1004,
+                                // TODO(jalextowle): This seems like the wrong error message.
+                                code: ValidationErrorCodes.ValueOutOfRange,
                                 reason: 'Could not find token `INVALID`',
                             },
                         ],
@@ -162,11 +183,35 @@ describe(SUITE_NAME, () => {
             ];
 
             for (const testCase of testCases) {
-                const response = await httpGetAsync({ route: testCase.route, });
+                const response = await httpGetAsync({ route: testCase.route });
                 expect(response.type, `${testCase.description} - content type`).to.be.eq('application/json');
                 expect(response.status, `${testCase.description} - status code`).to.be.eq(HttpStatus.BAD_REQUEST);
                 expect(response.body, `${testCase.description} - body`).to.be.deep.eq(testCase.body);
             }
+        });
+
+        it('should throw `NO_OPTIMAL_PATH` when there is insufficient liquidity', async () => {
+            const route =
+                `${META_TRANSACTION_PATH}/price` +
+                `?buyToken=ZRX` +
+                `&sellToken=WETH` +
+                `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
+                `&takerAddress=${takerAddress}` +
+                `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`;
+            const response = await httpGetAsync({ route });
+            expect(response.type).to.be.eq('application/json');
+            expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
+            expect(response.body).to.be.deep.eq({
+                code: GeneralErrorCodes.ValidationError,
+                reason: 'Validation Failed',
+                validationErrors: [
+                    {
+                        code: ValidationErrorCodes.ValueOutOfRange,
+                        field: 'buyAmount',
+                        reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
+                    },
+                ],
+            });
         });
 
         context('success tests', () => {
@@ -215,9 +260,7 @@ describe(SUITE_NAME, () => {
         });
     });
 
-    describe('/quote tests', () => {
-
-    });
+    describe('/quote tests', () => {});
 
     describe('/submit tests', () => {
         const requestBase = `${META_TRANSACTION_PATH}/submit`;
