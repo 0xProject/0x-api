@@ -26,6 +26,7 @@ import {
     ETH_GAS_STATION_API_BASE_URL,
     ETH_TRANSFER_GAS_LIMIT,
     EXPECTED_MINED_SEC,
+    ONE_SECOND_MS,
     STUCK_TX_POLLING_INTERVAL_MS,
     UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
 } from '../constants';
@@ -106,7 +107,7 @@ export class SignerService {
     ): Promise<BigNumber> {
         // Verify 0x txn won't expire in next 60 seconds
         // tslint:disable-next-line:custom-no-magic-numbers
-        const sixtySecondsFromNow = new BigNumber(+new Date() + 60);
+        const sixtySecondsFromNow = new BigNumber(Math.floor(new Date().getTime() / ONE_SECOND_MS) + 60);
         if (zeroExTransaction.expirationTimeSeconds.lte(sixtySecondsFromNow)) {
             throw new Error('zeroExTransaction expirationTimeSeconds in less than 60 seconds from now');
         }
