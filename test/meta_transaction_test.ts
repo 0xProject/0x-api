@@ -10,11 +10,12 @@ import 'mocha';
 
 import * as config from '../src/config';
 import { META_TRANSACTION_PATH } from '../src/constants';
+import { GeneralErrorCodes, generalErrorCodeToReason } from '../src/errors';
 
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
-import { httpGetAsync } from './utils/http_utils';
+import { httpGetAsync, httpPostAsync } from './utils/http_utils';
 
-const SUITE_NAME = 'meta transactions test';
+const SUITE_NAME = 'meta transactions tests';
 
 describe(SUITE_NAME, () => {
     let contractAddresses: ContractAddresses;
@@ -162,6 +163,21 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: '0x0b1ba0af832d7c05fd64161e0db78e85978e8082',
                     buyTokenAddress: '0x871dd7c2b4b25e1aa18728e9d5f2af4c4e431f5c',
                 });
+            });
+        });
+    });
+
+    describe('/submit tests', () => {
+        const requestBase = `${META_TRANSACTION_PATH}/submit`;
+
+        it('should return InvalidAPIKey error if invalid UUID supplied as API Key', async () => {
+            const route = `${requestBase}?0x-api-key=foobar`;
+            const response = await httpPostAsync({ route, headers: { '0x-api-key': 'foobar' } });
+            expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
+            expect(response.type).to.be.eq('application/json');
+            expect(response.body).to.be.deep.eq({
+                code: GeneralErrorCodes.InvalidAPIKey,
+                reason: generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey],
             });
         });
     });

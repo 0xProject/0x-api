@@ -117,10 +117,10 @@ export async function getAppAsync(
     );
 
     // Register a shutdown event listener.
+    // TODO: More teardown logic should be added here. For example, the mesh rpc
+    // client should be destroyed and services should be torn down.
     server.on('close', async () => {
-        dependencies.connection.close();
-        dependencies.meshClient.destroy();
-        wsService.destroy();
+        await wsService.destroyAsync();
     });
 
     return { app, server };
