@@ -1,6 +1,6 @@
 {
     "name": "0x-api",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "description": "0x API",
     "repository": "git@github.com:0xProject/0x-api.git",
     "author": "Francesco Agosti <francesco@0x.org>",
@@ -42,6 +42,9 @@
         "plugins": [
             "@semantic-release/commit-analyzer",
             "@semantic-release/release-notes-generator",
+            ["@sematic-release/npm", {
+                "npmPublish": false
+            }],
             "@semantic-release/github",
             "@semantic-release/changelog",
             "@semantic-release/git"
