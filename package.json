@@ -58,17 +58,20 @@
                 }
             ],
             "semantic-release-docker",
-            ["semantic-release-slack-bot", {
-                "notifyOnSuccess": true,
-                "notifyOnFail": true,
-                "markdownReleaseNotes": true,
-                "onSuccessTemplate": {
-                    "text": "Version $npm_package_name of $package_name has been released. The deployment must be approved at https://github.com/0xProject/0x-main-infra/pulls. $release_notes"
-                },
-                "onFailTemplate": {
-                    "text": "Releasing $package_name with version $npm_package_version failed."
+            [
+                "semantic-release-slack-bot",
+                {
+                    "notifyOnSuccess": true,
+                    "notifyOnFail": true,
+                    "markdownReleaseNotes": true,
+                    "onSuccessTemplate": {
+                        "text": "Version $npm_package_name of $package_name has been released. The deployment must be approved at https://github.com/0xProject/0x-main-infra/pulls. $release_notes"
+                    },
+                    "onFailTemplate": {
+                        "text": "Releasing $package_name with version $npm_package_version failed."
+                    }
                 }
-            }]
+            ]
         ]
     },
     "devDependencies": {
