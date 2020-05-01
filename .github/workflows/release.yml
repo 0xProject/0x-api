@@ -2,6 +2,8 @@ name: Release
 on: 
     repository_dispatch:
         types: [semantic-release]
+    schedule:
+        - cron: '* 17 * * 1'
 
 jobs:
   release:
