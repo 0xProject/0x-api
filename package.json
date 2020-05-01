@@ -30,14 +30,22 @@
         "start:service:order_watcher": "node -r dotenv/config lib/src/runners/order_watcher_service_runner.js",
         "start:service:transaction_watcher": "node -r dotenv/config lib/src/runners/transaction_watcher_service_runner.js",
         "start:service:signer": "node -r dotenv/config lib/src/runners/signer_runner.js",
-        "lint": "tslint --project . --format stylish && yarn prettier:ci"
+        "lint": "tslint --project . --format stylish && yarn prettier:ci",
+        "release": "curl -v -H \"Accept: application/vnd.github.everest-preview+json\" -H \"Authorization: token ${GITHUB_TOKEN}\" https://api.github.com/repos/0xProject/0x-api/dispatches -d '{ \"event_type\": \"semantic-release\" }'"
     },
     "config": {
         "prettier_target": "{.,test/**,src/**}/*.{ts,tsx,json,md}"
     },
     "resolutions": {
-        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-a458e81f8",
-        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-a458e81f8"
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-49e4ade66",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-49e4ade66"
+    },
+    "release": {
+        "plugins": [
+            "@semantic-release/commit-analyzer",
+            "@semantic-release/release-notes-generator",
+            "@semantic-release/github"
+        ]
     },
     "devDependencies": {
         "@0x/dev-utils": "^3.1.1",
@@ -71,10 +79,10 @@
     },
     "dependencies": {
         "@0x/assert": "^3.0.4",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v4.4.0-456f8a90b",
+        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v4.4.0-49e4ade66",
         "@0x/connect": "^6.0.4",
-        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-a458e81f8",
-        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-a458e81f8",
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-49e4ade66",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-49e4ade66",
         "@0x/contracts-dev-utils": "0xProject/gitpkg-registry#0x-contracts-dev-utils-v1.3.3-110e1afa8",
         "@0x/json-schemas": "^5.0.4",
         "@0x/mesh-rpc-client": "^9.2.1",

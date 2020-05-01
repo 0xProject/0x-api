@@ -86,6 +86,10 @@ postgres
 # Emacs org-mode projectile TODOs
 TODOs.org
 
+# macOS desktop services store
 .DS_Store
+
+# test docker file
+test/docker-compose.yml
 
 TODO.txt

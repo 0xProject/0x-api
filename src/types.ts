@@ -73,7 +73,6 @@ export interface RawEpoch {
     ending_block_timestamp?: null;
     zrx_deposited?: string;
     zrx_staked?: string;
-    protocol_fees_generated_in_eth?: string;
 }
 
 export interface TransactionDate {
@@ -88,7 +87,6 @@ export interface Epoch {
     epochEnd?: TransactionDate;
     zrxStaked: number;
     zrxDeposited: number;
-    protocolFeesGeneratedInEth: number;
 }
 
 export interface RawPool {
@@ -460,6 +458,7 @@ export interface CalculateMetaTransactionQuoteParams {
     from: string | undefined;
     slippagePercentage?: number;
     excludedSources?: ERC20BridgeSource[];
+    apiKey: string | undefined;
 }
 
 export enum TransactionStates {

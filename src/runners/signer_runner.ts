@@ -3,7 +3,7 @@ import * as cors from 'cors';
 import * as express from 'express';
 import * as asyncHandler from 'express-async-handler';
 
-import * as config from '../config';
+import * as defaultConfig from '../config';
 import { META_TRANSACTION_PATH } from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
 import { SignerHandlers } from '../handlers/signer_handlers';
@@ -21,7 +21,7 @@ if (require.main === module) {
         app.use(cors());
         app.use(bodyParser.json());
         const connection = await getDBConnectionAsync();
-        const provider = providerUtils.createWeb3Provider(config.ETHEREUM_RPC_URL);
+        const provider = providerUtils.createWeb3Provider(defaultConfig.ETHEREUM_RPC_URL);
 
         const signerService = new SignerService(connection);
         const handlers = new SignerHandlers(signerService);
@@ -41,6 +41,11 @@ if (require.main === module) {
         app.use(errorHandler);
 
         logger.info('Signing Service started!');
+        const server = app.listen(defaultConfig.HTTP_PORT, () => {
+            logger.info(`API (HTTP) listening on port ${defaultConfig.HTTP_PORT}!`);
+        });
+        server.keepAliveTimeout = defaultConfig.HTTP_KEEP_ALIVE_TIMEOUT;
+        server.headersTimeout = defaultConfig.HTTP_HEADERS_TIMEOUT;
     })().catch(error => logger.error(error));
 }
 process.on('uncaughtException', err => {

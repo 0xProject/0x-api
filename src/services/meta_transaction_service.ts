@@ -42,6 +42,7 @@ export class MetaTransactionService {
     }
     public async calculateMetaTransactionPriceAsync(
         params: CalculateMetaTransactionQuoteParams,
+        endpoint: 'price' | 'quote',
     ): Promise<CalculateMetaTransactionPriceResponse> {
         const {
             takerAddress,
@@ -51,13 +52,24 @@ export class MetaTransactionService {
             sellTokenAddress,
             slippagePercentage,
             excludedSources,
+            apiKey,
         } = params;
 
+        let _rfqt;
+        if (apiKey !== undefined) {
+            _rfqt = {
+                intentOnFilling: endpoint === 'quote',
+                isIndicative: endpoint === 'price',
+                apiKey,
+                takerAddress,
+            };
+        }
         const assetSwapperOpts = {
             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
             slippagePercentage,
             bridgeSlippage: slippagePercentage,
             excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
+            rfqt: _rfqt,
         };
 
         let swapQuote;
@@ -112,6 +124,7 @@ export class MetaTransactionService {
     ): Promise<GetMetaTransactionQuoteResponse> {
         const { takerAddress, sellAmount, buyAmount, swapQuote, price } = await this.calculateMetaTransactionPriceAsync(
             params,
+            'quote',
         );
 
         const floatGasPrice = swapQuote.gasPrice;
