@@ -59,12 +59,14 @@ export function isWETHSymbolOrAddress(tokenAddressOrSymbol: string, chainId: num
  * @param chainId the Network where the address should be hosted on.
  */
 export function findTokenAddress(symbolOrAddress: string, chainId: ChainId): string {
-    if (symbolOrAddress.startsWith('0x') && symbolOrAddress.length === ADDRESS_HEX_LENGTH) {
-        return symbolOrAddress;
+    const normalizedSymbolOrAddress = symbolOrAddress.toLowerCase();
+    if (normalizedSymbolOrAddress.startsWith('0x') && normalizedSymbolOrAddress.length === ADDRESS_HEX_LENGTH) {
+        return normalizedSymbolOrAddress;
     }
-    const entry = getTokenMetadataIfExists(symbolOrAddress, chainId);
+    const entry = getTokenMetadataIfExists(normalizedSymbolOrAddress, chainId);
     if (!entry) {
-        throw new Error(`Could not find token ${symbolOrAddress}`);
+        // NOTE(jalextowle): Use the original symbol to increase readability.
+        throw new Error(`Could not find token \`${symbolOrAddress}\``);
     }
     return entry.tokenAddress;
 }
@@ -77,7 +79,7 @@ export function findTokenAddress(symbolOrAddress: string, chainId: ChainId): str
  */
 export function findTokenAddressOrThrowApiError(address: string, field: string, chainId: ChainId): string {
     try {
-        return findTokenAddress(address.toLowerCase(), chainId);
+        return findTokenAddress(address, chainId);
     } catch (e) {
         throw new ValidationError([
             {
