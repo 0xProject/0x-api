@@ -55,7 +55,7 @@ export class WebsocketService {
     private readonly _requestIdToSubscriptionOpts: Map<
         string,
         OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
-        > = new Map(); // requestId -> { base, quote }
+    > = new Map(); // requestId -> { base, quote }
     private _meshSubscriptionId?: string;
     private static _decodedContractAndAssetData(assetData: string): { assetProxyId: string; data: string[] } {
         let data: string[] = [assetData];

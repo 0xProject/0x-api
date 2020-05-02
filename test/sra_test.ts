@@ -11,7 +11,7 @@ import * as orderFixture from './fixtures/order.json';
 import { setupApiAsync, teardownApiAsync } from './utils/deployment';
 import { httpGetAsync } from './utils/http_utils';
 
-const SUITE_NAME = 'sra tests'
+const SUITE_NAME = 'sra tests';
 
 describe(SUITE_NAME, () => {
     before(async () => {
@@ -49,20 +49,24 @@ describe(SUITE_NAME, () => {
             const dbConnection = await getDBConnectionAsync();
             await dbConnection.manager.save(orderModel);
 
-            const response = await httpGetAsync({ route: `${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}` });
+            const response = await httpGetAsync({
+                route: `${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}`,
+            });
             expect(response.status).to.be.eq(HttpStatus.OK);
             expect(response.type).to.be.eq('application/json');
             expect(response.body).to.be.deep.eq({
                 perPage: DEFAULT_PER_PAGE,
                 page: DEFAULT_PAGE,
                 total: 1,
-                records: [{
-                    metaData: {
-                        orderHash: '123',
-                        remainingFillableTakerAssetAmount: '1',
+                records: [
+                    {
+                        metaData: {
+                            orderHash: '123',
+                            remainingFillableTakerAssetAmount: '1',
+                        },
+                        order: apiOrderResponse,
                     },
-                    order: apiOrderResponse,
-                }],
+                ],
             });
         });
     });
