@@ -62,7 +62,7 @@ describe(SUITE_NAME, () => {
     });
 
     after(async () => {
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             server.close((err?: Error) => {
                 if (err) {
                     reject(err);
