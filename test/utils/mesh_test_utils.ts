@@ -31,11 +31,14 @@ export class MeshTestUtils {
             orders.push(
                 await this._orderFactory.newSignedOrderAsync({
                     takerAssetAmount: constants.STATIC_ORDER_PARAMS.makerAssetAmount.times(price),
-                    expirationTimeSeconds: Date.now() + 24 * 3600,
+                    // tslint:disable-next-line:custom-no-magic-numbers
+                    expirationTimeSeconds: new BigNumber(Date.now() + 24 * 3600),
                 }),
             );
         }
         const validationResults = await this._meshClient.addOrdersAsync(orders);
+        // NOTE(jalextowle): Wait for the 0x-api to catch up.
+        await sleepAsync(2);
         return validationResults;
     }
 

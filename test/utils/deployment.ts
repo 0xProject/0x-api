@@ -124,6 +124,10 @@ export async function setupMeshAsync(suiteName: string, logType?: LogType): Prom
     directLogs(up, suiteName, 'up', logType);
 
     await waitForMeshStartupAsync(up);
+
+    // HACK(jalextowle): For some reason, Mesh Clients would connect to
+    // the old mesh node. Try to remove this.
+    await sleepAsync(3); // tslint:disable-line:custom-no-magic-numbers
 }
 
 /**
@@ -272,5 +276,12 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
         setTimeout(() => {
             reject(new Error('Timed out waiting for dependency logs'));
         }, 150000); // tslint:disable-line:custom-no-magic-numbers
+    });
+}
+
+async function sleepAsync(timeSeconds: number): Promise<void> {
+    return new Promise<void>(resolve => {
+        const secondsPerMillisecond = 1000;
+        setTimeout(resolve, timeSeconds * secondsPerMillisecond);
     });
 }
