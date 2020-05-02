@@ -9,13 +9,13 @@ import * as config from '../src/config';
 import { META_TRANSACTION_PATH } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 
-import { LogType, setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
+import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'meta transactions tests';
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let takerAddress: string;
     let buyTokenAddress: string;
     let sellTokenAddress: string;
@@ -32,7 +32,7 @@ describe.only(SUITE_NAME, () => {
     };
 
     before(async () => {
-        await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console });
+        await setupApiAsync(SUITE_NAME);
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -196,13 +196,12 @@ describe.only(SUITE_NAME, () => {
             }
         });
 
-        context.only('success tests', () => {
+        context('success tests', () => {
             let meshUtils: MeshTestUtils;
 
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
                 await setupMeshAsync(SUITE_NAME);
-                await sleepAsync(5);
                 meshUtils = new MeshTestUtils(provider);
                 await meshUtils.setupUtilsAsync();
             });
@@ -269,9 +268,7 @@ describe.only(SUITE_NAME, () => {
                         takerAddress,
                     },
                 });
-                console.log(await meshUtils.getOrdersAsync());
                 const response = await httpGetAsync({ route });
-                console.log(response.body);
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 expect(response.body).to.be.deep.eq({
@@ -337,10 +334,3 @@ describe.only(SUITE_NAME, () => {
         });
     });
 });
-
-async function sleepAsync(timeSeconds: number): Promise<void> {
-    return new Promise<void>(resolve => {
-        const secondsPerMillisecond = 1000;
-        setTimeout(resolve, timeSeconds * secondsPerMillisecond);
-    });
-}
