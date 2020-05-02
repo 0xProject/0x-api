@@ -13,7 +13,7 @@ import { META_TRANSACTION_PATH } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
-import { httpGetAsync, httpPostAsync } from './utils/http_utils';
+import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 
 const SUITE_NAME = 'meta transactions tests';
 
@@ -28,6 +28,13 @@ describe(SUITE_NAME, () => {
     let meshClient: WSClient;
     let orderFactory: OrderFactory;
     let blockchainLifecycle: BlockchainLifecycle;
+
+    const DEFAULT_QUERY_PARAMS = {
+        buyToken: 'ZRX',
+        sellToken: 'WETH',
+        buyAmount: constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString(),
+        excludedSources: 'Uniswap,Eth2Dai,Kyber,LiquidityProvider',
+    };
 
     before(async () => {
         await setupApiAsync(SUITE_NAME);
@@ -73,139 +80,121 @@ describe(SUITE_NAME, () => {
         await teardownApiAsync(SUITE_NAME);
     });
 
-    interface TestCase {
-        description: string;
-        query: string;
-        body: any;
+    async function assertFailureAsync(baseRoute: string, testCase: TestCase): Promise<void> {
+        const route = constructRoute({
+            baseRoute,
+            queryParams: testCase.takerAddress ? { ...testCase.queryParams, takerAddress } : testCase.queryParams,
+        });
+        const response = await httpGetAsync({ route });
+        expect(response.type).to.be.eq('application/json');
+        expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
+        expect(response.body).to.be.deep.eq(testCase.body);
     }
 
-    it('input validation', async () => {
-        const testCases: TestCase[] = [
-            {
-                description: 'missing query params',
-                query: '',
-                body: {
-                    code: GeneralErrorCodes.ValidationError,
-                    reason: 'Validation Failed',
-                    validationErrors: [
-                        {
-                            field: 'sellToken',
-                            code: ValidationErrorCodes.RequiredField,
-                            reason: 'requires property "sellToken"',
-                        },
-                        {
-                            field: 'buyToken',
-                            code: ValidationErrorCodes.RequiredField,
-                            reason: 'requires property "buyToken"',
-                        },
-                        {
-                            field: 'takerAddress',
-                            code: ValidationErrorCodes.RequiredField,
-                            reason: 'requires property "takerAddress"',
-                        },
-                        {
-                            field: 'instance',
-                            code: ValidationErrorCodes.IncorrectFormat,
-                            reason: 'is not exactly one from <sellAmount>,<buyAmount>',
-                        },
-                    ],
-                },
-            },
-            {
-                description: 'both `sellAmount` and `buyAmount`',
-                query:
-                    `?buyToken=ZRX` +
-                    `&sellToken=WETH` +
-                    `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
-                    `&sellAmount=${constants.STATIC_ORDER_PARAMS.takerAssetAmount.toString()}` +
-                    `&takerAddress=${takerAddress}` +
-                    `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
-                body: {
-                    code: GeneralErrorCodes.ValidationError,
-                    reason: 'Validation Failed',
-                    validationErrors: [
-                        {
-                            field: 'instance',
-                            code: ValidationErrorCodes.IncorrectFormat,
-                            reason: 'is not exactly one from <sellAmount>,<buyAmount>',
-                        },
-                    ],
-                },
-            },
-            {
-                description: 'Invalid `buyToken`',
-                query:
-                    `?buyToken=INVALID` +
-                    `&sellToken=WETH` +
-                    `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
-                    `&takerAddress=${takerAddress}` +
-                    `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
-                body: {
-                    code: GeneralErrorCodes.ValidationError,
-                    reason: 'Validation Failed',
-                    validationErrors: [
-                        {
-                            field: 'buyToken',
-                            // TODO(jalextowle): This seems like the wrong error message.
-                            code: ValidationErrorCodes.ValueOutOfRange,
-                            reason: 'Could not find token `INVALID`',
-                        },
-                    ],
-                },
-            },
-            {
-                description: 'Invalid `sellToken`',
-                query:
-                    `?buyToken=ZRX` +
-                    `&sellToken=INVALID` +
-                    `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
-                    `&takerAddress=${takerAddress}` +
-                    `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
-                body: {
-                    code: GeneralErrorCodes.ValidationError,
-                    reason: 'Validation Failed',
-                    validationErrors: [
-                        {
-                            field: 'sellToken',
-                            // TODO(jalextowle): This seems like the wrong error message.
-                            code: ValidationErrorCodes.ValueOutOfRange,
-                            reason: 'Could not find token `INVALID`',
-                        },
-                    ],
-                },
-            },
-        ];
+    interface TestCase {
+        description: string;
+        queryParams: {
+            [param: string]: string;
+        };
+        body: any;
+        takerAddress: boolean;
+    }
 
-        for (const testCase of testCases) {
-            // /price endpoint
-            const priceErrorPrefix = `/price - ${testCase.description}`;
-            const priceResponse = await httpGetAsync({ route: `${META_TRANSACTION_PATH}/price/${testCase.query}` });
-            expect(priceResponse.type, `${priceErrorPrefix} - content type`).to.be.eq('application/json');
-            expect(priceResponse.status, `${priceErrorPrefix} - status code`).to.be.eq(HttpStatus.BAD_REQUEST);
-            expect(priceResponse.body, `${priceErrorPrefix} - body`).to.be.deep.eq(testCase.body);
-
-            // /quote endpoint
-            const quoteErrorPrefix = `/quote - ${testCase.description}`;
-            const quoteResponse = await httpGetAsync({ route: `${META_TRANSACTION_PATH}/quote/${testCase.query}` });
-            expect(quoteResponse.type, `${quoteErrorPrefix} - content type`).to.be.eq('application/json');
-            expect(quoteResponse.status, `${quoteErrorPrefix} - status code`).to.be.eq(HttpStatus.BAD_REQUEST);
-            expect(quoteResponse.body, `${quoteErrorPrefix} - body`).to.be.deep.eq(testCase.body);
-        }
-    });
-
-    describe('/price tests', () => {
-        it('should throw `NO_OPTIMAL_PATH` when there is insufficient liquidity', async () => {
-            const route =
-                `${META_TRANSACTION_PATH}/price` +
-                `?buyToken=ZRX` +
-                `&sellToken=WETH` +
-                `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
-                `&takerAddress=${takerAddress}` +
-                `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`;
-            const response = await httpGetAsync({ route });
-            expect(response.type).to.be.eq('application/json');
-            expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
-            expect(response.body).to.be.deep.eq({
+    const testCases: TestCase[] = [
+        {
+            description: 'missing query params',
+            queryParams: {},
+            body: {
+                code: GeneralErrorCodes.ValidationError,
+                reason: 'Validation Failed',
+                validationErrors: [
+                    {
+                        field: 'sellToken',
+                        code: ValidationErrorCodes.RequiredField,
+                        reason: 'requires property "sellToken"',
+                    },
+                    {
+                        field: 'buyToken',
+                        code: ValidationErrorCodes.RequiredField,
+                        reason: 'requires property "buyToken"',
+                    },
+                    {
+                        field: 'takerAddress',
+                        code: ValidationErrorCodes.RequiredField,
+                        reason: 'requires property "takerAddress"',
+                    },
+                    {
+                        field: 'instance',
+                        code: ValidationErrorCodes.IncorrectFormat,
+                        reason: 'is not exactly one from <sellAmount>,<buyAmount>',
+                    },
+                ],
+            },
+            takerAddress: false,
+        },
+        {
+            description: 'both `sellAmount` and `buyAmount`',
+            queryParams: {
+                ...DEFAULT_QUERY_PARAMS,
+                sellAmount: constants.STATIC_ORDER_PARAMS.takerAssetAmount.toString(),
+            },
+            body: {
+                code: GeneralErrorCodes.ValidationError,
+                reason: 'Validation Failed',
+                validationErrors: [
+                    {
+                        field: 'instance',
+                        code: ValidationErrorCodes.IncorrectFormat,
+                        reason: 'is not exactly one from <sellAmount>,<buyAmount>',
+                    },
+                ],
+            },
+            takerAddress: true,
+        },
+        {
+            description: 'Invalid `buyToken`',
+            queryParams: {
+                ...DEFAULT_QUERY_PARAMS,
+                buyToken: 'INVALID',
+            },
+            body: {
+                code: GeneralErrorCodes.ValidationError,
+                reason: 'Validation Failed',
+                validationErrors: [
+                    {
+                        field: 'buyToken',
+                        // TODO(jalextowle): This seems like the wrong error message.
+                        code: ValidationErrorCodes.ValueOutOfRange,
+                        reason: 'Could not find token `INVALID`',
+                    },
+                ],
+            },
+            takerAddress: true,
+        },
+        {
+            description: 'Invalid `sellToken`',
+            queryParams: {
+                ...DEFAULT_QUERY_PARAMS,
+                sellToken: 'INVALID',
+            },
+            body: {
+                code: GeneralErrorCodes.ValidationError,
+                reason: 'Validation Failed',
+                validationErrors: [
+                    {
+                        field: 'sellToken',
+                        // TODO(jalextowle): This seems like the wrong error message.
+                        code: ValidationErrorCodes.ValueOutOfRange,
+                        reason: 'Could not find token `INVALID`',
+                    },
+                ],
+            },
+            takerAddress: true,
+        },
+        {
+            description: 'Insufficient Liquidity',
+            queryParams: DEFAULT_QUERY_PARAMS,
+            body: {
                 code: GeneralErrorCodes.ValidationError,
                 reason: 'Validation Failed',
                 validationErrors: [
@@ -215,7 +204,18 @@ describe(SUITE_NAME, () => {
                         reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
                     },
                 ],
-            });
+            },
+            takerAddress: true,
+        },
+    ];
+
+    describe('/price tests', () => {
+        context('failure tests', () => {
+            for (const testCase of testCases) {
+                it(`${testCase.description}`, async () => {
+                    await assertFailureAsync(`${META_TRANSACTION_PATH}/price`, testCase);
+                });
+            }
         });
 
         context('success tests', () => {
@@ -229,7 +229,7 @@ describe(SUITE_NAME, () => {
                 await teardownMeshAsync(SUITE_NAME);
             });
 
-            it('single order success test', async () => {
+            it('should show the price of the only order in Mesh', async () => {
                 // Add a single signed order to Mesh directly.
                 const order = await orderFactory.newSignedOrderAsync({});
                 await zrxToken.mint(order.makerAssetAmount).awaitTransactionSuccessAsync({ from: makerAddress });
@@ -244,13 +244,13 @@ describe(SUITE_NAME, () => {
 
                 // Query the `/price` endpoint and verify that the optimal route was
                 // chosen (in this case, it is the only route).
-                const priceRequestRoute =
-                    `${META_TRANSACTION_PATH}/price` +
-                    `?buyToken=ZRX` +
-                    `&sellToken=WETH` +
-                    `&buyAmount=${constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString()}` +
-                    `&takerAddress=${takerAddress}` +
-                    `&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`;
+                const priceRequestRoute = constructRoute({
+                    baseRoute: `${META_TRANSACTION_PATH}/price`,
+                    queryParams: {
+                        ...DEFAULT_QUERY_PARAMS,
+                        takerAddress,
+                    },
+                });
                 const response = await httpGetAsync({ route: priceRequestRoute });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
@@ -261,17 +261,81 @@ describe(SUITE_NAME, () => {
                     buyTokenAddress: '0x871dd7c2b4b25e1aa18728e9d5f2af4c4e431f5c',
                 });
             });
+
+            // FIXME(jalextowle): Add test
+            //            it('should show the price of the cheaper order in Mesh', async () => {});
+
+            // FIXME(jalextowle): Add test
+            //            it('should show the price of the combination of the two orders in Mesh', async () => {});
         });
     });
 
-    describe('/quote tests', () => {});
+    describe('/quote tests', () => {
+        context('failure tests', () => {
+            for (const testCase of testCases) {
+                it(`${testCase.description}`, async () => {
+                    await assertFailureAsync(`${META_TRANSACTION_PATH}/price`, testCase);
+                });
+            }
+        });
+
+        context('success tests', () => {
+            beforeEach(async () => {
+                await blockchainLifecycle.startAsync();
+                await setupMeshAsync(SUITE_NAME);
+            });
+
+            afterEach(async () => {
+                await blockchainLifecycle.revertAsync();
+                await teardownMeshAsync(SUITE_NAME);
+            });
+
+            // FIXME(jalextowle): Add the test
+            /*
+            it('should return a quote of the only order in Mesh', async () => {
+                // Add a single signed order to Mesh directly.
+                const order = await orderFactory.newSignedOrderAsync({});
+                await zrxToken.mint(order.makerAssetAmount).awaitTransactionSuccessAsync({ from: makerAddress });
+                await zrxToken
+                    .approve(contractAddresses.erc20Proxy, order.makerAssetAmount)
+                    .awaitTransactionSuccessAsync({ from: makerAddress });
+                // NOTE(jalextowle): Mesh's blockwatcher must catch up to the most
+                // recently mined block for the mint and approval transactions to
+                // be recognized.
+                await sleepAsync(2);
+                await meshClient.addOrdersAsync([order]);
+
+                // Query the `/price` endpoint and verify that the optimal route was
+                // chosen (in this case, it is the only route).
+                const priceRequestRoute = constructRoute({
+                    baseRoute: `${META_TRANSACTION_PATH}/price`,
+                    queryParams: DEFAULT_QUERY_PARAMS,
+                });
+                const response = await httpGetAsync({ route: priceRequestRoute });
+                expect(response.type).to.be.eq('application/json');
+                expect(response.status).to.be.eq(HttpStatus.OK);
+                expect(response.body).to.be.deep.eq({
+                    price: '2',
+                    buyAmount: '100000000000000000000',
+                    sellTokenAddress: '0x0b1ba0af832d7c05fd64161e0db78e85978e8082',
+                    buyTokenAddress: '0x871dd7c2b4b25e1aa18728e9d5f2af4c4e431f5c',
+                });
+            });
+	    */
+
+            // FIXME(jalextowle): Add test
+            // it('should return a quote of the cheaper order in Mesh', async () => {});
+
+            // FIXME(jalextowle): Add test
+            // it('should return a quote of the combination of the two orders in Mesh', async () => {});
+        });
+    });
 
     describe('/submit tests', () => {
         const requestBase = `${META_TRANSACTION_PATH}/submit`;
 
         it('should return InvalidAPIKey error if invalid UUID supplied as API Key', async () => {
-            const route = `${requestBase}?0x-api-key=foobar`;
-            const response = await httpPostAsync({ route, headers: { '0x-api-key': 'foobar' } });
+            const response = await httpPostAsync({ route: requestBase, headers: { '0x-api-key': 'foobar' } });
             expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
             expect(response.type).to.be.eq('application/json');
             expect(response.body).to.be.deep.eq({
