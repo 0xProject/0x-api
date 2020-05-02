@@ -1,9 +1,6 @@
-import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
-import { constants, expect, OrderFactory } from '@0x/contracts-test-utils';
-import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
-import { WSClient } from '@0x/mesh-rpc-client';
-import { assetDataUtils } from '@0x/order-utils';
+import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
+import { constants, expect } from '@0x/contracts-test-utils';
+import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
@@ -12,32 +9,30 @@ import * as config from '../src/config';
 import { META_TRANSACTION_PATH } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 
-import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
+import { LogType, setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
+import { MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'meta transactions tests';
 
-describe(SUITE_NAME, () => {
-    let contractAddresses: ContractAddresses;
-
-    let makerAddress: string;
+describe.only(SUITE_NAME, () => {
     let takerAddress: string;
-    let zrxToken: DummyERC20TokenContract;
-    let wethToken: WETH9Contract;
+    let buyTokenAddress: string;
+    let sellTokenAddress: string;
+    const buyAmount = constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString();
 
-    let meshClient: WSClient;
-    let orderFactory: OrderFactory;
     let blockchainLifecycle: BlockchainLifecycle;
+    let provider: Web3ProviderEngine;
 
     const DEFAULT_QUERY_PARAMS = {
         buyToken: 'ZRX',
         sellToken: 'WETH',
-        buyAmount: constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString(),
+        buyAmount,
         excludedSources: 'Uniswap,Eth2Dai,Kyber,LiquidityProvider',
     };
 
     before(async () => {
-        await setupApiAsync(SUITE_NAME);
+        await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console });
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -45,35 +40,18 @@ describe(SUITE_NAME, () => {
             shouldAllowUnlimitedContractSize: true,
             rpcUrl: config.ETHEREUM_RPC_URL,
         };
-        const provider = web3Factory.getRpcProvider(ganacheConfigs);
+        provider = web3Factory.getRpcProvider(ganacheConfigs);
+
         const web3Wrapper = new Web3Wrapper(provider);
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
 
-        const chainId = await web3Wrapper.getChainIdAsync();
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
-        [makerAddress, takerAddress] = accounts;
-        contractAddresses = getContractAddressesForChainOrThrow(chainId);
-        zrxToken = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
-        wethToken = new WETH9Contract(contractAddresses.etherToken, provider);
+        [, takerAddress] = accounts;
 
-        meshClient = new WSClient('ws://localhost:60557');
-
-        // Configure order defaults
-        const defaultOrderParams = {
-            ...constants.STATIC_ORDER_PARAMS,
-            makerAddress,
-            feeRecipientAddress: constants.NULL_ADDRESS,
-            makerAssetData: assetDataUtils.encodeERC20AssetData(zrxToken.address),
-            takerAssetData: assetDataUtils.encodeERC20AssetData(wethToken.address),
-            makerFeeAssetData: '0x',
-            takerFeeAssetData: '0x',
-            makerFee: constants.ZERO_AMOUNT,
-            takerFee: constants.ZERO_AMOUNT,
-            exchangeAddress: contractAddresses.exchange,
-            chainId,
-        };
-        const privateKey = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
-        orderFactory = new OrderFactory(privateKey, defaultOrderParams);
+        const chainId = await web3Wrapper.getChainIdAsync();
+        const contractAddresses = getContractAddressesForChainOrThrow(chainId);
+        buyTokenAddress = contractAddresses.zrxToken;
+        sellTokenAddress = contractAddresses.etherToken;
     });
 
     after(async () => {
@@ -218,10 +196,15 @@ describe(SUITE_NAME, () => {
             }
         });
 
-        context('success tests', () => {
+        context.only('success tests', () => {
+            let meshUtils: MeshTestUtils;
+
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
                 await setupMeshAsync(SUITE_NAME);
+                await sleepAsync(5);
+                meshUtils = new MeshTestUtils(provider);
+                await meshUtils.setupUtilsAsync();
             });
 
             afterEach(async () => {
@@ -229,44 +212,75 @@ describe(SUITE_NAME, () => {
                 await teardownMeshAsync(SUITE_NAME);
             });
 
-            it('should show the price of the only order in Mesh', async () => {
-                // Add a single signed order to Mesh directly.
-                const order = await orderFactory.newSignedOrderAsync({});
-                await zrxToken.mint(order.makerAssetAmount).awaitTransactionSuccessAsync({ from: makerAddress });
-                await zrxToken
-                    .approve(contractAddresses.erc20Proxy, order.makerAssetAmount)
-                    .awaitTransactionSuccessAsync({ from: makerAddress });
-                // NOTE(jalextowle): Mesh's blockwatcher must catch up to the most
-                // recently mined block for the mint and approval transactions to
-                // be recognized.
-                await sleepAsync(2);
-                await meshClient.addOrdersAsync([order]);
+            // NOTE(jalextowle): Spin up a new Mesh instance so that it will
+            // be available for future test suites.
+            after(async () => {
+                await setupMeshAsync(SUITE_NAME);
+            });
 
-                // Query the `/price` endpoint and verify that the optimal route was
-                // chosen (in this case, it is the only route).
-                const priceRequestRoute = constructRoute({
+            it('should show the price of the only order in Mesh', async () => {
+                await meshUtils.addOrdersAsync([1]);
+                const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
                     queryParams: {
                         ...DEFAULT_QUERY_PARAMS,
                         takerAddress,
                     },
                 });
-                const response = await httpGetAsync({ route: priceRequestRoute });
+                const response = await httpGetAsync({ route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 expect(response.body).to.be.deep.eq({
-                    price: '2',
-                    buyAmount: '100000000000000000000',
-                    sellTokenAddress: '0x0b1ba0af832d7c05fd64161e0db78e85978e8082',
-                    buyTokenAddress: '0x871dd7c2b4b25e1aa18728e9d5f2af4c4e431f5c',
+                    price: '1',
+                    buyAmount,
+                    sellTokenAddress,
+                    buyTokenAddress,
                 });
             });
 
-            // FIXME(jalextowle): Add test
-            //            it('should show the price of the cheaper order in Mesh', async () => {});
+            it('should show the price of the cheaper order in Mesh', async () => {
+                await meshUtils.addOrdersAsync([1, 2]);
+                const route = constructRoute({
+                    baseRoute: `${META_TRANSACTION_PATH}/price`,
+                    queryParams: {
+                        ...DEFAULT_QUERY_PARAMS,
+                        takerAddress,
+                    },
+                });
+                const response = await httpGetAsync({ route });
+                expect(response.type).to.be.eq('application/json');
+                expect(response.status).to.be.eq(HttpStatus.OK);
+                expect(response.body).to.be.deep.eq({
+                    price: '1',
+                    buyAmount,
+                    sellTokenAddress,
+                    buyTokenAddress,
+                });
+            });
 
-            // FIXME(jalextowle): Add test
-            //            it('should show the price of the combination of the two orders in Mesh', async () => {});
+            it('should show the price of the combination of the two orders in Mesh', async () => {
+                await meshUtils.addOrdersAsync([1, 2]);
+                const largeBuyAmount = constants.STATIC_ORDER_PARAMS.makerAssetAmount.times(2).toString();
+                const route = constructRoute({
+                    baseRoute: `${META_TRANSACTION_PATH}/price`,
+                    queryParams: {
+                        ...DEFAULT_QUERY_PARAMS,
+                        buyAmount: largeBuyAmount,
+                        takerAddress,
+                    },
+                });
+                console.log(await meshUtils.getOrdersAsync());
+                const response = await httpGetAsync({ route });
+                console.log(response.body);
+                expect(response.type).to.be.eq('application/json');
+                expect(response.status).to.be.eq(HttpStatus.OK);
+                expect(response.body).to.be.deep.eq({
+                    price: '1.5',
+                    buyAmount: largeBuyAmount,
+                    sellTokenAddress,
+                    buyTokenAddress,
+                });
+            });
         });
     });
 
@@ -280,6 +294,10 @@ describe(SUITE_NAME, () => {
         });
 
         context('success tests', () => {
+            before(async () => {
+                await teardownMeshAsync(SUITE_NAME);
+            });
+
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
                 await setupMeshAsync(SUITE_NAME);
@@ -290,38 +308,12 @@ describe(SUITE_NAME, () => {
                 await teardownMeshAsync(SUITE_NAME);
             });
 
-            // FIXME(jalextowle): Add the test
-            /*
-            it('should return a quote of the only order in Mesh', async () => {
-                // Add a single signed order to Mesh directly.
-                const order = await orderFactory.newSignedOrderAsync({});
-                await zrxToken.mint(order.makerAssetAmount).awaitTransactionSuccessAsync({ from: makerAddress });
-                await zrxToken
-                    .approve(contractAddresses.erc20Proxy, order.makerAssetAmount)
-                    .awaitTransactionSuccessAsync({ from: makerAddress });
-                // NOTE(jalextowle): Mesh's blockwatcher must catch up to the most
-                // recently mined block for the mint and approval transactions to
-                // be recognized.
-                await sleepAsync(2);
-                await meshClient.addOrdersAsync([order]);
-
-                // Query the `/price` endpoint and verify that the optimal route was
-                // chosen (in this case, it is the only route).
-                const priceRequestRoute = constructRoute({
-                    baseRoute: `${META_TRANSACTION_PATH}/price`,
-                    queryParams: DEFAULT_QUERY_PARAMS,
-                });
-                const response = await httpGetAsync({ route: priceRequestRoute });
-                expect(response.type).to.be.eq('application/json');
-                expect(response.status).to.be.eq(HttpStatus.OK);
-                expect(response.body).to.be.deep.eq({
-                    price: '2',
-                    buyAmount: '100000000000000000000',
-                    sellTokenAddress: '0x0b1ba0af832d7c05fd64161e0db78e85978e8082',
-                    buyTokenAddress: '0x871dd7c2b4b25e1aa18728e9d5f2af4c4e431f5c',
-                });
+            after(async () => {
+                await setupMeshAsync(SUITE_NAME);
             });
-	    */
+
+            // FIXME(jalextowle): Add the tests
+            // it('should return a quote of the only order in Mesh', async () => {});
 
             // FIXME(jalextowle): Add test
             // it('should return a quote of the cheaper order in Mesh', async () => {});

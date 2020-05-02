@@ -265,7 +265,7 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
 
                 if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 2) {
                     // TODO(jalextowle): Is this necessary?
-                    setTimeout(resolve, 10000); // tslint:disable-line:custom-no-magic-numbers
+                    setTimeout(resolve, 20000); // tslint:disable-line:custom-no-magic-numbers
                 }
             }
         });
