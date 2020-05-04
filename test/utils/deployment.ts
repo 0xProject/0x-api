@@ -98,12 +98,21 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
  */
 export async function teardownDependenciesAsync(suiteName: string, logType?: LogType): Promise<void> {
     // Tear down any existing docker containers from the `docker-compose.yml` file.
-    const down = spawn('docker-compose', ['down', '-v', '--rmi', 'all'], {
+    const down = spawn('docker-compose', ['down'], {
         cwd: testRootDir,
     });
     directLogs(down, suiteName, 'down', logType);
     const downTimeout = 20000;
     await waitForCloseAsync(down, 'down', downTimeout);
+
+    // Tear down any existing docker containers from the `docker-compose.yml` file.
+    const rm = spawn('docker-compose', ['rm', '-f', '-v'], {
+        cwd: testRootDir,
+    });
+    directLogs(down, suiteName, 'rm', logType);
+    const rmTimeout = 20000;
+    await waitForCloseAsync(rm, 'rm', rmTimeout);
+
     didTearDown = true;
 }
 
@@ -127,7 +136,7 @@ export async function setupMeshAsync(suiteName: string, logType?: LogType): Prom
 
     // HACK(jalextowle): For some reason, Mesh Clients would connect to
     // the old mesh node. Try to remove this.
-    await sleepAsync(3); // tslint:disable-line:custom-no-magic-numbers
+    await sleepAsync(10); // tslint:disable-line:custom-no-magic-numbers
 }
 
 /**
@@ -275,7 +284,7 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for dependency logs'));
-        }, 150000); // tslint:disable-line:custom-no-magic-numbers
+        }, 500000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
