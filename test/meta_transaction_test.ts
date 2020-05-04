@@ -9,7 +9,7 @@ import * as config from '../src/config';
 import { META_TRANSACTION_PATH } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 
-import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
+import { LogType, setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { MeshTestUtils } from './utils/mesh_test_utils';
 
@@ -32,7 +32,7 @@ describe(SUITE_NAME, () => {
     };
 
     before(async () => {
-        await setupApiAsync(SUITE_NAME);
+        await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console, dependencyLogType: LogType.Console });
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
