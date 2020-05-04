@@ -15,7 +15,7 @@ import { MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'meta transactions tests';
 
-describe(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let takerAddress: string;
     let buyTokenAddress: string;
     let sellTokenAddress: string;
@@ -32,7 +32,7 @@ describe(SUITE_NAME, () => {
     };
 
     before(async () => {
-        await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console, dependencyLogType: LogType.Console });
+        await setupApiAsync(SUITE_NAME);
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -201,7 +201,7 @@ describe(SUITE_NAME, () => {
 
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
-                await setupMeshAsync(SUITE_NAME);
+                await setupMeshAsync(SUITE_NAME, LogType.Console);
                 meshUtils = new MeshTestUtils(provider);
                 await meshUtils.setupUtilsAsync();
             });
@@ -218,7 +218,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the only order in Mesh', async () => {
-                await meshUtils.addOrdersAsync([1]);
+                console.log(await meshUtils.addOrdersAsync([1])); // tslint:disable-line:no-console
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
                     queryParams: {
