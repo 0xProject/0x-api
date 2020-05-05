@@ -39,11 +39,13 @@ export async function httpGetAsync(input: { route: string; baseURL?: string }): 
 export async function httpPostAsync(input: {
     route: string;
     baseURL?: string;
-    headers: { [field: string]: string };
+    headers?: { [field: string]: string };
 }): Promise<httpRequest.Response> {
     const request = httpRequest(input.baseURL || API_HTTP_ADDRESS).post(input.route);
-    for (const [field, value] of Object.entries(input.headers)) {
-        request.set(field, value);
+    if (input.headers) {
+        for (const [field, value] of Object.entries(input.headers)) {
+            request.set(field, value);
+        }
     }
     return request;
 }

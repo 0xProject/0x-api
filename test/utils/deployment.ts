@@ -252,7 +252,7 @@ async function waitForMeshStartupAsync(logStream: ChildProcessWithoutNullStreams
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for 0x-mesh logs'));
-        }, 5000); // tslint:disable-line:custom-no-magic-numbers
+        }, 10000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
