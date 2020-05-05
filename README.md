@@ -150,7 +150,7 @@ Running this image will run 0x API as a monolith, with all it's dependencies. Yo
 
 ## Release
 
-Releases are triggered automatically by the [release GitHub action](https://github.com/0xProject/0x-api/actions?query=workflow%3ARelease). 
+Releases are triggered automatically by the [release GitHub action](https://github.com/0xProject/0x-api/actions?query=workflow%3ARelease).
 They can also be triggered manually by using `yarn release`, which requires a [GITHUB_TOKEN](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line) environment variable.
 
 ## Database
