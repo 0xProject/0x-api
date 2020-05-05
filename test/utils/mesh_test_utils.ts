@@ -9,6 +9,8 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 
 type Numberish = BigNumber | number | string;
 
+export const MAKER_ASSET_AMOUNT = new BigNumber(1);
+
 export class MeshTestUtils {
     protected _accounts: string[];
     protected _makerAddress: string;
@@ -30,7 +32,7 @@ export class MeshTestUtils {
         for (const price of prices) {
             orders.push(
                 await this._orderFactory.newSignedOrderAsync({
-                    takerAssetAmount: constants.STATIC_ORDER_PARAMS.makerAssetAmount.times(price),
+                    takerAssetAmount: MAKER_ASSET_AMOUNT.times(price),
                     // tslint:disable-next-line:custom-no-magic-numbers
                     expirationTimeSeconds: new BigNumber(Date.now() + 24 * 3600),
                 }),
@@ -62,6 +64,7 @@ export class MeshTestUtils {
             feeRecipientAddress: constants.NULL_ADDRESS,
             makerAssetData: assetDataUtils.encodeERC20AssetData(this._zrxToken.address),
             takerAssetData: assetDataUtils.encodeERC20AssetData(this._wethToken.address),
+            makerAssetAmount: MAKER_ASSET_AMOUNT,
             makerFeeAssetData: '0x',
             takerFeeAssetData: '0x',
             makerFee: constants.ZERO_AMOUNT,
