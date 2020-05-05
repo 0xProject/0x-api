@@ -1,18 +1,14 @@
-import { SupportedProvider } from '@0x/order-utils';
 import { Connection } from 'typeorm';
 
-import * as defaultConfig from '../config';
 import { getDBConnectionAsync } from '../db_connection';
 import { logger } from '../logger';
 import { TransactionWatcherService } from '../services/transaction_watcher_service';
-import { providerUtils } from '../utils/provider_utils';
 
 if (require.main === module) {
     (async () => {
-        const provider = providerUtils.createWeb3Provider(defaultConfig.ETHEREUM_RPC_URL);
         const connection = await getDBConnectionAsync();
 
-        await runTransactionWatcherServiceAsync(connection, provider);
+        await runTransactionWatcherServiceAsync(connection);
     })().catch(error => logger.error(error));
 }
 process.on('uncaughtException', err => {
@@ -30,11 +26,8 @@ process.on('unhandledRejection', err => {
  * This service tracks transactions and their state changes sent by the meta
  * transaction relays and updates them in the database.
  */
-export async function runTransactionWatcherServiceAsync(
-    connection: Connection,
-    provider: SupportedProvider,
-): Promise<void> {
-    const transactionWatcherService = new TransactionWatcherService(connection, provider);
+export async function runTransactionWatcherServiceAsync(connection: Connection): Promise<void> {
+    const transactionWatcherService = new TransactionWatcherService(connection);
     await transactionWatcherService.syncTransactionStatusAsync();
     logger.info(`TransactionWatcherService starting up!`);
 }

@@ -33,7 +33,9 @@ export const utils = {
 
             if (payload && response.id !== payload.id) {
                 throw new Error(
-                    `Validation error: Invalid JSON-RPC response ID (request: ${payload.id} / response: ${response.id})`,
+                    `Validation error: Invalid JSON-RPC response ID (request: ${payload.id} / response: ${
+                        response.id
+                    })`,
                 );
             }
 
@@ -74,5 +76,18 @@ export const utils = {
     delayAsync: async (ms: number): Promise<void> => {
         // tslint:disable-next-line:no-inferred-empty-object-type
         return new Promise<void>(resolve => setTimeout(resolve, ms));
+    },
+    runWithTimeout: async (fn: () => Promise<any>, timeoutMs: number): Promise<any> => {
+        let _timeoutHandle: NodeJS.Timeout;
+        // TODO(oskar)
+        // tslint:disable-next-line
+        const timeoutPromise = new Promise((_resolve, reject) => {
+            _timeoutHandle = setTimeout(() => reject(new Error('timeout')), timeoutMs);
+        });
+
+        return Promise.race([fn(), timeoutPromise]).then(result => {
+            clearTimeout(_timeoutHandle);
+            return result;
+        });
     },
 };

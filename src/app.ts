@@ -120,7 +120,10 @@ export async function getAppAsync(
     return app;
 }
 
-function createSwapServiceFromOrderBookService(
+/**
+ * TODO(oskar)
+ */
+export function createSwapServiceFromOrderBookService(
     orderBookService: OrderBookService,
     provider: SupportedProvider,
 ): SwapService {
@@ -130,7 +133,10 @@ function createSwapServiceFromOrderBookService(
     return new SwapService(orderBook, provider);
 }
 
-function createMetaTxnServiceFromOrderBookService(
+/**
+ * TODO(oskar)
+ */
+export function createMetaTxnServiceFromOrderBookService(
     orderBookService: OrderBookService,
     provider: SupportedProvider,
     dbConnection: Connection,

@@ -3,15 +3,29 @@ import { BigNumber } from '@0x/utils';
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 import { ONE_SECOND_MS } from '../constants';
-import { TransactionStates } from '../types';
+import { TransactionStates, ZeroExTransactionWithoutDomain } from '../types';
 
-import { BigNumberTransformer } from './transformers';
+import { BigNumberTransformer, ZeroExTransactionWithoutDomainTransformer } from './transformers';
 import { TransactionEntityOpts } from './types';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
-    @PrimaryColumn({ name: 'hash', type: 'varchar' })
-    public hash: string;
+    @PrimaryColumn({ name: 'zero_ex_tx_signature', type: 'varchar' })
+    public zeroExTransactionSignature: string;
+
+    @Column({
+        name: 'zero_ex_tx',
+        type: 'json',
+        nullable: true,
+        transformer: ZeroExTransactionWithoutDomainTransformer,
+    })
+    public zeroExTransaction: ZeroExTransactionWithoutDomain;
+
+    @Column({ name: 'tx_hash', type: 'varchar', unique: true, nullable: true })
+    public txHash?: string;
+
+    @Column({ name: 'signed_tx', type: 'varchar', unique: true, nullable: true })
+    public signedTx?: string;
 
     @Column({ name: 'status', type: 'varchar' })
     public status: string;
@@ -20,16 +34,19 @@ export class TransactionEntity {
     public expectedMinedInSec?: number;
 
     @Column({ name: 'nonce', type: 'bigint' })
-    public nonce: number;
+    public nonce?: number;
 
-    @Column({ name: 'gas_price', type: 'varchar', transformer: BigNumberTransformer })
-    public gasPrice: BigNumber;
+    @Column({ name: 'gas_price', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
+    public gasPrice?: BigNumber;
+
+    @Column({ name: 'protocol_fee', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
+    public protocolFee?: BigNumber;
 
     @Column({ name: 'block_number', type: 'bigint', nullable: true })
     public blockNumber?: number;
 
     @Column({ name: 'from', type: 'varchar' })
-    public from: string;
+    public from?: string;
 
     @CreateDateColumn({ name: 'created_at' })
     public createdAt?: Date;
@@ -41,10 +58,14 @@ export class TransactionEntity {
     public expectedAt: Date;
 
     public static make(opts: TransactionEntityOpts): TransactionEntity {
-        assert.isHexString('hash', opts.hash);
-        assert.isETHAddressHex('from', opts.from);
+        if (opts.txHash !== undefined) {
+            assert.isHexString('txHash', opts.txHash);
+        }
+        if (opts.from !== undefined) {
+            assert.isETHAddressHex('from', opts.from);
+        }
         assert.doesBelongToStringEnum('status', opts.status, TransactionStates);
-        if (!Number.isInteger(opts.nonce) && opts.nonce >= 0) {
+        if (opts.nonce !== undefined && !Number.isInteger(opts.nonce) && opts.nonce >= 0) {
             throw new Error(`Expected nonce to be an integer, encountered: ${opts.nonce}`);
         }
         if (opts.blockNumber !== undefined && !Number.isInteger(opts.blockNumber) && opts.blockNumber <= 0) {
@@ -60,20 +81,34 @@ export class TransactionEntity {
     // serialize. Please use the public static make method instead.
     private constructor(
         opts: TransactionEntityOpts = {
-            hash: '',
+            txHash: '',
+            signedTx: '',
             status: '',
             expectedMinedInSec: 120,
             nonce: 0,
             gasPrice: new BigNumber(0),
+            protocolFee: new BigNumber(0),
             from: '',
+            zeroExTransactionSignature: '',
+            zeroExTransaction: {
+                salt: new BigNumber(0),
+                expirationTimeSeconds: new BigNumber(0),
+                gasPrice: new BigNumber(0),
+                signerAddress: '',
+                data: '',
+            },
         },
     ) {
-        this.hash = opts.hash;
+        this.txHash = opts.txHash;
+        this.signedTx = opts.signedTx;
         this.status = opts.status;
         this.expectedMinedInSec = opts.expectedMinedInSec;
         this.nonce = opts.nonce;
         this.gasPrice = opts.gasPrice;
+        this.protocolFee = opts.protocolFee;
         this.blockNumber = opts.blockNumber;
+        this.zeroExTransaction = opts.zeroExTransaction;
+        this.zeroExTransactionSignature = opts.zeroExTransactionSignature;
         this.from = opts.from;
         const now = new Date();
         this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * ONE_SECOND_MS);

@@ -209,7 +209,7 @@ export class MetaTransactionHandlers {
             throw new NotFoundError();
         } else {
             const resp = {
-                hash: tx.hash,
+                hash: tx.txHash,
                 status: tx.status,
                 gasPrice: tx.gasPrice,
                 updatedAt: tx.updatedAt,

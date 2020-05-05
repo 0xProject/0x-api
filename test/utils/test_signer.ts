@@ -1,160 +1,164 @@
-import { SupportedProvider } from '@0x/order-utils';
-import {
-    NonceTrackerSubprovider,
-    PartialTxParams,
-    PrivateKeyWalletSubprovider,
-    RPCSubprovider,
-    Web3ProviderEngine,
-} from '@0x/subproviders';
-import { BigNumber, providerUtils } from '@0x/utils';
-import { Web3Wrapper } from '@0x/web3-wrapper';
-import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
-import EthereumTx = require('ethereumjs-tx');
+// tslint:disable:no-console
+// tslint:disable:no-unbound-method
+
+import { signatureUtils } from '@0x/order-utils';
+import { PrivateKeyWalletSubprovider, RPCSubprovider, SupportedProvider, Web3ProviderEngine } from '@0x/subproviders';
+import { NULL_ADDRESS, providerUtils } from '@0x/utils';
+import axios from 'axios';
 import { Connection, Repository } from 'typeorm';
 
-import { ETH_TRANSFER_GAS_LIMIT, EXPECTED_MINED_SEC } from '../../src/constants';
+import { EXPECTED_MINED_SEC } from '../../src/constants';
 import { TransactionEntity } from '../../src/entities';
-import { logger } from '../../src/logger';
-import { TransactionStates } from '../../src/types';
-import { TEST_RINKEBY_CHAIN_ID } from '../config';
+import { SignerService } from '../../src/services/signer_service';
+import { TransactionStates, ZeroExTransactionWithoutDomain } from '../../src/types';
+import { utils } from '../../src/utils/utils';
 
-const DEFAULT_TX_VALUE = 1337;
-const HIGH_GAS_PRICE_FOR_UNSTICKING = 13000000000;
-
-export class TestSigner {
+export class TestMetaTxnUser {
+    private readonly _apiBasePath: string;
+    private readonly _takerAddress: string;
+    private readonly _takerPrivateKey: string;
     private readonly _provider: SupportedProvider;
-    private readonly _nonceTrackerSubprovider: NonceTrackerSubprovider;
-    private readonly _privateWalletSubprovider: PrivateKeyWalletSubprovider;
-    private readonly _web3Wrapper: Web3Wrapper;
-    private readonly _transactionEntityRepository: Repository<TransactionEntity>;
-    private readonly _signerAddress: string;
-    private readonly _privateKeyBuffer: Buffer;
+    private readonly _connection: Connection;
+    private readonly _transactionRepository: Repository<TransactionEntity>;
+    private readonly _signerService: SignerService;
 
-    private static _createWeb3Provider(
-        rpcURL: string,
-        privateWalletSubprovider: PrivateKeyWalletSubprovider,
-        nonceTrackerSubprovider: NonceTrackerSubprovider,
-    ): SupportedProvider {
-        const providerEngine = new Web3ProviderEngine();
-        providerEngine.addProvider(nonceTrackerSubprovider);
-        providerEngine.addProvider(privateWalletSubprovider);
-        providerEngine.addProvider(new RPCSubprovider(rpcURL));
-        providerUtils.startProviderEngine(providerEngine);
-        return providerEngine;
-    }
-
-    constructor(dbConnection: Connection, privateKey: string, address: string, rpcURL: string) {
-        this._transactionEntityRepository = dbConnection.getRepository(TransactionEntity);
-        this._privateWalletSubprovider = new PrivateKeyWalletSubprovider(privateKey);
-        this._nonceTrackerSubprovider = new NonceTrackerSubprovider();
-        this._provider = TestSigner._createWeb3Provider(
-            rpcURL,
-            this._privateWalletSubprovider,
-            this._nonceTrackerSubprovider,
-        );
-        this._web3Wrapper = new Web3Wrapper(this._provider);
-        this._signerAddress = address;
-        this._privateKeyBuffer = Buffer.from(privateKey, 'hex');
-    }
-
-    public async sendUnstickingTransactionAsync(gasPrice: BigNumber, nonce: string): Promise<string> {
-        return this._sendTransactionAsync(DEFAULT_TX_VALUE, nonce, gasPrice);
-    }
-
-    public async sendTransactionToItselfAsync(gasPrice: BigNumber, expectedMinedInSec: number = 120): Promise<string> {
-        const nonce = await this._getNonceAsync(this._signerAddress);
-        return this._sendTransactionAsync(DEFAULT_TX_VALUE, nonce, gasPrice, expectedMinedInSec);
-    }
-
-    public async unstickAllAsync(): Promise<string[]> {
-        const unstuckingTransactions: string[] = [];
-        const pending = web3WrapperUtils.convertHexToNumber(await this._getTransactionCountAsync(this._signerAddress));
-        const confirmed = web3WrapperUtils.convertHexToNumber(
-            await this._getConfirmedTransactionCountAsync(this._signerAddress),
-        );
-        logger.info(`THE DIFF IS: ${pending} - ${confirmed} = `, pending - confirmed);
-        let nonceToUnstick = confirmed;
-        while (nonceToUnstick < pending) {
-            const txHash = await this.sendUnstickingTransactionAsync(
-                new BigNumber(HIGH_GAS_PRICE_FOR_UNSTICKING),
-                web3WrapperUtils.encodeAmountAsHexString(nonceToUnstick),
-            );
-            unstuckingTransactions.push(txHash);
-            nonceToUnstick++;
+    constructor(apiBasePath: string, dbConnection: Connection) {
+        const TAKER_ADDRESS = process.env.TAKER_ADDRESS;
+        const TAKER_PRIVATE_KEY = process.env.TAKER_PRIVATE_KEY;
+        const TAKER_RPC_ADDR = process.env.TAKER_RPC_ADDR;
+        if (TAKER_ADDRESS === NULL_ADDRESS || TAKER_ADDRESS === undefined) {
+            throw new Error(`TAKER_ADDRESS must be specified`);
         }
-
-        return unstuckingTransactions;
+        if (TAKER_PRIVATE_KEY === '' || TAKER_PRIVATE_KEY === undefined) {
+            throw new Error(`TAKER_PRIVATE_KEY must be specified`);
+        }
+        if (TAKER_RPC_ADDR === undefined) {
+            throw new Error(`TAKER_RPC_ADDR must be specified`);
+        }
+        this._apiBasePath = apiBasePath;
+        this._takerAddress = TAKER_ADDRESS;
+        this._takerPrivateKey = TAKER_PRIVATE_KEY;
+        this._connection = dbConnection;
+        this._transactionRepository = this._connection.getRepository(TransactionEntity);
+        this._signerService = new SignerService(dbConnection);
+        // create ethereum provider (server)
+        this._provider = this._createWeb3Provider(TAKER_RPC_ADDR);
     }
 
-    private async _sendTransactionAsync(
-        value: number,
-        nonce: string,
-        gasPrice: BigNumber,
-        expectedMinedInSec: number = EXPECTED_MINED_SEC,
-    ): Promise<string> {
-        const ethereumTxnParams: PartialTxParams = {
-            from: this._signerAddress,
-            to: this._signerAddress,
-            value: web3WrapperUtils.encodeAmountAsHexString(value),
-            nonce,
-            chainId: TEST_RINKEBY_CHAIN_ID,
-            gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
-            gas: web3WrapperUtils.encodeAmountAsHexString(ETH_TRANSFER_GAS_LIMIT),
-        };
-        const ethTx = new EthereumTx(ethereumTxnParams);
-        ethTx.sign(this._privateKeyBuffer, true);
-        const txHash = ethTx.hash() as Buffer;
-        const txHashHex = `0x${txHash.toString('hex')}`;
-        logger.info('hashed: ', txHashHex);
-        logger.info('nonce: ', nonce);
-        const transactionEntity = TransactionEntity.make({
-            hash: txHashHex,
+    // tslint:disable-next-line
+    public getQuoteString(buyToken: string, sellToken: string, buyAmount: string): string {
+        return `?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${buyAmount}&takerAddress=${this._takerAddress}`;
+    }
+
+    public async getQuoteAsync(
+        buyToken: string,
+        sellToken: string,
+        buyAmount: string,
+    ): Promise<{ zeroExTransactionHash: string; zeroExTransaction: ZeroExTransactionWithoutDomain }> {
+        const connString = `${
+            this._apiBasePath
+        }/meta_transaction/v0/quote?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${buyAmount}&takerAddress=${
+            this._takerAddress
+        }`;
+        const { data } = await axios.get(connString);
+        console.log(connString);
+        console.log(data);
+        return data;
+    }
+
+    public async signAsync(zeroExTransactionHash: string): Promise<string> {
+        return signatureUtils.ecSignHashAsync(this._provider, zeroExTransactionHash, this._takerAddress);
+    }
+
+    public async prepareAndStoreMetaTx(): Promise<string> {
+        // 1. GET /meta_transaction/quote
+        // swap parameters
+        const sellToken = 'MKR';
+        const buyToken = 'ETH';
+        const buyAmount = '50000000';
+        const { zeroExTransactionHash, zeroExTransaction } = await this.getQuoteAsync(buyToken, sellToken, buyAmount);
+
+        // 2. Sign the meta tx
+        const signature = await signatureUtils.ecSignHashAsync(
+            this._provider,
+            zeroExTransactionHash,
+            this._takerAddress,
+        );
+        console.log(zeroExTransaction);
+        console.log(typeof zeroExTransaction.expirationTimeSeconds);
+        const protocolFee = await this._signerService.validateZeroExTransactionFillAsync(zeroExTransaction, signature);
+        const txEntity = TransactionEntity.make({
             status: TransactionStates.Unsubmitted,
-            nonce: web3WrapperUtils.convertHexToNumber(nonce),
-            gasPrice,
-            from: this._signerAddress,
-            expectedMinedInSec,
+            zeroExTransaction,
+            zeroExTransactionSignature: signature,
+            expectedMinedInSec: EXPECTED_MINED_SEC,
+            protocolFee,
         });
-        await this._transactionEntityRepository.save(transactionEntity);
-        const rawTx = `0x${ethTx.serialize().toString('hex')}`;
-        await this._web3Wrapper.sendRawPayloadAsync({
-            method: 'eth_sendRawTransaction',
-            params: [rawTx],
-        });
-        try {
-            await this._transactionEntityRepository.manager.transaction(async transactionEntityManager => {
-                transactionEntity.status = TransactionStates.Submitted;
-                await transactionEntityManager.save(transactionEntity);
-            });
-        } catch (err) {
-            // the TransacitonEntity was updated in the meantime. This will
-            // rollback the database transaction.
-            logger.warn('failed to store transaction with submitted status, rolling back', { err });
+        await this._transactionRepository.save(txEntity);
+        let txHash = null;
+
+        while (txHash === null) {
+            const tx = await this._transactionRepository.findOne(signature);
+            console.log(tx);
+            if (tx !== undefined && tx.status === TransactionStates.Submitted && tx.txHash !== undefined) {
+                txHash = tx.txHash;
+            }
+
+            await utils.delayAsync(200);
         }
-        return txHashHex;
+
+        return txHash;
     }
 
-    private async _getNonceAsync(senderAddress: string): Promise<string> {
-        // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
-        // to use so we fetch it from it's private instance variable
-        let nonce = (this._nonceTrackerSubprovider as any)._nonceCache[senderAddress];
-        if (nonce === undefined) {
-            nonce = await this._getTransactionCountAsync(senderAddress);
-        }
-        return nonce;
-    }
-    private async _getConfirmedTransactionCountAsync(address: string): Promise<string> {
-        const nonceHex = await this._web3Wrapper.sendRawPayloadAsync<string>({
-            method: 'eth_getTransactionCount',
-            params: [address, 'latest'],
-        });
-        return nonceHex;
-    }
-    private async _getTransactionCountAsync(address: string): Promise<string> {
-        const nonceHex = await this._web3Wrapper.sendRawPayloadAsync<string>({
-            method: 'eth_getTransactionCount',
-            params: [address, 'pending'],
-        });
-        return nonceHex;
+    // public async submitMetaTx() {
+    //     // 1. GET /meta_transaction/quote
+    //     // swap parameters
+    //     const sellToken = 'MKR';
+    //     const buyToken = 'ETH';
+    //     const buyAmount = '50000000';
+    //     const { zeroExTransactionHash, zeroExTransaction } = await this.getQuoteAsync(
+    //         buyToken,
+    //         sellToken,
+    //         buyAmount,
+    //         this._takerAddress,
+    //     );
+
+    //     // 2. Sign the meta tx
+    //     const signature = await signatureUtils.ecSignHashAsync(
+    //         this._provider,
+    //         zeroExTransactionHash,
+    //         this._takerAddress,
+    //     );
+    //     await this.metaTxPost(zeroExTransaction, signature);
+    // }
+
+    // public async metaTxPost(zeroExTransaction: string, signature: string) {
+    //     // 3. POST /meta_transaction/submit
+    //     const body = {
+    //         zeroExTransaction,
+    //         signature,
+    //     };
+    //     console.log(JSON.stringify(body));
+    //     try {
+    //         const response = await axios.post(`${this._apiBasePath}/meta_transaction/v0/submit`, body, {
+    //             headers: {
+    //                 '0x-api-key': process.env.ZEROEX_API_KEY,
+    //             },
+    //         });
+    //         console.log('RESPONSE: ', JSON.stringify(response.data));
+    //         // console.log('RESPONSE: ', JSON.stringify(response.data), response.status, response.statusText);
+    //     } catch (err) {
+    //         console.log('ERROR', err.response);
+    //         console.log('ERROR', JSON.stringify(err.response.data));
+    //     }
+    // }
+
+    private _createWeb3Provider(takerRPCAddress: string): SupportedProvider {
+        const provider = new Web3ProviderEngine();
+        provider.addProvider(new PrivateKeyWalletSubprovider(this._takerPrivateKey));
+        provider.addProvider(new RPCSubprovider(takerRPCAddress));
+        providerUtils.startProviderEngine(provider);
+
+        return provider;
     }
 }

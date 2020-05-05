@@ -1,11 +1,17 @@
 import { BigNumber } from '@0x/utils';
 
+import { ZeroExTransactionWithoutDomain } from '../types';
+
 export interface TransactionEntityOpts {
-    hash: string;
+    txHash?: string;
+    signedTx?: string;
     status: string;
     expectedMinedInSec: number;
-    nonce: number;
-    gasPrice: BigNumber;
+    nonce?: number;
+    gasPrice?: BigNumber;
+    protocolFee?: BigNumber;
     blockNumber?: number;
-    from: string;
+    zeroExTransaction: ZeroExTransactionWithoutDomain;
+    zeroExTransactionSignature: string;
+    from?: string;
 }

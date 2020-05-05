@@ -12,7 +12,6 @@ import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
 import { SignerService } from '../services/signer_service';
 import { TransactionWatcherService } from '../services/transaction_watcher_service';
-import { providerUtils } from '../utils/provider_utils';
 
 if (require.main === module) {
     (async () => {
@@ -21,11 +20,10 @@ if (require.main === module) {
         app.use(cors());
         app.use(bodyParser.json());
         const connection = await getDBConnectionAsync();
-        const provider = providerUtils.createWeb3Provider(defaultConfig.ETHEREUM_RPC_URL);
 
         const signerService = new SignerService(connection);
         const handlers = new SignerHandlers(signerService);
-        const transactionWatcherService = new TransactionWatcherService(connection, provider);
+        const transactionWatcherService = new TransactionWatcherService(connection);
         await transactionWatcherService.syncTransactionStatusAsync();
         /**
          * POST Transaction endpoint takes a signed 0x Transaction and sends it to Ethereum
