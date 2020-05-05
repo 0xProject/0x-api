@@ -4,7 +4,7 @@ const API_HTTP_ADDRESS = 'http://localhost:3000';
 
 export interface ProtoRoute {
     baseRoute: string;
-    queryParams: {
+    queryParams?: {
         [param: string]: string;
     };
 }
@@ -14,7 +14,7 @@ export interface ProtoRoute {
  * @param protoRoute The data that specifies a 0x-api route.
  */
 export function constructRoute(protoRoute: ProtoRoute): string {
-    const queryArray = Object.entries(protoRoute.queryParams);
+    const queryArray = protoRoute.queryParams ? Object.entries(protoRoute.queryParams) : [];
     if (!queryArray.length) {
         return protoRoute.baseRoute;
     }
@@ -39,9 +39,12 @@ export async function httpGetAsync(input: { route: string; baseURL?: string }): 
 export async function httpPostAsync(input: {
     route: string;
     baseURL?: string;
+    body?: any;
     headers?: { [field: string]: string };
 }): Promise<httpRequest.Response> {
-    const request = httpRequest(input.baseURL || API_HTTP_ADDRESS).post(input.route);
+    const request = httpRequest(input.baseURL || API_HTTP_ADDRESS)
+        .post(input.route)
+        .send(input.body);
     if (input.headers) {
         for (const [field, value] of Object.entries(input.headers)) {
             request.set(field, value);

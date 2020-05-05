@@ -1,4 +1,5 @@
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
+import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { constants, expect, signingUtils, transactionHashUtils } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
 import { ValidationResults } from '@0x/mesh-rpc-client';
@@ -15,7 +16,7 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
-import { MeshTestUtils } from './utils/mesh_test_utils';
+import { MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'meta transactions tests';
 
@@ -26,10 +27,13 @@ describe(SUITE_NAME, () => {
     let takerAddress: string;
     let buyTokenAddress: string;
     let sellTokenAddress: string;
-    const buyAmount = constants.STATIC_ORDER_PARAMS.makerAssetAmount.toString();
+    const buyAmount = MAKER_ASSET_AMOUNT.toString();
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
+
+    let weth: WETH9Contract;
+    let zrx: DummyERC20TokenContract;
 
     before(async () => {
         await setupApiAsync(SUITE_NAME);
@@ -52,6 +56,9 @@ describe(SUITE_NAME, () => {
         contractAddresses = getContractAddressesForChainOrThrow(chainId);
         buyTokenAddress = contractAddresses.zrxToken;
         sellTokenAddress = contractAddresses.etherToken;
+
+        weth = new WETH9Contract(contractAddresses.etherToken, provider);
+        zrx = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
     });
 
     after(async () => {
@@ -490,7 +497,7 @@ describe(SUITE_NAME, () => {
             });
         });
 
-        context.skip('success tests', () => {
+        context('success tests', () => {
             let meshUtils: MeshTestUtils;
 
             function signZeroExTransaction(transaction: ZeroExTransaction, signingAddress: string): string {
@@ -498,7 +505,9 @@ describe(SUITE_NAME, () => {
                 const pkIdx = accounts.indexOf(signingAddress);
                 expect(pkIdx, 'signing address is invalid').to.be.gte(0);
                 const privateKey = constants.TESTRPC_PRIVATE_KEYS[pkIdx];
-                return signingUtils.signMessage(transactionHashBuffer, privateKey, SignatureType.EthSign).toString();
+                return `0x${signingUtils
+                    .signMessage(transactionHashBuffer, privateKey, SignatureType.EthSign)
+                    .toString('hex')}`;
             }
 
             describe('single order submission', () => {
@@ -568,20 +577,44 @@ describe(SUITE_NAME, () => {
                 });
 
                 it('submitting the quote is successful and money changes hands correctly', async () => {
+                    const makerAddress = validationResults.accepted[0].signedOrder.makerAddress;
+
+                    // Setup the proper balances for the takerAddress.
+                    await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: buyAmount });
+                    await weth
+                        .approve(contractAddresses.erc20Proxy, new BigNumber(buyAmount))
+                        .awaitTransactionSuccessAsync({ from: takerAddress });
+
+                    const startMakerWethBalance = await weth.balanceOf(makerAddress).callAsync();
+                    const startMakerZrxBalance = await zrx.balanceOf(makerAddress).callAsync();
+                    const startTakerWethBalance = await weth.balanceOf(takerAddress).callAsync();
+                    const startTakerZrxBalance = await zrx.balanceOf(takerAddress).callAsync();
+
                     const signature = signZeroExTransaction(transaction, takerAddress);
                     const route = constructRoute({
                         baseRoute: `${META_TRANSACTION_PATH}/submit`,
-                        queryParams: {
-                            zeroExTransaction: JSON.stringify(transaction),
-                            signature,
-                        },
                     });
                     const response = await httpPostAsync({
                         route,
+                        body: {
+                            zeroExTransaction: transaction,
+                            signature,
+                        },
+                        headers: {
+                            '0x-api-key': config.WHITELISTED_API_KEYS_META_TXN_SUBMIT[0],
+                        },
                     });
                     expect(response.status).to.be.eq(HttpStatus.OK);
                     expect(response.type).to.be.eq('application/json');
-                    // FIXME(jalextowle): Add assertion
+
+                    const endMakerWethBalance = await weth.balanceOf(makerAddress).callAsync();
+                    const endMakerZrxBalance = await zrx.balanceOf(makerAddress).callAsync();
+                    const endTakerWethBalance = await weth.balanceOf(takerAddress).callAsync();
+                    const endTakerZrxBalance = await zrx.balanceOf(takerAddress).callAsync();
+                    expect(endMakerWethBalance).to.be.bignumber.eq(startMakerWethBalance.plus(buyAmount));
+                    expect(endMakerZrxBalance).to.be.bignumber.eq(startMakerZrxBalance.minus(buyAmount));
+                    expect(endTakerWethBalance).to.be.bignumber.eq(startTakerWethBalance.minus(buyAmount));
+                    expect(endTakerZrxBalance).to.be.bignumber.eq(startTakerZrxBalance.plus(buyAmount));
                 });
             });
         });
