@@ -328,9 +328,7 @@ describe(SUITE_NAME, () => {
     }
 
     function assertCorrectQuote(testCase: QuoteTestCase): void {
-        const quote = { ...testCase.quote };
-
-        expect(quote.zeroExTransactionHash.length).to.be.eq(66); // tslint:disable-line:custom-no-magic-numbers
+        expect(testCase.quote.zeroExTransactionHash.length).to.be.eq(66); // tslint:disable-line:custom-no-magic-numbers
         const threeSecondsMS = ONE_SECOND_MS * 3; // tslint:disable-line:custom-no-magic-numbers
         const lowerBound = new BigNumber(Date.now() + TEN_MINUTES_MS - threeSecondsMS)
             .div(ONE_SECOND_MS)
@@ -338,17 +336,23 @@ describe(SUITE_NAME, () => {
         const upperBound = new BigNumber(Date.now() + TEN_MINUTES_MS)
             .div(ONE_SECOND_MS)
             .integerValue(BigNumber.ROUND_CEIL);
-        expect(quote.zeroExTransaction.expirationTimeSeconds).to.be.bignumber.gte(lowerBound);
-        expect(quote.zeroExTransaction.expirationTimeSeconds).to.be.bignumber.lte(upperBound);
-        // HACK(jalextowle): We currently don't assert much of anything about
-        // several fields in the quote response, and instead simply delete
-        // the field. Over time, methods of asserting more should be found.
-        quote.zeroExTransactionHash = undefined;
-        quote.zeroExTransaction.data = undefined;
-        quote.zeroExTransaction.salt = undefined;
-        quote.zeroExTransaction.gasPrice = undefined;
-        quote.zeroExTransaction.expirationTimeSeconds = undefined;
-        expect(quote).to.be.eql({
+        expect(testCase.quote.zeroExTransaction.expirationTimeSeconds).to.be.bignumber.gte(lowerBound);
+        expect(testCase.quote.zeroExTransaction.expirationTimeSeconds).to.be.bignumber.lte(upperBound);
+
+        // NOTE(jalextowle): We pick only the elements that should be tested
+        // against. This avoids altering the original object and running into
+        // an edge-case in `expect` around values defined as `undefined`.
+        expect({
+            price: testCase.quote.price,
+            zeroExTransaction: {
+                signerAddress: testCase.quote.zeroExTransaction.signerAddress,
+                domain: testCase.quote.zeroExTransaction.domain,
+            },
+            orders: testCase.quote.orders,
+            buyAmount: testCase.quote.buyAmount,
+            sellAmount: testCase.quote.sellAmount,
+            sources: testCase.quote.sources,
+        }).to.be.eql({
             price: testCase.expectedPrice,
             zeroExTransaction: {
                 signerAddress: takerAddress,
@@ -577,7 +581,7 @@ describe(SUITE_NAME, () => {
                     });
                     expect(response.status).to.be.eq(HttpStatus.OK);
                     expect(response.type).to.be.eq('application/json');
-                    console.log(response);
+                    // FIXME(jalextowle): Add assertion
                 });
             });
         });
