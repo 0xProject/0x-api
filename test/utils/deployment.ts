@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 
+import { getDBConnectionAsync } from '../../src/db_connection';
+
 const apiRootDir = path.normalize(path.resolve(`${__dirname}/../../../`));
 const testRootDir = `${apiRootDir}/test`;
 
@@ -88,6 +90,7 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
 
     // Wait for the dependencies to boot up.
     await waitForDependencyStartupAsync(up);
+    await confirmPostgresConnectivityAsync();
 }
 
 /**
@@ -263,32 +266,39 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
             const data = chunk.toString().split('\n');
             console.log(data); // tslint:disable-line:no-console
             for (const datum of data) {
-                if (hasSeenLog[0] < 2 && /.*mesh.*started HTTP RPC server/.test(datum)) {
+                if (hasSeenLog[0] < 1 && /.*mesh.*started HTTP RPC server/.test(datum)) {
                     hasSeenLog[0]++;
-                } else if (hasSeenLog[1] < 2 && /.*mesh.*started WS RPC server/.test(datum)) {
+                } else if (hasSeenLog[1] < 1 && /.*mesh.*started WS RPC server/.test(datum)) {
                     hasSeenLog[1]++;
                 } else if (
-                    // NOTE(jalextowle): Because the `postgres` database is deleted before every
-                    // test run, we must skip over the "autovacuming" step that creates a new
-                    // postgres table.
-                    hasSeenLog[2] < 2 &&
-                    /.*postgres.*database system is ready to accept connections/.test(datum)
+                    hasSeenLog[2] < 1 &&
+                    /.*postgres.*PostgreSQL init process complete; ready for start up./.test(datum)
                 ) {
                     hasSeenLog[2]++;
                 }
 
-                if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 2) {
-                    // TODO(jalextowle): Is this necessary?
+                if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 1) {
                     setTimeout(resolve, 20000); // tslint:disable-line:custom-no-magic-numbers
                 }
             }
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for dependency logs'));
-        }, 500000); // tslint:disable-line:custom-no-magic-numbers
+        }, 50000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
+async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<void> {
+    try {
+        await getDBConnectionAsync();
+    } catch (e) {
+        if (maxTries > 0) {
+            await confirmPostgresConnectivityAsync(maxTries - 1);
+        } else {
+            throw e;
+        }
+    }
+}
 async function sleepAsync(timeSeconds: number): Promise<void> {
     return new Promise<void>(resolve => {
         const secondsPerMillisecond = 1000;
