@@ -46,7 +46,7 @@ async function _waitUntilStatusAsync(
     repository: Repository<TransactionEntity>,
 ): Promise<void> {
     for (let i = 0; i < NUMBER_OF_RETRIES; i++) {
-        const tx = await repository.findOne(txHash);
+        const tx = await repository.findOne({ txHash });
         if (tx !== undefined && tx.status === status) {
             return;
         }
@@ -75,9 +75,8 @@ describe('transaction watcher service', () => {
         const swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
 
         const meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
-        // const signerService = new SignerService(connection);
 
-        metaTxnUser = new TestMetaTxnUser('https://kovan.api.0x.org', connection);
+        metaTxnUser = new TestMetaTxnUser('https://kovan.api.0x.org');
 
         app = await getAppAsync(
             {
@@ -94,44 +93,26 @@ describe('transaction watcher service', () => {
         );
     });
     it('sends a signed zeroex transaction correctly', async () => {
-        const { zeroExTransactionHash, zeroExTransaction } = await metaTxnUser.getQuoteAsync('MKR', 'ETH', '50000000');
+        const { zeroExTransactionHash, zeroExTransaction } = await metaTxnUser.getQuoteAsync(
+            'DAI',
+            'WETH',
+            '500000000',
+        );
         const signature = await metaTxnUser.signAsync(zeroExTransactionHash);
         await request(app)
             .post(`${META_TRANSACTION_PATH}/submit`)
             .set('0x-api-key', 'e20bd887-e195-4580-bca0-322607ec2a49')
             .send({ signature, zeroExTransaction })
             // .expect('Content-Type', /json/)
-            .then(response => {
+            .then(async response => {
                 expect(response.body.code).to.not.equal(GeneralErrorCodes.InvalidAPIKey);
-                const data = response.body;
-                console.log(data);
+                const { ethereumTransactionHash } = response.body;
+
+                await _waitUntilStatusAsync(
+                    ethereumTransactionHash,
+                    TransactionStates.Confirmed,
+                    transactionEntityRepository,
+                );
             });
-        // send tx with 1 gwei gas price
-        // const txHash = await signer.prepareAndStoreMetaTx();
-        // await waitUntilStatusAsync(txHash, TransactionStates.Confirmed, transactionEntityRepository);
-        // const storedTx = await transactionEntityRepository.findOne(txHash);
-        // expect(storedTx).to.not.be.undefined();
-        // expect(storedTx).to.include({ hash: txHash });
-        // expect(storedTx).to.not.include({ blockNumber: null });
     });
-    it('does something', async () => {
-        await _waitUntilStatusAsync('', TransactionStates.Submitted, transactionEntityRepository);
-    });
-    // it('unsticks a transaction correctly', async () => {
-    //     // send a transaction with a very low gas price
-    //     const txHash = await signer.sendTransactionToItselfAsync(
-    //         new BigNumber(LOW_GAS_PRICE),
-    //         SHORT_EXPECTED_MINE_TIME_SEC,
-    //     );
-    //     await waitUntilStatusAsync(txHash, TransactionStates.Stuck, transactionEntityRepository);
-    //     const storedTx = await transactionEntityRepository.findOne(txHash);
-    //     if (storedTx === undefined) {
-    //         throw new Error('stored tx is undefined');
-    //     }
-    //     const unstickTxHash = await signer.sendUnstickingTransactionAsync(
-    //         new BigNumber(HIGH_GAS_PRICE),
-    //         web3WrapperUtils.encodeAmountAsHexString(storedTx.nonce),
-    //     );
-    //     await waitUntilStatusAsync(unstickTxHash, TransactionStates.Confirmed, transactionEntityRepository);
-    // });
 });

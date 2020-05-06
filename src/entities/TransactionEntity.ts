@@ -10,8 +10,14 @@ import { TransactionEntityOpts } from './types';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity {
-    @PrimaryColumn({ name: 'zero_ex_tx_signature', type: 'varchar' })
-    public zeroExTransactionSignature: string;
+    @PrimaryColumn({ name: 'ref_hash', type: 'varchar' })
+    // reference hash can be either be the zeroExTransaction hash or the actual
+    // txHash depending on whether we are submitting a meta-transaction or an
+    // unsticking ethereum transaction.
+    public refHash: string;
+
+    @Column({ name: 'zero_ex_tx_signature', type: 'varchar', nullable: true })
+    public zeroExTransactionSignature?: string;
 
     @Column({
         name: 'zero_ex_tx',
@@ -19,7 +25,7 @@ export class TransactionEntity {
         nullable: true,
         transformer: ZeroExTransactionWithoutDomainTransformer,
     })
-    public zeroExTransaction: ZeroExTransactionWithoutDomain;
+    public zeroExTransaction?: ZeroExTransactionWithoutDomain;
 
     @Column({ name: 'tx_hash', type: 'varchar', unique: true, nullable: true })
     public txHash?: string;
@@ -33,7 +39,7 @@ export class TransactionEntity {
     @Column({ name: 'expected_mined_in_sec', type: 'int' })
     public expectedMinedInSec?: number;
 
-    @Column({ name: 'nonce', type: 'bigint' })
+    @Column({ name: 'nonce', type: 'bigint', nullable: true })
     public nonce?: number;
 
     @Column({ name: 'gas_price', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
@@ -45,7 +51,7 @@ export class TransactionEntity {
     @Column({ name: 'block_number', type: 'bigint', nullable: true })
     public blockNumber?: number;
 
-    @Column({ name: 'from', type: 'varchar' })
+    @Column({ name: 'from', type: 'varchar', nullable: true })
     public from?: string;
 
     @CreateDateColumn({ name: 'created_at' })
@@ -58,6 +64,7 @@ export class TransactionEntity {
     public expectedAt: Date;
 
     public static make(opts: TransactionEntityOpts): TransactionEntity {
+        assert.isHexString('refHash', opts.refHash);
         if (opts.txHash !== undefined) {
             assert.isHexString('txHash', opts.txHash);
         }
@@ -81,6 +88,7 @@ export class TransactionEntity {
     // serialize. Please use the public static make method instead.
     private constructor(
         opts: TransactionEntityOpts = {
+            refHash: '',
             txHash: '',
             signedTx: '',
             status: '',
@@ -99,6 +107,7 @@ export class TransactionEntity {
             },
         },
     ) {
+        this.refHash = opts.refHash;
         this.txHash = opts.txHash;
         this.signedTx = opts.signedTx;
         this.status = opts.status;

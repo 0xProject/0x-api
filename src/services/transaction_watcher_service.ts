@@ -125,10 +125,16 @@ export class TransactionWatcherService {
 
         return ethereumTxnParams;
     }
-    private async _signAndBroadcastTxAsync(txEntity: TransactionEntity): Promise<void> {
-        // TODO(oskar) proper validation
+    private async _signAndBroadcastMetaTxAsync(txEntity: TransactionEntity): Promise<void> {
+        // TODO(oskar) refactor with type guards?
         if (txEntity.protocolFee === undefined) {
-            throw new Error('missing protocol fee');
+            throw new Error('txEntity is missing protocolFee');
+        }
+        if (txEntity.zeroExTransaction === undefined) {
+            throw new Error('txEntity is missing zeroExTransaction');
+        }
+        if (txEntity.zeroExTransactionSignature === undefined) {
+            throw new Error('txEntity is missing zeroExTransactionSignature');
         }
         const ethereumTxnParams = await this.generateExecuteTransactionEthereumTransactionAsync(
             txEntity.zeroExTransaction,
@@ -149,6 +155,8 @@ export class TransactionWatcherService {
         txEntity.status = TransactionStates.Submitted;
         txEntity.txHash = ethereumTransactionHash;
         txEntity.signedTx = signedEthereumTransaction;
+        txEntity.nonce = web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce);
+        txEntity.from = ethereumTxnParams.from;
         await this._transactionRepository.save(txEntity);
     }
     private async _syncBroadcastedTransactionStatusAsync(): Promise<void> {
@@ -247,7 +255,7 @@ export class TransactionWatcherService {
     }
     private async _getNonceAsync(senderAddress: string): Promise<string> {
         // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
-        // to use so we fetch it from it's private instance variable
+        // to use so we fetch it from its private instance variable
         let nonce = (this._nonceTrackerSubprovider as any)._nonceCache[senderAddress];
         if (nonce === undefined) {
             nonce = await this._getTransactionCountAsync(senderAddress);
@@ -262,37 +270,30 @@ export class TransactionWatcherService {
         return nonceHex;
     }
     private async _signAndBroadcastTransactionsAsync(): Promise<void> {
-        // TODO(oskar) - naming
         const unsignedTransactions = await this._transactionRepository.find({
             where: [{ status: TransactionStates.Unsubmitted }],
         });
         logger.trace(`found ${unsignedTransactions.length} transactions to sign and broadcast`);
         for (const tx of unsignedTransactions) {
-            await this._signAndBroadcastTxAsync(tx);
+            await this._signAndBroadcastMetaTxAsync(tx);
         }
     }
     private async _unstickTransactionAsync(tx: TransactionEntity, gasPrice: BigNumber): Promise<string> {
+        if (tx.nonce === undefined) {
+            throw new Error(`failed to unstick transaction ${tx.txHash} nonce is undefined`);
+        }
         const ethereumTxnParams: PartialTxParams = {
             from: META_TXN_RELAY_ADDRESS,
             to: META_TXN_RELAY_ADDRESS,
             value: web3WrapperUtils.encodeAmountAsHexString(0),
-            // TODO(oskar) validate before
-            nonce: web3WrapperUtils.encodeAmountAsHexString(tx.nonce !== undefined ? tx.nonce : ''),
+            nonce: web3WrapperUtils.encodeAmountAsHexString(tx.nonce),
             chainId: CHAIN_ID,
             gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
             gas: web3WrapperUtils.encodeAmountAsHexString(ETH_TRANSFER_GAS_LIMIT),
         };
         const { signedEthereumTransaction, txHash } = this._getSignedTxHashAndRawTxString(ethereumTxnParams);
-        // TODO(oskar) fixerinio
         const transactionEntity = TransactionEntity.make({
-            zeroExTransactionSignature: '',
-            zeroExTransaction: {
-                salt: new BigNumber(0),
-                expirationTimeSeconds: new BigNumber(0),
-                gasPrice: new BigNumber(0),
-                signerAddress: '',
-                data: '',
-            },
+            refHash: txHash,
             txHash,
             status: TransactionStates.Unsubmitted,
             nonce: tx.nonce,

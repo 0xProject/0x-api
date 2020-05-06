@@ -10,7 +10,6 @@ import {
     Web3ProviderEngine,
 } from '@0x/subproviders';
 import { BigNumber, providerUtils, RevertError } from '@0x/utils';
-import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Connection, Repository } from 'typeorm';
 
@@ -21,7 +20,12 @@ import {
     META_TXN_RELAY_PRIVATE_KEY,
     WHITELISTED_API_KEYS_META_TXN_SUBMIT,
 } from '../config';
-import { ETH_GAS_STATION_API_BASE_URL, EXPECTED_MINED_SEC, ONE_SECOND_MS } from '../constants';
+import {
+    ETH_GAS_STATION_API_BASE_URL,
+    EXPECTED_MINED_SEC,
+    ONE_SECOND_MS,
+    TX_HASH_RESPONSE_WAIT_TIME_MS,
+} from '../constants';
 import { TransactionEntity } from '../entities';
 import { PostTransactionResponse, TransactionStates, ZeroExTransactionWithoutDomain } from '../types';
 import { utils } from '../utils/utils';
@@ -31,7 +35,6 @@ export class SignerService {
     private readonly _nonceTrackerSubprovider: NonceTrackerSubprovider;
     private readonly _privateWalletSubprovider: PrivateKeyWalletSubprovider;
     private readonly _contractWrappers: ContractWrappers;
-    private readonly _web3Wrapper: Web3Wrapper;
     private readonly _devUtils: DevUtilsContract;
     private readonly _transactionEntityRepository: Repository<TransactionEntity>;
 
@@ -70,7 +73,6 @@ export class SignerService {
             this._nonceTrackerSubprovider,
         );
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
-        this._web3Wrapper = new Web3Wrapper(this._provider);
         this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
         this._transactionEntityRepository = dbConnection.getRepository(TransactionEntity);
     }
@@ -121,7 +123,18 @@ export class SignerService {
 
         return protocolFee;
     }
-    public async generateExecuteTransactionEthereumTransactionAsync(
+    public async getZeroExTransactionHashFromZeroExTransactionAsync(
+        zeroExTransaction: ZeroExTransactionWithoutDomain,
+    ): Promise<string> {
+        return this._devUtils
+            .getTransactionHash(
+                zeroExTransaction,
+                new BigNumber(CHAIN_ID),
+                this._contractWrappers.contractAddresses.exchange,
+            )
+            .callAsync();
+    }
+    public async generatePartialExecuteTransactionEthereumTransactionAsync(
         zeroExTransaction: ZeroExTransactionWithoutDomain,
         signature: string,
         protocolFee: BigNumber,
@@ -143,26 +156,30 @@ export class SignerService {
         const ethereumTxnParams: PartialTxParams = {
             data: executeTxnCalldata,
             gas: web3WrapperUtils.encodeAmountAsHexString(gas),
-            from: META_TXN_RELAY_ADDRESS,
             gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
             value: web3WrapperUtils.encodeAmountAsHexString(protocolFee),
             to: this._contractWrappers.exchange.address,
-            nonce: await this._getNonceAsync(META_TXN_RELAY_ADDRESS),
             chainId: CHAIN_ID,
+            // NOTE we arent returning nonce and from fields back to the user
+            nonce: '',
+            from: '',
         };
 
         return ethereumTxnParams;
     }
     public async submitZeroExTransactionAsync(
+        zeroExTransactionHash: string,
         zeroExTransaction: ZeroExTransactionWithoutDomain,
         signature: string,
         protocolFee: BigNumber,
     ): Promise<PostTransactionResponse> {
         const transactionEntity = TransactionEntity.make({
+            refHash: zeroExTransactionHash,
             status: TransactionStates.Unsubmitted,
             zeroExTransaction,
             zeroExTransactionSignature: signature,
             protocolFee,
+            gasPrice: zeroExTransaction.gasPrice,
             expectedMinedInSec: EXPECTED_MINED_SEC,
         });
         await this._transactionEntityRepository.save(transactionEntity);
@@ -172,39 +189,24 @@ export class SignerService {
             signedEthereumTransaction,
         };
     }
-    // TODO(oskar) - add timeout
     private async _waitUntilTxHash(
         txEntity: TransactionEntity,
     ): Promise<{ ethereumTransactionHash: string; signedEthereumTransaction: string }> {
-        while (true) {
-            const tx = await this._transactionEntityRepository.findOne(txEntity.zeroExTransactionSignature);
-            if (
-                tx !== undefined &&
-                tx.status === TransactionStates.Submitted &&
-                tx.txHash !== undefined &&
-                tx.signedTx !== undefined
-            ) {
-                return { ethereumTransactionHash: tx.txHash, signedEthereumTransaction: tx.signedTx };
-            }
+        return utils.runWithTimeout(async () => {
+            while (true) {
+                const tx = await this._transactionEntityRepository.findOne(txEntity.refHash);
+                if (
+                    tx !== undefined &&
+                    tx.status === TransactionStates.Submitted &&
+                    tx.txHash !== undefined &&
+                    tx.signedTx !== undefined
+                ) {
+                    return { ethereumTransactionHash: tx.txHash, signedEthereumTransaction: tx.signedTx };
+                }
 
-            await utils.delayAsync(200);
-        }
-    }
-    private async _getNonceAsync(senderAddress: string): Promise<string> {
-        // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
-        // to use so we fetch it from it's private instance variable
-        let nonce = (this._nonceTrackerSubprovider as any)._nonceCache[senderAddress];
-        if (nonce === undefined) {
-            nonce = await this._getTransactionCountAsync(senderAddress);
-        }
-        return nonce;
-    }
-    private async _getTransactionCountAsync(address: string): Promise<string> {
-        const nonceHex = await this._web3Wrapper.sendRawPayloadAsync<string>({
-            method: 'eth_getTransactionCount',
-            params: [address, 'pending'],
-        });
-        return nonceHex;
+                await utils.delayAsync(200);
+            }
+        }, TX_HASH_RESPONSE_WAIT_TIME_MS);
     }
     // tslint:disable-next-line: prefer-function-over-method
     private async _getGasPriceFromGasStationOrThrowAsync(): Promise<BigNumber> {

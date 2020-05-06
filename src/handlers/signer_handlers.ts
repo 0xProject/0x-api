@@ -34,6 +34,9 @@ export class SignerHandlers {
 
         // parse the request body
         const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
+        const zeroExTransactionHash = await this._signerService.getZeroExTransactionHashFromZeroExTransactionAsync(
+            zeroExTransaction,
+        );
         try {
             const protocolFee = await this._signerService.validateZeroExTransactionFillAsync(
                 zeroExTransaction,
@@ -45,14 +48,19 @@ export class SignerHandlers {
                 const {
                     ethereumTransactionHash,
                     signedEthereumTransaction,
-                } = await this._signerService.submitZeroExTransactionAsync(zeroExTransaction, signature, protocolFee);
+                } = await this._signerService.submitZeroExTransactionAsync(
+                    zeroExTransactionHash,
+                    zeroExTransaction,
+                    signature,
+                    protocolFee,
+                );
                 // return the transactionReceipt
                 res.status(HttpStatus.OK).send({
                     ethereumTransactionHash,
                     signedEthereumTransaction,
                 });
             } else {
-                const ethereumTxn = await this._signerService.generateExecuteTransactionEthereumTransactionAsync(
+                const ethereumTxn = await this._signerService.generatePartialExecuteTransactionEthereumTransactionAsync(
                     zeroExTransaction,
                     signature,
                     protocolFee,
