@@ -168,7 +168,7 @@ export class MetaTransactionService {
         return apiMetaTransactionQuote;
     }
     public async findTransactionByHashAsync(txHash: string): Promise<TransactionEntity | undefined> {
-        return this._transactionEntityRepository.findOne(txHash);
+        return this._transactionEntityRepository.findOne({ txHash });
     }
     private _generateZeroExTransaction(
         orders: SignedOrder[],

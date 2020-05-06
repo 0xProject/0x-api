@@ -99,6 +99,7 @@ describe('transaction watcher service', () => {
             '500000000',
         );
         const signature = await metaTxnUser.signAsync(zeroExTransactionHash);
+        let txHashToRequest = '';
         await request(app)
             .post(`${META_TRANSACTION_PATH}/submit`)
             .set('0x-api-key', 'e20bd887-e195-4580-bca0-322607ec2a49')
@@ -107,12 +108,20 @@ describe('transaction watcher service', () => {
             .then(async response => {
                 expect(response.body.code).to.not.equal(GeneralErrorCodes.InvalidAPIKey);
                 const { ethereumTransactionHash } = response.body;
+                txHashToRequest = ethereumTransactionHash;
 
                 await _waitUntilStatusAsync(
                     ethereumTransactionHash,
                     TransactionStates.Confirmed,
                     transactionEntityRepository,
                 );
+            });
+
+        await request(app)
+            .get(`${META_TRANSACTION_PATH}/status/${txHashToRequest}`)
+            .then(response => {
+                expect(response.body.hash).to.equal(txHashToRequest);
+                expect(response.body.status).to.equal('confirmed');
             });
     });
 });
