@@ -333,6 +333,10 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                         `second token address for asset pair ${i} for maker endpoint ${makerEndpoint}`,
                         assetPair[1],
                     );
+                    assert.assert(
+                        assetPair[0] !== assetPair[1],
+                        `asset pair array ${i} for maker endpoint ${makerEndpoint} has identical assets`,
+                    );
                 });
             }
             return offerings;
