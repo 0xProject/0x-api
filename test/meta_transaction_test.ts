@@ -20,7 +20,7 @@ import { MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'meta transactions tests';
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let accounts: string[];
     let chainId: number;
     let contractAddresses: ContractAddresses;
