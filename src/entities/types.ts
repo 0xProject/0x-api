@@ -6,6 +6,7 @@ export interface TransactionEntityOpts {
     refHash: string;
     txHash?: string;
     signedTx?: string;
+    takerAddress?: string;
     status: string;
     expectedMinedInSec: number;
     nonce?: number;

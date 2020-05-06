@@ -36,6 +36,9 @@ export class TransactionEntity {
     @Column({ name: 'status', type: 'varchar' })
     public status: string;
 
+    @Column({ name: 'taker_address', type: 'varchar', nullable: true })
+    public takerAddress?: string;
+
     @Column({ name: 'expected_mined_in_sec', type: 'int' })
     public expectedMinedInSec?: number;
 
@@ -91,6 +94,7 @@ export class TransactionEntity {
             refHash: '',
             txHash: '',
             signedTx: '',
+            takerAddress: '',
             status: '',
             expectedMinedInSec: 120,
             nonce: 0,
@@ -109,6 +113,7 @@ export class TransactionEntity {
     ) {
         this.refHash = opts.refHash;
         this.txHash = opts.txHash;
+        this.takerAddress = opts.takerAddress;
         this.signedTx = opts.signedTx;
         this.status = opts.status;
         this.expectedMinedInSec = opts.expectedMinedInSec;

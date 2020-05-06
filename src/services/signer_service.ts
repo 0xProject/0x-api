@@ -176,6 +176,7 @@ export class SignerService {
         const transactionEntity = TransactionEntity.make({
             refHash: zeroExTransactionHash,
             status: TransactionStates.Unsubmitted,
+            takerAddress: zeroExTransaction.signerAddress,
             zeroExTransaction,
             zeroExTransactionSignature: signature,
             protocolFee,
@@ -183,13 +184,15 @@ export class SignerService {
             expectedMinedInSec: EXPECTED_MINED_SEC,
         });
         await this._transactionEntityRepository.save(transactionEntity);
-        const { ethereumTransactionHash, signedEthereumTransaction } = await this._waitUntilTxHash(transactionEntity);
+        const { ethereumTransactionHash, signedEthereumTransaction } = await this._waitUntilTxHashAsync(
+            transactionEntity,
+        );
         return {
             ethereumTransactionHash,
             signedEthereumTransaction,
         };
     }
-    private async _waitUntilTxHash(
+    private async _waitUntilTxHashAsync(
         txEntity: TransactionEntity,
     ): Promise<{ ethereumTransactionHash: string; signedEthereumTransaction: string }> {
         return utils.runWithTimeout(async () => {
