@@ -292,7 +292,7 @@ async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<v
     try {
         await Promise.all([
             // delay before retrying
-            new Promise(resolve => setTimeout(resolve, 2000)), // tslint:disable-line:custom-no-magic-numbers
+            new Promise<void>(resolve => setTimeout(resolve, 2000)), // tslint:disable-line:custom-no-magic-numbers
             await getDBConnectionAsync(),
         ]);
         return;

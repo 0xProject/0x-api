@@ -8,8 +8,6 @@ jobs:
         docker:
             - image: circleci/node:11.14-browsers
         working_directory: ~/repo
-        environment:
-            POSTGRES_URI: 'postgres://api:api@postgres/api'
         steps:
             - checkout
             # Download and cache dependencies
