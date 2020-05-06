@@ -20,7 +20,7 @@ import { MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'meta transactions tests';
 
-describe(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let accounts: string[];
     let chainId: number;
     let contractAddresses: ContractAddresses;
@@ -370,7 +370,7 @@ describe(SUITE_NAME, () => {
             },
             orders: testCase.expectedOrders.map(order => stringifyOrderBigNumbers(order)),
             buyAmount: testCase.expectedBuyAmount,
-            sellAmount: (parseInt(testCase.expectedBuyAmount, 10) * parseFloat(testCase.expectedPrice)).toString(),
+            sellAmount: calculateSellAmount(testCase.expectedBuyAmount, testCase.expectedPrice),
             // NOTE(jalextowle): 0x is the only source that is currently being tested.
             sources: [
                 { name: '0x', proportion: '1' },
@@ -515,6 +515,8 @@ describe(SUITE_NAME, () => {
 
             describe('single order submission', () => {
                 let validationResults: ValidationResults;
+                const price = '1';
+                const sellAmount = calculateSellAmount(buyAmount, price);
 
                 // NOTE(jalextowle): This must be a `before` hook because `beforeEach`
                 // hooks execute after all of the `before` hooks (even if they are nested).
@@ -550,7 +552,7 @@ describe(SUITE_NAME, () => {
                     expect(response.type).to.be.eq('application/json');
                     expect(response.status).to.be.eq(HttpStatus.OK);
                     expect(response.body).to.be.deep.eq({
-                        price: '1',
+                        price,
                         buyAmount,
                         sellTokenAddress,
                         buyTokenAddress,
@@ -574,15 +576,13 @@ describe(SUITE_NAME, () => {
                         quote: response.body,
                         expectedBuyAmount: buyAmount,
                         expectedOrders: [validationResults.accepted[0].signedOrder],
-                        expectedPrice: '1',
+                        expectedPrice: price,
                     });
                     transaction = response.body.zeroExTransaction;
                 });
 
                 it('submitting the quote is successful and money changes hands correctly', async () => {
                     const makerAddress = validationResults.accepted[0].signedOrder.makerAddress;
-
-                    // Setup the proper balances for the takerAddress.
                     await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: buyAmount });
                     await weth
                         .approve(contractAddresses.erc20Proxy, new BigNumber(buyAmount))
@@ -614,13 +614,129 @@ describe(SUITE_NAME, () => {
                     const endMakerZrxBalance = await zrx.balanceOf(makerAddress).callAsync();
                     const endTakerWethBalance = await weth.balanceOf(takerAddress).callAsync();
                     const endTakerZrxBalance = await zrx.balanceOf(takerAddress).callAsync();
-                    expect(endMakerWethBalance).to.be.bignumber.eq(startMakerWethBalance.plus(buyAmount));
+                    expect(endMakerWethBalance).to.be.bignumber.eq(startMakerWethBalance.plus(sellAmount));
                     expect(endMakerZrxBalance).to.be.bignumber.eq(startMakerZrxBalance.minus(buyAmount));
-                    expect(endTakerWethBalance).to.be.bignumber.eq(startTakerWethBalance.minus(buyAmount));
+                    expect(endTakerWethBalance).to.be.bignumber.eq(startTakerWethBalance.minus(sellAmount));
                     expect(endTakerZrxBalance).to.be.bignumber.eq(startTakerZrxBalance.plus(buyAmount));
+                });
+            });
+
+            // TODO: There is a problem with this test case. It is currently throwing an `IncompleteFillError`
+            describe.skip('two order submission', () => {
+                let validationResults: ValidationResults;
+                const largeBuyAmount = MAKER_ASSET_AMOUNT.times(2).toString();
+                const price = '1.5';
+                const sellAmount = calculateSellAmount(largeBuyAmount, price);
+
+                // NOTE(jalextowle): This must be a `before` hook because `beforeEach`
+                // hooks execute after all of the `before` hooks (even if they are nested).
+                before(async () => {
+                    await blockchainLifecycle.startAsync();
+                    await setupMeshAsync(SUITE_NAME);
+                    meshUtils = new MeshTestUtils(provider);
+                    await meshUtils.setupUtilsAsync();
+                });
+
+                after(async () => {
+                    await blockchainLifecycle.revertAsync();
+                    await teardownMeshAsync(SUITE_NAME);
+                    // NOTE(jalextowle): Spin up a new Mesh instance so that it will
+                    // be available for future test suites.
+                    await setupMeshAsync(SUITE_NAME);
+                });
+
+                before(async () => {
+                    validationResults = await meshUtils.addOrdersAsync([1, 2]);
+                    expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
+                });
+
+                it('price checking yields the correct market price', async () => {
+                    const route = constructRoute({
+                        baseRoute: `${META_TRANSACTION_PATH}/price`,
+                        queryParams: {
+                            ...DEFAULT_QUERY_PARAMS,
+                            buyAmount: largeBuyAmount,
+                            takerAddress,
+                        },
+                    });
+                    const response = await httpGetAsync({ route });
+                    expect(response.type).to.be.eq('application/json');
+                    expect(response.status).to.be.eq(HttpStatus.OK);
+                    expect(response.body).to.be.deep.eq({
+                        price,
+                        buyAmount: largeBuyAmount,
+                        sellTokenAddress,
+                        buyTokenAddress,
+                    });
+                });
+
+                let transaction: ZeroExTransaction;
+
+                it('the quote matches the price check', async () => {
+                    const route = constructRoute({
+                        baseRoute: `${META_TRANSACTION_PATH}/quote`,
+                        queryParams: {
+                            ...DEFAULT_QUERY_PARAMS,
+                            buyAmount: largeBuyAmount,
+                            takerAddress,
+                        },
+                    });
+                    const response = await httpGetAsync({ route });
+                    expect(response.type).to.be.eq('application/json');
+                    expect(response.status).to.be.eq(HttpStatus.OK);
+                    assertCorrectQuote({
+                        quote: response.body,
+                        expectedBuyAmount: largeBuyAmount,
+                        expectedOrders: validationResults.accepted.map(accepted => accepted.signedOrder),
+                        expectedPrice: price,
+                    });
+                    transaction = response.body.zeroExTransaction;
+                });
+
+                it('submitting the quote is successful and money changes hands correctly', async () => {
+                    const makerAddress = validationResults.accepted[0].signedOrder.makerAddress;
+                    await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: largeBuyAmount });
+                    await weth
+                        .approve(contractAddresses.erc20Proxy, new BigNumber(largeBuyAmount))
+                        .awaitTransactionSuccessAsync({ from: takerAddress });
+
+                    const startMakerWethBalance = await weth.balanceOf(makerAddress).callAsync();
+                    const startMakerZrxBalance = await zrx.balanceOf(makerAddress).callAsync();
+                    const startTakerWethBalance = await weth.balanceOf(takerAddress).callAsync();
+                    const startTakerZrxBalance = await zrx.balanceOf(takerAddress).callAsync();
+
+                    const signature = signZeroExTransaction(transaction, takerAddress);
+                    const route = constructRoute({
+                        baseRoute: `${META_TRANSACTION_PATH}/submit`,
+                    });
+                    const response = await httpPostAsync({
+                        route,
+                        body: {
+                            zeroExTransaction: transaction,
+                            signature,
+                        },
+                        headers: {
+                            '0x-api-key': config.WHITELISTED_API_KEYS_META_TXN_SUBMIT[0],
+                        },
+                    });
+                    expect(response.status).to.be.eq(HttpStatus.OK);
+                    expect(response.type).to.be.eq('application/json');
+
+                    const endMakerWethBalance = await weth.balanceOf(makerAddress).callAsync();
+                    const endMakerZrxBalance = await zrx.balanceOf(makerAddress).callAsync();
+                    const endTakerWethBalance = await weth.balanceOf(takerAddress).callAsync();
+                    const endTakerZrxBalance = await zrx.balanceOf(takerAddress).callAsync();
+                    expect(endMakerWethBalance).to.be.bignumber.eq(startMakerWethBalance.plus(sellAmount));
+                    expect(endMakerZrxBalance).to.be.bignumber.eq(startMakerZrxBalance.minus(largeBuyAmount));
+                    expect(endTakerWethBalance).to.be.bignumber.eq(startTakerWethBalance.minus(sellAmount));
+                    expect(endTakerZrxBalance).to.be.bignumber.eq(startTakerZrxBalance.plus(largeBuyAmount));
                 });
             });
         });
     });
 });
+
+function calculateSellAmount(buyAmount: string, price: string): string {
+    return (parseInt(buyAmount, 10) * parseFloat(price)).toString();
+}
 // tslint:disable-line:max-file-line-count
