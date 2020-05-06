@@ -232,7 +232,8 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the only order in Mesh', async () => {
-                await meshUtils.addOrdersAsync([1]);
+                const validationResults = await meshUtils.addOrdersAsync([1]);
+                expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
                     queryParams: {
@@ -252,7 +253,8 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the cheaper order in Mesh', async () => {
-                await meshUtils.addOrdersAsync([1, 2]);
+                const validationResults = await meshUtils.addOrdersAsync([1, 2]);
+                expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
                     queryParams: {
@@ -272,8 +274,9 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the combination of the two orders in Mesh', async () => {
-                await meshUtils.addOrdersAsync([1, 2]);
-                const largeBuyAmount = constants.STATIC_ORDER_PARAMS.makerAssetAmount.times(2).toString();
+                const validationResults = await meshUtils.addOrdersAsync([1, 2]);
+                expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
+                const largeBuyAmount = MAKER_ASSET_AMOUNT.times(2).toString();
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
                     queryParams: {
@@ -460,7 +463,7 @@ describe(SUITE_NAME, () => {
             it('should return a quote of the combination of the two orders in Mesh', async () => {
                 const validationResults = await meshUtils.addOrdersAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
-                const largeBuyAmount = constants.STATIC_ORDER_PARAMS.makerAssetAmount.times(2).toString();
+                const largeBuyAmount = MAKER_ASSET_AMOUNT.times(2).toString();
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/quote`,
                     queryParams: {
