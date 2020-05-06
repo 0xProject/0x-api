@@ -21,14 +21,14 @@ import {
     SRA_PATH,
     SWAP_PATH,
 } from '../src/constants';
-import { SignedOrderEntity } from '../src/entities';
 import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 import { orderUtils } from '../src/utils/order_utils';
 
 import * as orderFixture from './fixtures/order.json';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { expect } from './utils/expect';
-import { ganacheZrxWethOrder1, generateOrderModel, rfqtIndicativeQuoteResponse } from './utils/mocks';
+import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
+import { withOrdersInDatabaseAsync } from './utils/orders';
 
 let app: Express.Application;
 
@@ -41,12 +41,6 @@ let dependencies: AppDependencies;
 // tslint:disable-next-line:custom-no-magic-numbers
 const MAX_UINT256 = new BigNumber(2).pow(256).minus(1);
 const SUITE_NAME = 'app_test';
-
-async function addOrderAsync(): Promise<SignedOrderEntity> {
-    const orderModel = generateOrderModel(orderFixture);
-    await dependencies.connection.manager.save(orderModel);
-    return orderModel;
-}
 
 describe(SUITE_NAME, () => {
     before(async () => {
@@ -72,6 +66,71 @@ describe(SUITE_NAME, () => {
     });
     after(async () => {
         await teardownDependenciesAsync(SUITE_NAME);
+    });
+    describe('/swap', () => {
+        describe('/quote', () => {
+            // it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
+            //     await request(app)
+            //         .get(
+            //             `${SWAP_PATH}/quote?buyToken=DAI&sellToken=WETH&buyAmount=100000000000000000&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+            //         )
+            //         .expect(HttpStatus.BAD_REQUEST)
+            //         .expect('Content-Type', /json/)
+            //         .then(response => {
+            //             const responseJson = JSON.parse(response.text);
+            //             expect(responseJson.reason).to.equal('Validation Failed');
+            //             expect(responseJson.validationErrors.length).to.equal(1);
+            //             expect(responseJson.validationErrors[0].field).to.equal('buyAmount');
+            //             expect(responseJson.validationErrors[0].reason).to.equal('INSUFFICIENT_ASSET_LIQUIDITY');
+            //         });
+            // });
+
+            it('should return valid quotes for accepted parameters', async () => {
+                const parameterPermutations = [
+                    '?sellAmount=10000&buyToken=0x34d402f14d58e001d8efbe6585051bf9706aa064&sellToken=0x25b8fe1de9daf8ba351890744ff28cf7dfa8f5e3',
+                    // { sellAmount: 10000, buyToken: 'WETH', sellToken: 'DAI' },
+                    // { buyAmount: 10000, buyToken: 'WETH', sellToken: 'DAI' },
+                    // { sellAmount: 10000, buyToken: 'DAI', sellToken: 'WETH' },
+                    // { buyAmount: 10000, buyToken: 'DAI', sellToken: 'WETH' },
+                    // { sellAmount: 10000, buyToken: '0x6b175474e89094c44da98b954eedeac495271d0f', sellToken: 'WETH' },
+                    // { sellAmount: 10000, buyToken: '0x6b175474e89094c44da98b954eedeac495271d0f', sellToken: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' },
+                ];
+                for (const parameters of parameterPermutations) {
+                    await request(app)
+                        .get(`${SWAP_PATH}/quote${parameters}&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`)
+                        .expect('Content-Type', /json/)
+                        .expect(HttpStatus.OK)
+                        // .then(response => {
+                            
+                        // })
+                }
+                // sellAmount / buyAmount
+                // ETH / WETH / DAI / ZRX / Addresses <-> Addresses / mixed
+            });
+            it('should respect buyAmount and sellAmount', () => {
+
+            });
+            it('should respect gasPrice', () => {
+
+            });
+            it('should respect slippagePercentage', () => {
+
+            });
+            it('should respect exludedSources', () => {
+
+            })
+            it('should return a Forwarder transaction for sellToken=ETH', () => {
+
+            })
+            it('should throw a validation error if takerAddress cannot complete the quote', () => {
+
+            });
+
+
+        });
+        describe('/prices', () => {
+
+        });
     });
     describe('SRA endpoints', () => {
         describe('/fee_recipients', () => {
@@ -102,79 +161,77 @@ describe(SUITE_NAME, () => {
                     });
             });
             it('should return orders in the local cache', async () => {
-                const orderEntity = await addOrderAsync();
-                await request(app)
-                    .get(`${SRA_PATH}/orders`)
-                    .expect('Content-Type', /json/)
-                    .expect(HttpStatus.OK)
-                    .then(response => {
-                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-                        expect(response.body.page).to.equal(DEFAULT_PAGE);
-                        expect(response.body.total).to.be.an('number');
-                        expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
-                    });
-                await dependencies.connection.manager.remove(orderEntity);
+                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async ([orderEntity]) => {
+                    await request(app)
+                        .get(`${SRA_PATH}/orders`)
+                        .expect('Content-Type', /json/)
+                        .expect(HttpStatus.OK)
+                        .then(response => {
+                            expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                            expect(response.body.page).to.equal(DEFAULT_PAGE);
+                            expect(response.body.total).to.be.an('number');
+                            expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
+                        });
+                });
             });
             it('should return orders filtered by query params', async () => {
-                const orderEntity = await addOrderAsync();
-                await request(app)
-                    .get(`${SRA_PATH}/orders?makerAddress=${orderEntity.makerAddress}`)
-                    .expect('Content-Type', /json/)
-                    .expect(HttpStatus.OK)
-                    .then(response => {
-                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-                        expect(response.body.page).to.equal(DEFAULT_PAGE);
-                        expect(response.body.total).to.be.an('number');
-                        expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
-                    });
-                await dependencies.connection.manager.remove(orderEntity);
+                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async ([orderEntity]) => {
+                    await request(app)
+                        .get(`${SRA_PATH}/orders?makerAddress=${orderEntity.makerAddress}`)
+                        .expect('Content-Type', /json/)
+                        .expect(HttpStatus.OK)
+                        .then(response => {
+                            expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                            expect(response.body.page).to.equal(DEFAULT_PAGE);
+                            expect(response.body.total).to.be.an('number');
+                            expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
+                        });
+                });
             });
             it('should return empty response when filtered by query params', async () => {
-                const orderEntity = await addOrderAsync();
-                await request(app)
-                    .get(`${SRA_PATH}/orders?makerAddress=${NULL_ADDRESS}`)
-                    .expect('Content-Type', /json/)
-                    .expect(HttpStatus.OK)
-                    .then(response => {
-                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-                        expect(response.body.page).to.equal(DEFAULT_PAGE);
-                        expect(response.body.total).to.be.an('number');
-                        expect(response.body.records).to.deep.equal([]);
-                    });
-                await dependencies.connection.manager.remove(orderEntity);
+                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async () => {
+                    await request(app)
+                        .get(`${SRA_PATH}/orders?makerAddress=${NULL_ADDRESS}`)
+                        .expect('Content-Type', /json/)
+                        .expect(HttpStatus.OK)
+                        .then(response => {
+                            expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                            expect(response.body.page).to.equal(DEFAULT_PAGE);
+                            expect(response.body.total).to.be.an('number');
+                            expect(response.body.records).to.deep.equal([]);
+                        });
+                });
             });
             it('should normalize addresses to lowercase', async () => {
-                const orderEntity = await addOrderAsync();
-                await request(app)
-                    .get(`${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}`)
-                    .expect('Content-Type', /json/)
-                    .expect(HttpStatus.OK)
-                    .then(response => {
-                        expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-                        expect(response.body.page).to.equal(DEFAULT_PAGE);
-                        expect(response.body.total).to.equal(1);
-                        expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
-                    });
-                await dependencies.connection.manager.remove(orderEntity);
+                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async ([orderEntity]) => {
+                    await request(app)
+                        .get(`${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}`)
+                        .expect('Content-Type', /json/)
+                        .expect(HttpStatus.OK)
+                        .then(response => {
+                            expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+                            expect(response.body.page).to.equal(DEFAULT_PAGE);
+                            expect(response.body.total).to.equal(1);
+                            expect(orderUtils.serializeOrder(response.body.records[0])).to.deep.equal(orderEntity);
+                        });
+                });
             });
         });
         describe('GET /order', () => {
             it('should return order by order hash', async () => {
-                const orderEntity = await addOrderAsync();
-                await request(app)
-                    .get(`${SRA_PATH}/order/${orderEntity.hash}`)
-                    .expect('Content-Type', /json/)
-                    .expect(HttpStatus.OK)
-                    .then(response => {
-                        expect(orderUtils.serializeOrder(response.body)).to.deep.equal(orderEntity);
-                    });
-                await dependencies.connection.manager.remove(orderEntity);
+                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async ([orderEntity]) => {
+                    await request(app)
+                        .get(`${SRA_PATH}/order/${orderEntity.hash}`)
+                        .expect('Content-Type', /json/)
+                        .expect(HttpStatus.OK)
+                        .then(response => {
+                            expect(orderUtils.serializeOrder(response.body)).to.deep.equal(orderEntity);
+                        });
+                });
             });
             it('should return 404 if order is not found', async () => {
-                const orderEntity = await addOrderAsync();
-                await dependencies.connection.manager.remove(orderEntity);
                 await request(app)
-                    .get(`${SRA_PATH}/order/${orderEntity.hash}`)
+                    .get(`${SRA_PATH}/order/abc`)
                     .expect(HttpStatus.NOT_FOUND);
             });
         });
@@ -281,23 +338,6 @@ describe(SUITE_NAME, () => {
                 expect(response.body.code).to.equal(GeneralErrorCodes.InvalidAPIKey);
                 expect(response.body.reason).to.equal(generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey]);
             });
-    });
-    describe('should respond to GET /swap/quote', () => {
-        it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
-            await request(app)
-                .get(
-                    `${SWAP_PATH}/quote?buyToken=DAI&sellToken=WETH&buyAmount=100000000000000000&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
-                )
-                .expect(HttpStatus.BAD_REQUEST)
-                .expect('Content-Type', /json/)
-                .then(response => {
-                    const responseJson = JSON.parse(response.text);
-                    expect(responseJson.reason).to.equal('Validation Failed');
-                    expect(responseJson.validationErrors.length).to.equal(1);
-                    expect(responseJson.validationErrors[0].field).to.equal('buyAmount');
-                    expect(responseJson.validationErrors[0].reason).to.equal('INSUFFICIENT_ASSET_LIQUIDITY');
-                });
-        });
     });
     describe('should hit RFQ-T when apropriate', async () => {
         let contractAddresses: ContractAddresses;

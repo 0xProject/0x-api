@@ -1,5 +1,3 @@
-import { SignedOrderEntity } from '../../src/entities';
-
 export const ganacheZrxWethOrder1 = {
     chainId: 1337,
     exchangeAddress: '0x48bacb9266a570d521063ef5dd96e61686dbe788',
@@ -28,19 +26,3 @@ export const rfqtIndicativeQuoteResponse = {
     takerAssetData: '0xf47261b00000000000000000000000000b1ba0af832d7c05fd64161e0db78e85978e8082',
 };
 
-/**
- * creates a SignedOrderEntity, giving it metadata and an updated expiration time
- */
-export function generateOrderModel(orderFixture: Partial<SignedOrderEntity>): SignedOrderEntity {
-    const metaData = {
-        hash: '123',
-        remainingFillableTakerAssetAmount: orderFixture.takerAssetAmount,
-    };
-    const expirationTimeSeconds = (new Date().getTime() / 1000 + 600).toString(); // tslint:disable-line:custom-no-magic-numbers
-    const orderModel = new SignedOrderEntity({
-        ...metaData,
-        ...orderFixture,
-        expirationTimeSeconds,
-    });
-    return orderModel;
-}
