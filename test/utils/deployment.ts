@@ -290,7 +290,12 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
 
 async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<void> {
     try {
-        await getDBConnectionAsync();
+        await Promise.all([
+            // delay before retrying
+            new Promise(resolve => setTimeout(resolve, 2000)), // tslint:disable-line:custom-no-magic-numbers
+            await getDBConnectionAsync(),
+        ]);
+        return;
     } catch (e) {
         if (maxTries > 0) {
             await confirmPostgresConnectivityAsync(maxTries - 1);
