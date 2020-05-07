@@ -169,7 +169,7 @@ export const WHITELISTED_API_KEYS_META_TXN_SUBMIT: string[] =
 // The meta-txn relay sender private keys managed by the TransactionWatcher
 export const META_TXN_RELAY_PRIVATE_KEYS: string[] = _.isEmpty(process.env.META_TXN_RELAY_PRIVATE_KEYS)
     ? []
-    : assertEnvVarType('META_TXN_RELAY_PRIVATE_KEY', process.env.META_TXN_RELAY_PRIVATE_KEY, EnvVarType.PrivateKeys);
+    : assertEnvVarType('META_TXN_RELAY_PRIVATE_KEYS', process.env.META_TXN_RELAY_PRIVATE_KEY, EnvVarType.PrivateKeys);
 
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
