@@ -2,7 +2,7 @@ import { Connection } from 'typeorm';
 
 import { getDBConnectionAsync } from '../db_connection';
 import { logger } from '../logger';
-import { TransactionWatcherService } from '../services/transaction_watcher_service';
+import { TransactionWatcherSignerService } from '../services/transaction_watcher_signer_service';
 
 if (require.main === module) {
     (async () => {
@@ -27,7 +27,7 @@ process.on('unhandledRejection', err => {
  * transaction relays and updates them in the database.
  */
 export async function runTransactionWatcherServiceAsync(connection: Connection): Promise<void> {
-    const transactionWatcherService = new TransactionWatcherService(connection);
+    const transactionWatcherService = new TransactionWatcherSignerService(connection);
     await transactionWatcherService.syncTransactionStatusAsync();
     logger.info(`TransactionWatcherService starting up!`);
 }

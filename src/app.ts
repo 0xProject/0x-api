@@ -1,21 +1,18 @@
 import { Orderbook, SupportedProvider } from '@0x/asset-swapper';
 import * as express from 'express';
-import * as asyncHandler from 'express-async-handler';
 import { Connection } from 'typeorm';
 
-import { META_TRANSACTION_PATH, SRA_PATH } from './constants';
+import { SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
-import { SignerHandlers } from './handlers/signer_handlers';
 import { logger } from './logger';
 import { OrderBookServiceOrderProvider } from './order_book_service_order_provider';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
-import { SignerService } from './services/signer_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
-import { TransactionWatcherService } from './services/transaction_watcher_service';
+import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
 import { WebsocketSRAOpts } from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
@@ -29,7 +26,7 @@ export interface AppDependencies {
     metaTransactionService?: MetaTransactionService;
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
-    transactionWatcherService?: TransactionWatcherService;
+    transactionWatcherService?: TransactionWatcherSignerService;
 }
 
 /**
@@ -108,14 +105,6 @@ export async function getAppAsync(
     } else {
         logger.warn('No mesh client provided, API running without Order Watcher');
     }
-
-    // Add signer service when spinning up app
-    const signerService = new SignerService(dependencies.connection);
-    const handlers = new SignerHandlers(signerService);
-    app.post(
-        `${META_TRANSACTION_PATH}/submit`,
-        asyncHandler(handlers.submitZeroExTransactionIfWhitelistedAsync.bind(handlers)),
-    );
 
     return app;
 }

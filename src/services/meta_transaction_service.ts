@@ -2,20 +2,41 @@ import { Orderbook, SwapQuoter, SwapQuoterOpts } from '@0x/asset-swapper';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
 import { generatePseudoRandomSalt, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
+import { PartialTxParams } from '@0x/subproviders';
 import { SignedOrder } from '@0x/types';
-import { BigNumber } from '@0x/utils';
+import { BigNumber, RevertError } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Connection, Repository } from 'typeorm';
 
-import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, LIQUIDITY_POOL_REGISTRY_ADDRESS } from '../config';
-import { ONE_GWEI, ONE_SECOND_MS, QUOTE_ORDER_EXPIRATION_BUFFER_MS, TEN_MINUTES_MS } from '../constants';
+import {
+    ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+    CHAIN_ID,
+    LIQUIDITY_POOL_REGISTRY_ADDRESS,
+    WHITELISTED_API_KEYS_META_TXN_SUBMIT,
+} from '../config';
+import {
+    ETH_ADDRESS_FOR_CALLS,
+    ETH_GAS_STATION_API_BASE_URL,
+    EXPECTED_MINED_SEC,
+    ONE_GWEI,
+    ONE_SECOND_MS,
+    QUOTE_ORDER_EXPIRATION_BUFFER_MS,
+    SUBMITTED_TX_DB_POLLING_INTERVAL_MS,
+    TEN_MINUTES_MS,
+    TX_HASH_RESPONSE_WAIT_TIME_MS,
+} from '../constants';
 import { TransactionEntity } from '../entities';
 import {
     CalculateMetaTransactionPriceResponse,
     CalculateMetaTransactionQuoteParams,
     GetMetaTransactionQuoteResponse,
+    PostTransactionResponse,
+    TransactionStates,
+    ZeroExTransactionWithoutDomain,
 } from '../types';
 import { serviceUtils } from '../utils/service_utils';
+import { utils } from '../utils/utils';
 
 export class MetaTransactionService {
     private readonly _provider: SupportedProvider;
@@ -26,6 +47,12 @@ export class MetaTransactionService {
     private readonly _connection: Connection;
     private readonly _transactionEntityRepository: Repository<TransactionEntity>;
 
+    public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
+        return WHITELISTED_API_KEYS_META_TXN_SUBMIT.includes(apiKey);
+    }
+    private static _calculateProtocolFee(numOrders: number, gasPrice: BigNumber): BigNumber {
+        return new BigNumber(150000).times(gasPrice).times(numOrders);
+    }
     constructor(orderbook: Orderbook, provider: SupportedProvider, dbConnection: Connection) {
         this._provider = provider;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
@@ -167,8 +194,145 @@ export class MetaTransactionService {
         };
         return apiMetaTransactionQuote;
     }
-    public async findTransactionByHashAsync(txHash: string): Promise<TransactionEntity | undefined> {
-        return this._transactionEntityRepository.findOne({ txHash });
+    public async findTransactionByHashAsync(refHash: string): Promise<TransactionEntity | undefined> {
+        return this._transactionEntityRepository.findOne({
+            where: [{ refHash }, { txHash: refHash }],
+        });
+    }
+    public async validateZeroExTransactionFillAsync(
+        zeroExTransaction: ZeroExTransactionWithoutDomain,
+        signature: string,
+    ): Promise<BigNumber> {
+        // Verify 0x txn won't expire in next 60 seconds
+        // tslint:disable-next-line:custom-no-magic-numbers
+        const sixtySecondsFromNow = new BigNumber(Math.floor(new Date().getTime() / ONE_SECOND_MS) + 60);
+        if (zeroExTransaction.expirationTimeSeconds.lte(sixtySecondsFromNow)) {
+            throw new Error('zeroExTransaction expirationTimeSeconds in less than 60 seconds from now');
+        }
+
+        const decodedArray = await this._devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
+        const orders = decodedArray[1];
+
+        // Verify orders don't expire in next 60 seconds
+        orders.forEach(order => {
+            if (order.expirationTimeSeconds.lte(sixtySecondsFromNow)) {
+                throw new Error('Order included in zeroExTransaction expires in less than 60 seconds from now');
+            }
+        });
+
+        const gasPrice = zeroExTransaction.gasPrice;
+        const currentFastGasPrice = await this._getGasPriceFromGasStationOrThrowAsync();
+        // Make sure gasPrice is not 3X the current fast EthGasStation gas price
+        // tslint:disable-next-line:custom-no-magic-numbers
+        if (currentFastGasPrice.lt(gasPrice) && gasPrice.minus(currentFastGasPrice).gt(currentFastGasPrice.times(3))) {
+            throw new Error('Gas price too high');
+        }
+
+        const protocolFee = MetaTransactionService._calculateProtocolFee(orders.length, gasPrice);
+
+        try {
+            await this._contractWrappers.exchange.executeTransaction(zeroExTransaction, signature).callAsync({
+                from: ETH_ADDRESS_FOR_CALLS,
+                gasPrice,
+                value: protocolFee,
+            });
+        } catch (err) {
+            if (err.values && err.values.errorData && err.values.errorData !== '0x') {
+                const decodedCallData = RevertError.decode(err.values.errorData, false);
+                throw decodedCallData;
+            }
+            throw err;
+        }
+
+        return protocolFee;
+    }
+    public async getZeroExTransactionHashFromZeroExTransactionAsync(
+        zeroExTransaction: ZeroExTransactionWithoutDomain,
+    ): Promise<string> {
+        return this._devUtils
+            .getTransactionHash(
+                zeroExTransaction,
+                new BigNumber(CHAIN_ID),
+                this._contractWrappers.contractAddresses.exchange,
+            )
+            .callAsync();
+    }
+    public async generatePartialExecuteTransactionEthereumTransactionAsync(
+        zeroExTransaction: ZeroExTransactionWithoutDomain,
+        signature: string,
+        protocolFee: BigNumber,
+    ): Promise<PartialTxParams> {
+        const gasPrice = zeroExTransaction.gasPrice;
+        // TODO(dekz): our pattern is to eth_call and estimateGas in parallel and return the result of eth_call validations
+        const gas = await this._contractWrappers.exchange
+            .executeTransaction(zeroExTransaction, signature)
+            .estimateGasAsync({
+                from: ETH_ADDRESS_FOR_CALLS,
+                gasPrice,
+                value: protocolFee,
+            });
+
+        const executeTxnCalldata = this._contractWrappers.exchange
+            .executeTransaction(zeroExTransaction, signature)
+            .getABIEncodedTransactionData();
+
+        const ethereumTxnParams: PartialTxParams = {
+            data: executeTxnCalldata,
+            gas: web3WrapperUtils.encodeAmountAsHexString(gas),
+            gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
+            value: web3WrapperUtils.encodeAmountAsHexString(protocolFee),
+            to: this._contractWrappers.exchange.address,
+            chainId: CHAIN_ID,
+            // NOTE we arent returning nonce and from fields back to the user
+            nonce: '',
+            from: '',
+        };
+
+        return ethereumTxnParams;
+    }
+    public async submitZeroExTransactionAsync(
+        zeroExTransactionHash: string,
+        zeroExTransaction: ZeroExTransactionWithoutDomain,
+        signature: string,
+        protocolFee: BigNumber,
+    ): Promise<PostTransactionResponse> {
+        const transactionEntity = TransactionEntity.make({
+            refHash: zeroExTransactionHash,
+            status: TransactionStates.Unsubmitted,
+            takerAddress: zeroExTransaction.signerAddress,
+            zeroExTransaction,
+            zeroExTransactionSignature: signature,
+            protocolFee,
+            gasPrice: zeroExTransaction.gasPrice,
+            expectedMinedInSec: EXPECTED_MINED_SEC,
+        });
+        await this._transactionEntityRepository.save(transactionEntity);
+        const { ethereumTransactionHash, signedEthereumTransaction } = await this._waitUntilTxHashAsync(
+            transactionEntity,
+        );
+        return {
+            ethereumTransactionHash,
+            signedEthereumTransaction,
+        };
+    }
+    private async _waitUntilTxHashAsync(
+        txEntity: TransactionEntity,
+    ): Promise<{ ethereumTransactionHash: string; signedEthereumTransaction: string }> {
+        return utils.runWithTimeout(async () => {
+            while (true) {
+                const tx = await this._transactionEntityRepository.findOne(txEntity.refHash);
+                if (
+                    tx !== undefined &&
+                    tx.status === TransactionStates.Submitted &&
+                    tx.txHash !== undefined &&
+                    tx.signedTx !== undefined
+                ) {
+                    return { ethereumTransactionHash: tx.txHash, signedEthereumTransaction: tx.signedTx };
+                }
+
+                await utils.delayAsync(SUBMITTED_TX_DB_POLLING_INTERVAL_MS);
+            }
+        }, TX_HASH_RESPONSE_WAIT_TIME_MS);
     }
     private _generateZeroExTransaction(
         orders: SignedOrder[],
@@ -208,5 +372,22 @@ export class MetaTransactionService {
             },
         };
         return zeroExTransaction;
+    }
+    // tslint:disable-next-line: prefer-function-over-method
+    private async _getGasPriceFromGasStationOrThrowAsync(): Promise<BigNumber> {
+        try {
+            const res = await fetch(`${ETH_GAS_STATION_API_BASE_URL}/json/ethgasAPI.json`);
+            const gasInfo = await res.json();
+            // Eth Gas Station result is gwei * 10
+            // tslint:disable-next-line:custom-no-magic-numbers
+            const BASE_TEN = 10;
+            const gasPriceGwei = new BigNumber(gasInfo.fast / BASE_TEN);
+            // tslint:disable-next-line:custom-no-magic-numbers
+            const unit = new BigNumber(BASE_TEN).pow(9);
+            const gasPriceWei = unit.times(gasPriceGwei);
+            return gasPriceWei;
+        } catch (e) {
+            throw new Error('Failed to fetch gas price from EthGasStation');
+        }
     }
 }

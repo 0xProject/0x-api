@@ -48,12 +48,15 @@ export const SWAP_DOCS_URL = 'https://0x.org/docs/api#swap';
 export const SRA_DOCS_URL = 'https://0x.org/docs/api#sra';
 export const META_TRANSACTION_DOCS_URL = 'https://0x.org/docs/api#meta_transaction';
 
-// Signer
+// Meta Transactions
 export const ETH_GAS_STATION_API_BASE_URL = 'https://ethgasstation.info';
 export const UNSTICKING_TRANSACTION_GAS_MULTIPLIER = 1.5;
 export const ETH_TRANSFER_GAS_LIMIT = 21000;
 export const STUCK_TX_POLLING_INTERVAL_MS = 5 * 1000;
 export const TX_HASH_RESPONSE_WAIT_TIME_MS = 100 * 1000;
+export const SUBMITTED_TX_DB_POLLING_INTERVAL_MS = 200;
+// TODO(oskar) - rename
+export const ETH_ADDRESS_FOR_CALLS = '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B';
 
 // TransactionWatcher
 // The expected time of a transaction to be mined according to ETHGasStation

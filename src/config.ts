@@ -30,6 +30,7 @@ enum EnvVarType {
     FeeAssetData,
     NonEmptyString,
     APIKeys,
+    PrivateKeys,
 }
 
 // Network port to listen on
@@ -165,15 +166,10 @@ export const WHITELISTED_API_KEYS_META_TXN_SUBMIT: string[] =
               EnvVarType.APIKeys,
           );
 
-// The meta-txn relay sender address
-export const META_TXN_RELAY_ADDRESS = _.isEmpty(process.env.META_TXN_RELAY_ADDRESS)
-    ? NULL_ADDRESS
-    : assertEnvVarType('META_TXN_RELAY_ADDRESS', process.env.META_TXN_RELAY_ADDRESS, EnvVarType.ETHAddressHex);
-
-// The meta-txn relay sender private key
-export const META_TXN_RELAY_PRIVATE_KEY = _.isEmpty(process.env.META_TXN_RELAY_PRIVATE_KEY)
-    ? undefined
-    : assertEnvVarType('META_TXN_RELAY_PRIVATE_KEY', process.env.META_TXN_RELAY_PRIVATE_KEY, EnvVarType.NonEmptyString);
+// The meta-txn relay sender private keys managed by the TransactionWatcher
+export const META_TXN_RELAY_PRIVATE_KEYS: string[] = _.isEmpty(process.env.META_TXN_RELAY_PRIVATE_KEYS)
+    ? []
+    : assertEnvVarType('META_TXN_RELAY_PRIVATE_KEY', process.env.META_TXN_RELAY_PRIVATE_KEY, EnvVarType.PrivateKeys);
 
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
@@ -297,6 +293,13 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 }
             });
             return apiKeys;
+        case EnvVarType.PrivateKeys:
+            assert.isString(name, value);
+            const privateKeys = (value as string).split(',');
+            privateKeys.forEach(privateKey => {
+                assert.isString('privateKey', privateKey);
+            });
+            return privateKeys;
         default:
             throw new Error(`Unrecognised EnvVarType: ${expectedType} encountered for variable ${name}.`);
     }

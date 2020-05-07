@@ -18,7 +18,7 @@ import { TransactionEntity } from '../src/entities';
 import { GeneralErrorCodes } from '../src/errors';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { StakingDataService } from '../src/services/staking_data_service';
-import { TransactionWatcherService } from '../src/services/transaction_watcher_service';
+import { TransactionWatcherSignerService } from '../src/services/transaction_watcher_signer_service';
 import { TransactionStates } from '../src/types';
 import { MeshClient } from '../src/utils/mesh_client';
 import { utils } from '../src/utils/utils';
@@ -30,15 +30,11 @@ const NUMBER_OF_RETRIES = 20;
 
 let app: Express.Application;
 let transactionEntityRepository: Repository<TransactionEntity>;
-let txWatcher: TransactionWatcherService;
+let txWatcher: TransactionWatcherSignerService;
 let connection: Connection;
 let metaTxnUser: TestMetaTxnUser;
 let provider: SupportedProvider;
-// const LOW_GAS_PRICE = 1337;
-// const MID_GAS_PRICE = 4000000000;
-// const HIGH_GAS_PRICE = 9000000000;
 const WAIT_DELAY_IN_MS = 5000;
-// const SHORT_EXPECTED_MINE_TIME_SEC = 15;
 
 async function _waitUntilStatusAsync(
     txHash: string,
@@ -66,7 +62,7 @@ describe('transaction watcher service', () => {
         connection = await getDBConnectionAsync();
 
         transactionEntityRepository = connection.getRepository(TransactionEntity);
-        txWatcher = new TransactionWatcherService(connection);
+        txWatcher = new TransactionWatcherSignerService(connection);
         await txWatcher.syncTransactionStatusAsync();
         const orderBookService = new OrderBookService(connection);
         const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
@@ -104,7 +100,7 @@ describe('transaction watcher service', () => {
             .post(`${META_TRANSACTION_PATH}/submit`)
             .set('0x-api-key', 'e20bd887-e195-4580-bca0-322607ec2a49')
             .send({ signature, zeroExTransaction })
-            // .expect('Content-Type', /json/)
+            .expect('Content-Type', /json/)
             .then(async response => {
                 expect(response.body.code).to.not.equal(GeneralErrorCodes.InvalidAPIKey);
                 const { ethereumTransactionHash } = response.body;
