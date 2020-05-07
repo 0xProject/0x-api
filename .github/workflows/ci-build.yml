@@ -22,5 +22,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
     - run: yarn install --frozen-lockfile
     - run: yarn build
+    # Pull the docker images so that they don't need to be pulled in the tests.
+    - run: docker-compose pull
     - run: yarn lint
     - run: yarn test

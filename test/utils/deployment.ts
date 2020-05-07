@@ -77,7 +77,7 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     }
 
     // Spin up the 0x-api dependencies
-    const up = spawn('docker-compose', ['up', '--build', '--force-recreate'], {
+    const up = spawn('docker-compose', ['up'], {
         cwd: testRootDir,
         env: {
             ...process.env,
@@ -107,25 +107,19 @@ export async function teardownDependenciesAsync(suiteName: string, logType?: Log
     directLogs(down, suiteName, 'down', logType);
     const downTimeout = 20000;
     await waitForCloseAsync(down, 'down', downTimeout);
-
-    // Tear down any existing docker containers from the `docker-compose.yml` file.
-    const rm = spawn('docker-compose', ['rm', '-f', '-v'], {
-        cwd: testRootDir,
-    });
-    directLogs(down, suiteName, 'rm', logType);
-    const rmTimeout = 20000;
-    await waitForCloseAsync(rm, 'rm', rmTimeout);
-
     didTearDown = true;
 }
 
 /**
- * FIXME(jalextowle): Add comment
+ * Starts up 0x-mesh.
+ * @param suiteName The name of the test suite that is using this function. This
+ *        helps to make the logs more intelligible.
+ * @param logType Indicates where logs should be directed.
  */
 export async function setupMeshAsync(suiteName: string, logType?: LogType): Promise<void> {
     await createFreshDockerComposeFileOnceAsync();
     // Spin up a 0x-mesh instance
-    const up = spawn('docker-compose', ['up', '--build', 'mesh'], {
+    const up = spawn('docker-compose', ['up', 'mesh'], {
         cwd: testRootDir,
         env: {
             ...process.env,
@@ -143,21 +137,24 @@ export async function setupMeshAsync(suiteName: string, logType?: LogType): Prom
 }
 
 /**
- * FIXME(jalextowle): Add comments
+ * Tears down the running 0x-mesh instance.
+ * @param suiteName The name of the test suite that is using this function. This
+ *        helps to make the logs more intelligible.
+ * @param logType Indicates where logs should be directed.
  */
 export async function teardownMeshAsync(suiteName: string, logType?: LogType): Promise<void> {
     const stop = spawn('docker-compose', ['stop', 'mesh'], {
         cwd: testRootDir,
     });
     directLogs(stop, suiteName, 'mesh_stop', logType);
-    const stopTimeout = 2000;
+    const stopTimeout = 5000;
     await waitForCloseAsync(stop, 'mesh_stop', stopTimeout);
 
     const rm = spawn('docker-compose', ['rm', '-f', '-s', '-v', 'mesh'], {
         cwd: testRootDir,
     });
     directLogs(rm, suiteName, 'mesh_rm', logType);
-    const rmTimeout = 2000;
+    const rmTimeout = 5000;
     await waitForCloseAsync(rm, 'mesh_rm', rmTimeout);
 }
 
