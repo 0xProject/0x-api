@@ -79,12 +79,10 @@ export const utils = {
     },
     runWithTimeout: async (fn: () => Promise<any>, timeoutMs: number): Promise<any> => {
         let _timeoutHandle: NodeJS.Timeout;
-        // TODO(oskar)
-        // tslint:disable-next-line
+        // tslint:disable-next-line:no-inferred-empty-object-type
         const timeoutPromise = new Promise((_resolve, reject) => {
             _timeoutHandle = setTimeout(() => reject(new Error('timeout')), timeoutMs);
         });
-
         return Promise.race([fn(), timeoutPromise]).then(result => {
             clearTimeout(_timeoutHandle);
             return result;
