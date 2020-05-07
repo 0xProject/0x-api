@@ -205,6 +205,8 @@ export class TransactionWatcherSignerService {
     }
     private async _getNextSignerAsync(): Promise<Signer> {
         const sortedSigners = await this._getSortedSignerPublicAddressesByAvailabilityAsync();
+        // TODO(oskar) - add random choice for top signers to better distribute
+        // the fees.
         const signer = this._signers.get(sortedSigners[0]);
         if (signer === undefined) {
             throw new Error(`signer with public address: ${sortedSigners[0]} is not available`);
