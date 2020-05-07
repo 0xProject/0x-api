@@ -123,9 +123,7 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
@@ -136,9 +134,7 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -297,7 +293,7 @@ export class TransactionWatcherSignerService {
         }
     }
     private async _checkForConfirmedTransactionsAsync(): Promise<void> {
-        // we are checking for transactions that are already in the confirmed
+        // we are checking for transactions that are already in the included
         // state, but can potentially be affected by a blockchain reorg.
         const latestBlockNumber = await this._web3Wrapper.getBlockNumberAsync();
         const transactionsToCheck = await this._transactionRepository.find({
