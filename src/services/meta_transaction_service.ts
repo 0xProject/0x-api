@@ -16,11 +16,11 @@ import {
     WHITELISTED_API_KEYS_META_TXN_SUBMIT,
 } from '../config';
 import {
-    ETH_ADDRESS_FOR_CALLS,
     ETH_GAS_STATION_API_BASE_URL,
     EXPECTED_MINED_SEC,
     ONE_GWEI,
     ONE_SECOND_MS,
+    PUBLIC_ADDRESS_FOR_ETH_CALLS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     SUBMITTED_TX_DB_POLLING_INTERVAL_MS,
     TEN_MINUTES_MS,
@@ -232,7 +232,7 @@ export class MetaTransactionService {
 
         try {
             await this._contractWrappers.exchange.executeTransaction(zeroExTransaction, signature).callAsync({
-                from: ETH_ADDRESS_FOR_CALLS,
+                from: PUBLIC_ADDRESS_FOR_ETH_CALLS,
                 gasPrice,
                 value: protocolFee,
             });
@@ -267,7 +267,7 @@ export class MetaTransactionService {
         const gas = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
             .estimateGasAsync({
-                from: ETH_ADDRESS_FOR_CALLS,
+                from: PUBLIC_ADDRESS_FOR_ETH_CALLS,
                 gasPrice,
                 value: protocolFee,
             });

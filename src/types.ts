@@ -471,6 +471,8 @@ export enum TransactionStates {
     // transaction has not been mined in the expected time.
     Stuck = 'stuck',
     // transaction has been mined.
+    Included = 'included',
+    // transaction is confirmed.
     Confirmed = 'confirmed',
     // transaction is no longer in the mempool.
     Dropped = 'dropped',

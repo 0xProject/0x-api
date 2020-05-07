@@ -108,7 +108,7 @@ describe('transaction watcher service', () => {
 
                 await _waitUntilStatusAsync(
                     ethereumTransactionHash,
-                    TransactionStates.Confirmed,
+                    TransactionStates.Included,
                     transactionEntityRepository,
                 );
             });
@@ -117,7 +117,7 @@ describe('transaction watcher service', () => {
             .get(`${META_TRANSACTION_PATH}/status/${txHashToRequest}`)
             .then(response => {
                 expect(response.body.hash).to.equal(txHashToRequest);
-                expect(response.body.status).to.equal('confirmed');
+                expect(response.body.status).to.equal('included');
             });
     });
 });

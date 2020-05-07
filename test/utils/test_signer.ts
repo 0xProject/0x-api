@@ -43,11 +43,7 @@ export class TestMetaTxnUser {
         sellToken: string,
         buyAmount: string,
     ): Promise<{ zeroExTransactionHash: string; zeroExTransaction: ZeroExTransactionWithoutDomain }> {
-        const connString = `${
-            this._apiBasePath
-        }/meta_transaction/v0/quote?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${buyAmount}&takerAddress=${
-            this._takerAddress
-        }`;
+        const connString = `${this._apiBasePath}/meta_transaction/v0/quote?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${buyAmount}&takerAddress=${this._takerAddress}`;
         const { data } = await axios.get(connString);
         return data;
     }

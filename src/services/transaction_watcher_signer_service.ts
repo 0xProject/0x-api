@@ -8,6 +8,7 @@ import { ETHEREUM_RPC_URL, META_TXN_RELAY_PRIVATE_KEYS } from '../config';
 import {
     ETH_GAS_STATION_API_BASE_URL,
     EXPECTED_MINED_SEC,
+    NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
     TX_WATCHER_POLLING_INTERVAL_MS,
     UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
@@ -62,6 +63,7 @@ export class TransactionWatcherSignerService {
         await this._signAndBroadcastTransactionsAsync();
         await this._syncBroadcastedTransactionStatusAsync();
         await this._checkForStuckTransactionsAsync();
+        await this._checkForConfirmedTransactionsAsync();
     }
     private async _signAndBroadcastMetaTxAsync(txEntity: TransactionEntity, signer: Signer): Promise<void> {
         // TODO(oskar) refactor with type guards?
@@ -121,12 +123,10 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is already on the blockchain, updating status to TransactionStates.Confirmed`,
+                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
-                    txEntity.status = TransactionStates.Confirmed;
+                    txEntity.status = TransactionStates.Included;
                     txEntity.blockNumber = txInBlockchain.blockNumber;
                     await this._transactionRepository.save(txEntity);
                     await this._abortTransactionsWithTheSameNonceAsync(txEntity);
@@ -134,9 +134,7 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -285,6 +283,58 @@ export class TransactionWatcherSignerService {
                 await this._unstickTransactionAsync(tx, targetGasPrice, signer);
             } catch (err) {
                 logger.error(`failed to unstick transaction ${tx.txHash}`, { err });
+            }
+        }
+    }
+    private async _checkForConfirmedTransactionsAsync(): Promise<void> {
+        // we are checking for transactions that are already in the confirmed
+        // state, but can potentially be affected by a blockchain reorg.
+        const latestBlockNumber = await this._web3Wrapper.getBlockNumberAsync();
+        const transactionsToCheck = await this._transactionRepository.find({
+            where: { status: TransactionStates.Included },
+        });
+        if (transactionsToCheck.length === 0) {
+            return;
+        }
+        for (const tx of transactionsToCheck) {
+            if (tx.txHash === undefined || tx.blockNumber === undefined) {
+                logger.error({
+                    mesage: 'transaction that has an included status is missing a txHash or blockNumber',
+                    refHash: tx.refHash,
+                    from: tx.from,
+                });
+                continue;
+            }
+            const txInBlockchain = await this._web3Wrapper.getTransactionByHashAsync(tx.txHash);
+            if (txInBlockchain === undefined) {
+                // transaction that was previously included is not identified by
+                // the node, we change its status to submitted and see whether
+                // or not it will appear again.
+                tx.status = TransactionStates.Submitted;
+                await this._transactionRepository.save(tx);
+                continue;
+            }
+            if (txInBlockchain.blockNumber === null) {
+                // transaction that was previously included in a block is now
+                // showing without a blockNumber, but exists in the mempool of
+                // an ethereum node.
+                tx.status = TransactionStates.Mempool;
+                tx.blockNumber = undefined;
+                await this._transactionRepository.save(tx);
+                continue;
+            } else {
+                if (tx.blockNumber !== txInBlockchain.blockNumber) {
+                    logger.warn({
+                        message:
+                            'transaction that was included has a different blockNumber stored than the one returned from RPC',
+                        previousBlockNumber: tx.blockNumber,
+                        returnedBlockNumber: txInBlockchain.blockNumber,
+                    });
+                }
+                if (tx.blockNumber + NUMBER_OF_BLOCKS_UNTIL_CONFIRMED > latestBlockNumber) {
+                    tx.status = TransactionStates.Confirmed;
+                    await this._transactionRepository.save(tx);
+                }
             }
         }
     }

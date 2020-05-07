@@ -55,11 +55,11 @@ export const ETH_TRANSFER_GAS_LIMIT = 21000;
 export const STUCK_TX_POLLING_INTERVAL_MS = 5 * 1000;
 export const TX_HASH_RESPONSE_WAIT_TIME_MS = 100 * 1000;
 export const SUBMITTED_TX_DB_POLLING_INTERVAL_MS = 200;
-// TODO(oskar) - rename
-export const ETH_ADDRESS_FOR_CALLS = '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B';
+export const PUBLIC_ADDRESS_FOR_ETH_CALLS = '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B';
 
 // TransactionWatcher
 // The expected time of a transaction to be mined according to ETHGasStation
 // "Fast" gas price estimations multiplied by a safety margin.
 export const EXPECTED_MINED_SEC = 120 * 1.5;
 export const TX_WATCHER_POLLING_INTERVAL_MS = 5 * 1000;
+export const NUMBER_OF_BLOCKS_UNTIL_CONFIRMED = 3;
