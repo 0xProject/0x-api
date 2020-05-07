@@ -123,7 +123,9 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
@@ -134,7 +136,9 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -223,7 +227,11 @@ export class TransactionWatcherSignerService {
         const res: Array<{ from: string; count: number }> = await this._transactionRepository.query(
             `SELECT transactions.from, COUNT(*) FROM transactions WHERE status in ('submitted','mempool','stuck') GROUP BY transactions.from`,
         );
-        res.forEach(result => {
+        res.filter(result => {
+            // we exclude from addresses that are not part of the available
+            // signer pool
+            return this._availableSignerPublicAddresses.includes(result.from);
+        }).forEach(result => {
             map.set(result.from, result.count);
         });
         return [...map.entries()]
