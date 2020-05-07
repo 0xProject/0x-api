@@ -65,7 +65,7 @@ export class MeshClient extends WSClient {
                     // If we can't validate orders, and have exhausted retries, then we need to reject
                     const rejected: RejectedOrderInfo[] = await Promise.all(
                         orders.map(async o => ({
-                            orderHash: await orderHashUtils.getOrderHashAsync(o),
+                            orderHash: orderHashUtils.getOrderHash(o),
                             signedOrder: o,
                             kind: RejectedKind.MeshError,
                             status: {

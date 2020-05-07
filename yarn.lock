@@ -99,7 +99,7 @@
   version "4.9.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/e1859ac60bb09e39822f427e7c5cbdd692d61715"
 
-"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-49e4ade66", "@0x/contract-wrappers@^13.4.0", "@0x/contract-wrappers@^13.6.3":
+"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-49e4ade66", "@0x/contract-wrappers@^13.6.3":
   version "13.6.3"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/233dd3d6abf75b00d2ff95f5de8cc75d135c9f47"
   dependencies:
@@ -119,6 +119,13 @@
   dependencies:
     "@0x/base-contract" "^6.2.1"
     gitpkg "https://github.com/0xProject/gitpkg.git"
+
+"@0x/contracts-erc20@^3.1.5":
+  version "3.1.5"
+  resolved "https://registry.npmjs.org/@0x/contracts-erc20/-/contracts-erc20-3.1.5.tgz#92f0955a5920372ab064af4be8b4a4fdd8440a8e"
+  integrity sha512-gM6yOjUeyKbTJ36TzeQCnJh3MPn1an6choh3nHuWEGYy6zwyZZvGtlJnE0pm4ectfW4E/JunNtPdMrKUr6bjrQ==
+  dependencies:
+    "@0x/base-contract" "^6.2.1"
 
 "@0x/dev-utils@^3.1.1":
   version "3.1.1"
@@ -190,22 +197,10 @@
     web3-providers "^2.0.0-alpha.1"
     websocket "^1.0.29"
 
-"@0x/order-utils@^10.1.1":
-  version "10.1.1"
-  resolved "https://registry.yarnpkg.com/@0x/order-utils/-/order-utils-10.1.1.tgz#748aae79f2f8d8eaea391fb0c2a3a548a0a98a4a"
-  dependencies:
-    "@0x/assert" "^3.0.4"
-    "@0x/contract-wrappers" "^13.4.0"
-    "@0x/json-schemas" "^5.0.4"
-    "@0x/utils" "^5.2.0"
-    "@0x/web3-wrapper" "^7.0.4"
-    ethereumjs-util "^5.1.1"
-    ethers "~4.0.4"
-    lodash "^4.17.11"
-
 "@0x/order-utils@^10.2.4":
   version "10.2.4"
-  resolved "https://registry.yarnpkg.com/@0x/order-utils/-/order-utils-10.2.4.tgz#23afe4656c9c71f2cf80f510154f7e2900515d68"
+  resolved "https://registry.npmjs.org/@0x/order-utils/-/order-utils-10.2.4.tgz#23afe4656c9c71f2cf80f510154f7e2900515d68"
+  integrity sha512-ekxE/a1zaJEetlYEiBQawNpB4QInUXFAXdSi4uD4203oDvJzcUE4vnoCfyx/VMm3Fr94y6B3kIvXy6uMoC8+3w==
   dependencies:
     "@0x/assert" "^3.0.7"
     "@0x/contract-wrappers" "^13.6.3"

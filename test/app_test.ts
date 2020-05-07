@@ -2,6 +2,7 @@
 import { rfqtMocker } from '@0x/asset-swapper';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
+import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
@@ -28,7 +29,7 @@ import * as orderFixture from './fixtures/order.json';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { expect } from './utils/expect';
 import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
-import { withOrdersInDatabaseAsync } from './utils/orders';
+import { addresses, DAI_ASSET_DATA, WETH_ASSET_DATA, withOrdersInDatabaseAsync } from './utils/orders';
 
 let app: Express.Application;
 
@@ -36,6 +37,7 @@ let web3Wrapper: Web3Wrapper;
 let provider: Web3ProviderEngine;
 let accounts: string[];
 let blockchainLifecycle: BlockchainLifecycle;
+let makerAddress: string;
 
 let dependencies: AppDependencies;
 // tslint:disable-next-line:custom-no-magic-numbers
@@ -60,6 +62,26 @@ describe(SUITE_NAME, () => {
         accounts = await web3Wrapper.getAvailableAddressesAsync();
 
         dependencies = await getDefaultAppDependenciesAsync(provider, config);
+        makerAddress = accounts[0];
+        try {
+            // const fakeDAI = await DummyERC20TokenContract.deployFrom0xArtifactAsync(
+            //     artifacts.DummyERC20Token,
+            //     provider,
+            //     {},
+            //     artifacts,
+            //     'DAI',
+            //     'DAI',
+            //     new BigNumber(18),
+            //     new BigNumber(100000000000000000000),
+            // );
+            const makerToken = new DummyERC20TokenContract('0x34d402f14d58e001d8efbe6585051bf9706aa064', provider);
+            const amount = new BigNumber('1000000000000000000000');
+            await makerToken.setBalance(makerAddress, amount);
+            await makerToken.approve(addresses.erc20Proxy, amount).awaitTransactionSuccessAsync({ from: makerAddress });
+            // await dummyERC20TokenWrapper.mint(amount).awaitTransactionSuccessAsync({ from: accounts[0] });
+        } catch (e) {
+            console.log(e);
+        }
 
         // start the 0x-api app
         app = await getAppAsync({ ...dependencies }, config);
@@ -87,7 +109,7 @@ describe(SUITE_NAME, () => {
 
             it('should return valid quotes for accepted parameters', async () => {
                 const parameterPermutations = [
-                    '?sellAmount=10000&buyToken=0x34d402f14d58e001d8efbe6585051bf9706aa064&sellToken=0x25b8fe1de9daf8ba351890744ff28cf7dfa8f5e3',
+                    `?sellAmount=10000&buyToken=DAI&sellToken=WETH`,
                     // { sellAmount: 10000, buyToken: 'WETH', sellToken: 'DAI' },
                     // { buyAmount: 10000, buyToken: 'WETH', sellToken: 'DAI' },
                     // { sellAmount: 10000, buyToken: 'DAI', sellToken: 'WETH' },
@@ -95,15 +117,26 @@ describe(SUITE_NAME, () => {
                     // { sellAmount: 10000, buyToken: '0x6b175474e89094c44da98b954eedeac495271d0f', sellToken: 'WETH' },
                     // { sellAmount: 10000, buyToken: '0x6b175474e89094c44da98b954eedeac495271d0f', sellToken: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' },
                 ];
-                for (const parameters of parameterPermutations) {
-                    await request(app)
-                        .get(`${SWAP_PATH}/quote${parameters}&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`)
-                        .expect('Content-Type', /json/)
-                        .expect(HttpStatus.OK)
-                        // .then(response => {
-                            
-                        // })
-                }
+                return withOrdersInDatabaseAsync(dependencies.connection, web3Wrapper, [
+                    {
+                        takerAssetData: DAI_ASSET_DATA,
+                        makerAssetData: WETH_ASSET_DATA,
+                    },
+                    {
+                        makerAssetData: WETH_ASSET_DATA,
+                        takerAssetData: DAI_ASSET_DATA,
+                    },
+                ], async () => {
+                    for (const parameters of parameterPermutations) {
+                        await request(app)
+                            .get(`${SWAP_PATH}/quote${parameters}&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`)
+                            .expect('Content-Type', /json/)
+                            .expect(HttpStatus.OK)
+                            // .then(response => {
+                                
+                            // })
+                    } 
+                });
                 // sellAmount / buyAmount
                 // ETH / WETH / DAI / ZRX / Addresses <-> Addresses / mixed
             });
@@ -126,7 +159,8 @@ describe(SUITE_NAME, () => {
 
             });
 
-
+            // pricing
+            // will not include an expired order
         });
         describe('/prices', () => {
 
@@ -161,7 +195,7 @@ describe(SUITE_NAME, () => {
                     });
             });
             it('should return orders in the local cache', async () => {
-                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async ([orderEntity]) => {
+                return withOrdersInDatabaseAsync(dependencies.connection, web3Wrapper, [{}], async ([orderEntity]) => {
                     await request(app)
                         .get(`${SRA_PATH}/orders`)
                         .expect('Content-Type', /json/)
@@ -175,7 +209,7 @@ describe(SUITE_NAME, () => {
                 });
             });
             it('should return orders filtered by query params', async () => {
-                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async ([orderEntity]) => {
+                return withOrdersInDatabaseAsync(dependencies.connection, web3Wrapper, [{}], async ([orderEntity]) => {
                     await request(app)
                         .get(`${SRA_PATH}/orders?makerAddress=${orderEntity.makerAddress}`)
                         .expect('Content-Type', /json/)
@@ -189,7 +223,7 @@ describe(SUITE_NAME, () => {
                 });
             });
             it('should return empty response when filtered by query params', async () => {
-                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async () => {
+                return withOrdersInDatabaseAsync(dependencies.connection, web3Wrapper, [{}], async () => {
                     await request(app)
                         .get(`${SRA_PATH}/orders?makerAddress=${NULL_ADDRESS}`)
                         .expect('Content-Type', /json/)
@@ -203,9 +237,9 @@ describe(SUITE_NAME, () => {
                 });
             });
             it('should normalize addresses to lowercase', async () => {
-                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async ([orderEntity]) => {
+                return withOrdersInDatabaseAsync(dependencies.connection, web3Wrapper, [{}], async ([orderEntity]) => {
                     await request(app)
-                        .get(`${SRA_PATH}/orders?makerAddress=${orderFixture.makerAddress.toUpperCase()}`)
+                        .get(`${SRA_PATH}/orders?makerAddress=${accounts[0].toUpperCase()}`)
                         .expect('Content-Type', /json/)
                         .expect(HttpStatus.OK)
                         .then(response => {
@@ -219,7 +253,7 @@ describe(SUITE_NAME, () => {
         });
         describe('GET /order', () => {
             it('should return order by order hash', async () => {
-                return withOrdersInDatabaseAsync(dependencies.connection, [orderFixture], async ([orderEntity]) => {
+                return withOrdersInDatabaseAsync(dependencies.connection, web3Wrapper, [{}], async ([orderEntity]) => {
                     await request(app)
                         .get(`${SRA_PATH}/order/${orderEntity.hash}`)
                         .expect('Content-Type', /json/)
