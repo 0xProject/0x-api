@@ -27,6 +27,7 @@ import { TestMetaTxnUser } from './utils/test_signer';
 
 const { expect } = chai;
 const NUMBER_OF_RETRIES = 20;
+const WAIT_DELAY_IN_MS = 5000;
 
 let app: Express.Application;
 let transactionEntityRepository: Repository<TransactionEntity>;
@@ -34,7 +35,6 @@ let txWatcher: TransactionWatcherSignerService;
 let connection: Connection;
 let metaTxnUser: TestMetaTxnUser;
 let provider: SupportedProvider;
-const WAIT_DELAY_IN_MS = 5000;
 
 async function _waitUntilStatusAsync(
     txHash: string,
@@ -48,7 +48,6 @@ async function _waitUntilStatusAsync(
         }
         await utils.delayAsync(WAIT_DELAY_IN_MS);
     }
-
     throw new Error(`failed to grab transaction: ${txHash} in a ${status} state`);
 }
 
@@ -58,9 +57,7 @@ describe('transaction watcher service', () => {
         providerEngine.addProvider(new RPCSubprovider(config.ETHEREUM_RPC_URL));
         providerUtils.startProviderEngine(providerEngine);
         provider = providerEngine;
-
         connection = await getDBConnectionAsync();
-
         transactionEntityRepository = connection.getRepository(TransactionEntity);
         txWatcher = new TransactionWatcherSignerService(connection);
         await txWatcher.syncTransactionStatusAsync();
@@ -69,11 +66,8 @@ describe('transaction watcher service', () => {
         const stakingDataService = new StakingDataService(connection);
         const websocketOpts = { path: SRA_PATH };
         const swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
-
         const meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
-
         metaTxnUser = new TestMetaTxnUser('https://kovan.api.0x.org');
-
         app = await getAppAsync(
             {
                 orderBookService,
@@ -112,7 +106,6 @@ describe('transaction watcher service', () => {
                     transactionEntityRepository,
                 );
             });
-
         await request(app)
             .get(`${META_TRANSACTION_PATH}/status/${txHashToRequest}`)
             .then(response => {
