@@ -264,7 +264,6 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
         const hasSeenLog = [0, 0, 0];
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
-            console.log(data); // tslint:disable-line:no-console
             for (const datum of data) {
                 if (hasSeenLog[0] < 1 && /.*mesh.*started HTTP RPC server/.test(datum)) {
                     hasSeenLog[0]++;
