@@ -235,7 +235,7 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for 0x-api logs'));
-        }, 40000); // tslint:disable-line:custom-no-magic-numbers
+        }, 5000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
@@ -281,13 +281,13 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
                 }
 
                 if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 1) {
-                    setTimeout(resolve, 5000); // tslint:disable-line:custom-no-magic-numbers
+                    resolve();
                 }
             }
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for dependency logs'));
-        }, 50000); // tslint:disable-line:custom-no-magic-numbers
+        }, 30000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
