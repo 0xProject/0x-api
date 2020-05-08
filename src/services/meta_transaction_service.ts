@@ -9,35 +9,11 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Connection, Repository } from 'typeorm';
 
-import {
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-    CHAIN_ID,
-    LIQUIDITY_POOL_REGISTRY_ADDRESS,
-    META_TXN_RELAY_EXPECTED_MINED_SEC,
-    META_TXN_SUBMIT_WHITELISTED_API_KEYS,
-} from '../config';
-import {
-    ONE_GWEI,
-    ONE_MINUTE_MS,
-    ONE_SECOND_MS,
-    PUBLIC_ADDRESS_FOR_ETH_CALLS,
-    QUOTE_ORDER_EXPIRATION_BUFFER_MS,
-    SIGNER_STATUS_DB_KEY,
-    SUBMITTED_TX_DB_POLLING_INTERVAL_MS,
-    TEN_MINUTES_MS,
-    TX_HASH_RESPONSE_WAIT_TIME_MS,
-} from '../constants';
+import { ASSET_SWAPPER_MARKET_ORDERS_OPTS, CHAIN_ID, LIQUIDITY_POOL_REGISTRY_ADDRESS, META_TXN_RELAY_EXPECTED_MINED_SEC, META_TXN_SUBMIT_WHITELISTED_API_KEYS, RFQT_API_KEY_WHITELIST, RFQT_MAKER_ASSET_OFFERINGS, RFQT_SKIP_BUY_REQUESTS } from '../config';
+import { ONE_GWEI, ONE_MINUTE_MS, ONE_SECOND_MS, PUBLIC_ADDRESS_FOR_ETH_CALLS, QUOTE_ORDER_EXPIRATION_BUFFER_MS, SIGNER_STATUS_DB_KEY, SUBMITTED_TX_DB_POLLING_INTERVAL_MS, TEN_MINUTES_MS, TX_HASH_RESPONSE_WAIT_TIME_MS } from '../constants';
 import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
-import {
-    CalculateMetaTransactionPriceResponse,
-    CalculateMetaTransactionQuoteParams,
-    GetMetaTransactionQuoteResponse,
-    PostTransactionResponse,
-    TransactionStates,
-    TransactionWatcherSignerStatus,
-    ZeroExTransactionWithoutDomain,
-} from '../types';
+import { CalculateMetaTransactionPriceResponse, CalculateMetaTransactionQuoteParams, GetMetaTransactionQuoteResponse, PostTransactionResponse, TransactionStates, TransactionWatcherSignerStatus, ZeroExTransactionWithoutDomain } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
@@ -64,6 +40,13 @@ export class MetaTransactionService {
             chainId: CHAIN_ID,
             expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
             liquidityProviderRegistryAddress: LIQUIDITY_POOL_REGISTRY_ADDRESS,
+            rfqt: {
+                takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
+                makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
+                skipBuyRequests: RFQT_SKIP_BUY_REQUESTS,
+                warningLogger: logger.warn.bind(logger),
+                infoLogger: logger.info.bind(logger),
+            },
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
