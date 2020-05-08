@@ -1,9 +1,10 @@
 import { logUtils as log } from '@0x/utils';
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { ChildProcessWithoutNullStreams, exec, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 
+import { HTTP_PORT } from '../../src/config';
 import { getDBConnectionAsync } from '../../src/db_connection';
 
 const apiRootDir = path.normalize(path.resolve(`${__dirname}/../../../`));
@@ -54,11 +55,15 @@ export async function teardownApiAsync(suiteName: string, logType?: LogType): Pr
     if (!start) {
         throw new Error('There is no 0x-api instance to tear down');
     }
-    start.kill('SIGKILL');
+    await killAsync(HTTP_PORT);
+
     start = undefined;
     await teardownDependenciesAsync(suiteName, logType);
 }
 
+async function killAsync(port: number): Promise<void> {
+    await promisify(exec)(`lsof -ti :${port} | xargs kill -9`);
+}
 let didTearDown = false;
 
 /**
@@ -298,7 +303,7 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
                 }
 
                 if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 1) {
-                    setTimeout(resolve, 20000); // tslint:disable-line:custom-no-magic-numbers
+                    resolve();
                 }
             }
         });

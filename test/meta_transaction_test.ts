@@ -215,7 +215,6 @@ describe(SUITE_NAME, () => {
 
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
-                await setupMeshAsync(SUITE_NAME);
                 meshUtils = new MeshTestUtils(provider);
                 await meshUtils.setupUtilsAsync();
             });
@@ -223,11 +222,6 @@ describe(SUITE_NAME, () => {
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
                 await teardownMeshAsync(SUITE_NAME);
-            });
-
-            // NOTE(jalextowle): Spin up a new Mesh instance so that it will
-            // be available for future test suites.
-            after(async () => {
                 await setupMeshAsync(SUITE_NAME);
             });
 
@@ -522,7 +516,6 @@ describe(SUITE_NAME, () => {
                 // hooks execute after all of the `before` hooks (even if they are nested).
                 before(async () => {
                     await blockchainLifecycle.startAsync();
-                    await setupMeshAsync(SUITE_NAME);
                     meshUtils = new MeshTestUtils(provider);
                     await meshUtils.setupUtilsAsync();
                 });
@@ -632,7 +625,6 @@ describe(SUITE_NAME, () => {
                 // hooks execute after all of the `before` hooks (even if they are nested).
                 before(async () => {
                     await blockchainLifecycle.startAsync();
-                    await setupMeshAsync(SUITE_NAME);
                     meshUtils = new MeshTestUtils(provider);
                     await meshUtils.setupUtilsAsync();
                 });
