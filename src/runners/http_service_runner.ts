@@ -69,6 +69,9 @@ export async function runHttpServiceAsync(
     const server = app.listen(config.HTTP_PORT, () => {
         logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!`);
     });
+    server.on('error', err => {
+        logger.error(err);
+    });
     server.keepAliveTimeout = config.HTTP_KEEP_ALIVE_TIMEOUT;
     server.headersTimeout = config.HTTP_HEADERS_TIMEOUT;
 

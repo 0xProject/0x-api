@@ -1,8 +1,11 @@
 import { logUtils as log } from '@0x/utils';
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { ChildProcessWithoutNullStreams, exec, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+
+import { HTTP_PORT } from '../../src/config';
+import { getDBConnectionAsync } from '../../src/db_connection';
 
 const apiRootDir = path.normalize(path.resolve(`${__dirname}/../../../`));
 const testRootDir = `${apiRootDir}/test`;
@@ -52,11 +55,15 @@ export async function teardownApiAsync(suiteName: string, logType?: LogType): Pr
     if (!start) {
         throw new Error('There is no 0x-api instance to tear down');
     }
-    start.kill();
+    await killAsync(HTTP_PORT);
+
     start = undefined;
     await teardownDependenciesAsync(suiteName, logType);
 }
 
+async function killAsync(port: number): Promise<void> {
+    await promisify(exec)(`lsof -ti :${port} | xargs kill -9`);
+}
 let didTearDown = false;
 
 /**
@@ -75,7 +82,7 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     }
 
     // Spin up the 0x-api dependencies
-    const up = spawn('docker-compose', ['up', '--build', '--force-recreate'], {
+    const up = spawn('docker-compose', ['up'], {
         cwd: testRootDir,
         env: {
             ...process.env,
@@ -88,6 +95,7 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
 
     // Wait for the dependencies to boot up.
     await waitForDependencyStartupAsync(up);
+    await confirmPostgresConnectivityAsync();
 }
 
 /**
@@ -104,25 +112,19 @@ export async function teardownDependenciesAsync(suiteName: string, logType?: Log
     directLogs(down, suiteName, 'down', logType);
     const downTimeout = 20000;
     await waitForCloseAsync(down, 'down', downTimeout);
-
-    // Tear down any existing docker containers from the `docker-compose.yml` file.
-    const rm = spawn('docker-compose', ['rm', '-f', '-v'], {
-        cwd: testRootDir,
-    });
-    directLogs(down, suiteName, 'rm', logType);
-    const rmTimeout = 20000;
-    await waitForCloseAsync(rm, 'rm', rmTimeout);
-
     didTearDown = true;
 }
 
 /**
- * FIXME(jalextowle): Add comment
+ * Starts up 0x-mesh.
+ * @param suiteName The name of the test suite that is using this function. This
+ *        helps to make the logs more intelligible.
+ * @param logType Indicates where logs should be directed.
  */
 export async function setupMeshAsync(suiteName: string, logType?: LogType): Promise<void> {
     await createFreshDockerComposeFileOnceAsync();
     // Spin up a 0x-mesh instance
-    const up = spawn('docker-compose', ['up', '--build', 'mesh'], {
+    const up = spawn('docker-compose', ['up', 'mesh'], {
         cwd: testRootDir,
         env: {
             ...process.env,
@@ -140,21 +142,24 @@ export async function setupMeshAsync(suiteName: string, logType?: LogType): Prom
 }
 
 /**
- * FIXME(jalextowle): Add comments
+ * Tears down the running 0x-mesh instance.
+ * @param suiteName The name of the test suite that is using this function. This
+ *        helps to make the logs more intelligible.
+ * @param logType Indicates where logs should be directed.
  */
 export async function teardownMeshAsync(suiteName: string, logType?: LogType): Promise<void> {
     const stop = spawn('docker-compose', ['stop', 'mesh'], {
         cwd: testRootDir,
     });
     directLogs(stop, suiteName, 'mesh_stop', logType);
-    const stopTimeout = 2000;
+    const stopTimeout = 5000;
     await waitForCloseAsync(stop, 'mesh_stop', stopTimeout);
 
     const rm = spawn('docker-compose', ['rm', '-f', '-s', '-v', 'mesh'], {
         cwd: testRootDir,
     });
     directLogs(rm, suiteName, 'mesh_rm', logType);
-    const rmTimeout = 2000;
+    const rmTimeout = 5000;
     await waitForCloseAsync(rm, 'mesh_rm', rmTimeout);
 }
 
@@ -204,15 +209,17 @@ function neatlyPrintChunk(prefix: string, chunk: Buffer): void {
 async function waitForCloseAsync(
     stream: ChildProcessWithoutNullStreams,
     command: string,
-    timeout: number,
+    timeout?: number,
 ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
         stream.on('close', () => {
             resolve();
         });
-        setTimeout(() => {
-            reject(new Error(`Timed out waiting for "${command}" to close`));
-        }, timeout);
+        if (timeout !== undefined) {
+            setTimeout(() => {
+                reject(new Error(`Timed out waiting for "${command}" to close`));
+            }, timeout);
+        }
     });
 }
 
@@ -228,7 +235,7 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for 0x-api logs'));
-        }, 20000); // tslint:disable-line:custom-no-magic-numbers
+        }, 40000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
@@ -261,34 +268,45 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
         const hasSeenLog = [0, 0, 0];
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
-            console.log(data); // tslint:disable-line:no-console
             for (const datum of data) {
-                if (hasSeenLog[0] < 2 && /.*mesh.*started HTTP RPC server/.test(datum)) {
+                if (hasSeenLog[0] < 1 && /.*mesh.*started HTTP RPC server/.test(datum)) {
                     hasSeenLog[0]++;
-                } else if (hasSeenLog[1] < 2 && /.*mesh.*started WS RPC server/.test(datum)) {
+                } else if (hasSeenLog[1] < 1 && /.*mesh.*started WS RPC server/.test(datum)) {
                     hasSeenLog[1]++;
                 } else if (
-                    // NOTE(jalextowle): Because the `postgres` database is deleted before every
-                    // test run, we must skip over the "autovacuming" step that creates a new
-                    // postgres table.
-                    hasSeenLog[2] < 2 &&
-                    /.*postgres.*database system is ready to accept connections/.test(datum)
+                    hasSeenLog[2] < 1 &&
+                    /.*postgres.*PostgreSQL init process complete; ready for start up./.test(datum)
                 ) {
                     hasSeenLog[2]++;
                 }
 
-                if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 2) {
-                    // TODO(jalextowle): Is this necessary?
-                    setTimeout(resolve, 20000); // tslint:disable-line:custom-no-magic-numbers
+                if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 1) {
+                    setTimeout(resolve, 5000); // tslint:disable-line:custom-no-magic-numbers
                 }
             }
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for dependency logs'));
-        }, 500000); // tslint:disable-line:custom-no-magic-numbers
+        }, 50000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
+async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<void> {
+    try {
+        await Promise.all([
+            // delay before retrying
+            new Promise<void>(resolve => setTimeout(resolve, 2000)), // tslint:disable-line:custom-no-magic-numbers
+            await getDBConnectionAsync(),
+        ]);
+        return;
+    } catch (e) {
+        if (maxTries > 0) {
+            await confirmPostgresConnectivityAsync(maxTries - 1);
+        } else {
+            throw e;
+        }
+    }
+}
 async function sleepAsync(timeSeconds: number): Promise<void> {
     return new Promise<void>(resolve => {
         const secondsPerMillisecond = 1000;
