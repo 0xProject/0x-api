@@ -173,7 +173,7 @@ export const META_TXN_RELAY_PRIVATE_KEYS: string[] = _.isEmpty(process.env.META_
     ? []
     : assertEnvVarType('META_TXN_RELAY_PRIVATE_KEYS', process.env.META_TXN_RELAY_PRIVATE_KEYS, EnvVarType.StringList);
 
-// Metajj
+// The expected time for a meta-txn to be included in a block.
 export const META_TXN_RELAY_EXPECTED_MINED_SEC: number = _.isEmpty(process.env.META_TXN_RELAY_EXPECTED_MINED_SEC)
     ? DEFAULT_EXPECTED_MINED_SEC
     : assertEnvVarType(
