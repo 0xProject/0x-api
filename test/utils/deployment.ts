@@ -54,7 +54,7 @@ export async function teardownApiAsync(suiteName: string, logType?: LogType): Pr
     if (!start) {
         throw new Error('There is no 0x-api instance to tear down');
     }
-    start.kill();
+    start.kill('SIGKILL');
     start = undefined;
     await teardownDependenciesAsync(suiteName, logType);
 }
@@ -75,6 +75,17 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     if (!didTearDown) {
         await teardownDependenciesAsync(suiteName, logType);
     }
+
+    // FIXME: Remove this
+    const ps = spawn('docker', ['ps']);
+    directLogs(ps, suiteName, 'ps', LogType.Console);
+    const psTimeout = 2000;
+    await waitForCloseAsync(ps, 'ps', psTimeout);
+
+    const lsof = spawn('lsof', ['-i', ':3000']);
+    directLogs(lsof, suiteName, 'lsof', LogType.Console);
+    const lsofTimeout = 2000;
+    await waitForCloseAsync(lsof, 'lsof', lsofTimeout);
 
     // Spin up the 0x-api dependencies
     const up = spawn('docker-compose', ['up'], {
@@ -108,6 +119,17 @@ export async function teardownDependenciesAsync(suiteName: string, logType?: Log
     const downTimeout = 20000;
     await waitForCloseAsync(down, 'down', downTimeout);
     didTearDown = true;
+
+    // FIXME: Remove this
+    const ps = spawn('docker', ['ps']);
+    directLogs(ps, suiteName, 'ps', LogType.Console);
+    const psTimeout = 2000;
+    await waitForCloseAsync(ps, 'ps', psTimeout);
+
+    const lsof = spawn('lsof', ['-i', ':3000']);
+    directLogs(lsof, suiteName, 'lsof', LogType.Console);
+    const lsofTimeout = 2000;
+    await waitForCloseAsync(lsof, 'lsof', lsofTimeout);
 }
 
 /**
@@ -204,15 +226,17 @@ function neatlyPrintChunk(prefix: string, chunk: Buffer): void {
 async function waitForCloseAsync(
     stream: ChildProcessWithoutNullStreams,
     command: string,
-    timeout: number,
+    timeout?: number,
 ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
         stream.on('close', () => {
             resolve();
         });
-        setTimeout(() => {
-            reject(new Error(`Timed out waiting for "${command}" to close`));
-        }, timeout);
+        if (timeout !== undefined) {
+            setTimeout(() => {
+                reject(new Error(`Timed out waiting for "${command}" to close`));
+            }, timeout);
+        }
     });
 }
 

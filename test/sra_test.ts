@@ -8,7 +8,7 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { SignedOrderEntity } from '../src/entities';
 
 import * as orderFixture from './fixtures/order.json';
-import { setupApiAsync, teardownApiAsync } from './utils/deployment';
+import { LogType, setupApiAsync, teardownApiAsync } from './utils/deployment';
 import { httpGetAsync } from './utils/http_utils';
 
 const SUITE_NAME = 'sra tests';
