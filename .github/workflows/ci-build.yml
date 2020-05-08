@@ -27,16 +27,8 @@ jobs:
       env:
         cache-name: cache-node-modules
       with:
-        path: ~/node_modules
+        path: ~/work/0x-api/0x-api/node_modules
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-    
-    - name: Cache docker images
-      uses: actions/cache@v1
-      env:
-        cache-name: cache-docker
-      with:
-        path: /var/lib/docker
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('./docker-compose.yml') }}
     
     - run: yarn install --frozen-lockfile
     - run: yarn build
