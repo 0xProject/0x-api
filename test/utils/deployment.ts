@@ -228,7 +228,7 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for 0x-api logs'));
-        }, 20000); // tslint:disable-line:custom-no-magic-numbers
+        }, 40000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 

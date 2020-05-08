@@ -15,7 +15,7 @@ const SUITE_NAME = 'sra tests';
 
 describe(SUITE_NAME, () => {
     before(async () => {
-        await setupApiAsync(SUITE_NAME);
+        await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console });
     });
     after(async () => {
         await teardownApiAsync(SUITE_NAME);
