@@ -2,10 +2,10 @@ import { assert } from '@0x/assert';
 import { BigNumber } from '@0x/utils';
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import { ONE_SECOND_MS } from '../constants';
+import { EXPECTED_MINED_SEC, ONE_SECOND_MS, ZERO } from '../constants';
 import { TransactionStates, ZeroExTransactionWithoutDomain } from '../types';
 
-import { BigNumberTransformer, ZeroExTransactionWithoutDomainTransformer } from './transformers';
+import { BigIntTransformer, BigNumberTransformer, ZeroExTransactionWithoutDomainTransformer } from './transformers';
 import { TransactionEntityOpts } from './types';
 
 @Entity({ name: 'transactions' })
@@ -42,7 +42,7 @@ export class TransactionEntity {
     @Column({ name: 'expected_mined_in_sec', type: 'int' })
     public expectedMinedInSec?: number;
 
-    @Column({ name: 'nonce', type: 'bigint', nullable: true })
+    @Column({ name: 'nonce', type: 'bigint', nullable: true, transformer: BigIntTransformer })
     public nonce?: number;
 
     @Column({ name: 'gas_price', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
@@ -51,7 +51,7 @@ export class TransactionEntity {
     @Column({ name: 'protocol_fee', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
     public protocolFee?: BigNumber;
 
-    @Column({ name: 'block_number', type: 'bigint', nullable: true })
+    @Column({ name: 'block_number', type: 'bigint', nullable: true, transformer: BigIntTransformer })
     public blockNumber?: number;
 
     @Column({ name: 'from', type: 'varchar', nullable: true })
@@ -75,8 +75,8 @@ export class TransactionEntity {
             assert.isETHAddressHex('from', opts.from);
         }
         assert.doesBelongToStringEnum('status', opts.status, TransactionStates);
-        if (opts.nonce !== undefined && !Number.isInteger(opts.nonce) && opts.nonce >= 0) {
-            throw new Error(`Expected nonce to be an integer, encountered: ${opts.nonce}`);
+        if (opts.nonce !== undefined && !Number.isInteger(opts.nonce) && opts.nonce <= 0) {
+            throw new Error(`Expected nonce to be a positive integer, encountered: ${opts.nonce}`);
         }
         if (opts.blockNumber !== undefined && !Number.isInteger(opts.blockNumber) && opts.blockNumber <= 0) {
             throw new Error(`Expected blockNumber to be a positive integer, encountered: ${opts.blockNumber}`);
@@ -96,16 +96,16 @@ export class TransactionEntity {
             signedTx: '',
             takerAddress: '',
             status: '',
-            expectedMinedInSec: 120,
+            expectedMinedInSec: EXPECTED_MINED_SEC,
             nonce: 0,
-            gasPrice: new BigNumber(0),
-            protocolFee: new BigNumber(0),
+            gasPrice: ZERO,
+            protocolFee: ZERO,
             from: '',
             zeroExTransactionSignature: '',
             zeroExTransaction: {
-                salt: new BigNumber(0),
-                expirationTimeSeconds: new BigNumber(0),
-                gasPrice: new BigNumber(0),
+                salt: ZERO,
+                expirationTimeSeconds: ZERO,
+                gasPrice: ZERO,
                 signerAddress: '',
                 data: '',
             },

@@ -16,7 +16,6 @@ import {
     WHITELISTED_API_KEYS_META_TXN_SUBMIT,
 } from '../config';
 import {
-    ETH_GAS_STATION_API_BASE_URL,
     EXPECTED_MINED_SEC,
     ONE_GWEI,
     ONE_SECOND_MS,
@@ -35,6 +34,7 @@ import {
     TransactionStates,
     ZeroExTransactionWithoutDomain,
 } from '../types';
+import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
 
@@ -210,8 +210,7 @@ export class MetaTransactionService {
             throw new Error('zeroExTransaction expirationTimeSeconds in less than 60 seconds from now');
         }
 
-        const decodedArray = await this._devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
-        const orders = decodedArray[1];
+        const [, orders] = await this._devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
 
         // Verify orders don't expire in next 60 seconds
         orders.forEach(order => {
@@ -221,7 +220,7 @@ export class MetaTransactionService {
         });
 
         const gasPrice = zeroExTransaction.gasPrice;
-        const currentFastGasPrice = await this._getGasPriceFromGasStationOrThrowAsync();
+        const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
         // Make sure gasPrice is not 3X the current fast EthGasStation gas price
         // tslint:disable-next-line:custom-no-magic-numbers
         if (currentFastGasPrice.lt(gasPrice) && gasPrice.minus(currentFastGasPrice).gt(currentFastGasPrice.times(3))) {
@@ -372,22 +371,5 @@ export class MetaTransactionService {
             },
         };
         return zeroExTransaction;
-    }
-    // tslint:disable-next-line: prefer-function-over-method
-    private async _getGasPriceFromGasStationOrThrowAsync(): Promise<BigNumber> {
-        try {
-            const res = await fetch(`${ETH_GAS_STATION_API_BASE_URL}/json/ethgasAPI.json`);
-            const gasInfo = await res.json();
-            // Eth Gas Station result is gwei * 10
-            // tslint:disable-next-line:custom-no-magic-numbers
-            const BASE_TEN = 10;
-            const gasPriceGwei = new BigNumber(gasInfo.fast / BASE_TEN);
-            // tslint:disable-next-line:custom-no-magic-numbers
-            const unit = new BigNumber(BASE_TEN).pow(9);
-            const gasPriceWei = unit.times(gasPriceGwei);
-            return gasPriceWei;
-        } catch (e) {
-            throw new Error('Failed to fetch gas price from EthGasStation');
-        }
     }
 }

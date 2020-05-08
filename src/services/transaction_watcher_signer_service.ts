@@ -6,7 +6,6 @@ import { Connection, Not, Repository } from 'typeorm';
 
 import { ETHEREUM_RPC_URL, META_TXN_RELAY_PRIVATE_KEYS } from '../config';
 import {
-    ETH_GAS_STATION_API_BASE_URL,
     EXPECTED_MINED_SEC,
     NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
@@ -16,6 +15,7 @@ import {
 import { TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates } from '../types';
+import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { Signer } from '../utils/signer';
 
 export class TransactionWatcherSignerService {
@@ -60,7 +60,14 @@ export class TransactionWatcherSignerService {
         intervalUtils.clearAsyncExcludingInterval(this._transactionWatcherTimer);
     }
     public async syncTransactionStatusAsync(): Promise<void> {
-        await this._signAndBroadcastTransactionsAsync();
+        try {
+            await this._signAndBroadcastTransactionsAsync();
+        } catch (err) {
+            logger.error({
+                message: `failed to sign and broadcast transacitons`,
+                stack: err.stack,
+            });
+        }
         await this._syncBroadcastedTransactionStatusAsync();
         await this._checkForStuckTransactionsAsync();
         await this._checkForConfirmedTransactionsAsync();
@@ -264,7 +271,7 @@ export class TransactionWatcherSignerService {
         if (stuckTransactions.length === 0) {
             return;
         }
-        const gasStationPrice = await this._getGasPriceFromGasStationOrThrowAsync();
+        const gasStationPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
         const targetGasPrice = gasStationPrice.multipliedBy(UNSTICKING_TRANSACTION_GAS_MULTIPLIER);
         for (const tx of stuckTransactions) {
             if (tx.from === undefined) {
@@ -337,28 +344,11 @@ export class TransactionWatcherSignerService {
                         returnedBlockNumber: txInBlockchain.blockNumber,
                     });
                 }
-                if (tx.blockNumber + NUMBER_OF_BLOCKS_UNTIL_CONFIRMED > latestBlockNumber) {
+                if (tx.blockNumber + NUMBER_OF_BLOCKS_UNTIL_CONFIRMED < latestBlockNumber) {
                     tx.status = TransactionStates.Confirmed;
                     await this._transactionRepository.save(tx);
                 }
             }
-        }
-    }
-    // tslint:disable-next-line: prefer-function-over-method
-    private async _getGasPriceFromGasStationOrThrowAsync(): Promise<BigNumber> {
-        try {
-            const res = await fetch(`${ETH_GAS_STATION_API_BASE_URL}/json/ethgasAPI.json`);
-            const gasInfo = await res.json();
-            // Eth Gas Station result is gwei * 10
-            // tslint:disable-next-line:custom-no-magic-numbers
-            const BASE_TEN = 10;
-            const gasPriceGwei = new BigNumber(gasInfo.fast / BASE_TEN);
-            // tslint:disable-next-line:custom-no-magic-numbers
-            const unit = new BigNumber(BASE_TEN).pow(9);
-            const gasPriceWei = unit.times(gasPriceGwei);
-            return gasPriceWei;
-        } catch (e) {
-            throw new Error('Failed to fetch gas price from EthGasStation');
         }
     }
 }

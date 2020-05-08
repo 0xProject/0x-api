@@ -3,6 +3,28 @@ import { ValueTransformer } from 'typeorm';
 
 import { ZeroExTransactionWithoutDomain } from '../types';
 
+export const BigIntTransformer: ValueTransformer = {
+    from: (value: string | null): number | null => {
+        if (value === null) {
+            return null;
+        }
+        const num = Number(value);
+        if (!Number.isSafeInteger(num)) {
+            throw new Error('unsafe integer precision when transforming value');
+        }
+        return value === null ? null : Number(value);
+    },
+    to: (value: number | null | undefined): string | null => {
+        if (value === null || value === undefined) {
+            return null;
+        }
+        if (!Number.isSafeInteger(value)) {
+            throw new Error('unsafe integer precision when transforming value');
+        }
+        return value.toString();
+    },
+};
+
 export const ZeroExTransactionWithoutDomainTransformer: ValueTransformer = {
     from: (value: string): ZeroExTransactionWithoutDomain => {
         const obj = JSON.parse(value);

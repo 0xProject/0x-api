@@ -50,7 +50,7 @@ export const META_TRANSACTION_DOCS_URL = 'https://0x.org/docs/api#meta_transacti
 
 // Meta Transactions
 export const ETH_GAS_STATION_API_BASE_URL = 'https://ethgasstation.info';
-export const UNSTICKING_TRANSACTION_GAS_MULTIPLIER = 1.5;
+export const UNSTICKING_TRANSACTION_GAS_MULTIPLIER = 1.1;
 export const ETH_TRANSFER_GAS_LIMIT = 21000;
 export const STUCK_TX_POLLING_INTERVAL_MS = 5 * 1000;
 export const TX_HASH_RESPONSE_WAIT_TIME_MS = 100 * 1000;
