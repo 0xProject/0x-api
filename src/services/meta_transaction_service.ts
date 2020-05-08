@@ -13,10 +13,10 @@ import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     CHAIN_ID,
     LIQUIDITY_POOL_REGISTRY_ADDRESS,
+    META_TXN_RELAY_EXPECTED_MINED_SEC,
     WHITELISTED_API_KEYS_META_TXN_SUBMIT,
 } from '../config';
 import {
-    EXPECTED_MINED_SEC,
     ONE_GWEI,
     ONE_SECOND_MS,
     PUBLIC_ADDRESS_FOR_ETH_CALLS,
@@ -303,7 +303,7 @@ export class MetaTransactionService {
             zeroExTransactionSignature: signature,
             protocolFee,
             gasPrice: zeroExTransaction.gasPrice,
-            expectedMinedInSec: EXPECTED_MINED_SEC,
+            expectedMinedInSec: META_TXN_RELAY_EXPECTED_MINED_SEC,
         });
         await this._transactionEntityRepository.save(transactionEntity);
         const { ethereumTransactionHash, signedEthereumTransaction } = await this._waitUntilTxHashAsync(

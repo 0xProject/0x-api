@@ -4,9 +4,8 @@ import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Connection, Not, Repository } from 'typeorm';
 
-import { ETHEREUM_RPC_URL, META_TXN_RELAY_PRIVATE_KEYS } from '../config';
+import { ETHEREUM_RPC_URL, META_TXN_RELAY_EXPECTED_MINED_SEC, META_TXN_RELAY_PRIVATE_KEYS } from '../config';
 import {
-    EXPECTED_MINED_SEC,
     NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
     TX_WATCHER_POLLING_INTERVAL_MS,
@@ -130,7 +129,9 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
@@ -141,7 +142,9 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -259,7 +262,7 @@ export class TransactionWatcherSignerService {
             nonce: tx.nonce,
             gasPrice,
             from: tx.from,
-            expectedMinedInSec: EXPECTED_MINED_SEC,
+            expectedMinedInSec: META_TXN_RELAY_EXPECTED_MINED_SEC,
         });
         await this._transactionRepository.save(transactionEntity);
         return txHash;
@@ -295,7 +298,7 @@ export class TransactionWatcherSignerService {
             try {
                 await this._unstickTransactionAsync(tx, targetGasPrice, signer);
             } catch (err) {
-                logger.error(`failed to unstick transaction ${tx.txHash}`, { err });
+                logger.error({ message: `failed to unstick transaction ${tx.txHash}`, stack: err.stack });
             }
         }
     }

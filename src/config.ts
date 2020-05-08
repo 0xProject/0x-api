@@ -12,6 +12,7 @@ import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     NULL_ADDRESS,
     NULL_BYTES,
+    DEFAULT_EXPECTED_MINED_SEC,
 } from './constants';
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId } from './types';
@@ -19,6 +20,7 @@ import { ChainId } from './types';
 enum EnvVarType {
     AddressList,
     StringList,
+    Integer,
     Port,
     KeepAliveTimeout,
     ChainId,
@@ -171,6 +173,15 @@ export const META_TXN_RELAY_PRIVATE_KEYS: string[] = _.isEmpty(process.env.META_
     ? []
     : assertEnvVarType('META_TXN_RELAY_PRIVATE_KEYS', process.env.META_TXN_RELAY_PRIVATE_KEYS, EnvVarType.StringList);
 
+// Metajj
+export const META_TXN_RELAY_EXPECTED_MINED_SEC: number = _.isEmpty(process.env.META_TXN_RELAY_EXPECTED_MINED_SEC)
+    ? DEFAULT_EXPECTED_MINED_SEC
+    : assertEnvVarType(
+          'META_TXN_RELAY_EXPECTED_MINED_SEC',
+          process.env.META_TXN_RELAY_EXPECTED_MINED_SEC,
+          EnvVarType.Integer,
+      );
+
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision
@@ -229,6 +240,13 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 }
             } catch (err) {
                 throw new Error(`${name} must be between 0 to 65535, found ${value}.`);
+            }
+            return returnValue;
+        case EnvVarType.Integer:
+            try {
+                returnValue = parseInt(value, 10);
+            } catch (err) {
+                throw new Error(`${name} must be a valid integer, found ${value}.`);
             }
             return returnValue;
         case EnvVarType.KeepAliveTimeout:

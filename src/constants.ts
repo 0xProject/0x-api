@@ -60,6 +60,6 @@ export const PUBLIC_ADDRESS_FOR_ETH_CALLS = '0xAb5801a7D398351b8bE11C439e05C5B32
 // TransactionWatcher
 // The expected time of a transaction to be mined according to ETHGasStation
 // "Fast" gas price estimations multiplied by a safety margin.
-export const EXPECTED_MINED_SEC = 120 * 1.5;
+export const DEFAULT_EXPECTED_MINED_SEC = 120 * 1.5;
 export const TX_WATCHER_POLLING_INTERVAL_MS = 5 * 1000;
 export const NUMBER_OF_BLOCKS_UNTIL_CONFIRMED = 3;

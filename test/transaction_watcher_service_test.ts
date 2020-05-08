@@ -67,7 +67,7 @@ describe('transaction watcher service', () => {
         const websocketOpts = { path: SRA_PATH };
         const swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
         const meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
-        metaTxnUser = new TestMetaTxnUser('https://kovan.api.0x.org');
+        metaTxnUser = new TestMetaTxnUser();
         app = await getAppAsync(
             {
                 orderBookService,
@@ -83,14 +83,13 @@ describe('transaction watcher service', () => {
         );
     });
     it('sends a signed zeroex transaction correctly', async () => {
-        const { zeroExTransactionHash, zeroExTransaction } = await metaTxnUser.getQuoteAsync(
-            'DAI',
-            'WETH',
-            '500000000',
-        );
+        const { zeroExTransactionHash, zeroExTransaction } = await request(app)
+            .get(`${META_TRANSACTION_PATH}/quote${metaTxnUser.getQuoteString('DAI', 'WETH', '500000000')}`)
+            .then(async response => {
+                return response.body;
+            });
         const signature = await metaTxnUser.signAsync(zeroExTransactionHash);
-        let txHashToRequest = '';
-        await request(app)
+        const txHashToRequest = await request(app)
             .post(`${META_TRANSACTION_PATH}/submit`)
             .set('0x-api-key', 'e20bd887-e195-4580-bca0-322607ec2a49')
             .send({ signature, zeroExTransaction })
@@ -98,13 +97,12 @@ describe('transaction watcher service', () => {
             .then(async response => {
                 expect(response.body.code).to.not.equal(GeneralErrorCodes.InvalidAPIKey);
                 const { ethereumTransactionHash } = response.body;
-                txHashToRequest = ethereumTransactionHash;
-
                 await _waitUntilStatusAsync(
                     ethereumTransactionHash,
                     TransactionStates.Confirmed,
                     transactionEntityRepository,
                 );
+                return ethereumTransactionHash;
             });
         await request(app)
             .get(`${META_TRANSACTION_PATH}/status/${txHashToRequest}`)
@@ -112,5 +110,38 @@ describe('transaction watcher service', () => {
                 expect(response.body.hash).to.equal(txHashToRequest);
                 expect(response.body.status).to.equal('confirmed');
             });
+    });
+    it('handles low gas price correctly', async () => {
+        const { zeroExTransaction } = await request(app)
+            .get(`${META_TRANSACTION_PATH}/quote${metaTxnUser.getQuoteString('DAI', 'WETH', '500000000')}`)
+            .then(async response => {
+                return response.body;
+            });
+        zeroExTransaction.gasPrice = '1337';
+        const { signature } = await metaTxnUser.signTransactionAsync(zeroExTransaction);
+        const txHashToRequest = await request(app)
+            .post(`${META_TRANSACTION_PATH}/submit`)
+            .set('0x-api-key', 'e20bd887-e195-4580-bca0-322607ec2a49')
+            .send({ signature, zeroExTransaction })
+            .expect('Content-Type', /json/)
+            .then(async response => {
+                expect(response.body.code).to.not.equal(GeneralErrorCodes.InvalidAPIKey);
+                const { ethereumTransactionHash } = response.body;
+                console.log('waiting for ', ethereumTransactionHash);
+                await _waitUntilStatusAsync(
+                    ethereumTransactionHash,
+                    TransactionStates.Aborted,
+                    transactionEntityRepository,
+                );
+                return ethereumTransactionHash;
+            });
+        await request(app)
+            .get(`${META_TRANSACTION_PATH}/status/${txHashToRequest}`)
+            .then(response => {
+                expect(response.body.hash).to.equal(txHashToRequest);
+                expect(response.body.status).to.equal('aborted');
+            });
+
+        await utils.delayAsync(10000);
     });
 });

@@ -2,7 +2,8 @@ import { assert } from '@0x/assert';
 import { BigNumber } from '@0x/utils';
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-import { EXPECTED_MINED_SEC, ONE_SECOND_MS, ZERO } from '../constants';
+import { META_TXN_RELAY_EXPECTED_MINED_SEC } from '../config';
+import { ONE_SECOND_MS, ZERO } from '../constants';
 import { TransactionStates, ZeroExTransactionWithoutDomain } from '../types';
 
 import { BigIntTransformer, BigNumberTransformer, ZeroExTransactionWithoutDomainTransformer } from './transformers';
@@ -96,7 +97,7 @@ export class TransactionEntity {
             signedTx: '',
             takerAddress: '',
             status: '',
-            expectedMinedInSec: EXPECTED_MINED_SEC,
+            expectedMinedInSec: META_TXN_RELAY_EXPECTED_MINED_SEC,
             nonce: 0,
             gasPrice: ZERO,
             protocolFee: ZERO,

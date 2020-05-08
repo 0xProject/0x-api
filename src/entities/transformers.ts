@@ -26,14 +26,20 @@ export const BigIntTransformer: ValueTransformer = {
 };
 
 export const ZeroExTransactionWithoutDomainTransformer: ValueTransformer = {
-    from: (value: string): ZeroExTransactionWithoutDomain => {
+    from: (value: string | undefined | null): ZeroExTransactionWithoutDomain | null => {
+        if (value === undefined || value === null) {
+            return null;
+        }
         const obj = JSON.parse(value);
         obj.salt = new BigNumber(obj.salt);
         obj.expirationTimeSeconds = new BigNumber(obj.expirationTimeSeconds);
         obj.gasPrice = new BigNumber(obj.gasPrice);
         return obj;
     },
-    to: (value: ZeroExTransactionWithoutDomain): string => {
+    to: (value: ZeroExTransactionWithoutDomain | null | undefined): string | null => {
+        if (value === null || value === undefined) {
+            return null;
+        }
         const objToStore = {
             ...value,
             salt: value.salt.toString(),
