@@ -6,13 +6,13 @@ import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
 
 import {
+    DEFAULT_EXPECTED_MINED_SEC,
     DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     DEFAULT_LOCAL_POSTGRES_URI,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     NULL_ADDRESS,
     NULL_BYTES,
-    DEFAULT_EXPECTED_MINED_SEC,
 } from './constants';
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId } from './types';

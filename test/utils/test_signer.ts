@@ -1,7 +1,7 @@
 // tslint:disable:no-console
 // tslint:disable:no-unbound-method
 
-import { signatureUtils, ZeroExTransaction, SignedZeroExTransaction } from '@0x/order-utils';
+import { signatureUtils, SignedZeroExTransaction, ZeroExTransaction } from '@0x/order-utils';
 import { PrivateKeyWalletSubprovider, SupportedProvider, Web3ProviderEngine } from '@0x/subproviders';
 import { NULL_ADDRESS, providerUtils } from '@0x/utils';
 

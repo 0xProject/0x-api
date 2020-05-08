@@ -127,7 +127,6 @@ describe('transaction watcher service', () => {
             .then(async response => {
                 expect(response.body.code).to.not.equal(GeneralErrorCodes.InvalidAPIKey);
                 const { ethereumTransactionHash } = response.body;
-                console.log('waiting for ', ethereumTransactionHash);
                 await _waitUntilStatusAsync(
                     ethereumTransactionHash,
                     TransactionStates.Aborted,
@@ -141,7 +140,5 @@ describe('transaction watcher service', () => {
                 expect(response.body.hash).to.equal(txHashToRequest);
                 expect(response.body.status).to.equal('aborted');
             });
-
-        await utils.delayAsync(10000);
     });
 });
