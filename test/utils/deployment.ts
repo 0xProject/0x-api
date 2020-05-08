@@ -56,7 +56,6 @@ export async function teardownApiAsync(suiteName: string, logType?: LogType): Pr
         throw new Error('There is no 0x-api instance to tear down');
     }
     await killAsync(HTTP_PORT);
-
     start = undefined;
     await teardownDependenciesAsync(suiteName, logType);
 }
@@ -64,6 +63,7 @@ export async function teardownApiAsync(suiteName: string, logType?: LogType): Pr
 async function killAsync(port: number): Promise<void> {
     await promisify(exec)(`lsof -ti :${port} | xargs kill -9`);
 }
+
 let didTearDown = false;
 
 /**
@@ -152,14 +152,14 @@ export async function teardownMeshAsync(suiteName: string, logType?: LogType): P
         cwd: testRootDir,
     });
     directLogs(stop, suiteName, 'mesh_stop', logType);
-    const stopTimeout = 5000;
+    const stopTimeout = 10000;
     await waitForCloseAsync(stop, 'mesh_stop', stopTimeout);
 
     const rm = spawn('docker-compose', ['rm', '-f', '-s', '-v', 'mesh'], {
         cwd: testRootDir,
     });
     directLogs(rm, suiteName, 'mesh_rm', logType);
-    const rmTimeout = 5000;
+    const rmTimeout = 10000;
     await waitForCloseAsync(rm, 'mesh_rm', rmTimeout);
 }
 
@@ -235,7 +235,7 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for 0x-api logs'));
-        }, 5000); // tslint:disable-line:custom-no-magic-numbers
+        }, 30000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
