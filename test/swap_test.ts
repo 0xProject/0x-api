@@ -4,14 +4,14 @@ import 'mocha';
 
 import { SWAP_PATH } from '../src/constants';
 
-import { LogType, setupApiAsync, teardownApiAsync } from './utils/deployment';
+import { setupApiAsync, teardownApiAsync } from './utils/deployment';
 import { httpGetAsync } from './utils/http_utils';
 
 const SUITE_NAME = 'swap tests';
 
 describe(SUITE_NAME, () => {
     before(async () => {
-        await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console });
+        await setupApiAsync(SUITE_NAME);
     });
     after(async () => {
         await teardownApiAsync(SUITE_NAME);
