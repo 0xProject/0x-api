@@ -16,10 +16,28 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
+    
+    - name: Cache node modules
+      uses: actions/cache@v1
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: ~/node_modules
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
+    
+    - name: Cache docker images
+      uses: actions/cache@v1
+      env:
+        cache-name: cache-docker
+      with:
+        path: /var/lib/docker
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('./docker-compose.yml') }}
+    
     - run: yarn install --frozen-lockfile
     - run: yarn build
     # Pull the docker images so that they don't need to be pulled in the tests.
