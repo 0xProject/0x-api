@@ -6,7 +6,7 @@ name: Build and Test
 on: [push]
 
 jobs:
-  build:
+  build_and_test:
     name: Build and Test
     runs-on: ubuntu-latest
 
