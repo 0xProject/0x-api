@@ -574,7 +574,7 @@ describe(SUITE_NAME, () => {
                     transaction = response.body.zeroExTransaction;
                 });
 
-                it('submitting the quote is successful and money changes hands correctly', async () => {
+                it.skip('submitting the quote is successful and money changes hands correctly', async () => {
                     const makerAddress = validationResults.accepted[0].signedOrder.makerAddress;
                     await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: buyAmount });
                     await weth
