@@ -16,7 +16,7 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
-import { MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
+import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'meta transactions tests';
 
@@ -27,7 +27,7 @@ describe(SUITE_NAME, () => {
     let takerAddress: string;
     let buyTokenAddress: string;
     let sellTokenAddress: string;
-    const buyAmount = MAKER_ASSET_AMOUNT.toString();
+    const buyAmount = DEFAULT_MAKER_ASSET_AMOUNT.toString();
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
@@ -226,7 +226,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the only order in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersAsync([1]);
+                const validationResults = await meshUtils.addOrdersWithPricesAsync([1]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
@@ -247,7 +247,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the cheaper order in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersAsync([1, 2]);
+                const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
@@ -268,9 +268,9 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the combination of the two orders in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersAsync([1, 2]);
+                const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
-                const largeBuyAmount = MAKER_ASSET_AMOUNT.times(2).toString();
+                const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
                     queryParams: {
@@ -331,7 +331,7 @@ describe(SUITE_NAME, () => {
         expectedPrice: string;
     }
 
-    function assertCorrectQuote(testCase: QuoteTestCase): void {
+    function assertCorrectMetaQuote(testCase: QuoteTestCase): void {
         expect(testCase.quote.zeroExTransactionHash.length).to.be.eq(66); // tslint:disable-line:custom-no-magic-numbers
         const threeSecondsMS = ONE_SECOND_MS * 3; // tslint:disable-line:custom-no-magic-numbers
         const lowerBound = new BigNumber(Date.now() + TEN_MINUTES_MS - threeSecondsMS)
@@ -412,7 +412,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should return a quote of the only order in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersAsync([1]);
+                const validationResults = await meshUtils.addOrdersWithPricesAsync([1]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/quote`,
@@ -424,7 +424,7 @@ describe(SUITE_NAME, () => {
                 const response = await httpGetAsync({ route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
-                assertCorrectQuote({
+                assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: buyAmount,
                     expectedOrders: [validationResults.accepted[0].signedOrder],
@@ -433,7 +433,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should return a quote of the cheaper order in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersAsync([1, 2]);
+                const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/quote`,
@@ -446,7 +446,7 @@ describe(SUITE_NAME, () => {
                 const response = await httpGetAsync({ route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
-                assertCorrectQuote({
+                assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: buyAmount,
                     expectedOrders: [validationResults.accepted[0].signedOrder],
@@ -455,9 +455,9 @@ describe(SUITE_NAME, () => {
             });
 
             it('should return a quote of the combination of the two orders in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersAsync([1, 2]);
+                const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
-                const largeBuyAmount = MAKER_ASSET_AMOUNT.times(2).toString();
+                const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/quote`,
                     queryParams: {
@@ -469,7 +469,7 @@ describe(SUITE_NAME, () => {
                 const response = await httpGetAsync({ route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
-                assertCorrectQuote({
+                assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: largeBuyAmount,
                     expectedOrders: validationResults.accepted.map(accepted => accepted.signedOrder),
@@ -529,7 +529,7 @@ describe(SUITE_NAME, () => {
                 });
 
                 before(async () => {
-                    validationResults = await meshUtils.addOrdersAsync([1]);
+                    validationResults = await meshUtils.addOrdersWithPricesAsync([1]);
                     expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 });
 
@@ -565,7 +565,7 @@ describe(SUITE_NAME, () => {
                     const response = await httpGetAsync({ route });
                     expect(response.type).to.be.eq('application/json');
                     expect(response.status).to.be.eq(HttpStatus.OK);
-                    assertCorrectQuote({
+                    assertCorrectMetaQuote({
                         quote: response.body,
                         expectedBuyAmount: buyAmount,
                         expectedOrders: [validationResults.accepted[0].signedOrder],
@@ -617,7 +617,7 @@ describe(SUITE_NAME, () => {
             // TODO: There is a problem with this test case. It is currently throwing an `IncompleteFillError`
             describe.skip('two order submission', () => {
                 let validationResults: ValidationResults;
-                const largeBuyAmount = MAKER_ASSET_AMOUNT.times(2).toString();
+                const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
                 const price = '1.5';
                 const sellAmount = calculateSellAmount(largeBuyAmount, price);
 
@@ -638,7 +638,7 @@ describe(SUITE_NAME, () => {
                 });
 
                 before(async () => {
-                    validationResults = await meshUtils.addOrdersAsync([1, 2]);
+                    validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
                     expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 });
 
@@ -676,7 +676,7 @@ describe(SUITE_NAME, () => {
                     const response = await httpGetAsync({ route });
                     expect(response.type).to.be.eq('application/json');
                     expect(response.status).to.be.eq(HttpStatus.OK);
-                    assertCorrectQuote({
+                    assertCorrectMetaQuote({
                         quote: response.body,
                         expectedBuyAmount: largeBuyAmount,
                         expectedOrders: validationResults.accepted.map(accepted => accepted.signedOrder),
