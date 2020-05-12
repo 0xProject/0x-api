@@ -23,7 +23,6 @@ export class SignerHandlers {
     }
     public async submitZeroExTransactionIfWhitelistedAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
-        // FIXME: So if I just don't submit a key, this wokrs?
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
                 code: GeneralErrorCodes.InvalidAPIKey,
