@@ -1,5 +1,7 @@
 import { Orderbook, SupportedProvider } from '@0x/asset-swapper';
 import * as express from 'express';
+import * as asyncHandler from 'express-async-handler';
+import { Server } from 'http';
 import { Connection } from 'typeorm';
 
 import { SRA_PATH } from './constants';
@@ -93,9 +95,9 @@ export async function getAppAsync(
         HTTP_KEEP_ALIVE_TIMEOUT: number;
         HTTP_HEADERS_TIMEOUT: number;
     },
-): Promise<Express.Application> {
+): Promise<{ app: Express.Application; server: Server }> {
     const app = express();
-    await runHttpServiceAsync(dependencies, config, app);
+    const { server, wsService } = await runHttpServiceAsync(dependencies, config, app);
     if (dependencies.meshClient !== undefined) {
         try {
             await runOrderWatcherServiceAsync(dependencies.connection, dependencies.meshClient);
@@ -105,8 +107,14 @@ export async function getAppAsync(
     } else {
         logger.warn('No mesh client provided, API running without Order Watcher');
     }
+    // Register a shutdown event listener.
+    // TODO: More teardown logic should be added here. For example, the mesh rpc
+    // client should be destroyed and services should be torn down.
+    server.on('close', async () => {
+        await wsService.destroyAsync();
+    });
 
-    return app;
+    return { app, server };
 }
 
 /**
