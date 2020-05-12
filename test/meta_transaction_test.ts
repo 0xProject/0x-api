@@ -346,6 +346,7 @@ describe(SUITE_NAME, () => {
         // NOTE(jalextowle): We pick only the elements that should be tested
         // against. This avoids altering the original object and running into
         // an edge-case in `expect` around values defined as `undefined`.
+        expect(testCase.quote.sources).to.deep.include.members([{ name: '0x', proportion: '1' }]);
         expect({
             price: testCase.quote.price,
             zeroExTransaction: {
@@ -355,7 +356,6 @@ describe(SUITE_NAME, () => {
             orders: testCase.quote.orders,
             buyAmount: testCase.quote.buyAmount,
             sellAmount: testCase.quote.sellAmount,
-            sources: testCase.quote.sources,
         }).to.be.eql({
             price: testCase.expectedPrice,
             zeroExTransaction: {
@@ -365,19 +365,6 @@ describe(SUITE_NAME, () => {
             orders: testCase.expectedOrders.map(order => stringifyOrderBigNumbers(order)),
             buyAmount: testCase.expectedBuyAmount,
             sellAmount: calculateSellAmount(testCase.expectedBuyAmount, testCase.expectedPrice),
-            // NOTE(jalextowle): 0x is the only source that is currently being tested.
-            sources: [
-                { name: '0x', proportion: '1' },
-                { name: 'Uniswap', proportion: '0' },
-                { name: 'Eth2Dai', proportion: '0' },
-                { name: 'Kyber', proportion: '0' },
-                { name: 'Curve_USDC_DAI', proportion: '0' },
-                { name: 'Curve_USDC_DAI_USDT', proportion: '0' },
-                { name: 'Curve_USDC_DAI_USDT_TUSD', proportion: '0' },
-                { name: 'Curve_USDC_DAI_USDT_BUSD', proportion: '0' },
-                { name: 'Curve_USDC_DAI_USDT_SUSD', proportion: '0' },
-                { name: 'LiquidityProvider', proportion: '0' },
-            ],
         });
     }
 
