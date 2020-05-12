@@ -212,13 +212,6 @@ export class MetaTransactionService {
 
         const [, orders] = await this._devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
 
-        // Verify orders don't expire in next 60 seconds
-        orders.forEach(order => {
-            if (order.expirationTimeSeconds.lte(sixtySecondsFromNow)) {
-                throw new Error('Order included in zeroExTransaction expires in less than 60 seconds from now');
-            }
-        });
-
         const gasPrice = zeroExTransaction.gasPrice;
         const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
         // Make sure gasPrice is not 3X the current fast EthGasStation gas price
