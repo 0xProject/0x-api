@@ -1,6 +1,5 @@
 import { Orderbook, SupportedProvider } from '@0x/asset-swapper';
 import * as express from 'express';
-import * as asyncHandler from 'express-async-handler';
 import { Server } from 'http';
 import { Connection } from 'typeorm';
 
@@ -118,7 +117,7 @@ export async function getAppAsync(
 }
 
 /**
- * TODO(oskar)
+ * Instantiates SwapService using the provided OrderBookService and ethereum RPC provider.
  */
 export function createSwapServiceFromOrderBookService(
     orderBookService: OrderBookService,
@@ -131,7 +130,8 @@ export function createSwapServiceFromOrderBookService(
 }
 
 /**
- * TODO(oskar)
+ * Instantiates MetaTransactionService using the provided OrderBookService,
+ * ethereum RPC provider and db connection.
  */
 export function createMetaTxnServiceFromOrderBookService(
     orderBookService: OrderBookService,

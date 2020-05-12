@@ -1,7 +1,7 @@
+import { expect } from '@0x/contracts-test-utils';
 import { Web3ProviderEngine } from '@0x/dev-utils';
 import { RPCSubprovider, SupportedProvider } from '@0x/subproviders';
 import { providerUtils } from '@0x/utils';
-import * as chai from 'chai';
 import 'mocha';
 import * as request from 'supertest';
 import { Connection, Repository } from 'typeorm';
@@ -25,7 +25,6 @@ import { utils } from '../src/utils/utils';
 
 import { TestMetaTxnUser } from './utils/test_signer';
 
-const { expect } = chai;
 const NUMBER_OF_RETRIES = 20;
 const WAIT_DELAY_IN_MS = 5000;
 
@@ -68,7 +67,7 @@ describe('transaction watcher service', () => {
         const swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
         const meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
         metaTxnUser = new TestMetaTxnUser();
-        app = await getAppAsync(
+        ({ app } = await getAppAsync(
             {
                 orderBookService,
                 metaTransactionService,
@@ -80,7 +79,7 @@ describe('transaction watcher service', () => {
                 websocketOpts,
             },
             config,
-        );
+        ));
     });
     it('sends a signed zeroex transaction correctly', async () => {
         const { zeroExTransactionHash, zeroExTransaction } = await request(app)
