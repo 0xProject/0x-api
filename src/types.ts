@@ -499,3 +499,4 @@ export enum TransactionStates {
     // nonce has been mined.
     Aborted = 'aborted',
 }
+// tslint:disable-line:max-file-line-count
