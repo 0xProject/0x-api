@@ -229,6 +229,9 @@ export class MetaTransactionService {
                 value: protocolFee,
             });
         } catch (err) {
+            // we reach into the underlying revert and throw it instead of
+            // catching it at the MetaTransactionHandler level to provide more
+            // information.
             if (err.values && err.values.errorData && err.values.errorData !== '0x') {
                 const decodedCallData = RevertError.decode(err.values.errorData, false);
                 throw decodedCallData;
