@@ -376,7 +376,7 @@ describe(SUITE_NAME, () => {
                 async () => {
                     const appResponse = await request(app)
                         .get(
-                            `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_RFQT_RESPONSE_DATA.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}&skipValidation=true`,
+                            `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}&skipValidation=true`,
                         )
                         .set('0x-api-key', 'koolApiKey1')
                         .expect(HttpStatus.BAD_REQUEST)
