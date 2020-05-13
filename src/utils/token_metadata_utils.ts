@@ -58,12 +58,8 @@ export function isWETHSymbolOrAddress(tokenAddressOrSymbol: string, chainId: num
  * @param symbolOrAddress the uppercase symbol of the token (ex. `REP`) or the address of the contract
  * @param chainId the Network where the address should be hosted on.
  */
-export function findTokenAddress(symbolOrAddress: string, chainId: ChainId): string {
-    const normalizedSymbolOrAddress = symbolOrAddress.toLowerCase();
-    if (normalizedSymbolOrAddress.startsWith('0x') && normalizedSymbolOrAddress.length === ADDRESS_HEX_LENGTH) {
-        return normalizedSymbolOrAddress;
-    }
-    const entry = getTokenMetadataIfExists(normalizedSymbolOrAddress, chainId);
+export function findTokenAddressOrThrow(symbolOrAddress: string, chainId: ChainId): string {
+    const entry = getTokenMetadataIfExists(symbolOrAddress, chainId);
     if (!entry) {
         // NOTE(jalextowle): Use the original symbol to increase readability.
         throw new Error(`Could not find token \`${symbolOrAddress}\``);
@@ -79,7 +75,7 @@ export function findTokenAddress(symbolOrAddress: string, chainId: ChainId): str
  */
 export function findTokenAddressOrThrowApiError(address: string, field: string, chainId: ChainId): string {
     try {
-        return findTokenAddress(address, chainId);
+        return findTokenAddressOrThrow(address, chainId);
     } catch (e) {
         throw new ValidationError([
             {

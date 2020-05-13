@@ -144,8 +144,11 @@ export class WebsocketService {
         this._requestIdToSubscriptionOpts.clear();
         this._server.close();
         if (this._meshSubscriptionId) {
-            await this._meshClient.unsubscribeAsync(this._meshSubscriptionId);
-            delete this._meshSubscriptionId;
+            try {
+                await this._meshClient.unsubscribeAsync(this._meshSubscriptionId);
+            } finally {
+                delete this._meshSubscriptionId;
+            }
         }
     }
     public orderUpdate(apiOrders: APIOrder[]): void {

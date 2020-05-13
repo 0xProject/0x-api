@@ -32,6 +32,9 @@ let dependencies: AppDependencies;
 // tslint:disable-next-line:custom-no-magic-numbers
 const MAX_UINT256 = new BigNumber(2).pow(256).minus(1);
 const SUITE_NAME = 'rfqt tests';
+const DEFAULT_EXCLUDED_SOURCES = 'Uniswap,Eth2Dai,Kyber,LiquidityProvider';
+const DEFAULT_SELL_AMOUNT = new BigNumber(100000000000000000);
+let DEFAULT_RFQT_RESPONSE_DATA;
 
 describe(SUITE_NAME, () => {
     let contractAddresses: ContractAddresses;
@@ -59,6 +62,19 @@ describe(SUITE_NAME, () => {
         // start the 0x-api app
         dependencies = await getDefaultAppDependenciesAsync(provider, config);
         ({ app, server } = await getAppAsync({ ...dependencies }, config));
+
+        DEFAULT_RFQT_RESPONSE_DATA = {
+            endpoint: 'https://mock-rfqt1.club',
+            responseCode: 200,
+            requestApiKey: 'koolApiKey1',
+            requestParams: {
+                sellToken: contractAddresses.etherToken,
+                buyToken: contractAddresses.zrxToken,
+                sellAmount: DEFAULT_SELL_AMOUNT.toString(),
+                buyAmount: undefined,
+                takerAddress,
+            },
+        };
     });
 
     after(async () => {
@@ -83,35 +99,23 @@ describe(SUITE_NAME, () => {
 
         context('getting a quote from an RFQ-T provider', async () => {
             it('should succeed when taker has balances and amounts', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
                 const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
-                await wethContract.deposit().sendTransactionAsync({ value: sellAmount, from: takerAddress });
+                await wethContract.deposit().sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, sellAmount)
+                    .approve(contractAddresses.erc20Proxy, DEFAULT_SELL_AMOUNT)
                     .sendTransactionAsync({ from: takerAddress });
 
-                const mockedApiParams = {
-                    sellToken: contractAddresses.etherToken,
-                    buyToken: contractAddresses.zrxToken,
-                    sellAmount: sellAmount.toString(),
-                    buyAmount: undefined,
-                    takerAddress,
-                };
                 return rfqtMocker.withMockedRfqtFirmQuotes(
                     [
                         {
-                            endpoint: 'https://mock-rfqt1.club',
+                            ...DEFAULT_RFQT_RESPONSE_DATA,
                             responseData: ganacheZrxWethOrder1,
-                            responseCode: 200,
-                            requestApiKey: 'koolApiKey1',
-                            requestParams: mockedApiParams,
                         },
                     ],
                     async () => {
                         const appResponse = await request(app)
                             .get(
-                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}`,
                             )
                             .set('0x-api-key', 'koolApiKey1')
                             .expect(HttpStatus.OK)
@@ -124,35 +128,23 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should not include an RFQ-T order when intentOnFilling === false', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
                 const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
-                await wethContract.deposit().sendTransactionAsync({ value: sellAmount, from: takerAddress });
+                await wethContract.deposit().sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, sellAmount)
+                    .approve(contractAddresses.erc20Proxy, DEFAULT_SELL_AMOUNT)
                     .sendTransactionAsync({ from: takerAddress });
 
-                const mockedApiParams = {
-                    sellToken: contractAddresses.etherToken,
-                    buyToken: contractAddresses.zrxToken,
-                    sellAmount: sellAmount.toString(),
-                    buyAmount: undefined,
-                    takerAddress,
-                };
                 return rfqtMocker.withMockedRfqtIndicativeQuotes(
                     [
                         {
-                            endpoint: 'https://mock-rfqt1.club',
+                            ...DEFAULT_RFQT_RESPONSE_DATA,
                             responseData: rfqtIndicativeQuoteResponse,
-                            responseCode: 200,
-                            requestApiKey: 'koolApiKey1',
-                            requestParams: mockedApiParams,
                         },
                     ],
                     async () => {
                         const appResponse = await request(app)
                             .get(
-                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=false&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&intentOnFilling=false&excludedSources=${DEFAULT_EXCLUDED_SOURCES}&skipValidation=true`,
                             )
                             .set('0x-api-key', 'koolApiKey1')
                             .expect(HttpStatus.BAD_REQUEST)
@@ -165,35 +157,23 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should not include an RFQ-T order when intentOnFilling is omitted', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
                 const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
-                await wethContract.deposit().sendTransactionAsync({ value: sellAmount, from: takerAddress });
+                await wethContract.deposit().sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, sellAmount)
+                    .approve(contractAddresses.erc20Proxy, DEFAULT_SELL_AMOUNT)
                     .sendTransactionAsync({ from: takerAddress });
 
-                const mockedApiParams = {
-                    sellToken: contractAddresses.etherToken,
-                    buyToken: contractAddresses.zrxToken,
-                    sellAmount: sellAmount.toString(),
-                    buyAmount: undefined,
-                    takerAddress,
-                };
                 return rfqtMocker.withMockedRfqtIndicativeQuotes(
                     [
                         {
-                            endpoint: 'https://mock-rfqt1.club',
+                            ...DEFAULT_RFQT_RESPONSE_DATA,
                             responseData: rfqtIndicativeQuoteResponse,
-                            responseCode: 200,
-                            requestApiKey: 'koolApiKey1',
-                            requestParams: mockedApiParams,
                         },
                     ],
                     async () => {
                         const appResponse = await request(app)
                             .get(
-                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&excludedSources=${DEFAULT_EXCLUDED_SOURCES}&skipValidation=true`,
                             )
                             .set('0x-api-key', 'koolApiKey1')
                             .expect(HttpStatus.BAD_REQUEST)
@@ -206,11 +186,9 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should fail when taker address is not supplied', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
                 const appResponse = await request(app)
                     .get(
-                        `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                        `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}`,
                     )
                     .set('0x-api-key', 'koolApiKey1')
                     .expect(HttpStatus.BAD_REQUEST)
@@ -230,7 +208,7 @@ describe(SUITE_NAME, () => {
 
                 const appResponse = await request(app)
                     .get(
-                        `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&buyAmount=${buyAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                        `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&buyAmount=${buyAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}&skipValidation=true`,
                     )
                     .set('0x-api-key', 'koolApiKey1')
                     .expect(HttpStatus.BAD_REQUEST)
@@ -240,34 +218,22 @@ describe(SUITE_NAME, () => {
                 expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
             });
             it('should succeed when taker can not actually fill but we skip validation', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
                 const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract
                     .approve(contractAddresses.erc20Proxy, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
 
-                const mockedApiParams = {
-                    sellToken: contractAddresses.etherToken,
-                    buyToken: contractAddresses.zrxToken,
-                    sellAmount: sellAmount.toString(),
-                    buyAmount: undefined,
-                    takerAddress,
-                };
                 return rfqtMocker.withMockedRfqtFirmQuotes(
                     [
                         {
-                            endpoint: 'https://mock-rfqt1.club',
+                            ...DEFAULT_RFQT_RESPONSE_DATA,
                             responseData: ganacheZrxWethOrder1,
-                            responseCode: 200,
-                            requestApiKey: 'koolApiKey1',
-                            requestParams: mockedApiParams,
                         },
                     ],
                     async () => {
                         const appResponse = await request(app)
                             .get(
-                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}&skipValidation=true`,
                             )
                             .set('0x-api-key', 'koolApiKey1')
                             .expect(HttpStatus.OK)
@@ -279,10 +245,8 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should fail when bad api key used', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
                 const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
-                await wethContract.deposit().sendTransactionAsync({ value: sellAmount, from: takerAddress });
+                await wethContract.deposit().sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                 await wethContract
                     .approve(contractAddresses.erc20Proxy, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
@@ -290,27 +254,18 @@ describe(SUITE_NAME, () => {
                 // this RFQ-T mock should never actually get hit b/c of the bad api key
                 // but in the case in which the bad api key was _not_ blocked
                 // this would cause the API to respond with RFQ-T liquidity
-                const mockedApiParams = {
-                    sellToken: contractAddresses.etherToken,
-                    buyToken: contractAddresses.zrxToken,
-                    sellAmount: sellAmount.toString(),
-                    buyAmount: undefined,
-                    takerAddress,
-                };
                 return rfqtMocker.withMockedRfqtFirmQuotes(
                     [
                         {
-                            endpoint: 'https://mock-rfqt1.club',
+                            ...DEFAULT_RFQT_RESPONSE_DATA,
                             responseData: ganacheZrxWethOrder1,
-                            responseCode: 200,
                             requestApiKey: 'badApiKey',
-                            requestParams: mockedApiParams,
                         },
                     ],
                     async () => {
                         const appResponse = await request(app)
                             .get(
-                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}&skipValidation=true`,
                             )
                             .set('0x-api-key', 'badApiKey')
                             .expect(HttpStatus.BAD_REQUEST)
@@ -322,34 +277,22 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should fail validation when taker can not actually fill', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
                 const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract
                     .approve(contractAddresses.erc20Proxy, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
 
-                const mockedApiParams = {
-                    sellToken: contractAddresses.etherToken,
-                    buyToken: contractAddresses.zrxToken,
-                    sellAmount: sellAmount.toString(),
-                    buyAmount: undefined,
-                    takerAddress,
-                };
                 return rfqtMocker.withMockedRfqtFirmQuotes(
                     [
                         {
-                            endpoint: 'https://mock-rfqt1.club',
+                            ...DEFAULT_RFQT_RESPONSE_DATA,
                             responseData: ganacheZrxWethOrder1,
-                            responseCode: 200,
-                            requestApiKey: 'koolApiKey1',
-                            requestParams: mockedApiParams,
                         },
                     ],
                     async () => {
                         await request(app)
                             .get(
-                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                                `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}`,
                             )
                             .set('0x-api-key', 'koolApiKey1')
                             .expect(HttpStatus.BAD_REQUEST)
@@ -358,113 +301,43 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should get an indicative quote from an RFQ-T provider', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
-                const mockedApiParams = {
-                    sellToken: contractAddresses.etherToken,
-                    buyToken: contractAddresses.zrxToken,
-                    sellAmount: sellAmount.toString(),
-                    buyAmount: undefined,
-                    takerAddress,
-                };
                 return rfqtMocker.withMockedRfqtIndicativeQuotes(
                     [
                         {
-                            endpoint: 'https://mock-rfqt1.club',
+                            ...DEFAULT_RFQT_RESPONSE_DATA,
                             responseData: rfqtIndicativeQuoteResponse,
-                            responseCode: 200,
-                            requestApiKey: 'koolApiKey1',
-                            requestParams: mockedApiParams,
                         },
                     ],
                     async () => {
                         const appResponse = await request(app)
                             .get(
-                                `${SWAP_PATH}/price?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                                `${SWAP_PATH}/price?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&excludedSources=${DEFAULT_EXCLUDED_SOURCES}`,
                             )
                             .set('0x-api-key', 'koolApiKey1')
                             .expect(HttpStatus.OK)
                             .expect('Content-Type', /json/);
 
                         const responseJson = JSON.parse(appResponse.text);
-                        delete responseJson.gas;
-                        delete responseJson.gasPrice;
-                        delete responseJson.protocolFee;
-                        delete responseJson.value;
-                        expect(responseJson).to.eql({
-                            buyAmount: '100000000000000000',
-                            price: '1',
-                            sellAmount: '100000000000000000',
-                            sources: [
-                                {
-                                    name: '0x',
-                                    proportion: '1',
-                                },
-                                {
-                                    name: 'Uniswap',
-                                    proportion: '0',
-                                },
-                                {
-                                    name: 'Eth2Dai',
-                                    proportion: '0',
-                                },
-                                {
-                                    name: 'Kyber',
-                                    proportion: '0',
-                                },
-                                {
-                                    name: 'Curve_USDC_DAI',
-                                    proportion: '0',
-                                },
-                                {
-                                    name: 'Curve_USDC_DAI_USDT',
-                                    proportion: '0',
-                                },
-                                {
-                                    name: 'Curve_USDC_DAI_USDT_TUSD',
-                                    proportion: '0',
-                                },
-                                {
-                                    name: 'Curve_USDC_DAI_USDT_BUSD',
-                                    proportion: '0',
-                                },
-                                {
-                                    name: 'Curve_USDC_DAI_USDT_SUSD',
-                                    proportion: '0',
-                                },
-                                {
-                                    name: 'LiquidityProvider',
-                                    proportion: '0',
-                                },
-                            ],
-                        });
+                        expect(responseJson.buyAmount).to.equal('100000000000000000');
+                        expect(responseJson.price).to.equal('1');
+                        expect(responseJson.sellAmount).to.equal('100000000000000000');
+                        expect(responseJson.sources).to.deep.include.members([{ name: '0x', proportion: '1' }]);
                     },
                 );
             });
             it('should fail silently when RFQ-T provider gives an error response', async () => {
-                const sellAmount = new BigNumber(100000000000000000);
-
-                const mockedApiParams = {
-                    sellToken: contractAddresses.etherToken,
-                    buyToken: contractAddresses.zrxToken,
-                    sellAmount: sellAmount.toString(),
-                    buyAmount: undefined,
-                    takerAddress,
-                };
                 return rfqtMocker.withMockedRfqtIndicativeQuotes(
                     [
                         {
-                            endpoint: 'https://mock-rfqt1.club',
+                            ...DEFAULT_RFQT_RESPONSE_DATA,
                             responseData: {},
                             responseCode: 500,
-                            requestApiKey: 'koolApiKey1',
-                            requestParams: mockedApiParams,
                         },
                     ],
                     async () => {
                         const appResponse = await request(app)
                             .get(
-                                `${SWAP_PATH}/price?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider`,
+                                `${SWAP_PATH}/price?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&excludedSources=${DEFAULT_EXCLUDED_SOURCES}`,
                             )
                             .set('0x-api-key', 'koolApiKey1')
                             .expect(HttpStatus.BAD_REQUEST)
@@ -488,34 +361,22 @@ describe(SUITE_NAME, () => {
         });
 
         it('should not return order if maker allowances are not set', async () => {
-            const sellAmount = new BigNumber(100000000000000000);
-
             const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
             await wethContract
                 .approve(contractAddresses.erc20Proxy, new BigNumber(0))
                 .sendTransactionAsync({ from: takerAddress });
 
-            const mockedApiParams = {
-                sellToken: contractAddresses.etherToken,
-                buyToken: contractAddresses.zrxToken,
-                sellAmount: sellAmount.toString(),
-                buyAmount: undefined,
-                takerAddress,
-            };
             return rfqtMocker.withMockedRfqtFirmQuotes(
                 [
                     {
-                        endpoint: 'https://mock-rfqt1.club',
+                        ...DEFAULT_RFQT_RESPONSE_DATA,
                         responseData: ganacheZrxWethOrder1,
-                        responseCode: 200,
-                        requestApiKey: 'koolApiKey1',
-                        requestParams: mockedApiParams,
                     },
                 ],
                 async () => {
                     const appResponse = await request(app)
                         .get(
-                            `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${sellAmount.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=Uniswap,Eth2Dai,Kyber,LiquidityProvider&skipValidation=true`,
+                            `${SWAP_PATH}/quote?buyToken=ZRX&sellToken=WETH&sellAmount=${DEFAULT_SELL_AMOUNT.toString()}&takerAddress=${takerAddress}&intentOnFilling=true&excludedSources=${DEFAULT_EXCLUDED_SOURCES}&skipValidation=true`,
                         )
                         .set('0x-api-key', 'koolApiKey1')
                         .expect(HttpStatus.BAD_REQUEST)
