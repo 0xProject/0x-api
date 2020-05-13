@@ -209,6 +209,15 @@ describe(SUITE_NAME, () => {
         });
     });
 
+    describe('/tokens', () => {
+        it('should return a list of known tokens', async () => {
+            const response = await httpGetAsync({ route: `${SWAP_PATH}/tokens` });
+            expect(response.type).to.be.eq('application/json');
+            expect(response.status).to.be.eq(HttpStatus.OK);
+            // tslint:disable-next-line:no-unused-expression
+            expect(response.body.records).to.be.an('array').that.is.not.empty;
+        });
+    });
 });
 
 interface QuoteAssertion {
