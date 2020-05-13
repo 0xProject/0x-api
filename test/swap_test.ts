@@ -146,7 +146,7 @@ describe(SUITE_NAME, () => {
         it('should respect gasPrice', async () => {
             await quoteAndExpectAsync({ sellAmount: '1234', gasPrice: '150000000000' }, { gasPrice: '150000000000' });
         });
-        it('should respect exludedSources', async () => {
+        it('should respect excludedSources', async () => {
             await quoteAndExpectAsync(
                 { sellAmount: '1234', excludedSources: 'Uniswap,Eth2Dai,Kyber,LiquidityProvider,0x' },
                 {
