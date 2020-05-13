@@ -22,6 +22,7 @@ import { TransactionWatcherSignerService } from '../src/services/transaction_wat
 import { TransactionStates } from '../src/types';
 import { MeshClient } from '../src/utils/mesh_client';
 import { utils } from '../src/utils/utils';
+import { MetricsService } from '../src/services/metrics_service';
 
 import { TestMetaTxnUser } from './utils/test_signer';
 
@@ -66,6 +67,7 @@ describe('transaction watcher service', () => {
         const websocketOpts = { path: SRA_PATH };
         const swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
         const meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
+        const metricsService = new MetricsService();
         metaTxnUser = new TestMetaTxnUser();
         ({ app } = await getAppAsync(
             {
@@ -77,6 +79,7 @@ describe('transaction watcher service', () => {
                 swapService,
                 meshClient,
                 websocketOpts,
+                metricsService,
             },
             config,
         ));
@@ -138,6 +141,11 @@ describe('transaction watcher service', () => {
             .then(response => {
                 expect(response.body.hash).to.equal(txHashToRequest);
                 expect(response.body.status).to.equal('aborted');
+            });
+        await request(app)
+            .get('/metrics')
+            .then(response => {
+                console.log(response.text);
             });
     });
 });

@@ -10,6 +10,6 @@ export const createMetricsRouter = (metricsService: MetricsService): express.Rou
      * GET metrics endpoint returns the prometheus metrics stored in the
      * metricsService registry.
      */
-    router.get('/metrics', handlers.servePrometheusMetrics.bind(handlers));
+    router.get('/', handlers.servePrometheusMetrics.bind(handlers));
     return router;
 };
