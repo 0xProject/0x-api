@@ -2,13 +2,20 @@ import { RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, intervalUtils, providerUtils } from '@0x/utils';
 import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
+import { Counter, Gauge, Summary } from 'prom-client';
 import { Connection, Not, Repository } from 'typeorm';
 
-import { ETHEREUM_RPC_URL, META_TXN_RELAY_EXPECTED_MINED_SEC, META_TXN_RELAY_PRIVATE_KEYS } from '../config';
+import {
+    ENABLE_PROMETHEUS_METRICS,
+    ETHEREUM_RPC_URL,
+    META_TXN_RELAY_EXPECTED_MINED_SEC,
+    META_TXN_RELAY_PRIVATE_KEYS,
+} from '../config';
 import {
     NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
     TX_WATCHER_POLLING_INTERVAL_MS,
+    TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
     UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
 } from '../constants';
 import { TransactionEntity } from '../entities';
@@ -17,6 +24,9 @@ import { TransactionStates } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { Signer } from '../utils/signer';
 
+const SIGNER_ADDRESS_LABEL = 'signer_address';
+const TRANSACTION_STATUS_LABEL = 'status';
+
 export class TransactionWatcherSignerService {
     private readonly _transactionRepository: Repository<TransactionEntity>;
     private readonly _provider: SupportedProvider;
@@ -24,6 +34,10 @@ export class TransactionWatcherSignerService {
     private readonly _transactionWatcherTimer: NodeJS.Timer;
     private readonly _signers: Map<string, Signer>;
     private readonly _availableSignerPublicAddresses: string[];
+    private readonly _metricsUpdateTimer: NodeJS.Timer;
+    private readonly _signerBalancesGauge: Gauge<string>;
+    private readonly _transactionsUpdateCounter: Counter<string>;
+    private readonly _gasPriceSummary: Summary<string>;
 
     private static _createWeb3Provider(rpcHost: string): SupportedProvider {
         const providerEngine = new Web3ProviderEngine();
@@ -54,9 +68,41 @@ export class TransactionWatcherSignerService {
                 });
             },
         );
+        // Metric collection related fields
+        this._signerBalancesGauge = new Gauge({
+            name: 'signer_eth_balance_sum',
+            help: 'Available ETH Balance of a signer',
+            labelNames: [SIGNER_ADDRESS_LABEL],
+        });
+        this._transactionsUpdateCounter = new Counter({
+            name: 'signer_transactions_count',
+            help: 'Number of transactions updates of a signer by status',
+            labelNames: [SIGNER_ADDRESS_LABEL, TRANSACTION_STATUS_LABEL],
+        });
+        this._gasPriceSummary = new Summary({
+            name: 'signer_gas_price_sum',
+            help: 'Observed gas prices by the signer in gwei',
+            labelNames: [SIGNER_ADDRESS_LABEL],
+        });
+        if (ENABLE_PROMETHEUS_METRICS) {
+            this._metricsUpdateTimer = intervalUtils.setAsyncExcludingInterval(
+                async () => {
+                    logger.trace('updating metrics');
+                    await this._updateSignerBalancesAsync();
+                },
+                TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
+                (err: Error) => {
+                    logger.error({
+                        message: `transaction watcher failed to update metrics: ${JSON.stringify(err)}`,
+                        err: err.stack,
+                    });
+                },
+            );
+        }
     }
     public stop(): void {
         intervalUtils.clearAsyncExcludingInterval(this._transactionWatcherTimer);
+        intervalUtils.clearAsyncExcludingInterval(this._metricsUpdateTimer);
     }
     public async syncTransactionStatusAsync(): Promise<void> {
         try {
@@ -100,6 +146,12 @@ export class TransactionWatcherSignerService {
         txEntity.signedTx = signedEthereumTransaction;
         txEntity.nonce = web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce);
         txEntity.from = ethereumTxnParams.from;
+        this._gasPriceSummary.observe(
+            { signer_address: txEntity.from },
+            // tslint:disable-next-line:custom-no-magic-numbers
+            Web3Wrapper.toUnitAmount(txEntity.gasPrice, 9).toNumber(),
+        );
+        this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
         await this._transactionRepository.save(txEntity);
     }
     private async _syncBroadcastedTransactionStatusAsync(): Promise<void> {
@@ -129,21 +181,27 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
                     txEntity.blockNumber = txInBlockchain.blockNumber;
                     await this._transactionRepository.save(txEntity);
+                    this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
                     await this._abortTransactionsWithTheSameNonceAsync(txEntity);
                     return txEntity;
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
+                    this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
                     return this._transactionRepository.save(txEntity);
                 } else if (isExpired) {
                     // NOTE(oskar): we currently cancel all transactions that are in the
@@ -151,6 +209,7 @@ export class TransactionWatcherSignerService {
                     // transactions one by one and observing if they unstick the
                     // subsequent transactions.
                     txEntity.status = TransactionStates.Stuck;
+                    this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
                     return this._transactionRepository.save(txEntity);
                 }
             }
@@ -163,6 +222,7 @@ export class TransactionWatcherSignerService {
                 // is fixed.
                 if (isExpired) {
                     txEntity.status = TransactionStates.Dropped;
+                    this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
                     return this._transactionRepository.save(txEntity);
                 }
             } else {
@@ -183,6 +243,7 @@ export class TransactionWatcherSignerService {
         });
         for (const tx of transactionsToAbort) {
             tx.status = TransactionStates.Aborted;
+            this._transactionsUpdateCounter.inc({ signer_address: tx.from, status: tx.status }, 1);
             await this._transactionRepository.save(tx);
         }
 
@@ -323,6 +384,7 @@ export class TransactionWatcherSignerService {
                 // the node, we change its status to submitted and see whether
                 // or not it will appear again.
                 tx.status = TransactionStates.Submitted;
+                this._transactionsUpdateCounter.inc({ signer_address: tx.from, status: tx.status }, 1);
                 await this._transactionRepository.save(tx);
                 continue;
             }
@@ -332,6 +394,7 @@ export class TransactionWatcherSignerService {
                 // an ethereum node.
                 tx.status = TransactionStates.Mempool;
                 tx.blockNumber = undefined;
+                this._transactionsUpdateCounter.inc({ signer_address: tx.from, status: tx.status }, 1);
                 await this._transactionRepository.save(tx);
                 continue;
             } else {
@@ -345,9 +408,20 @@ export class TransactionWatcherSignerService {
                 }
                 if (tx.blockNumber + NUMBER_OF_BLOCKS_UNTIL_CONFIRMED < latestBlockNumber) {
                     tx.status = TransactionStates.Confirmed;
+                    this._transactionsUpdateCounter.inc({ signer_address: tx.from, status: tx.status }, 1);
                     await this._transactionRepository.save(tx);
                 }
             }
+        }
+    }
+    private async _updateSignerBalancesAsync(): Promise<void> {
+        for (const signerAddress of this._availableSignerPublicAddresses) {
+            const signerBalance = await this._web3Wrapper.getBalanceInWeiAsync(signerAddress);
+            this._signerBalancesGauge.set(
+                { signer_address: signerAddress },
+                // tslint:disable-next-line:custom-no-magic-numbers
+                Web3Wrapper.toUnitAmount(signerBalance, 18).toNumber(),
+            );
         }
     }
 }
