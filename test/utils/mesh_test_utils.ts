@@ -89,9 +89,7 @@ export class MeshTestUtils {
         // this logic may need to be added to `addOrdersAsync`.
         const maxAllowance = MAX_ALLOWANCE_AMOUNT;
         const maxMintAmount = MAX_MINT_AMOUNT;
-        await this._zrxToken
-            .mint(maxMintAmount)
-            .awaitTransactionSuccessAsync({ from: this._makerAddress });
+        await this._zrxToken.mint(maxMintAmount).awaitTransactionSuccessAsync({ from: this._makerAddress });
         await this._zrxToken
             .approve(this._contractAddresses.erc20Proxy, maxAllowance)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });

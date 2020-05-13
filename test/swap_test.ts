@@ -12,7 +12,15 @@ import { ValidationErrorItem } from '../src/errors';
 import { logger } from '../src/logger';
 import { GetSwapQuoteResponse } from '../src/types';
 
-import { CONTRACT_ADDRESSES, MAX_MINT_AMOUNT, SYMBOL_TO_ADDRESS, WETH_ASSET_DATA, WETH_TOKEN_ADDRESS, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
+import {
+    CONTRACT_ADDRESSES,
+    MAX_MINT_AMOUNT,
+    SYMBOL_TO_ADDRESS,
+    WETH_ASSET_DATA,
+    WETH_TOKEN_ADDRESS,
+    ZRX_ASSET_DATA,
+    ZRX_TOKEN_ADDRESS,
+} from './constants';
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
 import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
@@ -92,16 +100,19 @@ describe(SUITE_NAME, () => {
         await teardownApiAsync(SUITE_NAME);
     });
     describe('/quote', () => {
-
         it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
-            await quoteAndExpectAsync({ buyAmount: '10000000000000000000000000000000' }, {
-                validationErrors: [
-                    {
-                        code: 1004,
-                        field: 'buyAmount',
-                        reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
-                    },
-            ]});
+            await quoteAndExpectAsync(
+                { buyAmount: '10000000000000000000000000000000' },
+                {
+                    validationErrors: [
+                        {
+                            code: 1004,
+                            field: 'buyAmount',
+                            reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
+                        },
+                    ],
+                },
+            );
         });
 
         describe(`valid token parameter permutations`, async () => {
@@ -115,8 +126,12 @@ describe(SUITE_NAME, () => {
                 it(`should return a valid quote with ${JSON.stringify(parameters)}`, async () => {
                     await quoteAndExpectAsync(parameters, {
                         buyAmount: parameters.buyAmount,
-                        sellTokenAddress: parameters.sellToken.startsWith('0x') ? parameters.sellToken : SYMBOL_TO_ADDRESS[parameters.sellToken],
-                        buyTokenAddress: parameters.buyToken.startsWith('0x') ? parameters.buyToken : SYMBOL_TO_ADDRESS[parameters.buyToken],
+                        sellTokenAddress: parameters.sellToken.startsWith('0x')
+                            ? parameters.sellToken
+                            : SYMBOL_TO_ADDRESS[parameters.sellToken],
+                        buyTokenAddress: parameters.buyToken.startsWith('0x')
+                            ? parameters.buyToken
+                            : SYMBOL_TO_ADDRESS[parameters.buyToken],
                     });
                 });
             }
@@ -132,14 +147,18 @@ describe(SUITE_NAME, () => {
             await quoteAndExpectAsync({ sellAmount: '1234', gasPrice: '150000000000' }, { gasPrice: '150000000000' });
         });
         it('should respect exludedSources', async () => {
-            await quoteAndExpectAsync({ sellAmount: '1234', excludedSources: 'Uniswap,Eth2Dai,Kyber,LiquidityProvider,0x'}, {
-                validationErrors: [
-                    {
-                        code: 1004,
-                        field: 'sellAmount',
-                        reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
-                    },
-                ]});
+            await quoteAndExpectAsync(
+                { sellAmount: '1234', excludedSources: 'Uniswap,Eth2Dai,Kyber,LiquidityProvider,0x' },
+                {
+                    validationErrors: [
+                        {
+                            code: 1004,
+                            field: 'sellAmount',
+                            reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
+                        },
+                    ],
+                },
+            );
         });
         it('should return a Forwarder transaction for sellToken=ETH', async () => {
             await quoteAndExpectAsync(
@@ -232,7 +251,10 @@ interface QuoteAssertion {
     revertErrorReason: string;
 }
 
-async function quoteAndExpectAsync(queryParams: ObjectMap<string>, quoteAssertions: Partial<QuoteAssertion>): Promise<void> {
+async function quoteAndExpectAsync(
+    queryParams: ObjectMap<string>,
+    quoteAssertions: Partial<QuoteAssertion>,
+): Promise<void> {
     const route = constructRoute({
         baseRoute: `${SWAP_PATH}/quote`,
         queryParams: {
