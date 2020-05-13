@@ -17,6 +17,7 @@ import { TransactionWatcherSignerService } from './services/transaction_watcher_
 import { WebsocketSRAOpts } from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
+import { MetricsService } from './services/metrics_service';
 
 export interface AppDependencies {
     connection: Connection;
@@ -28,6 +29,7 @@ export interface AppDependencies {
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
     transactionWatcherService?: TransactionWatcherSignerService;
+    metricsService?: MetricsService;
 }
 
 /**
@@ -42,6 +44,7 @@ export async function getDefaultAppDependenciesAsync(
         // not providing a websocket URI
         MESH_WEBSOCKET_URI?: string;
         MESH_HTTP_URI?: string;
+        ENABLE_PROMETHEUS_METRICS: boolean;
     },
 ): Promise<AppDependencies> {
     const connection = await getDBConnectionAsync();
@@ -52,6 +55,10 @@ export async function getDefaultAppDependenciesAsync(
         meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
     } else {
         logger.warn(`Skipping Mesh client creation because no URI provided`);
+    }
+    let metricsService: MetricsService | undefined;
+    if (config.ENABLE_PROMETHEUS_METRICS) {
+        metricsService = new MetricsService();
     }
 
     const orderBookService = new OrderBookService(connection, meshClient);
@@ -76,6 +83,7 @@ export async function getDefaultAppDependenciesAsync(
         metaTransactionService,
         provider,
         websocketOpts,
+        metricsService,
     };
 }
 /**
@@ -89,10 +97,12 @@ export async function getDefaultAppDependenciesAsync(
 export async function getAppAsync(
     dependencies: AppDependencies,
     config: {
-        HTTP_PORT: string;
+        HTTP_PORT: number;
         ETHEREUM_RPC_URL: string;
         HTTP_KEEP_ALIVE_TIMEOUT: number;
         HTTP_HEADERS_TIMEOUT: number;
+        ENABLE_PROMETHEUS_METRICS: boolean;
+        PROMETHEUS_PORT: number;
     },
 ): Promise<{ app: Express.Application; server: Server }> {
     const app = express();

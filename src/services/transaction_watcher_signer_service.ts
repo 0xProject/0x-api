@@ -416,6 +416,7 @@ export class TransactionWatcherSignerService {
     }
     private async _updateSignerBalancesAsync(): Promise<void> {
         for (const signerAddress of this._availableSignerPublicAddresses) {
+            // TODO(oskar) - use contract to grab all balances in a single RPC call?
             const signerBalance = await this._web3Wrapper.getBalanceInWeiAsync(signerAddress);
             this._signerBalancesGauge.set(
                 { signer_address: signerAddress },

@@ -7,7 +7,7 @@ import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import * as defaultConfig from '../config';
-import { META_TRANSACTION_PATH, SRA_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
+import { META_TRANSACTION_PATH, SRA_PATH, STAKING_PATH, SWAP_PATH, METRICS_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
@@ -19,6 +19,7 @@ import { createStakingRouter } from '../routers/staking_router';
 import { createSwapRouter } from '../routers/swap_router';
 import { WebsocketService } from '../services/websocket_service';
 import { providerUtils } from '../utils/provider_utils';
+import { createMetricsRouter } from '../routers/metrics_router';
 
 /**
  * http_service_runner hosts endpoints for staking, sra, swap and meta-txns (minus the /submit endpoint)
@@ -57,7 +58,12 @@ export interface HttpServices {
  */
 export async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    config: { HTTP_PORT: string; HTTP_KEEP_ALIVE_TIMEOUT: number; HTTP_HEADERS_TIMEOUT: number },
+    config: {
+        HTTP_PORT: number;
+        HTTP_KEEP_ALIVE_TIMEOUT: number;
+        HTTP_HEADERS_TIMEOUT: number;
+        PROMETHEUS_PORT: number;
+    },
     _app?: core.Express,
 ): Promise<HttpServices> {
     const app = _app || express();
@@ -96,6 +102,14 @@ export async function runHttpServiceAsync(
         app.use(SWAP_PATH, createSwapRouter(dependencies.swapService));
     } else {
         logger.error(`API running without swap service`);
+    }
+    if (dependencies.metricsService) {
+        const metricsRouter = createMetricsRouter(dependencies.metricsService);
+        if (config.PROMETHEUS_PORT === config.HTTP_PORT) {
+            app.use(METRICS_PATH, metricsRouter);
+        } else {
+            app.use(METRICS_PATH, metricsRouter);
+        }
     }
 
     app.use(errorHandler);
