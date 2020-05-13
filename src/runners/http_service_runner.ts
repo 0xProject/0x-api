@@ -106,9 +106,19 @@ export async function runHttpServiceAsync(
     if (dependencies.metricsService) {
         const metricsRouter = createMetricsRouter(dependencies.metricsService);
         if (config.PROMETHEUS_PORT === config.HTTP_PORT) {
+            // if the target prometheus port is the same as the base app port,
+            // we just add the router to latter.
             app.use(METRICS_PATH, metricsRouter);
         } else {
-            app.use(METRICS_PATH, metricsRouter);
+            // otherwise we create a separate server for metrics.
+            const metricsApp = express();
+            metricsApp.use(METRICS_PATH, metricsRouter);
+            const metricsServer = metricsApp.listen(config.PROMETHEUS_PORT, () => {
+                logger.info(`Metrics (HTTP) listening on port ${defaultConfig.PROMETHEUS_PORT}`);
+            });
+            metricsServer.on('error', err => {
+                logger.error(err);
+            });
         }
     }
 
