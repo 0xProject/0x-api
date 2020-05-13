@@ -1,8 +1,5 @@
-import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
-import { assetDataUtils } from '@0x/order-utils';
 import { ObjectMap, SignedOrder } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
@@ -11,14 +8,14 @@ import 'mocha';
 
 import * as config from '../src/config';
 import { SWAP_PATH } from '../src/constants';
-import { RevertReasonErrorBody, ValidationErrorItem } from '../src/errors';
+import { ValidationErrorItem } from '../src/errors';
 import { logger } from '../src/logger';
 import { GetSwapQuoteResponse } from '../src/types';
 
-import { MAX_MINT_AMOUNT, SYMBOL_TO_ADDRESS, WETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_TOKEN_ADDRESS, ZRX_ASSET_DATA, CONTRACT_ADDRESSES } from './constants';
+import { CONTRACT_ADDRESSES, MAX_MINT_AMOUNT, SYMBOL_TO_ADDRESS, WETH_ASSET_DATA, WETH_TOKEN_ADDRESS, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
-import { DEFAULT_MAKER_ASSET_AMOUNT, MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
+import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = '/swap';
 
@@ -31,17 +28,13 @@ const DEFAULT_QUERY_PARAMS = {
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
 describe(SUITE_NAME, () => {
+    let meshUtils: MeshTestUtils;
     let accounts: string[];
-    let chainId: number;
-    let contractAddresses: ContractAddresses;
     let takerAddress: string;
     let makerAddress: string;
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
-
-    let weth: WETH9Contract;
-    let zrx: DummyERC20TokenContract;
 
     before(async () => {
         await setupApiAsync(SUITE_NAME);
@@ -59,57 +52,46 @@ describe(SUITE_NAME, () => {
         accounts = await web3Wrapper.getAvailableAddressesAsync();
         [makerAddress, takerAddress] = accounts;
 
-        chainId = await web3Wrapper.getChainIdAsync();
-        contractAddresses = getContractAddressesForChainOrThrow(chainId);
-
-        weth = new WETH9Contract(contractAddresses.etherToken, provider);
-        zrx = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
+        // Set up liquidity.
+        await blockchainLifecycle.startAsync();
+        await setupMeshAsync(SUITE_NAME);
+        meshUtils = new MeshTestUtils(provider);
+        await meshUtils.setupUtilsAsync();
+        await meshUtils.addPartialOrdersAsync([
+            {
+                makerAssetData: ZRX_ASSET_DATA,
+                takerAssetData: WETH_ASSET_DATA,
+                makerAssetAmount: ONE_THOUSAND_IN_BASE,
+                takerAssetAmount: ONE_THOUSAND_IN_BASE,
+            },
+            {
+                makerAssetData: ZRX_ASSET_DATA,
+                takerAssetData: WETH_ASSET_DATA,
+                makerAssetAmount: ONE_THOUSAND_IN_BASE,
+                // tslint:disable:custom-no-magic-numbers
+                takerAssetAmount: ONE_THOUSAND_IN_BASE.multipliedBy(2),
+            },
+            {
+                makerAssetData: ZRX_ASSET_DATA,
+                takerAssetData: WETH_ASSET_DATA,
+                makerAssetAmount: MAX_MINT_AMOUNT,
+                // tslint:disable:custom-no-magic-numbers
+                takerAssetAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+            },
+            {
+                makerAssetData: WETH_ASSET_DATA,
+                takerAssetData: ZRX_ASSET_DATA,
+                makerAssetAmount: MAKER_WETH_AMOUNT,
+                takerAssetAmount: ONE_THOUSAND_IN_BASE,
+            },
+        ]);
     });
     after(async () => {
+        await blockchainLifecycle.revertAsync();
+        await teardownMeshAsync(SUITE_NAME);
         await teardownApiAsync(SUITE_NAME);
     });
     describe('/quote', () => {
-        let meshUtils: MeshTestUtils;
-
-        before(async () => {
-            await blockchainLifecycle.startAsync();
-            await setupMeshAsync(SUITE_NAME);
-            meshUtils = new MeshTestUtils(provider);
-            await meshUtils.setupUtilsAsync();
-            await meshUtils.addPartialOrdersAsync([
-                {
-                    makerAssetData: ZRX_ASSET_DATA,
-                    takerAssetData: WETH_ASSET_DATA,
-                    makerAssetAmount: ONE_THOUSAND_IN_BASE,
-                    takerAssetAmount: ONE_THOUSAND_IN_BASE,
-                },
-                {
-                    makerAssetData: ZRX_ASSET_DATA,
-                    takerAssetData: WETH_ASSET_DATA,
-                    makerAssetAmount: ONE_THOUSAND_IN_BASE,
-                    // tslint:disable:custom-no-magic-numbers
-                    takerAssetAmount: ONE_THOUSAND_IN_BASE.multipliedBy(2),
-                },
-                {
-                    makerAssetData: ZRX_ASSET_DATA,
-                    takerAssetData: WETH_ASSET_DATA,
-                    makerAssetAmount: MAX_MINT_AMOUNT,
-                    // tslint:disable:custom-no-magic-numbers
-                    takerAssetAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
-                },
-                {
-                    makerAssetData: WETH_ASSET_DATA,
-                    takerAssetData: ZRX_ASSET_DATA,
-                    makerAssetAmount: MAKER_WETH_AMOUNT,
-                    takerAssetAmount: ONE_THOUSAND_IN_BASE,
-                },
-            ]);
-        });
-
-        after(async () => {
-            await blockchainLifecycle.revertAsync();
-            await teardownMeshAsync(SUITE_NAME);
-        });
 
         it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
             await quoteAndExpectAsync({ buyAmount: '10000000000000000000000000000000' }, {
@@ -216,6 +198,22 @@ describe(SUITE_NAME, () => {
             expect(response.status).to.be.eq(HttpStatus.OK);
             // tslint:disable-next-line:no-unused-expression
             expect(response.body.records).to.be.an('array').that.is.not.empty;
+        });
+    });
+
+    describe('/prices', () => {
+        it('should return accurate pricing', async () => {
+            // Defaults to WETH.
+            const response = await httpGetAsync({ route: `${SWAP_PATH}/prices` });
+            expect(response.type).to.be.eq('application/json');
+            expect(response.status).to.be.eq(HttpStatus.OK);
+            expect(response.body.records[0].price).to.be.eq('0.3');
+        });
+        it('should respect the sellToken parameter', async () => {
+            const response = await httpGetAsync({ route: `${SWAP_PATH}/prices?sellToken=ZRX` });
+            expect(response.type).to.be.eq('application/json');
+            expect(response.status).to.be.eq(HttpStatus.OK);
+            expect(response.body.records[0].price).to.be.eq('1000');
         });
     });
 });
