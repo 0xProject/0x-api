@@ -213,7 +213,7 @@ describe.only(SUITE_NAME, () => {
         afterEach(async () => {
             blockchainLifecycle.revertAsync();
         });
-        it('should return 201 on success', async () => {
+        it('should return HTTP OK on success', async () => {
             const order = await orderFactory.newSignedOrderAsync({
                 expirationTimeSeconds: TOMORROW,
             });
@@ -226,7 +226,7 @@ describe.only(SUITE_NAME, () => {
                     ...order,
                 },
             });
-            expect(response.status).to.eq(HttpStatus.CREATED);
+            expect(response.status).to.eq(HttpStatus.OK);
             const meshOrders = await meshUtils.getOrdersAsync();
             expect(meshOrders.ordersInfos.find(info => info.orderHash === orderHash)).to.not.be.undefined();
         });
