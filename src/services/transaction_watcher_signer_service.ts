@@ -10,6 +10,7 @@ import {
     ONE_SECOND_MS,
     TX_WATCHER_POLLING_INTERVAL_MS,
     UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
+    TX_HASH_RESPONSE_WAIT_TIME_MS,
 } from '../constants';
 import { TransactionEntity } from '../entities';
 import { logger } from '../logger';
@@ -63,7 +64,7 @@ export class TransactionWatcherSignerService {
             await this._signAndBroadcastTransactionsAsync();
         } catch (err) {
             logger.error({
-                message: `failed to sign and broadcast transacitons`,
+                message: `failed to sign and broadcast transactions: ${JSON.stringify(err)}`,
                 stack: err.stack,
             });
         }
@@ -129,7 +130,9 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
@@ -140,7 +143,9 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -198,8 +203,29 @@ export class TransactionWatcherSignerService {
         });
         logger.trace(`found ${unsignedTransactions.length} transactions to sign and broadcast`);
         for (const tx of unsignedTransactions) {
-            const signer = await this._getNextSignerAsync();
-            await this._signAndBroadcastMetaTxAsync(tx, signer);
+            // TODO(oskar) - refactor out
+            const now = new Date();
+            if (new Date(tx.createdAt.getTime() + TX_HASH_RESPONSE_WAIT_TIME_MS) > now) {
+                logger.error({
+                    message: `found a transaction in an unsubmitted state waiting longer that ${TX_HASH_RESPONSE_WAIT_TIME_MS}ms`,
+                    refHash: tx.refHash,
+                    from: tx.from,
+                });
+                tx.status = TransactionStates.Cancelled;
+                await this._transactionRepository.save(tx);
+                continue;
+            }
+            try {
+                const signer = await this._getNextSignerAsync();
+                await this._signAndBroadcastMetaTxAsync(tx, signer);
+            } catch (err) {
+                logger.error({
+                    message: `failed to sign and broadcast transaction ${JSON.stringify(err)}`,
+                    stack: err.stack,
+                    refHash: tx.refHash,
+                    from: tx.from,
+                });
+            }
         }
     }
     private _getSignerByPublicAddressOrThrow(publicAddress: string): Signer {
