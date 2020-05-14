@@ -201,7 +201,7 @@ export class TransactionWatcherSignerService {
         for (const tx of unsignedTransactions) {
             // TODO(oskar) - refactor out
             const now = new Date();
-            if (new Date(tx.createdAt.getTime() + TX_HASH_RESPONSE_WAIT_TIME_MS) > now) {
+            if (new Date(tx.createdAt.getTime() + TX_HASH_RESPONSE_WAIT_TIME_MS) < now) {
                 logger.error({
                     message: `found a transaction in an unsubmitted state waiting longer that ${TX_HASH_RESPONSE_WAIT_TIME_MS}ms`,
                     refHash: tx.refHash,
