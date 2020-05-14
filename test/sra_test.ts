@@ -16,7 +16,7 @@ import { APIOrderWithMetaData } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
 
 import { setupApiAsync, teardownApiAsync } from './utils/deployment';
-import { httpGetAsync, httpPostAsync } from './utils/http_utils';
+import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'Standard Relayer API (SRA) tests';
@@ -201,7 +201,7 @@ describe.only(SUITE_NAME, () => {
             expect(response.status).to.deep.eq(HttpStatus.NOT_FOUND);
         });
     });
-    describe.only('POST /order', () => {
+    describe('POST /order', () => {
         let meshUtils: MeshTestUtils;
         before(async () => {
             meshUtils = new MeshTestUtils(provider);
@@ -230,7 +230,6 @@ describe.only(SUITE_NAME, () => {
             const meshOrders = await meshUtils.getOrdersAsync();
             expect(meshOrders.ordersInfos.find(info => info.orderHash === orderHash)).to.not.be.undefined();
         });
-        it('should return an informative error message');
     });
     describe('GET /asset_pairs', () => {
         it('should respond to GET request', async () => {
@@ -245,7 +244,70 @@ describe.only(SUITE_NAME, () => {
         });
     });
     describe('GET /orderbook', () => {
-        it('should return orderbook for a given pair');
+        it('should return orderbook for a given pair', async () => {
+            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const response = await httpGetAsync({
+                route: constructRoute({
+                    baseRoute: `${SRA_PATH}/orderbook`,
+                    queryParams: {
+                        baseAssetData: apiOrder.order.makerAssetData,
+                        quoteAssetData: apiOrder.order.takerAssetData,
+                    },
+                }),
+            });
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+
+            const expectedResponse = {
+                bids: EMPTY_PAGINATED_RESPONSE,
+                asks: {
+                    ...EMPTY_PAGINATED_RESPONSE,
+                    total: 1,
+                    records: [JSON.parse(JSON.stringify(apiOrder))],
+                },
+            };
+            expect(response.body).to.deep.eq(expectedResponse);
+        });
+        it('should return empty response if no matching orders', async () => {
+            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const response = await httpGetAsync({
+                route: constructRoute({
+                    baseRoute: `${SRA_PATH}/orderbook`,
+                    queryParams: { baseAssetData: apiOrder.order.makerAssetData, quoteAssetData: NULL_ADDRESS },
+                }),
+            });
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+            expect(response.body).to.deep.eq({
+                bids: EMPTY_PAGINATED_RESPONSE,
+                asks: EMPTY_PAGINATED_RESPONSE,
+            });
+        });
+        it('should return validation error if query params are missing', async () => {
+            const response = await httpGetAsync({ route: `${SRA_PATH}/orderbook?quoteAssetData=WETH` });
+            const validationErrors = {
+                code: 100,
+                reason: 'Validation Failed',
+                validationErrors: [
+                    {
+                        field: 'quoteAssetData',
+                        code: 1001,
+                        reason: 'does not match pattern "^0x(([0-9a-f][0-9a-f])+)?$"',
+                    },
+                    {
+                        field: 'baseAssetData',
+                        code: 1000,
+                        reason: 'requires property "baseAssetData"',
+                    },
+                ],
+            };
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
+            expect(response.body).to.deep.eq(validationErrors);
+        });
     });
     describe('POST /order_config', () => {
         it('should return 200 on success', async () => {
