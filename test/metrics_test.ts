@@ -8,6 +8,7 @@ import * as request from 'supertest';
 
 import { createMetricsRouter } from '../src/routers/metrics_router';
 import { MetricsService } from '../src/services/metrics_service';
+import { METRICS_PATH } from '../src/constants';
 
 const SUITE_NAME = 'metrics tests';
 const metricsPath = '/metrics';
@@ -25,12 +26,12 @@ const expectMetric = async (testApp: core.Express, metricName: string, value?: s
         });
 };
 
-describe(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     before(async () => {
         app = express();
         const metricsService = new MetricsService();
         const metricsRouter = createMetricsRouter(metricsService);
-        app.use(metricsRouter);
+        app.use(METRICS_PATH, metricsRouter);
     });
     describe(metricsPath, () => {
         it('returns default prometheus metrics', async () => {
