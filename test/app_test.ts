@@ -188,7 +188,7 @@ describe(SUITE_NAME, () => {
                         ...orderFixture,
                     })
                     .then(response => {
-                        expect(response.body).to.not.be.undefined();
+                        expect(response.body).to.not.be.undefined(); // TODO
                     });
             });
             it('should return an informative error message');
