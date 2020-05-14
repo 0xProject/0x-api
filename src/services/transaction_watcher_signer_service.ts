@@ -63,7 +63,7 @@ export class TransactionWatcherSignerService {
             await this._signAndBroadcastTransactionsAsync();
         } catch (err) {
             logger.error({
-                message: `failed to sign and broadcast transacitons`,
+                message: `failed to sign and broadcast transactions: ${err.message}`,
                 stack: err.stack,
             });
         }
