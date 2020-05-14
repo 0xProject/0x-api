@@ -8,9 +8,9 @@ import { ETHEREUM_RPC_URL, META_TXN_RELAY_EXPECTED_MINED_SEC, META_TXN_RELAY_PRI
 import {
     NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
+    TX_HASH_RESPONSE_WAIT_TIME_MS,
     TX_WATCHER_POLLING_INTERVAL_MS,
     UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
-    TX_HASH_RESPONSE_WAIT_TIME_MS,
 } from '../constants';
 import { TransactionEntity } from '../entities';
 import { logger } from '../logger';
@@ -130,9 +130,7 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
@@ -143,9 +141,7 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
