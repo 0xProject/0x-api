@@ -14,6 +14,7 @@ import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { CHAIN_ID } from '../config';
 import { ETH_TRANSFER_GAS_LIMIT } from '../constants';
 import { ZeroExTransactionWithoutDomain } from '../types';
+import { logger } from '../logger';
 
 export class Signer {
     public readonly publicAddress: string;
@@ -72,6 +73,12 @@ export class Signer {
             signature,
             protocolFee,
         );
+        logger.info({
+            message: `attempting to sign and broadcast a meta transaction`,
+            nonce: ethereumTxnParams.nonce,
+            from: ethereumTxnParams.from,
+            gasPrice: ethereumTxnParams.gasPrice,
+        });
         const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxnParams);
         const ethereumTransactionHash = await this._contractWrappers.exchange
             .executeTransaction(zeroExTransaction, signature)
@@ -83,7 +90,11 @@ export class Signer {
                 },
                 { shouldValidate: false },
             );
-
+        logger.info({
+            message: 'signed and broadcasted a meta transaction',
+            txHash: ethereumTransactionHash,
+            from: ethereumTxnParams.from,
+        });
         return { ethereumTxnParams, ethereumTransactionHash, signedEthereumTransaction };
     }
 

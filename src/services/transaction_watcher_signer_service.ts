@@ -34,10 +34,8 @@ export class TransactionWatcherSignerService {
     }
     private static _isUnsubmittedTxExpired(tx: TransactionEntity): boolean {
         const now = new Date();
-        return (
-            tx.status === TransactionStates.Unsubmitted &&
-            now > new Date(tx.createdAt.getTime() + TX_HASH_RESPONSE_WAIT_TIME_MS)
-        );
+        const shouldBeSubmittedBy = new Date(tx.createdAt.getTime() + TX_HASH_RESPONSE_WAIT_TIME_MS);
+        return tx.status === TransactionStates.Unsubmitted && now > shouldBeSubmittedBy;
     }
     constructor(dbConnection: Connection) {
         this._provider = TransactionWatcherSignerService._createWeb3Provider(ETHEREUM_RPC_URL);
