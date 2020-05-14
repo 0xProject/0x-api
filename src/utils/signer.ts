@@ -157,6 +157,7 @@ export class Signer {
             method: 'eth_getTransactionCount',
             params: [address, 'pending'],
         });
+        logger.info({ message: 'received nonce from eth_getTransactionCount', nonceHex });
         return nonceHex;
     }
 }
