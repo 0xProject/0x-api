@@ -6,9 +6,9 @@ import 'mocha';
 import { Counter } from 'prom-client';
 import * as request from 'supertest';
 
+import { METRICS_PATH } from '../src/constants';
 import { createMetricsRouter } from '../src/routers/metrics_router';
 import { MetricsService } from '../src/services/metrics_service';
-import { METRICS_PATH } from '../src/constants';
 
 const SUITE_NAME = 'metrics tests';
 const metricsPath = '/metrics';
