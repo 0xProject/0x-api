@@ -1,5 +1,6 @@
 import { expect } from '@0x/contracts-test-utils';
 import * as express from 'express';
+// tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
 import 'mocha';
 import { Counter } from 'prom-client';

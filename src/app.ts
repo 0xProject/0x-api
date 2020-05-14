@@ -10,6 +10,7 @@ import { OrderBookServiceOrderProvider } from './order_book_service_order_provid
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
+import { MetricsService } from './services/metrics_service';
 import { OrderBookService } from './services/orderbook_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
@@ -17,7 +18,6 @@ import { TransactionWatcherSignerService } from './services/transaction_watcher_
 import { WebsocketSRAOpts } from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
-import { MetricsService } from './services/metrics_service';
 
 export interface AppDependencies {
     connection: Connection;

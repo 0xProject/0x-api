@@ -16,13 +16,13 @@ import { META_TRANSACTION_PATH, SRA_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { GeneralErrorCodes } from '../src/errors';
+import { MetricsService } from '../src/services/metrics_service';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { StakingDataService } from '../src/services/staking_data_service';
 import { TransactionWatcherSignerService } from '../src/services/transaction_watcher_signer_service';
 import { TransactionStates } from '../src/types';
 import { MeshClient } from '../src/utils/mesh_client';
 import { utils } from '../src/utils/utils';
-import { MetricsService } from '../src/services/metrics_service';
 
 import { TestMetaTxnUser } from './utils/test_signer';
 
@@ -145,7 +145,9 @@ describe('transaction watcher service', () => {
         await request(app)
             .get('/metrics')
             .then(response => {
-                console.log(response.text);
+                expect(response.text).to.include('signer_transactions_count');
+                expect(response.text).to.include('signer_gas_price_sum');
+                expect(response.text).to.include('signer_eth_balance_sum');
             });
     });
 });
