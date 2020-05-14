@@ -13,8 +13,8 @@ import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 
 import { CHAIN_ID } from '../config';
 import { ETH_TRANSFER_GAS_LIMIT } from '../constants';
-import { ZeroExTransactionWithoutDomain } from '../types';
 import { logger } from '../logger';
+import { ZeroExTransactionWithoutDomain } from '../types';
 
 export class Signer {
     public readonly publicAddress: string;
