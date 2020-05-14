@@ -32,6 +32,13 @@ export class TransactionWatcherSignerService {
         providerUtils.startProviderEngine(providerEngine);
         return providerEngine;
     }
+    private static _isUnsubmittedTxExpired(tx: TransactionEntity): boolean {
+        const now = new Date();
+        return (
+            tx.status === TransactionStates.Unsubmitted &&
+            now > new Date(tx.createdAt.getTime() + TX_HASH_RESPONSE_WAIT_TIME_MS)
+        );
+    }
     constructor(dbConnection: Connection) {
         this._provider = TransactionWatcherSignerService._createWeb3Provider(ETHEREUM_RPC_URL);
         this._transactionRepository = dbConnection.getRepository(TransactionEntity);
@@ -61,7 +68,7 @@ export class TransactionWatcherSignerService {
     }
     public async syncTransactionStatusAsync(): Promise<void> {
         try {
-            await this._signAndBroadcastTransactionsAsync();
+            await this._cancelOrSignAndBroadcastTransactionsAsync();
         } catch (err) {
             logger.error({
                 message: `failed to sign and broadcast transactions: ${JSON.stringify(err)}`,
@@ -193,15 +200,13 @@ export class TransactionWatcherSignerService {
         const latestBlockTimestamp = await this._web3Wrapper.getBlockTimestampAsync('latest');
         return new Date(latestBlockTimestamp * ONE_SECOND_MS);
     }
-    private async _signAndBroadcastTransactionsAsync(): Promise<void> {
+    private async _cancelOrSignAndBroadcastTransactionsAsync(): Promise<void> {
         const unsignedTransactions = await this._transactionRepository.find({
             where: [{ status: TransactionStates.Unsubmitted }],
         });
         logger.trace(`found ${unsignedTransactions.length} transactions to sign and broadcast`);
         for (const tx of unsignedTransactions) {
-            // TODO(oskar) - refactor out
-            const now = new Date();
-            if (new Date(tx.createdAt.getTime() + TX_HASH_RESPONSE_WAIT_TIME_MS) < now) {
+            if (TransactionWatcherSignerService._isUnsubmittedTxExpired(tx)) {
                 logger.error({
                     message: `found a transaction in an unsubmitted state waiting longer that ${TX_HASH_RESPONSE_WAIT_TIME_MS}ms`,
                     refHash: tx.refHash,
