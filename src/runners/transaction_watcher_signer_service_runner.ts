@@ -2,6 +2,7 @@ import * as express from 'express';
 import { Connection } from 'typeorm';
 
 import * as defaultConfig from '../config';
+import { METRICS_PATH } from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
 import { logger } from '../logger';
 import { createMetricsRouter } from '../routers/metrics_router';
@@ -35,7 +36,7 @@ export async function runTransactionWatcherServiceAsync(connection: Connection):
         const app = express();
         const metricsService = new MetricsService();
         const metricsRouter = createMetricsRouter(metricsService);
-        app.use(metricsRouter);
+        app.use(METRICS_PATH, metricsRouter);
         const server = app.listen(defaultConfig.PROMETHEUS_PORT, () => {
             logger.info(`Metrics (HTTP) listening on port ${defaultConfig.PROMETHEUS_PORT}`);
         });
