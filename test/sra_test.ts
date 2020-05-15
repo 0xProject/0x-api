@@ -201,38 +201,7 @@ describe.only(SUITE_NAME, () => {
             expect(response.status).to.deep.eq(HttpStatus.NOT_FOUND);
         });
     });
-    describe('POST /order', () => {
-        let meshUtils: MeshTestUtils;
-        before(async () => {
-            meshUtils = new MeshTestUtils(provider);
-            await meshUtils.setupUtilsAsync();
-        });
-        beforeEach(async () => {
-            blockchainLifecycle.startAsync();
-        });
-        afterEach(async () => {
-            await teardownMeshAsync(SUITE_NAME);
-            await setupMeshAsync(SUITE_NAME);
-            blockchainLifecycle.revertAsync();
-        });
-        it('should return HTTP OK on success', async () => {
-            const order = await orderFactory.newSignedOrderAsync({
-                expirationTimeSeconds: TOMORROW,
-            });
-            const orderHash = orderHashUtils.getOrderHash(order);
 
-            const response = await httpPostAsync({
-                route: `${SRA_PATH}/order`,
-                body: {
-                    chainId,
-                    ...order,
-                },
-            });
-            expect(response.status).to.eq(HttpStatus.OK);
-            const meshOrders = await meshUtils.getOrdersAsync();
-            expect(meshOrders.ordersInfos.find(info => info.orderHash === orderHash)).to.not.be.undefined();
-        });
-    });
     describe('GET /asset_pairs', () => {
         it('should respond to GET request', async () => {
             const response = await httpGetAsync({ route: `${SRA_PATH}/asset_pairs` });
@@ -364,6 +333,38 @@ describe.only(SUITE_NAME, () => {
             expect(response.type).to.eq(`application/json`);
             expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
             expect(response.body).to.deep.eq(validationError);
+        });
+    });
+    describe('POST /order', () => {
+        let meshUtils: MeshTestUtils;
+        before(async () => {
+            meshUtils = new MeshTestUtils(provider);
+            await meshUtils.setupUtilsAsync();
+        });
+        beforeEach(async () => {
+            blockchainLifecycle.startAsync();
+        });
+        afterEach(async () => {
+            await teardownMeshAsync(SUITE_NAME);
+            await setupMeshAsync(SUITE_NAME);
+            blockchainLifecycle.revertAsync();
+        });
+        it('should return HTTP OK on success', async () => {
+            const order = await orderFactory.newSignedOrderAsync({
+                expirationTimeSeconds: TOMORROW,
+            });
+            const orderHash = orderHashUtils.getOrderHash(order);
+
+            const response = await httpPostAsync({
+                route: `${SRA_PATH}/order`,
+                body: {
+                    chainId,
+                    ...order,
+                },
+            });
+            expect(response.status).to.eq(HttpStatus.OK);
+            const meshOrders = await meshUtils.getOrdersAsync();
+            expect(meshOrders.ordersInfos.find(info => info.orderHash === orderHash)).to.not.be.undefined();
         });
     });
 });
