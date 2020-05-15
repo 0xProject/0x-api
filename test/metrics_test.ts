@@ -26,7 +26,7 @@ const expectMetric = async (testApp: core.Express, metricName: string, value?: s
         });
 };
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     before(async () => {
         app = express();
         const metricsService = new MetricsService();
