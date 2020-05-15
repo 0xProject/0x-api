@@ -246,7 +246,7 @@ describe.only(SUITE_NAME, () => {
         });
     });
     describe('GET /orderbook', () => {
-        it.only('should return orderbook for a given pair', async () => {
+        it('should return orderbook for a given pair', async () => {
             const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
             const response = await httpGetAsync({
                 route: constructRoute({
