@@ -48,7 +48,7 @@ async function addNewSignedOrderAsync(
     await (await getDBConnectionAsync()).manager.save(orderUtils.serializeOrder(apiOrder));
     return apiOrder;
 }
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let chainId: number;
     let contractAddresses: ContractAddresses;
     let makerAddress: string;
