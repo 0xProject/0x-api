@@ -292,7 +292,7 @@ describe.only(SUITE_NAME, () => {
                 reason: 'Validation Failed',
                 validationErrors: [
                     {
-                        field: 'quoteAssetData',
+                        field: 'instance.quoteAssetData', // FIXME (xianny): bug in jsonschemas module
                         code: 1001,
                         reason: 'does not match pattern "^0x(([0-9a-f][0-9a-f])+)?$"',
                     },
