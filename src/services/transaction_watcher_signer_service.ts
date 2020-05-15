@@ -12,6 +12,8 @@ import {
     META_TXN_RELAY_PRIVATE_KEYS,
 } from '../config';
 import {
+    ETH_DECIMALS,
+    GWEI_DECIMALS,
     NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
     TX_WATCHER_POLLING_INTERVAL_MS,
@@ -148,11 +150,9 @@ export class TransactionWatcherSignerService {
         txEntity.from = ethereumTxnParams.from;
         this._gasPriceSummary.observe(
             { signer_address: txEntity.from },
-            // tslint:disable-next-line:custom-no-magic-numbers
-            Web3Wrapper.toUnitAmount(txEntity.gasPrice, 9).toNumber(),
+            Web3Wrapper.toUnitAmount(txEntity.gasPrice, GWEI_DECIMALS).toNumber(),
         );
-        this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
-        await this._transactionRepository.save(txEntity);
+        await this._updateTxEntityAsync(txEntity);
     }
     private async _syncBroadcastedTransactionStatusAsync(): Promise<void> {
         const transactionsToCheck = await this._transactionRepository.find({
@@ -186,8 +186,7 @@ export class TransactionWatcherSignerService {
                     });
                     txEntity.status = TransactionStates.Included;
                     txEntity.blockNumber = txInBlockchain.blockNumber;
-                    await this._transactionRepository.save(txEntity);
-                    this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
+                    await this._updateTxEntityAsync(txEntity);
                     await this._abortTransactionsWithTheSameNonceAsync(txEntity);
                     return txEntity;
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
@@ -197,16 +196,14 @@ export class TransactionWatcherSignerService {
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
-                    this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
-                    return this._transactionRepository.save(txEntity);
+                    return this._updateTxEntityAsync(txEntity);
                 } else if (isExpired) {
                     // NOTE(oskar): we currently cancel all transactions that are in the
                     // "stuck" state. A better solution might be to unstick
                     // transactions one by one and observing if they unstick the
                     // subsequent transactions.
                     txEntity.status = TransactionStates.Stuck;
-                    this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
-                    return this._transactionRepository.save(txEntity);
+                    return this._updateTxEntityAsync(txEntity);
                 }
             }
         } catch (err) {
@@ -218,8 +215,7 @@ export class TransactionWatcherSignerService {
                 // is fixed.
                 if (isExpired) {
                     txEntity.status = TransactionStates.Dropped;
-                    this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
-                    return this._transactionRepository.save(txEntity);
+                    return this._updateTxEntityAsync(txEntity);
                 }
             } else {
                 // if the error is not from a typeerror, we rethrow
@@ -380,8 +376,7 @@ export class TransactionWatcherSignerService {
                 // the node, we change its status to submitted and see whether
                 // or not it will appear again.
                 tx.status = TransactionStates.Submitted;
-                this._transactionsUpdateCounter.inc({ signer_address: tx.from, status: tx.status }, 1);
-                await this._transactionRepository.save(tx);
+                await this._updateTxEntityAsync(tx);
                 continue;
             }
             if (txInBlockchain.blockNumber === null) {
@@ -390,8 +385,7 @@ export class TransactionWatcherSignerService {
                 // an ethereum node.
                 tx.status = TransactionStates.Mempool;
                 tx.blockNumber = undefined;
-                this._transactionsUpdateCounter.inc({ signer_address: tx.from, status: tx.status }, 1);
-                await this._transactionRepository.save(tx);
+                await this._updateTxEntityAsync(tx);
                 continue;
             } else {
                 if (tx.blockNumber !== txInBlockchain.blockNumber) {
@@ -404,21 +398,33 @@ export class TransactionWatcherSignerService {
                 }
                 if (tx.blockNumber + NUMBER_OF_BLOCKS_UNTIL_CONFIRMED < latestBlockNumber) {
                     tx.status = TransactionStates.Confirmed;
-                    this._transactionsUpdateCounter.inc({ signer_address: tx.from, status: tx.status }, 1);
-                    await this._transactionRepository.save(tx);
+                    await this._updateTxEntityAsync(tx);
                 }
             }
         }
     }
+    private async _updateTxEntityAsync(txEntity: TransactionEntity): Promise<TransactionEntity> {
+        this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
+        return this._transactionRepository.save(txEntity);
+    }
     private async _updateSignerBalancesAsync(): Promise<void> {
+        // TODO(oskar) - use contract to grab all balances in a single RPC call?
         for (const signerAddress of this._availableSignerPublicAddresses) {
-            // TODO(oskar) - use contract to grab all balances in a single RPC call?
-            const signerBalance = await this._web3Wrapper.getBalanceInWeiAsync(signerAddress);
-            this._signerBalancesGauge.set(
-                { signer_address: signerAddress },
-                // tslint:disable-next-line:custom-no-magic-numbers
-                Web3Wrapper.toUnitAmount(signerBalance, 18).toNumber(),
-            );
+            try {
+                await this._updateSignerBalanceAsync(signerAddress);
+            } catch (err) {
+                logger.error({
+                    message: `failed to update signer balance: ${JSON.stringify(err)}`,
+                    stack: err.stack,
+                });
+            }
         }
+    }
+    private async _updateSignerBalanceAsync(signerAddress: string): Promise<void> {
+        const signerBalance = await this._web3Wrapper.getBalanceInWeiAsync(signerAddress);
+        this._signerBalancesGauge.set(
+            { signer_address: signerAddress },
+            Web3Wrapper.toUnitAmount(signerBalance, ETH_DECIMALS).toNumber(),
+        );
     }
 }
