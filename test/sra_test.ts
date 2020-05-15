@@ -15,7 +15,7 @@ import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationError
 import { APIOrderWithMetaData } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
 
-import { setupApiAsync, teardownApiAsync } from './utils/deployment';
+import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
@@ -211,6 +211,8 @@ describe.only(SUITE_NAME, () => {
             blockchainLifecycle.startAsync();
         });
         afterEach(async () => {
+            await teardownMeshAsync(SUITE_NAME);
+            await setupMeshAsync(SUITE_NAME);
             blockchainLifecycle.revertAsync();
         });
         it('should return HTTP OK on success', async () => {
@@ -244,7 +246,7 @@ describe.only(SUITE_NAME, () => {
         });
     });
     describe('GET /orderbook', () => {
-        it('should return orderbook for a given pair', async () => {
+        it.only('should return orderbook for a given pair', async () => {
             const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
             const response = await httpGetAsync({
                 route: constructRoute({
