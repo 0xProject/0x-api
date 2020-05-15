@@ -75,7 +75,7 @@ export class Signer {
         );
         logger.info({
             message: `attempting to sign and broadcast a meta transaction`,
-            nonce: ethereumTxnParams.nonce,
+            nonceNumber: web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce),
             from: ethereumTxnParams.from,
             gasPrice: ethereumTxnParams.gasPrice,
         });
@@ -157,7 +157,10 @@ export class Signer {
             method: 'eth_getTransactionCount',
             params: [address, 'pending'],
         });
-        logger.info({ message: 'received nonce from eth_getTransactionCount', nonceHex });
+        logger.info({
+            message: 'received nonce from eth_getTransactionCount',
+            nonceNumber: web3WrapperUtils.convertHexToNumber(nonceHex),
+        });
         return nonceHex;
     }
 }
