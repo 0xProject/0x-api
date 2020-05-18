@@ -4,6 +4,8 @@ import * as HttpStatus from 'http-status-codes';
 import { schemas } from '../schemas/schemas';
 import { StakingDataService } from '../services/staking_data_service';
 import {
+    Epoch,
+    EpochWithFees,
     StakingDelegatorResponse,
     StakingEpochsResponse,
     StakingEpochsWithFeesResponse,
@@ -39,6 +41,27 @@ export class StakingHandlers {
             },
         };
 
+        res.status(HttpStatus.OK).send(response);
+    }
+    public async getStakingEpochNAsync(req: express.Request, res: express.Response): Promise<void> {
+        // optional query string to include fees
+        schemaUtils.validateSchema(req.query, schemas.stakingEpochRequestSchema as any);
+        const isWithFees = req.query.withFees ? req.query.withFees === 'true' : false;
+
+        const n = Number(req.params.n);
+
+        let response: Epoch | EpochWithFees;
+        if (isWithFees) {
+            const [epoch] = await Promise.all([
+                this._stakingDataService.getEpochNAsync(n),
+            ]);
+            response = epoch;
+        } else {
+            const [epoch] = await Promise.all([
+                this._stakingDataService.getEpochNWithFeesAsync(n),
+            ]);
+            response = epoch;
+        }
         res.status(HttpStatus.OK).send(response);
     }
     public async getStakingEpochsAsync(req: express.Request, res: express.Response): Promise<void> {
