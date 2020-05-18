@@ -17,6 +17,7 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
+import { liquiditySources0xOnly } from './utils/mocks';
 
 const SUITE_NAME = 'meta transactions tests';
 
@@ -243,6 +244,7 @@ describe(SUITE_NAME, () => {
                     buyAmount,
                     sellTokenAddress,
                     buyTokenAddress,
+                    sources: liquiditySources0xOnly,
                 });
             });
 
@@ -264,6 +266,7 @@ describe(SUITE_NAME, () => {
                     buyAmount,
                     sellTokenAddress,
                     buyTokenAddress,
+                    sources: liquiditySources0xOnly,
                 });
             });
 
@@ -287,6 +290,7 @@ describe(SUITE_NAME, () => {
                     buyAmount: largeBuyAmount,
                     sellTokenAddress,
                     buyTokenAddress,
+                    sources: liquiditySources0xOnly,
                 });
             });
         });
@@ -366,18 +370,7 @@ describe(SUITE_NAME, () => {
             buyAmount: testCase.expectedBuyAmount,
             sellAmount: calculateSellAmount(testCase.expectedBuyAmount, testCase.expectedPrice),
             // NOTE(jalextowle): 0x is the only source that is currently being tested.
-            sources: [
-                { name: '0x', proportion: '1' },
-                { name: 'Uniswap', proportion: '0' },
-                { name: 'Eth2Dai', proportion: '0' },
-                { name: 'Kyber', proportion: '0' },
-                { name: 'Curve_USDC_DAI', proportion: '0' },
-                { name: 'Curve_USDC_DAI_USDT', proportion: '0' },
-                { name: 'Curve_USDC_DAI_USDT_TUSD', proportion: '0' },
-                { name: 'Curve_USDC_DAI_USDT_BUSD', proportion: '0' },
-                { name: 'Curve_USDC_DAI_USDT_SUSD', proportion: '0' },
-                { name: 'LiquidityProvider', proportion: '0' },
-            ],
+            sources: liquiditySources0xOnly,
         });
     }
 
@@ -549,6 +542,7 @@ describe(SUITE_NAME, () => {
                         buyAmount,
                         sellTokenAddress,
                         buyTokenAddress,
+                        sources: liquiditySources0xOnly,
                     });
                 });
 
@@ -659,6 +653,7 @@ describe(SUITE_NAME, () => {
                         buyAmount: largeBuyAmount,
                         sellTokenAddress,
                         buyTokenAddress,
+                        sources: liquiditySources0xOnly,
                     });
                 });
 
