@@ -44,7 +44,9 @@ export class StakingDataService {
     }
 
     public async getEpochNWithFeesAsync(epochId: number): Promise<Epoch> {
-        const rawEpochWithFees: RawEpochWithFees | undefined = _.head(await this._connection.query(queries.epochNWithFeesQuery, [epochId]));
+        const rawEpochWithFees: RawEpochWithFees | undefined = _.head(
+            await this._connection.query(queries.epochNWithFeesQuery, [epochId]),
+        );
         if (!rawEpochWithFees) {
             throw new Error(`Could not find the epoch ${epochId}`);
         }
