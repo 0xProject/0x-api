@@ -37,7 +37,7 @@ export class StakingDataService {
     public async getEpochNAsync(epochId: number): Promise<Epoch> {
         const rawEpoch: RawEpoch | undefined = _.head(await this._connection.query(queries.epochNQuery, [epochId]));
         if (!rawEpoch) {
-            throw new Error(`Could not find the epoch ${epochId}`);
+            throw new Error(`Could not find epoch ${epochId}`);
         }
         const epoch = stakingUtils.getEpochFromRaw(rawEpoch);
         return epoch;
@@ -48,7 +48,7 @@ export class StakingDataService {
             await this._connection.query(queries.epochNWithFeesQuery, [epochId]),
         );
         if (!rawEpochWithFees) {
-            throw new Error(`Could not find the epoch ${epochId}`);
+            throw new Error(`Could not find epoch ${epochId}`);
         }
         const epoch = stakingUtils.getEpochWithFeesFromRaw(rawEpochWithFees);
         return epoch;
