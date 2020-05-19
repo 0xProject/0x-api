@@ -213,6 +213,8 @@ describe(SUITE_NAME, () => {
 
         context('success tests', () => {
             let meshUtils: MeshTestUtils;
+            const price = '1';
+            const sellAmount = calculateSellAmount(buyAmount, price);
 
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
@@ -240,8 +242,9 @@ describe(SUITE_NAME, () => {
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 expect(response.body).to.be.deep.eq({
-                    price: '1',
+                    price,
                     buyAmount,
+                    sellAmount,
                     sellTokenAddress,
                     buyTokenAddress,
                     sources: liquiditySources0xOnly,
@@ -262,8 +265,9 @@ describe(SUITE_NAME, () => {
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 expect(response.body).to.be.deep.eq({
-                    price: '1',
+                    price,
                     buyAmount,
+                    sellAmount,
                     sellTokenAddress,
                     buyTokenAddress,
                     sources: liquiditySources0xOnly,
@@ -273,7 +277,9 @@ describe(SUITE_NAME, () => {
             it('should show the price of the combination of the two orders in Mesh', async () => {
                 const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
+                const largeOrderPrice = '1.5';
                 const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
+                const largeSellAmount = calculateSellAmount(largeBuyAmount, largeOrderPrice);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
                     queryParams: {
@@ -286,8 +292,9 @@ describe(SUITE_NAME, () => {
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 expect(response.body).to.be.deep.eq({
-                    price: '1.5',
+                    price: largeOrderPrice,
                     buyAmount: largeBuyAmount,
+                    sellAmount: largeSellAmount,
                     sellTokenAddress,
                     buyTokenAddress,
                     sources: liquiditySources0xOnly,
@@ -540,6 +547,7 @@ describe(SUITE_NAME, () => {
                     expect(response.body).to.be.deep.eq({
                         price,
                         buyAmount,
+                        sellAmount,
                         sellTokenAddress,
                         buyTokenAddress,
                         sources: liquiditySources0xOnly,
