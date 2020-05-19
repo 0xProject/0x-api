@@ -194,6 +194,10 @@ export const META_TXN_RELAY_EXPECTED_MINED_SEC: number = _.isEmpty(process.env.M
           process.env.META_TXN_RELAY_EXPECTED_MINED_SEC,
           EnvVarType.Integer,
       );
+// Should TransactionWatcherSignerService sign transactions
+export const ENABLE_TRANSACTION_SIGNING: boolean = _.isEmpty(process.env.ENABLE_TRANSACTION_SIGNING)
+    ? true
+    : assertEnvVarType('ENABLE_TRANSACTION_SIGNING', process.env.ENABLE_TRANSACTION_SIGNING, EnvVarType.Boolean);
 
 // Whether or not prometheus metrics should be enabled.
 // tslint:disable-next-line:boolean-naming

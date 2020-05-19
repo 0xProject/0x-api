@@ -10,6 +10,7 @@ import {
     ETHEREUM_RPC_URL,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
     META_TXN_RELAY_PRIVATE_KEYS,
+    ENABLE_TRANSACTION_SIGNING,
 } from '../config';
 import {
     ETH_DECIMALS,
@@ -20,10 +21,11 @@ import {
     TX_WATCHER_POLLING_INTERVAL_MS,
     TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
     UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
+    SIGNER_STATUS_DB_KEY,
 } from '../constants';
-import { TransactionEntity } from '../entities';
+import { TransactionEntity, KeyValueEntity } from '../entities';
 import { logger } from '../logger';
-import { TransactionStates } from '../types';
+import { TransactionStates, TransactionWatcherSignerStatus } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { Signer } from '../utils/signer';
 
@@ -32,6 +34,7 @@ const TRANSACTION_STATUS_LABEL = 'status';
 
 export class TransactionWatcherSignerService {
     private readonly _transactionRepository: Repository<TransactionEntity>;
+    private readonly _kvRepository: Repository<KeyValueEntity>;
     private readonly _provider: SupportedProvider;
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _transactionWatcherTimer: NodeJS.Timer;
@@ -72,6 +75,7 @@ export class TransactionWatcherSignerService {
     constructor(dbConnection: Connection) {
         this._provider = TransactionWatcherSignerService._createWeb3Provider(ETHEREUM_RPC_URL);
         this._transactionRepository = dbConnection.getRepository(TransactionEntity);
+        this._kvRepository = dbConnection.getRepository(KeyValueEntity);
         this._web3Wrapper = new Web3Wrapper(this._provider);
         this._signers = new Map<string, Signer>();
         this._availableSignerPublicAddresses = META_TXN_RELAY_PRIVATE_KEYS.map(key => {
@@ -113,11 +117,13 @@ export class TransactionWatcherSignerService {
                 async () => {
                     logger.trace('updating metrics');
                     await this._updateSignerBalancesAsync();
+                    logger.trace('heartbeat');
+                    await this._updateSignerStatusAsync();
                 },
                 TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
                 (err: Error) => {
                     logger.error({
-                        message: `transaction watcher failed to update metrics: ${JSON.stringify(err)}`,
+                        message: `transaction watcher failed to update metrics and heartbeat: ${JSON.stringify(err)}`,
                         err: err.stack,
                     });
                 },
@@ -154,6 +160,9 @@ export class TransactionWatcherSignerService {
         }
         if (txEntity.zeroExTransactionSignature === undefined) {
             throw new Error('txEntity is missing zeroExTransactionSignature');
+        }
+        if (!this._isSignerLive()) {
+            throw new Error('signer is currently not live');
         }
         const {
             ethereumTxnParams,
@@ -203,7 +212,9 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
@@ -214,7 +225,9 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -465,5 +478,23 @@ export class TransactionWatcherSignerService {
         const balanceInETH = Web3Wrapper.toUnitAmount(signerBalance, ETH_DECIMALS).toNumber();
         this._signerBalancesGauge.set({ signer_address: signerAddress }, balanceInETH);
         this._signerBalances.set(signerAddress, balanceInETH);
+    }
+    private async _isSignerLive(): boolean {
+        // TODO: better signer liveliness checks, we just check if any address
+        // has more than 0.1 ETH available or signing has been explicitly disabled.
+        return this._signerBalances.values().filter(val => val > 0.1).length > 0 && ENABLE_TRANSACTION_SIGNING;
+    }
+    private async _updateSignerStatusAsync(): Promise<void> {
+        // TODO: do we need to find the entity first, for UPDATE?
+        let statusKV = await this._kvRepository.findOne(SIGNER_STATUS_DB_KEY);
+        if (statusKV === undefined) {
+            statusKV = new KeyValueEntity(SIGNER_STATUS_DB_KEY);
+        }
+        const statusContent: TransactionWatcherSignerStatus = {
+            live: this._isSignerLive(),
+            balances: this._signerBalances,
+        };
+        statusKV.value = JSON.stringify(statusContent);
+        await this._kvRepository.save(statusKV);
     }
 }

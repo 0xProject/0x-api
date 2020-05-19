@@ -24,8 +24,11 @@ import {
     SUBMITTED_TX_DB_POLLING_INTERVAL_MS,
     TEN_MINUTES_MS,
     TX_HASH_RESPONSE_WAIT_TIME_MS,
+    SIGNER_STATUS_DB_KEY,
+    SIGNER_KILL_SWITCH_KEY,
 } from '../constants';
-import { TransactionEntity } from '../entities';
+import { logger } from '../logger';
+import { TransactionEntity, KeyValueEntity } from '../entities';
 import {
     CalculateMetaTransactionPriceResponse,
     CalculateMetaTransactionQuoteParams,
@@ -33,6 +36,7 @@ import {
     PostTransactionResponse,
     TransactionStates,
     ZeroExTransactionWithoutDomain,
+    TransactionWatcherSignerStatus,
 } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { serviceUtils } from '../utils/service_utils';
@@ -46,6 +50,7 @@ export class MetaTransactionService {
     private readonly _devUtils: DevUtilsContract;
     private readonly _connection: Connection;
     private readonly _transactionEntityRepository: Repository<TransactionEntity>;
+    private readonly _kvRepository: Repository<KeyValueEntity>;
 
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
         return WHITELISTED_API_KEYS_META_TXN_SUBMIT.includes(apiKey);
@@ -66,6 +71,7 @@ export class MetaTransactionService {
         this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
         this._connection = dbConnection;
         this._transactionEntityRepository = this._connection.getRepository(TransactionEntity);
+        this._kvRepository = this._connection.getRepository(KeyValueEntity);
     }
     public async calculateMetaTransactionPriceAsync(
         params: CalculateMetaTransactionQuoteParams,
@@ -309,6 +315,37 @@ export class MetaTransactionService {
             ethereumTransactionHash,
             signedEthereumTransaction,
         };
+    }
+    public async isSignerLiveAsync(): Promise<boolean> {
+        const statusKV = await this._kvRepository.findOne(SIGNER_STATUS_DB_KEY);
+        if (statusKV === undefined) {
+            logger.error({
+                message: `signer status entry is not present in the database`,
+            });
+            return false;
+        }
+        if (statusKV.value === undefined) {
+            logger.error({
+                message: 'signer status value is undefined',
+            });
+            return false;
+        }
+        const signerStatus: TransactionWatcherSignerStatus = JSON.parse(statusKV.value);
+        const isKillSwitchOn = await this.isKillSwitchOnAsync();
+        return signerStatus.live && !isKillSwitchOn;
+    }
+    public async isKillSwitchOnAsync(): Promise<boolean> {
+        const killSwitchKV = await this._kvRepository.findOne(SIGNER_KILL_SWITCH_KEY);
+        if (killSwitchKV === undefined) {
+            logger.warn({
+                message: `kill switch entry is not present in the database under ${SIGNER_KILL_SWITCH_KEY} key`,
+            });
+            return false;
+        }
+        if (killSwitchKV.value.toLowerCase() === 'true') {
+            return true;
+        }
+        return false;
     }
     private async _waitUntilTxHashAsync(
         txEntity: TransactionEntity,

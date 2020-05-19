@@ -513,4 +513,11 @@ export enum TransactionStates {
     // transaction was in an unsubmitted state for too long.
     Cancelled = 'cancelled',
 }
+
+export interface TransactionWatcherSignerStatus {
+    live: boolean;
+    balances: {
+        [address: string]: number;
+    };
+}
 // tslint:disable-line:max-file-line-count

@@ -289,6 +289,15 @@ export class MetaTransactionHandlers {
             res.status(HttpStatus.OK).send(marshallTransactionEntity(tx));
         }
     }
+    public async getSignerStatusAsync(_req: express.Request, res: express.Response): Promise<void> {
+        try {
+            const live = await this._metaTransactionService.isSignerLiveAsync();
+            res.status(HttpStatus.OK).send({ live });
+        } catch (e) {
+            logger.error('Uncaught error: ', e);
+            throw new InternalServerError('failed to check signer status');
+        }
+    }
 }
 
 const parseGetTransactionRequestParams = (req: express.Request): GetTransactionRequestParams => {
