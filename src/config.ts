@@ -195,6 +195,7 @@ export const META_TXN_RELAY_EXPECTED_MINED_SEC: number = _.isEmpty(process.env.M
           EnvVarType.Integer,
       );
 // Should TransactionWatcherSignerService sign transactions
+// tslint:disable-next-line:boolean-naming
 export const ENABLE_TRANSACTION_SIGNING: boolean = _.isEmpty(process.env.ENABLE_TRANSACTION_SIGNING)
     ? true
     : assertEnvVarType('ENABLE_TRANSACTION_SIGNING', process.env.ENABLE_TRANSACTION_SIGNING, EnvVarType.Boolean);

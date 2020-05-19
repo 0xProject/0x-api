@@ -21,22 +21,22 @@ import {
     ONE_SECOND_MS,
     PUBLIC_ADDRESS_FOR_ETH_CALLS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
+    SIGNER_KILL_SWITCH_KEY,
+    SIGNER_STATUS_DB_KEY,
     SUBMITTED_TX_DB_POLLING_INTERVAL_MS,
     TEN_MINUTES_MS,
     TX_HASH_RESPONSE_WAIT_TIME_MS,
-    SIGNER_STATUS_DB_KEY,
-    SIGNER_KILL_SWITCH_KEY,
 } from '../constants';
+import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
-import { TransactionEntity, KeyValueEntity } from '../entities';
 import {
     CalculateMetaTransactionPriceResponse,
     CalculateMetaTransactionQuoteParams,
     GetMetaTransactionQuoteResponse,
     PostTransactionResponse,
     TransactionStates,
-    ZeroExTransactionWithoutDomain,
     TransactionWatcherSignerStatus,
+    ZeroExTransactionWithoutDomain,
 } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { serviceUtils } from '../utils/service_utils';

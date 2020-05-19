@@ -68,5 +68,6 @@ export const NUMBER_OF_BLOCKS_UNTIL_CONFIRMED = 3;
 export const TX_WATCHER_UPDATE_METRICS_INTERVAL_MS = 30 * 1000;
 export const ETH_DECIMALS = 18;
 export const GWEI_DECIMALS = 9;
+export const SIGNER_ETH_BALANCE_CONSIDERED_CRITICAL = 0.1;
 export const SIGNER_STATUS_DB_KEY = 'signer_status';
 export const SIGNER_KILL_SWITCH_KEY = 'signer_kill_switch_on';

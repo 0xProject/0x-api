@@ -291,8 +291,8 @@ export class MetaTransactionHandlers {
     }
     public async getSignerStatusAsync(_req: express.Request, res: express.Response): Promise<void> {
         try {
-            const live = await this._metaTransactionService.isSignerLiveAsync();
-            res.status(HttpStatus.OK).send({ live });
+            const isLive = await this._metaTransactionService.isSignerLiveAsync();
+            res.status(HttpStatus.OK).send({ isLive });
         } catch (e) {
             logger.error('Uncaught error: ', e);
             throw new InternalServerError('failed to check signer status');

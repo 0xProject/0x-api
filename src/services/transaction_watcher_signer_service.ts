@@ -7,23 +7,24 @@ import { Connection, Not, Repository } from 'typeorm';
 
 import {
     ENABLE_PROMETHEUS_METRICS,
+    ENABLE_TRANSACTION_SIGNING,
     ETHEREUM_RPC_URL,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
     META_TXN_RELAY_PRIVATE_KEYS,
-    ENABLE_TRANSACTION_SIGNING,
 } from '../config';
 import {
     ETH_DECIMALS,
     GWEI_DECIMALS,
     NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
+    SIGNER_ETH_BALANCE_CONSIDERED_CRITICAL,
+    SIGNER_STATUS_DB_KEY,
     TX_HASH_RESPONSE_WAIT_TIME_MS,
     TX_WATCHER_POLLING_INTERVAL_MS,
     TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
     UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
-    SIGNER_STATUS_DB_KEY,
 } from '../constants';
-import { TransactionEntity, KeyValueEntity } from '../entities';
+import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates, TransactionWatcherSignerStatus } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
@@ -212,9 +213,7 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
@@ -225,9 +224,7 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${
-                            txEntity.status
-                        } status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -479,10 +476,13 @@ export class TransactionWatcherSignerService {
         this._signerBalancesGauge.set({ signer_address: signerAddress }, balanceInETH);
         this._signerBalances.set(signerAddress, balanceInETH);
     }
-    private async _isSignerLive(): boolean {
+    private _isSignerLive(): boolean {
         // TODO: better signer liveliness checks, we just check if any address
         // has more than 0.1 ETH available or signing has been explicitly disabled.
-        return this._signerBalances.values().filter(val => val > 0.1).length > 0 && ENABLE_TRANSACTION_SIGNING;
+        return (
+            [...this._signerBalances.values()].filter(val => val > SIGNER_ETH_BALANCE_CONSIDERED_CRITICAL).length > 0 &&
+            ENABLE_TRANSACTION_SIGNING
+        );
     }
     private async _updateSignerStatusAsync(): Promise<void> {
         // TODO: do we need to find the entity first, for UPDATE?
@@ -492,9 +492,17 @@ export class TransactionWatcherSignerService {
         }
         const statusContent: TransactionWatcherSignerStatus = {
             live: this._isSignerLive(),
-            balances: this._signerBalances,
+            // tslint:disable-next-line:no-inferred-empty-object-type
+            balances: [...this._signerBalances.entries()].reduce((acc: object, signerBalance: [string, number]): Record<
+                string,
+                number
+            > => {
+                const [from, balance] = signerBalance;
+                return { ...acc, [from]: balance };
+            }, {}),
         };
         statusKV.value = JSON.stringify(statusContent);
         await this._kvRepository.save(statusKV);
     }
 }
+// tslint:disable-line:max-file-line-count
