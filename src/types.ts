@@ -362,6 +362,7 @@ export interface GetSwapQuoteResponse {
     sources: GetSwapQuoteResponseLiquiditySource[];
     gas?: BigNumber;
     from?: string;
+    estimatedGas: BigNumber;
 }
 
 export interface Price {

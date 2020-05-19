@@ -23,7 +23,7 @@ import {
     RFQT_SKIP_BUY_REQUESTS,
 } from '../config';
 import {
-    GAS_LIMIT_BUFFER_PERCENTAGE,
+    GAS_LIMIT_BUFFER_MULTIPLIER,
     ONE,
     PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -130,11 +130,12 @@ export class SwapService {
             makerAssetAmount,
             totalTakerAssetAmount,
             protocolFeeInWeiAmount: protocolFee,
+            gas: bestCaseGas,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const {
             makerAssetAmount: guaranteedMakerAssetAmount,
             totalTakerAssetAmount: guaranteedTotalTakerAssetAmount,
-            gas,
+            gas: worstCaseGas,
         } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
 
@@ -150,14 +151,15 @@ export class SwapService {
 
         const affiliatedData = serviceUtils.attributeCallData(data, affiliateAddress);
 
-        let suggestedGasEstimate = new BigNumber(gas);
+        let worstCaseGasEstimate = new BigNumber(worstCaseGas);
+        let bestCaseGasEstimate = new BigNumber(bestCaseGas);
         if (!skipValidation && from) {
             // Force a revert error if the takerAddress does not have enough ETH.
             const txDataValue =
                 extensionContractType === ExtensionContractType.Forwarder
                     ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
                     : value;
-            const gasEstimate = await this._estimateGasOrThrowRevertErrorAsync({
+            const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data: affiliatedData,
                 from,
@@ -165,10 +167,11 @@ export class SwapService {
                 gasPrice,
             });
             // Take the max of the faux estimate or the real estimate
-            suggestedGasEstimate = BigNumber.max(gasEstimate, suggestedGasEstimate);
+            worstCaseGasEstimate = BigNumber.max(estimateGasCallResult, worstCaseGasEstimate);
+            bestCaseGasEstimate = BigNumber.max(estimateGasCallResult, bestCaseGasEstimate);
         }
-        // Add a buffer to the gas estimate
-        suggestedGasEstimate = suggestedGasEstimate.times(GAS_LIMIT_BUFFER_PERCENTAGE + 1).integerValue();
+        // Add a buffer to the worst case gas estimate
+        worstCaseGasEstimate = worstCaseGasEstimate.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue();
 
         const buyTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(
             buyTokenAddress,
@@ -206,7 +209,8 @@ export class SwapService {
             to,
             data: affiliatedData,
             value,
-            gas: suggestedGasEstimate,
+            gas: worstCaseGasEstimate,
+            estimatedGas: bestCaseGasEstimate,
             from,
             gasPrice,
             protocolFee,
@@ -312,6 +316,7 @@ export class SwapService {
             data: affiliatedData,
             value,
             gas: gasEstimate,
+            estimatedGas: gasEstimate,
             from,
             gasPrice,
             protocolFee: ZERO,
