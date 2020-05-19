@@ -378,7 +378,7 @@ interface BasePriceResponse {
     sources: GetSwapQuoteResponseLiquiditySource[];
 }
 
-export interface GetSwapQuotePriceResponse extends BasePriceResponse {
+export interface GetSwapPriceResponse extends BasePriceResponse {
     value: BigNumber;
     gasPrice: BigNumber;
     gas: BigNumber;

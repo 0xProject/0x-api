@@ -19,7 +19,7 @@ import { SwapService } from '../services/swap_service';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
     CalculateSwapQuoteParams,
-    GetSwapQuotePriceResponse,
+    GetSwapPriceResponse,
     GetSwapQuoteRequestParams,
     GetSwapQuoteResponse,
 } from '../types';
@@ -100,7 +100,7 @@ export class SwapHandlers {
             },
         });
 
-        const response: GetSwapQuotePriceResponse = {
+        const response: GetSwapPriceResponse = {
             price,
             value,
             gasPrice,
