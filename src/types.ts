@@ -383,6 +383,7 @@ export interface GetSwapPriceResponse extends BasePriceResponse {
     value: BigNumber;
     gasPrice: BigNumber;
     gas: BigNumber;
+    estimatedGas: BigNumber;
     protocolFee: BigNumber;
 }
 
