@@ -36,12 +36,28 @@ export class TransactionWatcherSignerService {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _transactionWatcherTimer: NodeJS.Timer;
     private readonly _signers: Map<string, Signer>;
+    private readonly _signerBalances: Map<string, number>;
     private readonly _availableSignerPublicAddresses: string[];
     private readonly _metricsUpdateTimer: NodeJS.Timer;
     private readonly _signerBalancesGauge: Gauge<string>;
     private readonly _transactionsUpdateCounter: Counter<string>;
     private readonly _gasPriceSummary: Summary<string>;
 
+    public static getSortedSignersByAvailability(signerMap: Map<string, { balance: number; count: number }>): string[] {
+        return [...signerMap.entries()]
+            .sort((a, b) => {
+                const aSigner = a[1];
+                const bSigner = b[1];
+                // if the number of pending transactions is the same, we sort
+                // the signers by their known balance.
+                if (aSigner.count === bSigner.count) {
+                    return bSigner.balance - aSigner.balance;
+                }
+                // otherwise we sort by the least amount of pending transactions.
+                return aSigner.count - bSigner.count;
+            })
+            .map(entry => entry[0]);
+    }
     private static _createWeb3Provider(rpcHost: string): SupportedProvider {
         const providerEngine = new Web3ProviderEngine();
         providerEngine.addProvider(new RPCSubprovider(rpcHost));
@@ -299,9 +315,11 @@ export class TransactionWatcherSignerService {
         return signer;
     }
     private async _getSortedSignerPublicAddressesByAvailabilityAsync(): Promise<string[]> {
-        const map = new Map<string, number>();
+        const signerMap = new Map<string, { count: number; balance: number }>();
         this._availableSignerPublicAddresses.forEach(signerAddress => {
-            map.set(signerAddress, 0);
+            const count = 0;
+            const balance = this._signerBalances.get(signerAddress) || 0;
+            signerMap.set(signerAddress, { count, balance });
         });
         // TODO(oskar) - move to query builder?
         const res: Array<{ from: string; count: number }> = await this._transactionRepository.query(
@@ -312,13 +330,10 @@ export class TransactionWatcherSignerService {
             // signer pool
             return this._availableSignerPublicAddresses.includes(result.from);
         }).forEach(result => {
-            map.set(result.from, result.count);
+            const current = signerMap.get(result.from);
+            signerMap.set(result.from, { ...current, count: result.count });
         });
-        return [...map.entries()]
-            .sort((a, b) => {
-                return a[1] - b[1];
-            })
-            .map(entry => entry[0]);
+        return TransactionWatcherSignerService.getSortedSignersByAvailability(signerMap);
     }
     private async _unstickTransactionAsync(
         tx: TransactionEntity,
@@ -447,9 +462,8 @@ export class TransactionWatcherSignerService {
     }
     private async _updateSignerBalanceAsync(signerAddress: string): Promise<void> {
         const signerBalance = await this._web3Wrapper.getBalanceInWeiAsync(signerAddress);
-        this._signerBalancesGauge.set(
-            { signer_address: signerAddress },
-            Web3Wrapper.toUnitAmount(signerBalance, ETH_DECIMALS).toNumber(),
-        );
+        const balanceInETH = Web3Wrapper.toUnitAmount(signerBalance, ETH_DECIMALS).toNumber();
+        this._signerBalancesGauge.set({ signer_address: signerAddress }, balanceInETH);
+        this._signerBalances.set(signerAddress, balanceInETH);
     }
 }
