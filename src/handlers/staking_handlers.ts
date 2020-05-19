@@ -52,10 +52,10 @@ export class StakingHandlers {
 
         let response: Epoch | EpochWithFees;
         if (isWithFees) {
-            const [epoch] = await Promise.all([this._stakingDataService.getEpochNWithFeesAsync(n)]);
+            const epoch = await this._stakingDataService.getEpochNWithFeesAsync(n);
             response = epoch;
         } else {
-            const [epoch] = await Promise.all([this._stakingDataService.getEpochNAsync(n)]);
+            const epoch = await this._stakingDataService.getEpochNAsync(n);
             response = epoch;
         }
         res.status(HttpStatus.OK).send(response);
