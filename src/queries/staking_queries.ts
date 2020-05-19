@@ -161,7 +161,7 @@ WITH
             OR (fe.block_number = e.starting_block_number AND fe.transaction_index > e.starting_transaction_index))
             -- End of epoch, impute high block number for current epoch
             AND (fe.block_number < COALESCE(e.ending_block_number,99999999999)
-            OR (fe.block_number = e.ending_block_number AND fe.transaction_index > e.ending_transaction_index))
+            OR (fe.block_number = e.ending_block_number AND fe.transaction_index < e.ending_transaction_index))
     )
     SELECT
         e.*
