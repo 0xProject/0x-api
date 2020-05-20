@@ -352,9 +352,12 @@ export interface SwapQuoteResponsePartialTransaction {
     value: BigNumber;
 }
 
-export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction {
+export interface SwapQuoteResponsePrice {
     price: BigNumber;
     guaranteedPrice: BigNumber;
+}
+
+export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, SwapQuoteResponsePrice {
     gasPrice: BigNumber;
     protocolFee: BigNumber;
     estimatedProtocolFee: BigNumber;
@@ -364,8 +367,8 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     buyTokenAddress: string;
     sellTokenAddress: string;
     sources: GetSwapQuoteResponseLiquiditySource[];
-    gas?: BigNumber;
     from?: string;
+    gas: BigNumber;
     estimatedGas: BigNumber;
 }
 
