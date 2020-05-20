@@ -13,10 +13,12 @@ import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     CHAIN_ID,
     LIQUIDITY_POOL_REGISTRY_ADDRESS,
+    META_TXN_MAX_GAS_PRICE_GWEI,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
-    WHITELISTED_API_KEYS_META_TXN_SUBMIT,
+    META_TXN_SUBMIT_WHITELISTED_API_KEYS,
 } from '../config';
 import {
+    GWEI_DECIMALS,
     ONE_GWEI,
     ONE_SECOND_MS,
     PUBLIC_ADDRESS_FOR_ETH_CALLS,
@@ -53,7 +55,7 @@ export class MetaTransactionService {
     private readonly _kvRepository: Repository<KeyValueEntity>;
 
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
-        return WHITELISTED_API_KEYS_META_TXN_SUBMIT.includes(apiKey);
+        return META_TXN_SUBMIT_WHITELISTED_API_KEYS.includes(apiKey);
     }
     private static _calculateProtocolFee(numOrders: number, gasPrice: BigNumber): BigNumber {
         return new BigNumber(150000).times(gasPrice).times(numOrders);
@@ -221,8 +223,11 @@ export class MetaTransactionService {
         const gasPrice = zeroExTransaction.gasPrice;
         const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
         // Make sure gasPrice is not 3X the current fast EthGasStation gas price
-        // tslint:disable-next-line:custom-no-magic-numbers
-        if (currentFastGasPrice.lt(gasPrice) && gasPrice.minus(currentFastGasPrice).gt(currentFastGasPrice.times(3))) {
+        if (
+            Web3Wrapper.toUnitAmount(gasPrice, GWEI_DECIMALS).gte(META_TXN_MAX_GAS_PRICE_GWEI) ||
+            // tslint:disable-next-line:custom-no-magic-numbers
+            (currentFastGasPrice.lt(gasPrice) && gasPrice.minus(currentFastGasPrice).gte(currentFastGasPrice.times(3)))
+        ) {
             throw new Error('Gas price too high');
         }
 
@@ -314,6 +319,7 @@ export class MetaTransactionService {
         return {
             ethereumTransactionHash,
             signedEthereumTransaction,
+            zeroExTransactionHash,
         };
     }
     public async isSignerLiveAsync(): Promise<boolean> {
@@ -353,7 +359,7 @@ export class MetaTransactionService {
         return utils.runWithTimeout(async () => {
             while (true) {
                 const tx = await this._transactionEntityRepository.findOne(txEntity.refHash);
-                if (tx !== undefined && tx.txHash !== undefined && tx.signedTx !== undefined) {
+                if (!utils.isNil(tx) && !utils.isNil(tx.txHash) && !utils.isNil(tx.signedTx)) {
                     return { ethereumTransactionHash: tx.txHash, signedEthereumTransaction: tx.signedTx };
                 }
 

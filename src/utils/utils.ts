@@ -86,4 +86,9 @@ export const utils = {
             return result;
         });
     },
+    isNil: (value: any): boolean => {
+        // undefined == null => true
+        // undefined == undefined => true
+        return value == null;
+    },
 };

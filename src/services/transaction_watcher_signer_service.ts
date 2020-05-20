@@ -6,18 +6,17 @@ import { Counter, Gauge, Summary } from 'prom-client';
 import { Connection, Not, Repository } from 'typeorm';
 
 import {
-    ENABLE_PROMETHEUS_METRICS,
-    ENABLE_TRANSACTION_SIGNING,
     ETHEREUM_RPC_URL,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
     META_TXN_RELAY_PRIVATE_KEYS,
+    META_TXN_SIGNING_ENABLED,
 } from '../config';
 import {
     ETH_DECIMALS,
     GWEI_DECIMALS,
+    META_TXN_MIN_SIGNER_ETH_BALANCE,
     NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
-    SIGNER_ETH_BALANCE_CONSIDERED_CRITICAL,
     SIGNER_STATUS_DB_KEY,
     TX_HASH_RESPONSE_WAIT_TIME_MS,
     TX_WATCHER_POLLING_INTERVAL_MS,
@@ -29,6 +28,7 @@ import { logger } from '../logger';
 import { TransactionStates, TransactionWatcherSignerStatus } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { Signer } from '../utils/signer';
+import { utils } from '../utils/utils';
 
 const SIGNER_ADDRESS_LABEL = 'signer_address';
 const TRANSACTION_STATUS_LABEL = 'status';
@@ -39,8 +39,8 @@ export class TransactionWatcherSignerService {
     private readonly _provider: SupportedProvider;
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _transactionWatcherTimer: NodeJS.Timer;
-    private readonly _signers: Map<string, Signer>;
-    private readonly _signerBalances: Map<string, number>;
+    private readonly _signers: Map<string, Signer> = new Map();
+    private readonly _signerBalancesEth: Map<string, number> = new Map();
     private readonly _availableSignerPublicAddresses: string[];
     private readonly _metricsUpdateTimer: NodeJS.Timer;
     private readonly _signerBalancesGauge: Gauge<string>;
@@ -48,10 +48,10 @@ export class TransactionWatcherSignerService {
     private readonly _gasPriceSummary: Summary<string>;
 
     public static getSortedSignersByAvailability(signerMap: Map<string, { balance: number; count: number }>): string[] {
-        return [...signerMap.entries()]
+        return Array.from(signerMap.entries())
             .sort((a, b) => {
-                const aSigner = a[1];
-                const bSigner = b[1];
+                const [, aSigner] = a;
+                const [, bSigner] = b;
                 // if the number of pending transactions is the same, we sort
                 // the signers by their known balance.
                 if (aSigner.count === bSigner.count) {
@@ -60,7 +60,7 @@ export class TransactionWatcherSignerService {
                 // otherwise we sort by the least amount of pending transactions.
                 return aSigner.count - bSigner.count;
             })
-            .map(entry => entry[0]);
+            .map(([address]) => address);
     }
     private static _createWeb3Provider(rpcHost: string): SupportedProvider {
         const providerEngine = new Web3ProviderEngine();
@@ -69,9 +69,7 @@ export class TransactionWatcherSignerService {
         return providerEngine;
     }
     private static _isUnsubmittedTxExpired(tx: TransactionEntity): boolean {
-        const now = new Date();
-        const shouldBeSubmittedBy = new Date(tx.createdAt.getTime() + TX_HASH_RESPONSE_WAIT_TIME_MS);
-        return tx.status === TransactionStates.Unsubmitted && now > shouldBeSubmittedBy;
+        return tx.status === TransactionStates.Unsubmitted && Date.now() > tx.expectedAt.getTime();
     }
     constructor(dbConnection: Connection) {
         this._provider = TransactionWatcherSignerService._createWeb3Provider(ETHEREUM_RPC_URL);
@@ -84,6 +82,18 @@ export class TransactionWatcherSignerService {
             this._signers.set(signer.publicAddress, signer);
             return signer.publicAddress;
         });
+        this._metricsUpdateTimer = intervalUtils.setAsyncExcludingInterval(
+            async () => {
+                await this._updateLiveSatusAsync();
+            },
+            TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
+            (err: Error) => {
+                logger.error({
+                    message: `transaction watcher failed to update metrics and heartbeat: ${JSON.stringify(err)}`,
+                    err: err.stack,
+                });
+            },
+        );
         this._transactionWatcherTimer = intervalUtils.setAsyncExcludingInterval(
             async () => {
                 logger.trace('syncing transaction status');
@@ -113,23 +123,6 @@ export class TransactionWatcherSignerService {
             help: 'Observed gas prices by the signer in gwei',
             labelNames: [SIGNER_ADDRESS_LABEL],
         });
-        if (ENABLE_PROMETHEUS_METRICS) {
-            this._metricsUpdateTimer = intervalUtils.setAsyncExcludingInterval(
-                async () => {
-                    logger.trace('updating metrics');
-                    await this._updateSignerBalancesAsync();
-                    logger.trace('heartbeat');
-                    await this._updateSignerStatusAsync();
-                },
-                TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
-                (err: Error) => {
-                    logger.error({
-                        message: `transaction watcher failed to update metrics and heartbeat: ${JSON.stringify(err)}`,
-                        err: err.stack,
-                    });
-                },
-            );
-        }
     }
     public stop(): void {
         intervalUtils.clearAsyncExcludingInterval(this._transactionWatcherTimer);
@@ -181,7 +174,7 @@ export class TransactionWatcherSignerService {
         txEntity.nonce = web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce);
         txEntity.from = ethereumTxnParams.from;
         this._gasPriceSummary.observe(
-            { signer_address: txEntity.from },
+            { [SIGNER_ADDRESS_LABEL]: txEntity.from },
             Web3Wrapper.toUnitAmount(txEntity.gasPrice, GWEI_DECIMALS).toNumber(),
         );
         await this._updateTxEntityAsync(txEntity);
@@ -267,7 +260,10 @@ export class TransactionWatcherSignerService {
         });
         for (const tx of transactionsToAbort) {
             tx.status = TransactionStates.Aborted;
-            this._transactionsUpdateCounter.inc({ signer_address: tx.from, status: tx.status }, 1);
+            this._transactionsUpdateCounter.inc(
+                { [SIGNER_ADDRESS_LABEL]: tx.from, [TRANSACTION_STATUS_LABEL]: tx.status },
+                1,
+            );
             await this._transactionRepository.save(tx);
         }
 
@@ -285,7 +281,7 @@ export class TransactionWatcherSignerService {
         for (const tx of unsignedTransactions) {
             if (TransactionWatcherSignerService._isUnsubmittedTxExpired(tx)) {
                 logger.error({
-                    message: `found a transaction in an unsubmitted state waiting longer that ${TX_HASH_RESPONSE_WAIT_TIME_MS}ms`,
+                    message: `found a transaction in an unsubmitted state waiting longer than ${TX_HASH_RESPONSE_WAIT_TIME_MS}ms`,
                     refHash: tx.refHash,
                     from: tx.from,
                 });
@@ -314,12 +310,12 @@ export class TransactionWatcherSignerService {
         return signer;
     }
     private async _getNextSignerAsync(): Promise<Signer> {
-        const sortedSigners = await this._getSortedSignerPublicAddressesByAvailabilityAsync();
+        const [selectedSigner] = await this._getSortedSignerPublicAddressesByAvailabilityAsync();
         // TODO(oskar) - add random choice for top signers to better distribute
         // the fees.
-        const signer = this._signers.get(sortedSigners[0]);
+        const signer = this._signers.get(selectedSigner);
         if (signer === undefined) {
-            throw new Error(`signer with public address: ${sortedSigners[0]} is not available`);
+            throw new Error(`signer with public address: ${selectedSigner} is not available`);
         }
 
         return signer;
@@ -328,7 +324,7 @@ export class TransactionWatcherSignerService {
         const signerMap = new Map<string, { count: number; balance: number }>();
         this._availableSignerPublicAddresses.forEach(signerAddress => {
             const count = 0;
-            const balance = this._signerBalances.get(signerAddress) || 0;
+            const balance = this._signerBalancesEth.get(signerAddress) || 0;
             signerMap.set(signerAddress, { count, balance });
         });
         // TODO(oskar) - move to query builder?
@@ -383,7 +379,7 @@ export class TransactionWatcherSignerService {
                 });
                 continue;
             }
-            if (tx.gasPrice !== undefined && tx.gasPrice.isGreaterThanOrEqualTo(targetGasPrice)) {
+            if (!utils.isNil(tx.gasPrice) && tx.gasPrice.isGreaterThanOrEqualTo(targetGasPrice)) {
                 logger.warn({
                     message:
                         'unsticking of transaction skipped as the targetGasPrice is less than or equal to the gas price it was submitted with',
@@ -454,7 +450,10 @@ export class TransactionWatcherSignerService {
         }
     }
     private async _updateTxEntityAsync(txEntity: TransactionEntity): Promise<TransactionEntity> {
-        this._transactionsUpdateCounter.inc({ signer_address: txEntity.from, status: txEntity.status }, 1);
+        this._transactionsUpdateCounter.inc(
+            { [SIGNER_ADDRESS_LABEL]: txEntity.from, [TRANSACTION_STATUS_LABEL]: txEntity.status },
+            1,
+        );
         return this._transactionRepository.save(txEntity);
     }
     private async _updateSignerBalancesAsync(): Promise<void> {
@@ -473,16 +472,23 @@ export class TransactionWatcherSignerService {
     private async _updateSignerBalanceAsync(signerAddress: string): Promise<void> {
         const signerBalance = await this._web3Wrapper.getBalanceInWeiAsync(signerAddress);
         const balanceInETH = Web3Wrapper.toUnitAmount(signerBalance, ETH_DECIMALS).toNumber();
-        this._signerBalancesGauge.set({ signer_address: signerAddress }, balanceInETH);
-        this._signerBalances.set(signerAddress, balanceInETH);
+        this._signerBalancesGauge.set({ [SIGNER_ADDRESS_LABEL]: signerAddress }, balanceInETH);
+        this._signerBalancesEth.set(signerAddress, balanceInETH);
     }
     private _isSignerLive(): boolean {
         // TODO: better signer liveliness checks, we just check if any address
         // has more than 0.1 ETH available or signing has been explicitly disabled.
-        return (
-            [...this._signerBalances.values()].filter(val => val > SIGNER_ETH_BALANCE_CONSIDERED_CRITICAL).length > 0 &&
-            ENABLE_TRANSACTION_SIGNING
-        );
+        const hasAvailableBalance =
+            Array.from(this._signerBalancesEth.values()).filter(val => val > META_TXN_MIN_SIGNER_ETH_BALANCE).length >
+            0;
+        const isEnabled = META_TXN_SIGNING_ENABLED;
+        return hasAvailableBalance && isEnabled;
+    }
+    private async _updateLiveSatusAsync(): Promise<void> {
+        logger.trace('updating metrics');
+        await this._updateSignerBalancesAsync();
+        logger.trace('heartbeat');
+        await this._updateSignerStatusAsync();
     }
     private async _updateSignerStatusAsync(): Promise<void> {
         // TODO: do we need to find the entity first, for UPDATE?
@@ -493,13 +499,13 @@ export class TransactionWatcherSignerService {
         const statusContent: TransactionWatcherSignerStatus = {
             live: this._isSignerLive(),
             // tslint:disable-next-line:no-inferred-empty-object-type
-            balances: [...this._signerBalances.entries()].reduce((acc: object, signerBalance: [string, number]): Record<
-                string,
-                number
-            > => {
-                const [from, balance] = signerBalance;
-                return { ...acc, [from]: balance };
-            }, {}),
+            balances: Array.from(this._signerBalancesEth.entries()).reduce(
+                (acc: object, signerBalance: [string, number]): Record<string, number> => {
+                    const [from, balance] = signerBalance;
+                    return { ...acc, [from]: balance };
+                },
+                {},
+            ),
         };
         statusKV.value = JSON.stringify(statusContent);
         await this._kvRepository.save(statusKV);

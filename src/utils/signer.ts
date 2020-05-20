@@ -77,7 +77,7 @@ export class Signer {
             message: `attempting to sign and broadcast a meta transaction`,
             nonceNumber: web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce),
             from: ethereumTxnParams.from,
-            gasPrice: ethereumTxnParams.gasPrice,
+            gasPrice: web3WrapperUtils.convertHexToNumber(ethereumTxnParams.gasPrice),
         });
         const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxnParams);
         const ethereumTransactionHash = await this._contractWrappers.exchange

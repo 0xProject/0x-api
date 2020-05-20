@@ -412,6 +412,7 @@ export interface CalculateMetaTransactionPriceResponse {
 export interface PostTransactionResponse {
     ethereumTransactionHash: string;
     signedEthereumTransaction: string;
+    zeroExTransactionHash: string;
 }
 
 export interface ZeroExTransactionWithoutDomain {

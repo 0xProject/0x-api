@@ -3,7 +3,6 @@ import { SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
-import * as _ from 'lodash';
 import * as isValidUUID from 'uuid-validate';
 
 import { CHAIN_ID } from '../config';
@@ -237,6 +236,7 @@ export class MetaTransactionHandlers {
                 res.status(HttpStatus.OK).send({
                     ethereumTransactionHash,
                     signedEthereumTransaction,
+                    zeroExTransactionHash,
                 });
             } else {
                 const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
