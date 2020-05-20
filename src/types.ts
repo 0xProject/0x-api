@@ -353,6 +353,7 @@ export interface GetSwapQuoteResponse {
     data: string;
     gasPrice: BigNumber;
     protocolFee: BigNumber;
+    estimatedProtocolFee: BigNumber;
     orders: SignedOrder[];
     buyAmount: BigNumber;
     sellAmount: BigNumber;

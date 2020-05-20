@@ -129,6 +129,7 @@ export class SwapService {
         const {
             makerAssetAmount,
             totalTakerAssetAmount,
+            protocolFeeInWeiAmount: estimatedProtocolFee,
             gas: bestCaseGas,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const {
@@ -214,6 +215,7 @@ export class SwapService {
             from,
             gasPrice,
             protocolFee,
+            estimatedProtocolFee,
             buyTokenAddress,
             sellTokenAddress,
             buyAmount: makerAssetAmount,
@@ -320,6 +322,7 @@ export class SwapService {
             from,
             gasPrice,
             protocolFee: ZERO,
+            estimatedProtocolFee: ZERO,
             buyTokenAddress,
             sellTokenAddress,
             buyAmount: amount,
