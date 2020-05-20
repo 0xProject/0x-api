@@ -34,7 +34,7 @@ import {
 } from '../constants';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
-import { CalculateSwapQuoteParams, GetSwapQuoteResponse, GetTokenPricesResponse, TokenMetadata } from '../types';
+import { CalculateSwapQuoteParams, GetSwapQuoteResponse, GetTokenPricesResponse, SwapQuoteResponsePartialTransaction, TokenMetadata } from '../types';
 import { serviceUtils } from '../utils/service_utils';
 
 export class SwapService {
@@ -83,7 +83,7 @@ export class SwapService {
             skipValidation,
         } = params;
         const swapQuote = await this._getMarketBuyOrSellQuoteAsync(params);
-        // ATTRIBUTE SWAP QUOTE
+
         const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
         const {
             makerAssetAmount,
@@ -99,18 +99,7 @@ export class SwapService {
         } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
 
-        // GET CALL-DATA
-        // If ETH was specified as the token to sell then we use the Forwarder
-        const extensionContractType = isETHSell ? ExtensionContractType.Forwarder : ExtensionContractType.None;
-        const {
-            calldataHexString: data,
-            ethAmount: value,
-            toAddress: to,
-        } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(attributedSwapQuote, {
-            useExtensionContract: extensionContractType,
-        });
-
-        const affiliatedData = serviceUtils.attributeCallData(data, affiliateAddress);
+        const { to, value, data } = await this._getSwapQuotePartialTransactionAsync(swapQuote, isETHSell, affiliateAddress);
 
         // GET GAS ESTIMATE
         let worstCaseGasEstimate = new BigNumber(worstCaseGas);
@@ -118,12 +107,12 @@ export class SwapService {
         if (!skipValidation && from) {
             // Force a revert error if the takerAddress does not have enough ETH.
             const txDataValue =
-                extensionContractType === ExtensionContractType.Forwarder
+                    isETHSell
                     ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
                     : value;
             const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
-                data: affiliatedData,
+                data,
                 from,
                 value: txDataValue,
                 gasPrice,
@@ -170,7 +159,7 @@ export class SwapService {
             price,
             guaranteedPrice,
             to,
-            data: affiliatedData,
+            data,
             value,
             gas: worstCaseGasEstimate,
             estimatedGas: bestCaseGasEstimate,
@@ -378,5 +367,23 @@ export class SwapService {
         } else {
             throw new Error('sellAmount or buyAmount required');
         }
+    }
+
+    private async _getSwapQuotePartialTransactionAsync(swapQuote: SwapQuote, isETHSell: boolean, affiliateAddress: string): Promise<SwapQuoteResponsePartialTransaction> {
+        const extensionContractType = isETHSell ? ExtensionContractType.Forwarder : ExtensionContractType.None;
+        const {
+            calldataHexString: data,
+            ethAmount: value,
+            toAddress: to,
+        } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, {
+            useExtensionContract: extensionContractType,
+        });
+
+        const affiliatedData = serviceUtils.attributeCallData(data, affiliateAddress);
+        return {
+            to,
+            value,
+            data: affiliatedData,
+        };
     }
 }
