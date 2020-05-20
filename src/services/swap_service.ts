@@ -129,12 +129,12 @@ export class SwapService {
         const {
             makerAssetAmount,
             totalTakerAssetAmount,
-            protocolFeeInWeiAmount: protocolFee,
             gas: bestCaseGas,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const {
             makerAssetAmount: guaranteedMakerAssetAmount,
             totalTakerAssetAmount: guaranteedTotalTakerAssetAmount,
+            protocolFeeInWeiAmount: protocolFee,
             gas: worstCaseGas,
         } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
