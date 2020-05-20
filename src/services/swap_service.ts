@@ -2,6 +2,7 @@ import {
     ExtensionContractType,
     Orderbook,
     ProtocolFeeUtils,
+    SwapQuote,
     SwapQuoteConsumer,
     SwapQuoter,
     SwapQuoterOpts,
@@ -71,60 +72,18 @@ export class SwapService {
     }
 
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
-        let swapQuote;
         const {
-            sellAmount,
             buyAmount,
             buyTokenAddress,
             sellTokenAddress,
-            slippagePercentage,
-            gasPrice: providedGasPrice,
             isETHSell,
             from,
-            excludedSources,
             affiliateAddress,
-            apiKey,
-            rfqt,
             // tslint:disable-next-line:boolean-naming
             skipValidation,
         } = params;
-        let _rfqt;
-        if (apiKey !== undefined && (isETHSell || from !== undefined)) {
-            _rfqt = {
-                ...rfqt,
-                intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
-                apiKey,
-                // If this is a forwarder transaction, then we want to request quotes with the taker as the
-                // forwarder contract. If it's not, then we want to request quotes with the taker set to the
-                // API's takerAddress query parameter, which in this context is known as `from`.
-                takerAddress: isETHSell ? this._forwarderAddress : from || '',
-            };
-        }
-        const assetSwapperOpts = {
-            ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-            slippagePercentage,
-            bridgeSlippage: slippagePercentage,
-            gasPrice: providedGasPrice,
-            excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
-            rfqt: _rfqt,
-        };
-        if (sellAmount !== undefined) {
-            swapQuote = await this._swapQuoter.getMarketSellSwapQuoteAsync(
-                buyTokenAddress,
-                sellTokenAddress,
-                sellAmount,
-                assetSwapperOpts,
-            );
-        } else if (buyAmount !== undefined) {
-            swapQuote = await this._swapQuoter.getMarketBuySwapQuoteAsync(
-                buyTokenAddress,
-                sellTokenAddress,
-                buyAmount,
-                assetSwapperOpts,
-            );
-        } else {
-            throw new Error('sellAmount or buyAmount required');
-        }
+        const swapQuote = await this._getMarketBuyOrSellQuoteAsync(params);
+        // ATTRIBUTE SWAP QUOTE
         const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
         const {
             makerAssetAmount,
@@ -140,6 +99,7 @@ export class SwapService {
         } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
 
+        // GET CALL-DATA
         // If ETH was specified as the token to sell then we use the Forwarder
         const extensionContractType = isETHSell ? ExtensionContractType.Forwarder : ExtensionContractType.None;
         const {
@@ -152,6 +112,7 @@ export class SwapService {
 
         const affiliatedData = serviceUtils.attributeCallData(data, affiliateAddress);
 
+        // GET GAS ESTIMATE
         let worstCaseGasEstimate = new BigNumber(worstCaseGas);
         let bestCaseGasEstimate = new BigNumber(bestCaseGas);
         if (!skipValidation && from) {
@@ -174,6 +135,7 @@ export class SwapService {
         // Add a buffer to the worst case gas estimate
         worstCaseGasEstimate = worstCaseGasEstimate.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue();
 
+        // GET PRICES
         const buyTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(
             buyTokenAddress,
             this._web3Wrapper,
@@ -361,6 +323,60 @@ export class SwapService {
         }
         if (revertError) {
             throw revertError;
+        }
+    }
+
+    private async _getMarketBuyOrSellQuoteAsync(params: CalculateSwapQuoteParams): Promise<SwapQuote> {
+        const {
+            sellAmount,
+            buyAmount,
+            buyTokenAddress,
+            sellTokenAddress,
+            slippagePercentage,
+            gasPrice: providedGasPrice,
+            isETHSell,
+            from,
+            excludedSources,
+            apiKey,
+            rfqt,
+            // tslint:disable-next-line:boolean-naming
+        } = params;
+        let _rfqt;
+        if (apiKey !== undefined && (isETHSell || from !== undefined)) {
+            _rfqt = {
+                ...rfqt,
+                intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
+                apiKey,
+                // If this is a forwarder transaction, then we want to request quotes with the taker as the
+                // forwarder contract. If it's not, then we want to request quotes with the taker set to the
+                // API's takerAddress query parameter, which in this context is known as `from`.
+                takerAddress: isETHSell ? this._forwarderAddress : from || '',
+            };
+        }
+        const assetSwapperOpts = {
+            ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+            slippagePercentage,
+            bridgeSlippage: slippagePercentage,
+            gasPrice: providedGasPrice,
+            excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
+            rfqt: _rfqt,
+        };
+        if (sellAmount !== undefined) {
+            return this._swapQuoter.getMarketSellSwapQuoteAsync(
+                buyTokenAddress,
+                sellTokenAddress,
+                sellAmount,
+                assetSwapperOpts,
+            );
+        } else if (buyAmount !== undefined) {
+            return this._swapQuoter.getMarketBuySwapQuoteAsync(
+                buyTokenAddress,
+                sellTokenAddress,
+                buyAmount,
+                assetSwapperOpts,
+            );
+        } else {
+            throw new Error('sellAmount or buyAmount required');
         }
     }
 }
