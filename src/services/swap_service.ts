@@ -134,6 +134,8 @@ export class SwapService {
             sellTokenAddress,
             attributedSwapQuote,
         );
+        // TODO: add fetching of gas token balance
+        const estimatedGasTokenRefund = serviceUtils.getEstimatedGasTokenRefund(attributedSwapQuote.orders);
 
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
@@ -151,6 +153,7 @@ export class SwapService {
             sellTokenAddress,
             buyAmount: makerAssetAmount,
             sellAmount: totalTakerAssetAmount,
+            estimatedGasTokenRefund,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
             orders: serviceUtils.cleanSignedOrderFields(orders),
         };
@@ -254,6 +257,7 @@ export class SwapService {
             gasPrice,
             protocolFee: ZERO,
             estimatedProtocolFee: ZERO,
+            estimatedGasTokenRefund: ZERO,
             buyTokenAddress,
             sellTokenAddress,
             buyAmount: amount,

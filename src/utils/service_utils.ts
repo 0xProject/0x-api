@@ -2,14 +2,16 @@ import {
     ERC20BridgeSource,
     MarketBuySwapQuote,
     MarketSellSwapQuote,
+    OptimizedMarketOrder,
     SignedOrder,
     SwapQuoteOrdersBreakdown,
 } from '@0x/asset-swapper';
 import { assetDataUtils } from '@0x/order-utils';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import * as _ from 'lodash';
 
-import { CHAIN_ID, FEE_RECIPIENT_ADDRESS } from '../config';
+import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, GAS_SCHEDULE } from '../config';
 import { DEFAULT_TOKEN_DECIMALS, ONE_SECOND_MS, PERCENTAGE_SIG_DIGITS, ZERO } from '../constants';
 import { logger } from '../logger';
 import { GetSwapQuoteResponseLiquiditySource } from '../types';
@@ -131,5 +133,20 @@ export const serviceUtils = {
             },
             breakdown,
         );
+    },
+    getEstimatedGasTokenRefund(
+        orders: OptimizedMarketOrder[],
+        gasTokenBalance: BigNumber = new BigNumber('100000000000000000000000'),
+    ): BigNumber {
+        const bridgeFills = _.flatten(orders.map(order => order.fills)).filter(
+            fill => fill.source !== ERC20BridgeSource.Native,
+        );
+        // tslint:disable:custom-no-magic-numbers
+        const costOfBridgeFills = BigNumber.sum(...bridgeFills.map(o => GAS_SCHEDULE[o.source])).plus(
+            bridgeFills.length * 25000,
+        );
+        return BigNumber.min(gasTokenBalance, costOfBridgeFills.plus(14154).div(41130))
+            .multipliedBy(24000)
+            .integerValue();
     },
 };
