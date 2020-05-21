@@ -4,7 +4,7 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Counter, Gauge, Summary } from 'prom-client';
 import { Connection, Not, Repository } from 'typeorm';
 
-import { ENABLE_PROMETHEUS_METRICS, ETHEREUM_RPC_URL } from '../config';
+import { ENABLE_PROMETHEUS_METRICS } from '../config';
 import {
     ETH_DECIMALS,
     GWEI_DECIMALS,
@@ -65,7 +65,7 @@ export class TransactionWatcherSignerService {
         this._signers = new Map<string, Signer>();
         this._contractWrappers = new ContractWrappers(config.provider, { chainId: config.chainId });
         this._availableSignerPublicAddresses = config.signerPrivateKeys.map(key => {
-            const signer = new Signer(key, ETHEREUM_RPC_URL);
+            const signer = new Signer(key, config.provider, config.chainId);
             this._signers.set(signer.publicAddress, signer);
             return signer.publicAddress;
         });
@@ -89,22 +89,24 @@ export class TransactionWatcherSignerService {
                 });
             },
         );
-        // Metric collection related fields
-        this._signerBalancesGauge = new Gauge({
-            name: 'signer_eth_balance_sum',
-            help: 'Available ETH Balance of a signer',
-            labelNames: [SIGNER_ADDRESS_LABEL],
-        });
-        this._transactionsUpdateCounter = new Counter({
-            name: 'signer_transactions_count',
-            help: 'Number of transactions updates of a signer by status',
-            labelNames: [SIGNER_ADDRESS_LABEL, TRANSACTION_STATUS_LABEL],
-        });
-        this._gasPriceSummary = new Summary({
-            name: 'signer_gas_price_summary',
-            help: 'Observed gas prices by the signer in gwei',
-            labelNames: [SIGNER_ADDRESS_LABEL],
-        });
+        if (ENABLE_PROMETHEUS_METRICS) {
+            // Metric collection related fields
+            this._signerBalancesGauge = new Gauge({
+                name: 'signer_eth_balance_sum',
+                help: 'Available ETH Balance of a signer',
+                labelNames: [SIGNER_ADDRESS_LABEL],
+            });
+            this._transactionsUpdateCounter = new Counter({
+                name: 'signer_transactions_count',
+                help: 'Number of transactions updates of a signer by status',
+                labelNames: [SIGNER_ADDRESS_LABEL, TRANSACTION_STATUS_LABEL],
+            });
+            this._gasPriceSummary = new Summary({
+                name: 'signer_gas_price_summary',
+                help: 'Observed gas prices by the signer in gwei',
+                labelNames: [SIGNER_ADDRESS_LABEL],
+            });
+        }
     }
     public stop(): void {
         intervalUtils.clearAsyncExcludingInterval(this._transactionWatcherTimer);
@@ -452,7 +454,9 @@ export class TransactionWatcherSignerService {
             );
         } catch (err) {
             logger.error({
-                message: `failed to update signer balance: ${JSON.stringify(err)}`,
+                message: `failed to update signer balance: ${JSON.stringify(err)}, ${
+                    this._availableSignerPublicAddresses
+                }`,
                 stack: err.stack,
             });
         }
