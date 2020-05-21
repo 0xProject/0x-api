@@ -8,6 +8,7 @@ import { Connection, Not, Repository } from 'typeorm';
 
 import {
     CHAIN_ID,
+    ENABLE_PROMETHEUS_METRICS,
     ETHEREUM_RPC_URL,
     META_TXN_MAX_GAS_PRICE_GWEI,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
@@ -175,10 +176,12 @@ export class TransactionWatcherSignerService {
         txEntity.signedTx = signedEthereumTransaction;
         txEntity.nonce = web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce);
         txEntity.from = ethereumTxnParams.from;
-        this._gasPriceSummary.observe(
-            { [SIGNER_ADDRESS_LABEL]: txEntity.from },
-            Web3Wrapper.toUnitAmount(txEntity.gasPrice, GWEI_DECIMALS).toNumber(),
-        );
+        if (ENABLE_PROMETHEUS_METRICS) {
+            this._gasPriceSummary.observe(
+                { [SIGNER_ADDRESS_LABEL]: txEntity.from },
+                Web3Wrapper.toUnitAmount(txEntity.gasPrice, GWEI_DECIMALS).toNumber(),
+            );
+        }
         await this._updateTxEntityAsync(txEntity);
     }
     private async _syncBroadcastedTransactionStatusAsync(): Promise<void> {
@@ -262,10 +265,12 @@ export class TransactionWatcherSignerService {
         });
         for (const tx of transactionsToAbort) {
             tx.status = TransactionStates.Aborted;
-            this._transactionsUpdateCounter.inc(
-                { [SIGNER_ADDRESS_LABEL]: tx.from, [TRANSACTION_STATUS_LABEL]: tx.status },
-                1,
-            );
+            if (ENABLE_PROMETHEUS_METRICS) {
+                this._transactionsUpdateCounter.inc(
+                    { [SIGNER_ADDRESS_LABEL]: tx.from, [TRANSACTION_STATUS_LABEL]: tx.status },
+                    1,
+                );
+            }
             await this._transactionRepository.save(tx);
         }
 
@@ -452,10 +457,12 @@ export class TransactionWatcherSignerService {
         }
     }
     private async _updateTxEntityAsync(txEntity: TransactionEntity): Promise<TransactionEntity> {
-        this._transactionsUpdateCounter.inc(
-            { [SIGNER_ADDRESS_LABEL]: txEntity.from, [TRANSACTION_STATUS_LABEL]: txEntity.status },
-            1,
-        );
+        if (ENABLE_PROMETHEUS_METRICS) {
+            this._transactionsUpdateCounter.inc(
+                { [SIGNER_ADDRESS_LABEL]: txEntity.from, [TRANSACTION_STATUS_LABEL]: txEntity.status },
+                1,
+            );
+        }
         return this._transactionRepository.save(txEntity);
     }
     private async _updateSignerBalancesAsync(): Promise<void> {
@@ -475,8 +482,10 @@ export class TransactionWatcherSignerService {
     }
     private _updateSignerBalance(signerAddress: string, signerBalance: BigNumber): void {
         const balanceInEth = Web3Wrapper.toUnitAmount(signerBalance, ETH_DECIMALS).toNumber();
-        this._signerBalancesGauge.set({ [SIGNER_ADDRESS_LABEL]: signerAddress }, balanceInEth);
         this._signerBalancesEth.set(signerAddress, balanceInEth);
+        if (ENABLE_PROMETHEUS_METRICS) {
+            this._signerBalancesGauge.set({ [SIGNER_ADDRESS_LABEL]: signerAddress }, balanceInEth);
+        }
     }
     private async _isSignerLiveAsync(): Promise<boolean> {
         // Return immediately if the override is set to false
