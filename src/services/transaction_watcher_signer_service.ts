@@ -18,6 +18,7 @@ import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates, TransactionWatcherSignerServiceConfig, TransactionWatcherSignerStatus } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
+import { MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { Signer } from '../utils/signer';
 import { utils } from '../utils/utils';
 
@@ -39,6 +40,7 @@ export class TransactionWatcherSignerService {
     private readonly _signerBalancesGauge: Gauge<string>;
     private readonly _transactionsUpdateCounter: Counter<string>;
     private readonly _gasPriceSummary: Summary<string>;
+    private readonly _rateLimiter?: MetaTransactionRateLimiter;
 
     public static getSortedSignersByAvailability(signerMap: Map<string, { balance: number; count: number }>): string[] {
         return Array.from(signerMap.entries())
@@ -60,6 +62,7 @@ export class TransactionWatcherSignerService {
     }
     constructor(dbConnection: Connection, config: TransactionWatcherSignerServiceConfig) {
         this._config = config;
+        this._rateLimiter = this._config.rateLimiter;
         this._transactionRepository = dbConnection.getRepository(TransactionEntity);
         this._kvRepository = dbConnection.getRepository(KeyValueEntity);
         this._web3Wrapper = new Web3Wrapper(config.provider);
@@ -190,7 +193,9 @@ export class TransactionWatcherSignerService {
             if (txInBlockchain !== undefined && txInBlockchain !== null && txInBlockchain.hash !== undefined) {
                 if (txInBlockchain.blockNumber !== null) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is already on the blockchain, updating status to TransactionStates.Included`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is already on the blockchain, updating status to TransactionStates.Included`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Included;
@@ -201,7 +206,9 @@ export class TransactionWatcherSignerService {
                     // Checks if the txn is in the mempool but still has it's status set to Unsubmitted or Submitted
                 } else if (!isExpired && txEntity.status !== TransactionStates.Mempool) {
                     logger.trace({
-                        message: `a transaction with a ${txEntity.status} status is pending, updating status to TransactionStates.Mempool`,
+                        message: `a transaction with a ${
+                            txEntity.status
+                        } status is pending, updating status to TransactionStates.Mempool`,
                         hash: txInBlockchain.hash,
                     });
                     txEntity.status = TransactionStates.Mempool;
@@ -259,6 +266,20 @@ export class TransactionWatcherSignerService {
         });
         logger.trace(`found ${unsignedTransactions.length} transactions to sign and broadcast`);
         for (const tx of unsignedTransactions) {
+            if (this._rateLimiter !== undefined) {
+                const isAllowed = await this._rateLimiter.isAllowedAsync(tx.apiKey);
+                if (!isAllowed) {
+                    logger.warn({
+                        message: `cancelling transaction because of rate limiting: ${this._rateLimiter.info()}`,
+                        refHash: tx.refHash,
+                        from: tx.from,
+                        takerAddress: tx.takerAddress,
+                    });
+                    tx.status = TransactionStates.Cancelled;
+                    await this._updateTxEntityAsync(tx);
+                    continue;
+                }
+            }
             if (TransactionWatcherSignerService._isUnsubmittedTxExpired(tx)) {
                 logger.error({
                     message: `found a transaction in an unsubmitted state waiting longer than ${TX_HASH_RESPONSE_WAIT_TIME_MS}ms`,
@@ -266,7 +287,7 @@ export class TransactionWatcherSignerService {
                     from: tx.from,
                 });
                 tx.status = TransactionStates.Cancelled;
-                await this._transactionRepository.save(tx);
+                await this._updateTxEntityAsync(tx);
                 continue;
             }
             try {

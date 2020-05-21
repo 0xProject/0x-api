@@ -295,6 +295,7 @@ export class MetaTransactionService {
         zeroExTransaction: ZeroExTransactionWithoutDomain,
         signature: string,
         protocolFee: BigNumber,
+        apiKey: string,
     ): Promise<PostTransactionResponse> {
         const transactionEntity = TransactionEntity.make({
             refHash: zeroExTransactionHash,
@@ -305,6 +306,7 @@ export class MetaTransactionService {
                 .executeTransaction(zeroExTransaction, signature)
                 .getABIEncodedTransactionData(),
             value: protocolFee,
+            apiKey,
             gasPrice: zeroExTransaction.gasPrice,
             expectedMinedInSec: META_TXN_RELAY_EXPECTED_MINED_SEC,
         });

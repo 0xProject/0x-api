@@ -59,10 +59,13 @@ export class TransactionEntity {
     @Column({ name: 'tx_status', type: 'int', nullable: true })
     public txStatus?: number;
 
-    @CreateDateColumn({ name: 'created_at' })
+    @Column({ name: 'api_key', type: 'varchar', nullable: true })
+    public apiKey?: string;
+
+    @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
     public createdAt?: Date;
 
-    @UpdateDateColumn({ name: 'updated_at' })
+    @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
     public updatedAt?: Date;
 
     @Column({ name: 'expected_at', type: 'timestamptz' })
@@ -97,6 +100,7 @@ export class TransactionEntity {
             txHash: '',
             to: '',
             data: '',
+            apiKey: '',
             takerAddress: '',
             status: '',
             expectedMinedInSec: META_TXN_RELAY_EXPECTED_MINED_SEC,
@@ -114,6 +118,7 @@ export class TransactionEntity {
         this.takerAddress = opts.takerAddress;
         this.to = opts.to;
         this.data = opts.data;
+        this.apiKey = opts.apiKey;
         this.status = opts.status;
         this.expectedMinedInSec = opts.expectedMinedInSec;
         this.nonce = opts.nonce;

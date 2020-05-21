@@ -24,17 +24,21 @@ import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import { GetMetaTransactionPriceResponse, GetTransactionRequestParams, ZeroExTransactionWithoutDomain } from '../types';
 import { parseUtils } from '../utils/parse_utils';
+import { MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { schemaUtils } from '../utils/schema_utils';
 import { findTokenAddressOrThrowApiError } from '../utils/token_metadata_utils';
 
 export class MetaTransactionHandlers {
     private readonly _metaTransactionService: MetaTransactionService;
+    private readonly _rateLimiter?: MetaTransactionRateLimiter;
+
     public static rootAsync(_req: express.Request, res: express.Response): void {
         const message = `This is the root of the Meta Transaction API. Visit ${META_TRANSACTION_DOCS_URL} for details about this API.`;
         res.status(HttpStatus.OK).send({ message });
     }
-    constructor(metaTransactionService: MetaTransactionService) {
+    constructor(metaTransactionService: MetaTransactionService, rateLimiter?: MetaTransactionRateLimiter) {
         this._metaTransactionService = metaTransactionService;
+        this._rateLimiter = rateLimiter;
     }
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
@@ -232,11 +236,34 @@ export class MetaTransactionHandlers {
                     });
                     return;
                 }
+                const isAllowed =
+                    this._rateLimiter === undefined ? true : await this._rateLimiter.isAllowedAsync(apiKey);
+                if (!isAllowed) {
+                    const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
+                        zeroExTransaction,
+                        signature,
+                        protocolFee,
+                    );
+                    res.status(HttpStatus.TOO_MANY_REQUESTS).send({
+                        code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
+                        reason: `exceeded: ${this._rateLimiter.info()}`,
+                        ethereumTransaction: {
+                            data: ethereumTxn.data,
+                            gasPrice: ethereumTxn.gasPrice,
+                            gas: ethereumTxn.gas,
+                            value: ethereumTxn.value,
+                            to: ethereumTxn.to,
+                        },
+                    });
+                    return;
+                }
+
                 const { ethereumTransactionHash } = await this._metaTransactionService.submitZeroExTransactionAsync(
                     zeroExTransactionHash,
                     zeroExTransaction,
                     signature,
                     protocolFee,
+                    apiKey,
                 );
                 res.status(HttpStatus.OK).send({
                     ethereumTransactionHash,

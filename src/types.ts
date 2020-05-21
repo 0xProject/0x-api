@@ -8,6 +8,7 @@ import {
     ZeroExTransaction,
 } from '@0x/types';
 import { BigNumber } from '@0x/utils';
+import { MetaTransactionRateLimiter } from './utils/rate-limiters';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
@@ -536,5 +537,6 @@ export interface TransactionWatcherSignerServiceConfig {
     heartbeatIntervalMs: number;
     unstickGasMultiplier: number;
     numBlocksUntilConfirmed: number;
+    rateLimiter?: MetaTransactionRateLimiter;
 }
 // tslint:disable-line:max-file-line-count

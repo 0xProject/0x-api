@@ -2,6 +2,8 @@ import { BigNumber } from '@0x/utils';
 
 export interface TransactionEntityOpts {
     refHash: string;
+    apiKey?: string;
+    txHash?: string;
     takerAddress?: string;
     status: string;
     expectedMinedInSec: number;
