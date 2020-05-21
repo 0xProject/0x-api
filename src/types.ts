@@ -346,6 +346,12 @@ export interface TokenMetadata {
     tokenAddress: string;
 }
 
+export interface GasTokenRefundInfo {
+    usedGasTokens: number;
+    gasTokenGasCost: BigNumber;
+    gasTokenRefund: BigNumber;
+}
+
 export interface SwapQuoteResponsePartialTransaction {
     to: string;
     data: string;

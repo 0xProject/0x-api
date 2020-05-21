@@ -14,7 +14,7 @@ import * as _ from 'lodash';
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, GAS_SCHEDULE } from '../config';
 import { DEFAULT_TOKEN_DECIMALS, ONE_SECOND_MS, PERCENTAGE_SIG_DIGITS, ZERO } from '../constants';
 import { logger } from '../logger';
-import { GetSwapQuoteResponseLiquiditySource } from '../types';
+import { GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
@@ -134,10 +134,10 @@ export const serviceUtils = {
             breakdown,
         );
     },
-    getEstimatedGasTokenRefund(
+    getEstimatedGasTokenRefundInfo(
         orders: OptimizedMarketOrder[],
         gasTokenBalance: BigNumber = new BigNumber('100000000000000000000000'),
-    ): BigNumber {
+    ): GasTokenRefundInfo {
         const bridgeFills = _.flatten(orders.map(order => order.fills)).filter(
             fill => fill.source !== ERC20BridgeSource.Native,
         );
@@ -145,8 +145,13 @@ export const serviceUtils = {
         const costOfBridgeFills = BigNumber.sum(...bridgeFills.map(o => GAS_SCHEDULE[o.source])).plus(
             bridgeFills.length * 25000,
         );
-        return BigNumber.min(gasTokenBalance, costOfBridgeFills.plus(14154).div(41130))
-            .multipliedBy(24000)
-            .integerValue();
+        const usedGasTokens = BigNumber.min(gasTokenBalance, costOfBridgeFills.plus(14154).div(41130).integerValue(BigNumber.ROUND_DOWN));
+        const gasTokenRefund = usedGasTokens.multipliedBy(24000);
+        const gasTokenGasCost = usedGasTokens.multipliedBy(6870);
+        return {
+            usedGasTokens: usedGasTokens.toNumber(),
+            gasTokenRefund,
+            gasTokenGasCost,
+        };
     },
 };

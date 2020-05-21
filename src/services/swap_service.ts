@@ -107,8 +107,10 @@ export class SwapService {
             affiliateAddress,
         );
 
-        let worstCaseGasEstimate = new BigNumber(worstCaseGas);
-        let bestCaseGasEstimate = new BigNumber(bestCaseGas);
+        const { gasTokenRefund: estimatedGasTokenRefund, gasTokenGasCost } = serviceUtils.getEstimatedGasTokenRefundInfo(attributedSwapQuote.orders);
+
+        let worstCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
+        let bestCaseGasEstimate = new BigNumber(bestCaseGas).plus(gasTokenGasCost);
         if (!skipValidation && from) {
             // Force a revert error if the takerAddress does not have enough ETH.
             const txDataValue = isETHSell
@@ -134,8 +136,6 @@ export class SwapService {
             sellTokenAddress,
             attributedSwapQuote,
         );
-        // TODO: add fetching of gas token balance
-        const estimatedGasTokenRefund = serviceUtils.getEstimatedGasTokenRefund(attributedSwapQuote.orders);
 
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
