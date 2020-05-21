@@ -205,6 +205,10 @@ export const PROMETHEUS_PORT: number = _.isEmpty(process.env.PROMETHEUS_PORT)
     ? 8080
     : assertEnvVarType('PROMETHEUS_PORT', process.env.PROMETHEUS_PORT, EnvVarType.Port);
 
+export const GST2_WALLET_ADDRESS: string = _.isEmpty(process.env.GST2_WALLET_ADDRESS)
+? '0x000000d3b08566be75a6db803c03c85c0c1c5b96'
+: assertEnvVarType('GST2_WALLET_ADDRESS', process.env.GST2_WALLET_ADDRESS, EnvVarType.ETHAddressHex);
+
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision

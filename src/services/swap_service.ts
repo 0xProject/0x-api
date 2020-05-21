@@ -9,7 +9,7 @@ import {
 } from '@0x/asset-swapper';
 import { OrderPrunerPermittedFeeTypes } from '@0x/asset-swapper/lib/src/types';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { WETH9Contract } from '@0x/contract-wrappers';
+import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
@@ -18,6 +18,7 @@ import * as _ from 'lodash';
 import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     CHAIN_ID,
+    GST2_WALLET_ADDRESS,
     LIQUIDITY_POOL_REGISTRY_ADDRESS,
     RFQT_API_KEY_WHITELIST,
     RFQT_MAKER_ASSET_OFFERINGS,
@@ -25,6 +26,7 @@ import {
 } from '../config';
 import {
     GAS_LIMIT_BUFFER_MULTIPLIER,
+    GST2_ADDRESS,
     ONE,
     PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -50,6 +52,7 @@ export class SwapService {
     private readonly _swapQuoteConsumer: SwapQuoteConsumer;
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _wethContract: WETH9Contract;
+    private readonly _gasTokenContract: ERC20TokenContract;
     private readonly _protocolFeeUtils: ProtocolFeeUtils;
     private readonly _forwarderAddress: string;
 
@@ -74,6 +77,7 @@ export class SwapService {
 
         const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
         this._wethContract = new WETH9Contract(contractAddresses.etherToken, this._provider);
+        this._gasTokenContract = new ERC20TokenContract(GST2_ADDRESS, this._provider);
         this._protocolFeeUtils = new ProtocolFeeUtils(PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
         this._forwarderAddress = contractAddresses.forwarder;
     }
@@ -107,7 +111,8 @@ export class SwapService {
             affiliateAddress,
         );
 
-        const { gasTokenRefund: estimatedGasTokenRefund, gasTokenGasCost } = serviceUtils.getEstimatedGasTokenRefundInfo(attributedSwapQuote.orders);
+        const gst2Balance = await this._gasTokenContract.balanceOf(GST2_WALLET_ADDRESS).callAsync();
+        const { gasTokenRefund: estimatedGasTokenRefund, gasTokenGasCost } = serviceUtils.getEstimatedGasTokenRefundInfo(attributedSwapQuote.orders, gst2Balance);
 
         let worstCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
         let bestCaseGasEstimate = new BigNumber(bestCaseGas).plus(gasTokenGasCost);
