@@ -1,3 +1,4 @@
+import { intervalUtils } from '@0x/utils';
 import * as _ from 'lodash';
 
 import { ObjectMap } from '../types';
@@ -90,5 +91,20 @@ export const utils = {
         // undefined == null => true
         // undefined == undefined => true
         return value == null;
+    },
+    setAsyncExcludingImmediateInterval(
+        fn: () => Promise<void>,
+        intervalMs: number,
+        onError: (err: Error) => void,
+    ): NodeJS.Timer {
+        // Execute this right await rather than waiting for the first interval
+        void (async () => {
+            try {
+                await fn();
+            } catch (e) {
+                onError(e);
+            }
+        })();
+        return intervalUtils.setAsyncExcludingInterval(fn, intervalMs, onError);
     },
 };

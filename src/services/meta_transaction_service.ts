@@ -13,17 +13,14 @@ import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     CHAIN_ID,
     LIQUIDITY_POOL_REGISTRY_ADDRESS,
-    META_TXN_MAX_GAS_PRICE_GWEI,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
     META_TXN_SUBMIT_WHITELISTED_API_KEYS,
 } from '../config';
 import {
-    GWEI_DECIMALS,
     ONE_GWEI,
     ONE_SECOND_MS,
     PUBLIC_ADDRESS_FOR_ETH_CALLS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
-    SIGNER_KILL_SWITCH_KEY,
     SIGNER_STATUS_DB_KEY,
     SUBMITTED_TX_DB_POLLING_INTERVAL_MS,
     TEN_MINUTES_MS,
@@ -223,11 +220,8 @@ export class MetaTransactionService {
         const gasPrice = zeroExTransaction.gasPrice;
         const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
         // Make sure gasPrice is not 3X the current fast EthGasStation gas price
-        if (
-            Web3Wrapper.toUnitAmount(gasPrice, GWEI_DECIMALS).gte(META_TXN_MAX_GAS_PRICE_GWEI) ||
-            // tslint:disable-next-line:custom-no-magic-numbers
-            (currentFastGasPrice.lt(gasPrice) && gasPrice.minus(currentFastGasPrice).gte(currentFastGasPrice.times(3)))
-        ) {
+        // tslint:disable-next-line:custom-no-magic-numbers
+        if (currentFastGasPrice.lt(gasPrice) && gasPrice.minus(currentFastGasPrice).gte(currentFastGasPrice.times(3))) {
             throw new Error('Gas price too high');
         }
 
@@ -324,34 +318,15 @@ export class MetaTransactionService {
     }
     public async isSignerLiveAsync(): Promise<boolean> {
         const statusKV = await this._kvRepository.findOne(SIGNER_STATUS_DB_KEY);
-        if (statusKV === undefined) {
+        if (utils.isNil(statusKV) || utils.isNil(statusKV.value)) {
             logger.error({
                 message: `signer status entry is not present in the database`,
             });
             return false;
         }
-        if (statusKV.value === undefined) {
-            logger.error({
-                message: 'signer status value is undefined',
-            });
-            return false;
-        }
         const signerStatus: TransactionWatcherSignerStatus = JSON.parse(statusKV.value);
-        const isKillSwitchOn = await this.isKillSwitchOnAsync();
-        return signerStatus.live && !isKillSwitchOn;
-    }
-    public async isKillSwitchOnAsync(): Promise<boolean> {
-        const killSwitchKV = await this._kvRepository.findOne(SIGNER_KILL_SWITCH_KEY);
-        if (killSwitchKV === undefined) {
-            logger.warn({
-                message: `kill switch entry is not present in the database under ${SIGNER_KILL_SWITCH_KEY} key`,
-            });
-            return false;
-        }
-        if (killSwitchKV.value.toLowerCase() === 'true') {
-            return true;
-        }
-        return false;
+        // tslint:disable-next-line:no-boolean-literal-compare
+        return signerStatus.live === true;
     }
     private async _waitUntilTxHashAsync(
         txEntity: TransactionEntity,

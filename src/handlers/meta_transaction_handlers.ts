@@ -223,6 +223,15 @@ export class MetaTransactionHandlers {
 
             // If eligible for free txn relay, submit it, otherwise, return unsigned Ethereum txn
             if (apiKey !== undefined && MetaTransactionService.isEligibleForFreeMetaTxn(apiKey)) {
+                // If Metatxn service is not live then we reject
+                const isLive = await this._metaTransactionService.isSignerLiveAsync();
+                if (!isLive) {
+                    res.status(HttpStatus.NOT_FOUND).send({
+                        code: GeneralErrorCodes.ServiceDisabled,
+                        reason: generalErrorCodeToReason[GeneralErrorCodes.ServiceDisabled],
+                    });
+                    return;
+                }
                 const {
                     ethereumTransactionHash,
                     signedEthereumTransaction,
@@ -232,7 +241,6 @@ export class MetaTransactionHandlers {
                     signature,
                     protocolFee,
                 );
-                // return the transactionReceipt
                 res.status(HttpStatus.OK).send({
                     ethereumTransactionHash,
                     signedEthereumTransaction,

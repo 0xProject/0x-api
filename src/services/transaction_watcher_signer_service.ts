@@ -1,3 +1,4 @@
+import { ContractWrappers } from '@0x/contract-wrappers';
 import { RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, intervalUtils, providerUtils } from '@0x/utils';
 import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
@@ -6,7 +7,9 @@ import { Counter, Gauge, Summary } from 'prom-client';
 import { Connection, Not, Repository } from 'typeorm';
 
 import {
+    CHAIN_ID,
     ETHEREUM_RPC_URL,
+    META_TXN_MAX_GAS_PRICE_GWEI,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
     META_TXN_RELAY_PRIVATE_KEYS,
     META_TXN_SIGNING_ENABLED,
@@ -38,11 +41,13 @@ export class TransactionWatcherSignerService {
     private readonly _kvRepository: Repository<KeyValueEntity>;
     private readonly _provider: SupportedProvider;
     private readonly _web3Wrapper: Web3Wrapper;
-    private readonly _transactionWatcherTimer: NodeJS.Timer;
+    private readonly _contractWrappers: ContractWrappers;
     private readonly _signers: Map<string, Signer> = new Map();
     private readonly _signerBalancesEth: Map<string, number> = new Map();
     private readonly _availableSignerPublicAddresses: string[];
     private readonly _metricsUpdateTimer: NodeJS.Timer;
+    private readonly _transactionWatcherTimer: NodeJS.Timer;
+    // Metrics
     private readonly _signerBalancesGauge: Gauge<string>;
     private readonly _transactionsUpdateCounter: Counter<string>;
     private readonly _gasPriceSummary: Summary<string>;
@@ -77,15 +82,14 @@ export class TransactionWatcherSignerService {
         this._kvRepository = dbConnection.getRepository(KeyValueEntity);
         this._web3Wrapper = new Web3Wrapper(this._provider);
         this._signers = new Map<string, Signer>();
+        this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._availableSignerPublicAddresses = META_TXN_RELAY_PRIVATE_KEYS.map(key => {
             const signer = new Signer(key, ETHEREUM_RPC_URL);
             this._signers.set(signer.publicAddress, signer);
             return signer.publicAddress;
         });
-        this._metricsUpdateTimer = intervalUtils.setAsyncExcludingInterval(
-            async () => {
-                await this._updateLiveSatusAsync();
-            },
+        this._metricsUpdateTimer = utils.setAsyncExcludingImmediateInterval(
+            async () => this._updateLiveSatusAsync(),
             TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
             (err: Error) => {
                 logger.error({
@@ -94,11 +98,8 @@ export class TransactionWatcherSignerService {
                 });
             },
         );
-        this._transactionWatcherTimer = intervalUtils.setAsyncExcludingInterval(
-            async () => {
-                logger.trace('syncing transaction status');
-                await this.syncTransactionStatusAsync();
-            },
+        this._transactionWatcherTimer = utils.setAsyncExcludingImmediateInterval(
+            async () => this.syncTransactionStatusAsync(),
             TX_WATCHER_POLLING_INTERVAL_MS,
             (err: Error) => {
                 logger.error({
@@ -129,6 +130,7 @@ export class TransactionWatcherSignerService {
         intervalUtils.clearAsyncExcludingInterval(this._metricsUpdateTimer);
     }
     public async syncTransactionStatusAsync(): Promise<void> {
+        logger.trace('syncing transaction status');
         try {
             await this._cancelOrSignAndBroadcastTransactionsAsync();
         } catch (err) {
@@ -155,7 +157,7 @@ export class TransactionWatcherSignerService {
         if (txEntity.zeroExTransactionSignature === undefined) {
             throw new Error('txEntity is missing zeroExTransactionSignature');
         }
-        if (!this._isSignerLive()) {
+        if (!this._isSignerLiveAsync()) {
             throw new Error('signer is currently not live');
         }
         const {
@@ -457,32 +459,38 @@ export class TransactionWatcherSignerService {
         return this._transactionRepository.save(txEntity);
     }
     private async _updateSignerBalancesAsync(): Promise<void> {
-        // TODO(oskar) - use contract to grab all balances in a single RPC call?
-        for (const signerAddress of this._availableSignerPublicAddresses) {
-            try {
-                await this._updateSignerBalanceAsync(signerAddress);
-            } catch (err) {
-                logger.error({
-                    message: `failed to update signer balance: ${JSON.stringify(err)}`,
-                    stack: err.stack,
-                });
-            }
+        try {
+            const balances = await this._contractWrappers.devUtils
+                .getEthBalances(this._availableSignerPublicAddresses)
+                .callAsync();
+            balances.forEach((balance, i) =>
+                this._updateSignerBalance(this._availableSignerPublicAddresses[i], balance),
+            );
+        } catch (err) {
+            logger.error({
+                message: `failed to update signer balance: ${JSON.stringify(err)}`,
+                stack: err.stack,
+            });
         }
     }
-    private async _updateSignerBalanceAsync(signerAddress: string): Promise<void> {
-        const signerBalance = await this._web3Wrapper.getBalanceInWeiAsync(signerAddress);
-        const balanceInETH = Web3Wrapper.toUnitAmount(signerBalance, ETH_DECIMALS).toNumber();
-        this._signerBalancesGauge.set({ [SIGNER_ADDRESS_LABEL]: signerAddress }, balanceInETH);
-        this._signerBalancesEth.set(signerAddress, balanceInETH);
+    private _updateSignerBalance(signerAddress: string, signerBalance: BigNumber): void {
+        const balanceInEth = Web3Wrapper.toUnitAmount(signerBalance, ETH_DECIMALS).toNumber();
+        this._signerBalancesGauge.set({ [SIGNER_ADDRESS_LABEL]: signerAddress }, balanceInEth);
+        this._signerBalancesEth.set(signerAddress, balanceInEth);
     }
-    private _isSignerLive(): boolean {
-        // TODO: better signer liveliness checks, we just check if any address
-        // has more than 0.1 ETH available or signing has been explicitly disabled.
+    private async _isSignerLiveAsync(): Promise<boolean> {
+        // Return immediately if the override is set to false
+        if (!META_TXN_SIGNING_ENABLED) {
+            return false;
+        }
+        const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
+        const isCurrentGasPriceBelowMax = Web3Wrapper.toUnitAmount(currentFastGasPrice, GWEI_DECIMALS).lt(
+            META_TXN_MAX_GAS_PRICE_GWEI,
+        );
         const hasAvailableBalance =
             Array.from(this._signerBalancesEth.values()).filter(val => val > META_TXN_MIN_SIGNER_ETH_BALANCE).length >
             0;
-        const isEnabled = META_TXN_SIGNING_ENABLED;
-        return hasAvailableBalance && isEnabled;
+        return hasAvailableBalance && isCurrentGasPriceBelowMax;
     }
     private async _updateLiveSatusAsync(): Promise<void> {
         logger.trace('updating metrics');
@@ -493,11 +501,12 @@ export class TransactionWatcherSignerService {
     private async _updateSignerStatusAsync(): Promise<void> {
         // TODO: do we need to find the entity first, for UPDATE?
         let statusKV = await this._kvRepository.findOne(SIGNER_STATUS_DB_KEY);
-        if (statusKV === undefined) {
+        if (utils.isNil(statusKV)) {
             statusKV = new KeyValueEntity(SIGNER_STATUS_DB_KEY);
         }
+        const isLive = await this._isSignerLiveAsync();
         const statusContent: TransactionWatcherSignerStatus = {
-            live: this._isSignerLive(),
+            live: isLive,
             // tslint:disable-next-line:no-inferred-empty-object-type
             balances: Array.from(this._signerBalancesEth.entries()).reduce(
                 (acc: object, signerBalance: [string, number]): Record<string, number> => {

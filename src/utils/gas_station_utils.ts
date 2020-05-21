@@ -16,8 +16,8 @@ const getGasInfoAsync = async () => {
         } catch (e) {
             throw new Error('Failed to fetch gas price from EthGasStation');
         }
-        return previousGasInfo;
     }
+    return previousGasInfo;
 };
 
 export const ethGasStationUtils = {
