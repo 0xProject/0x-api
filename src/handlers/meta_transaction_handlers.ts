@@ -6,7 +6,7 @@ import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
 import { CHAIN_ID, META_TXN_RATE_LIMIT_TYPE } from '../config';
-import { DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL } from '../constants';
+import { DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL, API_KEY_HEADER } from '../constants';
 import { TransactionEntity } from '../entities';
 import {
     GeneralErrorCodes,
@@ -51,7 +51,7 @@ export class MetaTransactionHandlers {
         }
     }
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        const apiKey = req.header('0x-api-key');
+        const apiKey = req.header(API_KEY_HEADER);
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
                 code: GeneralErrorCodes.InvalidAPIKey,
