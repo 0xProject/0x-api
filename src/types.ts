@@ -1,4 +1,4 @@
-import { ERC20BridgeSource, MarketBuySwapQuote, MarketSellSwapQuote } from '@0x/asset-swapper';
+import { ERC20BridgeSource, MarketBuySwapQuote, MarketSellSwapQuote, SupportedProvider } from '@0x/asset-swapper';
 import { AcceptedOrderInfo, RejectedOrderInfo } from '@0x/mesh-rpc-client';
 import {
     APIOrder,
@@ -521,5 +521,19 @@ export interface TransactionWatcherSignerStatus {
     balances: {
         [address: string]: number;
     };
+}
+
+export interface TransactionWatcherSignerServiceConfig {
+    provider: SupportedProvider;
+    chainId: number;
+    signerPrivateKeys: string[];
+    expectedMinedInSec: number;
+    isSigningEnabled: boolean;
+    maxGasPriceGwei: BigNumber;
+    minSignerEthBalance: number;
+    transactionPollingIntervalMs: number;
+    heartbeatIntervalMs: number;
+    unstickGasMultiplier: number;
+    numBlocksUntilConfirmed: number;
 }
 // tslint:disable-line:max-file-line-count

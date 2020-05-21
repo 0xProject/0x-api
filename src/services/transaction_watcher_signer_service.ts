@@ -1,35 +1,21 @@
 import { ContractWrappers } from '@0x/contract-wrappers';
-import { RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
-import { BigNumber, intervalUtils, providerUtils } from '@0x/utils';
-import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
+import { BigNumber, intervalUtils } from '@0x/utils';
+import { Web3Wrapper } from '@0x/web3-wrapper';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Counter, Gauge, Summary } from 'prom-client';
 import { Connection, Not, Repository } from 'typeorm';
 
-import {
-    CHAIN_ID,
-    ENABLE_PROMETHEUS_METRICS,
-    ETHEREUM_RPC_URL,
-    META_TXN_MAX_GAS_PRICE_GWEI,
-    META_TXN_RELAY_EXPECTED_MINED_SEC,
-    META_TXN_RELAY_PRIVATE_KEYS,
-    META_TXN_SIGNING_ENABLED,
-} from '../config';
+import { ENABLE_PROMETHEUS_METRICS, ETHEREUM_RPC_URL } from '../config';
 import {
     ETH_DECIMALS,
     GWEI_DECIMALS,
-    META_TXN_MIN_SIGNER_ETH_BALANCE,
-    NUMBER_OF_BLOCKS_UNTIL_CONFIRMED,
     ONE_SECOND_MS,
     SIGNER_STATUS_DB_KEY,
     TX_HASH_RESPONSE_WAIT_TIME_MS,
-    TX_WATCHER_POLLING_INTERVAL_MS,
-    TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
-    UNSTICKING_TRANSACTION_GAS_MULTIPLIER,
 } from '../constants';
 import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
-import { TransactionStates, TransactionWatcherSignerStatus } from '../types';
+import { TransactionStates, TransactionWatcherSignerServiceConfig, TransactionWatcherSignerStatus } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { Signer } from '../utils/signer';
 import { utils } from '../utils/utils';
@@ -40,9 +26,9 @@ const TRANSACTION_STATUS_LABEL = 'status';
 export class TransactionWatcherSignerService {
     private readonly _transactionRepository: Repository<TransactionEntity>;
     private readonly _kvRepository: Repository<KeyValueEntity>;
-    private readonly _provider: SupportedProvider;
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _contractWrappers: ContractWrappers;
+    private readonly _config: TransactionWatcherSignerServiceConfig;
     private readonly _signers: Map<string, Signer> = new Map();
     private readonly _signerBalancesEth: Map<string, number> = new Map();
     private readonly _availableSignerPublicAddresses: string[];
@@ -68,30 +54,24 @@ export class TransactionWatcherSignerService {
             })
             .map(([address]) => address);
     }
-    private static _createWeb3Provider(rpcHost: string): SupportedProvider {
-        const providerEngine = new Web3ProviderEngine();
-        providerEngine.addProvider(new RPCSubprovider(rpcHost));
-        providerUtils.startProviderEngine(providerEngine);
-        return providerEngine;
-    }
     private static _isUnsubmittedTxExpired(tx: TransactionEntity): boolean {
         return tx.status === TransactionStates.Unsubmitted && Date.now() > tx.expectedAt.getTime();
     }
-    constructor(dbConnection: Connection) {
-        this._provider = TransactionWatcherSignerService._createWeb3Provider(ETHEREUM_RPC_URL);
+    constructor(dbConnection: Connection, config: TransactionWatcherSignerServiceConfig) {
+        this._config = config;
         this._transactionRepository = dbConnection.getRepository(TransactionEntity);
         this._kvRepository = dbConnection.getRepository(KeyValueEntity);
-        this._web3Wrapper = new Web3Wrapper(this._provider);
+        this._web3Wrapper = new Web3Wrapper(config.provider);
         this._signers = new Map<string, Signer>();
-        this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
-        this._availableSignerPublicAddresses = META_TXN_RELAY_PRIVATE_KEYS.map(key => {
+        this._contractWrappers = new ContractWrappers(config.provider, { chainId: config.chainId });
+        this._availableSignerPublicAddresses = config.signerPrivateKeys.map(key => {
             const signer = new Signer(key, ETHEREUM_RPC_URL);
             this._signers.set(signer.publicAddress, signer);
             return signer.publicAddress;
         });
         this._metricsUpdateTimer = utils.setAsyncExcludingImmediateInterval(
             async () => this._updateLiveSatusAsync(),
-            TX_WATCHER_UPDATE_METRICS_INTERVAL_MS,
+            config.heartbeatIntervalMs,
             (err: Error) => {
                 logger.error({
                     message: `transaction watcher failed to update metrics and heartbeat: ${JSON.stringify(err)}`,
@@ -101,7 +81,7 @@ export class TransactionWatcherSignerService {
         );
         this._transactionWatcherTimer = utils.setAsyncExcludingImmediateInterval(
             async () => this.syncTransactionStatusAsync(),
-            TX_WATCHER_POLLING_INTERVAL_MS,
+            config.transactionPollingIntervalMs,
             (err: Error) => {
                 logger.error({
                     message: `transaction watcher failed to sync transaction status: ${JSON.stringify(err)}`,
@@ -364,7 +344,7 @@ export class TransactionWatcherSignerService {
             nonce: tx.nonce,
             gasPrice,
             from: tx.from,
-            expectedMinedInSec: META_TXN_RELAY_EXPECTED_MINED_SEC,
+            expectedMinedInSec: this._config.expectedMinedInSec,
         });
         await this._transactionRepository.save(transactionEntity);
         return txHash;
@@ -377,7 +357,7 @@ export class TransactionWatcherSignerService {
             return;
         }
         const gasStationPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
-        const targetGasPrice = gasStationPrice.multipliedBy(UNSTICKING_TRANSACTION_GAS_MULTIPLIER);
+        const targetGasPrice = gasStationPrice.multipliedBy(this._config.unstickGasMultiplier);
         for (const tx of stuckTransactions) {
             if (tx.from === undefined) {
                 logger.error({
@@ -449,7 +429,7 @@ export class TransactionWatcherSignerService {
                         returnedBlockNumber: txInBlockchain.blockNumber,
                     });
                 }
-                if (tx.blockNumber + NUMBER_OF_BLOCKS_UNTIL_CONFIRMED < latestBlockNumber) {
+                if (tx.blockNumber + this._config.numBlocksUntilConfirmed < latestBlockNumber) {
                     tx.status = TransactionStates.Confirmed;
                     await this._updateTxEntityAsync(tx);
                 }
@@ -489,15 +469,15 @@ export class TransactionWatcherSignerService {
     }
     private async _isSignerLiveAsync(): Promise<boolean> {
         // Return immediately if the override is set to false
-        if (!META_TXN_SIGNING_ENABLED) {
+        if (!this._config.isSigningEnabled) {
             return false;
         }
         const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
         const isCurrentGasPriceBelowMax = Web3Wrapper.toUnitAmount(currentFastGasPrice, GWEI_DECIMALS).lt(
-            META_TXN_MAX_GAS_PRICE_GWEI,
+            this._config.maxGasPriceGwei,
         );
         const hasAvailableBalance =
-            Array.from(this._signerBalancesEth.values()).filter(val => val > META_TXN_MIN_SIGNER_ETH_BALANCE).length >
+            Array.from(this._signerBalancesEth.values()).filter(val => val > this._config.minSignerEthBalance).length >
             0;
         return hasAvailableBalance && isCurrentGasPriceBelowMax;
     }
