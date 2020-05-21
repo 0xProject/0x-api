@@ -1,7 +1,6 @@
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { BigNumber, intervalUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
-import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Counter, Gauge, Summary } from 'prom-client';
 import { Connection, Not, Repository } from 'typeorm';
 
@@ -12,6 +11,7 @@ import {
     ONE_SECOND_MS,
     SIGNER_STATUS_DB_KEY,
     TX_HASH_RESPONSE_WAIT_TIME_MS,
+    ZERO,
 } from '../constants';
 import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
@@ -126,35 +126,30 @@ export class TransactionWatcherSignerService {
     }
     private async _signAndBroadcastMetaTxAsync(txEntity: TransactionEntity, signer: Signer): Promise<void> {
         // TODO(oskar) refactor with type guards?
-        if (txEntity.protocolFee === undefined) {
-            throw new Error('txEntity is missing protocolFee');
+        if (utils.isNil(txEntity.to)) {
+            throw new Error('txEntity is missing to');
         }
-        if (txEntity.gasPrice === undefined) {
+        if (utils.isNil(txEntity.value)) {
+            throw new Error('txEntity is missing value');
+        }
+        if (utils.isNil(txEntity.gasPrice)) {
             throw new Error('txEntity is missing gasPrice');
         }
-        if (txEntity.zeroExTransaction === undefined) {
-            throw new Error('txEntity is missing zeroExTransaction');
-        }
-        if (txEntity.zeroExTransactionSignature === undefined) {
-            throw new Error('txEntity is missing zeroExTransactionSignature');
+        if (utils.isNil(txEntity.data)) {
+            throw new Error('txEntity is missing data');
         }
         if (!this._isSignerLiveAsync()) {
             throw new Error('signer is currently not live');
         }
-        const {
-            ethereumTxnParams,
-            ethereumTransactionHash,
-            signedEthereumTransaction,
-        } = await signer.signAndBroadcastMetaTxAsync(
-            txEntity.zeroExTransaction,
-            txEntity.zeroExTransactionSignature,
-            txEntity.protocolFee,
+        const { ethereumTxnParams, ethereumTransactionHash } = await signer.signAndBroadcastMetaTxAsync(
+            txEntity.to,
+            txEntity.data,
+            txEntity.value,
             txEntity.gasPrice,
         );
         txEntity.status = TransactionStates.Submitted;
         txEntity.txHash = ethereumTransactionHash;
-        txEntity.signedTx = signedEthereumTransaction;
-        txEntity.nonce = web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce);
+        txEntity.nonce = ethereumTxnParams.nonce;
         txEntity.from = ethereumTxnParams.from;
         if (ENABLE_PROMETHEUS_METRICS) {
             this._gasPriceSummary.observe(
@@ -344,6 +339,8 @@ export class TransactionWatcherSignerService {
             nonce: tx.nonce,
             gasPrice,
             from: tx.from,
+            to: signer.publicAddress,
+            value: ZERO,
             expectedMinedInSec: this._config.expectedMinedInSec,
         });
         await this._transactionRepository.save(transactionEntity);
@@ -506,6 +503,11 @@ export class TransactionWatcherSignerService {
                 },
                 {},
             ),
+            gasPrice: Web3Wrapper.toUnitAmount(
+                await ethGasStationUtils.getGasPriceOrThrowAsync(),
+                GWEI_DECIMALS,
+            ).toNumber(),
+            maxGasPrice: this._config.maxGasPriceGwei.toNumber(),
         };
         statusKV.value = JSON.stringify(statusContent);
         await this._kvRepository.save(statusKV);

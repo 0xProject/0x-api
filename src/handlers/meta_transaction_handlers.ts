@@ -232,10 +232,7 @@ export class MetaTransactionHandlers {
                     });
                     return;
                 }
-                const {
-                    ethereumTransactionHash,
-                    signedEthereumTransaction,
-                } = await this._metaTransactionService.submitZeroExTransactionAsync(
+                const { ethereumTransactionHash } = await this._metaTransactionService.submitZeroExTransactionAsync(
                     zeroExTransactionHash,
                     zeroExTransaction,
                     signature,
@@ -243,7 +240,6 @@ export class MetaTransactionHandlers {
                 );
                 res.status(HttpStatus.OK).send({
                     ethereumTransactionHash,
-                    signedEthereumTransaction,
                     zeroExTransactionHash,
                 });
             } else {

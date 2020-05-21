@@ -18,6 +18,7 @@ import {
 } from '../config';
 import {
     ONE_GWEI,
+    ONE_MINUTE_MS,
     ONE_SECOND_MS,
     PUBLIC_ADDRESS_FOR_ETH_CALLS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -209,8 +210,7 @@ export class MetaTransactionService {
         signature: string,
     ): Promise<BigNumber> {
         // Verify 0x txn won't expire in next 60 seconds
-        // tslint:disable-next-line:custom-no-magic-numbers
-        const sixtySecondsFromNow = new BigNumber(Math.floor(new Date().getTime() / ONE_SECOND_MS) + 60);
+        const sixtySecondsFromNow = new BigNumber(Date.now() + ONE_MINUTE_MS).dividedBy(ONE_SECOND_MS);
         if (zeroExTransaction.expirationTimeSeconds.lte(sixtySecondsFromNow)) {
             throw new Error('zeroExTransaction expirationTimeSeconds in less than 60 seconds from now');
         }
@@ -300,19 +300,18 @@ export class MetaTransactionService {
             refHash: zeroExTransactionHash,
             status: TransactionStates.Unsubmitted,
             takerAddress: zeroExTransaction.signerAddress,
-            zeroExTransaction,
-            zeroExTransactionSignature: signature,
-            protocolFee,
+            to: this._contractWrappers.exchange.address,
+            data: this._contractWrappers.exchange
+                .executeTransaction(zeroExTransaction, signature)
+                .getABIEncodedTransactionData(),
+            value: protocolFee,
             gasPrice: zeroExTransaction.gasPrice,
             expectedMinedInSec: META_TXN_RELAY_EXPECTED_MINED_SEC,
         });
         await this._transactionEntityRepository.save(transactionEntity);
-        const { ethereumTransactionHash, signedEthereumTransaction } = await this._waitUntilTxHashAsync(
-            transactionEntity,
-        );
+        const { ethereumTransactionHash } = await this._waitUntilTxHashAsync(transactionEntity);
         return {
             ethereumTransactionHash,
-            signedEthereumTransaction,
             zeroExTransactionHash,
         };
     }
@@ -330,14 +329,12 @@ export class MetaTransactionService {
         // tslint:disable-next-line:no-boolean-literal-compare
         return signerStatus.live === true && hasUpdatedRecently;
     }
-    private async _waitUntilTxHashAsync(
-        txEntity: TransactionEntity,
-    ): Promise<{ ethereumTransactionHash: string; signedEthereumTransaction: string }> {
+    private async _waitUntilTxHashAsync(txEntity: TransactionEntity): Promise<{ ethereumTransactionHash: string }> {
         return utils.runWithTimeout(async () => {
             while (true) {
                 const tx = await this._transactionEntityRepository.findOne(txEntity.refHash);
-                if (!utils.isNil(tx) && !utils.isNil(tx.txHash) && !utils.isNil(tx.signedTx)) {
-                    return { ethereumTransactionHash: tx.txHash, signedEthereumTransaction: tx.signedTx };
+                if (!utils.isNil(tx) && !utils.isNil(tx.txHash) && !utils.isNil(tx.data)) {
+                    return { ethereumTransactionHash: tx.txHash };
                 }
 
                 await utils.delayAsync(SUBMITTED_TX_DB_POLLING_INTERVAL_MS);

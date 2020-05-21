@@ -4,9 +4,9 @@ import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } fro
 
 import { META_TXN_RELAY_EXPECTED_MINED_SEC } from '../config';
 import { ONE_SECOND_MS, ZERO } from '../constants';
-import { TransactionStates, ZeroExTransactionWithoutDomain } from '../types';
+import { TransactionStates } from '../types';
 
-import { BigIntTransformer, BigNumberTransformer, ZeroExTransactionWithoutDomainTransformer } from './transformers';
+import { BigIntTransformer, BigNumberTransformer } from './transformers';
 import { TransactionEntityOpts } from './types';
 
 @Entity({ name: 'transactions' })
@@ -17,22 +17,14 @@ export class TransactionEntity {
     // unsticking ethereum transaction.
     public refHash: string;
 
-    @Column({ name: 'zero_ex_tx_signature', type: 'varchar', nullable: true })
-    public zeroExTransactionSignature?: string;
+    @Column({ name: 'data', type: 'varchar', nullable: true })
+    public data?: string;
 
-    @Column({
-        name: 'zero_ex_tx',
-        type: 'json',
-        nullable: true,
-        transformer: ZeroExTransactionWithoutDomainTransformer,
-    })
-    public zeroExTransaction?: ZeroExTransactionWithoutDomain;
+    @Column({ name: 'to', type: 'varchar' })
+    public to?: string;
 
     @Column({ name: 'tx_hash', type: 'varchar', unique: true, nullable: true })
     public txHash?: string;
-
-    @Column({ name: 'signed_tx', type: 'varchar', unique: true, nullable: true })
-    public signedTx?: string;
 
     @Column({ name: 'status', type: 'varchar' })
     public status: string;
@@ -49,8 +41,8 @@ export class TransactionEntity {
     @Column({ name: 'gas_price', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
     public gasPrice?: BigNumber;
 
-    @Column({ name: 'protocol_fee', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
-    public protocolFee?: BigNumber;
+    @Column({ name: 'value', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
+    public value?: BigNumber;
 
     @Column({ name: 'block_number', type: 'bigint', nullable: true, transformer: BigIntTransformer })
     public blockNumber?: number;
@@ -94,36 +86,28 @@ export class TransactionEntity {
         opts: TransactionEntityOpts = {
             refHash: '',
             txHash: '',
-            signedTx: '',
+            to: '',
+            data: '',
             takerAddress: '',
             status: '',
             expectedMinedInSec: META_TXN_RELAY_EXPECTED_MINED_SEC,
             nonce: 0,
             gasPrice: ZERO,
-            protocolFee: ZERO,
+            value: ZERO,
             from: '',
-            zeroExTransactionSignature: '',
-            zeroExTransaction: {
-                salt: ZERO,
-                expirationTimeSeconds: ZERO,
-                gasPrice: ZERO,
-                signerAddress: '',
-                data: '',
-            },
         },
     ) {
         this.refHash = opts.refHash;
         this.txHash = opts.txHash;
         this.takerAddress = opts.takerAddress;
-        this.signedTx = opts.signedTx;
+        this.to = opts.to;
+        this.data = opts.data;
         this.status = opts.status;
         this.expectedMinedInSec = opts.expectedMinedInSec;
         this.nonce = opts.nonce;
         this.gasPrice = opts.gasPrice;
-        this.protocolFee = opts.protocolFee;
+        this.value = opts.value;
         this.blockNumber = opts.blockNumber;
-        this.zeroExTransaction = opts.zeroExTransaction;
-        this.zeroExTransactionSignature = opts.zeroExTransactionSignature;
         this.from = opts.from;
         const now = new Date();
         this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * ONE_SECOND_MS);

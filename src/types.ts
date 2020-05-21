@@ -411,7 +411,6 @@ export interface CalculateMetaTransactionPriceResponse {
 
 export interface PostTransactionResponse {
     ethereumTransactionHash: string;
-    signedEthereumTransaction: string;
     zeroExTransactionHash: string;
 }
 
@@ -518,6 +517,8 @@ export enum TransactionStates {
 export interface TransactionWatcherSignerStatus {
     live: boolean;
     timeSinceEpoch: number;
+    gasPrice: number;
+    maxGasPrice: number;
     balances: {
         [address: string]: number;
     };

@@ -2,7 +2,6 @@ import { ContractWrappers, TxData } from '@0x/contract-wrappers';
 import { SupportedProvider, Web3Wrapper } from '@0x/dev-utils';
 import {
     NonceTrackerSubprovider,
-    PartialTxParams,
     PrivateKeyWalletSubprovider,
     RedundantSubprovider,
     RPCSubprovider,
@@ -14,7 +13,6 @@ import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { CHAIN_ID } from '../config';
 import { ETH_TRANSFER_GAS_LIMIT } from '../constants';
 import { logger } from '../logger';
-import { ZeroExTransactionWithoutDomain } from '../types';
 
 export class Signer {
     public readonly publicAddress: string;
@@ -59,43 +57,53 @@ export class Signer {
     }
 
     public async signAndBroadcastMetaTxAsync(
-        zeroExTransaction: ZeroExTransactionWithoutDomain,
-        signature: string,
-        protocolFee: BigNumber,
+        to: string,
+        data: string,
+        value: BigNumber,
         gasPrice: BigNumber,
     ): Promise<{
-        ethereumTxnParams: PartialTxParams;
+        ethereumTxnParams: { nonce: number; from: string; gas: number };
         ethereumTransactionHash: string;
-        signedEthereumTransaction: string;
     }> {
-        const ethereumTxnParams = await this.generateExecuteTransactionEthereumTransactionAsync(
-            zeroExTransaction,
-            signature,
-            protocolFee,
-        );
+        const nonceHex = await this._getNonceAsync(this.publicAddress);
+        const nonce = web3WrapperUtils.convertHexToNumber(nonceHex);
+        const from = this.publicAddress;
+        const gas = await this._web3Wrapper.estimateGasAsync({
+            to,
+            from,
+            gasPrice,
+            data,
+            value,
+        });
         logger.info({
             message: `attempting to sign and broadcast a meta transaction`,
-            nonceNumber: web3WrapperUtils.convertHexToNumber(ethereumTxnParams.nonce),
-            from: ethereumTxnParams.from,
-            gasPrice: web3WrapperUtils.convertHexToNumber(ethereumTxnParams.gasPrice),
+            nonce: web3WrapperUtils.convertHexToNumber(nonceHex),
+            from,
+            gas,
+            gasPrice,
         });
-        const signedEthereumTransaction = await this._privateWalletSubprovider.signTransactionAsync(ethereumTxnParams);
-        const ethereumTransactionHash = await this._contractWrappers.exchange
-            .executeTransaction(zeroExTransaction, signature)
-            .sendTransactionAsync(
-                {
-                    from: this.publicAddress,
-                    gasPrice,
-                    value: protocolFee,
-                },
-                { shouldValidate: false },
-            );
+        const txHash = await this._web3Wrapper.sendTransactionAsync({
+            to: this._contractWrappers.exchange.address,
+            from,
+            data,
+            gas,
+            gasPrice,
+            value,
+            nonce,
+        });
         logger.info({
             message: 'signed and broadcasted a meta transaction',
-            txHash: ethereumTransactionHash,
-            from: ethereumTxnParams.from,
+            txHash,
+            from: this.publicAddress,
         });
-        return { ethereumTxnParams, ethereumTransactionHash, signedEthereumTransaction };
+        return {
+            ethereumTxnParams: {
+                from,
+                nonce,
+                gas,
+            },
+            ethereumTransactionHash: txHash,
+        };
     }
 
     public async sendTransactionToItselfWithNonceAsync(nonce: number, gasPrice: BigNumber): Promise<string> {
@@ -111,38 +119,6 @@ export class Signer {
         return this._web3Wrapper.sendTransactionAsync(ethereumTxnParams);
     }
 
-    public async generateExecuteTransactionEthereumTransactionAsync(
-        zeroExTransaction: ZeroExTransactionWithoutDomain,
-        signature: string,
-        protocolFee: BigNumber,
-    ): Promise<PartialTxParams> {
-        const gasPrice = zeroExTransaction.gasPrice;
-        // TODO(dekz): our pattern is to eth_call and estimateGas in parallel and return the result of eth_call validations
-        const gas = await this._contractWrappers.exchange
-            .executeTransaction(zeroExTransaction, signature)
-            .estimateGasAsync({
-                from: this.publicAddress,
-                gasPrice,
-                value: protocolFee,
-            });
-
-        const executeTxnCalldata = this._contractWrappers.exchange
-            .executeTransaction(zeroExTransaction, signature)
-            .getABIEncodedTransactionData();
-
-        const ethereumTxnParams: PartialTxParams = {
-            data: executeTxnCalldata,
-            gas: web3WrapperUtils.encodeAmountAsHexString(gas),
-            from: this.publicAddress,
-            gasPrice: web3WrapperUtils.encodeAmountAsHexString(gasPrice),
-            value: web3WrapperUtils.encodeAmountAsHexString(protocolFee),
-            to: this._contractWrappers.exchange.address,
-            nonce: await this._getNonceAsync(this.publicAddress),
-            chainId: CHAIN_ID,
-        };
-
-        return ethereumTxnParams;
-    }
     private async _getNonceAsync(senderAddress: string): Promise<string> {
         // HACK(fabio): NonceTrackerSubprovider doesn't expose the subsequent nonce
         // to use so we fetch it from its private instance variable
