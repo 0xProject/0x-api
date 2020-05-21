@@ -325,8 +325,10 @@ export class MetaTransactionService {
             return false;
         }
         const signerStatus: TransactionWatcherSignerStatus = JSON.parse(statusKV.value);
+        const hasUpdatedRecently =
+            !utils.isNil(statusKV.updatedAt) && statusKV.updatedAt.getTime() > Date.now() - TEN_MINUTES_MS;
         // tslint:disable-next-line:no-boolean-literal-compare
-        return signerStatus.live === true;
+        return signerStatus.live === true && hasUpdatedRecently;
     }
     private async _waitUntilTxHashAsync(
         txEntity: TransactionEntity,

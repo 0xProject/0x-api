@@ -517,6 +517,7 @@ export enum TransactionStates {
 
 export interface TransactionWatcherSignerStatus {
     live: boolean;
+    timeSinceEpoch: number;
     balances: {
         [address: string]: number;
     };

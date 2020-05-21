@@ -516,6 +516,8 @@ export class TransactionWatcherSignerService {
         const isLive = await this._isSignerLiveAsync();
         const statusContent: TransactionWatcherSignerStatus = {
             live: isLive,
+            // HACK: We save the time to force the updatedAt update else it will be a noop when state hasn't changed
+            timeSinceEpoch: Date.now(),
             // tslint:disable-next-line:no-inferred-empty-object-type
             balances: Array.from(this._signerBalancesEth.entries()).reduce(
                 (acc: object, signerBalance: [string, number]): Record<string, number> => {
