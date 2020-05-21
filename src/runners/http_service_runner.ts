@@ -63,6 +63,7 @@ export async function runHttpServiceAsync(
         HTTP_KEEP_ALIVE_TIMEOUT: number;
         HTTP_HEADERS_TIMEOUT: number;
         PROMETHEUS_PORT: number;
+        META_TXN_RATE_LIMIT_TYPE?: string;
     },
     _app?: core.Express,
 ): Promise<HttpServices> {

@@ -17,6 +17,7 @@ import {
 } from './constants';
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId } from './types';
+import { AvailableRateLimiters, RollingLimiterIntervalUnits } from './utils/rate-limiters';
 
 enum EnvVarType {
     AddressList,
@@ -35,6 +36,8 @@ enum EnvVarType {
     APIKeys,
     PrivateKeys,
     RfqtMakerAssetOfferings,
+    RateLimitType,
+    RateLimitIntervalUnit,
 }
 
 // Network port to listen on
@@ -204,6 +207,34 @@ export const META_TXN_MAX_GAS_PRICE_GWEI: BigNumber = _.isEmpty(process.env.META
     ? new BigNumber(50)
     : assertEnvVarType('META_TXN_MAX_GAS_PRICE_GWEI', process.env.META_TXN_MAX_GAS_PRICE_GWEI, EnvVarType.UnitAmount);
 
+export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
+    ? undefined
+    : assertEnvVarType('LOG_LEVEL', process.env.LOG_LEVEL, EnvVarType.NonEmptyString);
+
+export const META_TXN_RATE_LIMIT_TYPE: string | undefined = _.isEmpty(process.env.META_TXN_RATE_LIMIT_TYPE)
+    ? undefined
+    : assertEnvVarType('META_TXN_RATE_LIMIT_TYPE', process.env.META_TXN_RATE_LIMIT_TYPE, EnvVarType.RateLimitType); // OneOf [DAILY ROLLING]
+
+export const META_TXN_RATE_LIMITTER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
+    process.env.META_TXN_RATE_LIMITTER_ALLOWED_NUMBER,
+)
+    ? undefined
+    : assertEnvVarType(
+          'META_TXN_RATE_LIMITTER_ALLOWED_NUMBER',
+          process.env.META_TXN_RATE_LIMITTER_ALLOWED_NUMBER,
+          EnvVarType.Integer,
+      );
+
+export const META_TXN_RATE_LIMITTER_ALLOWED_UNIT: string | undefined = _.isEmpty(
+    process.env.META_TXN_RATE_LIMITTER_ALLOWED_UNIT,
+)
+    ? undefined
+    : assertEnvVarType(
+          'META_TXN_RATE_LIMITTER_ALLOWED_UNIT',
+          process.env.META_TXN_RATE_LIMITTER_ALLOWED_UNIT,
+          EnvVarType.RateLimitType,
+      );
+
 // Whether or not prometheus metrics should be enabled.
 // tslint:disable-next-line:boolean-naming
 export const ENABLE_PROMETHEUS_METRICS: boolean = _.isEmpty(process.env.ENABLE_PROMETHEUS_METRICS)
@@ -333,6 +364,14 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 throw new Error(`${name} must be supplied`);
             }
             return value;
+        case EnvVarType.RateLimitType:
+            assert.isString(name, value);
+            assert.doesBelongToStringEnum(name, value, AvailableRateLimiters);
+            return value;
+        case EnvVarType.RateLimitIntervalUnit:
+            assert.isString(name, value);
+            assert.doesBelongToStringEnum(name, value, RollingLimiterIntervalUnits);
+            return value;
         case EnvVarType.APIKeys:
             assert.isString(name, value);
             const apiKeys = (value as string).split(',');
@@ -343,7 +382,6 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 }
             });
             return apiKeys;
-
         case EnvVarType.RfqtMakerAssetOfferings:
             const offerings: RfqtMakerAssetOfferings = JSON.parse(value);
             // tslint:disable-next-line:forin

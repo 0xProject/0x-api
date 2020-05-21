@@ -5,7 +5,7 @@ import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
-import { CHAIN_ID } from '../config';
+import { CHAIN_ID, META_TXN_RATE_LIMIT_TYPE } from '../config';
 import { DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL } from '../constants';
 import { TransactionEntity } from '../entities';
 import {
@@ -24,7 +24,11 @@ import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import { GetMetaTransactionPriceResponse, GetTransactionRequestParams, ZeroExTransactionWithoutDomain } from '../types';
 import { parseUtils } from '../utils/parse_utils';
-import { MetaTransactionRateLimiter } from '../utils/rate-limiters';
+import {
+    MetaTransactionRateLimiter,
+    AvailableRateLimiters,
+    MetaTransactionRollingLimiter,
+} from '../utils/rate-limiters';
 import { schemaUtils } from '../utils/schema_utils';
 import { findTokenAddressOrThrowApiError } from '../utils/token_metadata_utils';
 
@@ -36,9 +40,15 @@ export class MetaTransactionHandlers {
         const message = `This is the root of the Meta Transaction API. Visit ${META_TRANSACTION_DOCS_URL} for details about this API.`;
         res.status(HttpStatus.OK).send({ message });
     }
-    constructor(metaTransactionService: MetaTransactionService, rateLimiter?: MetaTransactionRateLimiter) {
+    constructor(metaTransactionService: MetaTransactionService) {
         this._metaTransactionService = metaTransactionService;
-        this._rateLimiter = rateLimiter;
+        if (META_TXN_RATE_LIMIT_TYPE !== undefined) {
+            if (META_TXN_RATE_LIMIT_TYPE === AvailableRateLimiters.Rolling) {
+                this._rateLimiter = new MetaTransactionRollingLimiter();
+            } else {
+                this._rateLimiter = '';
+            }
+        }
     }
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
