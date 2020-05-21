@@ -145,7 +145,13 @@ export const serviceUtils = {
         const costOfBridgeFills = BigNumber.sum(...bridgeFills.map(o => GAS_SCHEDULE[o.source])).plus(
             bridgeFills.length * 25000,
         );
-        const usedGasTokens = BigNumber.min(gasTokenBalance, costOfBridgeFills.plus(14154).div(41130).integerValue(BigNumber.ROUND_DOWN));
+        const usedGasTokens = BigNumber.min(
+            gasTokenBalance,
+            costOfBridgeFills
+                .plus(14154)
+                .div(41130)
+                .integerValue(BigNumber.ROUND_DOWN),
+        );
         const gasTokenRefund = usedGasTokens.multipliedBy(24000);
         const gasTokenGasCost = usedGasTokens.multipliedBy(6870);
         return {

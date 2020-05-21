@@ -112,7 +112,10 @@ export class SwapService {
         );
 
         const gst2Balance = await this._gasTokenContract.balanceOf(GST2_WALLET_ADDRESS).callAsync();
-        const { gasTokenRefund: estimatedGasTokenRefund, gasTokenGasCost } = serviceUtils.getEstimatedGasTokenRefundInfo(attributedSwapQuote.orders, gst2Balance);
+        const {
+            gasTokenRefund: estimatedGasTokenRefund,
+            gasTokenGasCost,
+        } = serviceUtils.getEstimatedGasTokenRefundInfo(attributedSwapQuote.orders, gst2Balance);
 
         let worstCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
         let bestCaseGasEstimate = new BigNumber(bestCaseGas).plus(gasTokenGasCost);
