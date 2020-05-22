@@ -112,7 +112,7 @@ export class SwapService {
 
         const gst2Balance = await this._gasTokenContract.balanceOf(GST2_WALLET_ADDRESS).callAsync();
         const {
-            gasTokenRefund: estimatedGasTokenRefund,
+            gasTokenRefund,
             gasTokenGasCost,
         } = serviceUtils.getEstimatedGasTokenRefundInfo(attributedSwapQuote.orders, gst2Balance);
 
@@ -134,7 +134,8 @@ export class SwapService {
         }
         // Add a buffer to get the worst case gas estimate
         const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue();
-
+        // Cap the refund at 50% our best estimate
+        const estimatedGasTokenRefund = BigNumber.min(conservativeBestCaseGasEstimate.div(2), gasTokenRefund);
         const { price, guaranteedPrice } = await this._getSwapQuotePriceAsync(
             buyAmount,
             buyTokenAddress,
