@@ -366,7 +366,7 @@ export interface SwapQuoteResponsePrice {
 export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, SwapQuoteResponsePrice {
     gasPrice: BigNumber;
     protocolFee: BigNumber;
-    estimatedProtocolFee: BigNumber;
+    minimumProtocolFee: BigNumber;
     orders: SignedOrder[];
     buyAmount: BigNumber;
     sellAmount: BigNumber;

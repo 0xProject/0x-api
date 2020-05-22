@@ -26,7 +26,7 @@ import {
 } from '../config';
 import {
     GAS_LIMIT_BUFFER_MULTIPLIER,
-    GST2_ADDRESS,
+    GST2_TOKEN_ADDRESS,
     ONE,
     PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -77,7 +77,7 @@ export class SwapService {
 
         const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
         this._wethContract = new WETH9Contract(contractAddresses.etherToken, this._provider);
-        this._gasTokenContract = new ERC20TokenContract(GST2_ADDRESS, this._provider);
+        this._gasTokenContract = new ERC20TokenContract(GST2_TOKEN_ADDRESS, this._provider);
         this._protocolFeeUtils = new ProtocolFeeUtils(PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
         this._forwarderAddress = contractAddresses.forwarder;
     }
@@ -99,7 +99,7 @@ export class SwapService {
         const {
             makerAssetAmount,
             totalTakerAssetAmount,
-            protocolFeeInWeiAmount: estimatedProtocolFee,
+            protocolFeeInWeiAmount: minimumProtocolFee,
             gas: bestCaseGas,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = attributedSwapQuote.worstCaseQuoteInfo;
@@ -156,7 +156,7 @@ export class SwapService {
             from,
             gasPrice,
             protocolFee,
-            estimatedProtocolFee,
+            minimumProtocolFee,
             buyTokenAddress,
             sellTokenAddress,
             buyAmount: makerAssetAmount,
@@ -264,7 +264,7 @@ export class SwapService {
             from,
             gasPrice,
             protocolFee: ZERO,
-            estimatedProtocolFee: ZERO,
+            minimumProtocolFee: ZERO,
             estimatedGasTokenRefund: ZERO,
             buyTokenAddress,
             sellTokenAddress,
