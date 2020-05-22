@@ -65,7 +65,7 @@ export class TransactionWatcherSignerService {
         this._signers = new Map<string, Signer>();
         this._contractWrappers = new ContractWrappers(config.provider, { chainId: config.chainId });
         this._availableSignerPublicAddresses = config.signerPrivateKeys.map(key => {
-            const signer = new Signer(key, config.provider, config.chainId);
+            const signer = new Signer(key, config.provider);
             this._signers.set(signer.publicAddress, signer);
             return signer.publicAddress;
         });
@@ -242,13 +242,7 @@ export class TransactionWatcherSignerService {
         });
         for (const tx of transactionsToAbort) {
             tx.status = TransactionStates.Aborted;
-            if (ENABLE_PROMETHEUS_METRICS) {
-                this._transactionsUpdateCounter.inc(
-                    { [SIGNER_ADDRESS_LABEL]: tx.from, [TRANSACTION_STATUS_LABEL]: tx.status },
-                    1,
-                );
-            }
-            await this._transactionRepository.save(tx);
+            await this._updateTxEntityAsync(tx);
         }
 
         return transactionsToAbort;
