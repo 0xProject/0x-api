@@ -134,10 +134,7 @@ export const serviceUtils = {
             breakdown,
         );
     },
-    getEstimatedGasTokenRefundInfo(
-        orders: OptimizedMarketOrder[],
-        gasTokenBalance: BigNumber,
-    ): GasTokenRefundInfo {
+    getEstimatedGasTokenRefundInfo(orders: OptimizedMarketOrder[], gasTokenBalance: BigNumber): GasTokenRefundInfo {
         const bridgeFills = _.flatten(orders.map(order => order.fills)).filter(
             fill => fill.source !== ERC20BridgeSource.Native,
         );
@@ -149,9 +146,9 @@ export const serviceUtils = {
             };
         }
         // tslint:disable:custom-no-magic-numbers
-        const costOfBridgeFills = BigNumber.sum(...bridgeFills.map(o => GAS_SCHEDULE[o.source])).plus(
-            bridgeFills.length * 5000,
-        ).plus(20000);
+        const costOfBridgeFills = BigNumber.sum(...bridgeFills.map(o => GAS_SCHEDULE[o.source]))
+            .plus(bridgeFills.length * 5000)
+            .plus(20000);
         const usedGasTokens = BigNumber.min(
             gasTokenBalance,
             costOfBridgeFills
