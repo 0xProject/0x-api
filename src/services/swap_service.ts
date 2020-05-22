@@ -100,7 +100,6 @@ export class SwapService {
             makerAssetAmount,
             totalTakerAssetAmount,
             protocolFeeInWeiAmount: minimumProtocolFee,
-            gas: bestCaseGas,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
@@ -117,8 +116,7 @@ export class SwapService {
             gasTokenGasCost,
         } = serviceUtils.getEstimatedGasTokenRefundInfo(attributedSwapQuote.orders, gst2Balance);
 
-        let worstCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
-        let bestCaseGasEstimate = new BigNumber(bestCaseGas).plus(gasTokenGasCost);
+        let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
         if (!skipValidation && from) {
             // Force a revert error if the takerAddress does not have enough ETH.
             const txDataValue = isETHSell
@@ -132,11 +130,10 @@ export class SwapService {
                 gasPrice,
             });
             // Take the max of the faux estimate or the real estimate
-            worstCaseGasEstimate = BigNumber.max(estimateGasCallResult, worstCaseGasEstimate);
-            bestCaseGasEstimate = BigNumber.max(estimateGasCallResult, bestCaseGasEstimate);
+            conservativeBestCaseGasEstimate = BigNumber.max(estimateGasCallResult, conservativeBestCaseGasEstimate);
         }
-        // Add a buffer to the worst case gas estimate
-        worstCaseGasEstimate = worstCaseGasEstimate.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue();
+        // Add a buffer to get the worst case gas estimate
+        const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue();
 
         const { price, guaranteedPrice } = await this._getSwapQuotePriceAsync(
             buyAmount,
@@ -152,7 +149,7 @@ export class SwapService {
             data,
             value,
             gas: worstCaseGasEstimate,
-            estimatedGas: bestCaseGasEstimate,
+            estimatedGas: conservativeBestCaseGasEstimate,
             from,
             gasPrice,
             protocolFee,
