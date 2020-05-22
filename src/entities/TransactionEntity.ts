@@ -35,20 +35,29 @@ export class TransactionEntity {
     @Column({ name: 'expected_mined_in_sec', type: 'int' })
     public expectedMinedInSec?: number;
 
-    @Column({ name: 'nonce', type: 'bigint', nullable: true, transformer: BigIntTransformer })
-    public nonce?: number;
-
     @Column({ name: 'gas_price', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
     public gasPrice?: BigNumber;
 
     @Column({ name: 'value', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
     public value?: BigNumber;
 
-    @Column({ name: 'block_number', type: 'bigint', nullable: true, transformer: BigIntTransformer })
-    public blockNumber?: number;
+    @Column({ name: 'gas', type: 'int', nullable: true })
+    public gas?: number;
 
     @Column({ name: 'from', type: 'varchar', nullable: true })
     public from?: string;
+
+    @Column({ name: 'nonce', type: 'bigint', nullable: true, transformer: BigIntTransformer })
+    public nonce?: number;
+
+    @Column({ name: 'gas_used', type: 'int', nullable: true })
+    public gasUsed?: number;
+
+    @Column({ name: 'block_number', type: 'bigint', nullable: true, transformer: BigIntTransformer })
+    public blockNumber?: number;
+
+    @Column({ name: 'tx_status', type: 'int', nullable: true })
+    public txStatus?: number;
 
     @CreateDateColumn({ name: 'created_at' })
     public createdAt?: Date;
@@ -95,6 +104,9 @@ export class TransactionEntity {
             gasPrice: ZERO,
             value: ZERO,
             from: '',
+            gas: null,
+            gasUsed: null,
+            txStatus: null,
         },
     ) {
         this.refHash = opts.refHash;
@@ -109,6 +121,9 @@ export class TransactionEntity {
         this.value = opts.value;
         this.blockNumber = opts.blockNumber;
         this.from = opts.from;
+        this.gas = opts.gas;
+        this.gasUsed = opts.gasUsed;
+        this.txStatus = opts.txStatus;
         const now = new Date();
         this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * ONE_SECOND_MS);
     }

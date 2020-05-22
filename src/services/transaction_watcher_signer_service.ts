@@ -7,6 +7,7 @@ import { Connection, Not, Repository } from 'typeorm';
 import { ENABLE_PROMETHEUS_METRICS } from '../config';
 import {
     ETH_DECIMALS,
+    ETH_TRANSFER_GAS_LIMIT,
     GWEI_DECIMALS,
     ONE_SECOND_MS,
     SIGNER_STATUS_DB_KEY,
@@ -153,6 +154,7 @@ export class TransactionWatcherSignerService {
         txEntity.txHash = ethereumTransactionHash;
         txEntity.nonce = ethereumTxnParams.nonce;
         txEntity.from = ethereumTxnParams.from;
+        txEntity.gas = ethereumTxnParams.gas;
         if (ENABLE_PROMETHEUS_METRICS) {
             this._gasPriceSummary.observe(
                 { [SIGNER_ADDRESS_LABEL]: txEntity.from },
@@ -337,6 +339,7 @@ export class TransactionWatcherSignerService {
             from: tx.from,
             to: signer.publicAddress,
             value: ZERO,
+            gas: ETH_TRANSFER_GAS_LIMIT,
             expectedMinedInSec: this._config.expectedMinedInSec,
         });
         await this._transactionRepository.save(transactionEntity);
@@ -423,7 +426,13 @@ export class TransactionWatcherSignerService {
                     });
                 }
                 if (tx.blockNumber + this._config.numBlocksUntilConfirmed < latestBlockNumber) {
+                    const txReceipt = await this._web3Wrapper.getTransactionReceiptIfExistsAsync(tx.txHash);
                     tx.status = TransactionStates.Confirmed;
+                    tx.gasUsed = txReceipt.gasUsed;
+                    // status type can be a string
+                    tx.txStatus = utils.isNil(txReceipt.status)
+                        ? tx.txStatus
+                        : new BigNumber(txReceipt.status).toNumber();
                     await this._updateTxEntityAsync(tx);
                 }
             }
