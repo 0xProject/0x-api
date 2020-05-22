@@ -68,7 +68,7 @@ export class Signer {
             .toNumber();
         logger.info({
             message: `attempting to sign and broadcast a meta transaction`,
-            nonce: web3WrapperUtils.convertHexToNumber(nonceHex),
+            nonce,
             from,
             gas,
             gasPrice,

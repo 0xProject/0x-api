@@ -97,7 +97,7 @@ export const utils = {
         intervalMs: number,
         onError: (err: Error) => void,
     ): NodeJS.Timer {
-        // Execute this right await rather than waiting for the first interval
+        // Execute this immediately rather than wait for the first interval
         void (async () => {
             try {
                 await fn();
