@@ -40,7 +40,7 @@ describe.only(SUITE_NAME, () => {
             expect(calculated).to.be.deep.equal(expected);
         });
     });
-    describe('tx lifecycle', () => {
+    describe.skip('tx lifecycle', () => {
         let txWatcher: TransactionWatcherSignerService;
         let blockchainLifecycle: BlockchainLifecycle;
         let provider: Web3ProviderEngine;
@@ -89,9 +89,7 @@ describe.only(SUITE_NAME, () => {
             };
             provider = web3Factory.getRpcProvider(ganacheConfigs);
             web3Wrapper = new Web3Wrapper(provider);
-            const addresses = await web3Wrapper.getAvailableAddressesAsync();
-            address = addresses[0];
-            const deployer = addresses[1];
+            [address] = await web3Wrapper.getAvailableAddressesAsync();
             let isDeployed = false;
             void (async () => {
                 while (!isDeployed) {
@@ -99,7 +97,7 @@ describe.only(SUITE_NAME, () => {
                     await web3Wrapper.mineBlockAsync();
                 }
             })();
-            await runMigrationsOnceAsync(provider, { from: deployer });
+            await runMigrationsOnceAsync(provider, { from: address });
             isDeployed = true;
             blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
             await blockchainLifecycle.startAsync();
