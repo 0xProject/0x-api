@@ -263,10 +263,10 @@ export class TransactionWatcherSignerService {
         logger.trace(`found ${unsignedTransactions.length} transactions to sign and broadcast`);
         for (const tx of unsignedTransactions) {
             if (this._rateLimiter !== undefined) {
-                const isAllowed = await this._rateLimiter.isAllowedAsync(tx.apiKey);
+                const { isAllowed, reason } = await this._rateLimiter.isAllowedAsync(tx.apiKey);
                 if (!isAllowed) {
                     logger.warn({
-                        message: `cancelling transaction because of rate limiting: ${this._rateLimiter.info()}`,
+                        message: `cancelling transaction because of rate limiting: ${reason}`,
                         refHash: tx.refHash,
                         from: tx.from,
                         takerAddress: tx.takerAddress,

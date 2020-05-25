@@ -53,7 +53,10 @@ async function runHttpServiceAsync(
     });
 
     if (dependencies.metaTransactionService) {
-        app.use(META_TRANSACTION_PATH, createMetaTransactionRouter(dependencies.metaTransactionService));
+        app.use(
+            META_TRANSACTION_PATH,
+            createMetaTransactionRouter(dependencies.metaTransactionService, dependencies.rateLimiter),
+        );
     } else {
         logger.error(`Could not run meta transaction service, exiting`);
         process.exit(1);

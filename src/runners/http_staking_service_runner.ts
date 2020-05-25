@@ -18,6 +18,7 @@ import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
 import { createStakingRouter } from '../routers/staking_router';
+import { HttpServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
 process.on('uncaughtException', err => {
@@ -41,7 +42,7 @@ if (require.main === module) {
 
 async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    config: { HTTP_PORT: string; HTTP_KEEP_ALIVE_TIMEOUT: number; HTTP_HEADERS_TIMEOUT: number },
+    config: HttpServiceConfig,
     _app?: core.Express,
 ): Promise<Server> {
     const app = _app || express();

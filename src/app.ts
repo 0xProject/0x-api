@@ -15,9 +15,16 @@ import { OrderBookService } from './services/orderbook_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
-import { WebsocketSRAOpts } from './types';
+import { WebsocketSRAOpts, HttpServiceConfig, HttpServiceWithRateLimitterConfig } from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
+import {
+    MetaTransactionRateLimiter,
+    MetaTransactionRollingLimiter,
+    AvailableRateLimiter,
+    MetaTransactionDailyLimiter,
+} from './utils/rate-limiters';
+import { MetaTransactionComposableLimiter } from './utils/rate-limiters/meta_transaction_composable_rate_limiter';
 
 export interface AppDependencies {
     connection: Connection;
@@ -30,6 +37,7 @@ export interface AppDependencies {
     websocketOpts: Partial<WebsocketSRAOpts>;
     transactionWatcherService?: TransactionWatcherSignerService;
     metricsService?: MetricsService;
+    rateLimiter?: MetaTransactionRateLimiter;
 }
 
 /**
@@ -38,19 +46,15 @@ export interface AppDependencies {
  */
 export async function getDefaultAppDependenciesAsync(
     provider: SupportedProvider,
-    config: {
-        // hack (xianny): the Mesh client constructor has a fire-and-forget promise so we are unable
-        // to catch initialisation errors. Allow the calling function to skip Mesh initialization by
-        // not providing a websocket URI
-        MESH_WEBSOCKET_URI?: string;
-        MESH_HTTP_URI?: string;
-        ENABLE_PROMETHEUS_METRICS: boolean;
-    },
+    config: HttpServiceWithRateLimitterConfig,
 ): Promise<AppDependencies> {
     const connection = await getDBConnectionAsync();
     const stakingDataService = new StakingDataService(connection);
 
     let meshClient: MeshClient | undefined;
+    // hack (xianny): the Mesh client constructor has a fire-and-forget promise so we are unable
+    // to catch initialisation errors. Allow the calling function to skip Mesh initialization by
+    // not providing a websocket URI
     if (config.MESH_WEBSOCKET_URI !== undefined) {
         meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
     } else {
@@ -59,6 +63,11 @@ export async function getDefaultAppDependenciesAsync(
     let metricsService: MetricsService | undefined;
     if (config.ENABLE_PROMETHEUS_METRICS) {
         metricsService = new MetricsService();
+    }
+
+    let rateLimiter: MetaTransactionRateLimiter | undefined;
+    if (config.META_TXN_RATE_LIMIT_TYPE) {
+        rateLimiter = createMetaTransactionRateLimiterFromEnvironment(connection, config);
     }
 
     const orderBookService = new OrderBookService(connection, meshClient);
@@ -84,6 +93,7 @@ export async function getDefaultAppDependenciesAsync(
         provider,
         websocketOpts,
         metricsService,
+        rateLimiter,
     };
 }
 /**
@@ -96,14 +106,7 @@ export async function getDefaultAppDependenciesAsync(
  */
 export async function getAppAsync(
     dependencies: AppDependencies,
-    config: {
-        HTTP_PORT: number;
-        ETHEREUM_RPC_URL: string;
-        HTTP_KEEP_ALIVE_TIMEOUT: number;
-        HTTP_HEADERS_TIMEOUT: number;
-        ENABLE_PROMETHEUS_METRICS: boolean;
-        PROMETHEUS_PORT: number;
-    },
+    config: HttpServiceConfig,
 ): Promise<{ app: Express.Application; server: Server }> {
     const app = express();
     const { server, wsService } = await runHttpServiceAsync(dependencies, config, app);
@@ -124,6 +127,39 @@ export async function getAppAsync(
     });
 
     return { app, server };
+}
+
+function createMetaTransactionRateLimiterFromEnvironment(
+    dbConnection: Connection,
+    config: HttpServiceWithRateLimitterConfig,
+): MetaTransactionRateLimiter {
+    const rateLimiterTypes = config.META_TXN_RATE_LIMIT_TYPE;
+    if (rateLimiterTypes.length === 0) {
+        return createRateLimiter(rateLimiterTypes[0], dbConnection, config);
+    } else {
+        const rateLimiters = rateLimiterTypes.map(rateLimitterType =>
+            createRateLimiter(rateLimitterType, dbConnection, config),
+        );
+        return new MetaTransactionComposableLimiter(rateLimiters);
+    }
+}
+
+function createRateLimiter(
+    rateLimiter: AvailableRateLimiter,
+    dbConnection: Connection,
+    config: HttpServiceWithRateLimitterConfig,
+): MetaTransactionRateLimiter {
+    switch (rateLimiter) {
+        case AvailableRateLimiter.Daily:
+            return new MetaTransactionDailyLimiter(dbConnection, config.META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER);
+        case AvailableRateLimiter.Rolling:
+            return new MetaTransactionRollingLimiter(
+                dbConnection,
+                config.META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER,
+                config.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER,
+                config.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT,
+            );
+    }
 }
 
 /**

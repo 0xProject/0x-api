@@ -5,8 +5,8 @@ import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
-import { CHAIN_ID, META_TXN_RATE_LIMIT_TYPE } from '../config';
-import { DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL, API_KEY_HEADER } from '../constants';
+import { CHAIN_ID } from '../config';
+import { API_KEY_HEADER, DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL } from '../constants';
 import { TransactionEntity } from '../entities';
 import {
     GeneralErrorCodes,
@@ -24,11 +24,7 @@ import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import { GetMetaTransactionPriceResponse, GetTransactionRequestParams, ZeroExTransactionWithoutDomain } from '../types';
 import { parseUtils } from '../utils/parse_utils';
-import {
-    MetaTransactionRateLimiter,
-    AvailableRateLimiters,
-    MetaTransactionRollingLimiter,
-} from '../utils/rate-limiters';
+import { MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { schemaUtils } from '../utils/schema_utils';
 import { findTokenAddressOrThrowApiError } from '../utils/token_metadata_utils';
 
@@ -40,15 +36,9 @@ export class MetaTransactionHandlers {
         const message = `This is the root of the Meta Transaction API. Visit ${META_TRANSACTION_DOCS_URL} for details about this API.`;
         res.status(HttpStatus.OK).send({ message });
     }
-    constructor(metaTransactionService: MetaTransactionService) {
+    constructor(metaTransactionService: MetaTransactionService, rateLimiter?: MetaTransactionRateLimiter) {
         this._metaTransactionService = metaTransactionService;
-        if (META_TXN_RATE_LIMIT_TYPE !== undefined) {
-            if (META_TXN_RATE_LIMIT_TYPE === AvailableRateLimiters.Rolling) {
-                this._rateLimiter = new MetaTransactionRollingLimiter();
-            } else {
-                this._rateLimiter = '';
-            }
-        }
+        this._rateLimiter = rateLimiter;
     }
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header(API_KEY_HEADER);
@@ -246,28 +236,29 @@ export class MetaTransactionHandlers {
                     });
                     return;
                 }
-                const isAllowed =
-                    this._rateLimiter === undefined ? true : await this._rateLimiter.isAllowedAsync(apiKey);
-                if (!isAllowed) {
-                    const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
-                        zeroExTransaction,
-                        signature,
-                        protocolFee,
-                    );
-                    res.status(HttpStatus.TOO_MANY_REQUESTS).send({
-                        code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
-                        reason: `exceeded: ${this._rateLimiter.info()}`,
-                        ethereumTransaction: {
-                            data: ethereumTxn.data,
-                            gasPrice: ethereumTxn.gasPrice,
-                            gas: ethereumTxn.gas,
-                            value: ethereumTxn.value,
-                            to: ethereumTxn.to,
-                        },
-                    });
-                    return;
+                // TODO(oskar) - refactor?
+                if (this._rateLimiter !== undefined) {
+                    const { isAllowed, reason } = await this._rateLimiter.isAllowedAsync(apiKey);
+                    if (!isAllowed) {
+                        const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
+                            zeroExTransaction,
+                            signature,
+                            protocolFee,
+                        );
+                        res.status(HttpStatus.TOO_MANY_REQUESTS).send({
+                            code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
+                            reason,
+                            ethereumTransaction: {
+                                data: ethereumTxn.data,
+                                gasPrice: ethereumTxn.gasPrice,
+                                gas: ethereumTxn.gas,
+                                value: ethereumTxn.value,
+                                to: ethereumTxn.to,
+                            },
+                        });
+                        return;
+                    }
                 }
-
                 const { ethereumTransactionHash } = await this._metaTransactionService.submitZeroExTransactionAsync(
                     zeroExTransactionHash,
                     zeroExTransaction,

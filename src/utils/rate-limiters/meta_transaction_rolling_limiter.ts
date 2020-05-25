@@ -1,6 +1,7 @@
 import { Connection, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../../entities';
+import { MetaTransactionRateLimiterResponse } from '../../types';
 
 import { MetaTransactionRateLimiter } from './base_limiter';
 
@@ -18,7 +19,7 @@ export class MetaTransactionRollingLimiter extends MetaTransactionRateLimiter {
         this._intervalUnit = intervalUnit;
     }
 
-    public async isAllowedAsync(apiKey: string): Promise<boolean> {
+    public async isAllowedAsync(apiKey: string): Promise<MetaTransactionRateLimiterResponse> {
         const { count } = await this._transactionRepository
             .createQueryBuilder('tx')
             .select('COUNT(*)', 'count')
@@ -28,9 +29,12 @@ export class MetaTransactionRollingLimiter extends MetaTransactionRateLimiter {
             })
             .getRawOne();
 
-        return parseInt(count, 10) < this._limit;
-    }
-    public info(): string {
-        return `limit of ${this._limit} meta transactions in the last ${this._intervalNumber} ${this._intervalUnit}`;
+        const isAllowed = parseInt(count, 10) < this._limit;
+        return {
+            isAllowed,
+            reason: `limit of ${this._limit} meta transactions in the last ${this._intervalNumber} ${
+                this._intervalUnit
+            }`,
+        };
     }
 }

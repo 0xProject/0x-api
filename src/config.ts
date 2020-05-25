@@ -17,7 +17,7 @@ import {
 } from './constants';
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId } from './types';
-import { AvailableRateLimiters, RollingLimiterIntervalUnits } from './utils/rate-limiters';
+import { AvailableRateLimiter, RollingLimiterIntervalUnit } from './utils/rate-limiters';
 
 enum EnvVarType {
     AddressList,
@@ -211,27 +211,49 @@ export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
     ? undefined
     : assertEnvVarType('LOG_LEVEL', process.env.LOG_LEVEL, EnvVarType.NonEmptyString);
 
-export const META_TXN_RATE_LIMIT_TYPE: string | undefined = _.isEmpty(process.env.META_TXN_RATE_LIMIT_TYPE)
+export const META_TXN_RATE_LIMIT_TYPE: AvailableRateLimiter[] | undefined = _.isEmpty(
+    process.env.META_TXN_RATE_LIMIT_TYPE,
+)
     ? undefined
     : assertEnvVarType('META_TXN_RATE_LIMIT_TYPE', process.env.META_TXN_RATE_LIMIT_TYPE, EnvVarType.RateLimitType); // OneOf [DAILY ROLLING]
 
-export const META_TXN_RATE_LIMITTER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
-    process.env.META_TXN_RATE_LIMITTER_ALLOWED_NUMBER,
+export const META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
+    process.env.META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER,
 )
     ? undefined
     : assertEnvVarType(
-          'META_TXN_RATE_LIMITTER_ALLOWED_NUMBER',
-          process.env.META_TXN_RATE_LIMITTER_ALLOWED_NUMBER,
+          'META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER',
+          process.env.META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER,
           EnvVarType.Integer,
       );
 
-export const META_TXN_RATE_LIMITTER_ALLOWED_UNIT: string | undefined = _.isEmpty(
-    process.env.META_TXN_RATE_LIMITTER_ALLOWED_UNIT,
+export const META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
+    process.env.META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER,
 )
     ? undefined
     : assertEnvVarType(
-          'META_TXN_RATE_LIMITTER_ALLOWED_UNIT',
-          process.env.META_TXN_RATE_LIMITTER_ALLOWED_UNIT,
+          'META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER',
+          process.env.META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER,
+          EnvVarType.Integer,
+      );
+
+export const META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER: number | undefined = _.isEmpty(
+    process.env.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER,
+)
+    ? undefined
+    : assertEnvVarType(
+          'META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER',
+          process.env.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER,
+          EnvVarType.Integer,
+      );
+
+export const META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT: string | undefined = _.isEmpty(
+    process.env.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT,
+)
+    ? undefined
+    : assertEnvVarType(
+          'META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT',
+          process.env.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT,
           EnvVarType.RateLimitType,
       );
 
@@ -366,11 +388,14 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             return value;
         case EnvVarType.RateLimitType:
             assert.isString(name, value);
-            assert.doesBelongToStringEnum(name, value, AvailableRateLimiters);
+            const rateLimiters = (value as string).split(',');
+            rateLimiters.forEach(rateLimitter => {
+                assert.doesBelongToStringEnum(name, rateLimitter, AvailableRateLimiter);
+            });
             return value;
         case EnvVarType.RateLimitIntervalUnit:
             assert.isString(name, value);
-            assert.doesBelongToStringEnum(name, value, RollingLimiterIntervalUnits);
+            assert.doesBelongToStringEnum(name, value, RollingLimiterIntervalUnit);
             return value;
         case EnvVarType.APIKeys:
             assert.isString(name, value);

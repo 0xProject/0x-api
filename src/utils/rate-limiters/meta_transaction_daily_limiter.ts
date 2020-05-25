@@ -1,6 +1,7 @@
 import { Connection, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../../entities';
+import { MetaTransactionRateLimiterResponse } from '../../types';
 
 import { MetaTransactionRateLimiter } from './base_limiter';
 
@@ -14,7 +15,7 @@ export class MetaTransactionDailyLimiter extends MetaTransactionRateLimiter {
         this._dailyLimit = dailyLimit;
     }
 
-    public async isAllowedAsync(apiKey: string): Promise<boolean> {
+    public async isAllowedAsync(apiKey: string): Promise<MetaTransactionRateLimiterResponse> {
         const { count } = await this._transactionRepository
             .createQueryBuilder('tx')
             .select('COUNT(*)', 'count')
@@ -22,9 +23,7 @@ export class MetaTransactionDailyLimiter extends MetaTransactionRateLimiter {
             .andWhere('DATE(tx.created_at) = CURRENT_DATE')
             .getRawOne();
 
-        return parseInt(count, 10) < this._dailyLimit;
-    }
-    public info(): string {
-        return `daily limit of ${this._dailyLimit} meta transactions`;
+        const isAllowed = parseInt(count, 10) < this._dailyLimit;
+        return { isAllowed, reason: `daily limit of ${this._dailyLimit} meta transactions` };
     }
 }

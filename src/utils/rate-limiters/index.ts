@@ -2,12 +2,12 @@ export { MetaTransactionRateLimiter } from './base_limiter';
 export { MetaTransactionDailyLimiter } from './meta_transaction_daily_limiter';
 export { MetaTransactionRollingLimiter } from './meta_transaction_rolling_limiter';
 
-export enum AvailableRateLimiters {
+export enum AvailableRateLimiter {
     Daily = 'daily',
     Rolling = 'rolling',
 }
 
-export enum RollingLimiterIntervalUnits {
+export enum RollingLimiterIntervalUnit {
     Hours = 'hours',
     Minutes = 'minutes',
 }

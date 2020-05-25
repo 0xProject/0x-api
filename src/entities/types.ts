@@ -14,7 +14,6 @@ export interface TransactionEntityOpts {
     nonce?: number;
     gasPrice?: BigNumber;
     gas?: number;
-    txHash?: string;
     gasUsed?: number;
     blockNumber?: number;
     // Ethereum tx status, 1 == success, 0 == failure

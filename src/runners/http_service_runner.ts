@@ -20,6 +20,7 @@ import { createStakingRouter } from '../routers/staking_router';
 import { createSwapRouter } from '../routers/swap_router';
 import { WebsocketService } from '../services/websocket_service';
 import { providerUtils } from '../utils/provider_utils';
+import { AvailableRateLimiter } from '../utils/rate-limiters';
 
 /**
  * http_service_runner hosts endpoints for staking, sra, swap and meta-txns (minus the /submit endpoint)
@@ -63,7 +64,7 @@ export async function runHttpServiceAsync(
         HTTP_KEEP_ALIVE_TIMEOUT: number;
         HTTP_HEADERS_TIMEOUT: number;
         PROMETHEUS_PORT: number;
-        META_TXN_RATE_LIMIT_TYPE?: string;
+        META_TXN_RATE_LIMIT_TYPE?: AvailableRateLimiter[];
     },
     _app?: core.Express,
 ): Promise<HttpServices> {
@@ -93,7 +94,10 @@ export async function runHttpServiceAsync(
 
     // Meta transaction http service
     if (dependencies.metaTransactionService) {
-        app.use(META_TRANSACTION_PATH, createMetaTransactionRouter(dependencies.metaTransactionService));
+        app.use(
+            META_TRANSACTION_PATH,
+            createMetaTransactionRouter(dependencies.metaTransactionService, dependencies.rateLimiter),
+        );
     } else {
         logger.error(`API running without meta transactions service`);
     }

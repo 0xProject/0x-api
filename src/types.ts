@@ -8,7 +8,7 @@ import {
     ZeroExTransaction,
 } from '@0x/types';
 import { BigNumber } from '@0x/utils';
-import { MetaTransactionRateLimiter } from './utils/rate-limiters';
+import { MetaTransactionRateLimiter, AvailableRateLimiter, RollingLimiterIntervalUnit } from './utils/rate-limiters';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
@@ -538,5 +538,30 @@ export interface TransactionWatcherSignerServiceConfig {
     unstickGasMultiplier: number;
     numBlocksUntilConfirmed: number;
     rateLimiter?: MetaTransactionRateLimiter;
+}
+
+export interface HttpServiceConfig {
+    HTTP_PORT: number;
+    ETHEREUM_RPC_URL: string;
+    HTTP_KEEP_ALIVE_TIMEOUT: number;
+    HTTP_HEADERS_TIMEOUT: number;
+    ENABLE_PROMETHEUS_METRICS: boolean;
+    PROMETHEUS_PORT: number;
+    MESH_WEBSOCKET_URI?: string;
+    MESH_HTTP_URI?: string;
+}
+
+export interface HttpServiceWithRateLimitterConfig extends HttpServiceConfig {
+    META_TXN_RATE_LIMIT_TYPE?: AvailableRateLimiter[];
+    META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER?: number;
+    META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER?: number;
+    META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER?: number;
+    META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT?: RollingLimiterIntervalUnit;
+}
+
+// TODO(oskar) - naming?
+export interface MetaTransactionRateLimiterResponse {
+    isAllowed: boolean;
+    reason: string;
 }
 // tslint:disable-line:max-file-line-count

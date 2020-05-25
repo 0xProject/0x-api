@@ -34,6 +34,7 @@ const intGen = intGenerator();
 
 const newTx = (apiKey: string): TransactionEntity => {
     const tx = TransactionEntity.make({
+        to: '',
         refHash: hexUtils.hash(intGen.next().value),
         apiKey,
         status: TransactionStates.Submitted,
@@ -79,15 +80,15 @@ describe(SUITE_NAME, () => {
     });
     describe('api key daily rate limiter', async () => {
         it('should not trigger within limit', async () => {
-            const isAllowedFirst = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
-            expect(isAllowedFirst).to.be.true();
+            const firstCheck = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            expect(firstCheck.isAllowed).to.be.true();
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, DAILY_LIMIT - 1));
-            const isAllowedSecond = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
-            expect(isAllowedSecond).to.be.true();
+            const secondCheck = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            expect(secondCheck.isAllowed).to.be.true();
         });
         it('should not trigger for other api keys', async () => {
             await transactionRepository.save(generateNewTransactionsForKey('0ther-key', DAILY_LIMIT));
-            const isAllowed = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
             expect(isAllowed).to.be.true();
         });
         it('should not trigger because of keys from a day before', async () => {
@@ -95,12 +96,12 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 24, 'hours');
-            const isAllowed = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
             expect(isAllowed).to.be.true();
         });
         it('should trigger after limit', async () => {
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, 1));
-            const isAllowed = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
             expect(isAllowed).to.be.false();
         });
     });
@@ -109,18 +110,18 @@ describe(SUITE_NAME, () => {
             await cleanTransactions();
         });
         it('shoult not trigger within limit', async () => {
-            const isAllowedFirst = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
-            expect(isAllowedFirst).to.be.true();
+            const firstCheck = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
+            expect(firstCheck.isAllowed).to.be.true();
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, DAILY_LIMIT - 1));
-            const isAllowedSecond = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
-            expect(isAllowedSecond).to.be.true();
+            const secondCheck = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
+            expect(secondCheck.isAllowed).to.be.true();
         });
         it('should not trigger because of keys from an interval before', async () => {
             const txes = generateNewTransactionsForKey(TEST_API_KEY, DAILY_LIMIT);
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 61, 'minutes');
-            const isAllowed = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
             expect(isAllowed).to.be.true();
         });
         it('should trigger after limit', async () => {
@@ -128,7 +129,7 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 15, 'minutes');
-            const isAllowed = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
             expect(isAllowed).to.be.false();
         });
     });
