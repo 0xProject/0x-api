@@ -32,9 +32,7 @@ export class MetaTransactionRollingLimiter extends MetaTransactionRateLimiter {
         const isAllowed = parseInt(count, 10) < this._limit;
         return {
             isAllowed,
-            reason: `limit of ${this._limit} meta transactions in the last ${this._intervalNumber} ${
-                this._intervalUnit
-            }`,
+            reason: `limit of ${this._limit} meta transactions in the last ${this._intervalNumber} ${this._intervalUnit}`,
         };
     }
 }

@@ -15,14 +15,14 @@ import { OrderBookService } from './services/orderbook_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
-import { WebsocketSRAOpts, HttpServiceConfig, HttpServiceWithRateLimitterConfig } from './types';
+import { HttpServiceConfig, HttpServiceWithRateLimitterConfig, WebsocketSRAOpts } from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
 import {
-    MetaTransactionRateLimiter,
-    MetaTransactionRollingLimiter,
     AvailableRateLimiter,
     MetaTransactionDailyLimiter,
+    MetaTransactionRateLimiter,
+    MetaTransactionRollingLimiter,
 } from './utils/rate-limiters';
 import { MetaTransactionComposableLimiter } from './utils/rate-limiters/meta_transaction_composable_rate_limiter';
 
@@ -159,6 +159,8 @@ function createRateLimiter(
                 config.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER,
                 config.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT,
             );
+        default:
+            throw new Error('unknown rate limitter type');
     }
 }
 

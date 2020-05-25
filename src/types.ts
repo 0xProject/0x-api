@@ -8,7 +8,8 @@ import {
     ZeroExTransaction,
 } from '@0x/types';
 import { BigNumber } from '@0x/utils';
-import { MetaTransactionRateLimiter, AvailableRateLimiter, RollingLimiterIntervalUnit } from './utils/rate-limiters';
+
+import { AvailableRateLimiter, MetaTransactionRateLimiter, RollingLimiterIntervalUnit } from './utils/rate-limiters';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
