@@ -1,7 +1,7 @@
 import { Connection, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../../entities';
-import { MetaTransactionRateLimiterResponse } from '../../types';
+import { MetaTransactionDailyLimiterConfig, MetaTransactionRateLimiterResponse } from '../../types';
 
 import { MetaTransactionRateLimiter } from './base_limiter';
 
@@ -9,10 +9,10 @@ export class MetaTransactionDailyLimiter extends MetaTransactionRateLimiter {
     private readonly _transactionRepository: Repository<TransactionEntity>;
     private readonly _dailyLimit: number;
 
-    constructor(dbConnection: Connection, dailyLimit: number) {
+    constructor(dbConnection: Connection, config: MetaTransactionDailyLimiterConfig) {
         super();
         this._transactionRepository = dbConnection.getRepository(TransactionEntity);
-        this._dailyLimit = dailyLimit;
+        this._dailyLimit = config.allowedDailyLimit;
     }
 
     public async isAllowedAsync(apiKey: string): Promise<MetaTransactionRateLimiterResponse> {

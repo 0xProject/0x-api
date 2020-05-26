@@ -16,7 +16,7 @@ import {
     NULL_BYTES,
 } from './constants';
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
-import { ChainId } from './types';
+import { ChainId, HttpServiceConfig, HttpServiceWithRateLimiterConfig } from './types';
 import { AvailableRateLimiter, RollingLimiterIntervalUnit } from './utils/rate-limiters';
 
 enum EnvVarType {
@@ -208,7 +208,7 @@ export const META_TXN_MAX_GAS_PRICE_GWEI: BigNumber = _.isEmpty(process.env.META
     : assertEnvVarType('META_TXN_MAX_GAS_PRICE_GWEI', process.env.META_TXN_MAX_GAS_PRICE_GWEI, EnvVarType.UnitAmount);
 
 export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
-    ? undefined
+    ? 'info'
     : assertEnvVarType('LOG_LEVEL', process.env.LOG_LEVEL, EnvVarType.NonEmptyString);
 
 export const META_TXN_RATE_LIMIT_TYPE: AvailableRateLimiter[] | undefined = _.isEmpty(
@@ -217,44 +217,44 @@ export const META_TXN_RATE_LIMIT_TYPE: AvailableRateLimiter[] | undefined = _.is
     ? undefined
     : assertEnvVarType('META_TXN_RATE_LIMIT_TYPE', process.env.META_TXN_RATE_LIMIT_TYPE, EnvVarType.RateLimitType); // OneOf [DAILY ROLLING]
 
-export const META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
-    process.env.META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER,
+export const META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
+    process.env.META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER,
 )
     ? undefined
     : assertEnvVarType(
-          'META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER',
-          process.env.META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER,
+          'META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER',
+          process.env.META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER,
           EnvVarType.Integer,
       );
 
-export const META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
-    process.env.META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER,
+export const META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
+    process.env.META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER,
 )
     ? undefined
     : assertEnvVarType(
-          'META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER',
-          process.env.META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER,
+          'META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER',
+          process.env.META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER,
           EnvVarType.Integer,
       );
 
-export const META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER: number | undefined = _.isEmpty(
-    process.env.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER,
+export const META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER: number | undefined = _.isEmpty(
+    process.env.META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER,
 )
     ? undefined
     : assertEnvVarType(
-          'META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER',
-          process.env.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER,
+          'META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER',
+          process.env.META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER,
           EnvVarType.Integer,
       );
 
-export const META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT: string | undefined = _.isEmpty(
-    process.env.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT,
+export const META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT: RollingLimiterIntervalUnit | undefined = _.isEmpty(
+    process.env.META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT,
 )
     ? undefined
     : assertEnvVarType(
-          'META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT',
-          process.env.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT,
-          EnvVarType.RateLimitType,
+          'META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT',
+          process.env.META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT,
+          EnvVarType.RateLimitIntervalUnit,
       );
 
 // Whether or not prometheus metrics should be enabled.
@@ -311,6 +311,30 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     sampleDistributionBase: 1.05,
     feeSchedule,
     gasSchedule,
+};
+
+export const defaultHttpServiceConfig: HttpServiceConfig = {
+    httpPort: HTTP_PORT,
+    ethereumRpcUrl: ETHEREUM_RPC_URL,
+    httpKeepAliveTimeout: HTTP_KEEP_ALIVE_TIMEOUT,
+    httpHeadersTimeout: HTTP_HEADERS_TIMEOUT,
+    enablePrometheusMetrics: ENABLE_PROMETHEUS_METRICS,
+    prometheusPort: PROMETHEUS_PORT,
+    meshWebsocketUri: MESH_WEBSOCKET_URI,
+    meshHttpUri: MESH_HTTP_URI,
+};
+
+export const defaultHttpServiceWithRateLimitterConfig: HttpServiceWithRateLimiterConfig = {
+    ...defaultHttpServiceConfig,
+    metaTxnEnabledRateLimiterTypes: META_TXN_RATE_LIMIT_TYPE,
+    metaTxnDailyRateLimiterConfig: {
+        allowedDailyLimit: META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER,
+    },
+    metaTxnRollingRateLimiterConfig: {
+        allowedLimit: META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER,
+        intervalNumber: META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER,
+        intervalUnit: META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT,
+    },
 };
 
 function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): any {

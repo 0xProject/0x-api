@@ -15,7 +15,7 @@ import { OrderBookService } from './services/orderbook_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
-import { HttpServiceConfig, HttpServiceWithRateLimitterConfig, WebsocketSRAOpts } from './types';
+import { HttpServiceWithRateLimiterConfig, WebsocketSRAOpts } from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
 import {
@@ -46,7 +46,7 @@ export interface AppDependencies {
  */
 export async function getDefaultAppDependenciesAsync(
     provider: SupportedProvider,
-    config: HttpServiceWithRateLimitterConfig,
+    config: HttpServiceWithRateLimiterConfig,
 ): Promise<AppDependencies> {
     const connection = await getDBConnectionAsync();
     const stakingDataService = new StakingDataService(connection);
@@ -55,18 +55,18 @@ export async function getDefaultAppDependenciesAsync(
     // hack (xianny): the Mesh client constructor has a fire-and-forget promise so we are unable
     // to catch initialisation errors. Allow the calling function to skip Mesh initialization by
     // not providing a websocket URI
-    if (config.MESH_WEBSOCKET_URI !== undefined) {
-        meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
+    if (config.meshWebsocketUri !== undefined) {
+        meshClient = new MeshClient(config.meshWebsocketUri, config.meshHttpUri);
     } else {
         logger.warn(`Skipping Mesh client creation because no URI provided`);
     }
     let metricsService: MetricsService | undefined;
-    if (config.ENABLE_PROMETHEUS_METRICS) {
+    if (config.enablePrometheusMetrics) {
         metricsService = new MetricsService();
     }
 
     let rateLimiter: MetaTransactionRateLimiter | undefined;
-    if (config.META_TXN_RATE_LIMIT_TYPE) {
+    if (config.metaTxnEnabledRateLimiterTypes) {
         rateLimiter = createMetaTransactionRateLimiterFromEnvironment(connection, config);
     }
 
@@ -106,7 +106,7 @@ export async function getDefaultAppDependenciesAsync(
  */
 export async function getAppAsync(
     dependencies: AppDependencies,
-    config: HttpServiceConfig,
+    config: HttpServiceWithRateLimiterConfig,
 ): Promise<{ app: Express.Application; server: Server }> {
     const app = express();
     const { server, wsService } = await runHttpServiceAsync(dependencies, config, app);
@@ -131,9 +131,9 @@ export async function getAppAsync(
 
 function createMetaTransactionRateLimiterFromEnvironment(
     dbConnection: Connection,
-    config: HttpServiceWithRateLimitterConfig,
+    config: HttpServiceWithRateLimiterConfig,
 ): MetaTransactionRateLimiter {
-    const rateLimiterTypes = config.META_TXN_RATE_LIMIT_TYPE;
+    const rateLimiterTypes = config.metaTxnEnabledRateLimiterTypes;
     if (rateLimiterTypes.length === 0) {
         return createRateLimiter(rateLimiterTypes[0], dbConnection, config);
     } else {
@@ -147,18 +147,13 @@ function createMetaTransactionRateLimiterFromEnvironment(
 function createRateLimiter(
     rateLimiter: AvailableRateLimiter,
     dbConnection: Connection,
-    config: HttpServiceWithRateLimitterConfig,
+    config: HttpServiceWithRateLimiterConfig,
 ): MetaTransactionRateLimiter {
     switch (rateLimiter) {
         case AvailableRateLimiter.Daily:
-            return new MetaTransactionDailyLimiter(dbConnection, config.META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER);
+            return new MetaTransactionDailyLimiter(dbConnection, config.metaTxnDailyRateLimiterConfig);
         case AvailableRateLimiter.Rolling:
-            return new MetaTransactionRollingLimiter(
-                dbConnection,
-                config.META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER,
-                config.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER,
-                config.META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT,
-            );
+            return new MetaTransactionRollingLimiter(dbConnection, config.metaTxnRollingRateLimiterConfig);
         default:
             throw new Error('unknown rate limitter type');
     }

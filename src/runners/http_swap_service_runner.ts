@@ -10,7 +10,7 @@ import * as core from 'express-serve-static-core';
 import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
-import * as defaultConfig from '../config';
+import { defaultHttpServiceWithRateLimitterConfig } from '../config';
 import { SWAP_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
@@ -19,6 +19,7 @@ import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
 import { createSwapRouter } from '../routers/swap_router';
 import { providerUtils } from '../utils/provider_utils';
+import { HttpServiceConfig } from '../types';
 
 process.on('uncaughtException', err => {
     logger.error(err);
@@ -33,15 +34,15 @@ process.on('unhandledRejection', err => {
 
 if (require.main === module) {
     (async () => {
-        const provider = providerUtils.createWeb3Provider(defaultConfig.ETHEREUM_RPC_URL);
-        const dependencies = await getDefaultAppDependenciesAsync(provider, defaultConfig);
-        await runHttpServiceAsync(dependencies, defaultConfig);
+        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimitterConfig.ethereumRpcUrl);
+        const dependencies = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceWithRateLimitterConfig);
+        await runHttpServiceAsync(dependencies, defaultHttpServiceWithRateLimitterConfig);
     })().catch(error => logger.error(error.stack));
 }
 
 async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    config: { HTTP_PORT: string; HTTP_KEEP_ALIVE_TIMEOUT: number; HTTP_HEADERS_TIMEOUT: number },
+    config: HttpServiceConfig,
     _app?: core.Express,
 ): Promise<Server> {
     const app = _app || express();
@@ -50,11 +51,11 @@ async function runHttpServiceAsync(
     app.use(bodyParser.json());
     app.use(addressNormalizer);
     app.get('/', rootHandler);
-    const server = app.listen(config.HTTP_PORT, () => {
-        logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!`);
+    const server = app.listen(config.httpPort, () => {
+        logger.info(`API (HTTP) listening on port ${config.httpPort}!`);
     });
-    server.keepAliveTimeout = config.HTTP_KEEP_ALIVE_TIMEOUT;
-    server.headersTimeout = config.HTTP_HEADERS_TIMEOUT;
+    server.keepAliveTimeout = config.httpKeepAliveTimeout;
+    server.headersTimeout = config.httpHeadersTimeout;
 
     if (dependencies.swapService) {
         app.use(SWAP_PATH, createSwapRouter(dependencies.swapService));

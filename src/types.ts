@@ -542,22 +542,30 @@ export interface TransactionWatcherSignerServiceConfig {
 }
 
 export interface HttpServiceConfig {
-    HTTP_PORT: number;
-    ETHEREUM_RPC_URL: string;
-    HTTP_KEEP_ALIVE_TIMEOUT: number;
-    HTTP_HEADERS_TIMEOUT: number;
-    ENABLE_PROMETHEUS_METRICS: boolean;
-    PROMETHEUS_PORT: number;
-    MESH_WEBSOCKET_URI?: string;
-    MESH_HTTP_URI?: string;
+    httpPort: number;
+    ethereumRpcUrl: string;
+    httpKeepAliveTimeout: number;
+    httpHeadersTimeout: number;
+    enablePrometheusMetrics: boolean;
+    prometheusPort: number;
+    meshWebsocketUri?: string;
+    meshHttpUri?: string;
 }
 
-export interface HttpServiceWithRateLimitterConfig extends HttpServiceConfig {
-    META_TXN_RATE_LIMIT_TYPE?: AvailableRateLimiter[];
-    META_TXN_DAILY_RATE_LIMITTER_ALLOWED_NUMBER?: number;
-    META_TXN_ROLLING_RATE_LIMITTER_ALLOWED_NUMBER?: number;
-    META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_NUMBER?: number;
-    META_TXN_ROLLING_RATE_LIMITTER_INTERVAL_UNIT?: RollingLimiterIntervalUnit;
+export interface MetaTransactionRollingLimiterConfig {
+    allowedLimit?: number;
+    intervalNumber?: number;
+    intervalUnit?: RollingLimiterIntervalUnit;
+}
+
+export interface MetaTransactionDailyLimiterConfig {
+    allowedDailyLimit?: number;
+}
+
+export interface HttpServiceWithRateLimiterConfig extends HttpServiceConfig {
+    metaTxnEnabledRateLimiterTypes?: AvailableRateLimiter[];
+    metaTxnDailyRateLimiterConfig: MetaTransactionDailyLimiterConfig;
+    metaTxnRollingRateLimiterConfig: MetaTransactionRollingLimiterConfig;
 }
 
 // TODO(oskar) - naming?

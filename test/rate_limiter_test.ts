@@ -10,6 +10,7 @@ import {
     MetaTransactionDailyLimiter,
     MetaTransactionRateLimiter,
     MetaTransactionRollingLimiter,
+    RollingLimiterIntervalUnit,
 } from '../src/utils/rate-limiters';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
@@ -72,8 +73,12 @@ describe(SUITE_NAME, () => {
 
         connection = await getDBConnectionAsync();
         transactionRepository = connection.getRepository(TransactionEntity);
-        dailyLimiter = new MetaTransactionDailyLimiter(connection, DAILY_LIMIT);
-        rollingLimiter = new MetaTransactionRollingLimiter(connection, 10, 1, 'hours');
+        dailyLimiter = new MetaTransactionDailyLimiter(connection, { allowedDailyLimit: DAILY_LIMIT });
+        rollingLimiter = new MetaTransactionRollingLimiter(connection, {
+            allowedLimit: 10,
+            intervalNumber: 1,
+            intervalUnit: RollingLimiterIntervalUnit.Hours,
+        });
     });
     after(async () => {
         await teardownDependenciesAsync(SUITE_NAME);

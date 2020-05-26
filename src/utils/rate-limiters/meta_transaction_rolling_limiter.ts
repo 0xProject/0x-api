@@ -1,7 +1,7 @@
 import { Connection, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../../entities';
-import { MetaTransactionRateLimiterResponse } from '../../types';
+import { MetaTransactionRateLimiterResponse, MetaTransactionRollingLimiterConfig } from '../../types';
 
 import { MetaTransactionRateLimiter } from './base_limiter';
 
@@ -11,12 +11,12 @@ export class MetaTransactionRollingLimiter extends MetaTransactionRateLimiter {
     private readonly _intervalNumber: number;
     private readonly _intervalUnit: string;
 
-    constructor(dbConnection: Connection, limit: number, intervalNumber: number, intervalUnit: 'hours' | 'minutes') {
+    constructor(dbConnection: Connection, config: MetaTransactionRollingLimiterConfig) {
         super();
         this._transactionRepository = dbConnection.getRepository(TransactionEntity);
-        this._limit = limit;
-        this._intervalNumber = intervalNumber;
-        this._intervalUnit = intervalUnit;
+        this._limit = config.allowedLimit;
+        this._intervalNumber = config.intervalNumber;
+        this._intervalUnit = config.intervalUnit;
     }
 
     public async isAllowedAsync(apiKey: string): Promise<MetaTransactionRateLimiterResponse> {

@@ -10,7 +10,7 @@ import * as core from 'express-serve-static-core';
 import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
-import * as defaultConfig from '../config';
+import { defaultHttpServiceWithRateLimitterConfig } from '../config';
 import { STAKING_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
@@ -34,9 +34,9 @@ process.on('unhandledRejection', err => {
 
 if (require.main === module) {
     (async () => {
-        const provider = providerUtils.createWeb3Provider(defaultConfig.ETHEREUM_RPC_URL);
-        const dependencies = await getDefaultAppDependenciesAsync(provider, defaultConfig);
-        await runHttpServiceAsync(dependencies, defaultConfig);
+        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimitterConfig.ethereumRpcUrl);
+        const dependencies = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceWithRateLimitterConfig);
+        await runHttpServiceAsync(dependencies, defaultHttpServiceWithRateLimitterConfig);
     })().catch(error => logger.error(error.stack));
 }
 
@@ -51,11 +51,11 @@ async function runHttpServiceAsync(
     app.use(bodyParser.json());
     app.use(addressNormalizer);
     app.get('/', rootHandler);
-    const server = app.listen(config.HTTP_PORT, () => {
-        logger.info(`API (HTTP) listening on port ${config.HTTP_PORT}!`);
+    const server = app.listen(config.httpPort, () => {
+        logger.info(`API (HTTP) listening on port ${config.httpPort}!`);
     });
-    server.keepAliveTimeout = config.HTTP_KEEP_ALIVE_TIMEOUT;
-    server.headersTimeout = config.HTTP_HEADERS_TIMEOUT;
+    server.keepAliveTimeout = config.httpKeepAliveTimeout;
+    server.headersTimeout = config.httpHeadersTimeout;
 
     // staking http service
     app.use(STAKING_PATH, createStakingRouter(dependencies.stakingDataService));
