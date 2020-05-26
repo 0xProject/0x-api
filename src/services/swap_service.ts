@@ -109,8 +109,12 @@ export class SwapService {
             isETHSell,
             affiliateAddress,
         );
-
-        const gst2Balance = await this._gasTokenContract.balanceOf(GST2_WALLET_ADDRESS).callAsync();
+        let gst2Balance = ZERO;
+        try {
+            gst2Balance = await this._gasTokenContract.balanceOf(GST2_WALLET_ADDRESS).callAsync();
+        } catch (err) {
+            logger.error(err);
+        }
         const { gasTokenRefund, gasTokenGasCost } = serviceUtils.getEstimatedGasTokenRefundInfo(
             attributedSwapQuote.orders,
             gst2Balance,
