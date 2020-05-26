@@ -238,7 +238,9 @@ export const poolsAvgRewardsQuery = `
                 , AVG((members_reward / 1e18) / esps.member_zrx_delegated) AS avg_member_reward_eth_per_zrx
             FROM events.rewards_paid_events rpe
             JOIN staking.current_epoch ce ON rpe.epoch_id > (ce.epoch_id - 4)
-            JOIN staking.epoch_start_pool_status esps ON esps.epoch_id = rpe.epoch_id AND esps.pool_id = rpe.pool_id
+            -- subtract one from the reward epoch ID, since reward events are stamped with the epoch
+            -- after the epoch for which they are paid out
+            JOIN staking.epoch_start_pool_status esps ON esps.epoch_id = (rpe.epoch_id - 1) AND esps.pool_id = rpe.pool_id
             GROUP BY 1
         )
         SELECT
@@ -262,7 +264,9 @@ export const poolAvgRewardsQuery = `
                 , AVG((members_reward / 1e18) / esps.member_zrx_delegated) AS avg_member_reward_eth_per_zrx
             FROM events.rewards_paid_events rpe
             JOIN staking.current_epoch ce ON rpe.epoch_id > (ce.epoch_id - 4)
-            JOIN staking.epoch_start_pool_status esps ON esps.epoch_id = rpe.epoch_id AND esps.pool_id = rpe.pool_id
+            -- subtract one from the reward epoch ID, since reward events are stamped with the epoch
+            -- after the epoch for which they are paid out
+            JOIN staking.epoch_start_pool_status esps ON esps.epoch_id = (rpe.epoch_id - 1) AND esps.pool_id = rpe.pool_id
             WHERE
                 rpe.pool_id = $1
             GROUP BY 1
