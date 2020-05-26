@@ -324,7 +324,7 @@ export const defaultHttpServiceConfig: HttpServiceConfig = {
     meshHttpUri: MESH_HTTP_URI,
 };
 
-export const defaultHttpServiceWithRateLimitterConfig: HttpServiceWithRateLimiterConfig = {
+export const defaultHttpServiceWithRateLimiterConfig: HttpServiceWithRateLimiterConfig = {
     ...defaultHttpServiceConfig,
     metaTxnEnabledRateLimiterTypes: META_TXN_RATE_LIMIT_TYPE,
     metaTxnDailyRateLimiterConfig: {
@@ -413,8 +413,8 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.RateLimitType:
             assert.isString(name, value);
             const rateLimiters = (value as string).split(',');
-            rateLimiters.forEach(rateLimitter => {
-                assert.doesBelongToStringEnum(name, rateLimitter, AvailableRateLimiter);
+            rateLimiters.forEach(rateLimiter => {
+                assert.doesBelongToStringEnum(name, rateLimiter, AvailableRateLimiter);
             });
             return value;
         case EnvVarType.RateLimitIntervalUnit:

@@ -14,12 +14,12 @@ import {
 import {
     CHAIN_ID,
     defaultHttpServiceConfig,
+    defaultHttpServiceWithRateLimiterConfig,
     ETHEREUM_RPC_URL,
     META_TXN_MAX_GAS_PRICE_GWEI,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
     META_TXN_RELAY_PRIVATE_KEYS,
     META_TXN_SIGNING_ENABLED,
-    defaultHttpServiceWithRateLimitterConfig,
 } from '../src/config';
 import { META_TRANSACTION_PATH, SRA_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
@@ -106,7 +106,7 @@ describe('transaction watcher service', () => {
                 websocketOpts,
                 metricsService,
             },
-            defaultHttpServiceWithRateLimitterConfig,
+            defaultHttpServiceWithRateLimiterConfig,
         ));
     });
     it('sends a signed zeroex transaction correctly', async () => {

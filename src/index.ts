@@ -1,13 +1,13 @@
 import { getAppAsync, getDefaultAppDependenciesAsync } from './app';
-import { defaultHttpServiceWithRateLimitterConfig } from './config';
+import { defaultHttpServiceWithRateLimiterConfig } from './config';
 import { logger } from './logger';
 import { providerUtils } from './utils/provider_utils';
 
 if (require.main === module) {
     (async () => {
-        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimitterConfig.ethereumRpcUrl);
-        const dependencies = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceWithRateLimitterConfig);
-        await getAppAsync(dependencies, defaultHttpServiceWithRateLimitterConfig);
+        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
+        const dependencies = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceWithRateLimiterConfig);
+        await getAppAsync(dependencies, defaultHttpServiceWithRateLimiterConfig);
     })().catch(err => logger.error(err.stack));
 }
 process.on('uncaughtException', err => {

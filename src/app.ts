@@ -137,8 +137,8 @@ function createMetaTransactionRateLimiterFromEnvironment(
     if (rateLimiterTypes.length === 0) {
         return createRateLimiter(rateLimiterTypes[0], dbConnection, config);
     } else {
-        const rateLimiters = rateLimiterTypes.map(rateLimitterType =>
-            createRateLimiter(rateLimitterType, dbConnection, config),
+        const rateLimiters = rateLimiterTypes.map(rateLimiterType =>
+            createRateLimiter(rateLimiterType, dbConnection, config),
         );
         return new MetaTransactionComposableLimiter(rateLimiters);
     }
@@ -155,7 +155,7 @@ function createRateLimiter(
         case AvailableRateLimiter.Rolling:
             return new MetaTransactionRollingLimiter(dbConnection, config.metaTxnRollingRateLimiterConfig);
         default:
-            throw new Error('unknown rate limitter type');
+            throw new Error('unknown rate limiter type');
     }
 }
 

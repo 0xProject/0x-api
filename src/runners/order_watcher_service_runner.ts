@@ -1,7 +1,7 @@
 import { Connection } from 'typeorm';
 
 import { getDefaultAppDependenciesAsync } from '../app';
-import { defaultHttpServiceWithRateLimitterConfig } from '../config';
+import { defaultHttpServiceWithRateLimiterConfig } from '../config';
 import { OrderWatcherSyncError } from '../errors';
 import { logger } from '../logger';
 import { OrderWatcherService } from '../services/order_watcher_service';
@@ -10,10 +10,10 @@ import { providerUtils } from '../utils/provider_utils';
 
 if (require.main === module) {
     (async () => {
-        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimitterConfig.ethereumRpcUrl);
+        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
         const { connection, meshClient } = await getDefaultAppDependenciesAsync(
             provider,
-            defaultHttpServiceWithRateLimitterConfig,
+            defaultHttpServiceWithRateLimiterConfig,
         );
 
         if (meshClient) {
@@ -21,7 +21,7 @@ if (require.main === module) {
 
             logger.info(
                 `Order Watching Service started!\nConfig: ${JSON.stringify(
-                    defaultHttpServiceWithRateLimitterConfig,
+                    defaultHttpServiceWithRateLimiterConfig,
                     null,
                     2,
                 )}`,
@@ -29,7 +29,7 @@ if (require.main === module) {
         } else {
             logger.error(
                 `Order Watching Service could not be started! Could not start mesh client!\nConfig: ${JSON.stringify(
-                    defaultHttpServiceWithRateLimitterConfig,
+                    defaultHttpServiceWithRateLimiterConfig,
                     null,
                     2,
                 )}`,
