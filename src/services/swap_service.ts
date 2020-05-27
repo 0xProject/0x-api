@@ -26,7 +26,6 @@ import {
 } from '../config';
 import {
     GAS_LIMIT_BUFFER_MULTIPLIER,
-    GST2_TOKEN_ADDRESS,
     ONE,
     PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -45,6 +44,7 @@ import {
     TokenMetadata,
 } from '../types';
 import { serviceUtils } from '../utils/service_utils';
+import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
 export class SwapService {
     private readonly _provider: SupportedProvider;
@@ -77,7 +77,10 @@ export class SwapService {
 
         const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
         this._wethContract = new WETH9Contract(contractAddresses.etherToken, this._provider);
-        this._gasTokenContract = new ERC20TokenContract(GST2_TOKEN_ADDRESS, this._provider);
+        this._gasTokenContract = new ERC20TokenContract(
+            getTokenMetadataIfExists('GST2', CHAIN_ID).tokenAddress,
+            this._provider,
+        );
         this._protocolFeeUtils = new ProtocolFeeUtils(PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
         this._forwarderAddress = contractAddresses.forwarder;
     }

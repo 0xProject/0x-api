@@ -657,4 +657,14 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
             [ChainId.Ganache]: NULL_ADDRESS,
         },
     },
+    {
+        symbol: 'GST2',
+        name: 'Gas Token 2',
+        decimals: 2,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x0000000000b3f879cb30fe243b4dfee438691c04',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
 ];
