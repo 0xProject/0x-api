@@ -69,3 +69,11 @@ export const NUMBER_OF_BLOCKS_UNTIL_CONFIRMED = 3;
 export const TX_WATCHER_UPDATE_METRICS_INTERVAL_MS = 30 * 1000;
 export const ETH_DECIMALS = 18;
 export const GWEI_DECIMALS = 9;
+
+// Gas costs
+export const SSTORE_COST = 5000;
+export const SSTORE_INIT_COST = 20000;
+export const GAS_BURN_REFUND = 240000;
+export const GAS_BURN_COST = 6870;
+export const GST_DIVISOR = 41130;
+export const GST_INTERACTION_COST = 14154;

@@ -12,7 +12,18 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, GAS_SCHEDULE } from '../config';
-import { DEFAULT_TOKEN_DECIMALS, ONE_SECOND_MS, PERCENTAGE_SIG_DIGITS, ZERO } from '../constants';
+import {
+    DEFAULT_TOKEN_DECIMALS,
+    GAS_BURN_COST,
+    GAS_BURN_REFUND,
+    GST_DIVISOR,
+    GST_INTERACTION_COST,
+    ONE_SECOND_MS,
+    PERCENTAGE_SIG_DIGITS,
+    SSTORE_COST,
+    SSTORE_INIT_COST,
+    ZERO,
+} from '../constants';
 import { logger } from '../logger';
 import { GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource } from '../types';
 import { orderUtils } from '../utils/order_utils';
@@ -145,19 +156,18 @@ export const serviceUtils = {
                 gasTokenGasCost: ZERO,
             };
         }
-        // tslint:disable:custom-no-magic-numbers
         const costOfBridgeFills = BigNumber.sum(...bridgeFills.map(o => GAS_SCHEDULE[o.source]))
-            .plus(bridgeFills.length * 5000)
-            .plus(20000);
+            .plus(bridgeFills.length * SSTORE_COST)
+            .plus(SSTORE_INIT_COST);
         const usedGasTokens = BigNumber.min(
             gasTokenBalance,
             costOfBridgeFills
-                .plus(14154)
-                .div(41130)
+                .plus(GST_INTERACTION_COST)
+                .div(GST_DIVISOR)
                 .integerValue(BigNumber.ROUND_DOWN),
         );
-        const gasTokenRefund = usedGasTokens.multipliedBy(24000);
-        const gasTokenGasCost = usedGasTokens.multipliedBy(6870);
+        const gasTokenRefund = usedGasTokens.multipliedBy(GAS_BURN_REFUND);
+        const gasTokenGasCost = usedGasTokens.multipliedBy(GAS_BURN_COST);
         return {
             usedGasTokens: usedGasTokens.toNumber(),
             gasTokenRefund,
