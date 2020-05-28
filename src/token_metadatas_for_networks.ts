@@ -664,7 +664,7 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         tokenAddresses: {
             [ChainId.Mainnet]: '0x0000000000b3f879cb30fe243b4dfee438691c04',
             [ChainId.Kovan]: NULL_ADDRESS,
-            [ChainId.Ganache]: NULL_ADDRESS,
+            [ChainId.Ganache]: '0xbe0037eaf2d64fe5529bca93c18c9702d3930376',
         },
     },
 ];

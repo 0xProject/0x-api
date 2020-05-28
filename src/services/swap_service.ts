@@ -18,7 +18,6 @@ import * as _ from 'lodash';
 import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     CHAIN_ID,
-    GST2_WALLET_ADDRESS,
     LIQUIDITY_POOL_REGISTRY_ADDRESS,
     RFQT_API_KEY_WHITELIST,
     RFQT_MAKER_ASSET_OFFERINGS,
@@ -26,6 +25,7 @@ import {
 } from '../config';
 import {
     GAS_LIMIT_BUFFER_MULTIPLIER,
+    GST2_WALLET_ADDRESSES,
     ONE,
     PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -114,7 +114,7 @@ export class SwapService {
         );
         let gst2Balance = ZERO;
         try {
-            gst2Balance = await this._gasTokenContract.balanceOf(GST2_WALLET_ADDRESS).callAsync();
+            gst2Balance = await this._gasTokenContract.balanceOf(GST2_WALLET_ADDRESSES[CHAIN_ID]).callAsync();
         } catch (err) {
             logger.error(err);
         }
