@@ -82,12 +82,14 @@ export class SwapHandlers {
             gas,
             estimatedGas,
             protocolFee,
+            minimumProtocolFee,
             buyAmount,
             sellAmount,
             sources,
             orders,
             buyTokenAddress,
             sellTokenAddress,
+            estimatedGasTokenRefund,
         } = quote;
         logger.info({
             indicativeQuoteServed: {
@@ -108,11 +110,13 @@ export class SwapHandlers {
             gas,
             estimatedGas,
             protocolFee,
+            minimumProtocolFee,
             buyTokenAddress,
             buyAmount,
             sellTokenAddress,
             sellAmount,
             sources,
+            estimatedGasTokenRefund,
         };
         res.status(HttpStatus.OK).send(response);
     }

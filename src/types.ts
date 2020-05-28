@@ -399,6 +399,8 @@ export interface GetSwapPriceResponse extends BasePriceResponse {
     gas: BigNumber;
     estimatedGas: BigNumber;
     protocolFee: BigNumber;
+    estimatedGasTokenRefund: BigNumber;
+    minimumProtocolFee: BigNumber;
 }
 
 export type GetTokenPricesResponse = Price[];
