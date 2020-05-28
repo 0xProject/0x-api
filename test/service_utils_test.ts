@@ -61,7 +61,7 @@ describe(SUITE_NAME, () => {
             ];
             const { usedGasTokens, gasTokenRefund, gasTokenGasCost } = serviceUtils.getEstimatedGasTokenRefundInfo(
                 fakeOrders,
-                ZERO,
+                MAX_INT,
             );
             expect(usedGasTokens).to.be.eq(0);
             expect(gasTokenRefund.toNumber()).to.be.eq(0);
