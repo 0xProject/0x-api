@@ -8,7 +8,7 @@ import { Order } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
-import { CHAIN_ID, CONTRACT_ADDRESSES, MAX_ALLOWANCE_AMOUNT, MAX_MINT_AMOUNT } from '../constants';
+import { CHAIN_ID, CONTRACT_ADDRESSES, MAX_INT, MAX_MINT_AMOUNT } from '../constants';
 
 type Numberish = BigNumber | number | string;
 
@@ -89,13 +89,13 @@ export class MeshTestUtils {
         // this logic may need to be added to `addOrdersAsync`.
         await this._zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: this._makerAddress });
         await this._zrxToken
-            .approve(this._contractAddresses.erc20Proxy, MAX_ALLOWANCE_AMOUNT)
+            .approve(this._contractAddresses.erc20Proxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });
         await this._wethToken
             .deposit()
             .awaitTransactionSuccessAsync({ from: this._makerAddress, value: MAKER_WETH_AMOUNT });
         await this._wethToken
-            .approve(this._contractAddresses.erc20Proxy, MAX_ALLOWANCE_AMOUNT)
+            .approve(this._contractAddresses.erc20Proxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });
 
         // NOTE(jalextowle): Mesh's blockwatcher must catch up to the most
