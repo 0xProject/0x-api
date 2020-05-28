@@ -87,17 +87,15 @@ export class MeshTestUtils {
         // NOTE(jalextowle): The way that Mesh validation currently works allows us
         // to only set the maker balance a single time. If this changes in the future,
         // this logic may need to be added to `addOrdersAsync`.
-        const maxAllowance = MAX_ALLOWANCE_AMOUNT;
-        const maxMintAmount = MAX_MINT_AMOUNT;
-        await this._zrxToken.mint(maxMintAmount).awaitTransactionSuccessAsync({ from: this._makerAddress });
+        await this._zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: this._makerAddress });
         await this._zrxToken
-            .approve(this._contractAddresses.erc20Proxy, maxAllowance)
+            .approve(this._contractAddresses.erc20Proxy, MAX_ALLOWANCE_AMOUNT)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });
         await this._wethToken
             .deposit()
             .awaitTransactionSuccessAsync({ from: this._makerAddress, value: MAKER_WETH_AMOUNT });
         await this._wethToken
-            .approve(this._contractAddresses.erc20Proxy, maxAllowance)
+            .approve(this._contractAddresses.erc20Proxy, MAX_ALLOWANCE_AMOUNT)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });
 
         // NOTE(jalextowle): Mesh's blockwatcher must catch up to the most
