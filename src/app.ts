@@ -15,11 +15,17 @@ import { OrderBookService } from './services/orderbook_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
-import { HttpServiceWithRateLimiterConfig, WebsocketSRAOpts } from './types';
+import {
+    HttpServiceWithRateLimiterConfig,
+    MetaTransactionDailyLimiterConfig,
+    MetaTransactionRollingLimiterConfig,
+    WebsocketSRAOpts,
+} from './types';
 import { MeshClient } from './utils/mesh_client';
 import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
 import {
     AvailableRateLimiter,
+    DatabaseKeysUsedForRateLimiter,
     MetaTransactionDailyLimiter,
     MetaTransactionRateLimiter,
     MetaTransactionRollingLimiter,
@@ -66,8 +72,8 @@ export async function getDefaultAppDependenciesAsync(
     }
 
     let rateLimiter: MetaTransactionRateLimiter | undefined;
-    if (config.metaTxnEnabledRateLimiterTypes) {
-        rateLimiter = createMetaTransactionRateLimiterFromEnvironment(connection, config);
+    if (config.metaTxnRateLimiters !== undefined) {
+        rateLimiter = createMetaTransactionRateLimiterFromConfig(connection, config);
     }
 
     const orderBookService = new OrderBookService(connection, meshClient);
@@ -129,34 +135,44 @@ export async function getAppAsync(
     return { app, server };
 }
 
-function createMetaTransactionRateLimiterFromEnvironment(
+function createMetaTransactionRateLimiterFromConfig(
     dbConnection: Connection,
     config: HttpServiceWithRateLimiterConfig,
 ): MetaTransactionRateLimiter {
-    const rateLimiterTypes = config.metaTxnEnabledRateLimiterTypes;
-    if (rateLimiterTypes.length === 0) {
-        return createRateLimiter(rateLimiterTypes[0], dbConnection, config);
-    } else {
-        const rateLimiters = rateLimiterTypes.map(rateLimiterType =>
-            createRateLimiter(rateLimiterType, dbConnection, config),
-        );
-        return new MetaTransactionComposableLimiter(rateLimiters);
-    }
-}
+    const rateLimiterConfigEntries = Object.entries(config.metaTxnRateLimiters);
+    const configuredRateLimiters = rateLimiterConfigEntries
+        .map(entries => {
+            const [dbField, rateLimiters] = entries;
 
-function createRateLimiter(
-    rateLimiter: AvailableRateLimiter,
-    dbConnection: Connection,
-    config: HttpServiceWithRateLimiterConfig,
-): MetaTransactionRateLimiter {
-    switch (rateLimiter) {
-        case AvailableRateLimiter.Daily:
-            return new MetaTransactionDailyLimiter(dbConnection, config.metaTxnDailyRateLimiterConfig);
-        case AvailableRateLimiter.Rolling:
-            return new MetaTransactionRollingLimiter(dbConnection, config.metaTxnRollingRateLimiterConfig);
-        default:
-            throw new Error('unknown rate limiter type');
-    }
+            return Object.entries(rateLimiters).map(rateLimiterEntry => {
+                const [limiterType, value] = rateLimiterEntry;
+                switch (limiterType) {
+                    case AvailableRateLimiter.Daily: {
+                        const dailyConfig = value as MetaTransactionDailyLimiterConfig;
+                        return new MetaTransactionDailyLimiter(
+                            dbField as DatabaseKeysUsedForRateLimiter,
+                            dbConnection,
+                            dailyConfig,
+                        );
+                    }
+                    case AvailableRateLimiter.Rolling: {
+                        const rollingConfig = value as MetaTransactionRollingLimiterConfig;
+                        return new MetaTransactionRollingLimiter(
+                            dbField as DatabaseKeysUsedForRateLimiter,
+                            dbConnection,
+                            rollingConfig,
+                        );
+                    }
+                    default:
+                        throw new Error('unknown rate limiter type');
+                }
+            });
+        })
+        .reduce((prev, cur, []) => {
+            return prev.concat(...cur);
+        });
+
+    return new MetaTransactionComposableLimiter(configuredRateLimiters);
 }
 
 /**

@@ -16,8 +16,8 @@ import {
     NULL_BYTES,
 } from './constants';
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
-import { ChainId, HttpServiceConfig, HttpServiceWithRateLimiterConfig } from './types';
-import { AvailableRateLimiter, RollingLimiterIntervalUnit } from './utils/rate-limiters';
+import { ChainId, HttpServiceConfig, HttpServiceWithRateLimiterConfig, MetaTransactionRateLimitConfig } from './types';
+import { parseUtils } from './utils/parse_utils';
 
 enum EnvVarType {
     AddressList,
@@ -36,9 +36,13 @@ enum EnvVarType {
     APIKeys,
     PrivateKeys,
     RfqtMakerAssetOfferings,
-    RateLimitType,
-    RateLimitIntervalUnit,
+    RateLimitConfig,
 }
+
+// Log level for pino.js
+export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
+    ? 'info'
+    : assertEnvVarType('LOG_LEVEL', process.env.LOG_LEVEL, EnvVarType.NonEmptyString);
 
 // Network port to listen on
 export const HTTP_PORT = _.isEmpty(process.env.HTTP_PORT)
@@ -207,54 +211,14 @@ export const META_TXN_MAX_GAS_PRICE_GWEI: BigNumber = _.isEmpty(process.env.META
     ? new BigNumber(50)
     : assertEnvVarType('META_TXN_MAX_GAS_PRICE_GWEI', process.env.META_TXN_MAX_GAS_PRICE_GWEI, EnvVarType.UnitAmount);
 
-export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
-    ? 'info'
-    : assertEnvVarType('LOG_LEVEL', process.env.LOG_LEVEL, EnvVarType.NonEmptyString);
-
-export const META_TXN_RATE_LIMIT_TYPE: AvailableRateLimiter[] | undefined = _.isEmpty(
+export const META_TXN_RATE_LIMITER_CONFIG: MetaTransactionRateLimitConfig | undefined = _.isEmpty(
     process.env.META_TXN_RATE_LIMIT_TYPE,
 )
     ? undefined
-    : assertEnvVarType('META_TXN_RATE_LIMIT_TYPE', process.env.META_TXN_RATE_LIMIT_TYPE, EnvVarType.RateLimitType); // OneOf [DAILY ROLLING]
-
-export const META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
-    process.env.META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER,
-)
-    ? undefined
     : assertEnvVarType(
-          'META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER',
-          process.env.META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER,
-          EnvVarType.Integer,
-      );
-
-export const META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER: number | undefined = _.isEmpty(
-    process.env.META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER,
-)
-    ? undefined
-    : assertEnvVarType(
-          'META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER',
-          process.env.META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER,
-          EnvVarType.Integer,
-      );
-
-export const META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER: number | undefined = _.isEmpty(
-    process.env.META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER,
-)
-    ? undefined
-    : assertEnvVarType(
-          'META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER',
-          process.env.META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER,
-          EnvVarType.Integer,
-      );
-
-export const META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT: RollingLimiterIntervalUnit | undefined = _.isEmpty(
-    process.env.META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT,
-)
-    ? undefined
-    : assertEnvVarType(
-          'META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT',
-          process.env.META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT,
-          EnvVarType.RateLimitIntervalUnit,
+          'META_TXN_RATE_LIMITER_CONFIG',
+          process.env.META_TXN_RATE_LIMITER_CONFIG,
+          EnvVarType.RateLimitConfig,
       );
 
 // Whether or not prometheus metrics should be enabled.
@@ -326,15 +290,7 @@ export const defaultHttpServiceConfig: HttpServiceConfig = {
 
 export const defaultHttpServiceWithRateLimiterConfig: HttpServiceWithRateLimiterConfig = {
     ...defaultHttpServiceConfig,
-    metaTxnEnabledRateLimiterTypes: META_TXN_RATE_LIMIT_TYPE,
-    metaTxnDailyRateLimiterConfig: {
-        allowedDailyLimit: META_TXN_DAILY_RATE_LIMITER_ALLOWED_NUMBER,
-    },
-    metaTxnRollingRateLimiterConfig: {
-        allowedLimit: META_TXN_ROLLING_RATE_LIMITER_ALLOWED_NUMBER,
-        intervalNumber: META_TXN_ROLLING_RATE_LIMITER_INTERVAL_NUMBER,
-        intervalUnit: META_TXN_ROLLING_RATE_LIMITER_INTERVAL_UNIT,
-    },
+    metaTxnRateLimiters: META_TXN_RATE_LIMITER_CONFIG,
 };
 
 function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): any {
@@ -410,17 +366,9 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 throw new Error(`${name} must be supplied`);
             }
             return value;
-        case EnvVarType.RateLimitType:
+        case EnvVarType.RateLimitConfig:
             assert.isString(name, value);
-            const rateLimiters = (value as string).split(',');
-            rateLimiters.forEach(rateLimiter => {
-                assert.doesBelongToStringEnum(name, rateLimiter, AvailableRateLimiter);
-            });
-            return value;
-        case EnvVarType.RateLimitIntervalUnit:
-            assert.isString(name, value);
-            assert.doesBelongToStringEnum(name, value, RollingLimiterIntervalUnit);
-            return value;
+            return parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(value);
         case EnvVarType.APIKeys:
             assert.isString(name, value);
             const apiKeys = (value as string).split(',');

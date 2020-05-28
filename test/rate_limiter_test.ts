@@ -7,22 +7,28 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { TransactionStates } from '../src/types';
 import {
+    DatabaseKeysUsedForRateLimiter,
     MetaTransactionDailyLimiter,
     MetaTransactionRateLimiter,
     MetaTransactionRollingLimiter,
     RollingLimiterIntervalUnit,
 } from '../src/utils/rate-limiters';
+import { MetaTransactionComposableLimiter } from '../src/utils/rate-limiters/meta_transaction_composable_rate_limiter';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 
 const SUITE_NAME = 'rate limiter tests';
 const TEST_API_KEY = 'test-key';
+const TEST_FIRST_TAKER_ADDRESS = 'one';
+const TEST_SECOND_TAKER_ADDRESS = 'two';
 const DAILY_LIMIT = 10;
 
 let connection: Connection;
 let transactionRepository: Repository<TransactionEntity>;
 let dailyLimiter: MetaTransactionRateLimiter;
 let rollingLimiter: MetaTransactionRollingLimiter;
+let composedLimiter: MetaTransactionComposableLimiter;
+let rollingLimiterForTakerAddress: MetaTransactionRollingLimiter;
 
 function* intGenerator(): Iterator<number> {
     let i = 0;
@@ -33,10 +39,11 @@ function* intGenerator(): Iterator<number> {
 
 const intGen = intGenerator();
 
-const newTx = (apiKey: string): TransactionEntity => {
+const newTx = (apiKey: string, takerAddress?: string): TransactionEntity => {
     const tx = TransactionEntity.make({
         to: '',
         refHash: hexUtils.hash(intGen.next().value),
+        takerAddress: takerAddress === undefined ? TEST_FIRST_TAKER_ADDRESS : takerAddress,
         apiKey,
         status: TransactionStates.Submitted,
         expectedMinedInSec: 123,
@@ -44,10 +51,14 @@ const newTx = (apiKey: string): TransactionEntity => {
     return tx;
 };
 
-const generateNewTransactionsForKey = (apiKey: string, numberOfTransactions: number): TransactionEntity[] => {
+const generateNewTransactionsForKey = (
+    apiKey: string,
+    numberOfTransactions: number,
+    takerAddress?: string,
+): TransactionEntity[] => {
     const txes: TransactionEntity[] = [];
     for (let i = 0; i < numberOfTransactions; i++) {
-        const tx = newTx(apiKey);
+        const tx = newTx(apiKey, takerAddress);
         txes.push(tx);
     }
 
@@ -73,27 +84,43 @@ describe(SUITE_NAME, () => {
 
         connection = await getDBConnectionAsync();
         transactionRepository = connection.getRepository(TransactionEntity);
-        dailyLimiter = new MetaTransactionDailyLimiter(connection, { allowedDailyLimit: DAILY_LIMIT });
-        rollingLimiter = new MetaTransactionRollingLimiter(connection, {
+        dailyLimiter = new MetaTransactionDailyLimiter(DatabaseKeysUsedForRateLimiter.ApiKey, connection, {
+            allowedDailyLimit: DAILY_LIMIT,
+        });
+        rollingLimiter = new MetaTransactionRollingLimiter(DatabaseKeysUsedForRateLimiter.ApiKey, connection, {
             allowedLimit: 10,
             intervalNumber: 1,
             intervalUnit: RollingLimiterIntervalUnit.Hours,
         });
+        rollingLimiterForTakerAddress = new MetaTransactionRollingLimiter(
+            DatabaseKeysUsedForRateLimiter.TakerAddress,
+            connection,
+            {
+                allowedLimit: 2,
+                intervalNumber: 1,
+                intervalUnit: RollingLimiterIntervalUnit.Minutes,
+            },
+        );
+        composedLimiter = new MetaTransactionComposableLimiter([
+            dailyLimiter,
+            rollingLimiter,
+            rollingLimiterForTakerAddress,
+        ]);
     });
     after(async () => {
         await teardownDependenciesAsync(SUITE_NAME);
     });
     describe('api key daily rate limiter', async () => {
         it('should not trigger within limit', async () => {
-            const firstCheck = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            const firstCheck = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(firstCheck.isAllowed).to.be.true();
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, DAILY_LIMIT - 1));
-            const secondCheck = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            const secondCheck = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(secondCheck.isAllowed).to.be.true();
         });
         it('should not trigger for other api keys', async () => {
             await transactionRepository.save(generateNewTransactionsForKey('0ther-key', DAILY_LIMIT));
-            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(isAllowed).to.be.true();
         });
         it('should not trigger because of keys from a day before', async () => {
@@ -101,12 +128,12 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 24, 'hours');
-            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(isAllowed).to.be.true();
         });
         it('should trigger after limit', async () => {
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, 1));
-            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(isAllowed).to.be.false();
         });
     });
@@ -115,10 +142,10 @@ describe(SUITE_NAME, () => {
             await cleanTransactions();
         });
         it('shoult not trigger within limit', async () => {
-            const firstCheck = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
+            const firstCheck = await rollingLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(firstCheck.isAllowed).to.be.true();
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, DAILY_LIMIT - 1));
-            const secondCheck = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
+            const secondCheck = await rollingLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(secondCheck.isAllowed).to.be.true();
         });
         it('should not trigger because of keys from an interval before', async () => {
@@ -126,7 +153,7 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 61, 'minutes');
-            const { isAllowed } = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await rollingLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(isAllowed).to.be.true();
         });
         it('should trigger after limit', async () => {
@@ -134,8 +161,38 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 15, 'minutes');
-            const { isAllowed } = await rollingLimiter.isAllowedAsync(TEST_API_KEY);
+            const { isAllowed } = await rollingLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
             expect(isAllowed).to.be.false();
+        });
+    });
+    describe('api composable rate limiter', () => {
+        before(async () => {
+            await cleanTransactions();
+        });
+
+        it('should not trigger within limits', async () => {
+            const firstCheck = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            expect(firstCheck.isAllowed).to.be.true();
+        });
+
+        it('should trigger for the first taker address, but not the second', async () => {
+            // tslint:disable-next-line:custom-no-magic-numbers
+            const txes = generateNewTransactionsForKey(TEST_API_KEY, 2, TEST_FIRST_TAKER_ADDRESS);
+            await transactionRepository.save(txes);
+            const firstTakerCheck = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            expect(firstTakerCheck.isAllowed).to.be.false();
+            const secondTakerCheck = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            expect(secondTakerCheck.isAllowed).to.be.true();
+        });
+        it('should trigger all rate limiters', async () => {
+            // tslint:disable-next-line:custom-no-magic-numbers
+            const txes = generateNewTransactionsForKey(TEST_API_KEY, 20, TEST_SECOND_TAKER_ADDRESS);
+            await transactionRepository.save(txes);
+            const check = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            expect(check.isAllowed).to.be.false();
+            expect(check.reason).to.be.equal(
+                'daily limit of 10 meta transactions reached for given api_key & limit of 10 meta transactions in the last 1 hours & limit of 2 meta transactions in the last 1 minutes',
+            );
         });
     });
 });

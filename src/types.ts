@@ -9,7 +9,12 @@ import {
 } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
-import { AvailableRateLimiter, MetaTransactionRateLimiter, RollingLimiterIntervalUnit } from './utils/rate-limiters';
+import {
+    AvailableRateLimiter,
+    DatabaseKeysUsedForRateLimiter,
+    MetaTransactionRateLimiter,
+    RollingLimiterIntervalUnit,
+} from './utils/rate-limiters';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
@@ -553,19 +558,24 @@ export interface HttpServiceConfig {
 }
 
 export interface MetaTransactionRollingLimiterConfig {
-    allowedLimit?: number;
-    intervalNumber?: number;
-    intervalUnit?: RollingLimiterIntervalUnit;
+    allowedLimit: number;
+    intervalNumber: number;
+    intervalUnit: RollingLimiterIntervalUnit;
 }
 
 export interface MetaTransactionDailyLimiterConfig {
-    allowedDailyLimit?: number;
+    allowedDailyLimit: number;
 }
 
+export type MetaTransactionRateLimitConfig = {
+    [key in DatabaseKeysUsedForRateLimiter]?: {
+        [AvailableRateLimiter.Daily]?: MetaTransactionDailyLimiterConfig;
+        [AvailableRateLimiter.Rolling]?: MetaTransactionRollingLimiterConfig;
+    };
+};
+
 export interface HttpServiceWithRateLimiterConfig extends HttpServiceConfig {
-    metaTxnEnabledRateLimiterTypes?: AvailableRateLimiter[];
-    metaTxnDailyRateLimiterConfig: MetaTransactionDailyLimiterConfig;
-    metaTxnRollingRateLimiterConfig: MetaTransactionRollingLimiterConfig;
+    metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
 }
 
 // TODO(oskar) - naming?

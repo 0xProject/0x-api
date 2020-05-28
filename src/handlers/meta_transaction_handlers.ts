@@ -238,7 +238,10 @@ export class MetaTransactionHandlers {
                 }
                 // TODO(oskar) - refactor?
                 if (this._rateLimiter !== undefined) {
-                    const { isAllowed, reason } = await this._rateLimiter.isAllowedAsync(apiKey);
+                    const { isAllowed, reason } = await this._rateLimiter.isAllowedAsync(
+                        apiKey,
+                        zeroExTransaction.signerAddress,
+                    );
                     if (!isAllowed) {
                         const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
                             zeroExTransaction,
