@@ -35,10 +35,10 @@ export class TransactionEntity {
     @Column({ name: 'expected_mined_in_sec', type: 'int' })
     public expectedMinedInSec?: number;
 
-    @Column({ name: 'gas_price', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
+    @Column({ name: 'gas_price', type: 'bigint', nullable: true, transformer: BigNumberTransformer })
     public gasPrice?: BigNumber;
 
-    @Column({ name: 'value', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
+    @Column({ name: 'value', type: 'bigint', nullable: true, transformer: BigNumberTransformer })
     public value?: BigNumber;
 
     @Column({ name: 'gas', type: 'int', nullable: true })
