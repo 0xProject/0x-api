@@ -133,16 +133,18 @@ describe(SUITE_NAME, () => {
         await teardownDependenciesAsync(SUITE_NAME);
     });
     describe('api key daily rate limiter', async () => {
+        const context = { apiKey: TEST_API_KEY, takerAddress: TEST_FIRST_TAKER_ADDRESS };
+
         it('should not trigger within limit', async () => {
-            const firstCheck = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const firstCheck = await dailyLimiter.isAllowedAsync(context);
             expect(firstCheck.isAllowed).to.be.true();
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, DAILY_LIMIT - 1));
-            const secondCheck = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const secondCheck = await dailyLimiter.isAllowedAsync(context);
             expect(secondCheck.isAllowed).to.be.true();
         });
         it('should not trigger for other api keys', async () => {
             await transactionRepository.save(generateNewTransactionsForKey('0ther-key', DAILY_LIMIT));
-            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(context);
             expect(isAllowed).to.be.true();
         });
         it('should not trigger because of keys from a day before', async () => {
@@ -150,12 +152,12 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 24, 'hours');
-            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(context);
             expect(isAllowed).to.be.true();
         });
         it('should trigger after limit', async () => {
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, 1));
-            const { isAllowed } = await dailyLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const { isAllowed } = await dailyLimiter.isAllowedAsync(context);
             expect(isAllowed).to.be.false();
         });
     });
@@ -163,11 +165,12 @@ describe(SUITE_NAME, () => {
         before(async () => {
             await cleanTransactions();
         });
+        const context = { apiKey: TEST_API_KEY, takerAddress: TEST_FIRST_TAKER_ADDRESS };
         it('shoult not trigger within limit', async () => {
-            const firstCheck = await rollingLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const firstCheck = await rollingLimiter.isAllowedAsync(context);
             expect(firstCheck.isAllowed).to.be.true();
             await transactionRepository.save(generateNewTransactionsForKey(TEST_API_KEY, DAILY_LIMIT - 1));
-            const secondCheck = await rollingLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const secondCheck = await rollingLimiter.isAllowedAsync(context);
             expect(secondCheck.isAllowed).to.be.true();
         });
         it('should not trigger because of keys from an interval before', async () => {
@@ -175,7 +178,7 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 61, 'minutes');
-            const { isAllowed } = await rollingLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const { isAllowed } = await rollingLimiter.isAllowedAsync(context);
             expect(isAllowed).to.be.true();
         });
         it('should trigger after limit', async () => {
@@ -183,7 +186,7 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             // tslint:disable-next-line:custom-no-magic-numbers
             await backdateTransactions(txes, 15, 'minutes');
-            const { isAllowed } = await rollingLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const { isAllowed } = await rollingLimiter.isAllowedAsync(context);
             expect(isAllowed).to.be.false();
         });
     });
@@ -192,8 +195,11 @@ describe(SUITE_NAME, () => {
             await cleanTransactions();
         });
 
+        const firstTakerContext = { apiKey: TEST_API_KEY, takerAddress: TEST_FIRST_TAKER_ADDRESS };
+        const secondTakerContext = { apiKey: TEST_API_KEY, takerAddress: TEST_SECOND_TAKER_ADDRESS };
+
         it('should not trigger within limits', async () => {
-            const firstCheck = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            const firstCheck = await composedLimiter.isAllowedAsync(secondTakerContext);
             expect(firstCheck.isAllowed).to.be.true();
         });
 
@@ -201,16 +207,16 @@ describe(SUITE_NAME, () => {
             // tslint:disable-next-line:custom-no-magic-numbers
             const txes = generateNewTransactionsForKey(TEST_API_KEY, 2, TEST_FIRST_TAKER_ADDRESS);
             await transactionRepository.save(txes);
-            const firstTakerCheck = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_FIRST_TAKER_ADDRESS);
+            const firstTakerCheck = await composedLimiter.isAllowedAsync(firstTakerContext);
             expect(firstTakerCheck.isAllowed).to.be.false();
-            const secondTakerCheck = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            const secondTakerCheck = await composedLimiter.isAllowedAsync(secondTakerContext);
             expect(secondTakerCheck.isAllowed).to.be.true();
         });
         it('should trigger all rate limiters', async () => {
             // tslint:disable-next-line:custom-no-magic-numbers
             const txes = generateNewTransactionsForKey(TEST_API_KEY, 20, TEST_SECOND_TAKER_ADDRESS);
             await transactionRepository.save(txes);
-            const check = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            const check = await composedLimiter.isAllowedAsync(secondTakerContext);
             expect(check.isAllowed).to.be.false();
         });
     });
@@ -218,6 +224,8 @@ describe(SUITE_NAME, () => {
         before(async () => {
             await cleanTransactions();
         });
+
+        const context = { apiKey: TEST_API_KEY, takerAddress: TEST_SECOND_TAKER_ADDRESS };
         // tslint:disable:custom-no-magic-numbers
         it('should not trigger when under value limit', async () => {
             const txes = generateNewTransactionsForKey(TEST_API_KEY, 5, TEST_SECOND_TAKER_ADDRESS, {
@@ -226,7 +234,7 @@ describe(SUITE_NAME, () => {
                 gasUsed: 400000,
             });
             await transactionRepository.save(txes);
-            const check = await rollingValueLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            const check = await rollingValueLimiter.isAllowedAsync(context);
             expect(check.isAllowed).to.be.true();
         });
         it('should trigger when over value limit', async () => {
@@ -236,7 +244,7 @@ describe(SUITE_NAME, () => {
                 gasUsed: 400000,
             });
             await transactionRepository.save(txes);
-            const check = await rollingValueLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            const check = await rollingValueLimiter.isAllowedAsync(context);
             expect(check.isAllowed).to.be.false();
         });
         // tslint:enable:custom-no-magic-numbers

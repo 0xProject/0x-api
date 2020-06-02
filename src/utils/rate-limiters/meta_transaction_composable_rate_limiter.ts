@@ -1,6 +1,7 @@
 import { MetaTransactionRateLimiterResponse } from '../../types';
 
 import { MetaTransactionRateLimiter } from './base_limiter';
+import { MetaTransactionRateLimiterContext } from './types';
 
 export class MetaTransactionComposableLimiter extends MetaTransactionRateLimiter {
     private readonly _rateLimiters: MetaTransactionRateLimiter[];
@@ -13,9 +14,11 @@ export class MetaTransactionComposableLimiter extends MetaTransactionRateLimiter
         this._rateLimiters = rateLimiters;
     }
 
-    public async isAllowedAsync(apiKey: string, takerAddress: string): Promise<MetaTransactionRateLimiterResponse> {
+    public async isAllowedAsync(
+        context: MetaTransactionRateLimiterContext,
+    ): Promise<MetaTransactionRateLimiterResponse> {
         for (const rateLimiter of this._rateLimiters) {
-            const { isAllowed, reason } = await rateLimiter.isAllowedAsync(apiKey, takerAddress);
+            const { isAllowed, reason } = await rateLimiter.isAllowedAsync(context);
             if (!isAllowed) {
                 return { isAllowed, reason };
             }

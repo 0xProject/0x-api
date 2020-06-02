@@ -1,8 +1,9 @@
 import { MetaTransactionRateLimiterResponse } from '../../types';
 
+import { MetaTransactionRateLimiterContext } from './types';
+
 export abstract class MetaTransactionRateLimiter {
     public abstract async isAllowedAsync(
-        apiKey: string,
-        takerAddress: string,
+        context: MetaTransactionRateLimiterContext,
     ): Promise<MetaTransactionRateLimiterResponse>;
 }

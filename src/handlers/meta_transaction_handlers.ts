@@ -236,12 +236,11 @@ export class MetaTransactionHandlers {
                     });
                     return;
                 }
-                // TODO(oskar) - refactor?
                 if (this._rateLimiter !== undefined) {
-                    const { isAllowed, reason } = await this._rateLimiter.isAllowedAsync(
+                    const { isAllowed, reason } = await this._rateLimiter.isAllowedAsync({
                         apiKey,
-                        zeroExTransaction.signerAddress,
-                    );
+                        takerAddress: zeroExTransaction.signerAddress,
+                    });
                     if (!isAllowed) {
                         const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
                             zeroExTransaction,

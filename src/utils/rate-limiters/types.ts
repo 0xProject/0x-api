@@ -13,3 +13,8 @@ export enum DatabaseKeysUsedForRateLimiter {
     ApiKey = 'api_key',
     TakerAddress = 'taker_address',
 }
+
+export interface MetaTransactionRateLimiterContext {
+    apiKey: string;
+    takerAddress: string;
+}
