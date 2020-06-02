@@ -5,6 +5,7 @@ import {
     MetaTransactionDailyLimiterConfig,
     MetaTransactionRateLimitConfig,
     MetaTransactionRollingLimiterConfig,
+    MetaTransactionRollingValueLimiterConfig,
 } from '../types';
 
 import { AvailableRateLimiter, DatabaseKeysUsedForRateLimiter, RollingLimiterIntervalUnit } from './rate-limiters';
@@ -38,6 +39,19 @@ export const parseUtils = {
                         throw new Error('missing configuration for daily rate limiter');
                     }
                     assert.isNumber('allowedLimit', rollingConfig.allowedLimit);
+                    assert.isNumber('intervalNumber', rollingConfig.intervalNumber);
+                    assert.doesBelongToStringEnum(
+                        'intervalUnit',
+                        rollingConfig.intervalUnit,
+                        RollingLimiterIntervalUnit,
+                    );
+                    break;
+                case AvailableRateLimiter.RollingValue:
+                    const rollingValueConfig = value as MetaTransactionRollingValueLimiterConfig;
+                    if (rollingValueConfig === undefined) {
+                        throw new Error('missing configuration for daily rate limiter');
+                    }
+                    assert.isNumber('allowedLimitEth', rollingValueConfig.allowedLimitEth);
                     assert.isNumber('intervalNumber', rollingConfig.intervalNumber);
                     assert.doesBelongToStringEnum(
                         'intervalUnit',

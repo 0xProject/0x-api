@@ -1,6 +1,7 @@
 export enum AvailableRateLimiter {
     Daily = 'daily',
     Rolling = 'rolling',
+    RollingValue = 'rollingValue',
 }
 
 export enum RollingLimiterIntervalUnit {

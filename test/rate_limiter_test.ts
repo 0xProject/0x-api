@@ -1,5 +1,5 @@
 import { expect } from '@0x/contracts-test-utils';
-import { hexUtils } from '@0x/utils';
+import { hexUtils, BigNumber } from '@0x/utils';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
 
@@ -16,6 +16,7 @@ import {
 import { MetaTransactionComposableLimiter } from '../src/utils/rate-limiters/meta_transaction_composable_rate_limiter';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
+import { MetaTransactionRollingValueLimiter } from '../src/utils/rate-limiters/meta_transaction_value_limiter';
 
 const SUITE_NAME = 'rate limiter tests';
 const TEST_API_KEY = 'test-key';
@@ -29,6 +30,7 @@ let dailyLimiter: MetaTransactionRateLimiter;
 let rollingLimiter: MetaTransactionRollingLimiter;
 let composedLimiter: MetaTransactionComposableLimiter;
 let rollingLimiterForTakerAddress: MetaTransactionRollingLimiter;
+let rollingValueLimiter: MetaTransactionRollingValueLimiter;
 
 function* intGenerator(): Iterator<number> {
     let i = 0;
@@ -39,7 +41,11 @@ function* intGenerator(): Iterator<number> {
 
 const intGen = intGenerator();
 
-const newTx = (apiKey: string, takerAddress?: string): TransactionEntity => {
+const newTx = (
+    apiKey: string,
+    takerAddress?: string,
+    values?: { value: number; gasPrice: number; gasUsed: number },
+): TransactionEntity => {
     const tx = TransactionEntity.make({
         to: '',
         refHash: hexUtils.hash(intGen.next().value),
@@ -48,6 +54,12 @@ const newTx = (apiKey: string, takerAddress?: string): TransactionEntity => {
         status: TransactionStates.Submitted,
         expectedMinedInSec: 123,
     });
+    if (values !== undefined) {
+        const { value, gasPrice, gasUsed } = values;
+        tx.gasPrice = new BigNumber(gasPrice);
+        tx.gasUsed = gasUsed;
+        tx.value = new BigNumber(value);
+    }
     return tx;
 };
 
@@ -55,10 +67,11 @@ const generateNewTransactionsForKey = (
     apiKey: string,
     numberOfTransactions: number,
     takerAddress?: string,
+    values?: { value: number; gasPrice: number; gasUsed: number },
 ): TransactionEntity[] => {
     const txes: TransactionEntity[] = [];
     for (let i = 0; i < numberOfTransactions; i++) {
-        const tx = newTx(apiKey, takerAddress);
+        const tx = newTx(apiKey, takerAddress, values);
         txes.push(tx);
     }
 
@@ -99,6 +112,15 @@ describe(SUITE_NAME, () => {
                 allowedLimit: 2,
                 intervalNumber: 1,
                 intervalUnit: RollingLimiterIntervalUnit.Minutes,
+            },
+        );
+        rollingValueLimiter = new MetaTransactionRollingValueLimiter(
+            DatabaseKeysUsedForRateLimiter.TakerAddress,
+            connection,
+            {
+                allowedLimitEth: 1,
+                intervalNumber: 1,
+                intervalUnit: RollingLimiterIntervalUnit.Hours,
             },
         );
         composedLimiter = new MetaTransactionComposableLimiter([
@@ -190,9 +212,31 @@ describe(SUITE_NAME, () => {
             await transactionRepository.save(txes);
             const check = await composedLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
             expect(check.isAllowed).to.be.false();
-            expect(check.reason).to.be.equal(
-                'daily limit of 10 meta transactions reached for given api_key & limit of 10 meta transactions in the last 1 hours & limit of 2 meta transactions in the last 1 minutes',
-            );
+        });
+    });
+    describe('value rate limiter', () => {
+        before(async () => {
+            await cleanTransactions();
+        });
+        it('should not trigger when under value limit', async () => {
+            const txes = generateNewTransactionsForKey(TEST_API_KEY, 5, TEST_SECOND_TAKER_ADDRESS, {
+                value: 10 ** 17,
+                gasPrice: 10 ** 9,
+                gasUsed: 400000,
+            });
+            await transactionRepository.save(txes);
+            const check = await rollingValueLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            expect(check.isAllowed).to.be.true();
+        });
+        it('should trigger when over value limit', async () => {
+            const txes = generateNewTransactionsForKey(TEST_API_KEY, 10, TEST_SECOND_TAKER_ADDRESS, {
+                value: 10 ** 18,
+                gasPrice: 10 ** 9,
+                gasUsed: 400000,
+            });
+            await transactionRepository.save(txes);
+            const check = await rollingValueLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
+            expect(check.isAllowed).to.be.false();
         });
     });
 });

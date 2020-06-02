@@ -14,16 +14,13 @@ export class MetaTransactionComposableLimiter extends MetaTransactionRateLimiter
     }
 
     public async isAllowedAsync(apiKey: string, takerAddress: string): Promise<MetaTransactionRateLimiterResponse> {
-        let isUltimatelyAllowed = true;
-        let ultimateReason = '';
         for (const rateLimiter of this._rateLimiters) {
             const { isAllowed, reason } = await rateLimiter.isAllowedAsync(apiKey, takerAddress);
             if (!isAllowed) {
-                isUltimatelyAllowed = false;
-                ultimateReason = ultimateReason.length === 0 ? reason : `${ultimateReason} & ${reason}`;
+                return { isAllowed, reason };
             }
         }
 
-        return { isAllowed: isUltimatelyAllowed, reason: ultimateReason };
+        return { isAllowed: true, reason: '' };
     }
 }

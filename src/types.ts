@@ -563,6 +563,12 @@ export interface MetaTransactionRollingLimiterConfig {
     intervalUnit: RollingLimiterIntervalUnit;
 }
 
+export interface MetaTransactionRollingValueLimiterConfig {
+    allowedLimitEth: number;
+    intervalNumber: number;
+    intervalUnit: RollingLimiterIntervalUnit;
+}
+
 export interface MetaTransactionDailyLimiterConfig {
     allowedDailyLimit: number;
 }
@@ -571,7 +577,8 @@ export type MetaTransactionRateLimitConfig = {
     [key in DatabaseKeysUsedForRateLimiter]?: {
         [AvailableRateLimiter.Daily]?: MetaTransactionDailyLimiterConfig;
         [AvailableRateLimiter.Rolling]?: MetaTransactionRollingLimiterConfig;
-    };
+        [AvailableRateLimiter.RollingValue]?: MetaTransactionRollingValueLimiterConfig;
+    }
 };
 
 export interface HttpServiceWithRateLimiterConfig extends HttpServiceConfig {
