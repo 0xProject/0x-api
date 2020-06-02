@@ -1,5 +1,5 @@
 import { expect } from '@0x/contracts-test-utils';
-import { hexUtils, BigNumber } from '@0x/utils';
+import { BigNumber, hexUtils } from '@0x/utils';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
 
@@ -14,9 +14,9 @@ import {
     RollingLimiterIntervalUnit,
 } from '../src/utils/rate-limiters';
 import { MetaTransactionComposableLimiter } from '../src/utils/rate-limiters/meta_transaction_composable_rate_limiter';
+import { MetaTransactionRollingValueLimiter } from '../src/utils/rate-limiters/meta_transaction_value_limiter';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { MetaTransactionRollingValueLimiter } from '../src/utils/rate-limiters/meta_transaction_value_limiter';
 
 const SUITE_NAME = 'rate limiter tests';
 const TEST_API_KEY = 'test-key';
@@ -218,6 +218,7 @@ describe(SUITE_NAME, () => {
         before(async () => {
             await cleanTransactions();
         });
+        // tslint:disable:custom-no-magic-numbers
         it('should not trigger when under value limit', async () => {
             const txes = generateNewTransactionsForKey(TEST_API_KEY, 5, TEST_SECOND_TAKER_ADDRESS, {
                 value: 10 ** 17,
@@ -238,5 +239,6 @@ describe(SUITE_NAME, () => {
             const check = await rollingValueLimiter.isAllowedAsync(TEST_API_KEY, TEST_SECOND_TAKER_ADDRESS);
             expect(check.isAllowed).to.be.false();
         });
+        // tslint:enable:custom-no-magic-numbers
     });
 });

@@ -578,7 +578,7 @@ export type MetaTransactionRateLimitConfig = {
         [AvailableRateLimiter.Daily]?: MetaTransactionDailyLimiterConfig;
         [AvailableRateLimiter.Rolling]?: MetaTransactionRollingLimiterConfig;
         [AvailableRateLimiter.RollingValue]?: MetaTransactionRollingValueLimiterConfig;
-    }
+    };
 };
 
 export interface HttpServiceWithRateLimiterConfig extends HttpServiceConfig {
