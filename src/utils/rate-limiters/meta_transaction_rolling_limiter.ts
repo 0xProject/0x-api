@@ -39,9 +39,11 @@ export class MetaTransactionRollingLimiter extends MetaTransactionBaseDbRateLimi
             .getRawOne();
 
         const isAllowed = parseInt(count, 10) < this._limit;
-        return {
-            isAllowed,
-            reason: `limit of ${this._limit} meta transactions in the last ${this._intervalNumber} ${this._intervalUnit}`,
-        };
+        return isAllowed
+            ? { isAllowed }
+            : {
+                  isAllowed,
+                  reason: `limit of ${this._limit} meta transactions in the last ${this._intervalNumber} ${this._intervalUnit}`,
+              };
     }
 }

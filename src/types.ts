@@ -9,12 +9,22 @@ import {
 } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
-import {
+import { MetaTransactionRateLimiter } from './utils/rate-limiters';
+import { MetaTransactionRateLimitConfig } from './utils/rate-limiters/types';
+
+export {
     AvailableRateLimiter,
     DatabaseKeysUsedForRateLimiter,
-    MetaTransactionRateLimiter,
+    MetaTransactionDailyLimiterConfig,
+    MetaTransactionRateLimitConfig,
+    MetaTransactionRateLimiterAllowedResponse,
+    MetaTransactionRateLimiterContext,
+    MetaTransactionRateLimiterRejectedResponse,
+    MetaTransactionRateLimiterResponse,
+    MetaTransactionRollingLimiterConfig,
+    MetaTransactionRollingValueLimiterConfig,
     RollingLimiterIntervalUnit,
-} from './utils/rate-limiters';
+} from './utils/rate-limiters/types';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
@@ -555,39 +565,6 @@ export interface HttpServiceConfig {
     prometheusPort: number;
     meshWebsocketUri?: string;
     meshHttpUri?: string;
-}
-
-export interface MetaTransactionRollingLimiterConfig {
-    allowedLimit: number;
-    intervalNumber: number;
-    intervalUnit: RollingLimiterIntervalUnit;
-}
-
-export interface MetaTransactionRollingValueLimiterConfig {
-    allowedLimitEth: number;
-    intervalNumber: number;
-    intervalUnit: RollingLimiterIntervalUnit;
-}
-
-export interface MetaTransactionDailyLimiterConfig {
-    allowedDailyLimit: number;
-}
-
-export type MetaTransactionRateLimitConfig = {
-    [key in DatabaseKeysUsedForRateLimiter]?: {
-        [AvailableRateLimiter.Daily]?: MetaTransactionDailyLimiterConfig;
-        [AvailableRateLimiter.Rolling]?: MetaTransactionRollingLimiterConfig;
-        [AvailableRateLimiter.RollingValue]?: MetaTransactionRollingValueLimiterConfig;
-    };
-};
-
-export interface HttpServiceWithRateLimiterConfig extends HttpServiceConfig {
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
-}
-
-// TODO(oskar) - naming?
-export interface MetaTransactionRateLimiterResponse {
-    isAllowed: boolean;
-    reason: string;
 }
 // tslint:disable-line:max-file-line-count

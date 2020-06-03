@@ -31,7 +31,7 @@ export class MetaTransactionRollingValueLimiter extends MetaTransactionBaseDbRat
 
         const { sum } = await this._transactionRepository
             .createQueryBuilder('tx')
-            .select('SUM( (tx.gas_price * tx.gas_used / 10^18) + ( tx.value / 10^18 ) )', 'sum')
+            .select('SUM((tx.gas_price * tx.gas_used + tx.value) * 1e-18)', 'sum')
             .where(`tx.${this._dbField} = :key`, { key })
             .andWhere('AGE(NOW(), tx.created_at) < :interval', {
                 interval: `'${this._intervalNumber} ${this._intervalUnit}'`,
@@ -39,9 +39,11 @@ export class MetaTransactionRollingValueLimiter extends MetaTransactionBaseDbRat
             .getRawOne();
 
         const isAllowed = parseFloat(sum) < this._ethLimit;
-        return {
-            isAllowed,
-            reason: `limit of ${this._ethLimit} ETH spent in the last ${this._intervalNumber} ${this._intervalUnit}`,
-        };
+        return isAllowed
+            ? { isAllowed }
+            : {
+                  isAllowed,
+                  reason: `limit of ${this._ethLimit} ETH spent in the last ${this._intervalNumber} ${this._intervalUnit}`,
+              };
     }
 }

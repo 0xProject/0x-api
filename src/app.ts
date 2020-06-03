@@ -16,7 +16,7 @@ import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
 import {
-    HttpServiceWithRateLimiterConfig,
+    HttpServiceConfig,
     MetaTransactionDailyLimiterConfig,
     MetaTransactionRollingLimiterConfig,
     WebsocketSRAOpts,
@@ -52,7 +52,7 @@ export interface AppDependencies {
  */
 export async function getDefaultAppDependenciesAsync(
     provider: SupportedProvider,
-    config: HttpServiceWithRateLimiterConfig,
+    config: HttpServiceConfig,
 ): Promise<AppDependencies> {
     const connection = await getDBConnectionAsync();
     const stakingDataService = new StakingDataService(connection);
@@ -112,7 +112,7 @@ export async function getDefaultAppDependenciesAsync(
  */
 export async function getAppAsync(
     dependencies: AppDependencies,
-    config: HttpServiceWithRateLimiterConfig,
+    config: HttpServiceConfig,
 ): Promise<{ app: Express.Application; server: Server }> {
     const app = express();
     const { server, wsService } = await runHttpServiceAsync(dependencies, config, app);
@@ -137,7 +137,7 @@ export async function getAppAsync(
 
 function createMetaTransactionRateLimiterFromConfig(
     dbConnection: Connection,
-    config: HttpServiceWithRateLimiterConfig,
+    config: HttpServiceConfig,
 ): MetaTransactionRateLimiter {
     const rateLimiterConfigEntries = Object.entries(config.metaTxnRateLimiters);
     const configuredRateLimiters = rateLimiterConfigEntries

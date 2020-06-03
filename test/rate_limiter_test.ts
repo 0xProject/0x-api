@@ -6,6 +6,7 @@ import { Connection, Repository } from 'typeorm';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { TransactionStates } from '../src/types';
+import { parseUtils } from '../src/utils/parse_utils';
 import {
     DatabaseKeysUsedForRateLimiter,
     MetaTransactionDailyLimiter,
@@ -248,5 +249,72 @@ describe(SUITE_NAME, () => {
             expect(check.isAllowed).to.be.false();
         });
         // tslint:enable:custom-no-magic-numbers
+    });
+    describe('parser utils', () => {
+        it('should throw on invalid json string', () => {
+            const configString = '<html></html>';
+            expect(() => {
+                parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(configString);
+            }).to.throw('Unexpected token < in JSON at position 0');
+        });
+        it('should throw on invalid configuration', () => {
+            const configString = '{"api_key":{"daily": true}}';
+            expect(() => {
+                parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(configString);
+            }).to.throw('Expected allowedDailyLimit to be of type number, encountered: undefined');
+        });
+        it('should throw on invalid enum in rolling configuration', () => {
+            const configString =
+                '{"api_key":{"rolling": {"allowedLimit":1,"intervalNumber":1,"intervalUnit":"months"}}}';
+            expect(() => {
+                parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(configString);
+            }).to.throw("Expected intervalUnit to be one of: 'hours', 'minutes', encountered: months");
+        });
+        it('should throw on an unsupported database key', () => {
+            const config = {
+                api_key: {},
+                taker_address: {},
+                private_key: {},
+            };
+            expect(() => {
+                parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(JSON.stringify(config));
+            }).to.throw("Expected dbField to be one of: 'api_key', 'taker_address', encountered: private_key");
+        });
+        it('should parse daily configuration properly', () => {
+            const expectedDailyConfig = { allowedDailyLimit: 1 };
+            const configString = `{"api_key":{"daily": ${JSON.stringify(expectedDailyConfig)}}}`;
+            const config = parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(configString);
+            expect(config.api_key.daily).to.be.deep.equal(expectedDailyConfig);
+        });
+        it('should parse rolling configuration properly', () => {
+            const expectedRollingConfig = { allowedLimit: 1, intervalNumber: 1, intervalUnit: 'hours' };
+            const configString = `{"api_key":{"rolling": ${JSON.stringify(expectedRollingConfig)}}}`;
+            const config = parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(configString);
+            expect(config.api_key.rolling).to.be.deep.equal(expectedRollingConfig);
+        });
+        it('should parse rolling value configuration properly', () => {
+            const expectedRollingValueConfig = { allowedLimitEth: 1, intervalNumber: 1, intervalUnit: 'hours' };
+            const configString = `{"api_key":{"rollingValue": ${JSON.stringify(expectedRollingValueConfig)}}}`;
+            const config = parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(configString);
+            expect(config.api_key.rollingValue).to.be.deep.equal(expectedRollingValueConfig);
+        });
+        it('should parse a full configuration', () => {
+            const expectedConfig = {
+                api_key: {
+                    daily: { allowedDailyLimit: 1 },
+                    rolling: { allowedLimit: 1, intervalNumber: 1, intervalUnit: 'hours' },
+                    rollingValue: { allowedLimitEth: 1, intervalNumber: 1, intervalUnit: 'hours' },
+                },
+                taker_address: {
+                    daily: { allowedDailyLimit: 1 },
+                    rolling: { allowedLimit: 1, intervalNumber: 1, intervalUnit: 'hours' },
+                    rollingValue: { allowedLimitEth: 1, intervalNumber: 1, intervalUnit: 'hours' },
+                },
+            };
+            const parsedConfig = parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(
+                JSON.stringify(expectedConfig),
+            );
+            expect(parsedConfig).to.be.deep.equal(expectedConfig);
+        });
     });
 });

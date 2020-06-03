@@ -16,7 +16,7 @@ import {
     NULL_BYTES,
 } from './constants';
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
-import { ChainId, HttpServiceConfig, HttpServiceWithRateLimiterConfig, MetaTransactionRateLimitConfig } from './types';
+import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 
 enum EnvVarType {
@@ -288,7 +288,7 @@ export const defaultHttpServiceConfig: HttpServiceConfig = {
     meshHttpUri: MESH_HTTP_URI,
 };
 
-export const defaultHttpServiceWithRateLimiterConfig: HttpServiceWithRateLimiterConfig = {
+export const defaultHttpServiceWithRateLimiterConfig: HttpServiceConfig = {
     ...defaultHttpServiceConfig,
     metaTxnRateLimiters: META_TXN_RATE_LIMITER_CONFIG,
 };

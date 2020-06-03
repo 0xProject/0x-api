@@ -24,7 +24,7 @@ import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import { GetMetaTransactionPriceResponse, GetTransactionRequestParams, ZeroExTransactionWithoutDomain } from '../types';
 import { parseUtils } from '../utils/parse_utils';
-import { MetaTransactionRateLimiter } from '../utils/rate-limiters';
+import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { schemaUtils } from '../utils/schema_utils';
 import { findTokenAddressOrThrowApiError } from '../utils/token_metadata_utils';
 
@@ -237,11 +237,11 @@ export class MetaTransactionHandlers {
                     return;
                 }
                 if (this._rateLimiter !== undefined) {
-                    const { isAllowed, reason } = await this._rateLimiter.isAllowedAsync({
+                    const rateLimitResponse = await this._rateLimiter.isAllowedAsync({
                         apiKey,
                         takerAddress: zeroExTransaction.signerAddress,
                     });
-                    if (!isAllowed) {
+                    if (isRateLimitedMetaTransactionResponse(rateLimitResponse)) {
                         const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
                             zeroExTransaction,
                             signature,
@@ -249,7 +249,7 @@ export class MetaTransactionHandlers {
                         );
                         res.status(HttpStatus.TOO_MANY_REQUESTS).send({
                             code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
-                            reason,
+                            reason: rateLimitResponse.reason,
                             ethereumTransaction: {
                                 data: ethereumTxn.data,
                                 gasPrice: ethereumTxn.gasPrice,

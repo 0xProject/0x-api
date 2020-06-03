@@ -18,7 +18,7 @@ import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates, TransactionWatcherSignerServiceConfig, TransactionWatcherSignerStatus } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
-import { MetaTransactionRateLimiter } from '../utils/rate-limiters';
+import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { Signer } from '../utils/signer';
 import { utils } from '../utils/utils';
 
@@ -263,13 +263,13 @@ export class TransactionWatcherSignerService {
         logger.trace(`found ${unsignedTransactions.length} transactions to sign and broadcast`);
         for (const tx of unsignedTransactions) {
             if (this._rateLimiter !== undefined) {
-                const { isAllowed, reason } = await this._rateLimiter.isAllowedAsync({
+                const rateLimitResponse = await this._rateLimiter.isAllowedAsync({
                     apiKey: tx.apiKey,
                     takerAddress: tx.takerAddress,
                 });
-                if (!isAllowed) {
+                if (isRateLimitedMetaTransactionResponse(rateLimitResponse)) {
                     logger.warn({
-                        message: `cancelling transaction because of rate limiting: ${reason}`,
+                        message: `cancelling transaction because of rate limiting: ${rateLimitResponse.reason}`,
                         refHash: tx.refHash,
                         from: tx.from,
                         takerAddress: tx.takerAddress,

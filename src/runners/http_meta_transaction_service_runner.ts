@@ -13,7 +13,7 @@ import { logger } from '../logger';
 import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
 import { createMetaTransactionRouter } from '../routers/meta_transaction_router';
-import { HttpServiceWithRateLimiterConfig } from '../types';
+import { HttpServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
 /**
@@ -41,7 +41,7 @@ if (require.main === module) {
 
 async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    config: HttpServiceWithRateLimiterConfig,
+    config: HttpServiceConfig,
     _app?: core.Express,
 ): Promise<Server> {
     const app = _app || express();

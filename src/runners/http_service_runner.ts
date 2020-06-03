@@ -19,7 +19,7 @@ import { createSRARouter } from '../routers/sra_router';
 import { createStakingRouter } from '../routers/staking_router';
 import { createSwapRouter } from '../routers/swap_router';
 import { WebsocketService } from '../services/websocket_service';
-import { HttpServiceWithRateLimiterConfig } from '../types';
+import { HttpServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
 /**
@@ -59,7 +59,7 @@ export interface HttpServices {
  */
 export async function runHttpServiceAsync(
     dependencies: AppDependencies,
-    config: HttpServiceWithRateLimiterConfig,
+    config: HttpServiceConfig,
     _app?: core.Express,
 ): Promise<HttpServices> {
     const app = _app || express();

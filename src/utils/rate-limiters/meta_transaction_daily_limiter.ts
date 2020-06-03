@@ -32,9 +32,11 @@ export class MetaTransactionDailyLimiter extends MetaTransactionBaseDbRateLimite
             .getRawOne();
 
         const isAllowed = parseInt(count, 10) < this._dailyLimit;
-        return {
-            isAllowed,
-            reason: `daily limit of ${this._dailyLimit} meta transactions reached for given ${this._dbField}`,
-        };
+        return isAllowed
+            ? { isAllowed }
+            : {
+                  isAllowed,
+                  reason: `daily limit of ${this._dailyLimit} meta transactions reached for given ${this._dbField}`,
+              };
     }
 }
