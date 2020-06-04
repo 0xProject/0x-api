@@ -359,5 +359,6 @@ const marshallTransactionEntity = (tx: TransactionEntity): any => {
         updatedAt: tx.updatedAt,
         blockNumber: tx.blockNumber,
         expectedMinedInSec: tx.expectedMinedInSec,
+        ethereumTxStatus: tx.txStatus,
     };
 };
