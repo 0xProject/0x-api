@@ -135,7 +135,8 @@ export class MetaTransactionService {
         } else {
             throw new Error('sellAmount or buyAmount required');
         }
-
+        const { gasPrice } = swapQuote;
+        const { gas, protocolFee } = swapQuote.worstCaseQuoteInfo.worstCaseQuoteInfo;
         const makerAssetAmount = swapQuote.bestCaseQuoteInfo.makerAssetAmount;
         const totalTakerAssetAmount = swapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
 
@@ -161,13 +162,16 @@ export class MetaTransactionService {
             price,
             swapQuote,
             sources: serviceUtils.convertSourceBreakdownToArray(swapQuote.sourceBreakdown),
+            estimatedGas: gas,
+            gasPrice,
+            protocolFee,
         };
         return response;
     }
     public async calculateMetaTransactionQuoteAsync(
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<GetMetaTransactionQuoteResponse> {
-        const { takerAddress, sellAmount, buyAmount, swapQuote, price } = await this.calculateMetaTransactionPriceAsync(
+        const { takerAddress, sellAmount, buyAmount, swapQuote, price, estimatedGas, protocolFee } = await this.calculateMetaTransactionPriceAsync(
             params,
             'quote',
         );
@@ -209,6 +213,9 @@ export class MetaTransactionService {
             sellAmount: totalTakerAssetAmount,
             orders: serviceUtils.cleanSignedOrderFields(orders),
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
+            gasPrice,
+            estimatedGas,
+            protocolFee,
         };
         return apiMetaTransactionQuote;
     }

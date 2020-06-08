@@ -417,6 +417,9 @@ export interface GetMetaTransactionQuoteResponse {
     buyAmount: BigNumber;
     sellAmount: BigNumber;
     sources: GetSwapQuoteResponseLiquiditySource[];
+    gasPrice: BigNumber;
+    protocolFee: BigNumber;
+    estimatedGas: BigNumber;
 }
 
 export interface GetMetaTransactionPriceResponse extends BasePriceResponse {}
@@ -440,6 +443,9 @@ export interface CalculateMetaTransactionPriceResponse {
     takerAddress: string;
     swapQuote: MarketSellSwapQuote | MarketBuySwapQuote;
     sources: GetSwapQuoteResponseLiquiditySource[];
+    gasPrice: BigNumber;
+    protocolFee: BigNumber;
+    estimatedGas: BigNumber;
 }
 
 export interface PostTransactionResponse {
