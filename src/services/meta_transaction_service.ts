@@ -171,10 +171,15 @@ export class MetaTransactionService {
     public async calculateMetaTransactionQuoteAsync(
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<GetMetaTransactionQuoteResponse> {
-        const { takerAddress, sellAmount, buyAmount, swapQuote, price, estimatedGas, protocolFee } = await this.calculateMetaTransactionPriceAsync(
-            params,
-            'quote',
-        );
+        const {
+            takerAddress,
+            sellAmount,
+            buyAmount,
+            swapQuote,
+            price,
+            estimatedGas,
+            protocolFee,
+        } = await this.calculateMetaTransactionPriceAsync(params, 'quote');
 
         const floatGasPrice = swapQuote.gasPrice;
         const gasPrice = floatGasPrice
