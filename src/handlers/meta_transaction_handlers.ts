@@ -22,7 +22,12 @@ import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
-import { GetMetaTransactionPriceResponse, GetTransactionRequestParams, ZeroExTransactionWithoutDomain } from '../types';
+import {
+    GetMetaTransactionPriceResponse,
+    GetMetaTransactionStatusResponse,
+    GetTransactionRequestParams,
+    ZeroExTransactionWithoutDomain,
+} from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { schemaUtils } from '../utils/schema_utils';
@@ -197,6 +202,7 @@ export class MetaTransactionHandlers {
     }
     public async submitZeroExTransactionIfWhitelistedAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
+        const affiliateAddress = req.query.affiliateAddress as string | undefined;
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
                 code: GeneralErrorCodes.InvalidAPIKey,
@@ -267,6 +273,7 @@ export class MetaTransactionHandlers {
                     signature,
                     protocolFee,
                     apiKey,
+                    affiliateAddress,
                 );
                 res.status(HttpStatus.OK).send({
                     ethereumTransactionHash,
@@ -378,7 +385,7 @@ const parsePostTransactionRequestBody = (req: any): PostTransactionRequestBody =
     };
 };
 
-const marshallTransactionEntity = (tx: TransactionEntity): any => {
+const marshallTransactionEntity = (tx: TransactionEntity): GetMetaTransactionStatusResponse => {
     return {
         refHash: tx.refHash,
         hash: tx.txHash,
@@ -387,5 +394,6 @@ const marshallTransactionEntity = (tx: TransactionEntity): any => {
         updatedAt: tx.updatedAt,
         blockNumber: tx.blockNumber,
         expectedMinedInSec: tx.expectedMinedInSec,
+        ethereumTxStatus: tx.txStatus,
     };
 };

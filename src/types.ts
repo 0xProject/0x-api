@@ -168,6 +168,7 @@ export interface PoolWithStats extends Pool {
     sevenDayProtocolFeesGeneratedInEth: number;
     avgMemberRewardInEth: number;
     avgTotalRewardInEth: number;
+    avgMemberRewardEthPerZrx: number;
 }
 
 export interface PoolWithHistoricalStats extends PoolWithStats {
@@ -228,12 +229,15 @@ export interface RawPoolAvgRewards {
     pool_id: string;
     avg_member_reward_in_eth: string;
     avg_total_reward_in_eth: string;
+    avg_member_stake: string;
+    avg_member_reward_eth_per_zrx: string;
 }
 
 export interface PoolAvgRewards {
     poolId: string;
     avgMemberRewardInEth: number;
     avgTotalRewardInEth: number;
+    avgMemberRewardEthPerZrx: number;
 }
 
 export interface RawPoolTotalProtocolFeesGenerated {
@@ -363,22 +367,37 @@ export interface TokenMetadata {
     tokenAddress: string;
 }
 
-export interface GetSwapQuoteResponse {
-    price: BigNumber;
-    guaranteedPrice: BigNumber;
+export interface GasTokenRefundInfo {
+    usedGasTokens: number;
+    gasTokenGasCost: BigNumber;
+    gasTokenRefund: BigNumber;
+}
+
+export interface SwapQuoteResponsePartialTransaction {
     to: string;
     data: string;
+    value: BigNumber;
+}
+
+export interface SwapQuoteResponsePrice {
+    price: BigNumber;
+    guaranteedPrice: BigNumber;
+}
+
+export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, SwapQuoteResponsePrice {
     gasPrice: BigNumber;
     protocolFee: BigNumber;
+    minimumProtocolFee: BigNumber;
     orders: SignedOrder[];
     buyAmount: BigNumber;
     sellAmount: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
-    value: BigNumber;
     sources: GetSwapQuoteResponseLiquiditySource[];
-    gas?: BigNumber;
     from?: string;
+    gas: BigNumber;
+    estimatedGas: BigNumber;
+    estimatedGasTokenRefund: BigNumber;
 }
 
 export interface Price {
@@ -399,7 +418,10 @@ export interface GetSwapPriceResponse extends BasePriceResponse {
     value: BigNumber;
     gasPrice: BigNumber;
     gas: BigNumber;
+    estimatedGas: BigNumber;
     protocolFee: BigNumber;
+    estimatedGasTokenRefund: BigNumber;
+    minimumProtocolFee: BigNumber;
 }
 
 export type GetTokenPricesResponse = Price[];
@@ -415,6 +437,17 @@ export interface GetMetaTransactionQuoteResponse {
 }
 
 export interface GetMetaTransactionPriceResponse extends BasePriceResponse {}
+
+export interface GetMetaTransactionStatusResponse {
+    refHash: string;
+    hash?: string;
+    status: string;
+    gasPrice?: BigNumber;
+    updatedAt?: Date;
+    blockNumber?: number;
+    expectedMinedInSec?: number;
+    ethereumTxStatus?: number;
+}
 
 // takerAddress, sellAmount, buyAmount, swapQuote, price
 export interface CalculateMetaTransactionPriceResponse {
