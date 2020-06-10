@@ -420,6 +420,8 @@ export interface GetMetaTransactionQuoteResponse {
     gasPrice: BigNumber;
     protocolFee: BigNumber;
     estimatedGas: BigNumber;
+    estimatedGasTokenRefund: BigNumber;
+    minimumProtocolFee: BigNumber;
 }
 
 export interface GetMetaTransactionPriceResponse extends BasePriceResponse {}
@@ -445,6 +447,7 @@ export interface CalculateMetaTransactionPriceResponse {
     sources: GetSwapQuoteResponseLiquiditySource[];
     gasPrice: BigNumber;
     protocolFee: BigNumber;
+    minimumProtocolFee: BigNumber;
     estimatedGas: BigNumber;
 }
 
