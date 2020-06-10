@@ -395,9 +395,6 @@ interface BasePriceResponse {
     sellTokenAddress: string;
     buyTokenAddress: string;
     sources: GetSwapQuoteResponseLiquiditySource[];
-}
-
-export interface GetSwapPriceResponse extends BasePriceResponse {
     value: BigNumber;
     gasPrice: BigNumber;
     gas: BigNumber;
@@ -406,6 +403,8 @@ export interface GetSwapPriceResponse extends BasePriceResponse {
     estimatedGasTokenRefund: BigNumber;
     minimumProtocolFee: BigNumber;
 }
+
+export interface GetSwapPriceResponse extends BasePriceResponse {}
 
 export type GetTokenPricesResponse = Price[];
 
