@@ -215,6 +215,8 @@ export class MetaTransactionService {
         const totalTakerAssetAmount = swapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
         const apiMetaTransactionQuote: GetMetaTransactionQuoteResponse = {
             price,
+            sellTokenAddress: params.sellTokenAddress,
+            buyTokenAddress: params.buyTokenAddress,
             zeroExTransactionHash,
             zeroExTransaction,
             buyAmount: makerAssetAmount,
@@ -223,9 +225,11 @@ export class MetaTransactionService {
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
             gasPrice,
             estimatedGas,
+            gas: estimatedGas,
             protocolFee,
             minimumProtocolFee,
             estimatedGasTokenRefund: ZERO,
+            value: protocolFee,
         };
         return apiMetaTransactionQuote;
     }

@@ -408,19 +408,10 @@ export interface GetSwapPriceResponse extends BasePriceResponse {}
 
 export type GetTokenPricesResponse = Price[];
 
-export interface GetMetaTransactionQuoteResponse {
-    price: BigNumber;
+export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
     zeroExTransactionHash: string;
     zeroExTransaction: ZeroExTransaction;
     orders: SignedOrder[];
-    buyAmount: BigNumber;
-    sellAmount: BigNumber;
-    sources: GetSwapQuoteResponseLiquiditySource[];
-    gasPrice: BigNumber;
-    protocolFee: BigNumber;
-    estimatedGas: BigNumber;
-    estimatedGasTokenRefund: BigNumber;
-    minimumProtocolFee: BigNumber;
 }
 
 export interface GetMetaTransactionPriceResponse extends BasePriceResponse {}
