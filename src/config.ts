@@ -232,6 +232,7 @@ const EXCLUDED_SOURCES = (() => {
                 ERC20BridgeSource.Uniswap,
                 ERC20BridgeSource.UniswapV2,
                 ERC20BridgeSource.UniswapV2Eth,
+                ERC20BridgeSource.MultiBridge,
             ];
     }
 })();
@@ -242,6 +243,7 @@ export const GAS_SCHEDULE: { [key in ERC20BridgeSource]: number } = {
     [ERC20BridgeSource.UniswapV2]: 3.5e5,
     [ERC20BridgeSource.UniswapV2Eth]: 4e5,
     [ERC20BridgeSource.LiquidityProvider]: 3e5,
+    [ERC20BridgeSource.MultiBridge]: 6.5e5,
     [ERC20BridgeSource.Eth2Dai]: 5.5e5,
     [ERC20BridgeSource.Kyber]: 8e5,
     [ERC20BridgeSource.CurveUsdcDai]: 9e5,
