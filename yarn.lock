@@ -70,31 +70,13 @@
     uuid "^3.3.2"
     websocket "^1.0.26"
 
-"@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-0fbbabe20":
+"@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-0fbbabe20", "@0x/contract-addresses@^4.9.0":
   version "4.9.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/fee8c421e2430aada6d03da270e72684c370c9a6"
 
-"@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-fb0311e67", "@0x/contract-addresses@^4.9.0":
-  version "4.9.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/3ec82a85ca67caf5743d0820c3043871f5eef9a4"
-
-"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-0fbbabe20":
+"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-0fbbabe20", "@0x/contract-wrappers@^13.6.3":
   version "13.6.3"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/fcf0dcc6f5b2644b89d9e41dca9769785f6f12cc"
-  dependencies:
-    "@0x/assert" "^3.0.7"
-    "@0x/base-contract" "^6.2.1"
-    "@0x/contract-addresses" "^4.9.0"
-    "@0x/json-schemas" "^5.0.7"
-    "@0x/types" "^3.1.2"
-    "@0x/utils" "^5.4.1"
-    "@0x/web3-wrapper" "^7.0.7"
-    ethereum-types "^3.1.0"
-    ethers "~4.0.4"
-
-"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-fb0311e67", "@0x/contract-wrappers@^13.6.3":
-  version "13.6.3"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/9ad98d1f1d8fb110f15028b82432227d32f9ddc8"
   dependencies:
     "@0x/assert" "^3.0.7"
     "@0x/base-contract" "^6.2.1"

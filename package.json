@@ -42,8 +42,8 @@
         "prettier_target": "{.,test/**,src/**}/*.{ts,tsx,json,md}"
     },
     "resolutions": {
-        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-fb0311e67",
-        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-fb0311e67"
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-0fbbabe20",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-0fbbabe20"
     },
     "release": {
         "plugins": [
