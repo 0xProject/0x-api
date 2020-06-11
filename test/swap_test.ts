@@ -1,3 +1,4 @@
+import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
 import { ObjectMap, SignedOrder } from '@0x/types';
@@ -29,10 +30,19 @@ import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = '/swap';
 
+const excludedSources = [
+    ERC20BridgeSource.Uniswap,
+    ERC20BridgeSource.UniswapV2,
+    ERC20BridgeSource.UniswapV2Eth,
+    ERC20BridgeSource.Kyber,
+    ERC20BridgeSource.LiquidityProvider,
+    ERC20BridgeSource.Eth2Dai,
+];
+
 const DEFAULT_QUERY_PARAMS = {
     buyToken: 'ZRX',
     sellToken: 'WETH',
-    excludedSources: 'Uniswap,Eth2Dai,Kyber,LiquidityProvider',
+    excludedSources: excludedSources.map(s => ERC20BridgeSource[s]).join(','),
 };
 
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
@@ -157,7 +167,12 @@ describe(SUITE_NAME, () => {
         });
         it('should respect excludedSources', async () => {
             await quoteAndExpectAsync(
-                { sellAmount: '1234', excludedSources: 'Uniswap,Eth2Dai,Kyber,LiquidityProvider,0x' },
+                {
+                    sellAmount: '1234',
+                    excludedSources: Object.keys(ERC20BridgeSource)
+                        .map(s => ERC20BridgeSource[s])
+                        .join(','),
+                },
                 {
                     validationErrors: [
                         {
@@ -311,6 +326,8 @@ function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, quoteAssertions
     expect(quoteResponse.sources).to.be.eql([
         { name: '0x', proportion: '1' },
         { name: 'Uniswap', proportion: '0' },
+        { name: 'Uniswap_V2', proportion: '0' },
+        { name: 'Uniswap_V2_ETH', proportion: '0' },
         { name: 'Eth2Dai', proportion: '0' },
         { name: 'Kyber', proportion: '0' },
         { name: 'Curve_USDC_DAI', proportion: '0' },
