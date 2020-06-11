@@ -40,7 +40,7 @@ const excludedSources = [
     ERC20BridgeSource.LiquidityProvider,
     ERC20BridgeSource.Eth2Dai,
 ];
-const DEFAULT_EXCLUDED_SOURCES = excludedSources.map(s => ERC20BridgeSource[s]).join(',');
+const DEFAULT_EXCLUDED_SOURCES = excludedSources.join(',');
 const DEFAULT_SELL_AMOUNT = new BigNumber(100000000000000000);
 let DEFAULT_RFQT_RESPONSE_DATA;
 

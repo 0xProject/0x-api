@@ -79,7 +79,7 @@ describe(SUITE_NAME, () => {
         buyToken: 'ZRX',
         sellToken: 'WETH',
         buyAmount,
-        excludedSources: excludedSources.map(s => ERC20BridgeSource[s]).join(','),
+        excludedSources: excludedSources.join(','),
     };
 
     async function assertFailureAsync(baseRoute: string, testCase: TestCase): Promise<void> {

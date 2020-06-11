@@ -42,7 +42,7 @@ const excludedSources = [
 const DEFAULT_QUERY_PARAMS = {
     buyToken: 'ZRX',
     sellToken: 'WETH',
-    excludedSources: excludedSources.map(s => ERC20BridgeSource[s]).join(','),
+    excludedSources: excludedSources.join(','),
 };
 
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
@@ -169,9 +169,7 @@ describe(SUITE_NAME, () => {
             await quoteAndExpectAsync(
                 {
                     sellAmount: '1234',
-                    excludedSources: Object.keys(ERC20BridgeSource)
-                        .map(s => ERC20BridgeSource[s])
-                        .join(','),
+                    excludedSources: Object.values(ERC20BridgeSource).join(','),
                 },
                 {
                     validationErrors: [
