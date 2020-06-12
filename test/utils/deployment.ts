@@ -95,7 +95,8 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
 
     // Wait for the dependencies to boot up.
     await waitForDependencyStartupAsync(up);
-    await sleepAsync(5); // tslint:disable-line:custom-no-magic-numbers
+    // Wait for postgres connection to be ready after log-scraping
+    await sleepAsync(2); // tslint:disable-line:custom-no-magic-numbers
     await confirmPostgresConnectivityAsync();
 }
 
@@ -139,7 +140,7 @@ export async function setupMeshAsync(suiteName: string, logType?: LogType): Prom
 
     // HACK(jalextowle): For some reason, Mesh Clients would connect to
     // the old mesh node. Try to remove this.
-    await sleepAsync(10); // tslint:disable-line:custom-no-magic-numbers
+    await sleepAsync(5); // tslint:disable-line:custom-no-magic-numbers
 }
 
 /**
