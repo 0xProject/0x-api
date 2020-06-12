@@ -40,4 +40,5 @@ export const liquiditySources0xOnly = [
     { name: 'Curve_USDC_DAI_USDT_BUSD', proportion: '0' },
     { name: 'Curve_USDC_DAI_USDT_SUSD', proportion: '0' },
     { name: 'LiquidityProvider', proportion: '0' },
+    { name: 'MultiBridge', proportion: '0' },
 ];

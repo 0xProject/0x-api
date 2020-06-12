@@ -74,6 +74,7 @@ describe(SUITE_NAME, () => {
         ERC20BridgeSource.Kyber,
         ERC20BridgeSource.LiquidityProvider,
         ERC20BridgeSource.Eth2Dai,
+        ERC20BridgeSource.MultiBridge,
     ];
     const DEFAULT_QUERY_PARAMS = {
         buyToken: 'ZRX',

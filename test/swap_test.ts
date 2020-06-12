@@ -37,6 +37,7 @@ const excludedSources = [
     ERC20BridgeSource.Kyber,
     ERC20BridgeSource.LiquidityProvider,
     ERC20BridgeSource.Eth2Dai,
+    ERC20BridgeSource.MultiBridge,
 ];
 
 const DEFAULT_QUERY_PARAMS = {
@@ -334,5 +335,6 @@ function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, quoteAssertions
         { name: 'Curve_USDC_DAI_USDT_BUSD', proportion: '0' },
         { name: 'Curve_USDC_DAI_USDT_SUSD', proportion: '0' },
         { name: 'LiquidityProvider', proportion: '0' },
+        { name: 'MultiBridge', proportion: '0' },
     ]);
 }

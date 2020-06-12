@@ -39,6 +39,7 @@ const excludedSources = [
     ERC20BridgeSource.Kyber,
     ERC20BridgeSource.LiquidityProvider,
     ERC20BridgeSource.Eth2Dai,
+    ERC20BridgeSource.MultiBridge,
 ];
 const DEFAULT_EXCLUDED_SOURCES = excludedSources.join(',');
 const DEFAULT_SELL_AMOUNT = new BigNumber(100000000000000000);
