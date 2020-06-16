@@ -29,7 +29,6 @@
     "@0x/assert" "^3.0.7"
     "@0x/contract-addresses" "^4.9.0"
     "@0x/contract-wrappers" "^13.6.3"
-    "@0x/contracts-zero-ex" "^0.1.0"
     "@0x/json-schemas" "^5.0.7"
     "@0x/order-utils" "^10.2.4"
     "@0x/orderbook" "^2.2.5"
@@ -37,7 +36,6 @@
     "@0x/web3-wrapper" "^7.0.7"
     axios "^0.19.2"
     axios-mock-adapter "^1.18.1"
-    ethereumjs-util "^5.1.1"
     heartbeats "^5.0.1"
     lodash "^4.17.11"
 
@@ -72,13 +70,13 @@
     uuid "^3.3.2"
     websocket "^1.0.26"
 
-"@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-5dcd3f398", "@0x/contract-addresses@^4.9.0":
+"@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v4.9.0-f14b6f2ba", "@0x/contract-addresses@^4.9.0":
   version "4.9.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/b0fda6400cca1e9ae6901f0dfd0cc6769443c1d2"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/8aa115995636ca07134a1634c084778c5ac05b76"
 
-"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-e936c7c50", "@0x/contract-wrappers@^13.6.3":
+"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-f14b6f2ba", "@0x/contract-wrappers@^13.6.3":
   version "13.6.3"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/39535ea8a21512aa5ad05e6c27a302311572da92"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/2206976cd1ff3d458b5551e2b3135aebd2ceeca8"
   dependencies:
     "@0x/assert" "^3.0.7"
     "@0x/base-contract" "^6.2.1"
@@ -276,7 +274,7 @@
     bn.js "^4.11.8"
     ethereum-types "^3.1.0"
 
-"@0x/contracts-zero-ex@0xProject/gitpkg-registry#0x-contracts-zero-ex-v0.1.0-f14b6f2ba", "@0x/contracts-zero-ex@^0.1.0":
+"@0x/contracts-zero-ex@0xProject/gitpkg-registry#0x-contracts-zero-ex-v0.1.0-f14b6f2ba":
   version "0.1.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/963254db067233cdc0a7f7d377ae73b59fdcdd70"
   dependencies:
@@ -883,7 +881,6 @@
 "@types/express@*", "@types/express@^4.17.1":
   version "4.17.6"
   resolved "https://registry.yarnpkg.com/@types/express/-/express-4.17.6.tgz#6bce49e49570507b86ea1b07b806f04697fac45e"
-  integrity sha512-n/mr9tZI83kd4azlPG5y997C/M4DNABK9yErhFM6hKdym4kkmd9j0vtsJyjFIwfRBxtrxZtAfGZCNRIBMFLK5w==
   dependencies:
     "@types/body-parser" "*"
     "@types/express-serve-static-core" "*"
@@ -4352,7 +4349,6 @@ http-signature@~1.2.0:
 http-status-codes@^1.3.2:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/http-status-codes/-/http-status-codes-1.4.0.tgz#6e4c15d16ff3a9e2df03b89f3a55e1aae05fb477"
-  integrity sha512-JrT3ua+WgH8zBD3HEJYbeEgnuQaAnUeRRko/YojPAJjGmIfGD3KPU/asLdsLwKjfxOmQe5nXMQ0pt/7MyapVbQ==
 
 human-signals@^1.1.1:
   version "1.1.1"
