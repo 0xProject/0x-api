@@ -86,7 +86,16 @@ export class SwapService {
     }
 
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
-        const { buyAmount, buyTokenAddress, sellTokenAddress, isETHSell, from, affiliateAddress } = params;
+        const {
+            buyAmount,
+            buyTokenAddress,
+            sellTokenAddress,
+            isETHSell,
+            from,
+            affiliateAddress,
+            // tslint:disable-next-line:boolean-naming
+            skipValidation,
+        } = params;
         const swapQuote = await this._getMarketBuyOrSellQuoteAsync(params);
 
         const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
@@ -115,9 +124,7 @@ export class SwapService {
         );
 
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
-        // Temporarily disable validation
-        // if (!skipValidation && from) {
-        if (false) {
+        if (!skipValidation && from) {
             // Force a revert error if the takerAddress does not have enough ETH.
             const txDataValue = isETHSell
                 ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
