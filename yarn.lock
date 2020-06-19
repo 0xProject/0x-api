@@ -22,14 +22,13 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.4.0-b8cc164af":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.4.0-73c779c13":
   version "4.4.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/c0ab0c9bc847894cee77c48d5a3eabb8a42dcf68"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/b48045a98140f5a93c2fab2c691979e35a9b0dbc"
   dependencies:
     "@0x/assert" "^3.0.7"
     "@0x/contract-addresses" "^4.9.0"
     "@0x/contract-wrappers" "^13.6.3"
-    "@0x/contracts-zero-ex" "^0.1.0"
     "@0x/json-schemas" "^5.0.7"
     "@0x/order-utils" "^10.2.4"
     "@0x/orderbook" "^2.2.5"
@@ -277,7 +276,7 @@
     bn.js "^4.11.8"
     ethereum-types "^3.1.0"
 
-"@0x/contracts-zero-ex@0xProject/gitpkg-registry#0x-contracts-zero-ex-v0.1.0-f14b6f2ba", "@0x/contracts-zero-ex@^0.1.0":
+"@0x/contracts-zero-ex@0xProject/gitpkg-registry#0x-contracts-zero-ex-v0.1.0-f14b6f2ba":
   version "0.1.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/963254db067233cdc0a7f7d377ae73b59fdcdd70"
   dependencies:
