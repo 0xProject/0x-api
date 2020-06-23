@@ -185,7 +185,7 @@ describe(SUITE_NAME, () => {
                 },
             );
         });
-        it('should return a ExchangeProxy transaction for sellToken=ETH', async () => {
+        it.skip('should return a ExchangeProxy transaction for sellToken=ETH', async () => {
             const flashWalletAddress = await new ITransformERC20Contract(CONTRACT_ADDRESSES.exchangeProxy, provider)
                 .getTransformWallet()
                 .callAsync();
