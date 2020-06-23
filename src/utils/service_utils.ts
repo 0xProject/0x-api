@@ -29,6 +29,8 @@ import { GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource } from '../type
 import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
+import { numberUtils } from './number_utils';
+
 export const serviceUtils = {
     attributeSwapQuoteOrders(
         swapQuote: MarketSellSwapQuote | MarketBuySwapQuote,
@@ -63,14 +65,20 @@ export const serviceUtils = {
             name: 'ZeroExAPIAffiliate',
             inputs: [
                 { name: 'affiliate', type: 'address' },
-                { name: 'timestamp', type: 'uint256' },
+                { name: 'uniqueIdentifier', type: 'uint256' },
             ],
             payable: false,
             stateMutability: 'view',
             type: 'function',
         });
-        const timestamp = new BigNumber(Date.now() / ONE_SECOND_MS).integerValue();
-        const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault, timestamp]);
+
+        // Generate unique identiifer
+        const timestampInSeconds = new BigNumber(Date.now() / ONE_SECOND_MS).integerValue();
+        const randomNumber = numberUtils.randomNumberOfLength(10);
+        const uniqueIdentifier = `${randomNumber}${timestampInSeconds}`;
+
+        // Encode additional call data and return
+        const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault, uniqueIdentifier]);
         const affiliatedData = `${data}${encodedAffiliateData.slice(2)}`;
         return affiliatedData;
     },
