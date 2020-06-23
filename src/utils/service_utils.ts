@@ -75,7 +75,7 @@ export const serviceUtils = {
         // Generate unique identiifer
         const timestampInSeconds = new BigNumber(Date.now() / ONE_SECOND_MS).integerValue();
         const randomNumber = numberUtils.randomNumberOfLength(10);
-        const uniqueIdentifier = `${randomNumber}${timestampInSeconds}`;
+        const uniqueIdentifier = new BigNumber(`${randomNumber}${timestampInSeconds}`);
 
         // Encode additional call data and return
         const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault, uniqueIdentifier]);
