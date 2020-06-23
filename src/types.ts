@@ -32,6 +32,12 @@ export {
     RollingLimiterIntervalUnit,
 } from './utils/rate-limiters/types';
 
+// lowercase to conform to path names
+export enum SwapVersion {
+    V1 = 'v1',
+    V0 = 'v0',
+}
+
 export enum OrderWatcherLifeCycleEvents {
     Added,
     Removed,
@@ -404,6 +410,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     gas: BigNumber;
     estimatedGas: BigNumber;
     estimatedGasTokenRefund: BigNumber;
+    allowanceTarget?: string;
 }
 
 export interface Price {
@@ -512,6 +519,7 @@ export interface CalculateSwapQuoteParams {
     sellAmount: BigNumber | undefined;
     from: string | undefined;
     isETHSell: boolean;
+    isETHBuy: boolean;
     slippagePercentage?: number;
     gasPrice?: BigNumber;
     excludedSources?: ERC20BridgeSource[];
@@ -519,6 +527,7 @@ export interface CalculateSwapQuoteParams {
     apiKey?: string;
     rfqt?: Partial<RfqtRequestOpts>;
     skipValidation: boolean;
+    swapVersion: SwapVersion;
 }
 
 export interface GetSwapQuoteResponseLiquiditySource {
