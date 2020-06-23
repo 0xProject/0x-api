@@ -1,5 +1,4 @@
 import { ERC20BridgeSource } from '@0x/asset-swapper';
-import { ITransformERC20Contract } from '@0x/contract-wrappers';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
 import { ObjectMap, SignedOrder } from '@0x/types';
@@ -30,7 +29,7 @@ import { constructRoute, httpGetAsync } from './utils/http_utils';
 import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = '/swap';
-const SWAP_PATH = `${BASE_SWAP_PATH}/v1`;
+const SWAP_PATH = `${BASE_SWAP_PATH}/v0`;
 
 const excludedSources = [
     ERC20BridgeSource.Uniswap,
@@ -185,10 +184,7 @@ describe(SUITE_NAME, () => {
                 },
             );
         });
-        it('should return a ExchangeProxy transaction for sellToken=ETH', async () => {
-            const flashWalletAddress = await new ITransformERC20Contract(CONTRACT_ADDRESSES.exchangeProxy, provider)
-                .getTransformWallet()
-                .callAsync();
+        it('should return a Forwarder transaction for sellToken=ETH', async () => {
             await quoteAndExpectAsync(
                 {
                     sellToken: 'WETH',
@@ -204,7 +200,7 @@ describe(SUITE_NAME, () => {
                     sellAmount: '1234',
                 },
                 {
-                    to: flashWalletAddress,
+                    to: CONTRACT_ADDRESSES.forwarder,
                 },
             );
         });

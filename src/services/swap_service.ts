@@ -8,8 +8,8 @@ import {
     SwapQuoterOpts,
 } from '@0x/asset-swapper';
 import { OrderPrunerPermittedFeeTypes } from '@0x/asset-swapper/lib/src/types';
-import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
+import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
+import { ERC20TokenContract, ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
@@ -27,6 +27,7 @@ import {
     DEFAULT_VALIDATION_GAS_LIMIT,
     GAS_LIMIT_BUFFER_MULTIPLIER,
     GST2_WALLET_ADDRESSES,
+    NULL_ADDRESS,
     ONE,
     PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -42,6 +43,7 @@ import {
     GetTokenPricesResponse,
     SwapQuoteResponsePartialTransaction,
     SwapQuoteResponsePrice,
+    SwapVersion,
     TokenMetadata,
 } from '../types';
 import { serviceUtils } from '../utils/service_utils';
@@ -55,7 +57,8 @@ export class SwapService {
     private readonly _wethContract: WETH9Contract;
     private readonly _gasTokenContract: ERC20TokenContract;
     private readonly _protocolFeeUtils: ProtocolFeeUtils;
-    private readonly _forwarderAddress: string;
+    private readonly _contractAddresses: ContractAddresses;
+    private _flashWalletAddress?: string;
 
     constructor(orderbook: Orderbook, provider: SupportedProvider) {
         this._provider = provider;
@@ -76,14 +79,13 @@ export class SwapService {
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
         this._web3Wrapper = new Web3Wrapper(this._provider);
 
-        const contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
-        this._wethContract = new WETH9Contract(contractAddresses.etherToken, this._provider);
+        this._contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
+        this._wethContract = new WETH9Contract(this._contractAddresses.etherToken, this._provider);
         this._gasTokenContract = new ERC20TokenContract(
             getTokenMetadataIfExists('GST2', CHAIN_ID).tokenAddress,
             this._provider,
         );
         this._protocolFeeUtils = new ProtocolFeeUtils(PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
-        this._forwarderAddress = contractAddresses.forwarder;
     }
 
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
@@ -92,10 +94,12 @@ export class SwapService {
             buyTokenAddress,
             sellTokenAddress,
             isETHSell,
+            isETHBuy,
             from,
             affiliateAddress,
             // tslint:disable-next-line:boolean-naming
             skipValidation,
+            swapVersion,
         } = params;
         const swapQuote = await this._getMarketBuyOrSellQuoteAsync(params);
 
@@ -111,7 +115,9 @@ export class SwapService {
         const { to, value, data } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
             isETHSell,
+            isETHBuy,
             affiliateAddress,
+            swapVersion,
         );
         let gst2Balance = ZERO;
         try {
@@ -154,6 +160,20 @@ export class SwapService {
             attributedSwapQuote,
         );
 
+        // set the allowance target based on version. V0 is legacy param to support Nuo integrator
+        let allowanceTarget;
+        switch (swapVersion) {
+            case SwapVersion.V0:
+                allowanceTarget = this._contractAddresses.forwarder;
+                break;
+            case SwapVersion.V1:
+                allowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
+                break;
+            default:
+                allowanceTarget = NULL_ADDRESS;
+                break;
+        }
+
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
             guaranteedPrice,
@@ -173,6 +193,7 @@ export class SwapService {
             estimatedGasTokenRefund,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
             orders: serviceUtils.cleanSignedOrderFields(orders),
+            allowanceTarget,
         };
         return apiSwapQuote;
     }
@@ -236,6 +257,14 @@ export class SwapService {
         return prices;
     }
 
+    private async _getExchangeProxyFlashWalletAsync(): Promise<string> {
+        if (!this._flashWalletAddress) {
+            const transformer = new ITransformERC20Contract(this._contractAddresses.exchangeProxy, this._provider);
+            this._flashWalletAddress = await transformer.getTransformWallet().callAsync();
+        }
+        return this._flashWalletAddress;
+    }
+
     private async _getSwapQuoteForWethAsync(
         params: CalculateSwapQuoteParams,
         isUnwrap: boolean,
@@ -281,6 +310,7 @@ export class SwapService {
             sellAmount: amount,
             sources: [],
             orders: [],
+            allowanceTarget: NULL_ADDRESS,
         };
         return apiSwapQuote;
     }
@@ -322,7 +352,6 @@ export class SwapService {
             throw revertError;
         }
     }
-
     private async _getMarketBuyOrSellQuoteAsync(params: CalculateSwapQuoteParams): Promise<SwapQuote> {
         const {
             sellAmount,
@@ -336,18 +365,35 @@ export class SwapService {
             excludedSources,
             apiKey,
             rfqt,
+            swapVersion,
             // tslint:disable-next-line:boolean-naming
         } = params;
         let _rfqt;
         if (apiKey !== undefined && (isETHSell || from !== undefined)) {
+            let takerAddress;
+            switch (swapVersion) {
+                case SwapVersion.V0:
+                    // If this is a forwarder transaction, then we want to request quotes with the taker as the
+                    // forwarder contract. If it's not, then we want to request quotes with the taker set to the
+                    // API's takerAddress query parameter, which in this context is known as `from`.
+                    takerAddress = isETHSell ? this._contractAddresses.forwarder : from || '';
+                    break;
+                case SwapVersion.V1:
+                    // If this is an ETH sell, then we want to request quotes with the taker address
+                    // as the ExchangeProxy so that it can automatically unwrap WETH to ETH. If it's not,
+                    // then we want to request quotes with the taker set to the API's takerAddress query
+                    // parameter, which in this context is known as `from`.
+                    takerAddress = isETHSell ? await this._getExchangeProxyFlashWalletAsync() : from || '';
+                    break;
+                default:
+                    takerAddress = from || '';
+                    break;
+            }
             _rfqt = {
                 ...rfqt,
                 intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
                 apiKey,
-                // If this is a forwarder transaction, then we want to request quotes with the taker as the
-                // forwarder contract. If it's not, then we want to request quotes with the taker set to the
-                // API's takerAddress query parameter, which in this context is known as `from`.
-                takerAddress: isETHSell ? this._forwarderAddress : from || '',
+                takerAddress,
             };
         }
         const assetSwapperOpts = {
@@ -379,16 +425,34 @@ export class SwapService {
 
     private async _getSwapQuotePartialTransactionAsync(
         swapQuote: SwapQuote,
-        isETHSell: boolean,
+        isFromETH: boolean,
+        isToETH: boolean,
         affiliateAddress: string,
+        swapVersion: SwapVersion,
     ): Promise<SwapQuoteResponsePartialTransaction> {
-        const extensionContractType = isETHSell ? ExtensionContractType.Forwarder : ExtensionContractType.None;
+        let extensionContractType;
+        switch (swapVersion) {
+            case SwapVersion.V0:
+                extensionContractType = isFromETH ? ExtensionContractType.Forwarder : ExtensionContractType.None;
+                break;
+            case SwapVersion.V1:
+                extensionContractType =
+                    isFromETH || isToETH ? ExtensionContractType.ExchangeProxy : ExtensionContractType.None;
+                break;
+            default:
+                break;
+        }
+
+        const extensionContractOpts =
+            extensionContractType === ExtensionContractType.ExchangeProxy ? { isFromETH, isToETH } : undefined;
+
         const {
             calldataHexString: data,
             ethAmount: value,
             toAddress: to,
         } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, {
             useExtensionContract: extensionContractType,
+            extensionContractOpts,
         });
 
         const affiliatedData = serviceUtils.attributeCallData(data, affiliateAddress);
@@ -445,3 +509,4 @@ export class SwapService {
         };
     }
 }
+// tslint:disable:max-file-line-count
