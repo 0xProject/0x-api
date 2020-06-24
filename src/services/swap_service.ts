@@ -161,17 +161,19 @@ export class SwapService {
         );
 
         // set the allowance target based on version. V0 is legacy param to support Nuo integrator
-        let allowanceTarget;
-        switch (swapVersion) {
-            case SwapVersion.V0:
-                allowanceTarget = this._contractAddresses.forwarder;
-                break;
-            case SwapVersion.V1:
-                allowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
-                break;
-            default:
-                allowanceTarget = NULL_ADDRESS;
-                break;
+        let allowanceTarget = NULL_ADDRESS;
+        if (isETHSell) {
+            switch (swapVersion) {
+                case SwapVersion.V0:
+                    allowanceTarget = this._contractAddresses.erc20Proxy;
+                    break;
+                case SwapVersion.V1:
+                    allowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
+                    break;
+                default:
+                    allowanceTarget = NULL_ADDRESS;
+                    break;
+            }
         }
 
         const apiSwapQuote: GetSwapQuoteResponse = {
@@ -385,7 +387,7 @@ export class SwapService {
                     // as the ExchangeProxy so that it can automatically unwrap WETH to ETH. If it's not,
                     // then we want to request quotes with the taker set to the API's takerAddress query
                     // parameter, which in this context is known as `from`.
-                    takerAddress = isETHSell ? await this._getExchangeProxyFlashWalletAsync() : from || '';
+                    takerAddress = await this._getExchangeProxyFlashWalletAsync();
                     break;
                 default:
                     takerAddress = from || '';
@@ -441,8 +443,7 @@ export class SwapService {
                 extensionContractType = isFromETH ? ExtensionContractType.Forwarder : ExtensionContractType.None;
                 break;
             case SwapVersion.V1:
-                extensionContractType =
-                    isFromETH || isToETH ? ExtensionContractType.ExchangeProxy : ExtensionContractType.None;
+                extensionContractType = ExtensionContractType.ExchangeProxy;
                 break;
             default:
                 break;
