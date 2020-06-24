@@ -133,6 +133,7 @@ describe(SUITE_NAME, () => {
     after(async () => {
         await teardownDependenciesAsync(SUITE_NAME);
     });
+
     describe('api key daily rate limiter', async () => {
         const context = { apiKey: TEST_API_KEY, takerAddress: TEST_FIRST_TAKER_ADDRESS };
 
