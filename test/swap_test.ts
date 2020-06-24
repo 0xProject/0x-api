@@ -29,7 +29,7 @@ import { LogType, setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshA
 import { constructRoute, httpGetAsync } from './utils/http_utils';
 import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
-const SUITE_NAME = '/swap';
+const SUITE_NAME = '/swap/v1';
 const SWAP_PATH = `${BASE_SWAP_PATH}/v1`;
 
 const excludedSources = [
@@ -227,7 +227,7 @@ describe(SUITE_NAME, () => {
             await quoteAndExpectAsync(
                 {
                     takerAddress,
-                    sellToken: 'WETH',
+                    sellToken: 'ETH',
                     buyToken: 'ZRX',
                     sellAmount: '10000',
                 },
