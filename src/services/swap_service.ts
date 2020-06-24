@@ -134,9 +134,10 @@ export class SwapService {
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
         if (!skipValidation && from) {
             // Force a revert error if the takerAddress does not have enough ETH.
-            const txDataValue = isETHSell
-                ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
-                : value;
+            const txDataValue =
+                isETHSell || isETHBuy
+                    ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
+                    : value;
             const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data,
