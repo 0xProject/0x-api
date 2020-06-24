@@ -682,7 +682,7 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         name: 'Universal Market Access',
         decimals: 18,
         tokenAddresses: {
-            [ChainId.Mainnet]: '0x04Fa0d235C4abf4BcF4787aF4CF447DE572eF828',
+            [ChainId.Mainnet]: '0x04fa0d235c4abf4bcf4787af4cf447de572ef828',
             [ChainId.Kovan]: NULL_ADDRESS,
             [ChainId.Ganache]: NULL_ADDRESS,
         },
