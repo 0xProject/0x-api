@@ -4,6 +4,7 @@ import {
     ProtocolFeeUtils,
     SwapQuote,
     SwapQuoteConsumer,
+    SwapQuoteGetOutputOpts,
     SwapQuoter,
     SwapQuoterOpts,
 } from '@0x/asset-swapper';
@@ -160,21 +161,19 @@ export class SwapService {
             attributedSwapQuote,
         );
 
-        // set the allowance target based on version. V0 is legacy param to support Nuo integrator
-        let allowanceTarget = NULL_ADDRESS;
-        if (isETHSell) {
-            switch (swapVersion) {
-                case SwapVersion.V0:
-                    allowanceTarget = this._contractAddresses.erc20Proxy;
-                    break;
-                case SwapVersion.V1:
-                    allowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
-                    break;
-                default:
-                    allowanceTarget = NULL_ADDRESS;
-                    break;
-            }
+        // set the allowance target based on version. V0 is legacy param to support transition to v1
+        let erc20AllowanceTarget = NULL_ADDRESS;
+        switch (swapVersion) {
+            case SwapVersion.V0:
+                erc20AllowanceTarget = this._contractAddresses.erc20Proxy;
+                break;
+            case SwapVersion.V1:
+                erc20AllowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
+                break;
+            default:
+                throw new Error(`Unsupported Swap version: ${swapVersion}`);
         }
+        const allowanceTarget = isETHSell ? NULL_ADDRESS : erc20AllowanceTarget;
 
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
@@ -388,8 +387,7 @@ export class SwapService {
                     takerAddress = await this._getExchangeProxyFlashWalletAsync();
                     break;
                 default:
-                    takerAddress = from || '';
-                    break;
+                    throw new Error(`Unsupported Swap version: ${swapVersion}`);
             }
             _rfqt = {
                 ...rfqt,
@@ -432,29 +430,28 @@ export class SwapService {
         affiliateAddress: string,
         swapVersion: SwapVersion,
     ): Promise<SwapQuoteResponsePartialTransaction> {
-        let extensionContractType;
+        let opts: Partial<SwapQuoteGetOutputOpts> = { useExtensionContract: ExtensionContractType.None };
         switch (swapVersion) {
             case SwapVersion.V0:
-                extensionContractType = isFromETH ? ExtensionContractType.Forwarder : ExtensionContractType.None;
+                if (isFromETH) {
+                    opts = { useExtensionContract: ExtensionContractType.Forwarder };
+                }
                 break;
             case SwapVersion.V1:
-                extensionContractType = ExtensionContractType.ExchangeProxy;
+                opts = {
+                    useExtensionContract: ExtensionContractType.ExchangeProxy,
+                    extensionContractOpts: { isFromETH, isToETH },
+                };
                 break;
             default:
-                break;
+                throw new Error(`Unsupported Swap version: ${swapVersion}`);
         }
-
-        const extensionContractOpts =
-            extensionContractType === ExtensionContractType.ExchangeProxy ? { isFromETH, isToETH } : undefined;
 
         const {
             calldataHexString: data,
             ethAmount: value,
             toAddress: to,
-        } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, {
-            useExtensionContract: extensionContractType,
-            extensionContractOpts,
-        });
+        } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, opts);
 
         const affiliatedData = serviceUtils.attributeCallData(data, affiliateAddress);
         return {
