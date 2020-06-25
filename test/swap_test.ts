@@ -227,7 +227,7 @@ describe(SUITE_NAME, () => {
             await quoteAndExpectAsync(
                 {
                     takerAddress,
-                    sellToken: 'ETH',
+                    sellToken: 'WETH',
                     buyToken: 'ZRX',
                     sellAmount: '10000',
                 },
