@@ -13,8 +13,8 @@ import 'mocha';
 import * as request from 'supertest';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
-import { defaultHttpServiceWithRateLimiterConfig } from '../src/config';
-import { SWAP_PATH } from '../src/constants';
+import * as config from '../src/config';
+import { SWAP_PATH as BASE_SWAP_PATH } from '../src/constants';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
@@ -46,6 +46,7 @@ const DEFAULT_SELL_AMOUNT = new BigNumber(100000000000000000);
 let DEFAULT_RFQT_RESPONSE_DATA;
 
 describe(SUITE_NAME, () => {
+    const SWAP_PATH = `${BASE_SWAP_PATH}/v0`;
     let contractAddresses: ContractAddresses;
     let makerAddress: string;
     let takerAddress: string;
@@ -58,7 +59,7 @@ describe(SUITE_NAME, () => {
         const ganacheConfigs = {
             shouldUseInProcessGanache: false,
             shouldAllowUnlimitedContractSize: true,
-            rpcUrl: defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl,
+            rpcUrl: config.defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl,
         };
         provider = web3Factory.getRpcProvider(ganacheConfigs);
         web3Wrapper = new Web3Wrapper(provider);
@@ -69,8 +70,8 @@ describe(SUITE_NAME, () => {
         [makerAddress, takerAddress] = accounts;
 
         // start the 0x-api app
-        dependencies = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceWithRateLimiterConfig);
-        ({ app, server } = await getAppAsync({ ...dependencies }, defaultHttpServiceWithRateLimiterConfig));
+        dependencies = await getDefaultAppDependenciesAsync(provider, config.defaultHttpServiceWithRateLimiterConfig);
+        ({ app, server } = await getAppAsync({ ...dependencies }, config.defaultHttpServiceWithRateLimiterConfig));
 
         DEFAULT_RFQT_RESPONSE_DATA = {
             endpoint: 'https://mock-rfqt1.club',
