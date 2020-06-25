@@ -97,6 +97,8 @@ describe(SUITE_NAME, () => {
         await setupDependenciesAsync(SUITE_NAME);
 
         connection = await getDBConnectionAsync();
+        await connection.synchronize(true);
+
         transactionRepository = connection.getRepository(TransactionEntity);
         dailyLimiter = new MetaTransactionDailyLimiter(DatabaseKeysUsedForRateLimiter.ApiKey, connection, {
             allowedDailyLimit: DAILY_LIMIT,
