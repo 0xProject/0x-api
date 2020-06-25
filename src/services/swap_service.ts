@@ -338,7 +338,7 @@ export class SwapService {
                 try {
                     revertError = RevertError.decode(e.data, false);
                 } catch (e) {
-                    // No revert error
+                    throw new Error(e.message);
                 }
             } else {
                 revertError = decodeThrownErrorAsRevertError(e);

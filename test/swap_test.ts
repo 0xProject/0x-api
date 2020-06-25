@@ -1,5 +1,6 @@
 import { ERC20BridgeSource } from '@0x/asset-swapper';
-import { ITransformERC20Contract } from '@0x/contract-wrappers';
+import { ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
+import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
 import { ObjectMap, SignedOrder } from '@0x/types';
@@ -16,6 +17,7 @@ import { GetSwapQuoteResponse } from '../src/types';
 
 import {
     CONTRACT_ADDRESSES,
+    MAX_INT,
     MAX_MINT_AMOUNT,
     SYMBOL_TO_ADDRESS,
     UNKNOWN_TOKEN_ADDRESS,
@@ -54,7 +56,7 @@ describe(SUITE_NAME, () => {
     let meshUtils: MeshTestUtils;
     let accounts: string[];
     let takerAddress: string;
-    let makerAddress: string;
+    let invalidTakerAddress: string;
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
@@ -73,7 +75,7 @@ describe(SUITE_NAME, () => {
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
 
         accounts = await web3Wrapper.getAvailableAddressesAsync();
-        [makerAddress, takerAddress] = accounts;
+        [, /* makerAdddress, */ takerAddress, invalidTakerAddress] = accounts;
 
         // Set up liquidity.
         await blockchainLifecycle.startAsync();
@@ -114,6 +116,17 @@ describe(SUITE_NAME, () => {
                 takerAssetAmount: ONE_THOUSAND_IN_BASE,
             },
         ]);
+        const wethToken = new WETH9Contract(CONTRACT_ADDRESSES.etherToken, provider);
+        const zrxToken = new DummyERC20TokenContract(CONTRACT_ADDRESSES.zrxToken, provider);
+        // EP setup so maker address can take
+        await zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: takerAddress });
+        await wethToken.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: MAKER_WETH_AMOUNT });
+        await wethToken
+            .approve(CONTRACT_ADDRESSES.exchangeProxyAllowanceTarget, MAX_INT)
+            .awaitTransactionSuccessAsync({ from: takerAddress });
+        await zrxToken
+            .approve(CONTRACT_ADDRESSES.exchangeProxyAllowanceTarget, MAX_INT)
+            .awaitTransactionSuccessAsync({ from: takerAddress });
     });
     after(async () => {
         await blockchainLifecycle.revertAsync();
@@ -212,7 +225,7 @@ describe(SUITE_NAME, () => {
             // The maker has an allowance
             await quoteAndExpectAsync(
                 {
-                    takerAddress: makerAddress,
+                    takerAddress,
                     sellToken: 'WETH',
                     buyToken: 'ZRX',
                     sellAmount: '10000',
@@ -226,13 +239,13 @@ describe(SUITE_NAME, () => {
             // The taker does not have an allowance
             await quoteAndExpectAsync(
                 {
-                    takerAddress,
+                    takerAddress: invalidTakerAddress,
                     sellToken: 'WETH',
                     buyToken: 'ZRX',
                     sellAmount: '10000',
                 },
                 {
-                    revertErrorReason: 'IncompleteFillError',
+                    revertErrorReason: 'SpenderERC20TransferFromFailedError',
                 },
             );
         });
