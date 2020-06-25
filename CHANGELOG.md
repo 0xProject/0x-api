@@ -1,3 +1,34 @@
+# [1.9.0](https://github.com/0xProject/0x-api/compare/v1.8.0...v1.9.0) (2020-06-22)
+
+
+### Bug Fixes
+
+* asset swapper monorepo f14b6f2ba ([#257](https://github.com/0xProject/0x-api/issues/257)) ([a03630a](https://github.com/0xProject/0x-api/commit/a03630a918c98918ce114a7b6bc5a73ce197da94))
+* Disable quote validation temporarily ([#259](https://github.com/0xProject/0x-api/issues/259)) ([6064f3e](https://github.com/0xProject/0x-api/commit/6064f3e58054da3ab0b44bac0b7d24d1cf672497))
+* filter tokens in prices which do not exist on the network ([#265](https://github.com/0xProject/0x-api/issues/265)) ([864ea92](https://github.com/0xProject/0x-api/commit/864ea9203af8f30890f851bd32ffde199712504d))
+* Fix parameters sent off to RFQT providers to be unescaped ([#264](https://github.com/0xProject/0x-api/issues/264)) ([939cae1](https://github.com/0xProject/0x-api/commit/939cae1ca9a35d762c05be79a27de45870b9079e))
+* validation gas limit ([#260](https://github.com/0xProject/0x-api/issues/260)) ([f50425c](https://github.com/0xProject/0x-api/commit/f50425c977723f7402b80dec2cb24ffcd23b969e)), closes [#259](https://github.com/0xProject/0x-api/issues/259)
+* WETH wrap gas estimate ([#256](https://github.com/0xProject/0x-api/issues/256)) ([f07b4a8](https://github.com/0xProject/0x-api/commit/f07b4a810edb22002266a126b1e2128e25be1323))
+
+
+### Features
+
+* add signer liveness status gauge ([#255](https://github.com/0xProject/0x-api/issues/255)) ([11446e7](https://github.com/0xProject/0x-api/commit/11446e786a5ca62d0d12b1303bdf97827e3daf06))
+* support renamed parameters in RFQT maker endpoint ([#258](https://github.com/0xProject/0x-api/issues/258)) ([d83bbb1](https://github.com/0xProject/0x-api/commit/d83bbb1ee01ca8885d0a95db6ee08ca4d9b25bf4))
+
+# [1.8.0](https://github.com/0xProject/0x-api/compare/v1.7.0...v1.8.0) (2020-06-15)
+
+
+### Bug Fixes
+
+* uniswap v2 buys ([#253](https://github.com/0xProject/0x-api/issues/253)) ([225db22](https://github.com/0xProject/0x-api/commit/225db22b71f36344f71c53178c41eb1648b1cbba))
+
+
+### Features
+
+* Add support for UniswapV2 and MultiBridge ([#250](https://github.com/0xProject/0x-api/issues/250)) ([29636e7](https://github.com/0xProject/0x-api/commit/29636e7a2d69e2077ee1a496b99767e02239f737)), closes [#252](https://github.com/0xProject/0x-api/issues/252)
+* add transaction price information to meta-txn endpoints for UI ([#248](https://github.com/0xProject/0x-api/issues/248)) ([d26d6c6](https://github.com/0xProject/0x-api/commit/d26d6c6958798dddbb889cdf74e01285eacbd7f6))
+
 # [1.7.0](https://github.com/0xProject/0x-api/compare/v1.6.0...v1.7.0) (2020-06-08)
 
 

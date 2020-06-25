@@ -1,5 +1,5 @@
 // tslint:disable:max-file-line-count
-import { rfqtMocker } from '@0x/asset-swapper';
+import { ERC20BridgeSource, rfqtMocker } from '@0x/asset-swapper';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
 import { expect } from '@0x/contracts-test-utils';
@@ -32,7 +32,16 @@ let dependencies: AppDependencies;
 // tslint:disable-next-line:custom-no-magic-numbers
 const MAX_UINT256 = new BigNumber(2).pow(256).minus(1);
 const SUITE_NAME = 'rfqt tests';
-const DEFAULT_EXCLUDED_SOURCES = 'Uniswap,Eth2Dai,Kyber,LiquidityProvider';
+const excludedSources = [
+    ERC20BridgeSource.Uniswap,
+    ERC20BridgeSource.UniswapV2,
+    ERC20BridgeSource.UniswapV2Eth,
+    ERC20BridgeSource.Kyber,
+    ERC20BridgeSource.LiquidityProvider,
+    ERC20BridgeSource.Eth2Dai,
+    ERC20BridgeSource.MultiBridge,
+];
+const DEFAULT_EXCLUDED_SOURCES = excludedSources.join(',');
 const DEFAULT_SELL_AMOUNT = new BigNumber(100000000000000000);
 let DEFAULT_RFQT_RESPONSE_DATA;
 
@@ -68,10 +77,10 @@ describe(SUITE_NAME, () => {
             responseCode: 200,
             requestApiKey: 'koolApiKey1',
             requestParams: {
-                sellToken: contractAddresses.etherToken,
-                buyToken: contractAddresses.zrxToken,
-                sellAmount: DEFAULT_SELL_AMOUNT.toString(),
-                buyAmount: undefined,
+                sellTokenAddress: contractAddresses.etherToken,
+                buyTokenAddress: contractAddresses.zrxToken,
+                sellAmountBaseUnits: DEFAULT_SELL_AMOUNT.toString(),
+                buyAmountBaseUnits: undefined,
                 takerAddress,
             },
         };
@@ -109,7 +118,7 @@ describe(SUITE_NAME, () => {
                     [
                         {
                             ...DEFAULT_RFQT_RESPONSE_DATA,
-                            responseData: ganacheZrxWethOrder1,
+                            responseData: { signedOrder: ganacheZrxWethOrder1 },
                         },
                     ],
                     async () => {
@@ -227,7 +236,7 @@ describe(SUITE_NAME, () => {
                     [
                         {
                             ...DEFAULT_RFQT_RESPONSE_DATA,
-                            responseData: ganacheZrxWethOrder1,
+                            responseData: { signedOrder: ganacheZrxWethOrder1 },
                         },
                     ],
                     async () => {
