@@ -82,6 +82,9 @@
             ]
         ]
     },
+    "resolutions": {
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.10.0-a5a68acfe"
+    },
     "devDependencies": {
         "@0x/contracts-erc20": "^3.1.5",
         "@0x/contracts-erc20-bridge-sampler": "^1.5.1",
@@ -123,7 +126,7 @@
         "@0x/assert": "^3.0.4",
         "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v4.5.0-0eb0d4d45",
         "@0x/connect": "^6.0.4",
-        "@0x/contract-addresses": "^4.10.0",
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.10.0-a5a68acfe",
         "@0x/contract-wrappers": "^13.7.0",
         "@0x/contracts-dev-utils": "^1.3.4",
         "@0x/json-schemas": "^5.0.4",
