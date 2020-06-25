@@ -46,7 +46,7 @@ const DEFAULT_SELL_AMOUNT = new BigNumber(100000000000000000);
 let DEFAULT_RFQT_RESPONSE_DATA;
 
 describe(SUITE_NAME, () => {
-    const SWAP_PATH = `${BASE_SWAP_PATH}/v1`;
+    const SWAP_PATH = `${BASE_SWAP_PATH}/v0`;
     let contractAddresses: ContractAddresses;
     let makerAddress: string;
     let takerAddress: string;

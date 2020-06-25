@@ -24,7 +24,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
     
     - name: Cache node modules
-      uses: actions/cache@v1
+      uses: pat-s/always-upload-cache
       env:
         cache-name: cached-node-modules
       with:

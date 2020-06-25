@@ -87,7 +87,8 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
         env: {
             ...process.env,
             ETHEREUM_RPC_URL: 'http://ganache:8545',
-            ETHEREUM_CHAIN_ID: '1337',
+            ETHEREUM_CHAIN_ID: '1337', // mesh env var
+            CHAIN_ID: '1337', // 0x API env var
         },
     });
     directLogs(up, suiteName, 'up', logType);
