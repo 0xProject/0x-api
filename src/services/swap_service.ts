@@ -383,10 +383,9 @@ export class SwapService {
                     takerAddress = isETHSell ? this._contractAddresses.forwarder : from || '';
                     break;
                 case SwapVersion.V1:
-                    // If this is an ETH sell, then we want to request quotes with the taker address
-                    // as the ExchangeProxy so that it can automatically unwrap WETH to ETH. If it's not,
-                    // then we want to request quotes with the taker set to the API's takerAddress query
-                    // parameter, which in this context is known as `from`.
+                    // In V1 the taker is always the ExchangeProxy's FlashWallet
+                    // as it allows us to optionally transform assets (i.e Deposit ETH into WETH)
+                    // Since the FlashWallet is the taker it needs to be forwarded to the quote provider
                     takerAddress = await this._getExchangeProxyFlashWalletAsync();
                     break;
                 default:

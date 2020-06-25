@@ -6,47 +6,39 @@ name: Build and Test
 on: [push]
 
 jobs:
-    build_and_test:
-        name: Build and Test
-        runs-on: ubuntu-latest
+  build_and_test:
+    name: Build and Test
+    runs-on: ubuntu-latest
 
-        strategy:
-            matrix:
-                node-version: [11.x]
+    strategy:
+      matrix:
+        node-version: [11.x]
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v2
-
-            - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v1
-              with:
-                  node-version: ${{ matrix.node-version }}
-
-            # Get the yarn cache directory and store it for cache hits
-            - name: Get yarn cache directory path
-              id: yarn-cache-dir-path
-              run: echo "::set-output name=dir::$(yarn cache dir)"
-
-            - name: Cache node modules
-              uses: actions/cache@v2
-              id: yarn-cache
-              env:
-                  cache-name: cached-node-modules
-              with:
-                  path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-                  key: ${{ runner.os }}-build-${{ hashFiles('yarn.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-build-
-
-            - run: yarn install --frozen-lockfile
-            - run: yarn build
-            # Pull the docker images so that they don't need to be pulled in the tests.
-            - run: docker-compose pull
-            - run: yarn lint
-            - run: yarn test
-            - name: Save build artifacts
-              uses: actions/upload-artifact@v1
-              with:
-                  name: lib
-                  path: lib
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    
+    - name: Cache node modules
+      uses: actions/cache@v1
+      env:
+        cache-name: cached-node-modules
+      with:
+        path: ~/work/0x-api/0x-api/node_modules
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('yarn.lock') }}
+    
+    - run: yarn install --frozen-lockfile
+    - run: yarn build
+    # Pull the docker images so that they don't need to be pulled in the tests.
+    - run: docker-compose pull
+    - run: yarn lint
+    - run: yarn test
+    - name: Save build artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: lib
+        path: lib

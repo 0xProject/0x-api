@@ -27,7 +27,7 @@ import {
     ZRX_ASSET_DATA,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
-import { LogType, setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
+import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
 import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 
@@ -62,7 +62,7 @@ describe(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
 
     before(async () => {
-        await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console });
+        await setupApiAsync(SUITE_NAME);
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
             shouldUseInProcessGanache: false,
@@ -198,7 +198,7 @@ describe(SUITE_NAME, () => {
                 },
             );
         });
-        it.skip('should return a ExchangeProxy transaction for sellToken=ETH', async () => {
+        it('should return a ExchangeProxy transaction for sellToken=ETH', async () => {
             const flashWalletAddress = await new ITransformERC20Contract(CONTRACT_ADDRESSES.exchangeProxy, provider)
                 .getTransformWallet()
                 .callAsync();

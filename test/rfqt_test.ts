@@ -13,7 +13,7 @@ import 'mocha';
 import * as request from 'supertest';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
-import * as config from '../src/config';
+import { defaultHttpServiceWithRateLimiterConfig } from '../src/config';
 import { SWAP_PATH as BASE_SWAP_PATH } from '../src/constants';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
@@ -59,7 +59,7 @@ describe(SUITE_NAME, () => {
         const ganacheConfigs = {
             shouldUseInProcessGanache: false,
             shouldAllowUnlimitedContractSize: true,
-            rpcUrl: config.defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl,
+            rpcUrl: defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl,
         };
         provider = web3Factory.getRpcProvider(ganacheConfigs);
         web3Wrapper = new Web3Wrapper(provider);
@@ -70,8 +70,8 @@ describe(SUITE_NAME, () => {
         [makerAddress, takerAddress] = accounts;
 
         // start the 0x-api app
-        dependencies = await getDefaultAppDependenciesAsync(provider, config.defaultHttpServiceWithRateLimiterConfig);
-        ({ app, server } = await getAppAsync({ ...dependencies }, config.defaultHttpServiceWithRateLimiterConfig));
+        dependencies = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceWithRateLimiterConfig);
+        ({ app, server } = await getAppAsync({ ...dependencies }, defaultHttpServiceWithRateLimiterConfig));
 
         DEFAULT_RFQT_RESPONSE_DATA = {
             endpoint: 'https://mock-rfqt1.club',
