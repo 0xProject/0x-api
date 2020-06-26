@@ -432,6 +432,7 @@ interface BasePriceResponse {
     protocolFee: BigNumber;
     estimatedGasTokenRefund: BigNumber;
     minimumProtocolFee: BigNumber;
+    allowanceTarget?: string;
 }
 
 export interface GetSwapPriceResponse extends BasePriceResponse {}
@@ -469,6 +470,7 @@ export interface CalculateMetaTransactionPriceResponse {
     protocolFee: BigNumber;
     minimumProtocolFee: BigNumber;
     estimatedGas: BigNumber;
+    allowanceTarget?: string;
 }
 
 export interface PostTransactionResponse {

@@ -1,5 +1,6 @@
 import { Orderbook, SwapQuoter, SwapQuoterOpts } from '@0x/asset-swapper';
 import { OrderPrunerPermittedFeeTypes, SwapQuoteRequestOpts } from '@0x/asset-swapper/lib/src/types';
+import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
 import { generatePseudoRandomSalt, SupportedProvider, ZeroExTransaction } from '@0x/order-utils';
@@ -58,6 +59,7 @@ export class MetaTransactionService {
     private readonly _connection: Connection;
     private readonly _transactionEntityRepository: Repository<TransactionEntity>;
     private readonly _kvRepository: Repository<KeyValueEntity>;
+    private readonly _contractAddresses: ContractAddresses;
 
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
         return META_TXN_SUBMIT_WHITELISTED_API_KEYS.includes(apiKey);
@@ -88,6 +90,7 @@ export class MetaTransactionService {
         this._connection = dbConnection;
         this._transactionEntityRepository = this._connection.getRepository(TransactionEntity);
         this._kvRepository = this._connection.getRepository(KeyValueEntity);
+        this._contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
     }
     public async calculateMetaTransactionPriceAsync(
         params: CalculateMetaTransactionQuoteParams,
@@ -157,6 +160,7 @@ export class MetaTransactionService {
             buyAmount === undefined
                 ? unitMakerAssetAmount.dividedBy(unitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
                 : unitTakerAssetAMount.dividedBy(unitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
+        const allowanceTarget = this._contractAddresses.erc20Proxy;
 
         const response: CalculateMetaTransactionPriceResponse = {
             takerAddress,
@@ -169,6 +173,7 @@ export class MetaTransactionService {
             gasPrice,
             protocolFee,
             minimumProtocolFee: protocolFee,
+            allowanceTarget,
         };
         return response;
     }
@@ -215,6 +220,7 @@ export class MetaTransactionService {
 
         const makerAssetAmount = swapQuote.bestCaseQuoteInfo.makerAssetAmount;
         const totalTakerAssetAmount = swapQuote.bestCaseQuoteInfo.totalTakerAssetAmount;
+        const allowanceTarget = this._contractAddresses.erc20Proxy;
         const apiMetaTransactionQuote: GetMetaTransactionQuoteResponse = {
             price,
             sellTokenAddress: params.sellTokenAddress,
@@ -232,6 +238,7 @@ export class MetaTransactionService {
             minimumProtocolFee,
             estimatedGasTokenRefund: ZERO,
             value: protocolFee,
+            allowanceTarget,
         };
         return apiMetaTransactionQuote;
     }
