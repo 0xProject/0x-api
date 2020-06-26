@@ -1,5 +1,5 @@
 import { ERC20BridgeSource } from '@0x/asset-swapper';
-import { ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
+import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
@@ -199,9 +199,6 @@ describe(SUITE_NAME, () => {
             );
         });
         it('should return a ExchangeProxy transaction for sellToken=ETH', async () => {
-            const flashWalletAddress = await new ITransformERC20Contract(CONTRACT_ADDRESSES.exchangeProxy, provider)
-                .getTransformWallet()
-                .callAsync();
             await quoteAndExpectAsync(
                 {
                     sellToken: 'WETH',
@@ -217,7 +214,7 @@ describe(SUITE_NAME, () => {
                     sellAmount: '1234',
                 },
                 {
-                    to: flashWalletAddress,
+                    to: CONTRACT_ADDRESSES.exchangeProxy,
                 },
             );
         });
