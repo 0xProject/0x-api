@@ -19,7 +19,7 @@ import { SWAP_PATH as BASE_SWAP_PATH } from '../src/constants';
 
 import { CONTRACT_ADDRESSES } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
+import { ganacheZrxWethOrderExchangeProxy, rfqtIndicativeQuoteResponse } from './utils/mocks';
 
 let app: Express.Application;
 let server: Server;
@@ -125,7 +125,7 @@ describe(SUITE_NAME, () => {
                     [
                         {
                             ...DEFAULT_RFQT_RESPONSE_DATA,
-                            responseData: { signedOrder: ganacheZrxWethOrder1 },
+                            responseData: { signedOrder: ganacheZrxWethOrderExchangeProxy },
                         },
                     ],
                     async () => {
@@ -139,7 +139,7 @@ describe(SUITE_NAME, () => {
 
                         const responseJson = JSON.parse(appResponse.text);
                         expect(responseJson.orders.length).to.equal(1);
-                        expect(responseJson.orders[0]).to.eql(ganacheZrxWethOrder1);
+                        expect(responseJson.orders[0]).to.eql(ganacheZrxWethOrderExchangeProxy);
                     },
                 );
             });
@@ -239,7 +239,7 @@ describe(SUITE_NAME, () => {
                     [
                         {
                             ...DEFAULT_RFQT_RESPONSE_DATA,
-                            responseData: { signedOrder: ganacheZrxWethOrder1 },
+                            responseData: { signedOrder: ganacheZrxWethOrderExchangeProxy },
                         },
                     ],
                     async () => {
@@ -252,7 +252,7 @@ describe(SUITE_NAME, () => {
                             .expect('Content-Type', /json/);
                         const responseJson = JSON.parse(appResponse.text);
                         expect(responseJson.orders.length).to.equal(1);
-                        expect(responseJson.orders[0]).to.eql(ganacheZrxWethOrder1);
+                        expect(responseJson.orders[0]).to.eql(ganacheZrxWethOrderExchangeProxy);
                     },
                 );
             });
@@ -269,7 +269,7 @@ describe(SUITE_NAME, () => {
                     [
                         {
                             ...DEFAULT_RFQT_RESPONSE_DATA,
-                            responseData: ganacheZrxWethOrder1,
+                            responseData: ganacheZrxWethOrderExchangeProxy,
                             requestApiKey: 'badApiKey',
                         },
                     ],
@@ -296,7 +296,7 @@ describe(SUITE_NAME, () => {
                     [
                         {
                             ...DEFAULT_RFQT_RESPONSE_DATA,
-                            responseData: ganacheZrxWethOrder1,
+                            responseData: ganacheZrxWethOrderExchangeProxy,
                         },
                     ],
                     async () => {
@@ -378,7 +378,7 @@ describe(SUITE_NAME, () => {
                 [
                     {
                         ...DEFAULT_RFQT_RESPONSE_DATA,
-                        responseData: ganacheZrxWethOrder1,
+                        responseData: ganacheZrxWethOrderExchangeProxy,
                     },
                 ],
                 async () => {
