@@ -37,6 +37,7 @@ import {
     WRAP_QUOTE_GAS,
     ZERO,
 } from '../constants';
+import { InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
@@ -133,16 +134,11 @@ export class SwapService {
 
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
         if (!skipValidation && from) {
-            // Force a revert error if the takerAddress does not have enough ETH.
-            const txDataValue =
-                isETHSell || isETHBuy
-                    ? BigNumber.min(value, await this._web3Wrapper.getBalanceInWeiAsync(from))
-                    : value;
             const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data,
                 from,
-                value: txDataValue,
+                value,
                 gasPrice,
             });
             // Take the max of the faux estimate or the real estimate
@@ -331,6 +327,9 @@ export class SwapService {
         try {
             callResult = await this._web3Wrapper.callAsync(txData);
         } catch (e) {
+            if (e.message && /insufficient funds/.test(e.message)) {
+                throw new InsufficientFundsError();
+            }
             // RPCSubprovider can throw if .error exists on the response payload
             // This `error` response occurs from Parity nodes (incl Alchemy) and Geth nodes >= 1.9.14
             // Geth 1.9.15

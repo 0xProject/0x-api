@@ -37,28 +37,13 @@ export class SwapHandlers {
         this._swapService = swapService;
     }
 
-    public async getSwapQuoteV0Async(req: express.Request, res: express.Response): Promise<void> {
+    public async getSwapQuoteAsync(
+        swapVersion: SwapVersion,
+        req: express.Request,
+        res: express.Response,
+    ): Promise<void> {
         const params = parseGetSwapQuoteRequestParams(req, 'quote');
-        const quote = await this._calculateSwapQuoteAsync(params, SwapVersion.V0);
-        if (params.rfqt !== undefined) {
-            logger.info({
-                firmQuoteServed: {
-                    taker: params.takerAddress,
-                    apiKey: params.apiKey,
-                    buyToken: params.buyToken,
-                    sellToken: params.sellToken,
-                    buyAmount: params.buyAmount,
-                    sellAmount: params.sellAmount,
-                    makers: quote.orders.map(order => order.makerAddress),
-                },
-            });
-        }
-        res.status(HttpStatus.OK).send(quote);
-    }
-
-    public async getSwapQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        const params = parseGetSwapQuoteRequestParams(req, 'quote');
-        const quote = await this._calculateSwapQuoteAsync(params, SwapVersion.V1);
+        const quote = await this._calculateSwapQuoteAsync(params, swapVersion);
         if (params.rfqt !== undefined) {
             logger.info({
                 firmQuoteServed: {
@@ -86,42 +71,13 @@ export class SwapHandlers {
         res.status(HttpStatus.OK).send({ records: filteredTokens });
     }
     // tslint:disable-next-line:prefer-function-over-method
-    public async getSwapPriceV0Async(req: express.Request, res: express.Response): Promise<void> {
+    public async getSwapPriceAsync(
+        swapVersion: SwapVersion,
+        req: express.Request,
+        res: express.Response,
+    ): Promise<void> {
         const params = parseGetSwapQuoteRequestParams(req, 'price');
-        const quote = await this._calculateSwapQuoteAsync({ ...params, skipValidation: true }, SwapVersion.V0);
-        logger.info({
-            indicativeQuoteServed: {
-                taker: params.takerAddress,
-                apiKey: params.apiKey,
-                buyToken: params.buyToken,
-                sellToken: params.sellToken,
-                buyAmount: params.buyAmount,
-                sellAmount: params.sellAmount,
-                makers: quote.orders.map(o => o.makerAddress),
-            },
-        });
-
-        const response = {
-            price: quote.price,
-            value: quote.value,
-            gasPrice: quote.gasPrice,
-            gas: quote.gas,
-            estimatedGas: quote.estimatedGas,
-            protocolFee: quote.protocolFee,
-            minimumProtocolFee: quote.minimumProtocolFee,
-            buyTokenAddress: quote.buyTokenAddress,
-            buyAmount: quote.buyAmount,
-            sellTokenAddress: quote.sellTokenAddress,
-            sellAmount: quote.sellAmount,
-            sources: quote.sources,
-            estimatedGasTokenRefund: quote.estimatedGasTokenRefund,
-        };
-        res.status(HttpStatus.OK).send(response);
-    }
-    // tslint:disable-next-line:prefer-function-over-method
-    public async getSwapPriceAsync(req: express.Request, res: express.Response): Promise<void> {
-        const params = parseGetSwapQuoteRequestParams(req, 'price');
-        const quote = await this._calculateSwapQuoteAsync({ ...params, skipValidation: true }, SwapVersion.V1);
+        const quote = await this._calculateSwapQuoteAsync({ ...params, skipValidation: true }, swapVersion);
         logger.info({
             indicativeQuoteServed: {
                 taker: params.takerAddress,
