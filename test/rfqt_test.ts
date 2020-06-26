@@ -1,7 +1,7 @@
 // tslint:disable:max-file-line-count
 import { ERC20BridgeSource, rfqtMocker } from '@0x/asset-swapper';
-import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
+import { ContractAddresses } from '@0x/contract-addresses';
+import { ERC20TokenContract, ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
@@ -16,6 +16,7 @@ import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '..
 import { defaultHttpServiceWithRateLimiterConfig } from '../src/config';
 import { SWAP_PATH as BASE_SWAP_PATH } from '../src/constants';
 
+import { CONTRACT_ADDRESSES } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { ganacheZrxWethOrder1, rfqtIndicativeQuoteResponse } from './utils/mocks';
 
@@ -47,7 +48,7 @@ let DEFAULT_RFQT_RESPONSE_DATA;
 
 describe(SUITE_NAME, () => {
     const SWAP_PATH = `${BASE_SWAP_PATH}/v1`;
-    let contractAddresses: ContractAddresses;
+    const contractAddresses: ContractAddresses = CONTRACT_ADDRESSES;
     let makerAddress: string;
     let takerAddress: string;
 
@@ -66,13 +67,15 @@ describe(SUITE_NAME, () => {
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
         await blockchainLifecycle.startAsync();
         accounts = await web3Wrapper.getAvailableAddressesAsync();
-        contractAddresses = getContractAddressesForChainOrThrow(await web3Wrapper.getChainIdAsync());
         [makerAddress, takerAddress] = accounts;
 
         // start the 0x-api app
         dependencies = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceWithRateLimiterConfig);
         ({ app, server } = await getAppAsync({ ...dependencies }, defaultHttpServiceWithRateLimiterConfig));
 
+        const flashWalletAddress = await new ITransformERC20Contract(CONTRACT_ADDRESSES.exchangeProxy, provider)
+            .getTransformWallet()
+            .callAsync();
         DEFAULT_RFQT_RESPONSE_DATA = {
             endpoint: 'https://mock-rfqt1.club',
             responseCode: 200,
@@ -82,7 +85,7 @@ describe(SUITE_NAME, () => {
                 buyTokenAddress: contractAddresses.zrxToken,
                 sellAmountBaseUnits: DEFAULT_SELL_AMOUNT.toString(),
                 buyAmountBaseUnits: undefined,
-                takerAddress,
+                takerAddress: flashWalletAddress,
             },
         };
     });
