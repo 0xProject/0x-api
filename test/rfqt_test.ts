@@ -1,7 +1,8 @@
 // tslint:disable:max-file-line-count
 import { ERC20BridgeSource, rfqtMocker } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
-import { ERC20TokenContract, ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
+import { ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
+import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
@@ -51,6 +52,8 @@ describe(SUITE_NAME, () => {
     const contractAddresses: ContractAddresses = CONTRACT_ADDRESSES;
     let makerAddress: string;
     let takerAddress: string;
+    let wethContract: WETH9Contract;
+    let zrxToken: DummyERC20TokenContract;
 
     before(async () => {
         // start the 0x-api app
@@ -68,6 +71,8 @@ describe(SUITE_NAME, () => {
         await blockchainLifecycle.startAsync();
         accounts = await web3Wrapper.getAvailableAddressesAsync();
         [makerAddress, takerAddress] = accounts;
+        wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
+        zrxToken = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
 
         // start the 0x-api app
         dependencies = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceWithRateLimiterConfig);
@@ -104,7 +109,6 @@ describe(SUITE_NAME, () => {
 
     context('with maker allowances set', async () => {
         beforeEach(async () => {
-            const zrxToken = new ERC20TokenContract(contractAddresses.zrxToken, provider);
             await zrxToken
                 .approve(contractAddresses.erc20Proxy, MAX_UINT256)
                 .sendTransactionAsync({ from: makerAddress });
@@ -112,10 +116,9 @@ describe(SUITE_NAME, () => {
 
         context('getting a quote from an RFQ-T provider', async () => {
             it('should succeed when taker has balances and amounts', async () => {
-                const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract.deposit().sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, DEFAULT_SELL_AMOUNT)
+                    .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
                     .sendTransactionAsync({ from: takerAddress });
 
                 return rfqtMocker.withMockedRfqtFirmQuotes(
@@ -141,10 +144,9 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should not include an RFQ-T order when intentOnFilling === false', async () => {
-                const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract.deposit().sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, DEFAULT_SELL_AMOUNT)
+                    .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
                     .sendTransactionAsync({ from: takerAddress });
 
                 return rfqtMocker.withMockedRfqtIndicativeQuotes(
@@ -170,10 +172,9 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should not include an RFQ-T order when intentOnFilling is omitted', async () => {
-                const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract.deposit().sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, DEFAULT_SELL_AMOUNT)
+                    .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
                     .sendTransactionAsync({ from: takerAddress });
 
                 return rfqtMocker.withMockedRfqtIndicativeQuotes(
@@ -214,9 +215,8 @@ describe(SUITE_NAME, () => {
             it("should fail when it's a buy order and those are disabled (which is the default)", async () => {
                 const buyAmount = new BigNumber(100000000000000000);
 
-                const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                    .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
 
                 const appResponse = await request(app)
@@ -231,9 +231,8 @@ describe(SUITE_NAME, () => {
                 expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
             });
             it('should succeed when taker can not actually fill but we skip validation', async () => {
-                const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                    .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
 
                 return rfqtMocker.withMockedRfqtFirmQuotes(
@@ -258,10 +257,9 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should fail when bad api key used', async () => {
-                const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract.deposit().sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                    .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
 
                 // this RFQ-T mock should never actually get hit b/c of the bad api key
@@ -290,9 +288,8 @@ describe(SUITE_NAME, () => {
                 );
             });
             it('should fail validation when taker can not actually fill', async () => {
-                const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
                 await wethContract
-                    .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                    .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
 
                 return rfqtMocker.withMockedRfqtFirmQuotes(
@@ -367,16 +364,14 @@ describe(SUITE_NAME, () => {
 
     context('without maker allowances set', async () => {
         beforeEach(async () => {
-            const zrxToken = new ERC20TokenContract(contractAddresses.zrxToken, provider);
             await zrxToken
                 .approve(contractAddresses.erc20Proxy, new BigNumber(0))
                 .sendTransactionAsync({ from: makerAddress });
         });
 
         it('should not return order if maker allowances are not set', async () => {
-            const wethContract = new WETH9Contract(contractAddresses.etherToken, provider);
             await wethContract
-                .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
                 .sendTransactionAsync({ from: takerAddress });
 
             return rfqtMocker.withMockedRfqtFirmQuotes(
