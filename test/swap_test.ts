@@ -167,6 +167,7 @@ describe(SUITE_NAME, () => {
                         buyTokenAddress: parameters.buyToken.startsWith('0x')
                             ? parameters.buyToken
                             : SYMBOL_TO_ADDRESS[parameters.buyToken],
+                        allowanceTarget: CONTRACT_ADDRESSES.exchangeProxyAllowanceTarget,
                     });
                 });
             }
@@ -272,6 +273,7 @@ interface QuoteAssertion {
     estimatedGasTokenRefund: string;
     validationErrors: ValidationErrorItem[];
     revertErrorReason: string;
+    allowanceTarget: string;
 }
 
 async function quoteAndExpectAsync(

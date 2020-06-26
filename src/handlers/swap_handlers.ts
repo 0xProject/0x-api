@@ -104,6 +104,7 @@ export class SwapHandlers {
             sellAmount: quote.sellAmount,
             sources: quote.sources,
             estimatedGasTokenRefund: quote.estimatedGasTokenRefund,
+            allowanceTarget: quote.allowanceTarget,
         };
         res.status(HttpStatus.OK).send(response);
     }
