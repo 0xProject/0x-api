@@ -208,7 +208,7 @@ describe(SUITE_NAME, () => {
                     sellAmount: '1234',
                 },
                 {
-                    to: CONTRACT_ADDRESSES.exchange,
+                    to: CONTRACT_ADDRESSES.exchangeProxy,
                 },
             );
             await quoteAndExpectAsync(
@@ -258,32 +258,6 @@ describe(SUITE_NAME, () => {
                     estimatedGasTokenRefund: '0',
                 },
             );
-        });
-    });
-
-    describe('/tokens', () => {
-        it('should return a list of known tokens', async () => {
-            const response = await httpGetAsync({ route: `${SWAP_PATH}/tokens` });
-            expect(response.type).to.be.eq('application/json');
-            expect(response.status).to.be.eq(HttpStatus.OK);
-            // tslint:disable-next-line:no-unused-expression
-            expect(response.body.records).to.be.an('array').that.is.not.empty;
-        });
-    });
-
-    describe('/prices', () => {
-        it('should return accurate pricing', async () => {
-            // Defaults to WETH.
-            const response = await httpGetAsync({ route: `${SWAP_PATH}/prices` });
-            expect(response.type).to.be.eq('application/json');
-            expect(response.status).to.be.eq(HttpStatus.OK);
-            expect(response.body.records[0].price).to.be.eq('0.3');
-        });
-        it('should respect the sellToken parameter', async () => {
-            const response = await httpGetAsync({ route: `${SWAP_PATH}/prices?sellToken=ZRX` });
-            expect(response.type).to.be.eq('application/json');
-            expect(response.status).to.be.eq(HttpStatus.OK);
-            expect(response.body.records[0].price).to.be.eq('1000');
         });
     });
 });

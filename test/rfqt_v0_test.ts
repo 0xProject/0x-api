@@ -31,7 +31,7 @@ let dependencies: AppDependencies;
 
 // tslint:disable-next-line:custom-no-magic-numbers
 const MAX_UINT256 = new BigNumber(2).pow(256).minus(1);
-const SUITE_NAME = 'rfqt tests';
+const SUITE_NAME = 'rfqt tests v0';
 const excludedSources = [
     ERC20BridgeSource.Uniswap,
     ERC20BridgeSource.UniswapV2,
