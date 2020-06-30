@@ -18,6 +18,7 @@ import * as _ from 'lodash';
 import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     CHAIN_ID,
+    ETH_GAS_STATION_API_URL,
     LIQUIDITY_POOL_REGISTRY_ADDRESS,
     RFQT_API_KEY_WHITELIST,
     RFQT_MAKER_ASSET_OFFERINGS,
@@ -70,6 +71,7 @@ export class SwapService {
                 warningLogger: logger.warn.bind(logger),
                 infoLogger: logger.info.bind(logger),
             },
+            ethGasStationUrl: ETH_GAS_STATION_API_URL,
             permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
