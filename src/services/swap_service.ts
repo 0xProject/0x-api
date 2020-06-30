@@ -84,7 +84,10 @@ export class SwapService {
             getTokenMetadataIfExists('GST2', CHAIN_ID).tokenAddress,
             this._provider,
         );
-        this._protocolFeeUtils = new ProtocolFeeUtils(PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
+        this._protocolFeeUtils = new ProtocolFeeUtils(
+            PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
+            swapQuoterOpts.ethGasStationUrl,
+        );
         this._forwarderAddress = contractAddresses.forwarder;
     }
 
