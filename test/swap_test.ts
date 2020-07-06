@@ -56,7 +56,7 @@ describe(SUITE_NAME, () => {
     let meshUtils: MeshTestUtils;
     let accounts: string[];
     let takerAddress: string;
-    let invalidTakerAddress: string;
+    const invalidTakerAddress: string = '0x0000000000000000000000000000000000000001';
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
@@ -75,7 +75,7 @@ describe(SUITE_NAME, () => {
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
 
         accounts = await web3Wrapper.getAvailableAddressesAsync();
-        [, /* makerAdddress, */ takerAddress, invalidTakerAddress] = accounts;
+        [, /* makerAdddress, */ takerAddress] = accounts;
 
         // Set up liquidity.
         await blockchainLifecycle.startAsync();

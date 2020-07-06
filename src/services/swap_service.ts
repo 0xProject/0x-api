@@ -408,6 +408,7 @@ export class SwapService {
             gasPrice: providedGasPrice,
             excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
             rfqt: _rfqt,
+            shouldBatchBridgeOrders: false,
         };
         if (sellAmount !== undefined) {
             return this._swapQuoter.getMarketSellSwapQuoteAsync(

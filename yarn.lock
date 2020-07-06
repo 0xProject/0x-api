@@ -433,22 +433,9 @@
   optionalDependencies:
     "@ledgerhq/hw-transport-node-hid" "^4.3.0"
 
-"@0x/order-utils@^10.1.1", "@0x/order-utils@^10.2.4":
-  version "10.2.4"
-  resolved "https://registry.yarnpkg.com/@0x/order-utils/-/order-utils-10.2.4.tgz#23afe4656c9c71f2cf80f510154f7e2900515d68"
-  dependencies:
-    "@0x/assert" "^3.0.7"
-    "@0x/contract-wrappers" "^13.6.3"
-    "@0x/json-schemas" "^5.0.7"
-    "@0x/utils" "^5.4.1"
-    "@0x/web3-wrapper" "^7.0.7"
-    ethereumjs-util "^5.1.1"
-    ethers "~4.0.4"
-    lodash "^4.17.11"
-
-"@0x/order-utils@^10.2.5":
-  version "10.2.5"
-  resolved "https://registry.yarnpkg.com/@0x/order-utils/-/order-utils-10.2.5.tgz#016c44ef79e08f49e37de78b8c04f6cdd301eb99"
+"@0x/order-utils@0xProject/gitpkg-registry#0x-order-utils-v10.3.0-71d3d2993", "@0x/order-utils@^10.2.4", "@0x/order-utils@^10.2.5":
+  version "10.3.0"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/c4baf93ae9a39fcaa8d80cbcf83a047a6188c331"
   dependencies:
     "@0x/assert" "^3.0.8"
     "@0x/contract-wrappers" "^13.7.0"
