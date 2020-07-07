@@ -1,4 +1,5 @@
 import {
+    ERC20BridgeSource,
     ExtensionContractType,
     Orderbook,
     RfqtRequestOpts,
@@ -17,7 +18,8 @@ import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
 import {
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+    ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
+    ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS,
     CHAIN_ID,
     ETH_GAS_STATION_API_URL,
     LIQUIDITY_POOL_REGISTRY_ADDRESS,
@@ -109,7 +111,7 @@ export class SwapService {
         const {
             makerAssetAmount,
             totalTakerAssetAmount,
-            protocolFeeInWeiAmount: minimumProtocolFee,
+            protocolFeeInWeiAmount: bestCaseProtocolFee,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
@@ -160,12 +162,18 @@ export class SwapService {
 
         // set the allowance target based on version. V0 is legacy param to support transition to v1
         let erc20AllowanceTarget = NULL_ADDRESS;
+        let adjustedWorstCaseProtocolFee = protocolFee;
         switch (swapVersion) {
             case SwapVersion.V0:
                 erc20AllowanceTarget = this._contractAddresses.erc20Proxy;
                 break;
             case SwapVersion.V1:
                 erc20AllowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
+                // With v1 we are able to fill bridges directly so the protocol fee is lower
+                const nativeFills = _.flatten(swapQuote.orders.map(order => order.fills)).filter(
+                    fill => fill.source === ERC20BridgeSource.Native,
+                );
+                adjustedWorstCaseProtocolFee = new BigNumber(150000).times(gasPrice).times(nativeFills.length);
                 break;
             default:
                 throw new Error(`Unsupported Swap version: ${swapVersion}`);
@@ -182,8 +190,8 @@ export class SwapService {
             estimatedGas: conservativeBestCaseGasEstimate,
             from,
             gasPrice,
-            protocolFee,
-            minimumProtocolFee,
+            protocolFee: adjustedWorstCaseProtocolFee,
+            minimumProtocolFee: BigNumber.min(adjustedWorstCaseProtocolFee, bestCaseProtocolFee),
             buyTokenAddress,
             sellTokenAddress,
             buyAmount: makerAssetAmount,
@@ -226,7 +234,7 @@ export class SwapService {
                         takerAssetData,
                         amounts,
                         {
-                            ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+                            ...ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
                             bridgeSlippage: 0,
                             maxFallbackSlippage: 0,
                             numSamples: 3,
@@ -403,12 +411,13 @@ export class SwapService {
             };
         }
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
-            ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+            ...(swapVersion === SwapVersion.V0
+                ? ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS
+                : ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS),
             bridgeSlippage: slippagePercentage,
             gasPrice: providedGasPrice,
             excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
             rfqt: _rfqt,
-            shouldBatchBridgeOrders: false,
         };
         if (sellAmount !== undefined) {
             return this._swapQuoter.getMarketSellSwapQuoteAsync(

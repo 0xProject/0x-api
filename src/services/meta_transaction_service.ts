@@ -12,7 +12,7 @@ import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Connection, Repository } from 'typeorm';
 
 import {
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+    ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
     CHAIN_ID,
     ETH_GAS_STATION_API_URL,
     LIQUIDITY_POOL_REGISTRY_ADDRESS,
@@ -117,7 +117,7 @@ export class MetaTransactionService {
             };
         }
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
-            ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+            ...ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
             bridgeSlippage: slippagePercentage,
             excludedSources, // TODO(dave4506): overrides the excluded sources selected by chainId
             rfqt: _rfqt,

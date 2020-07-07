@@ -179,6 +179,8 @@ export const RFQT_SKIP_BUY_REQUESTS: boolean = _.isEmpty(process.env.RFQT_SKIP_B
     ? DEFAULT_RFQT_SKIP_BUY_REQUESTS
     : assertEnvVarType('RFQT_SKIP_BUY_REQUESTS', process.env.RFQT_SKIP_BUY_REQUESTS, EnvVarType.Boolean);
 
+export const RFQT_REQUEST_MAX_RESPONSE_MS = 600;
+
 // Whitelisted 0x API keys that can use the meta-txn /submit endpoint
 export const META_TXN_SUBMIT_WHITELISTED_API_KEYS: string[] =
     process.env.META_TXN_SUBMIT_WHITELISTED_API_KEYS === undefined
@@ -260,7 +262,7 @@ const EXCLUDED_SOURCES = (() => {
     }
 })();
 
-export const GAS_SCHEDULE: { [key in ERC20BridgeSource]: number } = {
+export const GAS_SCHEDULE_V0: { [key in ERC20BridgeSource]: number } = {
     [ERC20BridgeSource.Native]: 1.5e5,
     [ERC20BridgeSource.Uniswap]: 3e5,
     [ERC20BridgeSource.UniswapV2]: 3.5e5,
@@ -276,23 +278,47 @@ export const GAS_SCHEDULE: { [key in ERC20BridgeSource]: number } = {
     [ERC20BridgeSource.CurveUsdcDaiUsdtSusd]: 6e5,
 };
 
-const feeSchedule: { [key in ERC20BridgeSource]: BigNumber } = Object.assign(
+const FEE_SCHEDULE_V0: { [key in ERC20BridgeSource]: BigNumber } = Object.assign(
     {},
-    ...(Object.keys(GAS_SCHEDULE) as ERC20BridgeSource[]).map(k => ({
-        [k]: new BigNumber(GAS_SCHEDULE[k] + 1.5e5),
+    ...(Object.keys(GAS_SCHEDULE_V0) as ERC20BridgeSource[]).map(k => ({
+        [k]: new BigNumber(GAS_SCHEDULE_V0[k] + 1.5e5),
     })),
 );
 
-export const RFQT_REQUEST_MAX_RESPONSE_MS = 600;
-
-export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
+export const ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
     sampleDistributionBase: 1.05,
-    feeSchedule,
-    gasSchedule: GAS_SCHEDULE,
+    feeSchedule: FEE_SCHEDULE_V0,
+    gasSchedule: GAS_SCHEDULE_V0,
+    shouldBatchBridgeOrders: true,
+};
+
+export const GAS_SCHEDULE_V1: { [key in ERC20BridgeSource]: number } = {
+    ...GAS_SCHEDULE_V0,
+};
+
+const FEE_SCHEDULE_V1: { [key in ERC20BridgeSource]: BigNumber } = Object.assign(
+    {},
+    ...(Object.keys(GAS_SCHEDULE_V0) as ERC20BridgeSource[]).map(k => ({
+        [k]:
+            k === ERC20BridgeSource.Native
+                ? new BigNumber(GAS_SCHEDULE_V1[k] + 1.5e5)
+                : new BigNumber(GAS_SCHEDULE_V1[k]),
+    })),
+);
+
+export const ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS: Partial<SwapQuoteRequestOpts> = {
+    excludedSources: EXCLUDED_SOURCES,
+    bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
+    maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
+    numSamples: 13,
+    sampleDistributionBase: 1.05,
+    feeSchedule: FEE_SCHEDULE_V1,
+    gasSchedule: GAS_SCHEDULE_V1,
+    shouldBatchBridgeOrders: false,
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
