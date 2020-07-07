@@ -163,6 +163,7 @@ export class SwapService {
         // set the allowance target based on version. V0 is legacy param to support transition to v1
         let erc20AllowanceTarget = NULL_ADDRESS;
         let adjustedWorstCaseProtocolFee = protocolFee;
+        let adjustedValue = value;
         switch (swapVersion) {
             case SwapVersion.V0:
                 erc20AllowanceTarget = this._contractAddresses.erc20Proxy;
@@ -174,6 +175,9 @@ export class SwapService {
                     fill => fill.source === ERC20BridgeSource.Native,
                 );
                 adjustedWorstCaseProtocolFee = new BigNumber(150000).times(gasPrice).times(nativeFills.length);
+                adjustedValue = isETHSell
+                    ? adjustedWorstCaseProtocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAssetAmount)
+                    : adjustedWorstCaseProtocolFee;
                 break;
             default:
                 throw new Error(`Unsupported Swap version: ${swapVersion}`);
@@ -185,7 +189,7 @@ export class SwapService {
             guaranteedPrice,
             to,
             data,
-            value,
+            value: adjustedValue,
             gas: worstCaseGasEstimate,
             estimatedGas: conservativeBestCaseGasEstimate,
             from,
