@@ -35,6 +35,7 @@ import {
     NULL_ADDRESS,
     ONE,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
+    TEN_MINUTES_MS,
     UNWRAP_QUOTE_GAS,
     WRAP_QUOTE_GAS,
     ZERO,
@@ -51,6 +52,7 @@ import {
     SwapVersion,
     TokenMetadata,
 } from '../types';
+import { createResultCache, ResultCache } from '../utils/result_cache';
 import { serviceUtils } from '../utils/service_utils';
 import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
@@ -60,9 +62,12 @@ export class SwapService {
     private readonly _swapQuoteConsumer: SwapQuoteConsumer;
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _wethContract: WETH9Contract;
-    private readonly _gasTokenContract: ERC20TokenContract;
     private readonly _contractAddresses: ContractAddresses;
-    private _flashWalletAddress?: string;
+    // Result caches, stored for a few minutes and refetched
+    // when the result has expired
+    private readonly _gstBalanceResultCache: ResultCache<BigNumber>;
+    private readonly _flashWalletResultCache: ResultCache<string>;
+    private readonly _tokenDecimalResultCache: ResultCache<number>;
 
     constructor(orderbook: Orderbook, provider: SupportedProvider) {
         this._provider = provider;
@@ -86,9 +91,21 @@ export class SwapService {
 
         this._contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
         this._wethContract = new WETH9Contract(this._contractAddresses.etherToken, this._provider);
-        this._gasTokenContract = new ERC20TokenContract(
+        const gasTokenContract = new ERC20TokenContract(
             getTokenMetadataIfExists('GST2', CHAIN_ID).tokenAddress,
             this._provider,
+        );
+        this._gstBalanceResultCache = createResultCache<BigNumber>(() =>
+            gasTokenContract.balanceOf(GST2_WALLET_ADDRESSES[CHAIN_ID]).callAsync(),
+        );
+        this._flashWalletResultCache = createResultCache<string>(() => {
+            const transformer = new ITransformERC20Contract(this._contractAddresses.exchangeProxy, this._provider);
+            return transformer.getTransformWallet().callAsync();
+        });
+        this._tokenDecimalResultCache = createResultCache<number>(
+            (tokenAddress: string) => serviceUtils.fetchTokenDecimalsIfRequiredAsync(tokenAddress, this._web3Wrapper),
+            // tslint:disable-next-line:custom-no-magic-numbers
+            TEN_MINUTES_MS * 6 * 24,
         );
     }
 
@@ -125,7 +142,7 @@ export class SwapService {
         );
         let gst2Balance = ZERO;
         try {
-            gst2Balance = await this._gasTokenContract.balanceOf(GST2_WALLET_ADDRESSES[CHAIN_ID]).callAsync();
+            gst2Balance = (await this._gstBalanceResultCache.getResultAsync()).result;
         } catch (err) {
             logger.error(err);
         }
@@ -269,14 +286,6 @@ export class SwapService {
         return prices;
     }
 
-    private async _getExchangeProxyFlashWalletAsync(): Promise<string> {
-        if (!this._flashWalletAddress) {
-            const transformer = new ITransformERC20Contract(this._contractAddresses.exchangeProxy, this._provider);
-            this._flashWalletAddress = await transformer.getTransformWallet().callAsync();
-        }
-        return this._flashWalletAddress;
-    }
-
     private async _getSwapQuoteForWethAsync(
         params: CalculateSwapQuoteParams,
         isUnwrap: boolean,
@@ -398,7 +407,7 @@ export class SwapService {
                     // In V1 the taker is always the ExchangeProxy's FlashWallet
                     // as it allows us to optionally transform assets (i.e Deposit ETH into WETH)
                     // Since the FlashWallet is the taker it needs to be forwarded to the quote provider
-                    takerAddress = await this._getExchangeProxyFlashWalletAsync();
+                    takerAddress = (await this._flashWalletResultCache.getResultAsync()).result;
                     break;
                 default:
                     throw new Error(`Unsupported Swap version: ${swapVersion}`);
@@ -491,14 +500,8 @@ export class SwapService {
             makerAssetAmount: guaranteedMakerAssetAmount,
             totalTakerAssetAmount: guaranteedTotalTakerAssetAmount,
         } = swapQuote.worstCaseQuoteInfo;
-        const buyTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(
-            buyTokenAddress,
-            this._web3Wrapper,
-        );
-        const sellTokenDecimals = await serviceUtils.fetchTokenDecimalsIfRequiredAsync(
-            sellTokenAddress,
-            this._web3Wrapper,
-        );
+        const buyTokenDecimals = (await this._tokenDecimalResultCache.getResultAsync(buyTokenAddress)).result;
+        const sellTokenDecimals = (await this._tokenDecimalResultCache.getResultAsync(sellTokenAddress)).result;
         const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
         const unitTakerAssetAMount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
         // Best price
