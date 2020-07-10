@@ -34,7 +34,6 @@ const SWAP_PATH = `${BASE_SWAP_PATH}/v0`;
 const excludedSources = [
     ERC20BridgeSource.Uniswap,
     ERC20BridgeSource.UniswapV2,
-    ERC20BridgeSource.UniswapV2Eth,
     ERC20BridgeSource.Kyber,
     ERC20BridgeSource.LiquidityProvider,
     ERC20BridgeSource.Eth2Dai,
@@ -327,15 +326,11 @@ function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, quoteAssertions
         { name: '0x', proportion: '1' },
         { name: 'Uniswap', proportion: '0' },
         { name: 'Uniswap_V2', proportion: '0' },
-        { name: 'Uniswap_V2_ETH', proportion: '0' },
         { name: 'Eth2Dai', proportion: '0' },
         { name: 'Kyber', proportion: '0' },
-        { name: 'Curve_USDC_DAI', proportion: '0' },
-        { name: 'Curve_USDC_DAI_USDT', proportion: '0' },
-        { name: 'Curve_USDC_DAI_USDT_TUSD', proportion: '0' },
-        { name: 'Curve_USDC_DAI_USDT_BUSD', proportion: '0' },
-        { name: 'Curve_USDC_DAI_USDT_SUSD', proportion: '0' },
+        { name: 'Curve', proportion: '0' },
         { name: 'LiquidityProvider', proportion: '0' },
         { name: 'MultiBridge', proportion: '0' },
+        { name: 'Balancer', proportion: '0' },
     ]);
 }
