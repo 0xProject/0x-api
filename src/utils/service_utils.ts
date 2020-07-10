@@ -156,7 +156,7 @@ export const serviceUtils = {
                 gasTokenGasCost: ZERO,
             };
         }
-        const costOfBridgeFills = BigNumber.sum(...bridgeFills.map(o => GAS_SCHEDULE[o.source]))
+        const costOfBridgeFills = BigNumber.sum(...bridgeFills.map(o => GAS_SCHEDULE[o.source](o.fillData)))
             .plus(bridgeFills.length * SSTORE_COST)
             .plus(SSTORE_INIT_COST);
         const usedGasTokens = BigNumber.min(

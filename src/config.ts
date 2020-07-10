@@ -1,6 +1,13 @@
 // tslint:disable:custom-no-magic-numbers
 import { assert } from '@0x/assert';
-import { ERC20BridgeSource, RfqtMakerAssetOfferings, SwapQuoteRequestOpts } from '@0x/asset-swapper';
+import {
+    CurveFillData,
+    ERC20BridgeSource,
+    FeeSchedule,
+    RfqtMakerAssetOfferings,
+    SwapQuoteRequestOpts,
+    UniswapV2FillData,
+} from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
@@ -254,32 +261,47 @@ const EXCLUDED_SOURCES = (() => {
                 ERC20BridgeSource.Kyber,
                 ERC20BridgeSource.Uniswap,
                 ERC20BridgeSource.UniswapV2,
-                ERC20BridgeSource.UniswapV2Eth,
                 ERC20BridgeSource.MultiBridge,
+                ERC20BridgeSource.Balancer,
             ];
     }
 })();
 
-export const GAS_SCHEDULE: { [key in ERC20BridgeSource]: number } = {
-    [ERC20BridgeSource.Native]: 1.5e5,
-    [ERC20BridgeSource.Uniswap]: 3e5,
-    [ERC20BridgeSource.UniswapV2]: 3.5e5,
-    [ERC20BridgeSource.UniswapV2Eth]: 4e5,
-    [ERC20BridgeSource.LiquidityProvider]: 3e5,
-    [ERC20BridgeSource.MultiBridge]: 6.5e5,
-    [ERC20BridgeSource.Eth2Dai]: 5.5e5,
-    [ERC20BridgeSource.Kyber]: 8e5,
-    [ERC20BridgeSource.CurveUsdcDai]: 9e5,
-    [ERC20BridgeSource.CurveUsdcDaiUsdt]: 9e5,
-    [ERC20BridgeSource.CurveUsdcDaiUsdtTusd]: 10e5,
-    [ERC20BridgeSource.CurveUsdcDaiUsdtBusd]: 10e5,
-    [ERC20BridgeSource.CurveUsdcDaiUsdtSusd]: 6e5,
+export const GAS_SCHEDULE: FeeSchedule = {
+    [ERC20BridgeSource.Native]: () => 1.5e5,
+    [ERC20BridgeSource.Uniswap]: () => 3e5,
+    [ERC20BridgeSource.LiquidityProvider]: () => 3e5,
+    [ERC20BridgeSource.Eth2Dai]: () => 5.5e5,
+    [ERC20BridgeSource.Kyber]: () => 8e5,
+    [ERC20BridgeSource.Curve]: fillData => {
+        switch ((fillData as CurveFillData).poolAddress.toLowerCase()) {
+            case '0xa2b47e3d5c44877cca798226b7b8118f9bfb7a56':
+            case '0x52ea46506b9cc5ef470c5bf89f17dc28bb35d85c':
+                return 9e5;
+            case '0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51':
+            case '0x79a8c46dea5ada233abaffd40f3a0a2b1e5a4f27':
+                return 10e5;
+            case '0xa5407eae9ba41422680e2e00537571bcc53efbfd':
+                return 6e5;
+            default:
+                throw new Error('Unrecognized Curve address');
+        }
+    },
+    [ERC20BridgeSource.MultiBridge]: () => 6.5e5,
+    [ERC20BridgeSource.UniswapV2]: fillData => {
+        let gas = 3e5;
+        if ((fillData as UniswapV2FillData).tokenAddressPath.length > 2) {
+            gas += 5e4;
+        }
+        return gas;
+    },
+    [ERC20BridgeSource.Balancer]: () => 4.5e5,
 };
 
-const feeSchedule: { [key in ERC20BridgeSource]: BigNumber } = Object.assign(
+const feeSchedule: FeeSchedule = Object.assign(
     {},
     ...(Object.keys(GAS_SCHEDULE) as ERC20BridgeSource[]).map(k => ({
-        [k]: new BigNumber(GAS_SCHEDULE[k] + 1.5e5),
+        [k]: fillData => new BigNumber(1.5e5).plus(GAS_SCHEDULE[k](fillData)),
     })),
 );
 
