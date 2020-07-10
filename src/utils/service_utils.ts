@@ -73,9 +73,11 @@ export const serviceUtils = {
         });
 
         // Generate unique identiifer
+        const HEX_DIGITS = 16;
         const timestampInSeconds = new BigNumber(Date.now() / ONE_SECOND_MS).integerValue();
-        const randomNumber = numberUtils.randomNumberOfLength(10);
-        const uniqueIdentifier = new BigNumber(`${randomNumber}${timestampInSeconds}`);
+        const hexTimestamp = timestampInSeconds.toString(HEX_DIGITS);
+        const randomNumber = numberUtils.randomHexNumberOfLength(10);
+        const uniqueIdentifier = new BigNumber(`${randomNumber}${hexTimestamp}`, HEX_DIGITS);
 
         // Encode additional call data and return
         const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault, uniqueIdentifier]);
