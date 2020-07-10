@@ -65,7 +65,7 @@ export const serviceUtils = {
             name: 'ZeroExAPIAffiliate',
             inputs: [
                 { name: 'affiliate', type: 'address' },
-                { name: 'uniqueIdentifier', type: 'uint256' },
+                { name: 'timestamp', type: 'uint256' },
             ],
             payable: false,
             stateMutability: 'view',
