@@ -32,9 +32,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.5.0-529905efd":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.5.0-04839d310":
   version "4.5.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/e02dc90d558014f9946064aefbcf1f5aa58b8285"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/9022c8a7d7e9d5208943de9d72b5fd86f62f2c35"
   dependencies:
     "@0x/assert" "^3.0.8"
     "@0x/contract-addresses" "^4.10.0"
@@ -45,8 +45,10 @@
     "@0x/quote-server" "^2.0.2"
     "@0x/utils" "^5.5.0"
     "@0x/web3-wrapper" "^7.1.0"
+    "@balancer-labs/sor" "^0.3.0"
     axios "^0.19.2"
     axios-mock-adapter "^1.18.1"
+    decimal.js "^10.2.0"
     ethereumjs-util "^5.1.1"
     heartbeats "^5.0.1"
     lodash "^4.17.11"
@@ -791,6 +793,7 @@
 "@balancer-labs/sor@^0.3.0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@balancer-labs/sor/-/sor-0.3.0.tgz#c221225d9a3d1791ebfc3c566f7a76843bca98fa"
+  integrity sha512-QTVkeDmcGCaEgBhcVSu8c7cz6HA1ueWRbniuT+Yh0N/sqcZIcDMdoCFcpq66SD+hOxQ88RvzShmJ+P/3vKbXfg==
   dependencies:
     bignumber.js "^9.0.0"
     ethers "^4.0.39"
@@ -7968,6 +7971,7 @@ typescript@3.0.1:
 typescript@^3.8.3:
   version "3.9.6"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.9.6.tgz#8f3e0198a34c3ae17091b35571d3afd31999365a"
+  integrity sha512-Pspx3oKAPJtjNwE92YS05HQoY7z2SFyOpHo9MqJor3BXAGNaPUs83CuVp9VISFkSjyRfiTpmKuAYGJB7S7hOxw==
 
 typewise-core@^1.2, typewise-core@^1.2.0:
   version "1.2.0"
