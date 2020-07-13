@@ -53,6 +53,5 @@ async function runHttpServiceAsync(
     app.use(errorHandler);
 
     server.listen(config.httpPort);
-    logger.info(`server listening on ${config.httpPort}`);
     return server;
 }

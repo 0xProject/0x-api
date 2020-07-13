@@ -125,7 +125,6 @@ export async function runHttpServiceAsync(
         process.exit(1);
     }
     server.listen(config.httpPort);
-    logger.info(`server listening on ${config.httpPort}`);
     return {
         server,
         wsService,

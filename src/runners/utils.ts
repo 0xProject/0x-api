@@ -29,11 +29,16 @@ export function createDefaultServer(
     const server = createServer(app);
     server.keepAliveTimeout = config.httpKeepAliveTimeout;
     server.headersTimeout = config.httpHeadersTimeout;
+    const healthcheckService = new HealthcheckService();
+
     server.on('close', () => {
         logger.info('http server shutdown');
     });
+    server.on('listening', () => {
+        logger.info(`server listening on ${config.httpPort}`);
+        healthcheckService.setHealth(true);
+    });
 
-    const healthcheckService = new HealthcheckService();
     const shutdownFunc = (sig: string) => {
         logger.info(`received: ${sig}, shutting down server`);
         healthcheckService.setHealth(false);
@@ -69,5 +74,6 @@ export function createDefaultServer(
     }
     process.on('SIGINT', shutdownFunc);
     process.on('SIGTERM', shutdownFunc);
+    process.on('SIGQUIT', shutdownFunc);
     return server;
 }

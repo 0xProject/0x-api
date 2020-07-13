@@ -1,7 +1,7 @@
 export class HealthcheckService {
     private _isHealthy: boolean;
     constructor() {
-        this._isHealthy = true;
+        this._isHealthy = false;
     }
 
     public setHealth(val: boolean): void {
