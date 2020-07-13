@@ -36,12 +36,12 @@ export function createDefaultServer(
     const shutdownFunc = (sig: string) => {
         logger.info(`received: ${sig}, shutting down server`);
         healthcheckService.setHealth(false);
-        server.close(err => {
+        server.close(async err => {
             if (!server.listening) {
                 process.exit(0);
             }
             if (dependencies.connection) {
-                dependencies.connection.close();
+                await dependencies.connection.close();
             }
             if (dependencies.meshClient) {
                 dependencies.meshClient.destroy();
