@@ -8,7 +8,7 @@ export class HealthcheckService {
         this._isHealthy = val;
     }
 
-    public getHealth(): boolean {
+    public isHealthy(): boolean {
         return this._isHealthy;
     }
 }

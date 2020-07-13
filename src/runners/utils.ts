@@ -1,5 +1,6 @@
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
+import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
 import { createServer, Server } from 'http';
@@ -54,7 +55,18 @@ export function createDefaultServer(
             process.exit(0);
         });
     };
-    app.use(HEALTHCHECK_PATH, createHealthcheckRouter(healthcheckService));
+    if (config.httpPort === config.healthcheckHttpPort) {
+        app.use(HEALTHCHECK_PATH, createHealthcheckRouter(healthcheckService));
+    } else {
+        // if we don't want to expose the /healthz healthcheck service route to
+        // the public, we serve it from a different port. Serving it through a
+        // different express app also removes the unnecessary request logging.
+        const healthcheckApp = express();
+        healthcheckApp.use(HEALTHCHECK_PATH, createHealthcheckRouter(healthcheckService));
+        healthcheckApp.listen(config.healthcheckHttpPort, () => {
+            logger.info(`healthcheckApp listening on ${config.healthcheckHttpPort}`);
+        });
+    }
     process.on('SIGINT', shutdownFunc);
     process.on('SIGTERM', shutdownFunc);
     return server;
