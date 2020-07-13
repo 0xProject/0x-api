@@ -229,7 +229,7 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
             for (const datum of data) {
-                if (/API \(HTTP\) listening on port 3000!/.test(datum)) {
+                if (/server listening.*/.test(datum)) {
                     resolve();
                 }
             }
