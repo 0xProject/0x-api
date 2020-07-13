@@ -1,0 +1,61 @@
+import * as bodyParser from 'body-parser';
+import * as cors from 'cors';
+// tslint:disable-next-line:no-implicit-dependencies
+import * as core from 'express-serve-static-core';
+import { createServer, Server } from 'http';
+
+import { AppDependencies } from '../app';
+import { HEALTHCHECK_PATH } from '../constants';
+import { logger } from '../logger';
+import { requestLogger } from '../middleware/request_logger';
+import { createHealthcheckRouter } from '../routers/healthcheck_router';
+import { HealthcheckService } from '../services/healthcheck_service';
+import { HttpServiceConfig } from '../types';
+
+/**
+ * creates the NodeJS http server with graceful shutdowns, healthchecks,
+ * configured header timeouts and other sane defaults set.
+ */
+export function createDefaultServer(
+    dependencies: AppDependencies,
+    config: HttpServiceConfig,
+    app: core.Express,
+): Server {
+    app.use(requestLogger());
+    app.use(cors());
+    app.use(bodyParser.json());
+
+    const server = createServer(app);
+    server.keepAliveTimeout = config.httpKeepAliveTimeout;
+    server.headersTimeout = config.httpHeadersTimeout;
+    server.on('close', () => {
+        logger.info('http server shutdown');
+    });
+
+    const healthcheckService = new HealthcheckService();
+    const shutdownFunc = (sig: string) => {
+        logger.info(`received: ${sig}, shutting down server`);
+        healthcheckService.setHealth(false);
+        server.close(err => {
+            if (!server.listening) {
+                process.exit(0);
+            }
+            if (dependencies.connection) {
+                dependencies.connection.close();
+            }
+            if (dependencies.meshClient) {
+                dependencies.meshClient.destroy();
+            }
+            if (err) {
+                logger.error(`server closed with an error: ${err}, exiting`);
+                process.exit(1);
+            }
+            logger.info('successful shutdown, exiting');
+            process.exit(0);
+        });
+    };
+    app.use(HEALTHCHECK_PATH, createHealthcheckRouter(healthcheckService));
+    process.on('SIGINT', shutdownFunc);
+    process.on('SIGTERM', shutdownFunc);
+    return server;
+}
