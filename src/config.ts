@@ -316,6 +316,7 @@ export const ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS: Partial<SwapQuoteRequestOpts> 
     feeSchedule: FEE_SCHEDULE_V0,
     gasSchedule: GAS_SCHEDULE_V0,
     shouldBatchBridgeOrders: true,
+    runLimit: 2 ** 13,
 };
 
 export const GAS_SCHEDULE_V1: FeeSchedule = {
@@ -341,6 +342,7 @@ export const ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS: Partial<SwapQuoteRequestOpts> 
     feeSchedule: FEE_SCHEDULE_V1,
     gasSchedule: GAS_SCHEDULE_V1,
     shouldBatchBridgeOrders: false,
+    runLimit: 2 ** 13,
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
