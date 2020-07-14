@@ -692,7 +692,7 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         name: 'bZx Protocol Token',
         decimals: 18,
         tokenAddresses: {
-            [ChainId.Mainnet]: '0x56d811088235F11C8920698a204A5010a788f4b3',
+            [ChainId.Mainnet]: '0x56d811088235f11c8920698a204a5010a788f4b3',
             [ChainId.Kovan]: NULL_ADDRESS,
             [ChainId.Ganache]: NULL_ADDRESS,
         },
