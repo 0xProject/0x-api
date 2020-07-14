@@ -29,6 +29,8 @@ import { GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource } from '../type
 import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
+import { numberUtils } from './number_utils';
+
 export const serviceUtils = {
     attributeSwapQuoteOrders(
         swapQuote: MarketSellSwapQuote | MarketBuySwapQuote,
@@ -69,8 +71,21 @@ export const serviceUtils = {
             stateMutability: 'view',
             type: 'function',
         });
-        const timestamp = new BigNumber(Date.now() / ONE_SECOND_MS).integerValue();
-        const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault, timestamp]);
+
+        // Generate unique identiifer
+        const HEX_DIGITS = 16;
+        const timestampInSeconds = new BigNumber(Date.now() / ONE_SECOND_MS).integerValue();
+        const hexTimestamp = timestampInSeconds.toString(HEX_DIGITS);
+        const randomNumber = numberUtils.randomHexNumberOfLength(10);
+
+        // Concatenate the hex identifier with the hex timestamp
+        // In the final encoded call data, this will leave us with a 5-byte ID followed by
+        // a 4-byte timestamp, and won't break parsers of the timestamp made prior to the
+        // addition of the ID
+        const uniqueIdentifier = new BigNumber(`${randomNumber}${hexTimestamp}`, HEX_DIGITS);
+
+        // Encode additional call data and return
+        const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault, uniqueIdentifier]);
         const affiliatedData = `${data}${encodedAffiliateData.slice(2)}`;
         return affiliatedData;
     },
