@@ -1,13 +1,17 @@
-// tslint:disable:custom-no-magic-numbers
+// tslint:disable:custom-no-magic-numbers max-file-line-count
 import { assert } from '@0x/assert';
 import {
+    BlockParamLiteral,
     CurveFillData,
     ERC20BridgeSource,
     FeeSchedule,
     RfqtMakerAssetOfferings,
+    SamplerOverrides,
     SwapQuoteRequestOpts,
+    SwapQuoterOpts,
     UniswapV2FillData,
 } from '@0x/asset-swapper';
+import { OrderPrunerPermittedFeeTypes } from '@0x/asset-swapper/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
@@ -22,6 +26,7 @@ import {
     DEFAULT_RFQT_SKIP_BUY_REQUESTS,
     NULL_ADDRESS,
     NULL_BYTES,
+    QUOTE_ORDER_EXPIRATION_BUFFER_MS,
 } from './constants';
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
@@ -343,6 +348,32 @@ export const ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS: Partial<SwapQuoteRequestOpts> 
     gasSchedule: GAS_SCHEDULE_V1,
     shouldBatchBridgeOrders: false,
     runLimit: 2 ** 13,
+};
+
+export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
+    switch (CHAIN_ID) {
+        case ChainId.Ganache:
+        case ChainId.Kovan:
+            return { overrides: {}, block: BlockParamLiteral.Latest };
+        default:
+            return undefined;
+    }
+})();
+
+export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
+    chainId: CHAIN_ID,
+    expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
+    liquidityProviderRegistryAddress: LIQUIDITY_POOL_REGISTRY_ADDRESS,
+    rfqt: {
+        takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
+        makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
+        skipBuyRequests: RFQT_SKIP_BUY_REQUESTS,
+        // warningLogger: logger.warn.bind(logger),
+        // infoLogger: logger.info.bind(logger),
+    },
+    ethGasStationUrl: ETH_GAS_STATION_API_URL,
+    permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
+    samplerOverrides: SAMPLER_OVERRIDES,
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {

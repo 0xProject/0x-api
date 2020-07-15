@@ -7,9 +7,8 @@ import {
     SwapQuoteConsumer,
     SwapQuoteGetOutputOpts,
     SwapQuoter,
-    SwapQuoterOpts,
 } from '@0x/asset-swapper';
-import { OrderPrunerPermittedFeeTypes, SwapQuoteRequestOpts } from '@0x/asset-swapper/lib/src/types';
+import { SwapQuoteRequestOpts } from '@0x/asset-swapper/lib/src/types';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ERC20TokenContract, ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
@@ -21,12 +20,8 @@ import {
     ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
     ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS,
     CHAIN_ID,
-    ETH_GAS_STATION_API_URL,
-    LIQUIDITY_POOL_REGISTRY_ADDRESS,
-    RFQT_API_KEY_WHITELIST,
-    RFQT_MAKER_ASSET_OFFERINGS,
     RFQT_REQUEST_MAX_RESPONSE_MS,
-    RFQT_SKIP_BUY_REQUESTS,
+    SWAP_QUOTER_OPTS,
 } from '../config';
 import {
     DEFAULT_VALIDATION_GAS_LIMIT,
@@ -34,7 +29,6 @@ import {
     GST2_WALLET_ADDRESSES,
     NULL_ADDRESS,
     ONE,
-    QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     TEN_MINUTES_MS,
     UNWRAP_QUOTE_GAS,
     WRAP_QUOTE_GAS,
@@ -71,22 +65,8 @@ export class SwapService {
 
     constructor(orderbook: Orderbook, provider: SupportedProvider) {
         this._provider = provider;
-        const swapQuoterOpts: Partial<SwapQuoterOpts> = {
-            chainId: CHAIN_ID,
-            expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
-            liquidityProviderRegistryAddress: LIQUIDITY_POOL_REGISTRY_ADDRESS,
-            rfqt: {
-                takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
-                makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
-                skipBuyRequests: RFQT_SKIP_BUY_REQUESTS,
-                warningLogger: logger.warn.bind(logger),
-                infoLogger: logger.info.bind(logger),
-            },
-            ethGasStationUrl: ETH_GAS_STATION_API_URL,
-            permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
-        };
-        this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
-        this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
+        this._swapQuoter = new SwapQuoter(this._provider, orderbook, SWAP_QUOTER_OPTS);
+        this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, SWAP_QUOTER_OPTS);
         this._web3Wrapper = new Web3Wrapper(this._provider);
 
         this._contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);

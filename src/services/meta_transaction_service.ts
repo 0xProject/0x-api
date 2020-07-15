@@ -1,5 +1,5 @@
-import { Orderbook, SwapQuoter, SwapQuoterOpts } from '@0x/asset-swapper';
-import { OrderPrunerPermittedFeeTypes, SwapQuoteRequestOpts } from '@0x/asset-swapper/lib/src/types';
+import { Orderbook, SwapQuoter } from '@0x/asset-swapper';
+import { SwapQuoteRequestOpts } from '@0x/asset-swapper/lib/src/types';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import { DevUtilsContract } from '@0x/contracts-dev-utils';
@@ -14,13 +14,9 @@ import { Connection, Repository } from 'typeorm';
 import {
     ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
     CHAIN_ID,
-    ETH_GAS_STATION_API_URL,
-    LIQUIDITY_POOL_REGISTRY_ADDRESS,
     META_TXN_RELAY_EXPECTED_MINED_SEC,
     META_TXN_SUBMIT_WHITELISTED_API_KEYS,
-    RFQT_API_KEY_WHITELIST,
-    RFQT_MAKER_ASSET_OFFERINGS,
-    RFQT_SKIP_BUY_REQUESTS,
+    SWAP_QUOTER_OPTS,
 } from '../config';
 import {
     DEFAULT_VALIDATION_GAS_LIMIT,
@@ -28,7 +24,6 @@ import {
     ONE_MINUTE_MS,
     ONE_SECOND_MS,
     PUBLIC_ADDRESS_FOR_ETH_CALLS,
-    QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     SIGNER_STATUS_DB_KEY,
     SUBMITTED_TX_DB_POLLING_INTERVAL_MS,
     TEN_MINUTES_MS,
@@ -69,21 +64,7 @@ export class MetaTransactionService {
     }
     constructor(orderbook: Orderbook, provider: SupportedProvider, dbConnection: Connection) {
         this._provider = provider;
-        const swapQuoterOpts: Partial<SwapQuoterOpts> = {
-            chainId: CHAIN_ID,
-            expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
-            liquidityProviderRegistryAddress: LIQUIDITY_POOL_REGISTRY_ADDRESS,
-            rfqt: {
-                takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
-                makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
-                skipBuyRequests: RFQT_SKIP_BUY_REQUESTS,
-                warningLogger: logger.warn.bind(logger),
-                infoLogger: logger.info.bind(logger),
-            },
-            ethGasStationUrl: ETH_GAS_STATION_API_URL,
-            permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
-        };
-        this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
+        this._swapQuoter = new SwapQuoter(this._provider, orderbook, SWAP_QUOTER_OPTS);
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._web3Wrapper = new Web3Wrapper(this._provider);
         this._devUtils = new DevUtilsContract(this._contractWrappers.contractAddresses.devUtils, this._provider);
