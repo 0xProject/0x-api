@@ -45,6 +45,7 @@ export const DEFAULT_RFQT_SKIP_BUY_REQUESTS = false;
 // API namespaces
 export const SRA_PATH = '/sra/v3';
 export const STAKING_PATH = '/staking';
+export const RECURRING_TRADES_PATH = '/recurring';
 export const SWAP_PATH = '/swap/v0';
 export const META_TRANSACTION_PATH = '/meta_transaction/v0';
 export const METRICS_PATH = '/metrics';

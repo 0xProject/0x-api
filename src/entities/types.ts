@@ -21,7 +21,6 @@ export interface TransactionEntityOpts {
 }
 
 export interface RecurringTradeEntityOpts {
-    id: string;
     traderAddress: string;
     fromTokenAddress: string;
     toTokenAddress: string;

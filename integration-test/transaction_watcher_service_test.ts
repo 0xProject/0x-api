@@ -27,6 +27,7 @@ import { TransactionEntity } from '../src/entities';
 import { GeneralErrorCodes } from '../src/errors';
 import { MetricsService } from '../src/services/metrics_service';
 import { OrderBookService } from '../src/services/orderbook_service';
+import { RecurringTradeService } from '../src/services/recurring_trade_service';
 import { StakingDataService } from '../src/services/staking_data_service';
 import { TransactionWatcherSignerService } from '../src/services/transaction_watcher_signer_service';
 import { TransactionStates, TransactionWatcherSignerServiceConfig } from '../src/types';
@@ -86,6 +87,7 @@ describe('transaction watcher service', () => {
         const orderBookService = new OrderBookService(connection);
         const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
         const stakingDataService = new StakingDataService(connection);
+        const recurringTradeService = new RecurringTradeService(connection);
         const websocketOpts = { path: SRA_PATH };
         const swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
         const meshClient = new MeshClient(
@@ -99,6 +101,7 @@ describe('transaction watcher service', () => {
                 orderBookService,
                 metaTransactionService,
                 stakingDataService,
+                recurringTradeService,
                 connection,
                 provider,
                 swapService,

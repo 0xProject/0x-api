@@ -1,4 +1,4 @@
-import { BigNumber } from '@0x/utils';
+import { BigNumber, hexUtils } from '@0x/utils';
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 import { BigNumberTransformer } from './transformers';
@@ -41,8 +41,16 @@ export class RecurringTradeEntity {
     // https://github.com/typeorm/typeorm/issues/1772 we cannot accept undefined
     // as an argument to the constructor, to not break migrations with
     // serialize. Please use the public static make method instead.
-    private constructor(opts: RecurringTradeEntityOpts) {
-        this.id = opts.id;
+    private constructor(opts: RecurringTradeEntityOpts= {
+        traderAddress: '',
+        fromTokenAddress: '',
+        toTokenAddress: '',
+        fromTokenAmount: new BigNumber('0'),
+        scheduleType: '',
+        status: '',
+    }) {
+        const combinedIdArgs = hexUtils.concat(opts.traderAddress, opts.fromTokenAddress, opts.toTokenAddress);
+        this.id = hexUtils.hash(combinedIdArgs);
         this.traderAddress = opts.traderAddress;
         this.createdAt = new Date();
         this.fromTokenAddress = opts.fromTokenAddress;

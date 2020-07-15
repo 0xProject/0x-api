@@ -7,7 +7,7 @@ import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import { defaultHttpServiceWithRateLimiterConfig } from '../config';
-import { META_TRANSACTION_PATH, METRICS_PATH, SRA_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
+import { META_TRANSACTION_PATH, METRICS_PATH, RECURRING_TRADES_PATH, SRA_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
@@ -15,6 +15,7 @@ import { errorHandler } from '../middleware/error_handling';
 import { requestLogger } from '../middleware/request_logger';
 import { createMetaTransactionRouter } from '../routers/meta_transaction_router';
 import { createMetricsRouter } from '../routers/metrics_router';
+import { createRecurringTradeRouter } from '../routers/recurring_trade_router';
 import { createSRARouter } from '../routers/sra_router';
 import { createStakingRouter } from '../routers/staking_router';
 import { createSwapRouter } from '../routers/swap_router';
@@ -82,6 +83,9 @@ export async function runHttpServiceAsync(
 
     // staking http service
     app.use(STAKING_PATH, createStakingRouter(dependencies.stakingDataService));
+
+    // recurring trades http service
+    app.use(RECURRING_TRADES_PATH, createRecurringTradeRouter(dependencies.recurringTradeService));
 
     // SRA http service
     app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
