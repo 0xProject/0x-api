@@ -117,6 +117,11 @@
   version "4.9.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/8aa115995636ca07134a1634c084778c5ac05b76"
 
+"@0x/contract-addresses@4.11.0":
+  version "4.11.0"
+  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-4.11.0.tgz#945aa81035bfc5605306c39c5f76656b204e01e2"
+  integrity sha512-ovGZzJMhrGDVoq+pofqP2y23niPyQi7QjqSXZNDHcPbo4+XCuV7EvCv0eTlcuwpVNdQDQvcl3Oma9qokDrmx/Q==
+
 "@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.6.3-f14b6f2ba", "@0x/contract-wrappers@^13.6.3", "@0x/contract-wrappers@^13.7.0":
   version "13.6.3"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/2206976cd1ff3d458b5551e2b3135aebd2ceeca8"
