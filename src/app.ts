@@ -12,6 +12,7 @@ import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_run
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { MetricsService } from './services/metrics_service';
 import { OrderBookService } from './services/orderbook_service';
+import { RecurringTradeService } from './services/recurring_trade_service';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
@@ -35,6 +36,7 @@ import { MetaTransactionComposableLimiter } from './utils/rate-limiters/meta_tra
 export interface AppDependencies {
     connection: Connection;
     stakingDataService: StakingDataService;
+    recurringTradeService: RecurringTradeService;
     meshClient?: MeshClient;
     orderBookService: OrderBookService;
     swapService?: SwapService;
@@ -85,6 +87,8 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
+    const recurringTradeService = new RecurringTradeService(connection);
+
     const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
 
     const websocketOpts = { path: SRA_PATH };
@@ -95,6 +99,7 @@ export async function getDefaultAppDependenciesAsync(
         meshClient,
         orderBookService,
         swapService,
+        recurringTradeService,
         metaTransactionService,
         provider,
         websocketOpts,

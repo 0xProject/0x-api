@@ -19,3 +19,13 @@ export interface TransactionEntityOpts {
     // Ethereum tx status, 1 == success, 0 == failure
     txStatus?: number;
 }
+
+export interface RecurringTradeEntityOpts {
+    id: string;
+    traderAddress: string;
+    fromTokenAddress: string;
+    toTokenAddress: string;
+    fromTokenAmount: BigNumber;
+    scheduleType: string;
+    status: string;
+}
