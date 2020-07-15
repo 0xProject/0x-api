@@ -41,14 +41,15 @@ export class RecurringTradeEntity {
     // https://github.com/typeorm/typeorm/issues/1772 we cannot accept undefined
     // as an argument to the constructor, to not break migrations with
     // serialize. Please use the public static make method instead.
-    private constructor(opts: RecurringTradeEntityOpts= {
-        traderAddress: '',
-        fromTokenAddress: '',
-        toTokenAddress: '',
-        fromTokenAmount: new BigNumber('0'),
-        scheduleType: '',
-        status: '',
-    }) {
+    private constructor(
+        opts: RecurringTradeEntityOpts = {
+            traderAddress: '',
+            fromTokenAddress: '',
+            toTokenAddress: '',
+            fromTokenAmount: new BigNumber('0'),
+            scheduleType: '',
+        },
+    ) {
         const combinedIdArgs = hexUtils.concat(opts.traderAddress, opts.fromTokenAddress, opts.toTokenAddress);
         this.id = hexUtils.hash(combinedIdArgs);
         this.traderAddress = opts.traderAddress;
@@ -57,6 +58,6 @@ export class RecurringTradeEntity {
         this.toTokenAddress = opts.toTokenAddress;
         this.fromTokenAmount = opts.fromTokenAmount;
         this.scheduleType = opts.scheduleType;
-        this.status = opts.status;
+        this.status = 'pending';
     }
 }

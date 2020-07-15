@@ -26,5 +26,4 @@ export interface RecurringTradeEntityOpts {
     toTokenAddress: string;
     fromTokenAmount: BigNumber;
     scheduleType: string;
-    status: string;
 }

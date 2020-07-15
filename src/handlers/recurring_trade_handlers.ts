@@ -15,7 +15,7 @@ export class RecurringTradeHandlers {
     constructor(recurringTradeService: RecurringTradeService) {
         this._recurringTradeService = recurringTradeService;
     }
-    public async getAllRecurringTradesAsync(res: express.Response): Promise<void> {
+    public async getAllRecurringTradesAsync(_req: express.Request, res: express.Response): Promise<void> {
         const recurringTrades = await this._recurringTradeService.getAllRecurringTradesAsync();
         res.status(HttpStatus.OK).send(recurringTrades);
     }
@@ -27,12 +27,11 @@ export class RecurringTradeHandlers {
 }
 
 const parseRecurringTradeEntityOpts = (req: express.Request): RecurringTradeEntityOpts => {
-    const traderAddress = req.query.traderAddress as string;
-    const fromTokenAddress = req.query.fromTokenAddress as string;
-    const toTokenAddress = req.query.toTokenAddress as string;
-    const fromTokenAmount = new BigNumber(req.query.fromTokenAmount as string);
-    const scheduleType = req.query.scheduleType as string;
-    const status = req.query.status as string;
+    const traderAddress = req.body.traderAddress as string;
+    const fromTokenAddress = req.body.fromTokenAddress as string;
+    const toTokenAddress = req.body.toTokenAddress as string;
+    const fromTokenAmount = new BigNumber(req.body.fromTokenAmount as string);
+    const scheduleType = req.body.scheduleType as string;
 
-    return { traderAddress, fromTokenAddress, toTokenAddress, fromTokenAmount, scheduleType, status };
+    return { traderAddress, fromTokenAddress, toTokenAddress, fromTokenAmount, scheduleType };
 };
