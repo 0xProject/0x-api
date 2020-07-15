@@ -10,7 +10,7 @@ import {
 } from '@0x/asset-swapper';
 import { SwapQuoteRequestOpts } from '@0x/asset-swapper/lib/src/types';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { ERC20TokenContract, ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
+import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
@@ -60,7 +60,6 @@ export class SwapService {
     // Result caches, stored for a few minutes and refetched
     // when the result has expired
     private readonly _gstBalanceResultCache: ResultCache<BigNumber>;
-    private readonly _flashWalletResultCache: ResultCache<string>;
     private readonly _tokenDecimalResultCache: ResultCache<number>;
 
     constructor(orderbook: Orderbook, provider: SupportedProvider) {
@@ -78,10 +77,6 @@ export class SwapService {
         this._gstBalanceResultCache = createResultCache<BigNumber>(() =>
             gasTokenContract.balanceOf(GST2_WALLET_ADDRESSES[CHAIN_ID]).callAsync(),
         );
-        this._flashWalletResultCache = createResultCache<string>(() => {
-            const transformer = new ITransformERC20Contract(this._contractAddresses.exchangeProxy, this._provider);
-            return transformer.getTransformWallet().callAsync();
-        });
         this._tokenDecimalResultCache = createResultCache<number>(
             (tokenAddress: string) => serviceUtils.fetchTokenDecimalsIfRequiredAsync(tokenAddress, this._web3Wrapper),
             // tslint:disable-next-line:custom-no-magic-numbers
@@ -387,7 +382,7 @@ export class SwapService {
                     // In V1 the taker is always the ExchangeProxy's FlashWallet
                     // as it allows us to optionally transform assets (i.e Deposit ETH into WETH)
                     // Since the FlashWallet is the taker it needs to be forwarded to the quote provider
-                    takerAddress = (await this._flashWalletResultCache.getResultAsync()).result;
+                    takerAddress = this._contractAddresses.exchangeProxyFlashWallet;
                     break;
                 default:
                     throw new Error(`Unsupported Swap version: ${swapVersion}`);

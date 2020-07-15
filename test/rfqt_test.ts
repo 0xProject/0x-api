@@ -1,7 +1,7 @@
 // tslint:disable:max-file-line-count
 import { ERC20BridgeSource, rfqtMocker, SignedOrder } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
-import { ITransformERC20Contract, WETH9Contract } from '@0x/contract-wrappers';
+import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
@@ -95,9 +95,7 @@ describe(SUITE_NAME, () => {
         let DEFAULT_RFQT_RESPONSE_DATA;
         let signedOrder;
         before(async () => {
-            const flashWalletAddress = await new ITransformERC20Contract(CONTRACT_ADDRESSES.exchangeProxy, provider)
-                .getTransformWallet()
-                .callAsync();
+            const flashWalletAddress = CONTRACT_ADDRESSES.exchangeProxyFlashWallet;
             DEFAULT_RFQT_RESPONSE_DATA = {
                 endpoint: 'https://mock-rfqt1.club',
                 responseCode: 200,
@@ -112,6 +110,7 @@ describe(SUITE_NAME, () => {
             };
             const order: SignedOrder = {
                 ...ganacheZrxWethOrderExchangeProxy,
+                takerAddress: flashWalletAddress,
                 makerAssetAmount: new BigNumber(ganacheZrxWethOrderExchangeProxy.makerAssetAmount),
                 takerAssetAmount: new BigNumber(ganacheZrxWethOrderExchangeProxy.takerAssetAmount),
                 takerFee: new BigNumber(ganacheZrxWethOrderExchangeProxy.takerFee),

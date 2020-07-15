@@ -23,7 +23,6 @@ export const ganacheZrxWethOrderExchangeProxy = {
     chainId: 1337,
     exchangeAddress: '0x48bacb9266a570d521063ef5dd96e61686dbe788',
     makerAddress: '0x5409ed021d9299bf6814279a6a1411a7e866a631',
-    takerAddress: '0xdec8629610e2f4087bd9cc441d10ca8be0c6f6c5',
     feeRecipientAddress: '0x1000000000000000000000000000000000000011',
     senderAddress: '0x0000000000000000000000000000000000000000',
     makerAssetAmount: '100000000000000000',
