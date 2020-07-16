@@ -46,15 +46,6 @@ export class RecurringTradeService {
         });
 
         // re-save entities for which we have contract data
-        SAMPLE_CONTRACT_OUTPUT.map(async recurringTrade => {
-            const entity = activePendingRecurringTrades.find(element => element.id === recurringTrade.id);
-            entity.fromTokenAddress = recurringTrade.sellToken;
-            entity.toTokenAddress = recurringTrade.buyToken;
-            entity.fromTokenAmount = new BigNumber(recurringTrade.sellAmount);
-            entity.status = 'active';
-
-            await this._recurringTradeEntityRepository.save(entity);
-        });
     }
 
     public async tradeIfTradableAsync(): Promise<void> {
