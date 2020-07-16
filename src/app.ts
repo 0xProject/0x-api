@@ -89,7 +89,7 @@ export async function getDefaultAppDependenciesAsync(
 
     const recurringTradeService = new RecurringTradeService(connection);
 
-    recurringTradeService.runCronJobAsync();
+    await recurringTradeService.runCronJobAsync();
 
     const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
 
