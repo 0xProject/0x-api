@@ -40,7 +40,7 @@ export class RecurringTradeService {
             entity.fromTokenAddress = recurringTrade.sellToken;
             entity.toTokenAddress = recurringTrade.buyToken;
             entity.fromTokenAmount = new BigNumber(recurringTrade.sellAmount);
-            entity.status = 'Active';
+            entity.status = 'active';
 
             await this._recurringTradeEntityRepository.save(entity);
         });
