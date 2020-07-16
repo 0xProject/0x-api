@@ -22,6 +22,7 @@ export interface TransactionEntityOpts {
 
 export interface RecurringTradeEntityOpts {
     traderAddress: string;
+    bridgeAddress: string;
     fromTokenAddress: string;
     toTokenAddress: string;
     fromTokenAmount: BigNumber;

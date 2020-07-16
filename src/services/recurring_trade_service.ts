@@ -1,3 +1,5 @@
+import { BigNumber, logUtils } from '@0x/utils';
+import * as cron from 'node-cron';
 import { Connection, Repository } from 'typeorm';
 
 import { RecurringTradeEntity } from '../entities';
@@ -10,6 +12,49 @@ export class RecurringTradeService {
     constructor(dbConnection: Connection) {
         this._connection = dbConnection;
         this._recurringTradeEntityRepository = this._connection.getRepository(RecurringTradeEntity);
+    }
+
+    public async runCronJobAsync(): Promise<void> {
+        // run job every minute
+        cron.schedule(`0 * * * * *`, async () => {
+            await this.checkForUpdatesAsync();
+            await this.tradeIfTradableAsync();
+            logUtils.log(`it's running`);
+        });
+    }
+
+    public async checkForUpdatesAsync(): Promise<void> {
+        const activePendingRecurringTrades = await this._recurringTradeEntityRepository.find({
+            where: [
+              { status: 'pending' },
+              { status: 'active' },
+            ],
+        });
+        const idsToCheck = activePendingRecurringTrades.map(x => x.id);
+
+        logUtils.log(idsToCheck);
+
+        // re-save entities for which we have contract data
+        SAMPLE_CONTRACT_OUTPUT.map(async recurringTrade => {
+            const entity = activePendingRecurringTrades.find(element => element.id === recurringTrade.id);
+            entity.fromTokenAddress = recurringTrade.sellToken;
+            entity.toTokenAddress = recurringTrade.buyToken;
+            entity.fromTokenAmount = new BigNumber(recurringTrade.sellAmount);
+            entity.status = 'Active';
+
+            await this._recurringTradeEntityRepository.save(entity);
+        });
+    }
+
+    public async tradeIfTradableAsync(): Promise<void> {
+        const activeRecurringTrades = await this._recurringTradeEntityRepository.find({
+            where: [
+              { status: 'active' },
+            ],
+        });
+        const idsToCheck = activeRecurringTrades.map(x => x.id);
+
+        logUtils.log(idsToCheck);
     }
 
     public async getAllRecurringTradesAsync(): Promise<RecurringTradeEntity[]> {
@@ -25,3 +70,13 @@ export class RecurringTradeService {
         return recurringTradeEntity;
     }
 }
+
+const SAMPLE_CONTRACT_OUTPUT = [
+    {
+        id: '0xace1eed7b42516376b01cd170e503153c2a0cab03b684c8a4f96638c92e2d961',
+        address: '0x5a0b54d5dc17e0aadc383d2db43b0a0d3e029c4c',
+        sellToken: '0xdcfab8057d08634279f8201b55d311c2a67897d2',
+        buyToken: '0x0000000000000000000000000000000000000000',
+        sellAmount: 4000,
+    },
+];

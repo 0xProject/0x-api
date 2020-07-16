@@ -28,10 +28,11 @@ export class RecurringTradeHandlers {
 
 const parseRecurringTradeEntityOpts = (req: express.Request): RecurringTradeEntityOpts => {
     const traderAddress = (req.body.traderAddress as string).toLowerCase();
+    const bridgeAddress = (req.body.bridgeAddress as string).toLowerCase();
     const fromTokenAddress = (req.body.fromTokenAddress as string).toLowerCase();
     const toTokenAddress = (req.body.toTokenAddress as string).toLowerCase();
     const fromTokenAmount = new BigNumber(req.body.fromTokenAmount as string);
     const scheduleType = req.body.scheduleType as string;
 
-    return { traderAddress, fromTokenAddress, toTokenAddress, fromTokenAmount, scheduleType };
+    return { traderAddress, bridgeAddress, fromTokenAddress, toTokenAddress, fromTokenAmount, scheduleType };
 };

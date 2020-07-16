@@ -89,6 +89,8 @@ export async function getDefaultAppDependenciesAsync(
 
     const recurringTradeService = new RecurringTradeService(connection);
 
+    recurringTradeService.runCronJobAsync();
+
     const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
 
     const websocketOpts = { path: SRA_PATH };

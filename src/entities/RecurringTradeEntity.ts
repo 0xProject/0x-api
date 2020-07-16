@@ -12,6 +12,9 @@ export class RecurringTradeEntity {
     @Column({ name: 'trader_address', type: 'varchar' })
     public traderAddress: string;
 
+    @Column({ name: 'bridge_address', type: 'varchar' })
+    public bridgeAddress: string;
+
     @Column({ name: 'created_at', type: 'timestamptz' })
     public createdAt: Date;
 
@@ -44,6 +47,7 @@ export class RecurringTradeEntity {
     private constructor(
         opts: RecurringTradeEntityOpts = {
             traderAddress: '',
+            bridgeAddress: '',
             fromTokenAddress: '',
             toTokenAddress: '',
             fromTokenAmount: new BigNumber('0'),
@@ -53,6 +57,7 @@ export class RecurringTradeEntity {
         const combinedIdArgs = hexUtils.concat(opts.traderAddress, opts.fromTokenAddress, opts.toTokenAddress);
         this.id = hexUtils.hash(combinedIdArgs);
         this.traderAddress = opts.traderAddress;
+        this.bridgeAddress = opts.bridgeAddress;
         this.createdAt = new Date();
         this.fromTokenAddress = opts.fromTokenAddress;
         this.toTokenAddress = opts.toTokenAddress;
