@@ -42,6 +42,7 @@ export class RecurringTradeService {
 
         idsToCheck.map(id => {
             const onChainInfo = this._ritualBridgeWrapper.recurringBuys(id);
+            logUtils.log(onChainInfo);
         });
 
         // re-save entities for which we have contract data
