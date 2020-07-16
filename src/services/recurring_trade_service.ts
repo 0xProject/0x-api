@@ -64,6 +64,15 @@ export class RecurringTradeService {
         return result;
     }
 
+    public async getRecurringTradesByTraderAsync(trader: string): Promise<RecurringTradeEntity[]> {
+        const result = await this._recurringTradeEntityRepository.find({
+            where: [
+              { trader },
+            ],
+        });
+        return result;
+    }
+
     public async createRecurringTradeAsync(
         recurringTradeEntityOpts: RecurringTradeEntityOpts,
     ): Promise<RecurringTradeEntity> {

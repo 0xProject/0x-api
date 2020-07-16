@@ -15,6 +15,10 @@ export const createRecurringTradeRouter = (
      */
     router.get('/trades', asyncHandler(handlers.getAllRecurringTradesAsync.bind(handlers)));
     /**
+     * GET trades/<address> endpoint returns recurring trades for the given address
+     */
+    router.get('/trades/:address', asyncHandler(handlers.getAllRecurringTradesAsync.bind(handlers)));
+    /**
      * POST create recurring trades endpoint creates a new recurring trade
      */
     router.post('/create', asyncHandler(handlers.createRecurringTradeAsync.bind(handlers)));

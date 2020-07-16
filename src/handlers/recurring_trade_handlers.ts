@@ -19,6 +19,11 @@ export class RecurringTradeHandlers {
         const recurringTrades = await this._recurringTradeService.getAllRecurringTradesAsync();
         res.status(HttpStatus.OK).send(recurringTrades);
     }
+    public async getRecurringTradesByTraderAsync(req: express.Request, res: express.Response): Promise<void> {
+        const trader = String(req.params.address).toLowerCase();
+        const recurringTrades = await this._recurringTradeService.getRecurringTradesByTraderAsync(trader);
+        res.status(HttpStatus.OK).send(recurringTrades);
+    }
     public async createRecurringTradeAsync(req: express.Request, res: express.Response): Promise<void> {
         const recurringTradeEntityOpts = parseRecurringTradeEntityOpts(req);
         const recurringTrade = await this._recurringTradeService.createRecurringTradeAsync(recurringTradeEntityOpts);
