@@ -27,9 +27,24 @@ export class RecurringTradeEntity {
     @Column({ name: 'from_token_amount', type: 'numeric', transformer: BigNumberTransformer })
     public fromTokenAmount: BigNumber;
 
-    @Column({ name: 'schedule_type', type: 'varchar' })
-    // can be 'daily', 'weekly, 'monthly'
-    public scheduleType: string;
+    @Column({ name: 'interval', type: 'numeric', transformer: BigNumberTransformer })
+    // time between trades
+    public interval: BigNumber;
+
+    @Column({ name: 'min_buy_amount', type: 'numeric', transformer: BigNumberTransformer })
+    public minBuyAmount: BigNumber;
+
+    @Column({ name: 'max_slippage_bps', type: 'numeric', transformer: BigNumberTransformer })
+    public maxSlippageBps: BigNumber;
+
+    @Column({ name: 'unwrap_weth', type: 'boolean' })
+    public unwrapWeth: boolean;
+
+    @Column({ name: 'current_window_buy_start', type: 'numeric', transformer: BigNumberTransformer, nullable: true })
+    public currentWindowBuyStart: BigNumber;
+
+    @Column({ name: 'current_window_amount_sold', type: 'numeric', transformer: BigNumberTransformer, nullable: true })
+    public currentIntervalAmountSold: BigNumber;
 
     @Column({ name: 'status', type: 'varchar' })
     // can be 'pending', 'failed', 'cancelled', 'active'
@@ -51,7 +66,10 @@ export class RecurringTradeEntity {
             fromTokenAddress: '',
             toTokenAddress: '',
             fromTokenAmount: new BigNumber('0'),
-            scheduleType: '',
+            interval: new BigNumber('0'),
+            minBuyAmount: new BigNumber('0'),
+            maxSlippageBps: new BigNumber('0'),
+            unwrapWeth: false,
         },
     ) {
         const combinedIdArgs = hexUtils.concat(opts.traderAddress, opts.fromTokenAddress, opts.toTokenAddress);
@@ -62,7 +80,10 @@ export class RecurringTradeEntity {
         this.fromTokenAddress = opts.fromTokenAddress;
         this.toTokenAddress = opts.toTokenAddress;
         this.fromTokenAmount = opts.fromTokenAmount;
-        this.scheduleType = opts.scheduleType;
+        this.interval = opts.interval;
+        this.minBuyAmount = opts.minBuyAmount;
+        this.maxSlippageBps = opts.maxSlippageBps;
+        this.unwrapWeth = opts.unwrapWeth;
         this.status = 'pending';
     }
 }

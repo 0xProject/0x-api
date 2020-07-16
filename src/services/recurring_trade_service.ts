@@ -1,17 +1,23 @@
+import { RitualBridgeContract } from '@0x/contracts-asset-proxy';
+import { SupportedProvider } from '@0x/order-utils';
 import { BigNumber, logUtils } from '@0x/utils';
 import * as cron from 'node-cron';
 import { Connection, Repository } from 'typeorm';
 
+import { CHAIN_ID } from '../config';
+import { RITUAL_BRIDGE_ADDRESSES } from '../constants';
 import { RecurringTradeEntity } from '../entities';
 import { RecurringTradeEntityOpts } from '../entities/types';
 
 export class RecurringTradeService {
     private readonly _connection: Connection;
     private readonly _recurringTradeEntityRepository: Repository<RecurringTradeEntity>;
+    private readonly _ritualBridgeWrapper: RitualBridgeContract;
 
-    constructor(dbConnection: Connection) {
+    constructor(dbConnection: Connection, provider: SupportedProvider) {
         this._connection = dbConnection;
         this._recurringTradeEntityRepository = this._connection.getRepository(RecurringTradeEntity);
+        this._ritualBridgeWrapper = new RitualBridgeContract(RITUAL_BRIDGE_ADDRESSES[CHAIN_ID], provider);
     }
 
     public async runCronJobAsync(): Promise<void> {
@@ -33,6 +39,10 @@ export class RecurringTradeService {
         const idsToCheck = activePendingRecurringTrades.map(x => x.id);
 
         logUtils.log(idsToCheck);
+
+        idsToCheck.map(id => {
+            const onChainInfo = this._ritualBridgeWrapper.recurringBuys(id);
+        });
 
         // re-save entities for which we have contract data
         SAMPLE_CONTRACT_OUTPUT.map(async recurringTrade => {

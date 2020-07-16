@@ -89,3 +89,7 @@ export const GST2_WALLET_ADDRESSES = {
     [ChainId.Kovan]: NULL_ADDRESS,
     [ChainId.Ganache]: NULL_ADDRESS,
 };
+
+export const RITUAL_BRIDGE_ADDRESSES = {
+    [ChainId.Kovan]: '0x5d8C9Ba74607D2cbc4176882A42D4ACE891c1c00',
+};

@@ -87,7 +87,7 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
-    const recurringTradeService = new RecurringTradeService(connection);
+    const recurringTradeService = new RecurringTradeService(connection, provider);
 
     await recurringTradeService.runCronJobAsync();
 

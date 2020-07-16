@@ -32,7 +32,11 @@ const parseRecurringTradeEntityOpts = (req: express.Request): RecurringTradeEnti
     const fromTokenAddress = (req.body.fromTokenAddress as string).toLowerCase();
     const toTokenAddress = (req.body.toTokenAddress as string).toLowerCase();
     const fromTokenAmount = new BigNumber(req.body.fromTokenAmount as string);
-    const scheduleType = req.body.scheduleType as string;
+    const interval = new BigNumber(req.body.interval as string);
+    const minBuyAmount = new BigNumber(req.body.minBuyAmount as string);
+    const maxSlippageBps = new BigNumber(req.body.minBuyAmount as string);
+    // tslint:disable-next-line: boolean-naming
+    const unwrapWeth = (req.body.minBuyAmount as boolean);
 
-    return { traderAddress, bridgeAddress, fromTokenAddress, toTokenAddress, fromTokenAmount, scheduleType };
+    return { traderAddress, bridgeAddress, fromTokenAddress, toTokenAddress, fromTokenAmount, interval, minBuyAmount, maxSlippageBps, unwrapWeth };
 };

@@ -26,5 +26,8 @@ export interface RecurringTradeEntityOpts {
     fromTokenAddress: string;
     toTokenAddress: string;
     fromTokenAmount: BigNumber;
-    scheduleType: string;
+    interval: BigNumber;
+    minBuyAmount: BigNumber;
+    maxSlippageBps: BigNumber;
+    unwrapWeth: boolean;
 }
