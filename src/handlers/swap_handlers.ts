@@ -37,6 +37,22 @@ export class SwapHandlers {
         this._swapService = swapService;
     }
 
+    public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {
+        const makerToken = getTokenMetadataIfExists(req.query.buyToken as string, CHAIN_ID);
+        const takerToken = getTokenMetadataIfExists(req.query.sellToken as string, CHAIN_ID);
+        const response = await this._swapService.calculateMarketDepthAsync({
+            buyTokenAddress: makerToken.tokenAddress,
+            sellTokenAddress: takerToken.tokenAddress,
+            sellAmount: new BigNumber(req.query.sellAmount as string),
+            // tslint:disable-next-line:radix custom-no-magic-numbers
+            numSamples: req.query.numSamples ? parseInt(req.query.numSamples as string) : 100,
+            sampleDistributionBase: req.query.sampleDistributionBase
+                ? parseFloat(req.query.sampleDistributionBase as string)
+                : 1.25,
+        });
+        res.status(HttpStatus.OK).send({ ...response, buyToken: makerToken, sellToken: takerToken });
+    }
+
     public async getSwapQuoteAsync(
         swapVersion: SwapVersion,
         req: express.Request,

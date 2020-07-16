@@ -38,6 +38,7 @@ import { InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
+    CalaculateMarketDepthParams,
     CalculateSwapQuoteParams,
     GetSwapQuoteResponse,
     GetTokenPricesResponse,
@@ -82,6 +83,15 @@ export class SwapService {
             // tslint:disable-next-line:custom-no-magic-numbers
             TEN_MINUTES_MS * 6 * 24,
         );
+    }
+
+    public async calculateMarketDepthAsync(params: CalaculateMarketDepthParams): Promise<any> {
+        const { buyTokenAddress, sellTokenAddress, sellAmount, numSamples, sampleDistributionBase } = params;
+        return this._swapQuoter.getLiquidityForMakerTakerAssetPairAsync(buyTokenAddress, sellTokenAddress, sellAmount, {
+            numSamples,
+            excludedSources: [ERC20BridgeSource.MultiBridge],
+            sampleDistributionBase,
+        });
     }
 
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {

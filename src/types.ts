@@ -532,6 +532,14 @@ export interface CalculateSwapQuoteParams {
     swapVersion: SwapVersion;
 }
 
+export interface CalaculateMarketDepthParams {
+    buyTokenAddress: string;
+    sellTokenAddress: string;
+    sellAmount: BigNumber;
+    numSamples: number;
+    sampleDistributionBase: number;
+}
+
 export interface GetSwapQuoteResponseLiquiditySource {
     name: string;
     proportion: BigNumber;
