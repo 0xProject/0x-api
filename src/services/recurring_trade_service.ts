@@ -123,7 +123,7 @@ export class RecurringTradeService {
                     sellTokenAddress: entity.fromTokenAddress,
                     isETHSell: false,
                     skipValidation: false,
-                    from: '',
+                    from: undefined,
                 };
 
                 const swapQuote = await this._swapService.calculateSwapQuoteAsync(swapQuoteParams);

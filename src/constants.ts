@@ -91,5 +91,6 @@ export const GST2_WALLET_ADDRESSES = {
 };
 
 export const RITUAL_BRIDGE_ADDRESSES = {
+    [ChainId.Mainnet]: '0x86e7d651c2a3f82d6B4330E7926f90a4A42e2077',
     [ChainId.Kovan]: '0x5d8C9Ba74607D2cbc4176882A42D4ACE891c1c00',
 };
