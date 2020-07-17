@@ -259,7 +259,7 @@ export const DEFAULT_ERC20_TOKEN_PRECISION = 18;
 const EXCLUDED_SOURCES = (() => {
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [];
+            return [ERC20BridgeSource.Balancer];
         case ChainId.Kovan:
             return [ERC20BridgeSource.Kyber];
         default:
