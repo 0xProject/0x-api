@@ -222,6 +222,10 @@ export const META_TXN_RATE_LIMITER_CONFIG: MetaTransactionRateLimitConfig | unde
           EnvVarType.RateLimitConfig,
       );
 
+// Vars for the recurring order bot
+export const RECURRING_ORDER_BOT_ADDRESS: string = assertEnvVarType('RECURRING_ORDER_BOT_ADDRESS', process.env.RECURRING_ORDER_BOT_ADDRESS, EnvVarType.NonEmptyString);
+export const RECURRING_ORDER_BOT_PRIVATE_KEY: string = assertEnvVarType('RECURRING_ORDER_BOT_PRIVATE_KEY', process.env.RECURRING_ORDER_BOT_PRIVATE_KEY, EnvVarType.NonEmptyString);
+
 // Whether or not prometheus metrics should be enabled.
 // tslint:disable-next-line:boolean-naming
 export const ENABLE_PROMETHEUS_METRICS: boolean = _.isEmpty(process.env.ENABLE_PROMETHEUS_METRICS)

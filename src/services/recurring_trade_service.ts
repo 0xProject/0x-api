@@ -1,13 +1,16 @@
 import { RitualBridgeContract } from '@0x/contracts-asset-proxy';
-import { SupportedProvider } from '@0x/order-utils';
+import { PrivateKeyWalletSubprovider, RPCSubprovider, Web3ProviderEngine } from '@0x/subproviders';
+// import { SupportedProvider } from '@0x/order-utils';
 import { BigNumber, logUtils } from '@0x/utils';
 import * as cron from 'node-cron';
 import { Connection, Repository } from 'typeorm';
 
-import { CHAIN_ID } from '../config';
-import { RITUAL_BRIDGE_ADDRESSES } from '../constants';
+import { CHAIN_ID, RECURRING_ORDER_BOT_ADDRESS, RECURRING_ORDER_BOT_PRIVATE_KEY } from '../config';
+import { ONE_GWEI, RITUAL_BRIDGE_ADDRESSES } from '../constants';
 import { RecurringTradeEntity } from '../entities';
 import { RecurringTradeEntityOpts } from '../entities/types';
+
+import { SwapService } from './swap_service';
 
 // CONSTANTS
 // wait an hour for pending to confirm
@@ -29,11 +32,21 @@ export class RecurringTradeService {
     private readonly _connection: Connection;
     private readonly _recurringTradeEntityRepository: Repository<RecurringTradeEntity>;
     private readonly _ritualBridgeWrapper: RitualBridgeContract;
+    private readonly _swapService: SwapService;
 
-    constructor(dbConnection: Connection, provider: SupportedProvider) {
+    constructor(dbConnection: Connection, ethRpcUrl: string, swapService: SwapService) {
         this._connection = dbConnection;
         this._recurringTradeEntityRepository = this._connection.getRepository(RecurringTradeEntity);
-        this._ritualBridgeWrapper = new RitualBridgeContract(RITUAL_BRIDGE_ADDRESSES[CHAIN_ID], provider);
+        const providerEngine = new Web3ProviderEngine();
+        const rpcProvider = new RPCSubprovider(ethRpcUrl);
+        const privateKeyProvider = new PrivateKeyWalletSubprovider(RECURRING_ORDER_BOT_PRIVATE_KEY);
+
+        providerEngine.addProvider(privateKeyProvider);
+        providerEngine.addProvider(rpcProvider);
+        providerEngine.start();
+
+        this._ritualBridgeWrapper = new RitualBridgeContract(RITUAL_BRIDGE_ADDRESSES[CHAIN_ID], providerEngine);
+        this._swapService = swapService;
     }
 
     public async runCronJobAsync(): Promise<void> {
@@ -96,9 +109,47 @@ export class RecurringTradeService {
             const currentTimeSeconds = new BigNumber((new Date().getTime()) / MILLISECONDS_IN_A_SECOND);
             if (
                 ((currentTimeSeconds.minus(entity.currentBuyWindowStart)).isGreaterThan(SECONDS_TO_WAIT_BEFORE_FILLING)) &&
-                (entity.fromTokenAmount.isGreaterThan(entity.currentIntervalAmountSold))
+                (entity.fromTokenAmount.isGreaterThan(entity.currentIntervalAmountSold)) &&
+                (entity.lastTxSentForBuyWindow.isLessThan(entity.currentBuyWindowStart))
             ) {
                 logUtils.log(`met conditions to fill`);
+                logUtils.log(`getting a quote`);
+
+                // create swap quote params
+                const swapQuoteParams = {
+                    sellAmount: entity.fromTokenAmount.minus(entity.currentIntervalAmountSold),
+                    buyAmount: undefined,
+                    buyTokenAddress: entity.toTokenAddress,
+                    sellTokenAddress: entity.fromTokenAddress,
+                    isETHSell: false,
+                    skipValidation: false,
+                    from: '',
+                };
+
+                const swapQuote = await this._swapService.calculateSwapQuoteAsync(swapQuoteParams);
+                logUtils.log(swapQuote);
+
+                // TODO: Call fill function
+                const signatures = swapQuote.orders.map(order => order.signature);
+                logUtils.log(signatures);
+                const floatGasPrice = swapQuote.gasPrice;
+                const gasPrice = floatGasPrice
+                    .div(ONE_GWEI)
+                    .integerValue(BigNumber.ROUND_UP)
+                    .times(ONE_GWEI);
+                logUtils.log(gasPrice);
+
+                const txData = {
+                    gasPrice,
+                    from: RECURRING_ORDER_BOT_ADDRESS,
+                };
+
+                logUtils.log(txData);
+
+                // this._ritualBridgeWrapper.fillRecurringBuy(entity.traderAddress, entity.fromTokenAmount, entity.toTokenAddress, swapQuote.orders, signatures).getABIEncodedTransactionData();
+
+                entity.lastTxSentForBuyWindow = entity.currentBuyWindowStart;
+                await this._recurringTradeEntityRepository.save(entity);
             }
         }));
     }

@@ -3,6 +3,7 @@ import * as express from 'express';
 import { Server } from 'http';
 import { Connection } from 'typeorm';
 
+import { ETHEREUM_RPC_URL } from './config';
 import { SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { logger } from './logger';
@@ -87,7 +88,7 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
-    const recurringTradeService = new RecurringTradeService(connection, provider);
+    const recurringTradeService = new RecurringTradeService(connection, ETHEREUM_RPC_URL, swapService);
 
     await recurringTradeService.runCronJobAsync();
 

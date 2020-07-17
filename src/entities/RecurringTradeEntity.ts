@@ -46,6 +46,9 @@ export class RecurringTradeEntity {
     @Column({ name: 'current_window_amount_sold', type: 'numeric', transformer: BigNumberTransformer, nullable: true })
     public currentIntervalAmountSold: BigNumber;
 
+    @Column({ name: 'last_tx_sent_for_buy_window', type: 'numeric', transformer: BigNumberTransformer, nullable: true })
+    public lastTxSentForBuyWindow: BigNumber;
+
     @Column({ name: 'status', type: 'varchar' })
     // can be 'pending', 'failed', 'cancelled', 'active'
     public status: string;
