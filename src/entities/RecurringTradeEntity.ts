@@ -40,8 +40,8 @@ export class RecurringTradeEntity {
     @Column({ name: 'unwrap_weth', type: 'boolean' })
     public unwrapWeth: boolean;
 
-    @Column({ name: 'current_window_buy_start', type: 'numeric', transformer: BigNumberTransformer, nullable: true })
-    public currentWindowBuyStart: BigNumber;
+    @Column({ name: 'current_buy_window_start', type: 'numeric', transformer: BigNumberTransformer, nullable: true })
+    public currentBuyWindowStart: BigNumber;
 
     @Column({ name: 'current_window_amount_sold', type: 'numeric', transformer: BigNumberTransformer, nullable: true })
     public currentIntervalAmountSold: BigNumber;
