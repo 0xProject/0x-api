@@ -6,11 +6,7 @@ import 'mocha';
 import * as request from 'supertest';
 import { Connection, Repository } from 'typeorm';
 
-import {
-    createMetaTxnServiceFromOrderBookService,
-    createSwapServiceFromOrderBookService,
-    getAppAsync,
-} from '../src/app';
+import { createMetaTxnServiceFromOrderBookService, createSwapService, getAppAsync } from '../src/app';
 import {
     CHAIN_ID,
     defaultHttpServiceConfig,
@@ -32,6 +28,7 @@ import { StakingDataService } from '../src/services/staking_data_service';
 import { TransactionWatcherSignerService } from '../src/services/transaction_watcher_signer_service';
 import { TransactionStates, TransactionWatcherSignerServiceConfig } from '../src/types';
 import { MeshClient } from '../src/utils/mesh_client';
+import { OrderStoreDbAdapter } from '../src/utils/order_store_db_adapter';
 import { utils } from '../src/utils/utils';
 
 import { TestMetaTxnUser } from './utils/test_signer';
@@ -85,11 +82,12 @@ describe('transaction watcher service', () => {
         txWatcher = new TransactionWatcherSignerService(connection, txWatcherConfig);
         await txWatcher.syncTransactionStatusAsync();
         const orderBookService = new OrderBookService(connection);
+        const orderStore = new OrderStoreDbAdapter(orderBookService);
+        const swapService = createSwapService(provider, orderBookService, orderStore);
         const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
         const stakingDataService = new StakingDataService(connection);
-        const recurringTradeService = new RecurringTradeService(connection, provider);
+        const recurringTradeService = new RecurringTradeService(connection, ETHEREUM_RPC_URL, swapService);
         const websocketOpts = { path: SRA_PATH };
-        const swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
         const meshClient = new MeshClient(
             defaultHttpServiceConfig.meshWebsocketUri,
             defaultHttpServiceConfig.meshHttpUri,

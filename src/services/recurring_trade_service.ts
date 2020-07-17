@@ -3,7 +3,7 @@ import { PrivateKeyWalletSubprovider, RPCSubprovider, Web3ProviderEngine } from 
 // import { SupportedProvider } from '@0x/order-utils';
 import { BigNumber, logUtils } from '@0x/utils';
 import * as cron from 'node-cron';
-import { Connection, Repository } from 'typeorm';
+import { Connection, In, Repository } from 'typeorm';
 
 import { CHAIN_ID, RECURRING_ORDER_BOT_ADDRESS, RECURRING_ORDER_BOT_PRIVATE_KEY } from '../config';
 import { ONE_GWEI, RITUAL_BRIDGE_ADDRESSES } from '../constants';
@@ -60,10 +60,7 @@ export class RecurringTradeService {
 
     public async checkForUpdatesAsync(): Promise<void> {
         const activePendingRecurringTrades = await this._recurringTradeEntityRepository.find({
-            where: [
-              { status: 'pending' },
-              { status: 'active' },
-            ],
+            where: [{ status: 'pending' }, { status: 'active' }],
         });
 
         logUtils.log(activePendingRecurringTrades);
@@ -98,9 +95,7 @@ export class RecurringTradeService {
 
     public async tradeIfTradableAsync(): Promise<void> {
         const activeRecurringTrades = await this._recurringTradeEntityRepository.find({
-            where: [
-              { status: 'active' },
-            ],
+            where: [{ status: 'active' }],
         });
 
         await Promise.all(activeRecurringTrades.map(async entity => {
@@ -161,9 +156,27 @@ export class RecurringTradeService {
 
     public async getRecurringTradesByTraderAsync(trader: string): Promise<RecurringTradeEntity[]> {
         const result = await this._recurringTradeEntityRepository.find({
-            where: [
-              { trader },
-            ],
+            where: [{ trader }],
+        });
+        return result;
+    }
+
+    public async getActiveRecurringTradesForAssetPairAsync(
+        fromTokenAddress: string,
+        toTokenAddress: string,
+    ): Promise<RecurringTradeEntity[]> {
+        const result = await this._recurringTradeEntityRepository.find({
+            where: { status: 'active', fromTokenAddress, toTokenAddress },
+        });
+        return result;
+    }
+
+    public async getBatchActiveRecurringTradesForAssetPairAsync(
+        fromTokenAddresses: string[],
+        toTokenAddresses: string[],
+    ): Promise<RecurringTradeEntity[]> {
+        const result = await this._recurringTradeEntityRepository.find({
+            where: { status: 'active', fromTokenAddress: In(fromTokenAddresses), toTokenAddress: In(toTokenAddresses) },
         });
         return result;
     }

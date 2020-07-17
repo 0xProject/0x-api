@@ -57,7 +57,7 @@ export class SwapService {
     private readonly _gasTokenContract: ERC20TokenContract;
     private readonly _forwarderAddress: string;
 
-    constructor(orderbook: Orderbook, provider: SupportedProvider) {
+    constructor(provider: SupportedProvider, orderbook: Orderbook) {
         this._provider = provider;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             chainId: CHAIN_ID,

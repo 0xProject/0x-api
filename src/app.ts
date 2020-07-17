@@ -80,17 +80,18 @@ export async function getDefaultAppDependenciesAsync(
     }
 
     const orderBookService = new OrderBookService(connection, meshClient);
+    const orderStore = new OrderStoreDbAdapter(orderBookService);
 
     let swapService: SwapService | undefined;
     try {
-        swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
+        swapService = createSwapService(provider, orderBookService, orderStore);
     } catch (err) {
         logger.error(err.stack);
     }
 
     const recurringTradeService = new RecurringTradeService(connection, ETHEREUM_RPC_URL, swapService);
-
     await recurringTradeService.runCronJobAsync();
+    orderStore.recurringTradeService = recurringTradeService;
 
     const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
 
@@ -186,14 +187,14 @@ function createMetaTransactionRateLimiterFromConfig(
 /**
  * Instantiates SwapService using the provided OrderBookService and ethereum RPC provider.
  */
-export function createSwapServiceFromOrderBookService(
-    orderBookService: OrderBookService,
+export function createSwapService(
     provider: SupportedProvider,
+    orderBookService: OrderBookService,
+    orderStore: OrderStoreDbAdapter,
 ): SwapService {
-    const orderStore = new OrderStoreDbAdapter(orderBookService);
     const orderProvider = new OrderBookServiceOrderProvider(orderStore, orderBookService);
     const orderBook = new Orderbook(orderProvider, orderStore);
-    return new SwapService(orderBook, provider);
+    return new SwapService(provider, orderBook);
 }
 
 /**
