@@ -43,14 +43,14 @@ export function createDefaultServer(
         logger.info(`received: ${sig}, shutting down server`);
         healthcheckService.setHealth(false);
         server.close(async err => {
-            if (!server.listening) {
-                process.exit(0);
+            if (dependencies.meshClient) {
+                dependencies.meshClient.destroy();
             }
             if (dependencies.connection) {
                 await dependencies.connection.close();
             }
-            if (dependencies.meshClient) {
-                dependencies.meshClient.destroy();
+            if (!server.listening) {
+                process.exit(0);
             }
             if (err) {
                 logger.error(`server closed with an error: ${err}, exiting`);
