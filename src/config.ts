@@ -259,7 +259,7 @@ export const DEFAULT_ERC20_TOKEN_PRECISION = 18;
 const EXCLUDED_SOURCES = (() => {
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [ERC20BridgeSource.Balancer];
+            return [];
         case ChainId.Kovan:
             return [ERC20BridgeSource.Kyber];
         default:
@@ -368,8 +368,6 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
         takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
         makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
         skipBuyRequests: RFQT_SKIP_BUY_REQUESTS,
-        // warningLogger: logger.warn.bind(logger),
-        // infoLogger: logger.info.bind(logger),
     },
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
