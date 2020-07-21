@@ -256,6 +256,8 @@ export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision
 export const DEFAULT_ERC20_TOKEN_PRECISION = 18;
 
+export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(70000);
+
 const EXCLUDED_SOURCES = (() => {
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
@@ -308,7 +310,7 @@ export const GAS_SCHEDULE_V0: FeeSchedule = {
 const FEE_SCHEDULE_V0: FeeSchedule = Object.assign(
     {},
     ...(Object.keys(GAS_SCHEDULE_V0) as ERC20BridgeSource[]).map(k => ({
-        [k]: fillData => new BigNumber(1.5e5).plus(GAS_SCHEDULE_V0[k](fillData)),
+        [k]: fillData => PROTOCOL_FEE_MULTIPLIER.plus(GAS_SCHEDULE_V0[k](fillData)),
     })),
 );
 
@@ -333,7 +335,7 @@ const FEE_SCHEDULE_V1: FeeSchedule = Object.assign(
     ...(Object.keys(GAS_SCHEDULE_V0) as ERC20BridgeSource[]).map(k => ({
         [k]:
             k === ERC20BridgeSource.Native
-                ? fillData => new BigNumber(1.5e5).plus(GAS_SCHEDULE_V1[k](fillData))
+                ? fillData => PROTOCOL_FEE_MULTIPLIER.plus(GAS_SCHEDULE_V1[k](fillData))
                 : fillData => GAS_SCHEDULE_V1[k](fillData),
     })),
 );
