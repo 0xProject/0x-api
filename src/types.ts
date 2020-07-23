@@ -496,10 +496,7 @@ export interface GetSwapQuoteRequestParams {
     gasPrice?: BigNumber;
     excludedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
-    rfqt?: {
-        intentOnFilling?: boolean;
-        isIndicative?: boolean;
-    };
+    rfqt?: Partial<RfqtRequestOpts>;
     skipValidation: boolean;
     apiKey?: string;
 }

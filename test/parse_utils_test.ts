@@ -1,11 +1,11 @@
-import 'mocha';
-import { expect, expectInsufficientFundsAsync } from '@0x/contracts-test-utils';
-import { parseUtils } from '../src/utils/parse_utils';
 import { ERC20BridgeSource } from '@0x/asset-swapper';
+import { expect } from '@0x/contracts-test-utils';
 import { NULL_ADDRESS } from '@0x/utils';
+import 'mocha';
+
+import { parseUtils } from '../src/utils/parse_utils';
 
 const SUITE_NAME = 'parseUtils';
-
 
 describe.only(SUITE_NAME, () => {
     it('raises a ValidationError if includedSources is anything else than RFQT', async () => {
@@ -61,7 +61,7 @@ describe.only(SUITE_NAME, () => {
         expect(nativeExclusivelyRFQT).to.eql(true);
 
         // Ensure that all sources of liquidity are excluded aside from `Native`.
-        const allPossibleSources: Set<ERC20BridgeSource> = new Set(Object.keys(ERC20BridgeSource).map(s => ERC20BridgeSource[s]) as ERC20BridgeSource[]);
+        const allPossibleSources: Set<ERC20BridgeSource> = new Set(Object.keys(ERC20BridgeSource).map(s => ERC20BridgeSource[s]));
         for (const source of excludedSources) {
             allPossibleSources.delete(source);
         }

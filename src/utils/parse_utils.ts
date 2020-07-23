@@ -1,6 +1,7 @@
 import { assert } from '@0x/assert';
 import { ERC20BridgeSource } from '@0x/asset-swapper';
 
+import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import {
     MetaTransactionDailyLimiterConfig,
     MetaTransactionRateLimitConfig,
@@ -9,9 +10,6 @@ import {
 } from '../types';
 
 import { AvailableRateLimiter, DatabaseKeysUsedForRateLimiter, RollingLimiterIntervalUnit } from './rate-limiters';
-import { ValidationErrorCodes, ValidationErrorReasons, ValidationError } from '../errors';
-import { isValidAddress } from 'ethereumjs-util';
-import { API_KEY_HEADER } from '../constants';
 
 interface SwapRequestParams {
     takerAddress?: string;
@@ -20,6 +18,12 @@ interface SwapRequestParams {
     apiKey?: string;
 }
 
+/**
+ * This constant contains, as keys, all ERC20BridgeSource types except from `Native`.
+ * As we add more bridge sources to AssetSwapper, we want to keep ourselves accountable to add
+ * them to this constant. Since there isn't a good way to enumerate over enums, we use a obect type.
+ * The type has been defined in a way that the code won't compile if a new ERC20BridgeSource is added.
+ */
 const ALL_EXCEPT_NATIVE: {[key in Exclude<ERC20BridgeSource, ERC20BridgeSource.Native>]: boolean} = {
     Uniswap: true,
     Balancer: true,
@@ -29,7 +33,7 @@ const ALL_EXCEPT_NATIVE: {[key in Exclude<ERC20BridgeSource, ERC20BridgeSource.N
     LiquidityProvider: true,
     MultiBridge: true,
     Uniswap_V2: true,
-}
+};
 
 export const parseUtils = {
     parseRequestForExcludedSources(

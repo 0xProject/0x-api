@@ -22,6 +22,9 @@
         "excludedSources": {
             "type": "string"
         },
+        "includedSources": {
+            "type": "string"
+        },
         "apiKey": {
             "type": "string"
         },

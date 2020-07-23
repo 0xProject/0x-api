@@ -23,7 +23,6 @@ import {
     DEFAULT_LOCAL_POSTGRES_URI,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
-    DEFAULT_RFQT_SKIP_BUY_REQUESTS,
     NULL_ADDRESS,
     NULL_BYTES,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -187,10 +186,6 @@ export const RFQT_MAKER_ASSET_OFFERINGS: RfqtMakerAssetOfferings = _.isEmpty(pro
       );
 
 // tslint:disable-next-line:boolean-naming
-export const RFQT_SKIP_BUY_REQUESTS: boolean = _.isEmpty(process.env.RFQT_SKIP_BUY_REQUESTS)
-    ? DEFAULT_RFQT_SKIP_BUY_REQUESTS
-    : assertEnvVarType('RFQT_SKIP_BUY_REQUESTS', process.env.RFQT_SKIP_BUY_REQUESTS, EnvVarType.Boolean);
-
 export const RFQT_REQUEST_MAX_RESPONSE_MS = 600;
 
 // Whitelisted 0x API keys that can use the meta-txn /submit endpoint
@@ -369,7 +364,6 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     rfqt: {
         takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
         makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
-        skipBuyRequests: RFQT_SKIP_BUY_REQUESTS,
     },
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
