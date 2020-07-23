@@ -125,6 +125,31 @@ export class SwapHandlers {
         const records = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount);
         res.status(HttpStatus.OK).send({ records });
     }
+
+    public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {
+        const makerToken = getTokenMetadataIfExists(req.query.buyToken as string, CHAIN_ID);
+        const takerToken = getTokenMetadataIfExists(req.query.sellToken as string, CHAIN_ID);
+        try {
+            const response = await this._swapService.calculateMarketDepthAsync({
+                buyToken: makerToken,
+                sellToken: takerToken,
+                sellAmount: new BigNumber(req.query.sellAmount as string),
+                // tslint:disable-next-line:radix custom-no-magic-numbers
+                numSamples: req.query.numSamples ? parseInt(req.query.numSamples as string) : 100,
+                sampleDistributionBase: req.query.sampleDistributionBase
+                    ? parseFloat(req.query.sampleDistributionBase as string)
+                    : 1.05,
+                excludedSources: req.query.excludedSources === undefined
+                    ? []
+                    : parseUtils.parseStringArrForERC20BridgeSources((req.query.excludedSources as string).split(',')),
+            });
+            res.status(HttpStatus.OK).send({ ...response, buyToken: makerToken, sellToken: takerToken });
+        } catch (e) {
+            console.log(e);
+            throw e;
+        }
+    }
+
     private async _calculateSwapQuoteAsync(
         params: GetSwapQuoteRequestParams,
         swapVersion: SwapVersion,

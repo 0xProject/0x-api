@@ -613,4 +613,13 @@ export interface HttpServiceConfig {
     meshHttpUri?: string;
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
 }
+
+export interface CalaculateMarketDepthParams {
+    buyToken: TokenMetadata;
+    sellToken: TokenMetadata;
+    sellAmount: BigNumber;
+    numSamples: number;
+    sampleDistributionBase: number;
+    excludedSources?: ERC20BridgeSource[];
+}
 // tslint:disable-line:max-file-line-count
