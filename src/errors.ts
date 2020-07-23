@@ -135,6 +135,9 @@ export enum ValidationErrorCodes {
 
 export enum ValidationErrorReasons {
     PercentageOutOfRange = 'MUST_BE_LESS_THAN_OR_EQUAL_TO_ONE',
+    ConflictingFilteringArguments = 'CONFLICTING_FILTERING_ARGUMENTS',
+    ArgumentNotYetSupported = 'ARGUMENT_NOT_YET_SUPPORTED',
+    FieldInvalid = 'FieldInvalid',
 }
 export abstract class AlertError {
     public abstract message: string;
