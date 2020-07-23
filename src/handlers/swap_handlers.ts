@@ -1,5 +1,5 @@
 import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
-import { BigNumber, logUtils, NULL_ADDRESS } from '@0x/utils';
+import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 
