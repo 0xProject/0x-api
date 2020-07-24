@@ -7,7 +7,7 @@ import { parseUtils } from '../src/utils/parse_utils';
 
 const SUITE_NAME = 'parseUtils';
 
-describe(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     it('raises a ValidationError if includedSources is anything else than RFQT', async () => {
         expect(() => {
             parseUtils.parseRequestForExcludedSources(
@@ -15,6 +15,7 @@ describe(SUITE_NAME, () => {
                     includedSources: 'Uniswap',
                 },
                 [],
+                'price',
             );
         }).throws();
     });
@@ -26,6 +27,7 @@ describe(SUITE_NAME, () => {
                     includedSources: 'RFQT',
                 },
                 [],
+                'price',
             );
         }).throws();
     });
@@ -39,6 +41,7 @@ describe(SUITE_NAME, () => {
                     apiKey: 'foo',
                 },
                 ['lorem', 'ipsum'],
+                'price',
             );
         }).throws();
     });
@@ -50,6 +53,7 @@ describe(SUITE_NAME, () => {
                 excludedSources: 'Uniswap,Kyber',
             },
             [],
+            'price',
         );
         expect(excludedSources[0]).to.eql(ERC20BridgeSource.Uniswap);
         expect(excludedSources[1]).to.eql(ERC20BridgeSource.Kyber);
@@ -58,7 +62,7 @@ describe(SUITE_NAME, () => {
 
     it('returns empty array if no includedSources and excludedSources are present', async () => {
         // tslint:disable-next-line: boolean-naming
-        const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources({}, []);
+        const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources({}, [], 'price');
         expect(excludedSources.length).to.eql(0);
         expect(nativeExclusivelyRFQT).to.eql(false);
     });
@@ -72,6 +76,7 @@ describe(SUITE_NAME, () => {
                 apiKey: 'ipsum',
             },
             ['lorem', 'ipsum'],
+            'price',
         );
         expect(nativeExclusivelyRFQT).to.eql(true);
 
@@ -95,6 +100,21 @@ describe(SUITE_NAME, () => {
                     includedSources: 'RFQT',
                 },
                 [],
+                'price',
+            );
+        }).throws();
+    });
+
+    it('raises a ValidationError if a firm quote is requested and "intentOnFilling" is not set to "true"', async () => {
+        expect(() => {
+            parseUtils.parseRequestForExcludedSources(
+                {
+                    includedSources: 'RFQT',
+                    takerAddress: NULL_ADDRESS,
+                    apiKey: 'ipsum',
+                },
+                ['lorem', 'ipsum'],
+                'quote',
             );
         }).throws();
     });

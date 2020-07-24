@@ -15,6 +15,7 @@ interface SwapRequestParams {
     takerAddress?: string;
     excludedSources?: string;
     includedSources?: string;
+    intentOnFilling?: string;
     apiKey?: string;
 }
 
@@ -39,6 +40,7 @@ export const parseUtils = {
     parseRequestForExcludedSources(
         request: SwapRequestParams,
         validApiKeys: string[],
+        endpoint: 'price' | 'quote',
     ): { excludedSources: ERC20BridgeSource[]; nativeExclusivelyRFQT: boolean } {
         // Ensure that both filtering arguments cannot be present.
         if (request.excludedSources !== undefined && request.includedSources !== undefined) {
@@ -98,6 +100,18 @@ export const parseUtils = {
                     },
                 ]);
             }
+
+            // If the user is requesting a firm quote, we want to make sure that `intentOnFilling` is set to "true".
+            if (endpoint === 'quote' && request.intentOnFilling !== 'true') {
+                throw new ValidationError([
+                    {
+                        field: 'intentOnFilling',
+                        code: ValidationErrorCodes.IncorrectFormat,
+                        reason: ValidationErrorReasons.FieldInvalid,
+                    },
+                ]);
+            }
+
             return {
                 nativeExclusivelyRFQT: true,
                 excludedSources: Object.keys(ALL_EXCEPT_NATIVE) as ERC20BridgeSource[],
