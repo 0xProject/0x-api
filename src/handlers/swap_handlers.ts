@@ -286,7 +286,7 @@ const parseGetSwapQuoteRequestParams = (
     );
 
     const affiliateAddress = req.query.affiliateAddress as string;
-    const rfqt: Partial<RfqtRequestOpts> =
+    const rfqt: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'> =
         takerAddress && apiKey
             ? {
                   intentOnFilling: endpoint === 'quote' && req.query.intentOnFilling === 'true',
