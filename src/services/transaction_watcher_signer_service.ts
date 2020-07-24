@@ -17,7 +17,7 @@ import {
 import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates, TransactionWatcherSignerServiceConfig, TransactionWatcherSignerStatus } from '../types';
-import { ethGasStationUtils } from '../utils/gas_station_utils';
+import { estimateFeeUtils } from '../utils/estimate_fee_utils';
 import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { Signer } from '../utils/signer';
 import { utils } from '../utils/utils';
@@ -381,7 +381,7 @@ export class TransactionWatcherSignerService {
         if (stuckTransactions.length === 0) {
             return;
         }
-        const gasStationPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
+        const gasStationPrice = await estimateFeeUtils.getGasPriceOrThrowAsync();
         const targetGasPrice = gasStationPrice.multipliedBy(this._config.unstickGasMultiplier);
         for (const tx of stuckTransactions) {
             if (tx.from === undefined) {
@@ -505,7 +505,7 @@ export class TransactionWatcherSignerService {
         if (!this._config.isSigningEnabled) {
             return false;
         }
-        const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
+        const currentFastGasPrice = await estimateFeeUtils.getGasPriceOrThrowAsync();
         const isCurrentGasPriceBelowMax = Web3Wrapper.toUnitAmount(currentFastGasPrice, GWEI_DECIMALS).lt(
             this._config.maxGasPriceGwei,
         );
@@ -541,7 +541,7 @@ export class TransactionWatcherSignerService {
                 {},
             ),
             gasPrice: Web3Wrapper.toUnitAmount(
-                await ethGasStationUtils.getGasPriceOrThrowAsync(),
+                await estimateFeeUtils.getGasPriceOrThrowAsync(),
                 GWEI_DECIMALS,
             ).toNumber(),
             maxGasPrice: this._config.maxGasPriceGwei.toNumber(),
