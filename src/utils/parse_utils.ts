@@ -67,8 +67,48 @@ export const parseUtils = {
         }
 
         if (request.includedSources !== undefined) {
+
             // Only RFQT is eligible as of now
-            if (request.includedSources !== 'RFQT') {
+            if (request.includedSources === 'RFQT') {
+                // We assume that if a `takerAddress` key is present, it's value was already validated by the JSON
+                // schema.
+                if (request.takerAddress === undefined || request.takerAddress.length === 0) {
+                    throw new ValidationError([
+                        {
+                            field: 'takerAddress',
+                            code: ValidationErrorCodes.IncorrectFormat,
+                            reason: ValidationErrorReasons.FieldInvalid,
+                        },
+                    ]);
+                }
+
+                // We enforce a valid API key - we don't want to fail silently.
+                if (!validApiKeys.includes(request.apiKey)) {
+                    throw new ValidationError([
+                        {
+                            field: '0x-api-key',
+                            code: ValidationErrorCodes.IncorrectFormat,
+                            reason: ValidationErrorReasons.FieldInvalid,
+                        },
+                    ]);
+                }
+
+                // If the user is requesting a firm quote, we want to make sure that `intentOnFilling` is set to "true".
+                if (endpoint === 'quote' && request.intentOnFilling !== 'true') {
+                    throw new ValidationError([
+                        {
+                            field: 'intentOnFilling',
+                            code: ValidationErrorCodes.IncorrectFormat,
+                            reason: ValidationErrorReasons.FieldInvalid,
+                        },
+                    ]);
+                }
+
+                return {
+                    nativeExclusivelyRFQT: true,
+                    excludedSources: Object.keys(ALL_EXCEPT_NATIVE) as ERC20BridgeSource[],
+                };
+            } else {
                 throw new ValidationError([
                     {
                         field: 'includedSources',
@@ -78,44 +118,6 @@ export const parseUtils = {
                 ]);
             }
 
-            // We assume that if a `takerAddress` key is present, it's value was already validated by the JSON
-            // schema.
-            if (request.takerAddress === undefined || request.takerAddress.length === 0) {
-                throw new ValidationError([
-                    {
-                        field: 'takerAddress',
-                        code: ValidationErrorCodes.IncorrectFormat,
-                        reason: ValidationErrorReasons.FieldInvalid,
-                    },
-                ]);
-            }
-
-            // We enforce a valid API key - we don't want to fail silently.
-            if (!validApiKeys.includes(request.apiKey)) {
-                throw new ValidationError([
-                    {
-                        field: '0x-api-key',
-                        code: ValidationErrorCodes.IncorrectFormat,
-                        reason: ValidationErrorReasons.FieldInvalid,
-                    },
-                ]);
-            }
-
-            // If the user is requesting a firm quote, we want to make sure that `intentOnFilling` is set to "true".
-            if (endpoint === 'quote' && request.intentOnFilling !== 'true') {
-                throw new ValidationError([
-                    {
-                        field: 'intentOnFilling',
-                        code: ValidationErrorCodes.IncorrectFormat,
-                        reason: ValidationErrorReasons.FieldInvalid,
-                    },
-                ]);
-            }
-
-            return {
-                nativeExclusivelyRFQT: true,
-                excludedSources: Object.keys(ALL_EXCEPT_NATIVE) as ERC20BridgeSource[],
-            };
         }
 
         return { excludedSources: [], nativeExclusivelyRFQT: false };
