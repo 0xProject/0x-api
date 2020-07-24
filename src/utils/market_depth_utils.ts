@@ -1,3 +1,4 @@
+import { BalancerFillData, CurveFillData, FillData, UniswapV2FillData } from '@0x/asset-swapper';
 import {
     DexSample,
     ERC20BridgeSource,
@@ -86,7 +87,6 @@ export const marketDepthUtils = {
             // TODO do I really want to do this
             return ZERO;
         }
-        console.log('native sample', { targetInput, totalInput, totalOutput });
         return totalOutput;
     },
     normalizeMarketDepthToSampleOutput: (depthSide: MarketDepthSide): MarketDepthSide => {
@@ -147,8 +147,30 @@ export const marketDepthUtils = {
                 side === MarketOperation.Sell ? price.isGreaterThanOrEqualTo(b) : price.isLessThanOrEqualTo(b),
             );
         };
+        const sampleToSourceKey = (sample: DexSample<FillData>): string => {
+            const source = sample.source;
+            if (!sample.fillData) {
+                return source;
+            }
+            switch (source) {
+                case ERC20BridgeSource.Curve:
+                    return `${source}:${(sample.fillData as CurveFillData).curve.poolAddress}`;
+                case ERC20BridgeSource.Balancer:
+                    return `${source}:${(sample.fillData as BalancerFillData).poolAddress}`;
+                case ERC20BridgeSource.UniswapV2:
+                    return `${source}:${(sample.fillData as UniswapV2FillData).tokenAddressPath.join('-')}`;
+                default:
+                    break;
+            }
+            return source;
+        };
         for (const samples of depthSide) {
-            const source = samples[0].source;
+            // Since multiple samples can fall into a bucket we do not want to
+            // double count them.
+            // Curve, Balancer etc can have the same source strings but be from different
+            // pools, so we modify their source string temporarily to attribute
+            // the different pool
+            const source = sampleToSourceKey(samples[0]);
             for (const sample of samples) {
                 if (sample.output.isZero()) {
                     continue;
@@ -160,16 +182,31 @@ export const marketDepthUtils = {
                     continue;
                 }
                 const bucket = allocatedBuckets[bucketId];
-                bucket.bucketTotal = bucket.bucketTotal.plus(sample.output);
-                bucket[source] = bucket[source] ? bucket[source].plus(sample.output) : sample.output;
+                if (bucket[source]) {
+                    bucket.bucketTotal = bucket.bucketTotal.minus(bucket[source]).plus(sample.output);
+                    bucket[source] = sample.output;
+                } else {
+                    bucket.bucketTotal = bucket.bucketTotal.plus(sample.output);
+                    bucket[source] = sample.output;
+                }
             }
         }
         let totalCumulative = ZERO;
-        const cumulativeBuckets = allocatedBuckets.map(b => {
+        // Normalize the source names back and create a cumulative total
+        const normalizedCumulativeBuckets = allocatedBuckets.map(b => {
             totalCumulative = totalCumulative.plus(b.bucketTotal);
+            for (const key of Object.keys(b)) {
+                const source = key.split(':')[0];
+                if (source !== key && Object.values(ERC20BridgeSource).includes(source as ERC20BridgeSource)) {
+                    // Curve:0xabcd,100 -> Curve,100
+                    // Add Curve:0abcd to Curve
+                    b[source] = b[source] ? b[source].plus(b[key]) : b[key];
+                    delete b[key];
+                }
+            }
             return { ...b, cumulative: totalCumulative };
         });
-        return cumulativeBuckets;
+        return normalizedCumulativeBuckets;
     },
 
     calculateDepthForSide: (
