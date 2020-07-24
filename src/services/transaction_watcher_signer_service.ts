@@ -381,8 +381,8 @@ export class TransactionWatcherSignerService {
         if (stuckTransactions.length === 0) {
             return;
         }
-        const gasStationPrice = await estimateFeeUtils.getGasPriceOrThrowAsync();
-        const targetGasPrice = gasStationPrice.multipliedBy(this._config.unstickGasMultiplier);
+        const estimatedGasPrice = await estimateFeeUtils.getGasPriceOrThrowAsync();
+        const targetGasPrice = estimatedGasPrice.multipliedBy(this._config.unstickGasMultiplier);
         for (const tx of stuckTransactions) {
             if (tx.from === undefined) {
                 logger.error({
