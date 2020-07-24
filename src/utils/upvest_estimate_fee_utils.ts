@@ -23,8 +23,8 @@ const getGasInfoAsync = async () => {
 export const upvestEstimateFeeUtils = {
     getGasPriceOrThrowAsync: async (): Promise<BigNumber> => {
         const gasInfo = await getGasInfoAsync();
-        const gasPriceGwei = new BigNumber(gasInfo.estimates.fast);
-        const gasPriceWei = ONE_GWEI.times(gasPriceGwei);
+        const gasPriceGwei = new BigNumber(gasInfo.estimates.fastest);
+        const gasPriceWei = ONE_GWEI.times(gasPriceGwei).dp(0);
         return gasPriceWei;
     },
 };
