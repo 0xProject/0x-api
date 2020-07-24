@@ -40,7 +40,7 @@ import {
     TransactionWatcherSignerStatus,
     ZeroExTransactionWithoutDomain,
 } from '../types';
-import { ethGasStationUtils } from '../utils/gas_station_utils';
+import { estimateFeeUtils } from '../utils/estimate_fee_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
 
@@ -248,7 +248,7 @@ export class MetaTransactionService {
         const [, orders] = await this._devUtils.decodeZeroExTransactionData(zeroExTransaction.data).callAsync();
 
         const gasPrice = zeroExTransaction.gasPrice;
-        const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
+        const currentFastGasPrice = await estimateFeeUtils.getGasPriceOrThrowAsync();
         // Make sure gasPrice is not 3X the current fast EthGasStation gas price
         // tslint:disable-next-line:custom-no-magic-numbers
         if (currentFastGasPrice.lt(gasPrice) && gasPrice.minus(currentFastGasPrice).gte(currentFastGasPrice.times(3))) {
