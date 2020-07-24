@@ -9,7 +9,6 @@ import {
     SwapQuoter,
 } from '@0x/asset-swapper';
 import { SwapQuoteRequestOpts, SwapQuoterOpts } from '@0x/asset-swapper/lib/src/types';
-import { MarketDepth, MarketDepthSide } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/types';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
@@ -40,6 +39,7 @@ import { InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
+    BucketedPriceDepth,
     CalaculateMarketDepthParams,
     CalculateSwapQuoteParams,
     GetSwapQuoteResponse,
@@ -273,7 +273,12 @@ export class SwapService {
         return prices;
     }
 
-    public async calculateMarketDepthAsync(params: CalaculateMarketDepthParams): Promise<MarketDepth> {
+    public async calculateMarketDepthAsync(
+        params: CalaculateMarketDepthParams,
+    ): Promise<{
+        asks: { dataByBucketPrice: BucketedPriceDepth[] };
+        bids: { dataByBucketPrice: BucketedPriceDepth[] };
+    }> {
         const { buyToken, sellToken, sellAmount, numSamples, sampleDistributionBase, excludedSources } = params;
         const marketDepth = await this._swapQuoter.getBidAskLiquidityForMakerTakerAssetPairAsync(
             buyToken.tokenAddress,
@@ -286,27 +291,38 @@ export class SwapService {
             },
         );
 
-        const calculateDepthForSide = (rawDepthSide: MarketDepthSide, side: MarketOperation) => {
-            const depthSide = marketDepthUtils.normalizeMarketDepthToSampleOutput(rawDepthSide, side);
-            const [startPrice, endPrice] = marketDepthUtils.calculateStartEndBucketPrice(depthSide, side);
-            const buckets = marketDepthUtils.getBucketPrices(startPrice, endPrice, numSamples, sampleDistributionBase);
-            const distributedBuckets = marketDepthUtils.distributeSamplesToBuckets(depthSide, buckets, side);
-            // Scale the price by the token decimals
-            const scaledBuckets = distributedBuckets.map(b => ({
+        const maxEndSlippagePercentage = 20;
+        const scalePriceByDecimals = (priceDepth: BucketedPriceDepth[]) =>
+            priceDepth.map(b => ({
                 ...b,
                 price: b.price.times(new BigNumber(10).pow(sellToken.decimals - buyToken.decimals)),
             }));
-            console.log({ startPrice, endPrice, buckets });
-            return { dataByBucketPrice: scaledBuckets };
-        };
+        const askDepth = scalePriceByDecimals(
+            marketDepthUtils.calculateDepthForSide(
+                marketDepth.asks,
+                MarketOperation.Sell,
+                numSamples * 2,
+                sampleDistributionBase,
+                maxEndSlippagePercentage,
+            ),
+        );
+        const bidDepth = scalePriceByDecimals(
+            marketDepthUtils.calculateDepthForSide(
+                marketDepth.bids,
+                MarketOperation.Buy,
+                numSamples * 2,
+                sampleDistributionBase,
+                maxEndSlippagePercentage,
+            ),
+        );
         return {
             // We're buying buyToken and SELLING sellToken (DAI) (50k)
             // Price goes from HIGH to LOW
-            asks: calculateDepthForSide(marketDepth.asks, MarketOperation.Sell),
+            asks: { dataByBucketPrice: askDepth },
             // We're BUYING sellToken (DAI) (50k) and selling buyToken
             // Price goes from LOW to HIGH
-            bids: calculateDepthForSide(marketDepth.bids, MarketOperation.Buy),
-        } as any;
+            bids: { dataByBucketPrice: bidDepth },
+        };
     }
 
     private async _getSwapQuoteForWethAsync(

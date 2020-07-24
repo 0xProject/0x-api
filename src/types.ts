@@ -622,4 +622,11 @@ export interface CalaculateMarketDepthParams {
     sampleDistributionBase: number;
     excludedSources?: ERC20BridgeSource[];
 }
+
+export interface BucketedPriceDepth {
+    cumulative: BigNumber;
+    price: BigNumber;
+    bucket: number;
+    bucketTotal: BigNumber;
+}
 // tslint:disable-line:max-file-line-count
