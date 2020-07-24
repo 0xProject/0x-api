@@ -273,12 +273,15 @@ const parseGetSwapQuoteRequestParams = (
 
     const apiKey = req.header('0x-api-key');
     // tslint:disable-next-line: boolean-naming
-    const {excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources({
-        excludedSources: req.query.excludedSources as string,
-        includedSources: req.query.includedSources as string,
-        takerAddress,
-        apiKey,
-    }, RFQT_API_KEY_WHITELIST);
+    const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
+        {
+            excludedSources: req.query.excludedSources as string,
+            includedSources: req.query.includedSources as string,
+            takerAddress,
+            apiKey,
+        },
+        RFQT_API_KEY_WHITELIST,
+    );
 
     const affiliateAddress = req.query.affiliateAddress as string;
     const rfqt: Partial<RfqtRequestOpts> =
