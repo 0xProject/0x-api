@@ -11,7 +11,7 @@ import {
 
 import { AvailableRateLimiter, DatabaseKeysUsedForRateLimiter, RollingLimiterIntervalUnit } from './rate-limiters';
 
-interface SwapRequestParams {
+interface ParseRequestForExcludedSourcesParams {
     takerAddress?: string;
     excludedSources?: string;
     includedSources?: string;
@@ -38,7 +38,7 @@ const ALL_EXCEPT_NATIVE: { [key in Exclude<ERC20BridgeSource, ERC20BridgeSource.
 
 export const parseUtils = {
     parseRequestForExcludedSources(
-        request: SwapRequestParams,
+        request: ParseRequestForExcludedSourcesParams,
         validApiKeys: string[],
         endpoint: 'price' | 'quote',
     ): { excludedSources: ERC20BridgeSource[]; nativeExclusivelyRFQT: boolean } {
@@ -67,7 +67,6 @@ export const parseUtils = {
         }
 
         if (request.includedSources !== undefined) {
-
             // Only RFQT is eligible as of now
             if (request.includedSources === 'RFQT') {
                 // We assume that if a `takerAddress` key is present, it's value was already validated by the JSON
@@ -76,8 +75,8 @@ export const parseUtils = {
                     throw new ValidationError([
                         {
                             field: 'takerAddress',
-                            code: ValidationErrorCodes.IncorrectFormat,
-                            reason: ValidationErrorReasons.FieldInvalid,
+                            code: ValidationErrorCodes.FieldInvalid,
+                            reason: ValidationErrorReasons.TakerAddressInvalid,
                         },
                     ]);
                 }
@@ -87,8 +86,8 @@ export const parseUtils = {
                     throw new ValidationError([
                         {
                             field: '0x-api-key',
-                            code: ValidationErrorCodes.IncorrectFormat,
-                            reason: ValidationErrorReasons.FieldInvalid,
+                            code: ValidationErrorCodes.FieldInvalid,
+                            reason: ValidationErrorReasons.InvalidApiKey,
                         },
                     ]);
                 }
@@ -98,8 +97,8 @@ export const parseUtils = {
                     throw new ValidationError([
                         {
                             field: 'intentOnFilling',
-                            code: ValidationErrorCodes.IncorrectFormat,
-                            reason: ValidationErrorReasons.FieldInvalid,
+                            code: ValidationErrorCodes.FieldInvalid,
+                            reason: ValidationErrorReasons.RequiresIntentOnFilling,
                         },
                     ]);
                 }
@@ -117,7 +116,6 @@ export const parseUtils = {
                     },
                 ]);
             }
-
         }
 
         return { excludedSources: [], nativeExclusivelyRFQT: false };

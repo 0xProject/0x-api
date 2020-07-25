@@ -25,9 +25,6 @@
         "includedSources": {
             "type": "string"
         },
-        "apiKey": {
-            "type": "string"
-        },
         "intentOnFilling": {
             "type": "string",
             "enum": ["true", "false"]

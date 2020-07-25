@@ -7,7 +7,7 @@ import { parseUtils } from '../src/utils/parse_utils';
 
 const SUITE_NAME = 'parseUtils';
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     it('raises a ValidationError if includedSources is anything else than RFQT', async () => {
         expect(() => {
             parseUtils.parseRequestForExcludedSources(
