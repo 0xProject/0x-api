@@ -61,6 +61,11 @@ export const HTTP_PORT = _.isEmpty(process.env.HTTP_PORT)
     ? 3000
     : assertEnvVarType('HTTP_PORT', process.env.HTTP_PORT, EnvVarType.Port);
 
+// Network port for the healthcheck service at /healthz, if not provided, it uses the HTTP_PORT value.
+export const HEALTHCHECK_HTTP_PORT = _.isEmpty(process.env.HEALTHCHECK_HTTP_PORT)
+    ? HTTP_PORT
+    : assertEnvVarType('HEALTHCHECK_HTTP_PORT', process.env.HEALTHCHECK_HTTP_PORT, EnvVarType.Port);
+
 // Number of milliseconds of inactivity the servers waits for additional
 // incoming data aftere it finished writing last response before a socket will
 // be destroyed.
@@ -320,7 +325,7 @@ export const ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS: Partial<SwapQuoteRequestOpts> 
     feeSchedule: FEE_SCHEDULE_V0,
     gasSchedule: GAS_SCHEDULE_V0,
     shouldBatchBridgeOrders: true,
-    runLimit: 2 ** 13,
+    runLimit: 2 ** 8,
 };
 
 export const GAS_SCHEDULE_V1: FeeSchedule = {
@@ -346,7 +351,7 @@ export const ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS: Partial<SwapQuoteRequestOpts> 
     feeSchedule: FEE_SCHEDULE_V1,
     gasSchedule: GAS_SCHEDULE_V1,
     shouldBatchBridgeOrders: false,
-    runLimit: 2 ** 13,
+    runLimit: 2 ** 8,
 };
 
 export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
@@ -374,6 +379,7 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
     httpPort: HTTP_PORT,
+    healthcheckHttpPort: HEALTHCHECK_HTTP_PORT,
     ethereumRpcUrl: ETHEREUM_RPC_URL,
     httpKeepAliveTimeout: HTTP_KEEP_ALIVE_TIMEOUT,
     httpHeadersTimeout: HTTP_HEADERS_TIMEOUT,

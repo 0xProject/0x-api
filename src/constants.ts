@@ -48,6 +48,7 @@ export const SWAP_PATH = '/swap';
 export const META_TRANSACTION_PATH = '/meta_transaction/v0';
 export const METRICS_PATH = '/metrics';
 export const API_KEY_HEADER = '0x-api-key';
+export const HEALTHCHECK_PATH = '/healthz';
 
 // Docs
 export const SWAP_DOCS_URL = 'https://0x.org/docs/api#swap';
@@ -87,3 +88,8 @@ export const GST2_WALLET_ADDRESSES = {
     [ChainId.Kovan]: NULL_ADDRESS,
     [ChainId.Ganache]: NULL_ADDRESS,
 };
+
+// Market Depth
+export const MARKET_DEPTH_MAX_SAMPLES = 50;
+export const MARKET_DEPTH_DEFAULT_DISTRIBUTION = 1.05;
+export const MARKET_DEPTH_END_PRICE_SLIPPAGE_PERC = 20;
