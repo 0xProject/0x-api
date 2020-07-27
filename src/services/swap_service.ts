@@ -118,7 +118,7 @@ export class SwapService {
             protocolFeeInWeiAmount: bestCaseProtocolFee,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = attributedSwapQuote.worstCaseQuoteInfo;
-        const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
+        const { orders, gasPrice, sourceBreakdown, quoteReport } = attributedSwapQuote;
 
         const { to, value, data } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
@@ -208,6 +208,7 @@ export class SwapService {
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
             orders: serviceUtils.cleanSignedOrderFields(orders),
             allowanceTarget,
+            quoteReport,
         };
         return apiSwapQuote;
     }

@@ -2,6 +2,7 @@ import { SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
+import _ = require('lodash');
 
 import { CHAIN_ID } from '../config';
 import {
@@ -59,10 +60,12 @@ export class SwapHandlers {
                     buyAmount: params.buyAmount,
                     sellAmount: params.sellAmount,
                     makers: quote.orders.map(order => order.makerAddress),
+                    quoteReport: quote.quoteReport,
                 },
             });
         }
-        res.status(HttpStatus.OK).send(quote);
+        const cleanedQuote = _.omit(quote, 'quoteReport');
+        res.status(HttpStatus.OK).send(cleanedQuote);
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getSwapTokensAsync(_req: express.Request, res: express.Response): Promise<void> {

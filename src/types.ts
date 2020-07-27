@@ -2,6 +2,7 @@ import {
     ERC20BridgeSource,
     MarketBuySwapQuote,
     MarketSellSwapQuote,
+    QuoteReport,
     RfqtRequestOpts,
     SupportedProvider,
 } from '@0x/asset-swapper';
@@ -411,6 +412,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     estimatedGas: BigNumber;
     estimatedGasTokenRefund: BigNumber;
     allowanceTarget?: string;
+    quoteReport?: QuoteReport;
 }
 
 export interface Price {
