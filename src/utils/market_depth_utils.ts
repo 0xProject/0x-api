@@ -154,10 +154,13 @@ export const marketDepthUtils = {
             }
             switch (source) {
                 case ERC20BridgeSource.Curve:
+                    // tslint:disable-next-line:no-unnecessary-type-assertion
                     return `${source}:${(sample.fillData as CurveFillData).curve.poolAddress}`;
                 case ERC20BridgeSource.Balancer:
+                    // tslint:disable-next-line:no-unnecessary-type-assertion
                     return `${source}:${(sample.fillData as BalancerFillData).poolAddress}`;
                 case ERC20BridgeSource.UniswapV2:
+                    // tslint:disable-next-line:no-unnecessary-type-assertion
                     return `${source}:${(sample.fillData as UniswapV2FillData).tokenAddressPath.join('-')}`;
                 default:
                     break;
