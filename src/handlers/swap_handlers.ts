@@ -1,10 +1,10 @@
-import { SwapQuoterError } from '@0x/asset-swapper';
+import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
 
-import { CHAIN_ID } from '../config';
+import { CHAIN_ID, RFQT_API_KEY_WHITELIST } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
@@ -223,6 +223,7 @@ export class SwapHandlers {
                     : {
                           intentOnFilling: rfqt.intentOnFilling,
                           isIndicative: rfqt.isIndicative,
+                          nativeExclusivelyRFQT: rfqt.nativeExclusivelyRFQT,
                       },
             skipValidation,
             swapVersion,
@@ -298,17 +299,28 @@ const parseGetSwapQuoteRequestParams = (
             },
         ]);
     }
-    const excludedSources =
-        req.query.excludedSources === undefined
-            ? undefined
-            : parseUtils.parseStringArrForERC20BridgeSources((req.query.excludedSources as string).split(','));
-    const affiliateAddress = req.query.affiliateAddress as string;
+
     const apiKey = req.header('0x-api-key');
-    const rfqt =
+    // tslint:disable-next-line: boolean-naming
+    const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
+        {
+            excludedSources: req.query.excludedSources as string | undefined,
+            includedSources: req.query.includedSources as string | undefined,
+            intentOnFilling: req.query.intentOnFilling as string | undefined,
+            takerAddress,
+            apiKey,
+        },
+        RFQT_API_KEY_WHITELIST,
+        endpoint,
+    );
+
+    const affiliateAddress = req.query.affiliateAddress as string;
+    const rfqt: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'> =
         takerAddress && apiKey
             ? {
                   intentOnFilling: endpoint === 'quote' && req.query.intentOnFilling === 'true',
                   isIndicative: endpoint === 'price',
+                  nativeExclusivelyRFQT,
               }
             : undefined;
     // tslint:disable-next-line:boolean-naming
