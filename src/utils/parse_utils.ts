@@ -71,17 +71,26 @@ export const parseUtils = {
             if (request.includedSources === 'RFQT') {
                 // We assume that if a `takerAddress` key is present, it's value was already validated by the JSON
                 // schema.
-                if (request.takerAddress === undefined || request.takerAddress.length === 0) {
+                if (request.takerAddress === undefined) {
                     throw new ValidationError([
                         {
                             field: 'takerAddress',
-                            code: ValidationErrorCodes.FieldInvalid,
+                            code: ValidationErrorCodes.RequiredField,
                             reason: ValidationErrorReasons.TakerAddressInvalid,
                         },
                     ]);
                 }
 
                 // We enforce a valid API key - we don't want to fail silently.
+                if (request.apiKey === undefined) {
+                    throw new ValidationError([
+                        {
+                            field: '0x-api-key',
+                            code: ValidationErrorCodes.RequiredField,
+                            reason: ValidationErrorReasons.InvalidApiKey,
+                        },
+                    ]);
+                }
                 if (!validApiKeys.includes(request.apiKey)) {
                     throw new ValidationError([
                         {
@@ -97,7 +106,7 @@ export const parseUtils = {
                     throw new ValidationError([
                         {
                             field: 'intentOnFilling',
-                            code: ValidationErrorCodes.FieldInvalid,
+                            code: ValidationErrorCodes.RequiredField,
                             reason: ValidationErrorReasons.RequiresIntentOnFilling,
                         },
                     ]);
