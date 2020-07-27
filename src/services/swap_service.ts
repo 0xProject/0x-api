@@ -276,8 +276,8 @@ export class SwapService {
     public async calculateMarketDepthAsync(
         params: CalaculateMarketDepthParams,
     ): Promise<{
-        asks: { dataByBucketPrice: BucketedPriceDepth[] };
-        bids: { dataByBucketPrice: BucketedPriceDepth[] };
+        asks: { depth: BucketedPriceDepth[] };
+        bids: { depth: BucketedPriceDepth[] };
     }> {
         const { buyToken, sellToken, sellAmount, numSamples, sampleDistributionBase, excludedSources } = params;
         const marketDepth = await this._swapQuoter.getBidAskLiquidityForMakerTakerAssetPairAsync(
@@ -318,10 +318,10 @@ export class SwapService {
         return {
             // We're buying buyToken and SELLING sellToken (DAI) (50k)
             // Price goes from HIGH to LOW
-            asks: { dataByBucketPrice: askDepth },
+            asks: { depth: askDepth },
             // We're BUYING sellToken (DAI) (50k) and selling buyToken
             // Price goes from LOW to HIGH
-            bids: { dataByBucketPrice: bidDepth },
+            bids: { depth: bidDepth },
         };
     }
 
