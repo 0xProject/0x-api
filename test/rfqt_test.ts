@@ -575,7 +575,7 @@ describe(SUITE_NAME, () => {
                                 .set('0x-api-key', 'koolApiKey1')
                                 .expect(HttpStatus.BAD_REQUEST)
                                 .expect('Content-Type', /json/);
-                        }
+                        },
                     );
                 });
                 it('should fail when taker address is not supplied', async () => {
