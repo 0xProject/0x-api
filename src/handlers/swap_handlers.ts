@@ -9,6 +9,7 @@ import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
     MARKET_DEPTH_MAX_SAMPLES,
+    NUMBER_SOURCES_PER_LOG_LINE,
     SWAP_DOCS_URL,
 } from '../constants';
 import {
@@ -279,10 +280,7 @@ export class SwapHandlers {
 }
 
 const logQuoteReport = (qr: QuoteReport) => {
-    // tslint:disable-next-line:custom-no-magic-numbers
-    const sourcesConsideredChunks = _.chunk(qr.sourcesConsidered, 12);
-    // tslint:disable-next-line:custom-no-magic-numbers
-    const sourcesDeliveredChunks = _.chunk(qr.sourcesDelivered, 12);
+    const sourcesConsideredChunks = _.chunk(qr.sourcesConsidered, NUMBER_SOURCES_PER_LOG_LINE);
     sourcesConsideredChunks.forEach((chunk, i) => {
         logger.info({
             firmQuoteReport: true,
@@ -291,6 +289,8 @@ const logQuoteReport = (qr: QuoteReport) => {
             sourcesConsidered: chunk,
         });
     });
+
+    const sourcesDeliveredChunks = _.chunk(qr.sourcesDelivered, NUMBER_SOURCES_PER_LOG_LINE);
     sourcesDeliveredChunks.forEach((chunk, i) => {
         logger.info({
             firmQuoteReport: true,
