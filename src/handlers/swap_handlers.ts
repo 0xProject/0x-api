@@ -279,7 +279,9 @@ export class SwapHandlers {
 }
 
 const logQuoteReport = (qr: QuoteReport) => {
+    // tslint:disable-next-line:custom-no-magic-numbers
     const sourcesConsideredChunks = _.chunk(qr.sourcesConsidered, 12);
+    // tslint:disable-next-line:custom-no-magic-numbers
     const sourcesDeliveredChunks = _.chunk(qr.sourcesDelivered, 12);
     sourcesConsideredChunks.forEach((chunk, i) => {
         logger.info({
