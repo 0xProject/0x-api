@@ -285,7 +285,7 @@ const logQuoteReport = (qr: QuoteReport) => {
     const sourcesDeliveredChunks = _.chunk(qr.sourcesDelivered, 12);
     sourcesConsideredChunks.forEach((chunk, i) => {
         logger.info({
-            firmQuoteReport: 'true',
+            firmQuoteReport: true,
             sourcesConsideredChunkIndex: i,
             sourcesConsideredChunkLength: sourcesConsideredChunks.length,
             sourcesConsidered: chunk,
@@ -293,7 +293,7 @@ const logQuoteReport = (qr: QuoteReport) => {
     });
     sourcesDeliveredChunks.forEach((chunk, i) => {
         logger.info({
-            firmQuoteReport: 'true',
+            firmQuoteReport: true,
             sourcesDeliveredChunkIndex: i,
             sourcesDeliveredChunkLength: sourcesDeliveredChunks.length,
             sourcesDelivered: chunk,
