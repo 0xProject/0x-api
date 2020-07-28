@@ -1,4 +1,4 @@
-import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { QuoteReport, RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -60,9 +60,11 @@ export class SwapHandlers {
                     buyAmount: params.buyAmount,
                     sellAmount: params.sellAmount,
                     makers: quote.orders.map(order => order.makerAddress),
-                    quoteReport: quote.quoteReport,
                 },
             });
+            if (quote.quoteReport) {
+                logQuoteReport(quote.quoteReport);
+            }
         }
         const cleanedQuote = _.omit(quote, 'quoteReport');
         res.status(HttpStatus.OK).send(cleanedQuote);
@@ -275,6 +277,27 @@ export class SwapHandlers {
         }
     }
 }
+
+const logQuoteReport = (qr: QuoteReport) => {
+    const sourcesConsideredChunks = _.chunk(qr.sourcesConsidered, 12);
+    const sourcesDeliveredChunks = _.chunk(qr.sourcesDelivered, 12);
+    sourcesConsideredChunks.forEach((chunk, i) => {
+        logger.info({
+            firmQuoteReport: 'true',
+            sourcesConsideredChunkIndex: i,
+            sourcesConsideredChunkLength: sourcesConsideredChunks.length,
+            sourcesConsidered: chunk,
+        });
+    });
+    sourcesDeliveredChunks.forEach((chunk, i) => {
+        logger.info({
+            firmQuoteReport: 'true',
+            sourcesDeliveredChunkIndex: i,
+            sourcesDeliveredChunkLength: sourcesDeliveredChunks.length,
+            sourcesDelivered: chunk,
+        });
+    });
+};
 
 const parseGetSwapQuoteRequestParams = (
     req: express.Request,
