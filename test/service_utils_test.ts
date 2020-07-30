@@ -84,8 +84,8 @@ describe(SUITE_NAME, () => {
 
             expect(affiliateAddress).to.be.eq(fakeAffiliate);
             // call data timestamp is within 3 seconds of timestamp created during test
-            expect(timestampFromCallData).to.be.greaterThan((currentTime.getTime() / 1000) - 3);
-            expect(timestampFromCallData).to.be.lessThan((currentTime.getTime() / 1000) + 3);
+            expect(timestampFromCallData).to.be.greaterThan(currentTime.getTime() / 1000 - 3);
+            expect(timestampFromCallData).to.be.lessThan(currentTime.getTime() / 1000 + 3);
             // ID is a 10-digit hex number
             expect(randomId).to.match(/[0-9A-Fa-f]{10}/);
         });
