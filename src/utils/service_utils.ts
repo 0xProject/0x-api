@@ -18,6 +18,7 @@ import {
     GAS_BURN_REFUND,
     GST_DIVISOR,
     GST_INTERACTION_COST,
+    HEX_BASE,
     ONE_SECOND_MS,
     PERCENTAGE_SIG_DIGITS,
     SSTORE_COST,
@@ -73,16 +74,15 @@ export const serviceUtils = {
         });
 
         // Generate unique identiifer
-        const HEX_DIGITS = 16;
         const timestampInSeconds = new BigNumber(Date.now() / ONE_SECOND_MS).integerValue();
-        const hexTimestamp = timestampInSeconds.toString(HEX_DIGITS);
+        const hexTimestamp = timestampInSeconds.toString(HEX_BASE);
         const randomNumber = numberUtils.randomHexNumberOfLength(10);
 
         // Concatenate the hex identifier with the hex timestamp
         // In the final encoded call data, this will leave us with a 5-byte ID followed by
         // a 4-byte timestamp, and won't break parsers of the timestamp made prior to the
         // addition of the ID
-        const uniqueIdentifier = new BigNumber(`${randomNumber}${hexTimestamp}`, HEX_DIGITS);
+        const uniqueIdentifier = new BigNumber(`${randomNumber}${hexTimestamp}`, HEX_BASE);
 
         // Encode additional call data and return
         const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault, uniqueIdentifier]);
