@@ -21,17 +21,19 @@ import {
 import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
-import { MetaTransactionService } from '../services/meta_transaction_service';
+import { isExchangeProxyMetaTransaction, MetaTransactionService } from '../services/meta_transaction_service';
 import {
+    ExchangeProxyMetaTransactionWithoutDomain,
     GetMetaTransactionPriceResponse,
     GetMetaTransactionStatusResponse,
     GetTransactionRequestParams,
+    SwapVersion,
     ZeroExTransactionWithoutDomain,
 } from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { schemaUtils } from '../utils/schema_utils';
-import { findTokenAddressOrThrowApiError } from '../utils/token_metadata_utils';
+import { findTokenAddressOrThrowApiError, isETHSymbol } from '../utils/token_metadata_utils';
 
 export class MetaTransactionHandlers {
     private readonly _metaTransactionService: MetaTransactionService;
@@ -45,7 +47,7 @@ export class MetaTransactionHandlers {
         this._metaTransactionService = metaTransactionService;
         this._rateLimiter = rateLimiter;
     }
-    public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async getQuoteAsync(swapVersion: SwapVersion, req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header(API_KEY_HEADER);
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
@@ -68,6 +70,9 @@ export class MetaTransactionHandlers {
         } = parseGetTransactionRequestParams(req);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
+        const isETHSell = isETHSymbol(sellToken);
+        const isETHBuy = isETHSymbol(buyToken);
+
         try {
             const metaTransactionQuote = await this._metaTransactionService.calculateMetaTransactionQuoteAsync({
                 takerAddress,
@@ -79,6 +84,9 @@ export class MetaTransactionHandlers {
                 slippagePercentage,
                 excludedSources,
                 apiKey,
+                isETHBuy,
+                isETHSell,
+                swapVersion,
             });
             res.status(HttpStatus.OK).send(metaTransactionQuote);
         } catch (e) {
@@ -117,7 +125,7 @@ export class MetaTransactionHandlers {
             throw new InternalServerError(e.message);
         }
     }
-    public async getPriceAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async getPriceAsync(swapVersion: SwapVersion, req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
@@ -140,21 +148,24 @@ export class MetaTransactionHandlers {
         } = parseGetTransactionRequestParams(req);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
+        const isETHSell = isETHSymbol(sellToken);
+        const isETHBuy = isETHSymbol(buyToken);
+
         try {
-            const metaTransactionPrice = await this._metaTransactionService.calculateMetaTransactionPriceAsync(
-                {
-                    takerAddress,
-                    buyTokenAddress,
-                    sellTokenAddress,
-                    buyAmount,
-                    sellAmount,
-                    from: takerAddress,
-                    slippagePercentage,
-                    excludedSources,
-                    apiKey,
-                },
-                'price',
-            );
+            const metaTransactionPrice = await this._metaTransactionService.calculateMetaTransactionPriceAsync({
+                takerAddress,
+                buyTokenAddress,
+                sellTokenAddress,
+                buyAmount,
+                sellAmount,
+                from: takerAddress,
+                slippagePercentage,
+                excludedSources,
+                apiKey,
+                isETHBuy,
+                isETHSell,
+                swapVersion,
+            });
             const metaTransactionPriceResponse: GetMetaTransactionPriceResponse = {
                 price: metaTransactionPrice.price,
                 buyAmount: metaTransactionPrice.buyAmount,
@@ -208,7 +219,11 @@ export class MetaTransactionHandlers {
             throw new InternalServerError(e.message);
         }
     }
-    public async submitZeroExTransactionIfWhitelistedAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async submitTransactionIfWhitelistedAsync(
+        swapVersion: SwapVersion,
+        req: express.Request,
+        res: express.Response,
+    ): Promise<void> {
         const apiKey = req.header('0x-api-key');
         const affiliateAddress = req.query.affiliateAddress as string | undefined;
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
@@ -221,21 +236,23 @@ export class MetaTransactionHandlers {
         schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
 
         // parse the request body
-        const { zeroExTransaction, signature } = parsePostTransactionRequestBody(req);
-        const zeroExTransactionHash = await this._metaTransactionService.getZeroExTransactionHashFromZeroExTransactionAsync(
-            zeroExTransaction,
-        );
-        const transactionInDatabase = await this._metaTransactionService.findTransactionByHashAsync(
-            zeroExTransactionHash,
-        );
+        const { mtx, signature } =
+            swapVersion === SwapVersion.V0
+                ? parsePostTransactionRequestBodyV0(req)
+                : parsePostTransactionRequestBodyV1(req);
+        const mtxHash = this._metaTransactionService.getTransactionHash(swapVersion, mtx);
+        const transactionInDatabase = await this._metaTransactionService.findTransactionByHashAsync(mtxHash);
         if (transactionInDatabase !== undefined) {
-            // user attemps to submit a transaction already present in the database
+            // user attemps to submit a mtx already present in the database
             res.status(HttpStatus.OK).send(marshallTransactionEntity(transactionInDatabase));
             return;
         }
         try {
-            const protocolFee = await this._metaTransactionService.validateZeroExTransactionFillAsync(
-                zeroExTransaction,
+            await this._metaTransactionService.validateTransactionFillAsync(swapVersion, mtx, signature);
+
+            const ethTx = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
+                swapVersion,
+                mtx,
                 signature,
             );
 
@@ -253,55 +270,42 @@ export class MetaTransactionHandlers {
                 if (this._rateLimiter !== undefined) {
                     const rateLimitResponse = await this._rateLimiter.isAllowedAsync({
                         apiKey,
-                        takerAddress: zeroExTransaction.signerAddress,
+                        takerAddress: isExchangeProxyMetaTransaction(swapVersion, mtx) ? mtx.signer : mtx.signerAddress,
                     });
                     if (isRateLimitedMetaTransactionResponse(rateLimitResponse)) {
-                        const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
-                            zeroExTransaction,
-                            signature,
-                            protocolFee,
-                        );
                         res.status(HttpStatus.TOO_MANY_REQUESTS).send({
                             code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
                             reason: rateLimitResponse.reason,
                             ethereumTransaction: {
-                                data: ethereumTxn.data,
-                                gasPrice: ethereumTxn.gasPrice,
-                                gas: ethereumTxn.gas,
-                                value: ethereumTxn.value,
-                                to: ethereumTxn.to,
+                                data: ethTx.data,
+                                gasPrice: ethTx.gasPrice,
+                                gas: ethTx.gas,
+                                value: ethTx.value,
+                                to: ethTx.to,
                             },
                         });
                         return;
                     }
                 }
-                const { ethereumTransactionHash } = await this._metaTransactionService.submitZeroExTransactionAsync(
-                    zeroExTransactionHash,
-                    zeroExTransaction,
+                const result = await this._metaTransactionService.submitTransactionAsync(
+                    swapVersion,
+                    mtxHash,
+                    mtx,
                     signature,
-                    protocolFee,
                     apiKey,
                     affiliateAddress,
                 );
-                res.status(HttpStatus.OK).send({
-                    ethereumTransactionHash,
-                    zeroExTransactionHash,
-                });
+                res.status(HttpStatus.OK).send(result);
             } else {
-                const ethereumTxn = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
-                    zeroExTransaction,
-                    signature,
-                    protocolFee,
-                );
                 res.status(HttpStatus.FORBIDDEN).send({
                     code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
                     reason: generalErrorCodeToReason[GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker],
                     ethereumTransaction: {
-                        data: ethereumTxn.data,
-                        gasPrice: ethereumTxn.gasPrice,
-                        gas: ethereumTxn.gas,
-                        value: ethereumTxn.value,
-                        to: ethereumTxn.to,
+                        data: ethTx.data,
+                        gasPrice: ethTx.gasPrice,
+                        gas: ethTx.gas,
+                        value: ethTx.value,
+                        to: ethTx.to,
                     },
                 });
             }
@@ -372,15 +376,15 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     return { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage, excludedSources };
 };
 
-interface PostTransactionRequestBody {
-    zeroExTransaction: ZeroExTransactionWithoutDomain;
+interface PostTransactionRequestBodyV0 {
+    mtx: ZeroExTransactionWithoutDomain;
     signature: string;
 }
 
-const parsePostTransactionRequestBody = (req: any): PostTransactionRequestBody => {
+const parsePostTransactionRequestBodyV0 = (req: any): PostTransactionRequestBodyV0 => {
     const requestBody = req.body;
     const signature = requestBody.signature;
-    const zeroExTransaction: ZeroExTransactionWithoutDomain = {
+    const mtx: ZeroExTransactionWithoutDomain = {
         salt: new BigNumber(requestBody.zeroExTransaction.salt),
         expirationTimeSeconds: new BigNumber(requestBody.zeroExTransaction.expirationTimeSeconds),
         gasPrice: new BigNumber(requestBody.zeroExTransaction.gasPrice),
@@ -388,7 +392,33 @@ const parsePostTransactionRequestBody = (req: any): PostTransactionRequestBody =
         data: requestBody.zeroExTransaction.data,
     };
     return {
-        zeroExTransaction,
+        mtx,
+        signature,
+    };
+};
+
+interface PostTransactionRequestBodyV1 {
+    mtx: ExchangeProxyMetaTransactionWithoutDomain;
+    signature: string;
+}
+
+const parsePostTransactionRequestBodyV1 = (req: any): PostTransactionRequestBodyV1 => {
+    const requestBody = req.body;
+    const signature = requestBody.signature;
+    const mtx: ExchangeProxyMetaTransactionWithoutDomain = {
+        signer: requestBody.transaction.signer,
+        sender: requestBody.transaction.sender,
+        salt: new BigNumber(requestBody.transaction.salt),
+        expirationTimeSeconds: new BigNumber(requestBody.transaction.expirationTimeSeconds),
+        minGasPrice: new BigNumber(requestBody.transaction.minGasPrice),
+        maxGasPrice: new BigNumber(requestBody.transaction.maxGasPrice),
+        callData: requestBody.transaction.callData,
+        value: new BigNumber(requestBody.transaction.value),
+        feeToken: requestBody.transaction.feeToken,
+        feeAmount: new BigNumber(requestBody.transaction.feeAmount),
+    };
+    return {
+        mtx,
         signature,
     };
 };

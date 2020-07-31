@@ -79,13 +79,13 @@ export async function getDefaultAppDependenciesAsync(
     const orderBookService = new OrderBookService(connection, meshClient);
 
     let swapService: SwapService | undefined;
+    let metaTransactionService: MetaTransactionService | undefined;
     try {
         swapService = createSwapServiceFromOrderBookService(orderBookService, provider);
+        metaTransactionService = createMetaTxnServiceFromSwapService(provider, connection, swapService);
     } catch (err) {
         logger.error(err.stack);
     }
-
-    const metaTransactionService = createMetaTxnServiceFromOrderBookService(orderBookService, provider, connection);
 
     const websocketOpts = { path: SRA_PATH };
 
@@ -191,13 +191,10 @@ export function createSwapServiceFromOrderBookService(
  * Instantiates MetaTransactionService using the provided OrderBookService,
  * ethereum RPC provider and db connection.
  */
-export function createMetaTxnServiceFromOrderBookService(
-    orderBookService: OrderBookService,
+export function createMetaTxnServiceFromSwapService(
     provider: SupportedProvider,
     dbConnection: Connection,
+    swapService: SwapService,
 ): MetaTransactionService {
-    const orderStore = new OrderStoreDbAdapter(orderBookService);
-    const orderProvider = new OrderBookServiceOrderProvider(orderStore, orderBookService);
-    const orderBook = new Orderbook(orderProvider, orderStore);
-    return new MetaTransactionService(orderBook, provider, dbConnection);
+    return new MetaTransactionService(provider, dbConnection, swapService);
 }

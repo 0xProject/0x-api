@@ -111,7 +111,10 @@ export class SwapService {
         } = params;
         const swapQuote = await this._getMarketBuyOrSellQuoteAsync(params);
 
-        const attributedSwapQuote = serviceUtils.attributeSwapQuoteOrders(swapQuote);
+        const attributedSwapQuote = {
+            ...swapQuote,
+            orders: serviceUtils.attributeSwapQuoteOrders(swapQuote.orders),
+        };
         const {
             makerAssetAmount,
             totalTakerAssetAmount,

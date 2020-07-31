@@ -1,11 +1,4 @@
-import {
-    ERC20BridgeSource,
-    MarketBuySwapQuote,
-    MarketSellSwapQuote,
-    OptimizedMarketOrder,
-    SignedOrder,
-    SwapQuoteOrdersBreakdown,
-} from '@0x/asset-swapper';
+import { ERC20BridgeSource, OptimizedMarketOrder, SignedOrder, SwapQuoteOrdersBreakdown } from '@0x/asset-swapper';
 import { assetDataUtils } from '@0x/order-utils';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
@@ -33,11 +26,9 @@ import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 import { numberUtils } from './number_utils';
 
 export const serviceUtils = {
-    attributeSwapQuoteOrders(
-        swapQuote: MarketSellSwapQuote | MarketBuySwapQuote,
-    ): MarketSellSwapQuote | MarketBuySwapQuote {
+    attributeSwapQuoteOrders(orders: OptimizedMarketOrder[]): OptimizedMarketOrder[] {
         // Where possible, attribute any fills of these orders to the Fee Recipient Address
-        const attributedOrders = swapQuote.orders.map(o => {
+        return orders.map(o => {
             try {
                 const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData);
                 if (orderUtils.isBridgeAssetData(decodedAssetData)) {
@@ -51,11 +42,6 @@ export const serviceUtils = {
             // Default to unmodified order
             return o;
         });
-        const attributedSwapQuote = {
-            ...swapQuote,
-            orders: attributedOrders,
-        };
-        return attributedSwapQuote;
     },
 
     attributeCallData(data: string, affiliateAddress?: string): string {
