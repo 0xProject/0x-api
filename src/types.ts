@@ -1,8 +1,6 @@
 import {
     ContractAddresses,
     ERC20BridgeSource,
-    MarketBuySwapQuote,
-    MarketSellSwapQuote,
     QuoteReport,
     RfqtRequestOpts,
     SupportedProvider,
@@ -10,6 +8,7 @@ import {
 import { AcceptedOrderInfo, RejectedOrderInfo } from '@0x/mesh-rpc-client';
 import {
     APIOrder,
+    ExchangeProxyMetaTransaction,
     OrdersChannelSubscriptionOpts,
     SignedOrder,
     UpdateOrdersChannelMessage,
@@ -449,9 +448,15 @@ export interface GetSwapPriceResponse extends BasePriceResponse {}
 
 export type GetTokenPricesResponse = Price[];
 
-export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
+export interface GetMetaTransactionQuoteResponseV0 extends BasePriceResponse {
     zeroExTransactionHash: string;
     zeroExTransaction: ZeroExTransaction;
+    orders: SignedOrder[];
+}
+
+export interface GetMetaTransactionQuoteResponseV1 extends BasePriceResponse {
+    mtxHash: string;
+    mtx: ZeroExTransaction | ExchangeProxyMetaTransaction;
     orders: SignedOrder[];
 }
 
@@ -469,32 +474,30 @@ export interface GetMetaTransactionStatusResponse {
 }
 
 // takerAddress, sellAmount, buyAmount, swapQuote, price
-export interface CalculateMetaTransactionPriceResponse {
+export interface CalculateMetaTransactionQuoteResponse {
     price: BigNumber;
     buyAmount: BigNumber | undefined;
     sellAmount: BigNumber | undefined;
     takerAddress: string;
-    swapQuote: MarketSellSwapQuote | MarketBuySwapQuote;
     sources: GetSwapQuoteResponseLiquiditySource[];
     gasPrice: BigNumber;
     protocolFee: BigNumber;
     minimumProtocolFee: BigNumber;
     estimatedGas: BigNumber;
     quoteReport?: QuoteReport;
+    orders: SignedOrder[];
+    callData: string;
     allowanceTarget?: string;
 }
 
-export interface PostTransactionResponse {
+export interface PostTransactionResponseV0 {
     ethereumTransactionHash: string;
     zeroExTransactionHash: string;
 }
 
-export interface ZeroExTransactionWithoutDomain {
-    salt: BigNumber;
-    expirationTimeSeconds: BigNumber;
-    gasPrice: BigNumber;
-    signerAddress: string;
-    data: string;
+export interface PostTransactionResponseV1 {
+    txHash: string;
+    mtxHash: string;
 }
 
 export interface PercentageFee {
@@ -502,6 +505,9 @@ export interface PercentageFee {
     sellTokenPercentageFee: number;
     buyTokenPercentageFee: number;
 }
+export type ZeroExTransactionWithoutDomain = Omit<ZeroExTransaction, 'domain'>;
+
+export type ExchangeProxyMetaTransactionWithoutDomain = Omit<ExchangeProxyMetaTransaction, 'domain'>;
 
 export interface GetSwapQuoteRequestParams {
     sellToken: string;
@@ -531,6 +537,7 @@ export interface GetTransactionRequestParams {
     excludedSources?: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     includePriceComparisons: boolean;
+    affiliateFee: PercentageFee;
 }
 
 export interface CalculateSwapQuoteParams {
@@ -572,12 +579,16 @@ export interface CalculateMetaTransactionQuoteParams {
     sellTokenAddress: string;
     buyAmount: BigNumber | undefined;
     sellAmount: BigNumber | undefined;
+    isETHSell: boolean;
+    isETHBuy: boolean;
     from: string | undefined;
     slippagePercentage?: number;
     excludedSources?: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     apiKey: string | undefined;
     includePriceComparisons: boolean;
+    swapVersion: SwapVersion;
+    affiliateFee: PercentageFee;
 }
 
 export enum TransactionStates {
