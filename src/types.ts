@@ -390,6 +390,7 @@ export interface SwapQuoteResponsePartialTransaction {
     to: string;
     data: string;
     value: BigNumber;
+    uniqueIdString: string;
 }
 
 export interface SwapQuoteResponsePrice {
@@ -411,6 +412,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     gas: BigNumber;
     estimatedGas: BigNumber;
     estimatedGasTokenRefund: BigNumber;
+    uniqueIdString: string;
     allowanceTarget?: string;
     quoteReport?: QuoteReport;
 }

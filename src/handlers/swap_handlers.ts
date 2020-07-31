@@ -64,10 +64,10 @@ export class SwapHandlers {
                 },
             });
             if (quote.quoteReport) {
-                logQuoteReport(quote.quoteReport);
+                logQuoteReport(quote.quoteReport, quote.uniqueIdString);
             }
         }
-        const cleanedQuote = _.omit(quote, 'quoteReport');
+        const cleanedQuote = _.omit(quote, 'quoteReport', 'uniqueIdString');
         res.status(HttpStatus.OK).send(cleanedQuote);
     }
     // tslint:disable-next-line:prefer-function-over-method
@@ -279,7 +279,7 @@ export class SwapHandlers {
     }
 }
 
-const logQuoteReport = (qr: QuoteReport) => {
+const logQuoteReport = (qr: QuoteReport, uniqueIdString: string) => {
     const sourcesConsideredChunks = _.chunk(qr.sourcesConsidered, NUMBER_SOURCES_PER_LOG_LINE);
     sourcesConsideredChunks.forEach((chunk, i) => {
         logger.info({
@@ -294,6 +294,7 @@ const logQuoteReport = (qr: QuoteReport) => {
     sourcesDeliveredChunks.forEach((chunk, i) => {
         logger.info({
             firmQuoteReport: true,
+            firmQuoteUniqueIdString: uniqueIdString,
             sourcesDeliveredChunkIndex: i,
             sourcesDeliveredChunkLength: sourcesDeliveredChunks.length,
             sourcesDelivered: chunk,
