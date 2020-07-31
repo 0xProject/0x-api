@@ -14,7 +14,7 @@ import { getContractAddressesForNetworkOrThrowAsync } from '../src/app';
 import * as config from '../src/config';
 import { META_TRANSACTION_PATH, ONE_SECOND_MS, TEN_MINUTES_MS } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
-import { ChainId, GetMetaTransactionQuoteResponse } from '../src/types';
+import { ChainId, GetMetaTransactionQuoteResponseV0 } from '../src/types';
 
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
@@ -339,7 +339,7 @@ describe(SUITE_NAME, () => {
     }
 
     interface QuoteTestCase {
-        quote: GetMetaTransactionQuoteResponse;
+        quote: GetMetaTransactionQuoteResponseV0;
         expectedBuyAmount: string;
         expectedOrders: SignedOrder[];
         expectedPrice: string;

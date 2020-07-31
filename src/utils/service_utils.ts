@@ -1,8 +1,6 @@
 import {
     ERC20BridgeSource,
     getSwapMinBuyAmount,
-    MarketBuySwapQuote,
-    MarketSellSwapQuote,
     OptimizedMarketOrder,
     SignedOrder,
     SwapQuote,
@@ -36,11 +34,9 @@ import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 import { numberUtils } from './number_utils';
 
 export const serviceUtils = {
-    attributeSwapQuoteOrders(
-        swapQuote: MarketSellSwapQuote | MarketBuySwapQuote,
-    ): MarketSellSwapQuote | MarketBuySwapQuote {
+    attributeSwapQuoteOrders(orders: OptimizedMarketOrder[]): OptimizedMarketOrder[] {
         // Where possible, attribute any fills of these orders to the Fee Recipient Address
-        const attributedOrders = swapQuote.orders.map(o => {
+        return orders.map(o => {
             try {
                 const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData);
                 if (orderUtils.isBridgeAssetData(decodedAssetData)) {
@@ -54,11 +50,6 @@ export const serviceUtils = {
             // Default to unmodified order
             return o;
         });
-        const attributedSwapQuote = {
-            ...swapQuote,
-            orders: attributedOrders,
-        };
-        return attributedSwapQuote;
     },
 
     attributeCallData(
