@@ -9,6 +9,7 @@ import { CHAIN_ID } from '../config';
 import { API_KEY_HEADER, DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL } from '../constants';
 import { TransactionEntity } from '../entities';
 import {
+    EthSellNotSupportedError,
     GeneralErrorCodes,
     generalErrorCodeToReason,
     InternalServerError,
@@ -79,6 +80,11 @@ export class MetaTransactionHandlers {
         const isETHSell = isETHSymbol(sellToken.symbol);
         const isETHBuy = isETHSymbol(buyToken.symbol);
 
+        // ETH selling isn't supported.
+        if (isETHSymbol(sellToken.symbol)) {
+            throw new EthSellNotSupportedError();
+        }
+
         try {
             const metaTransactionQuote = await this._metaTransactionService.calculateMetaTransactionQuoteAsync({
                 takerAddress,
@@ -86,16 +92,16 @@ export class MetaTransactionHandlers {
                 sellTokenAddress,
                 buyAmount,
                 sellAmount,
-                from: takerAddress,
                 slippagePercentage,
                 excludedSources,
                 includedSources,
                 apiKey,
                 includePriceComparisons,
                 isETHBuy,
-                isETHSell,
                 swapVersion,
                 affiliateFee,
+                from: takerAddress,
+                isETHSell: false,
             });
             res.status(HttpStatus.OK).send(metaTransactionQuote);
         } catch (e) {
