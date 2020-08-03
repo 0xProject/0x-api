@@ -1,4 +1,4 @@
-import { QuoteReport, RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -9,7 +9,6 @@ import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
     MARKET_DEPTH_MAX_SAMPLES,
-    NUMBER_SOURCES_PER_LOG_LINE,
     SWAP_DOCS_URL,
 } from '../constants';
 import {
@@ -33,6 +32,8 @@ import {
     isETHSymbol,
     isWETHSymbolOrAddress,
 } from '../utils/token_metadata_utils';
+
+import { quoteReportUtils } from './../utils/quote_report_utils';
 
 export class SwapHandlers {
     private readonly _swapService: SwapService;
@@ -64,7 +65,11 @@ export class SwapHandlers {
                 },
             });
             if (quote.quoteReport) {
-                logQuoteReport(quote.quoteReport, quote.uniqueIdString);
+                quoteReportUtils.logQuoteReport({
+                    quoteReport: quote.quoteReport,
+                    submissionBy: 'taker',
+                    uniqueIdString: quote.uniqueIdString,
+                });
             }
         }
         const cleanedQuote = _.omit(quote, 'quoteReport', 'uniqueIdString');
@@ -278,29 +283,6 @@ export class SwapHandlers {
         }
     }
 }
-
-const logQuoteReport = (qr: QuoteReport, uniqueIdString: string) => {
-    const sourcesConsideredChunks = _.chunk(qr.sourcesConsidered, NUMBER_SOURCES_PER_LOG_LINE);
-    sourcesConsideredChunks.forEach((chunk, i) => {
-        logger.info({
-            firmQuoteReport: true,
-            sourcesConsideredChunkIndex: i,
-            sourcesConsideredChunkLength: sourcesConsideredChunks.length,
-            sourcesConsidered: chunk,
-        });
-    });
-
-    const sourcesDeliveredChunks = _.chunk(qr.sourcesDelivered, NUMBER_SOURCES_PER_LOG_LINE);
-    sourcesDeliveredChunks.forEach((chunk, i) => {
-        logger.info({
-            firmQuoteReport: true,
-            firmQuoteUniqueIdString: uniqueIdString,
-            sourcesDeliveredChunkIndex: i,
-            sourcesDeliveredChunkLength: sourcesDeliveredChunks.length,
-            sourcesDelivered: chunk,
-        });
-    });
-};
 
 const parseGetSwapQuoteRequestParams = (
     req: express.Request,

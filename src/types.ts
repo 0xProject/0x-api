@@ -474,6 +474,7 @@ export interface CalculateMetaTransactionPriceResponse {
     protocolFee: BigNumber;
     minimumProtocolFee: BigNumber;
     estimatedGas: BigNumber;
+    quoteReport?: QuoteReport;
     allowanceTarget?: string;
 }
 
