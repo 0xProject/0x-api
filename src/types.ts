@@ -442,7 +442,7 @@ export interface GetMetaTransactionQuoteResponseV0 extends BasePriceResponse {
 
 export interface GetMetaTransactionQuoteResponseV1 extends BasePriceResponse {
     mtxHash: string;
-    mtx: ZeroExTransaction | ExchangeProxyMetaTransaction;
+    mtx: ExchangeProxyMetaTransaction;
     orders: SignedOrder[];
 }
 
