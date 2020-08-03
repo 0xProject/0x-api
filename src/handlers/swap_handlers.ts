@@ -64,7 +64,7 @@ export class SwapHandlers {
                     makers: quote.orders.map(order => order.makerAddress),
                 },
             });
-            if (quote.quoteReport) {
+            if (quote.quoteReport && params.rfqt && params.rfqt.intentOnFilling) {
                 quoteReportUtils.logQuoteReport({
                     quoteReport: quote.quoteReport,
                     submissionBy: 'taker',
