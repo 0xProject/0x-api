@@ -127,7 +127,7 @@
         "@0x/base-contract": "^6.2.3",
         "@0x/connect": "^6.0.4",
         "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.11.0-d5180d3eb",
-        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.8.0-9a16f5736",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.8.0-beta-053b55fbb",
         "@0x/contracts-dev-utils": "^1.3.4",
         "@0x/json-schemas": "^5.0.4",
         "@0x/mesh-rpc-client": "^9.3.0",

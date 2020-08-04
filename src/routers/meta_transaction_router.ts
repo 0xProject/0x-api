@@ -38,7 +38,10 @@ export const createMetaTransactionRouter = (
      *
      * https://0x.org/docs/guides/v3-specification#executing-a-transaction
      */
-    router.post('/v0/submit', asyncHandler(handlers.submitTransactionIfWhitelistedAsync.bind(handlers)));
+    router.post(
+        '/v0/submit',
+        asyncHandler(handlers.submitTransactionIfWhitelistedAsync.bind(handlers, SwapVersion.V0)),
+    );
 
     // V1 handlers
     router.get('/v1', asyncHandler(MetaTransactionHandlers.rootAsync.bind(MetaTransactionHandlers)));
