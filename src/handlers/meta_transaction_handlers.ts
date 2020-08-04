@@ -77,7 +77,6 @@ export class MetaTransactionHandlers {
         } = parseGetTransactionRequestParams(req);
         const sellToken = getTokenMetadataIfExists(sellTokenAddress, CHAIN_ID);
         const buyToken = getTokenMetadataIfExists(buyTokenAddress, CHAIN_ID);
-        const isETHSell = isETHSymbol(sellToken.symbol);
         const isETHBuy = isETHSymbol(buyToken.symbol);
 
         // ETH selling isn't supported.
