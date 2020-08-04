@@ -22,6 +22,7 @@ import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_uti
 import { liquiditySources0xOnly } from './utils/mocks';
 
 const SUITE_NAME = 'meta transactions tests';
+const MTX_V0_PATH = `${META_TRANSACTION_PATH}/v0`;
 
 describe(SUITE_NAME, () => {
     let accounts: string[];
@@ -209,7 +210,7 @@ describe(SUITE_NAME, () => {
         context('failure tests', () => {
             for (const testCase of testCases) {
                 it(`${testCase.description}`, async () => {
-                    await assertFailureAsync(`${META_TRANSACTION_PATH}/price`, testCase);
+                    await assertFailureAsync(`${MTX_V0_PATH}/price`, testCase);
                 });
             }
         });
@@ -235,7 +236,7 @@ describe(SUITE_NAME, () => {
                 const validationResults = await meshUtils.addOrdersWithPricesAsync([1]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
-                    baseRoute: `${META_TRANSACTION_PATH}/price`,
+                    baseRoute: `${MTX_V0_PATH}/price`,
                     queryParams: {
                         ...DEFAULT_QUERY_PARAMS,
                         takerAddress,
@@ -258,7 +259,7 @@ describe(SUITE_NAME, () => {
                 const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
-                    baseRoute: `${META_TRANSACTION_PATH}/price`,
+                    baseRoute: `${MTX_V0_PATH}/price`,
                     queryParams: {
                         ...DEFAULT_QUERY_PARAMS,
                         takerAddress,
@@ -284,7 +285,7 @@ describe(SUITE_NAME, () => {
                 const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
                 const largeSellAmount = calculateSellAmount(largeBuyAmount, largeOrderPrice);
                 const route = constructRoute({
-                    baseRoute: `${META_TRANSACTION_PATH}/price`,
+                    baseRoute: `${MTX_V0_PATH}/price`,
                     queryParams: {
                         ...DEFAULT_QUERY_PARAMS,
                         buyAmount: largeBuyAmount,
@@ -388,7 +389,7 @@ describe(SUITE_NAME, () => {
         context('failure tests', () => {
             for (const testCase of testCases) {
                 it(`${testCase.description}`, async () => {
-                    await assertFailureAsync(`${META_TRANSACTION_PATH}/quote`, testCase);
+                    await assertFailureAsync(`${MTX_V0_PATH}/quote`, testCase);
                 });
             }
         });
@@ -418,7 +419,7 @@ describe(SUITE_NAME, () => {
                 const validationResults = await meshUtils.addOrdersWithPricesAsync([1]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
-                    baseRoute: `${META_TRANSACTION_PATH}/quote`,
+                    baseRoute: `${MTX_V0_PATH}/quote`,
                     queryParams: {
                         ...DEFAULT_QUERY_PARAMS,
                         takerAddress,
@@ -439,7 +440,7 @@ describe(SUITE_NAME, () => {
                 const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
-                    baseRoute: `${META_TRANSACTION_PATH}/quote`,
+                    baseRoute: `${MTX_V0_PATH}/quote`,
                     queryParams: {
                         ...DEFAULT_QUERY_PARAMS,
                         buyAmount,
@@ -462,7 +463,7 @@ describe(SUITE_NAME, () => {
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
                 const route = constructRoute({
-                    baseRoute: `${META_TRANSACTION_PATH}/quote`,
+                    baseRoute: `${MTX_V0_PATH}/quote`,
                     queryParams: {
                         ...DEFAULT_QUERY_PARAMS,
                         buyAmount: largeBuyAmount,
@@ -483,10 +484,10 @@ describe(SUITE_NAME, () => {
     });
 
     describe('/submit tests', () => {
-        const requestBase = `${META_TRANSACTION_PATH}/submit`;
+        const requestBase = `${MTX_V0_PATH}/submit`;
 
         context('failure tests', () => {
-            it('should return InvalidAPIKey error if invalid UUID supplied as API Key', async () => {
+            it.only('should return InvalidAPIKey error if invalid UUID supplied as API Key', async () => {
                 const response = await httpPostAsync({ route: requestBase, headers: { '0x-api-key': 'foobar' } });
                 expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
                 expect(response.type).to.be.eq('application/json');
@@ -538,7 +539,7 @@ describe(SUITE_NAME, () => {
 
                 it('price checking yields the correct market price', async () => {
                     const route = constructRoute({
-                        baseRoute: `${META_TRANSACTION_PATH}/price`,
+                        baseRoute: `${MTX_V0_PATH}/price`,
                         queryParams: {
                             ...DEFAULT_QUERY_PARAMS,
                             takerAddress,
@@ -561,7 +562,7 @@ describe(SUITE_NAME, () => {
 
                 it('the quote matches the price check', async () => {
                     const route = constructRoute({
-                        baseRoute: `${META_TRANSACTION_PATH}/quote`,
+                        baseRoute: `${MTX_V0_PATH}/quote`,
                         queryParams: {
                             ...DEFAULT_QUERY_PARAMS,
                             takerAddress,
@@ -593,7 +594,7 @@ describe(SUITE_NAME, () => {
 
                     const signature = signZeroExTransaction(transaction, takerAddress);
                     const route = constructRoute({
-                        baseRoute: `${META_TRANSACTION_PATH}/submit`,
+                        baseRoute: `${MTX_V0_PATH}/submit`,
                     });
                     const response = await httpPostAsync({
                         route,
@@ -649,7 +650,7 @@ describe(SUITE_NAME, () => {
 
                 it('price checking yields the correct market price', async () => {
                     const route = constructRoute({
-                        baseRoute: `${META_TRANSACTION_PATH}/price`,
+                        baseRoute: `${MTX_V0_PATH}/price`,
                         queryParams: {
                             ...DEFAULT_QUERY_PARAMS,
                             buyAmount: largeBuyAmount,
@@ -672,7 +673,7 @@ describe(SUITE_NAME, () => {
 
                 it('the quote matches the price check', async () => {
                     const route = constructRoute({
-                        baseRoute: `${META_TRANSACTION_PATH}/quote`,
+                        baseRoute: `${MTX_V0_PATH}/quote`,
                         queryParams: {
                             ...DEFAULT_QUERY_PARAMS,
                             buyAmount: largeBuyAmount,
@@ -705,7 +706,7 @@ describe(SUITE_NAME, () => {
 
                     const signature = signZeroExTransaction(transaction, takerAddress);
                     const route = constructRoute({
-                        baseRoute: `${META_TRANSACTION_PATH}/submit`,
+                        baseRoute: `${MTX_V0_PATH}/submit`,
                     });
                     const response = await httpPostAsync({
                         route,
