@@ -238,6 +238,16 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         },
     },
     {
+        decimals: 18,
+        symbol: 'FOUR',
+        name: '4thpillar technologies',
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x4730fb1463a6f1f44aeb45f6c5c422427f37f4d0',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
         decimals: 4,
         symbol: 'AST',
         name: 'AirSwap Token',
