@@ -4,20 +4,20 @@ import _ = require('lodash');
 import { NUMBER_SOURCES_PER_LOG_LINE } from '../constants';
 import { logger } from '../logger';
 
-interface QuoteReportSubmissionByTaker {
+interface QuoteReportForTakerTxn {
     quoteReport: QuoteReport;
     submissionBy: 'taker';
     uniqueIdString: string;
 }
-interface QuoteReportSubmissionByMetaTxn {
+interface QuoteReportForMetaTxn {
     quoteReport: QuoteReport;
     submissionBy: 'metaTxn';
     zeroExTransactionHash: string;
 }
-type LogQuoteReportOptions = QuoteReportSubmissionByTaker | QuoteReportSubmissionByMetaTxn;
+type QuoteReportLogOptions = QuoteReportForTakerTxn | QuoteReportForMetaTxn;
 
 export const quoteReportUtils = {
-    logQuoteReport(logOpts: LogQuoteReportOptions): void {
+    logQuoteReport(logOpts: QuoteReportLogOptions): void {
         const qr = logOpts.quoteReport;
 
         let logBase: { [key: string]: string | boolean } = {
