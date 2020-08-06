@@ -390,7 +390,7 @@ export interface SwapQuoteResponsePartialTransaction {
     to: string;
     data: string;
     value: BigNumber;
-    uniqueIdString: string;
+    decodedUniqueId: string;
 }
 
 export interface SwapQuoteResponsePrice {

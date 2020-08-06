@@ -7,7 +7,7 @@ import { logger } from '../logger';
 interface QuoteReportForTakerTxn {
     quoteReport: QuoteReport;
     submissionBy: 'taker';
-    uniqueIdString: string;
+    decodedUniqueId: string;
 }
 interface QuoteReportForMetaTxn {
     quoteReport: QuoteReport;
@@ -27,7 +27,7 @@ export const quoteReportUtils = {
         if (logOpts.submissionBy === 'metaTxn') {
             logBase = { ...logBase, zeroExTransactionHash: logOpts.zeroExTransactionHash };
         } else if (logOpts.submissionBy === 'taker') {
-            logBase = { ...logBase, uniqueIdString: logOpts.uniqueIdString };
+            logBase = { ...logBase, decodedUniqueId: logOpts.decodedUniqueId };
         }
 
         // Deliver in chunks since Kibana can't handle logs large requests

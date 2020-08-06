@@ -63,7 +63,7 @@ export const serviceUtils = {
         affiliateAddress?: string,
     ): {
         affiliatedData: string;
-        uniqueIdString: string;
+        decodedUniqueId: string;
     } {
         const affiliateAddressOrDefault = affiliateAddress ? affiliateAddress : FEE_RECIPIENT_ADDRESS;
         const affiliateCallDataEncoder = new AbiEncoder.Method({
@@ -93,7 +93,7 @@ export const serviceUtils = {
         // Encode additional call data and return
         const encodedAffiliateData = affiliateCallDataEncoder.encode([affiliateAddressOrDefault, uniqueIdentifier]);
         const affiliatedData = `${data}${encodedAffiliateData.slice(2)}`;
-        return { affiliatedData, uniqueIdString: `${randomNumber}-${timestampInSeconds}` };
+        return { affiliatedData, decodedUniqueId: `${randomNumber}-${timestampInSeconds}` };
     },
 
     // tslint:disable-next-line:prefer-function-over-method

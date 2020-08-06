@@ -120,7 +120,7 @@ export class SwapService {
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown, quoteReport } = attributedSwapQuote;
 
-        const { to, value, data, uniqueIdString } = await this._getSwapQuotePartialTransactionAsync(
+        const { to, value, data, decodedUniqueId } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
             isETHSell,
             isETHBuy,
@@ -208,7 +208,7 @@ export class SwapService {
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
             orders: serviceUtils.cleanSignedOrderFields(orders),
             allowanceTarget,
-            uniqueIdString,
+            decodedUniqueId,
             quoteReport,
         };
         return apiSwapQuote;
@@ -358,7 +358,7 @@ export class SwapService {
             guaranteedPrice: ONE,
             to: this._wethContract.address,
             data: attributedCalldata.affiliatedData,
-            uniqueIdString: attributedCalldata.uniqueIdString,
+            decodedUniqueId: attributedCalldata.decodedUniqueId,
             value,
             gas: gasEstimate,
             estimatedGas: gasEstimate,
@@ -523,12 +523,12 @@ export class SwapService {
             toAddress: to,
         } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, opts);
 
-        const { affiliatedData, uniqueIdString } = serviceUtils.attributeCallData(data, affiliateAddress);
+        const { affiliatedData, decodedUniqueId } = serviceUtils.attributeCallData(data, affiliateAddress);
         return {
             to,
             value,
             data: affiliatedData,
-            uniqueIdString,
+            decodedUniqueId,
         };
     }
 

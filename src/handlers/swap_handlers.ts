@@ -68,11 +68,11 @@ export class SwapHandlers {
                 quoteReportUtils.logQuoteReport({
                     quoteReport: quote.quoteReport,
                     submissionBy: 'taker',
-                    uniqueIdString: quote.uniqueIdString,
+                    decodedUniqueId: quote.decodedUniqueId,
                 });
             }
         }
-        const cleanedQuote = _.omit(quote, 'quoteReport', 'uniqueIdString');
+        const cleanedQuote = _.omit(quote, 'quoteReport', 'decodedUniqueId');
         res.status(HttpStatus.OK).send(cleanedQuote);
     }
     // tslint:disable-next-line:prefer-function-over-method
