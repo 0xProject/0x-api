@@ -1,4 +1,5 @@
 import {
+    AffiliateFee,
     ERC20BridgeSource,
     ExtensionContractType,
     Orderbook,
@@ -44,6 +45,7 @@ import {
     CalculateSwapQuoteParams,
     GetSwapQuoteResponse,
     GetTokenPricesResponse,
+    PercentFee,
     SwapQuoteResponsePartialTransaction,
     SwapQuoteResponsePrice,
     SwapVersion,
@@ -108,6 +110,7 @@ export class SwapService {
             // tslint:disable-next-line:boolean-naming
             skipValidation,
             swapVersion,
+            affiliateFee,
         } = params;
         const swapQuote = await this._getMarketBuyOrSellQuoteAsync(params);
 
@@ -120,13 +123,20 @@ export class SwapService {
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = attributedSwapQuote.worstCaseQuoteInfo;
         const { orders, gasPrice, sourceBreakdown } = attributedSwapQuote;
 
+        const {
+            gasCost: affiliateFeeGasCost,
+            buyTokenFeeAmount,
+            sellTokenFeeAmount,
+        } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
         const { to, value, data } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
             isETHSell,
             isETHBuy,
             affiliateAddress,
             swapVersion,
+            { recipient: affiliateFee.recipient, buyTokenFeeAmount, sellTokenFeeAmount },
         );
+
         let gst2Balance = ZERO;
         try {
             gst2Balance = (await this._gstBalanceResultCache.getResultAsync()).result;
@@ -137,8 +147,10 @@ export class SwapService {
             attributedSwapQuote.orders,
             gst2Balance,
         );
+        let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas)
+            .plus(gasTokenGasCost)
+            .plus(affiliateFeeGasCost);
 
-        let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(gasTokenGasCost);
         if (!skipValidation && from) {
             const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
@@ -162,6 +174,7 @@ export class SwapService {
             buyTokenAddress,
             sellTokenAddress,
             attributedSwapQuote,
+            affiliateFee,
         );
 
         // set the allowance target based on version. V0 is legacy param to support transition to v1
@@ -202,7 +215,7 @@ export class SwapService {
             minimumProtocolFee: BigNumber.min(adjustedWorstCaseProtocolFee, bestCaseProtocolFee),
             buyTokenAddress,
             sellTokenAddress,
-            buyAmount: makerAssetAmount,
+            buyAmount: makerAssetAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAssetAmount,
             estimatedGasTokenRefund,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
@@ -430,7 +443,7 @@ export class SwapService {
             apiKey,
             rfqt,
             swapVersion,
-            // tslint:disable-next-line:boolean-naming
+            affiliateFee,
         } = params;
         let _rfqt: RfqtRequestOpts | undefined;
         if (apiKey !== undefined && (isETHSell || from !== undefined)) {
@@ -479,10 +492,11 @@ export class SwapService {
                 assetSwapperOpts,
             );
         } else if (buyAmount !== undefined) {
+            const buyAmountScaled = buyAmount.dividedToIntegerBy(1 - affiliateFee.buyTokenPercentFee);
             return this._swapQuoter.getMarketBuySwapQuoteAsync(
                 buyTokenAddress,
                 sellTokenAddress,
-                buyAmount,
+                buyAmountScaled,
                 assetSwapperOpts,
             );
         } else {
@@ -496,6 +510,7 @@ export class SwapService {
         isToETH: boolean,
         affiliateAddress: string,
         swapVersion: SwapVersion,
+        affiliateFee: AffiliateFee,
     ): Promise<SwapQuoteResponsePartialTransaction> {
         let opts: Partial<SwapQuoteGetOutputOpts> = { useExtensionContract: ExtensionContractType.None };
         switch (swapVersion) {
@@ -507,7 +522,7 @@ export class SwapService {
             case SwapVersion.V1:
                 opts = {
                     useExtensionContract: ExtensionContractType.ExchangeProxy,
-                    extensionContractOpts: { isFromETH, isToETH },
+                    extensionContractOpts: { isFromETH, isToETH, affiliateFee },
                 };
                 break;
             default:
@@ -533,6 +548,7 @@ export class SwapService {
         buyTokenAddress: string,
         sellTokenAddress: string,
         swapQuote: SwapQuote,
+        affiliateFee: PercentFee,
     ): Promise<SwapQuoteResponsePrice> {
         const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
         const {
@@ -542,25 +558,31 @@ export class SwapService {
         const buyTokenDecimals = (await this._tokenDecimalResultCache.getResultAsync(buyTokenAddress)).result;
         const sellTokenDecimals = (await this._tokenDecimalResultCache.getResultAsync(sellTokenAddress)).result;
         const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
-        const unitTakerAssetAMount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
+        const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
         // Best price
         const price =
             buyAmount === undefined
-                ? unitMakerAssetAmount.dividedBy(unitTakerAssetAMount).decimalPlaces(sellTokenDecimals)
-                : unitTakerAssetAMount.dividedBy(unitMakerAssetAmount).decimalPlaces(buyTokenDecimals);
+                ? unitMakerAssetAmount
+                      .times(ONE.minus(affiliateFee.buyTokenPercentFee))
+                      .dividedBy(unitTakerAssetAmount)
+                      .decimalPlaces(sellTokenDecimals)
+                : unitTakerAssetAmount
+                      .dividedBy(unitMakerAssetAmount.times(ONE.minus(affiliateFee.buyTokenPercentFee)))
+                      .decimalPlaces(buyTokenDecimals);
         // Guaranteed price before revert occurs
         const guaranteedUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAssetAmount, buyTokenDecimals);
-        const guaranteedUnitTakerAssetAMount = Web3Wrapper.toUnitAmount(
+        const guaranteedUnitTakerAssetAmount = Web3Wrapper.toUnitAmount(
             guaranteedTotalTakerAssetAmount,
             sellTokenDecimals,
         );
         const guaranteedPrice =
             buyAmount === undefined
                 ? guaranteedUnitMakerAssetAmount
-                      .dividedBy(guaranteedUnitTakerAssetAMount)
+                      .times(ONE.minus(affiliateFee.buyTokenPercentFee))
+                      .dividedBy(guaranteedUnitTakerAssetAmount)
                       .decimalPlaces(sellTokenDecimals)
-                : guaranteedUnitTakerAssetAMount
-                      .dividedBy(guaranteedUnitMakerAssetAmount)
+                : guaranteedUnitTakerAssetAmount
+                      .dividedBy(guaranteedUnitMakerAssetAmount.times(ONE.minus(affiliateFee.buyTokenPercentFee)))
                       .decimalPlaces(buyTokenDecimals);
         return {
             price,

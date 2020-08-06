@@ -1,12 +1,14 @@
 import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
+import { BigNumber } from '@0x/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import 'mocha';
 
-import { ZERO } from '../src/constants';
+import { AFFILIATE_FEE_TRANSFORMER_GAS, ZERO } from '../src/constants';
 import { serviceUtils } from '../src/utils/service_utils';
 
 import { AFFILIATE_DATA_SELECTOR, MAX_INT } from './constants';
+import { randomSellQuote } from './utils/mocks';
 
 const SUITE_NAME = 'serviceUtils test';
 
@@ -117,6 +119,36 @@ describe(SUITE_NAME, () => {
             expect(timestampFromCallData).to.be.lessThan(currentTime.getTime() / 1000 + 3);
             // ID is a 10-digit hex number
             expect(randomId).to.match(/[0-9A-Fa-f]{10}/);
+        });
+    });
+    describe('getAffiliateFeeAmounts', () => {
+        it('returns the correct amounts if the fee is zero', () => {
+            const affiliateFee = {
+                recipient: '',
+                buyTokenPercentFee: 0,
+                sellTokenPercentFee: 0,
+            };
+            const costInfo = serviceUtils.getAffiliateFeeAmounts(randomSellQuote, affiliateFee);
+            expect(costInfo).to.deep.equal({
+                buyTokenFeeAmount: ZERO,
+                sellTokenFeeAmount: ZERO,
+                gasCost: ZERO,
+            });
+        });
+        it('returns the correct amounts if the fee is non-zero', () => {
+            const affiliateFee = {
+                recipient: '',
+                buyTokenPercentFee: 0.01,
+                sellTokenPercentFee: 0,
+            };
+            const costInfo = serviceUtils.getAffiliateFeeAmounts(randomSellQuote, affiliateFee);
+            expect(costInfo).to.deep.equal({
+                buyTokenFeeAmount: randomSellQuote.worstCaseQuoteInfo.makerAssetAmount
+                    .times(affiliateFee.buyTokenPercentFee)
+                    .integerValue(BigNumber.ROUND_DOWN),
+                sellTokenFeeAmount: ZERO,
+                gasCost: AFFILIATE_FEE_TRANSFORMER_GAS,
+            });
         });
     });
 });

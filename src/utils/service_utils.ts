@@ -4,6 +4,7 @@ import {
     MarketSellSwapQuote,
     OptimizedMarketOrder,
     SignedOrder,
+    SwapQuote,
     SwapQuoteOrdersBreakdown,
 } from '@0x/asset-swapper';
 import { assetDataUtils } from '@0x/order-utils';
@@ -13,6 +14,7 @@ import * as _ from 'lodash';
 
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, GAS_SCHEDULE_V0 } from '../config';
 import {
+    AFFILIATE_FEE_TRANSFORMER_GAS,
     DEFAULT_TOKEN_DECIMALS,
     GAS_BURN_COST,
     GAS_BURN_REFUND,
@@ -26,7 +28,7 @@ import {
     ZERO,
 } from '../constants';
 import { logger } from '../logger';
-import { GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource } from '../types';
+import { AffiliateFeeAmounts, GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource, PercentFee } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
@@ -204,6 +206,16 @@ export const serviceUtils = {
             usedGasTokens: usedGasTokens.toNumber(),
             gasTokenRefund,
             gasTokenGasCost,
+        };
+    },
+    getAffiliateFeeAmounts(quote: SwapQuote, fee: PercentFee): AffiliateFeeAmounts {
+        const buyTokenFeeAmount = quote.worstCaseQuoteInfo.makerAssetAmount
+            .times(fee.buyTokenPercentFee)
+            .integerValue(BigNumber.ROUND_DOWN);
+        return {
+            sellTokenFeeAmount: ZERO,
+            buyTokenFeeAmount,
+            gasCost: buyTokenFeeAmount.isZero() ? ZERO : AFFILIATE_FEE_TRANSFORMER_GAS,
         };
     },
 };

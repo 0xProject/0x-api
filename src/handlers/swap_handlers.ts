@@ -170,6 +170,7 @@ export class SwapHandlers {
             // tslint:disable-next-line:boolean-naming
             skipValidation,
             apiKey,
+            affiliateFee,
         } = params;
 
         const isETHSell = isETHSymbol(sellToken);
@@ -202,6 +203,16 @@ export class SwapHandlers {
             ]);
         }
 
+        if (swapVersion === SwapVersion.V0 && affiliateFee.buyTokenPercentFee > 0) {
+            throw new ValidationError([
+                {
+                    field: 'buyTokenPercentFee',
+                    code: ValidationErrorCodes.UnsupportedOption,
+                    reason: 'Affiliate fees are unsupported in v0',
+                },
+            ]);
+        }
+
         const calculateSwapQuoteParams: CalculateSwapQuoteParams = {
             buyTokenAddress,
             sellTokenAddress,
@@ -225,6 +236,7 @@ export class SwapHandlers {
                       },
             skipValidation,
             swapVersion,
+            affiliateFee,
         };
         try {
             let swapQuote: GetSwapQuoteResponse;
@@ -298,6 +310,39 @@ const parseGetSwapQuoteRequestParams = (
         ]);
     }
 
+    const feeRecipient = req.query.feeRecipient as string;
+    const sellTokenPercentFee = Number.parseFloat(req.query.sellTokenPercentFee as string) || 0;
+    const buyTokenPercentFee = Number.parseFloat(req.query.buyTokenPercentFee as string) || 0;
+    if (sellTokenPercentFee > 0) {
+        throw new ValidationError([
+            {
+                field: 'sellTokenPercentFee',
+                code: ValidationErrorCodes.UnsupportedOption,
+                reason: ValidationErrorReasons.ArgumentNotYetSupported,
+            },
+        ]);
+    }
+    if (buyTokenPercentFee > 1) {
+        throw new ValidationError([
+            {
+                field: 'buyTokenPercentFee',
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: ValidationErrorReasons.PercentageOutOfRange,
+            },
+        ]);
+    }
+    const affiliateFee = feeRecipient
+        ? {
+              recipient: feeRecipient,
+              sellTokenPercentFee,
+              buyTokenPercentFee,
+          }
+        : {
+              recipient: NULL_ADDRESS,
+              sellTokenPercentFee: 0,
+              buyTokenPercentFee: 0,
+          };
+
     const apiKey = req.header('0x-api-key');
     // tslint:disable-next-line: boolean-naming
     const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
@@ -343,5 +388,6 @@ const parseGetSwapQuoteRequestParams = (
         rfqt,
         skipValidation,
         apiKey,
+        affiliateFee,
     };
 };
