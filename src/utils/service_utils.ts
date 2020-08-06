@@ -28,7 +28,7 @@ import {
     ZERO,
 } from '../constants';
 import { logger } from '../logger';
-import { AffiliateFeeAmounts, GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource, PercentFee } from '../types';
+import { AffiliateFeeAmounts, GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource, PercentageFee } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
@@ -208,9 +208,10 @@ export const serviceUtils = {
             gasTokenGasCost,
         };
     },
-    getAffiliateFeeAmounts(quote: SwapQuote, fee: PercentFee): AffiliateFeeAmounts {
+    getAffiliateFeeAmounts(quote: SwapQuote, fee: PercentageFee): AffiliateFeeAmounts {
         const buyTokenFeeAmount = quote.worstCaseQuoteInfo.makerAssetAmount
-            .times(fee.buyTokenPercentFee)
+            .times(fee.buyTokenPercentageFee)
+            .dividedBy(fee.buyTokenPercentageFee + 1)
             .integerValue(BigNumber.ROUND_DOWN);
         return {
             sellTokenFeeAmount: ZERO,

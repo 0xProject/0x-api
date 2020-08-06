@@ -125,8 +125,8 @@ describe(SUITE_NAME, () => {
         it('returns the correct amounts if the fee is zero', () => {
             const affiliateFee = {
                 recipient: '',
-                buyTokenPercentFee: 0,
-                sellTokenPercentFee: 0,
+                buyTokenPercentageFee: 0,
+                sellTokenPercentageFee: 0,
             };
             const costInfo = serviceUtils.getAffiliateFeeAmounts(randomSellQuote, affiliateFee);
             expect(costInfo).to.deep.equal({
@@ -138,13 +138,14 @@ describe(SUITE_NAME, () => {
         it('returns the correct amounts if the fee is non-zero', () => {
             const affiliateFee = {
                 recipient: '',
-                buyTokenPercentFee: 0.01,
-                sellTokenPercentFee: 0,
+                buyTokenPercentageFee: 0.01,
+                sellTokenPercentageFee: 0,
             };
             const costInfo = serviceUtils.getAffiliateFeeAmounts(randomSellQuote, affiliateFee);
             expect(costInfo).to.deep.equal({
                 buyTokenFeeAmount: randomSellQuote.worstCaseQuoteInfo.makerAssetAmount
-                    .times(affiliateFee.buyTokenPercentFee)
+                    .times(affiliateFee.buyTokenPercentageFee)
+                    .dividedBy(affiliateFee.buyTokenPercentageFee + 1)
                     .integerValue(BigNumber.ROUND_DOWN),
                 sellTokenFeeAmount: ZERO,
                 gasCost: AFFILIATE_FEE_TRANSFORMER_GAS,

@@ -203,10 +203,10 @@ export class SwapHandlers {
             ]);
         }
 
-        if (swapVersion === SwapVersion.V0 && affiliateFee.buyTokenPercentFee > 0) {
+        if (swapVersion === SwapVersion.V0 && affiliateFee.buyTokenPercentageFee > 0) {
             throw new ValidationError([
                 {
-                    field: 'buyTokenPercentFee',
+                    field: 'buyTokenPercentageFee',
                     code: ValidationErrorCodes.UnsupportedOption,
                     reason: 'Affiliate fees are unsupported in v0',
                 },
@@ -311,21 +311,21 @@ const parseGetSwapQuoteRequestParams = (
     }
 
     const feeRecipient = req.query.feeRecipient as string;
-    const sellTokenPercentFee = Number.parseFloat(req.query.sellTokenPercentFee as string) || 0;
-    const buyTokenPercentFee = Number.parseFloat(req.query.buyTokenPercentFee as string) || 0;
-    if (sellTokenPercentFee > 0) {
+    const sellTokenPercentageFee = Number.parseFloat(req.query.sellTokenPercentageFee as string) || 0;
+    const buyTokenPercentageFee = Number.parseFloat(req.query.buyTokenPercentageFee as string) || 0;
+    if (sellTokenPercentageFee > 0) {
         throw new ValidationError([
             {
-                field: 'sellTokenPercentFee',
+                field: 'sellTokenPercentageFee',
                 code: ValidationErrorCodes.UnsupportedOption,
                 reason: ValidationErrorReasons.ArgumentNotYetSupported,
             },
         ]);
     }
-    if (buyTokenPercentFee > 1) {
+    if (buyTokenPercentageFee > 1) {
         throw new ValidationError([
             {
-                field: 'buyTokenPercentFee',
+                field: 'buyTokenPercentageFee',
                 code: ValidationErrorCodes.ValueOutOfRange,
                 reason: ValidationErrorReasons.PercentageOutOfRange,
             },
@@ -334,13 +334,13 @@ const parseGetSwapQuoteRequestParams = (
     const affiliateFee = feeRecipient
         ? {
               recipient: feeRecipient,
-              sellTokenPercentFee,
-              buyTokenPercentFee,
+              sellTokenPercentageFee,
+              buyTokenPercentageFee,
           }
         : {
               recipient: NULL_ADDRESS,
-              sellTokenPercentFee: 0,
-              buyTokenPercentFee: 0,
+              sellTokenPercentageFee: 0,
+              buyTokenPercentageFee: 0,
           };
 
     const apiKey = req.header('0x-api-key');

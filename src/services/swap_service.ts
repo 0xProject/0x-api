@@ -45,7 +45,7 @@ import {
     CalculateSwapQuoteParams,
     GetSwapQuoteResponse,
     GetTokenPricesResponse,
-    PercentFee,
+    PercentageFee,
     SwapQuoteResponsePartialTransaction,
     SwapQuoteResponsePrice,
     SwapVersion,
@@ -492,7 +492,9 @@ export class SwapService {
                 assetSwapperOpts,
             );
         } else if (buyAmount !== undefined) {
-            const buyAmountScaled = buyAmount.dividedToIntegerBy(1 - affiliateFee.buyTokenPercentFee);
+            const buyAmountScaled = buyAmount
+                .times(affiliateFee.buyTokenPercentageFee + 1)
+                .integerValue(BigNumber.ROUND_DOWN);
             return this._swapQuoter.getMarketBuySwapQuoteAsync(
                 buyTokenAddress,
                 sellTokenAddress,
@@ -548,7 +550,7 @@ export class SwapService {
         buyTokenAddress: string,
         sellTokenAddress: string,
         swapQuote: SwapQuote,
-        affiliateFee: PercentFee,
+        affiliateFee: PercentageFee,
     ): Promise<SwapQuoteResponsePrice> {
         const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
         const {
@@ -563,11 +565,12 @@ export class SwapService {
         const price =
             buyAmount === undefined
                 ? unitMakerAssetAmount
-                      .times(ONE.minus(affiliateFee.buyTokenPercentFee))
+                      .dividedBy(affiliateFee.buyTokenPercentageFee + 1)
                       .dividedBy(unitTakerAssetAmount)
                       .decimalPlaces(sellTokenDecimals)
                 : unitTakerAssetAmount
-                      .dividedBy(unitMakerAssetAmount.times(ONE.minus(affiliateFee.buyTokenPercentFee)))
+                      .dividedBy(unitMakerAssetAmount)
+                      .times(affiliateFee.buyTokenPercentageFee + 1)
                       .decimalPlaces(buyTokenDecimals);
         // Guaranteed price before revert occurs
         const guaranteedUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAssetAmount, buyTokenDecimals);
@@ -578,11 +581,12 @@ export class SwapService {
         const guaranteedPrice =
             buyAmount === undefined
                 ? guaranteedUnitMakerAssetAmount
-                      .times(ONE.minus(affiliateFee.buyTokenPercentFee))
+                      .dividedBy(affiliateFee.buyTokenPercentageFee + 1)
                       .dividedBy(guaranteedUnitTakerAssetAmount)
                       .decimalPlaces(sellTokenDecimals)
                 : guaranteedUnitTakerAssetAmount
-                      .dividedBy(guaranteedUnitMakerAssetAmount.times(ONE.minus(affiliateFee.buyTokenPercentFee)))
+                      .dividedBy(guaranteedUnitMakerAssetAmount)
+                      .times(affiliateFee.buyTokenPercentageFee + 1)
                       .decimalPlaces(buyTokenDecimals);
         return {
             price,

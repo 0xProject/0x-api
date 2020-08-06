@@ -303,18 +303,18 @@ describe(SUITE_NAME, () => {
             });
             it('can add a buy token affiliate fee to a sell quote', async () => {
                 const feeRecipient = randomAddress();
-                const buyTokenPercentFee = getRandomFloat(0, 1);
+                const buyTokenPercentageFee = getRandomFloat(0, 1);
                 await quoteAndExpectAsync(
                     {
                         ...sellQuoteParams,
                         feeRecipient,
-                        buyTokenPercentFee: buyTokenPercentFee.toString(),
+                        buyTokenPercentageFee: buyTokenPercentageFee.toString(),
                     },
                     _.omit(
                         {
                             ...sellQuoteWithoutFee,
-                            buyAmount: new BigNumber(sellQuoteWithoutFee.buyAmount).times(
-                                ONE.minus(buyTokenPercentFee),
+                            buyAmount: new BigNumber(sellQuoteWithoutFee.buyAmount).dividedBy(
+                                ONE.plus(buyTokenPercentageFee),
                             ),
                             estimatedGas: new BigNumber(sellQuoteWithoutFee.estimatedGas).plus(
                                 AFFILIATE_FEE_TRANSFORMER_GAS,
@@ -322,9 +322,9 @@ describe(SUITE_NAME, () => {
                             gas: new BigNumber(sellQuoteWithoutFee.gas).plus(
                                 AFFILIATE_FEE_TRANSFORMER_GAS.times(GAS_LIMIT_BUFFER_MULTIPLIER),
                             ),
-                            price: new BigNumber(sellQuoteWithoutFee.price).times(ONE.minus(buyTokenPercentFee)),
-                            guaranteedPrice: new BigNumber(sellQuoteWithoutFee.guaranteedPrice).times(
-                                ONE.minus(buyTokenPercentFee),
+                            price: new BigNumber(sellQuoteWithoutFee.price).dividedBy(ONE.plus(buyTokenPercentageFee)),
+                            guaranteedPrice: new BigNumber(sellQuoteWithoutFee.guaranteedPrice).dividedBy(
+                                ONE.plus(buyTokenPercentageFee),
                             ),
                         },
                         'data',
@@ -333,12 +333,12 @@ describe(SUITE_NAME, () => {
             });
             it('can add a buy token affiliate fee to a buy quote', async () => {
                 const feeRecipient = randomAddress();
-                const buyTokenPercentFee = getRandomFloat(0, 1);
+                const buyTokenPercentageFee = getRandomFloat(0, 1);
                 await quoteAndExpectAsync(
                     {
                         ...buyQuoteParams,
                         feeRecipient,
-                        buyTokenPercentFee: buyTokenPercentFee.toString(),
+                        buyTokenPercentageFee: buyTokenPercentageFee.toString(),
                     },
                     _.omit(
                         {
@@ -349,9 +349,9 @@ describe(SUITE_NAME, () => {
                             gas: new BigNumber(buyQuoteWithoutFee.gas).plus(
                                 AFFILIATE_FEE_TRANSFORMER_GAS.times(GAS_LIMIT_BUFFER_MULTIPLIER),
                             ),
-                            price: new BigNumber(buyQuoteWithoutFee.price).div(ONE.minus(buyTokenPercentFee)),
-                            guaranteedPrice: new BigNumber(buyQuoteWithoutFee.guaranteedPrice).div(
-                                ONE.minus(buyTokenPercentFee),
+                            price: new BigNumber(buyQuoteWithoutFee.price).times(ONE.plus(buyTokenPercentageFee)),
+                            guaranteedPrice: new BigNumber(buyQuoteWithoutFee.guaranteedPrice).times(
+                                ONE.plus(buyTokenPercentageFee),
                             ),
                         },
                         ['data', 'sellAmount'],
@@ -364,13 +364,13 @@ describe(SUITE_NAME, () => {
                     {
                         ...sellQuoteParams,
                         feeRecipient,
-                        sellTokenPercentFee: '0.01',
+                        sellTokenPercentageFee: '0.01',
                     },
                     {
                         validationErrors: [
                             {
                                 code: ValidationErrorCodes.UnsupportedOption,
-                                field: 'sellTokenPercentFee',
+                                field: 'sellTokenPercentageFee',
                                 reason: ValidationErrorReasons.ArgumentNotYetSupported,
                             },
                         ],
@@ -383,13 +383,13 @@ describe(SUITE_NAME, () => {
                     {
                         ...sellQuoteParams,
                         feeRecipient,
-                        buyTokenPercentFee: '1.01',
+                        buyTokenPercentageFee: '1.01',
                     },
                     {
                         validationErrors: [
                             {
                                 code: ValidationErrorCodes.ValueOutOfRange,
-                                field: 'buyTokenPercentFee',
+                                field: 'buyTokenPercentageFee',
                                 reason: ValidationErrorReasons.PercentageOutOfRange,
                             },
                         ],
@@ -437,7 +437,7 @@ async function quoteAndExpectAsync(
     expectCorrectQuote(response.body, quoteAssertions);
 }
 
-const PRECISION = 5;
+const PRECISION = 4;
 function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, quoteAssertions: Partial<QuoteAssertion>): void {
     for (const property of Object.keys(quoteAssertions)) {
         if (BigNumber.isBigNumber(quoteAssertions[property])) {

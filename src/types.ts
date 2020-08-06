@@ -492,10 +492,10 @@ export interface ZeroExTransactionWithoutDomain {
     data: string;
 }
 
-export interface PercentFee {
+export interface PercentageFee {
     recipient: string;
-    sellTokenPercentFee: number;
-    buyTokenPercentFee: number;
+    sellTokenPercentageFee: number;
+    buyTokenPercentageFee: number;
 }
 
 export interface GetSwapQuoteRequestParams {
@@ -511,7 +511,7 @@ export interface GetSwapQuoteRequestParams {
     rfqt?: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'>;
     skipValidation: boolean;
     apiKey?: string;
-    affiliateFee: PercentFee;
+    affiliateFee: PercentageFee;
 }
 
 export interface GetTransactionRequestParams {
@@ -540,7 +540,7 @@ export interface CalculateSwapQuoteParams {
     rfqt?: Partial<RfqtRequestOpts>;
     skipValidation: boolean;
     swapVersion: SwapVersion;
-    affiliateFee: PercentFee;
+    affiliateFee: PercentageFee;
 }
 
 export interface GetSwapQuoteResponseLiquiditySource {
