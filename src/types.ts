@@ -412,7 +412,6 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     gas: BigNumber;
     estimatedGas: BigNumber;
     estimatedGasTokenRefund: BigNumber;
-    uniqueIdString: string;
     allowanceTarget?: string;
     quoteReport?: QuoteReport;
 }
