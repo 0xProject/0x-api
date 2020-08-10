@@ -4,6 +4,7 @@ import {
     MarketSellSwapQuote,
     OptimizedMarketOrder,
     SignedOrder,
+    SwapQuote,
     SwapQuoteOrdersBreakdown,
 } from '@0x/asset-swapper';
 import { assetDataUtils } from '@0x/order-utils';
@@ -13,6 +14,7 @@ import * as _ from 'lodash';
 
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, GAS_SCHEDULE_V0 } from '../config';
 import {
+    AFFILIATE_FEE_TRANSFORMER_GAS,
     DEFAULT_TOKEN_DECIMALS,
     GAS_BURN_COST,
     GAS_BURN_REFUND,
@@ -26,7 +28,7 @@ import {
     ZERO,
 } from '../constants';
 import { logger } from '../logger';
-import { GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource } from '../types';
+import { AffiliateFeeAmounts, GasTokenRefundInfo, GetSwapQuoteResponseLiquiditySource, PercentageFee } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
@@ -145,7 +147,24 @@ export const serviceUtils = {
         }
         return decimals;
     },
-
+    /**
+     * Returns a new list of excluded sources that may contain additional excluded sources that were determined to be excluded.
+     * @param currentExcludedSources the current list of `excludedSources`
+     * @param apiKey the `0x-api-key` that was passed into the headers
+     * @param allowedApiKeys an array of eligible API keys
+     * @returns a copy of `currentExcludedSources` which may include additional excluded sources
+     */
+    determineExcludedSources(
+        currentExcludedSources: ERC20BridgeSource[],
+        apiKey: string | undefined,
+        allowedApiKeys: string[],
+    ): ERC20BridgeSource[] {
+        const isAPIEnabled = allowedApiKeys.includes(apiKey);
+        if (!isAPIEnabled && !currentExcludedSources.includes(ERC20BridgeSource.LiquidityProvider)) {
+            return currentExcludedSources.concat(ERC20BridgeSource.LiquidityProvider);
+        }
+        return currentExcludedSources;
+    },
     convertSourceBreakdownToArray(sourceBreakdown: SwapQuoteOrdersBreakdown): GetSwapQuoteResponseLiquiditySource[] {
         const defaultSourceBreakdown: SwapQuoteOrdersBreakdown = Object.assign(
             {},
@@ -193,6 +212,17 @@ export const serviceUtils = {
             usedGasTokens: usedGasTokens.toNumber(),
             gasTokenRefund,
             gasTokenGasCost,
+        };
+    },
+    getAffiliateFeeAmounts(quote: SwapQuote, fee: PercentageFee): AffiliateFeeAmounts {
+        const buyTokenFeeAmount = quote.worstCaseQuoteInfo.makerAssetAmount
+            .times(fee.buyTokenPercentageFee)
+            .dividedBy(fee.buyTokenPercentageFee + 1)
+            .integerValue(BigNumber.ROUND_DOWN);
+        return {
+            sellTokenFeeAmount: ZERO,
+            buyTokenFeeAmount,
+            gasCost: buyTokenFeeAmount.isZero() ? ZERO : AFFILIATE_FEE_TRANSFORMER_GAS,
         };
     },
 };

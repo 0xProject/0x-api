@@ -7,6 +7,7 @@ import _ = require('lodash');
 import { CHAIN_ID, RFQT_API_KEY_WHITELIST } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
+    DEFAULT_TOKEN_DECIMALS,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
     MARKET_DEPTH_MAX_SAMPLES,
     SWAP_DOCS_URL,
@@ -26,6 +27,7 @@ import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import { CalculateSwapQuoteParams, GetSwapQuoteRequestParams, GetSwapQuoteResponse, SwapVersion } from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { schemaUtils } from '../utils/schema_utils';
+import { serviceUtils } from '../utils/service_utils';
 import {
     findTokenAddressOrThrowApiError,
     getTokenMetadataIfExists,
@@ -143,8 +145,25 @@ export class SwapHandlers {
     }
 
     public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {
-        const makerToken = getTokenMetadataIfExists(req.query.buyToken as string, CHAIN_ID);
-        const takerToken = getTokenMetadataIfExists(req.query.sellToken as string, CHAIN_ID);
+        const makerToken = {
+            decimals: DEFAULT_TOKEN_DECIMALS,
+            tokenAddress: req.query.buyToken,
+            ...getTokenMetadataIfExists(req.query.buyToken as string, CHAIN_ID),
+        };
+        const takerToken = {
+            decimals: DEFAULT_TOKEN_DECIMALS,
+            tokenAddress: req.query.sellToken,
+            ...getTokenMetadataIfExists(req.query.sellToken as string, CHAIN_ID),
+        };
+        if (makerToken.tokenAddress === takerToken.tokenAddress) {
+            throw new ValidationError([
+                {
+                    field: 'buyToken',
+                    code: ValidationErrorCodes.InvalidAddress,
+                    reason: `Invalid pair ${takerToken.tokenAddress}/${makerToken.tokenAddress}`,
+                },
+            ]);
+        }
         const response = await this._swapService.calculateMarketDepthAsync({
             buyToken: makerToken,
             sellToken: takerToken,
@@ -180,6 +199,7 @@ export class SwapHandlers {
             // tslint:disable-next-line:boolean-naming
             skipValidation,
             apiKey,
+            affiliateFee,
         } = params;
 
         const isETHSell = isETHSymbol(sellToken);
@@ -212,6 +232,16 @@ export class SwapHandlers {
             ]);
         }
 
+        if (swapVersion === SwapVersion.V0 && affiliateFee.buyTokenPercentageFee > 0) {
+            throw new ValidationError([
+                {
+                    field: 'buyTokenPercentageFee',
+                    code: ValidationErrorCodes.UnsupportedOption,
+                    reason: 'Affiliate fees are unsupported in v0',
+                },
+            ]);
+        }
+
         const calculateSwapQuoteParams: CalculateSwapQuoteParams = {
             buyTokenAddress,
             sellTokenAddress,
@@ -235,6 +265,7 @@ export class SwapHandlers {
                       },
             skipValidation,
             swapVersion,
+            affiliateFee,
         };
         try {
             let swapQuote: GetSwapQuoteResponse;
@@ -308,6 +339,39 @@ const parseGetSwapQuoteRequestParams = (
         ]);
     }
 
+    const feeRecipient = req.query.feeRecipient as string;
+    const sellTokenPercentageFee = Number.parseFloat(req.query.sellTokenPercentageFee as string) || 0;
+    const buyTokenPercentageFee = Number.parseFloat(req.query.buyTokenPercentageFee as string) || 0;
+    if (sellTokenPercentageFee > 0) {
+        throw new ValidationError([
+            {
+                field: 'sellTokenPercentageFee',
+                code: ValidationErrorCodes.UnsupportedOption,
+                reason: ValidationErrorReasons.ArgumentNotYetSupported,
+            },
+        ]);
+    }
+    if (buyTokenPercentageFee > 1) {
+        throw new ValidationError([
+            {
+                field: 'buyTokenPercentageFee',
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: ValidationErrorReasons.PercentageOutOfRange,
+            },
+        ]);
+    }
+    const affiliateFee = feeRecipient
+        ? {
+              recipient: feeRecipient,
+              sellTokenPercentageFee,
+              buyTokenPercentageFee,
+          }
+        : {
+              recipient: NULL_ADDRESS,
+              sellTokenPercentageFee: 0,
+              buyTokenPercentageFee: 0,
+          };
+
     const apiKey = req.header('0x-api-key');
     // tslint:disable-next-line: boolean-naming
     const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
@@ -320,6 +384,13 @@ const parseGetSwapQuoteRequestParams = (
         },
         RFQT_API_KEY_WHITELIST,
         endpoint,
+    );
+
+    // Determine if any other sources should be excluded
+    const updatedExcludedSources = serviceUtils.determineExcludedSources(
+        excludedSources,
+        apiKey,
+        RFQT_API_KEY_WHITELIST,
     );
 
     const affiliateAddress = req.query.affiliateAddress as string;
@@ -341,10 +412,11 @@ const parseGetSwapQuoteRequestParams = (
         buyAmount,
         slippagePercentage,
         gasPrice,
-        excludedSources,
+        excludedSources: updatedExcludedSources,
         affiliateAddress,
         rfqt,
         skipValidation,
         apiKey,
+        affiliateFee,
     };
 };
