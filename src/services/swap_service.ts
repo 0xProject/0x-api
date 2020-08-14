@@ -471,7 +471,7 @@ export class SwapService {
                 },
             ]);
         }
-        if (apiKey !== undefined && (isETHSell || from !== undefined)) {
+        if (apiKey !== undefined && (isETHSell || from !== undefined || (rfqt && rfqt.isIndicative))) {
             let takerAddress;
             switch (swapVersion) {
                 case SwapVersion.V0:
