@@ -74,8 +74,12 @@ export class SwapService {
             ...SWAP_QUOTER_OPTS,
             rfqt: {
                 ...SWAP_QUOTER_OPTS.rfqt,
-                warningLogger: logger.warn.bind(logger),
-                infoLogger: logger.info.bind(logger),
+                // tslint:disable-next-line:no-empty
+                warningLogger: () => {},
+                // tslint:disable-next-line:no-empty
+                infoLogger: () => {},
+                // warningLogger: logger.warn.bind(logger),
+                // infoLogger: logger.info.bind(logger),
             },
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
