@@ -36,7 +36,7 @@ import {
     WRAP_QUOTE_GAS,
     ZERO,
 } from '../constants';
-import { InsufficientFundsError } from '../errors';
+import { InsufficientFundsError, ValidationError, ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
@@ -455,8 +455,13 @@ export class SwapService {
         let _rfqt: RfqtRequestOpts | undefined;
         const isAllExcluded = Object.values(ERC20BridgeSource).every(s => excludedSources.includes(s));
         if (isAllExcluded) {
-            logger.info('Request contained all sources excluded', excludedSources);
-            throw new Error(`All sources excluded: ${excludedSources}`);
+            throw new ValidationError([
+                {
+                    field: 'excludedSources',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: 'Request excluded all sources',
+                },
+            ]);
         }
         if (apiKey !== undefined && (isETHSell || from !== undefined)) {
             let takerAddress;
