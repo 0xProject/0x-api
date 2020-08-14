@@ -453,6 +453,11 @@ export class SwapService {
             affiliateFee,
         } = params;
         let _rfqt: RfqtRequestOpts | undefined;
+        const isAllExcluded = Object.values(ERC20BridgeSource).every(s => excludedSources.includes(s));
+        if (isAllExcluded) {
+            logger.info('Request contained all sources excluded', excludedSources);
+            throw new Error(`All sources excluded: ${excludedSources}`);
+        }
         if (apiKey !== undefined && (isETHSell || from !== undefined)) {
             let takerAddress;
             switch (swapVersion) {
