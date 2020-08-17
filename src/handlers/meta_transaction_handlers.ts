@@ -338,10 +338,22 @@ export class MetaTransactionHandlers {
             res.status(HttpStatus.OK).send(marshallTransactionEntity(tx));
         }
     }
-    public async getSignerStatusAsync(_req: express.Request, res: express.Response): Promise<void> {
+    public async getSignerStatusAsync(req: express.Request, res: express.Response): Promise<void> {
+        const apiKey = req.header('0x-api-key');
+        if (apiKey === '') {
+            // SignerService is not available without a provided API key.
+            res.status(HttpStatus.OK).send({ isLive: false });
+            return;
+        }
+        const takerAddress = req.query.takerAddress === undefined ? undefined : (req.query.takerAddress as string);
         try {
             const isLive = await this._metaTransactionService.isSignerLiveAsync();
-            res.status(HttpStatus.OK).send({ isLive });
+            const rateLimitResponse = await this._rateLimiter.isAllowedAsync({
+                apiKey,
+                takerAddress,
+            });
+            const isRateLimited = isRateLimitedMetaTransactionResponse(rateLimitResponse);
+            res.status(HttpStatus.OK).send({ isLive: isLive && !isRateLimited });
         } catch (e) {
             logger.error('Uncaught error: ', e);
             throw new InternalServerError('failed to check signer status');
