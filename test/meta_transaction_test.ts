@@ -67,20 +67,12 @@ describe(SUITE_NAME, () => {
         await teardownApiAsync(SUITE_NAME);
     });
 
-    const excludedSources = [
-        ERC20BridgeSource.Uniswap,
-        ERC20BridgeSource.UniswapV2,
-        ERC20BridgeSource.Kyber,
-        ERC20BridgeSource.LiquidityProvider,
-        ERC20BridgeSource.Eth2Dai,
-        ERC20BridgeSource.MultiBridge,
-        ERC20BridgeSource.Balancer,
-    ];
+    const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
     const DEFAULT_QUERY_PARAMS = {
         buyToken: 'ZRX',
         sellToken: 'WETH',
         buyAmount,
-        excludedSources: excludedSources.join(','),
+        excludedSources: EXCLUDED_SOURCES.join(','),
     };
 
     async function assertFailureAsync(baseRoute: string, testCase: TestCase): Promise<void> {
