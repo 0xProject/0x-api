@@ -277,6 +277,7 @@ const EXCLUDED_SOURCES = (() => {
                 ERC20BridgeSource.UniswapV2,
                 ERC20BridgeSource.MultiBridge,
                 ERC20BridgeSource.Balancer,
+                ERC20BridgeSource.MStable,
             ];
     }
 })();
@@ -312,6 +313,7 @@ export const GAS_SCHEDULE_V0: FeeSchedule = {
         return gas;
     },
     [ERC20BridgeSource.Balancer]: () => 4.5e5,
+    [ERC20BridgeSource.MStable]: () => 8.5e5,
 };
 
 const FEE_SCHEDULE_V0: FeeSchedule = Object.assign(
