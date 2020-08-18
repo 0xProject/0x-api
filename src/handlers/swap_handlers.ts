@@ -386,7 +386,8 @@ const parseGetSwapQuoteRequestParams = (
         endpoint,
     );
 
-    // Determine if any other sources should be excluded
+    // Determine if any other sources should be excluded. This usually has an effect
+    // if an API key is not present, or the API key is ineligible for PLP.
     const updatedExcludedSources = serviceUtils.determineExcludedSources(
         excludedSources,
         apiKey,
