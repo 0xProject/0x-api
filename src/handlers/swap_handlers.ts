@@ -1,10 +1,10 @@
 import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
-import { BigNumber, NULL_ADDRESS, logUtils } from '@0x/utils';
+import { BigNumber, logUtils, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
 
-import { CHAIN_ID, RFQT_API_KEY_WHITELIST, PLP_API_KEY_WHITELIST } from '../config';
+import { CHAIN_ID, PLP_API_KEY_WHITELIST, RFQT_API_KEY_WHITELIST } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     DEFAULT_TOKEN_DECIMALS,
