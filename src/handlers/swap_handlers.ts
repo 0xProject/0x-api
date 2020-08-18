@@ -4,7 +4,7 @@ import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
 
-import { CHAIN_ID, RFQT_API_KEY_WHITELIST } from '../config';
+import { CHAIN_ID, RFQT_API_KEY_WHITELIST, PLP_API_KEY_WHITELIST } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     DEFAULT_TOKEN_DECIMALS,
@@ -390,7 +390,7 @@ const parseGetSwapQuoteRequestParams = (
     const updatedExcludedSources = serviceUtils.determineExcludedSources(
         excludedSources,
         apiKey,
-        RFQT_API_KEY_WHITELIST,
+        PLP_API_KEY_WHITELIST,
     );
 
     const affiliateAddress = req.query.affiliateAddress as string;
