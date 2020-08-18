@@ -1,5 +1,5 @@
 import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
-import { BigNumber, NULL_ADDRESS } from '@0x/utils';
+import { BigNumber, NULL_ADDRESS, logUtils } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
@@ -372,7 +372,7 @@ const parseGetSwapQuoteRequestParams = (
               buyTokenPercentageFee: 0,
           };
 
-    const apiKey = req.header('0x-api-key');
+    const apiKey: string | undefined = req.header('0x-api-key');
     // tslint:disable-next-line: boolean-naming
     const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
         {
@@ -393,6 +393,14 @@ const parseGetSwapQuoteRequestParams = (
         apiKey,
         PLP_API_KEY_WHITELIST,
     );
+
+    logUtils.log({
+        type: 'swapRequest',
+        endpoint,
+        updatedExcludedSources,
+        nativeExclusivelyRFQT,
+        apiKey: apiKey || 'N/A',
+    });
 
     const affiliateAddress = req.query.affiliateAddress as string;
     const rfqt: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'> =
