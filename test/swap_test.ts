@@ -423,7 +423,7 @@ async function quoteAndExpectAsync(
         return;
     }
     if (response.status !== HttpStatus.OK) {
-        logger.warn(response);
+        logger.warn(response.body);
     }
     expect(response.status).to.be.eq(HttpStatus.OK);
     expectCorrectQuote(response.body, quoteAssertions);
