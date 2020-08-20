@@ -32,24 +32,27 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.6.0-15ce90c0e":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v4.6.0-7e8b56eef":
   version "4.6.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/a53de7cc0460f89a6dd7d225ddd8fde94dcdbc33"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/a09d6b7cc6ea5927d8ae16b68dab31ae0fd94d3a"
   dependencies:
     "@0x/assert" "^3.0.9"
+    "@0x/base-contract" "^6.2.3"
     "@0x/contract-addresses" "^4.11.0"
-    "@0x/contract-artifacts" "^3.7.1"
     "@0x/contract-wrappers" "^13.8.0"
     "@0x/json-schemas" "^5.1.0"
     "@0x/order-utils" "^10.3.0"
     "@0x/orderbook" "^2.2.7"
     "@0x/quote-server" "^2.0.2"
+    "@0x/types" "^3.2.0"
+    "@0x/typescript-typings" "^5.1.1"
     "@0x/utils" "^5.5.1"
     "@0x/web3-wrapper" "^7.2.0"
     "@balancer-labs/sor" "0.3.2"
     axios "^0.19.2"
     axios-mock-adapter "^1.18.1"
     decimal.js "^10.2.0"
+    ethereum-types "^3.2.0"
     ethereumjs-util "^5.1.1"
     heartbeats "^5.0.1"
     lodash "^4.17.11"
@@ -88,11 +91,6 @@
 "@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v4.11.0-52aafcc19", "@0x/contract-addresses@^4.11.0":
   version "4.11.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/a1764c5dafca50c3975b5f3e563ed13ffb9620fa"
-
-"@0x/contract-artifacts@^3.7.1":
-  version "3.7.1"
-  resolved "https://registry.yarnpkg.com/@0x/contract-artifacts/-/contract-artifacts-3.7.1.tgz#368b6e229585c10e43478f6ea21e962a93db986b"
-  integrity sha512-ejh6oFeexnD3PdhLHIoVKH0u42h6sgVq2ZhSJ0u4LpRt2taPMHKi4IG0le0krTfhC2wxl4GP0Z7uHglniD4agQ==
 
 "@0x/contract-wrappers@^13.7.0", "@0x/contract-wrappers@^13.8.0":
   version "13.8.0"
