@@ -1,3 +1,8 @@
+import * as apm from 'elastic-apm-node';
+apm.start({
+    verifyServerCert: false,
+});
+
 import {
     artifacts,
     ContractAddresses,
