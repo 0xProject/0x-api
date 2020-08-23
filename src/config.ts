@@ -5,6 +5,7 @@ import {
     CurveFillData,
     ERC20BridgeSource,
     FeeSchedule,
+    MultiHopFillData,
     RfqtMakerAssetOfferings,
     SamplerOverrides,
     SwapQuoteRequestOpts,
@@ -295,6 +296,7 @@ const EXCLUDED_SOURCES = (() => {
                 ERC20BridgeSource.Uniswap,
                 ERC20BridgeSource.UniswapV2,
                 ERC20BridgeSource.Mooniswap,
+                ERC20BridgeSource.MultiHop,
             ];
     }
 })();
@@ -393,11 +395,20 @@ export const GAS_SCHEDULE_V1: FeeSchedule = {
     [ERC20BridgeSource.Balancer]: () => 1.5e5,
     [ERC20BridgeSource.MStable]: () => 7e5,
     [ERC20BridgeSource.Mooniswap]: () => 2.2e5,
+    [ERC20BridgeSource.MultiHop]: fillData => {
+        const firstHop = (fillData as MultiHopFillData).firstHopSource;
+        const secondHop = (fillData as MultiHopFillData).secondHopSource;
+        const firstHopGas =
+            GAS_SCHEDULE_V1[firstHop.source] === undefined ? 0 : GAS_SCHEDULE_V1[firstHop.source](firstHop.fillData);
+        const secondHopGas =
+            GAS_SCHEDULE_V1[secondHop.source] === undefined ? 0 : GAS_SCHEDULE_V1[secondHop.source](secondHop.fillData);
+        return new BigNumber(firstHopGas).plus(secondHopGas).toNumber();
+    },
 };
 
 const FEE_SCHEDULE_V1: FeeSchedule = Object.assign(
     {},
-    ...(Object.keys(GAS_SCHEDULE_V0) as ERC20BridgeSource[]).map(k => ({
+    ...(Object.keys(GAS_SCHEDULE_V1) as ERC20BridgeSource[]).map(k => ({
         [k]:
             k === ERC20BridgeSource.Native
                 ? fillData => PROTOCOL_FEE_MULTIPLIER.plus(GAS_SCHEDULE_V1[k](fillData))
