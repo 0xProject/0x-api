@@ -28,12 +28,15 @@ interface ParseRequestForExcludedSourcesParams {
 const ALL_EXCEPT_NATIVE: { [key in Exclude<ERC20BridgeSource, ERC20BridgeSource.Native>]: boolean } = {
     Uniswap: true,
     Balancer: true,
+    Bancor: true,
     Curve: true,
     Eth2Dai: true,
     Kyber: true,
     LiquidityProvider: true,
     MultiBridge: true,
     Uniswap_V2: true,
+    mStable: true,
+    Mooniswap: true,
 };
 
 export const parseUtils = {

@@ -10,7 +10,7 @@ import {
     SwapQuoter,
 } from '@0x/asset-swapper';
 import { SwapQuoteRequestOpts, SwapQuoterOpts } from '@0x/asset-swapper/lib/src/types';
-import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
+import { ContractAddresses } from '@0x/contract-addresses';
 import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { MarketOperation } from '@0x/types';
@@ -21,7 +21,9 @@ import * as _ from 'lodash';
 import {
     ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
     ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS,
+    BASE_GAS_COST_V1,
     CHAIN_ID,
+    PROTOCOL_FEE_MULTIPLIER,
     RFQT_REQUEST_MAX_RESPONSE_MS,
     SWAP_QUOTER_OPTS,
 } from '../config';
@@ -68,25 +70,22 @@ export class SwapService {
     private readonly _gstBalanceResultCache: ResultCache<BigNumber>;
     private readonly _tokenDecimalResultCache: ResultCache<number>;
 
-    constructor(orderbook: Orderbook, provider: SupportedProvider) {
+    constructor(orderbook: Orderbook, provider: SupportedProvider, contractAddresses: ContractAddresses) {
         this._provider = provider;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             ...SWAP_QUOTER_OPTS,
             rfqt: {
                 ...SWAP_QUOTER_OPTS.rfqt,
-                // tslint:disable-next-line:no-empty
-                warningLogger: () => {},
-                // tslint:disable-next-line:no-empty
-                infoLogger: () => {},
-                // warningLogger: logger.warn.bind(logger),
-                // infoLogger: logger.info.bind(logger),
+                warningLogger: logger.warn.bind(logger),
+                infoLogger: logger.info.bind(logger),
             },
+            contractAddresses,
         };
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
         this._web3Wrapper = new Web3Wrapper(this._provider);
 
-        this._contractAddresses = getContractAddressesForChainOrThrow(CHAIN_ID);
+        this._contractAddresses = contractAddresses;
         this._wethContract = new WETH9Contract(this._contractAddresses.etherToken, this._provider);
         const gasTokenContract = new ERC20TokenContract(
             getTokenMetadataIfExists('GST2', CHAIN_ID).tokenAddress,
@@ -153,7 +152,8 @@ export class SwapService {
         );
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas)
             .plus(gasTokenGasCost)
-            .plus(affiliateFeeGasCost);
+            .plus(affiliateFeeGasCost)
+            .plus(swapVersion === SwapVersion.V1 ? BASE_GAS_COST_V1 : 0);
 
         if (!skipValidation && from) {
             const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
@@ -166,8 +166,13 @@ export class SwapService {
             // Take the max of the faux estimate or the real estimate
             conservativeBestCaseGasEstimate = BigNumber.max(estimateGasCallResult, conservativeBestCaseGasEstimate);
         }
+        // If any sources can be undeterministic in gas costs, we add a buffer
+        const hasUndeterministicFills = _.flatten(swapQuote.orders.map(order => order.fills)).some(fill =>
+            [ERC20BridgeSource.Native, ERC20BridgeSource.Kyber, ERC20BridgeSource.MultiBridge].includes(fill.source),
+        );
+        const undeterministicMultiplier = hasUndeterministicFills ? GAS_LIMIT_BUFFER_MULTIPLIER : 1;
         // Add a buffer to get the worst case gas estimate
-        const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue();
+        const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(undeterministicMultiplier).integerValue();
         // Cap the refund at 50% our best estimate
         const estimatedGasTokenRefund = BigNumber.min(
             conservativeBestCaseGasEstimate.div(2),
@@ -195,7 +200,9 @@ export class SwapService {
                 const nativeFills = _.flatten(swapQuote.orders.map(order => order.fills)).filter(
                     fill => fill.source === ERC20BridgeSource.Native,
                 );
-                adjustedWorstCaseProtocolFee = new BigNumber(150000).times(gasPrice).times(nativeFills.length);
+                adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
+                    .times(gasPrice)
+                    .times(nativeFills.length);
                 adjustedValue = isETHSell
                     ? adjustedWorstCaseProtocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAssetAmount)
                     : adjustedWorstCaseProtocolFee;
@@ -247,7 +254,7 @@ export class SwapService {
         const queryAssetData = TokenMetadatasForChains.filter(m => m.symbol !== sellToken.symbol).filter(
             m => m.tokenAddresses[CHAIN_ID] !== NULL_ADDRESS,
         );
-        const chunkSize = 20;
+        const chunkSize = 15;
         const assetDataChunks = _.chunk(queryAssetData, chunkSize);
         const allResults = _.flatten(
             await Promise.all(
@@ -264,7 +271,8 @@ export class SwapService {
                             ...ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
                             bridgeSlippage: 0,
                             maxFallbackSlippage: 0,
-                            numSamples: 3,
+                            numSamples: 1,
+                            shouldBatchBridgeOrders: false,
                         },
                     );
                     return quotes;
