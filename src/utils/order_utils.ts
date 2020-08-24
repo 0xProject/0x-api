@@ -90,10 +90,7 @@ const assetDataToAsset = (assetData: string): Asset => {
 let PIN_CACHE;
 const getPoolsAsync = async (connection: Connection) => {
     if (!PIN_CACHE) {
-        PIN_CACHE = createResultCache<any[]>(
-            () => connection.query(queries.stakingPoolsQuery),
-            TEN_MINUTES_MS,
-        );
+        PIN_CACHE = createResultCache<any[]>(() => connection.query(queries.stakingPoolsQuery), TEN_MINUTES_MS);
     }
     return (await PIN_CACHE.getResultAsync()).result;
 };
