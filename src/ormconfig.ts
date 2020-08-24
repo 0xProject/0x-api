@@ -1,13 +1,12 @@
 import { ConnectionOptions } from 'typeorm';
 
-import { POSTGRES_URI } from './config';
+import { POSTGRES_READ_REPLICA_URIS, POSTGRES_URI } from './config';
 import { KeyValueEntity, SignedOrderEntity, TransactionEntity } from './entities';
 
 const entities = [SignedOrderEntity, TransactionEntity, KeyValueEntity];
 
-export const config: ConnectionOptions = {
+const baseConfig: any = {
     type: 'postgres',
-    url: POSTGRES_URI,
     entities,
     // Disable synchronization in production
     synchronize: process.env.NODE_ENV && process.env.NODE_ENV === 'test',
@@ -18,3 +17,18 @@ export const config: ConnectionOptions = {
         statement_timeout: 10000,
     },
 };
+
+if (POSTGRES_READ_REPLICA_URIS !== undefined) {
+    const readReplicas = POSTGRES_READ_REPLICA_URIS.map(url => {
+        return { url };
+    });
+
+    baseConfig.replication = {
+        master: POSTGRES_URI,
+        slaves: readReplicas,
+    };
+} else {
+    baseConfig.url = POSTGRES_URI;
+}
+
+export const config: ConnectionOptions = baseConfig;
