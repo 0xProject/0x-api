@@ -59,7 +59,9 @@ export const liquiditySources0xOnly = [
     { name: 'LiquidityProvider', proportion: '0' },
     { name: 'MultiBridge', proportion: '0' },
     { name: 'Balancer', proportion: '0' },
+    { name: 'Bancor', proportion: '0' },
     { name: 'mStable', proportion: '0' },
+    { name: 'Mooniswap', proportion: '0' },
 ];
 
 export const randomSellQuote = {

@@ -265,14 +265,17 @@ const EXCLUDED_SOURCES = (() => {
         case ChainId.Kovan:
             return [
                 ERC20BridgeSource.Balancer,
+                ERC20BridgeSource.Bancor,
                 ERC20BridgeSource.Curve,
                 ERC20BridgeSource.Kyber,
                 ERC20BridgeSource.LiquidityProvider,
                 ERC20BridgeSource.MStable,
+                ERC20BridgeSource.Mooniswap,
             ];
         default:
             return [
                 ERC20BridgeSource.Balancer,
+                ERC20BridgeSource.Bancor,
                 ERC20BridgeSource.Curve,
                 ERC20BridgeSource.Eth2Dai,
                 ERC20BridgeSource.Kyber,
@@ -281,6 +284,7 @@ const EXCLUDED_SOURCES = (() => {
                 ERC20BridgeSource.MStable,
                 ERC20BridgeSource.Uniswap,
                 ERC20BridgeSource.UniswapV2,
+                ERC20BridgeSource.Mooniswap,
             ];
     }
 })();
@@ -316,7 +320,9 @@ export const GAS_SCHEDULE_V0: FeeSchedule = {
         return gas;
     },
     [ERC20BridgeSource.Balancer]: () => 4.5e5,
+    [ERC20BridgeSource.Bancor]: () => 4.5e5,
     [ERC20BridgeSource.MStable]: () => 8.5e5,
+    [ERC20BridgeSource.Mooniswap]: () => 3.5e5,
 };
 
 const FEE_SCHEDULE_V0: FeeSchedule = Object.assign(
@@ -376,6 +382,7 @@ export const GAS_SCHEDULE_V1: FeeSchedule = {
     },
     [ERC20BridgeSource.Balancer]: () => 1.5e5,
     [ERC20BridgeSource.MStable]: () => 7e5,
+    [ERC20BridgeSource.Mooniswap]: () => 2.2e5,
 };
 
 const FEE_SCHEDULE_V1: FeeSchedule = Object.assign(
