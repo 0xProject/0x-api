@@ -22,9 +22,8 @@ if (POSTGRES_READ_REPLICA_URIS !== undefined) {
     const readReplicas = POSTGRES_READ_REPLICA_URIS.map(url => {
         return { url };
     });
-
     baseConfig.replication = {
-        master: POSTGRES_URI,
+        master: { url: POSTGRES_URI },
         slaves: readReplicas,
     };
 } else {
