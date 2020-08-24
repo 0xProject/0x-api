@@ -1,6 +1,7 @@
+// tslint:disable-next-line:ordered-imports
 import * as apm from 'elastic-apm-node';
 apm.start();
-
+// tslint:disable-next-line:ordered-imports
 import {
     artifacts,
     ContractAddresses,
