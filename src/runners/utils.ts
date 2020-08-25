@@ -13,9 +13,9 @@ import { createHealthcheckRouter } from '../routers/healthcheck_router';
 import { HealthcheckService } from '../services/healthcheck_service';
 import { HttpServiceConfig } from '../types';
 
-const exitWithCode = (statusCode: number) => {
+const exitWithCode = (exitCode: number) => {
     logger.flush();
-    process.exit(statusCode);
+    process.exit(exitCode);
 };
 
 /**
