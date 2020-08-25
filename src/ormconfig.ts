@@ -5,7 +5,7 @@ import { KeyValueEntity, SignedOrderEntity, TransactionEntity } from './entities
 
 const entities = [SignedOrderEntity, TransactionEntity, KeyValueEntity];
 
-const baseConfig: any = {
+export const config: ConnectionOptions = {
     type: 'postgres',
     entities,
     // Disable synchronization in production
@@ -16,18 +16,12 @@ const baseConfig: any = {
         max: 15,
         statement_timeout: 10000,
     },
+    ...(POSTGRES_READ_REPLICA_URIS
+        ? {
+              replication: {
+                  master: { url: POSTGRES_URI },
+                  slaves: POSTGRES_READ_REPLICA_URIS.map(r => ({ url: r })),
+              },
+          }
+        : { url: POSTGRES_URI }),
 };
-
-if (POSTGRES_READ_REPLICA_URIS !== undefined) {
-    const readReplicas = POSTGRES_READ_REPLICA_URIS.map(url => {
-        return { url };
-    });
-    baseConfig.replication = {
-        master: { url: POSTGRES_URI },
-        slaves: readReplicas,
-    };
-} else {
-    baseConfig.url = POSTGRES_URI;
-}
-
-export const config: ConnectionOptions = baseConfig;
