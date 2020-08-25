@@ -57,6 +57,19 @@ export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
     ? 'info'
     : assertEnvVarType('LOG_LEVEL', process.env.LOG_LEVEL, EnvVarType.NonEmptyString);
 
+// tslint:disable-next-line:boolean-naming
+export const LOG_ASYNC_ENABLED: boolean = _.isEmpty(process.env.LOG_ASYNC_ENABLED)
+    ? false
+    : assertEnvVarType('LOG_ASYNC_ENABLED', process.env.LOG_ASYNC_ENABLED, EnvVarType.Boolean);
+
+export const LOG_BUFFER_BYTES: number = _.isEmpty(process.env.LOG_BUFFER_BYTES)
+    ? 4096
+    : assertEnvVarType('LOG_BUFFER_BYTES', process.env.LOG_BUFFER_BYTES, EnvVarType.Integer);
+
+export const LOG_ASYNC_FLUSH_INTERVAL_SEC: number = _.isEmpty(process.env.LOG_ASYNC_FLUSH_INTERVAL_SEC)
+    ? 10
+    : assertEnvVarType('LOG_ASYNC_FLUSH_INTERVAL_SEC', process.env.LOG_ASYNC_FLUSH_INTERVAL_SEC, EnvVarType.Integer);
+
 // Network port to listen on
 export const HTTP_PORT = _.isEmpty(process.env.HTTP_PORT)
     ? 3000

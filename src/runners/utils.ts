@@ -50,13 +50,16 @@ export function createDefaultServer(
                 await dependencies.connection.close();
             }
             if (!server.listening) {
+                logger.flush();
                 process.exit(0);
             }
             if (err) {
                 logger.error(`server closed with an error: ${err}, exiting`);
+                logger.flush();
                 process.exit(1);
             }
             logger.info('successful shutdown, exiting');
+            logger.flush();
             process.exit(0);
         });
     };
