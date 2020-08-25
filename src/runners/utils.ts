@@ -13,6 +13,11 @@ import { createHealthcheckRouter } from '../routers/healthcheck_router';
 import { HealthcheckService } from '../services/healthcheck_service';
 import { HttpServiceConfig } from '../types';
 
+const exitWithCode = (statusCode: number) => {
+    logger.flush();
+    process.exit(statusCode);
+};
+
 /**
  * creates the NodeJS http server with graceful shutdowns, healthchecks,
  * configured header timeouts and other sane defaults set.
@@ -50,17 +55,14 @@ export function createDefaultServer(
                 await dependencies.connection.close();
             }
             if (!server.listening) {
-                logger.flush();
-                process.exit(0);
+                exitWithCode(0);
             }
             if (err) {
                 logger.error(`server closed with an error: ${err}, exiting`);
-                logger.flush();
-                process.exit(1);
+                exitWithCode(1);
             }
             logger.info('successful shutdown, exiting');
-            logger.flush();
-            process.exit(0);
+            exitWithCode(0);
         });
     };
     if (config.httpPort === config.healthcheckHttpPort) {
