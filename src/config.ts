@@ -63,7 +63,7 @@ export const LOG_ASYNC_ENABLED: boolean = _.isEmpty(process.env.LOG_ASYNC_ENABLE
     : assertEnvVarType('LOG_ASYNC_ENABLED', process.env.LOG_ASYNC_ENABLED, EnvVarType.Boolean);
 
 export const LOG_BUFFER_BYTES: number = _.isEmpty(process.env.LOG_BUFFER_BYTES)
-    ? 4096
+    ? 0
     : assertEnvVarType('LOG_BUFFER_BYTES', process.env.LOG_BUFFER_BYTES, EnvVarType.Integer);
 
 export const LOG_ASYNC_FLUSH_INTERVAL_SEC: number = _.isEmpty(process.env.LOG_ASYNC_FLUSH_INTERVAL_SEC)
