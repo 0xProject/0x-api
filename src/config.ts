@@ -345,7 +345,7 @@ const FEE_SCHEDULE_V0: FeeSchedule = Object.assign(
 );
 
 export const ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS: Partial<SwapQuoteRequestOpts> = {
-    excludedSources: EXCLUDED_SOURCES,
+    excludedSources: [...EXCLUDED_SOURCES, ERC20BridgeSource.MultiHop],
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
