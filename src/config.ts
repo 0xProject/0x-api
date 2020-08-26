@@ -10,6 +10,7 @@ import {
     SamplerOverrides,
     SwapQuoteRequestOpts,
     SwapQuoterOpts,
+    TokenAdjacencyGraph,
     UniswapV2FillData,
 } from '@0x/asset-swapper';
 import { OrderPrunerPermittedFeeTypes } from '@0x/asset-swapper/lib/src/types';
@@ -28,7 +29,7 @@ import {
     NULL_BYTES,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
 } from './constants';
-import { TokenMetadatasForChains } from './token_metadatas_for_networks';
+import { TokenMetadataAndChainAddresses, TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 import { getTokenMetadataIfExists } from './utils/token_metadata_utils';
@@ -439,19 +440,22 @@ export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     }
 })();
 
-const tokenAdjacencyGraph = Object.values(TokenMetadatasForChains).reduce((acc, t) => {
-    const tokenKey = t.tokenAddresses[CHAIN_ID];
-    const intermediateTokens = [
-        getTokenMetadataIfExists('WETH', CHAIN_ID),
-        getTokenMetadataIfExists('DAI', CHAIN_ID),
-        getTokenMetadataIfExists('USDC', CHAIN_ID),
-        getTokenMetadataIfExists('WBTC', CHAIN_ID),
-    ]
-        .map(m => m && m.tokenAddress)
-        .filter(m => m && m !== tokenKey);
-    acc[tokenKey] = intermediateTokens;
-    return acc;
-}, {});
+const tokenAdjacencyGraph: TokenAdjacencyGraph = Object.values(TokenMetadatasForChains).reduce(
+    (acc: TokenAdjacencyGraph, t: TokenMetadataAndChainAddresses) => {
+        const tokenKey = t.tokenAddresses[CHAIN_ID];
+        const intermediateTokens = [
+            getTokenMetadataIfExists('WETH', CHAIN_ID),
+            getTokenMetadataIfExists('DAI', CHAIN_ID),
+            getTokenMetadataIfExists('USDC', CHAIN_ID),
+            getTokenMetadataIfExists('WBTC', CHAIN_ID),
+        ]
+            .map(m => m && m.tokenAddress)
+            .filter(m => m && m !== tokenKey);
+        acc[tokenKey] = intermediateTokens;
+        return acc;
+    },
+    {},
+);
 
 export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     chainId: CHAIN_ID,
