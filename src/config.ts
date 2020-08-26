@@ -31,6 +31,7 @@ import {
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
+import { getTokenMetadataIfExists } from './utils/token_metadata_utils';
 
 enum EnvVarType {
     AddressList,
@@ -438,6 +439,20 @@ export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     }
 })();
 
+const tokenAdjacencyGraph = Object.values(TokenMetadatasForChains).reduce((acc, t) => {
+    const tokenKey = t.tokenAddresses[CHAIN_ID];
+    const intermediateTokens = [
+        getTokenMetadataIfExists('WETH', CHAIN_ID),
+        getTokenMetadataIfExists('DAI', CHAIN_ID),
+        getTokenMetadataIfExists('USDC', CHAIN_ID),
+        getTokenMetadataIfExists('WBTC', CHAIN_ID),
+    ]
+        .map(m => m && m.tokenAddress)
+        .filter(m => m && m !== tokenKey);
+    acc[tokenKey] = intermediateTokens;
+    return acc;
+}, {});
+
 export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     chainId: CHAIN_ID,
     expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -449,6 +464,7 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
     samplerOverrides: SAMPLER_OVERRIDES,
+    tokenAdjacencyGraph,
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
