@@ -182,7 +182,7 @@ export const serviceUtils = {
                 };
             } else {
                 obj = {
-                    name: source,
+                    name: source === ERC20BridgeSource.Native ? '0x' : source,
                     proportion: new BigNumber((breakdown as BigNumber).toPrecision(PERCENTAGE_SIG_DIGITS)),
                 };
             }
