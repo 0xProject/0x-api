@@ -1,6 +1,41 @@
 // tslint:disable-next-line:ordered-imports
 import * as apm from 'elastic-apm-node';
 apm.start({ active: process.env.ELASTIC_APM_ACTIVE === 'true' });
+// tslint:disable
+var quoteReporter = require('@0x/asset-swapper/lib/src/utils/quote_report_generator');
+var pathOptimizer = require('@0x/asset-swapper/lib/src/utils/market_operation_utils/path_optimizer');
+var shimmer = require('elastic-apm-node/lib/instrumentation/shimmer');
+var marketOp = require('@0x/asset-swapper/lib/src/utils/market_operation_utils/index');
+const wrapper = function(orig, name) {
+    return function wrapped(...args) {
+        console.time(name);
+        var span = apm.startSpan(name);
+        const result = orig.apply(this, args);
+        if (result && result.then) {
+            return new Promise((resolve, reject) => {
+                result
+                    .then(re => {
+                        console.timeEnd(name);
+                        span && span.end();
+                        resolve(re);
+                    })
+                    .catch(err => {
+                        console.timeEnd(name);
+                        span && span.end();
+                        reject(err);
+                    });
+            });
+        }
+        console.timeEnd(name);
+        span && span.end();
+        return result;
+    };
+};
+shimmer.wrap(marketOp.MarketOperationUtils.prototype, '_generateOptimizedOrdersAsync', wrapper);
+shimmer.wrap(marketOp.MarketOperationUtils.prototype, 'getMarketSellLiquidityAsync', wrapper);
+shimmer.wrap(quoteReporter, 'generateQuoteReport', wrapper);
+shimmer.wrap(pathOptimizer, 'findOptimalPathAsync', wrapper);
+// tslint:enable
 // tslint:disable-next-line:ordered-imports
 import {
     artifacts,
