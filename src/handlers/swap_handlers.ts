@@ -405,10 +405,10 @@ const parseGetSwapQuoteRequestParams = (
     const affiliateAddress = req.query.affiliateAddress as string;
     const rfqt: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'> = (() => {
         if (apiKey) {
-            if (takerAddress) {
+            if (endpoint === 'quote' && takerAddress) {
                 return {
-                    intentOnFilling: endpoint === 'quote' && req.query.intentOnFilling === 'true',
-                    isIndicative: endpoint === 'price',
+                    intentOnFilling: req.query.intentOnFilling === 'true',
+                    isIndicative: false,
                     nativeExclusivelyRFQT,
                 };
             } else if (endpoint === 'price') {
