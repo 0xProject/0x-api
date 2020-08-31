@@ -17,7 +17,7 @@ import * as request from 'supertest';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import { defaultHttpServiceWithRateLimiterConfig } from '../src/config';
-import { SWAP_PATH as BASE_SWAP_PATH } from '../src/constants';
+import { NULL_ADDRESS, SWAP_PATH as BASE_SWAP_PATH } from '../src/constants';
 
 import { CONTRACT_ADDRESSES } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
@@ -755,7 +755,7 @@ describe(SUITE_NAME, () => {
                         ...DEFAULT_RFQT_RESPONSE_DATA,
                         responseData: rfqtIndicativeQuoteResponse,
                     };
-                    response.requestParams.takerAddress = '';
+                    response.requestParams.takerAddress = NULL_ADDRESS;
                     return rfqtMocker.withMockedRfqtIndicativeQuotes(
                         [response],
                         async () => {
