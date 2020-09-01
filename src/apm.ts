@@ -5,25 +5,21 @@ apm.start({ active: process.env.ELASTIC_APM_ACTIVE === 'true' });
 
 const wrapper = function(orig, name) {
     return function wrapped(...args) {
-        console.time(name);
         var span = apm.startSpan(name);
         const result = orig.apply(this, args);
         if (result && result.then) {
             return new Promise((resolve, reject) => {
                 result
                     .then(re => {
-                        console.timeEnd(name);
                         span && span.end();
                         resolve(re);
                     })
                     .catch(err => {
-                        console.timeEnd(name);
                         span && span.end();
                         reject(err);
                     });
             });
         }
-        console.timeEnd(name);
         span && span.end();
         return result;
     };
