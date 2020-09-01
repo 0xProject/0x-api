@@ -476,6 +476,9 @@ export class SwapService {
                 },
             ]);
         }
+        // Only enable RFQT if there's an API key and either (a) it's a
+        // forwarder transaction (isETHSell===true), (b) there's a taker
+        // address present, or (c) it's an indicative quote.
         if (apiKey !== undefined && (isETHSell || from !== undefined || (rfqt && rfqt.isIndicative))) {
             let takerAddress;
             switch (swapVersion) {
