@@ -411,6 +411,9 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.Integer:
             try {
                 returnValue = parseInt(value, 10);
+                if (isNaN(returnValue)) {
+                    throw new Error();
+                }
             } catch (err) {
                 throw new Error(`${name} must be a valid integer, found ${value}.`);
             }
