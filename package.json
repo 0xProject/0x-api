@@ -127,7 +127,7 @@
     },
     "dependencies": {
         "@0x/assert": "^3.0.4",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v4.6.0-1ab33aa13",
+        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v4.6.0-c4bcc26e2",
         "@0x/connect": "^6.0.4",
         "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v4.11.0-beta-bd3387a40",
         "@0x/contract-wrappers": "^13.7.0",
