@@ -89,15 +89,18 @@ export class SwapHandlers {
             }
         }
         const cleanedQuote = _.omit(quote, 'quoteReport', 'decodedUniqueId');
-        const prices = priceComparisonUtils.getPriceComparisonFromQuote(params, swapVersion, quote);
-        let quoteWithMetadata = cleanedQuote;
-        if (prices) {
-            quoteWithMetadata = {
-                ...cleanedQuote,
-                prices,
-            };
+        let quoteResponse = cleanedQuote;
+        if (params.hasPriceComparisons) {
+            const prices = priceComparisonUtils.getPriceComparisonFromQuote(params, swapVersion, quote);
+
+            if (prices) {
+                quoteResponse = {
+                    ...cleanedQuote,
+                    prices,
+                };
+            }
         }
-        res.status(HttpStatus.OK).send(quoteWithMetadata);
+        res.status(HttpStatus.OK).send(quoteResponse);
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getSwapTokensAsync(_req: express.Request, res: express.Response): Promise<void> {
@@ -222,6 +225,7 @@ export class SwapHandlers {
             skipValidation,
             apiKey,
             affiliateFee,
+            hasPriceComparisons,
         } = params;
 
         const isETHSell = isETHSymbol(sellToken);
@@ -288,6 +292,7 @@ export class SwapHandlers {
             skipValidation,
             swapVersion,
             affiliateFee,
+            hasPriceComparisons,
         };
         try {
             let swapQuote: GetSwapQuoteResponse;
@@ -445,6 +450,9 @@ const parseGetSwapQuoteRequestParams = (
     })();
     // tslint:disable-next-line:boolean-naming
     const skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
+
+    const hasPriceComparisons =
+        req.query.hasPriceComparisons === undefined ? false : req.query.hasPriceComparisons === 'true';
     return {
         takerAddress,
         sellToken,
@@ -459,5 +467,6 @@ const parseGetSwapQuoteRequestParams = (
         skipValidation,
         apiKey,
         affiliateFee,
+        hasPriceComparisons,
     };
 };
