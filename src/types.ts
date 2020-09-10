@@ -421,6 +421,13 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     estimatedGasTokenRefund: BigNumber;
     allowanceTarget?: string;
     quoteReport?: QuoteReport;
+    prices?: SourceComparison[];
+}
+
+export interface SourceComparison {
+    name: ERC20BridgeSource;
+    price: BigNumber;
+    gas: BigNumber;
 }
 
 export interface Price {

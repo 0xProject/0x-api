@@ -1,4 +1,4 @@
-import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { BridgeReportSource, QuoteReport, RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -26,6 +26,7 @@ import { SwapService } from '../services/swap_service';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import { CalculateSwapQuoteParams, GetSwapQuoteRequestParams, GetSwapQuoteResponse, SwapVersion } from '../types';
 import { parseUtils } from '../utils/parse_utils';
+import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
 import {
@@ -67,15 +68,36 @@ export class SwapHandlers {
                 },
             });
             if (quote.quoteReport && params.rfqt && params.rfqt.intentOnFilling) {
+                const { quoteReport } = quote;
+                const cleanedQuoteReport: QuoteReport = {
+                    ...quoteReport,
+                    sourcesConsidered: quoteReport.sourcesConsidered.map(source => {
+                        // Omit fillData as this is used internally and not relevant for the report
+                        const cleanedSource = { ...source };
+                        if ((cleanedSource as BridgeReportSource).fillData) {
+                            delete (cleanedSource as BridgeReportSource).fillData;
+                        }
+
+                        return cleanedSource;
+                    }),
+                };
                 quoteReportUtils.logQuoteReport({
-                    quoteReport: quote.quoteReport,
+                    quoteReport: cleanedQuoteReport,
                     submissionBy: 'taker',
                     decodedUniqueId: quote.decodedUniqueId,
                 });
             }
         }
         const cleanedQuote = _.omit(quote, 'quoteReport', 'decodedUniqueId');
-        res.status(HttpStatus.OK).send(cleanedQuote);
+        const prices = priceComparisonUtils.getPriceComparisonFromQuote(params, swapVersion, quote);
+        let quoteWithMetadata = cleanedQuote;
+        if (prices) {
+            quoteWithMetadata = {
+                ...cleanedQuote,
+                prices,
+            };
+        }
+        res.status(HttpStatus.OK).send(quoteWithMetadata);
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getSwapTokensAsync(_req: express.Request, res: express.Response): Promise<void> {
