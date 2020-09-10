@@ -24,7 +24,13 @@ import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { SwapService } from '../services/swap_service';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
-import { CalculateSwapQuoteParams, GetSwapQuoteRequestParams, GetSwapQuoteResponse, SwapVersion } from '../types';
+import {
+    CalculateSwapQuoteParams,
+    GetSwapQuoteRequestParams,
+    GetSwapQuoteResponse,
+    SourceComparison,
+    SwapVersion,
+} from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { schemaUtils } from '../utils/schema_utils';
@@ -133,6 +139,11 @@ export class SwapHandlers {
             },
         });
 
+        let prices: SourceComparison[] | undefined;
+        if (params.hasPriceComparisons) {
+            prices = priceComparisonUtils.getPriceComparisonFromQuote(params, swapVersion, quote);
+        }
+
         const response = {
             price: quote.price,
             value: quote.value,
@@ -148,7 +159,9 @@ export class SwapHandlers {
             sources: quote.sources,
             estimatedGasTokenRefund: quote.estimatedGasTokenRefund,
             allowanceTarget: quote.allowanceTarget,
+            prices,
         };
+
         res.status(HttpStatus.OK).send(response);
     }
     // tslint:disable-next-line:prefer-function-over-method

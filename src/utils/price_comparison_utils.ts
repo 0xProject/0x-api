@@ -24,10 +24,10 @@ export const priceComparisonUtils = {
         params: GetSwapQuoteRequestParams,
         swapVersion: SwapVersion,
         quote: GetSwapQuoteResponse,
-    ): SourceComparison[] {
+    ): SourceComparison[] | undefined {
         if (!quote.quoteReport) {
             logger.warn('Missing quote report, cannot calculate price comparison');
-            return;
+            return undefined;
         }
 
         let direction: 'buying' | 'selling';
@@ -40,7 +40,7 @@ export const priceComparisonUtils = {
             amount = quote.sellAmount;
         } else {
             logger.error('Missing buyAmount and sellAmount params cannot calculate price comparison');
-            return;
+            return undefined;
         }
 
         const { sourcesConsidered } = quote.quoteReport;
