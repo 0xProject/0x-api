@@ -187,8 +187,8 @@ export class MetaTransactionHandlers {
             let priceResponse = metaTransactionPriceResponse;
             if (params.includePriceComparisons) {
                 const prices = priceComparisonUtils.getPriceComparisonFromQuote(
-                    params,
                     swapVersion,
+                    params,
                     metaTransactionPrice,
                 );
 

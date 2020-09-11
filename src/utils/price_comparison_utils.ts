@@ -29,8 +29,8 @@ const gasSchedule = {
 
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
-        params: GetSwapQuoteRequestParams | CalculateMetaTransactionQuoteParams | GetTransactionRequestParams,
         swapVersion: SwapVersion,
+        params: GetSwapQuoteRequestParams | CalculateMetaTransactionQuoteParams | GetTransactionRequestParams,
         quote: GetSwapQuoteResponse | CalculateMetaTransactionPriceResponse,
     ): SourceComparison[] | undefined {
         if (!quote.quoteReport) {

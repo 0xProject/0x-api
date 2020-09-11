@@ -265,8 +265,8 @@ export class MetaTransactionService {
         let quoteResponse = apiMetaTransactionQuote;
         if (params.includePriceComparisons) {
             const prices = priceComparisonUtils.getPriceComparisonFromQuote(
-                params,
                 swapVersion,
+                params,
                 metaTransactionPriceResponse,
             );
 
