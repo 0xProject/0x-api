@@ -5,7 +5,15 @@ import * as _ from 'lodash';
 import { GAS_SCHEDULE_V0, GAS_SCHEDULE_V1 } from '../config';
 import { ZERO } from '../constants';
 import { logger } from '../logger';
-import { GetSwapQuoteRequestParams, GetSwapQuoteResponse, SourceComparison, SwapVersion } from '../types';
+import {
+    CalculateMetaTransactionPriceResponse,
+    CalculateMetaTransactionQuoteParams,
+    GetSwapQuoteRequestParams,
+    GetSwapQuoteResponse,
+    GetTransactionRequestParams,
+    SourceComparison,
+    SwapVersion,
+} from '../types';
 
 const excludedLiquiditySources = [
     ERC20BridgeSource.Native,
@@ -21,9 +29,9 @@ const gasSchedule = {
 
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
-        params: GetSwapQuoteRequestParams,
+        params: GetSwapQuoteRequestParams | CalculateMetaTransactionQuoteParams | GetTransactionRequestParams,
         swapVersion: SwapVersion,
-        quote: GetSwapQuoteResponse,
+        quote: GetSwapQuoteResponse | CalculateMetaTransactionPriceResponse,
     ): SourceComparison[] | undefined {
         if (!quote.quoteReport) {
             logger.warn('Missing quote report, cannot calculate price comparison');

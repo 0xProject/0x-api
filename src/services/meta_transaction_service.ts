@@ -43,11 +43,13 @@ import {
     CalculateMetaTransactionQuoteParams,
     GetMetaTransactionQuoteResponse,
     PostTransactionResponse,
+    SwapVersion,
     TransactionStates,
     TransactionWatcherSignerStatus,
     ZeroExTransactionWithoutDomain,
 } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
+import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { quoteReportUtils } from '../utils/quote_report_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
@@ -107,6 +109,8 @@ export class MetaTransactionService {
             slippagePercentage,
             excludedSources,
             apiKey,
+            // tslint:disable-next-line:boolean-naming
+            includePriceComparisons,
         } = params;
 
         let _rfqt;
@@ -119,8 +123,8 @@ export class MetaTransactionService {
             };
         }
 
-        // only generate quote reports for rfqt firm quotes
-        const shouldGenerateQuoteReport = _rfqt && _rfqt.intentOnFilling;
+        // only generate quote reports for rfqt firm quotes or when specifically requested
+        const shouldGenerateQuoteReport = includePriceComparisons || (_rfqt && _rfqt.intentOnFilling);
 
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
             ...ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
@@ -186,8 +190,10 @@ export class MetaTransactionService {
         return response;
     }
     public async calculateMetaTransactionQuoteAsync(
+        swapVersion: SwapVersion,
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<GetMetaTransactionQuoteResponse> {
+        const metaTransactionPriceResponse = await this.calculateMetaTransactionPriceAsync(params, 'quote');
         const {
             takerAddress,
             sellAmount,
@@ -198,7 +204,7 @@ export class MetaTransactionService {
             protocolFee,
             minimumProtocolFee,
             quoteReport,
-        } = await this.calculateMetaTransactionPriceAsync(params, 'quote');
+        } = metaTransactionPriceResponse;
 
         const floatGasPrice = swapQuote.gasPrice;
         const gasPrice = floatGasPrice
@@ -228,7 +234,8 @@ export class MetaTransactionService {
             .callAsync();
 
         // log quote report and associate with txn hash if this is an RFQT firm quote
-        if (quoteReport) {
+        const shouldLogQuoteReport = quoteReport && params.apiKey !== undefined;
+        if (shouldLogQuoteReport) {
             quoteReportUtils.logQuoteReport({ submissionBy: 'metaTxn', quoteReport, zeroExTransactionHash });
         }
 
@@ -254,7 +261,23 @@ export class MetaTransactionService {
             value: protocolFee,
             allowanceTarget,
         };
-        return apiMetaTransactionQuote;
+
+        let quoteResponse = apiMetaTransactionQuote;
+        if (params.includePriceComparisons) {
+            const prices = priceComparisonUtils.getPriceComparisonFromQuote(
+                params,
+                swapVersion,
+                metaTransactionPriceResponse,
+            );
+
+            if (prices) {
+                quoteResponse = {
+                    ...apiMetaTransactionQuote,
+                    prices,
+                };
+            }
+        }
+        return quoteResponse;
     }
     public async findTransactionByHashAsync(refHash: string): Promise<TransactionEntity | undefined> {
         return this._transactionEntityRepository.findOne({

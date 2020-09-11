@@ -26,9 +26,11 @@ import {
     GetMetaTransactionPriceResponse,
     GetMetaTransactionStatusResponse,
     GetTransactionRequestParams,
+    SwapVersion,
     ZeroExTransactionWithoutDomain,
 } from '../types';
 import { parseUtils } from '../utils/parse_utils';
+import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { schemaUtils } from '../utils/schema_utils';
 import { findTokenAddressOrThrowApiError } from '../utils/token_metadata_utils';
@@ -45,7 +47,7 @@ export class MetaTransactionHandlers {
         this._metaTransactionService = metaTransactionService;
         this._rateLimiter = rateLimiter;
     }
-    public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async getQuoteAsync(swapVersion: SwapVersion, req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header(API_KEY_HEADER);
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
@@ -65,21 +67,27 @@ export class MetaTransactionHandlers {
             buyAmount,
             slippagePercentage,
             excludedSources,
+            // tslint:disable-next-line:boolean-naming
+            includePriceComparisons,
         } = parseGetTransactionRequestParams(req);
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
         try {
-            const metaTransactionQuote = await this._metaTransactionService.calculateMetaTransactionQuoteAsync({
-                takerAddress,
-                buyTokenAddress,
-                sellTokenAddress,
-                buyAmount,
-                sellAmount,
-                from: takerAddress,
-                slippagePercentage,
-                excludedSources,
-                apiKey,
-            });
+            const metaTransactionQuote = await this._metaTransactionService.calculateMetaTransactionQuoteAsync(
+                swapVersion,
+                {
+                    takerAddress,
+                    buyTokenAddress,
+                    sellTokenAddress,
+                    buyAmount,
+                    sellAmount,
+                    from: takerAddress,
+                    slippagePercentage,
+                    excludedSources,
+                    apiKey,
+                    includePriceComparisons,
+                },
+            );
             res.status(HttpStatus.OK).send(metaTransactionQuote);
         } catch (e) {
             // If this is already a transformed error then just re-throw
@@ -117,7 +125,7 @@ export class MetaTransactionHandlers {
             throw new InternalServerError(e.message);
         }
     }
-    public async getPriceAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async getPriceAsync(swapVersion: SwapVersion, req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
@@ -129,6 +137,7 @@ export class MetaTransactionHandlers {
         // HACK typescript typing does not allow this valid json-schema
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
         // parse query params
+        const params = parseGetTransactionRequestParams(req);
         const {
             takerAddress,
             sellToken,
@@ -137,7 +146,9 @@ export class MetaTransactionHandlers {
             buyAmount,
             slippagePercentage,
             excludedSources,
-        } = parseGetTransactionRequestParams(req);
+            // tslint:disable-next-line:boolean-naming
+            includePriceComparisons,
+        } = params;
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
         try {
@@ -152,6 +163,7 @@ export class MetaTransactionHandlers {
                     slippagePercentage,
                     excludedSources,
                     apiKey,
+                    includePriceComparisons,
                 },
                 'price',
             );
@@ -171,7 +183,23 @@ export class MetaTransactionHandlers {
                 estimatedGasTokenRefund: ZERO,
                 allowanceTarget: metaTransactionPrice.allowanceTarget,
             };
-            res.status(HttpStatus.OK).send(metaTransactionPriceResponse);
+
+            let priceResponse = metaTransactionPriceResponse;
+            if (params.includePriceComparisons) {
+                const prices = priceComparisonUtils.getPriceComparisonFromQuote(
+                    params,
+                    swapVersion,
+                    metaTransactionPrice,
+                );
+
+                if (prices) {
+                    priceResponse = {
+                        ...metaTransactionPriceResponse,
+                        prices,
+                    };
+                }
+            }
+            res.status(HttpStatus.OK).send(priceResponse);
         } catch (e) {
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {
@@ -369,7 +397,20 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
         req.query.excludedSources === undefined
             ? undefined
             : parseUtils.parseStringArrForERC20BridgeSources((req.query.excludedSources as string).split(','));
-    return { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage, excludedSources };
+
+    // tslint:disable-next-line:boolean-naming
+    const includePriceComparisons =
+        req.query.includePriceComparisons === undefined ? false : req.query.includePriceComparisons === 'true';
+    return {
+        takerAddress,
+        sellToken,
+        buyToken,
+        sellAmount,
+        buyAmount,
+        slippagePercentage,
+        excludedSources,
+        includePriceComparisons,
+    };
 };
 
 interface PostTransactionRequestBody {
