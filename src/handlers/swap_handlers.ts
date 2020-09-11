@@ -1,4 +1,4 @@
-import { BridgeReportSource, QuoteReport, RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -74,21 +74,8 @@ export class SwapHandlers {
                 },
             });
             if (quote.quoteReport && params.rfqt && params.rfqt.intentOnFilling) {
-                const { quoteReport } = quote;
-                const cleanedQuoteReport: QuoteReport = {
-                    ...quoteReport,
-                    sourcesConsidered: quoteReport.sourcesConsidered.map(source => {
-                        // Omit fillData as this is used internally and not relevant for the report
-                        const cleanedSource = { ...source };
-                        if ((cleanedSource as BridgeReportSource).fillData) {
-                            delete (cleanedSource as BridgeReportSource).fillData;
-                        }
-
-                        return cleanedSource;
-                    }),
-                };
                 quoteReportUtils.logQuoteReport({
-                    quoteReport: cleanedQuoteReport,
+                    quoteReport: quote.quoteReport,
                     submissionBy: 'taker',
                     decodedUniqueId: quote.decodedUniqueId,
                 });
