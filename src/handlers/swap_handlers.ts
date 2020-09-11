@@ -1,4 +1,4 @@
-import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { ERC20BridgeSource, RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -193,7 +193,7 @@ export class SwapHandlers {
             takerAddress,
             slippagePercentage,
             gasPrice,
-            excludedSources,
+            excludedSources: _excludedSources,
             affiliateAddress,
             rfqt,
             // tslint:disable-next-line:boolean-naming
@@ -241,6 +241,10 @@ export class SwapHandlers {
                 },
             ]);
         }
+
+        // Exclude Bancor as a source unless swap involves BNT token
+        const isBNT = sellToken.toUpperCase() === 'BNT' || buyToken.toUpperCase() === 'BNT';
+        const excludedSources = isBNT ? _excludedSources : _excludedSources.concat(ERC20BridgeSource.Bancor);
 
         const calculateSwapQuoteParams: CalculateSwapQuoteParams = {
             buyTokenAddress,

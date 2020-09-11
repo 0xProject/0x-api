@@ -1,5 +1,5 @@
 import { assert } from '@0x/assert';
-import { SwapQuoterError } from '@0x/asset-swapper';
+import { ERC20BridgeSource, SwapQuoterError } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -365,10 +365,14 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
             },
         ]);
     }
-    const excludedSources =
+    const _excludedSources =
         req.query.excludedSources === undefined
             ? undefined
             : parseUtils.parseStringArrForERC20BridgeSources((req.query.excludedSources as string).split(','));
+    // Exclude Bancor as a source unless swap involves BNT token
+    const isBNT = sellToken.toUpperCase() === 'BNT' || buyToken.toUpperCase() === 'BNT';
+    const excludedSources = isBNT ? _excludedSources : _excludedSources.concat(ERC20BridgeSource.Bancor);
+
     return { takerAddress, sellToken, buyToken, sellAmount, buyAmount, slippagePercentage, excludedSources };
 };
 
