@@ -96,7 +96,7 @@ export class SwapHandlers {
         }
         const cleanedQuote = _.omit(quote, 'quoteReport', 'decodedUniqueId');
         let quoteResponse = cleanedQuote;
-        if (params.hasPriceComparisons) {
+        if (params.includePriceComparisons) {
             const prices = priceComparisonUtils.getPriceComparisonFromQuote(params, swapVersion, quote);
 
             if (prices) {
@@ -140,7 +140,7 @@ export class SwapHandlers {
         });
 
         let prices: SourceComparison[] | undefined;
-        if (params.hasPriceComparisons) {
+        if (params.includePriceComparisons) {
             prices = priceComparisonUtils.getPriceComparisonFromQuote(params, swapVersion, quote);
         }
 
@@ -238,7 +238,8 @@ export class SwapHandlers {
             skipValidation,
             apiKey,
             affiliateFee,
-            hasPriceComparisons,
+            // tslint:disable-next-line:boolean-naming
+            includePriceComparisons,
         } = params;
 
         const isETHSell = isETHSymbol(sellToken);
@@ -305,7 +306,7 @@ export class SwapHandlers {
             skipValidation,
             swapVersion,
             affiliateFee,
-            hasPriceComparisons,
+            includePriceComparisons,
         };
         try {
             let swapQuote: GetSwapQuoteResponse;
@@ -464,8 +465,9 @@ const parseGetSwapQuoteRequestParams = (
     // tslint:disable-next-line:boolean-naming
     const skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
 
-    const hasPriceComparisons =
-        req.query.hasPriceComparisons === undefined ? false : req.query.hasPriceComparisons === 'true';
+    // tslint:disable-next-line:boolean-naming
+    const includePriceComparisons =
+        req.query.includePriceComparisons === undefined ? false : req.query.includePriceComparisons === 'true';
     return {
         takerAddress,
         sellToken,
@@ -480,6 +482,6 @@ const parseGetSwapQuoteRequestParams = (
         skipValidation,
         apiKey,
         affiliateFee,
-        hasPriceComparisons,
+        includePriceComparisons,
     };
 };

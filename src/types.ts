@@ -524,7 +524,7 @@ export interface GetSwapQuoteRequestParams {
     skipValidation: boolean;
     apiKey?: string;
     affiliateFee: PercentageFee;
-    hasPriceComparisons: boolean;
+    includePriceComparisons: boolean;
 }
 
 export interface GetTransactionRequestParams {
@@ -554,7 +554,7 @@ export interface CalculateSwapQuoteParams {
     skipValidation: boolean;
     swapVersion: SwapVersion;
     affiliateFee: PercentageFee;
-    hasPriceComparisons?: boolean;
+    includePriceComparisons?: boolean;
 }
 
 export interface GetSwapQuoteResponseLiquiditySource {

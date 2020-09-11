@@ -464,7 +464,8 @@ export class SwapService {
             rfqt,
             swapVersion,
             affiliateFee,
-            hasPriceComparisons,
+            // tslint:disable-next-line:boolean-naming
+            includePriceComparisons,
         } = params;
         let _rfqt: RfqtRequestOpts | undefined;
         const isAllExcluded = Object.values(ERC20BridgeSource).every(s => excludedSources.includes(s));
@@ -508,7 +509,7 @@ export class SwapService {
         }
 
         // only generate quote reports for rfqt firm quotes
-        const shouldGenerateQuoteReport = hasPriceComparisons || (rfqt && rfqt.intentOnFilling);
+        const shouldGenerateQuoteReport = includePriceComparisons || (rfqt && rfqt.intentOnFilling);
 
         const swapQuoteRequestOpts =
             swapVersion === SwapVersion.V0 ? ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS : ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS;
