@@ -59,26 +59,15 @@ export const priceComparisonUtils = {
             return undefined;
         }
 
-        let direction: 'buying' | 'selling';
-        let amount: BigNumber;
-        if (params.buyAmount) {
-            direction = 'buying';
-            amount = quote.buyAmount;
-        } else if (params.sellAmount) {
-            direction = 'selling';
-            amount = quote.sellAmount;
-        } else {
-            logger.error('Missing buyAmount and sellAmount params cannot calculate price comparison');
-            return undefined;
-        }
+        const isSelling = !!params.sellAmount;
 
         const { sourcesConsidered } = quote.quoteReport;
 
         // Filter matching amount samples with a valid result
         const fullTradeSources = sourcesConsidered.filter(s =>
-            direction === 'selling'
-                ? s.takerAmount.isEqualTo(amount) && s.makerAmount.isGreaterThan(ZERO)
-                : s.makerAmount.isEqualTo(amount) && s.takerAmount.isGreaterThan(ZERO),
+            isSelling
+                ? s.takerAmount.isEqualTo(quote.sellAmount) && s.makerAmount.isGreaterThan(ZERO)
+                : s.makerAmount.isEqualTo(quote.buyAmount) && s.takerAmount.isGreaterThan(ZERO),
         );
 
         // Strip out internal sources
@@ -86,12 +75,11 @@ export const priceComparisonUtils = {
 
         // Sort by amount the user will receive and deduplicate to only take the best option for e.g. Kyber
         const uniqueRelevantSources = _.uniqBy(
-            relevantSources.slice().sort((a, b) =>
-                // TODO: fix this for buying and selling
-                direction === 'selling'
-                    ? a.makerAmount.comparedTo(b.makerAmount)
-                    : a.takerAmount.comparedTo(b.takerAmount),
-            ),
+            relevantSources
+                .slice()
+                .sort((a, b) =>
+                    isSelling ? b.makerAmount.comparedTo(a.makerAmount) : a.takerAmount.comparedTo(b.takerAmount),
+                ),
             'liquiditySource',
         );
 
@@ -103,8 +91,7 @@ export const priceComparisonUtils = {
                 gasSchedule[swapVersion][source.liquiditySource]!((source as BridgeReportSource).fillData),
             );
 
-            const price =
-                direction === 'selling' ? makerAmount.dividedBy(takerAmount) : takerAmount.dividedBy(makerAmount);
+            const price = isSelling ? makerAmount.dividedBy(takerAmount) : takerAmount.dividedBy(makerAmount);
 
             return {
                 name: liquiditySource,
