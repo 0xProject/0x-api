@@ -15,17 +15,31 @@ import {
     SwapVersion,
 } from '../types';
 
-const excludedLiquiditySources = [
+// Exclude internal sources from comparison
+// NOTE: asset-swapper does not return fillData for Native & MultiHop sources
+const excludedLiquiditySources = new Set([
     ERC20BridgeSource.Native,
     ERC20BridgeSource.MultiHop,
     ERC20BridgeSource.MultiBridge,
     ERC20BridgeSource.LiquidityProvider,
-];
+]);
 
 const gasSchedule = {
     [SwapVersion.V0]: GAS_SCHEDULE_V0,
     [SwapVersion.V1]: GAS_SCHEDULE_V1,
 };
+
+const emptyPlaceholderSources = Object.values(ERC20BridgeSource)
+    .filter(liquiditySource => !excludedLiquiditySources.has(liquiditySource))
+    .reduce<SourceComparison[]>((memo, liquiditySource) => {
+        memo.push({
+            name: liquiditySource,
+            price: null,
+            gas: null,
+        });
+
+        return memo;
+    }, []);
 
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
@@ -34,7 +48,7 @@ export const priceComparisonUtils = {
         quote: GetSwapQuoteResponse | CalculateMetaTransactionPriceResponse,
     ): SourceComparison[] | undefined {
         if (!quote.quoteReport) {
-            logger.warn('Missing quote report, cannot calculate price comparison');
+            logger.error('Missing quote report, cannot calculate price comparison');
             return undefined;
         }
 
@@ -61,7 +75,7 @@ export const priceComparisonUtils = {
         );
 
         // Strip out internal sources
-        const relevantSources = fullTradeSources.filter(s => !excludedLiquiditySources.includes(s.liquiditySource));
+        const relevantSources = fullTradeSources.filter(s => !excludedLiquiditySources.has(s.liquiditySource));
 
         // Sort by amount the user will receive and deduplicate to only take the best option for e.g. Kyber
         const uniqueRelevantSources = _.uniqBy(
@@ -93,6 +107,9 @@ export const priceComparisonUtils = {
             };
         });
 
-        return sourcePrices;
+        // Add null values for all sources we don't have a result for so that we always have a full result set in the response
+        const allSourcePrices = _.uniqBy<SourceComparison>([...sourcePrices, ...emptyPlaceholderSources], 'name');
+
+        return allSourcePrices;
     },
 };
