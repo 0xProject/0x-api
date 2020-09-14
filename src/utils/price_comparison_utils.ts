@@ -1,19 +1,11 @@
-import { BridgeReportSource, ERC20BridgeSource } from '@0x/asset-swapper';
+import { BridgeReportSource, ERC20BridgeSource, QuoteReportSource } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 
 import { GAS_SCHEDULE_V0, GAS_SCHEDULE_V1 } from '../config';
 import { ZERO } from '../constants';
 import { logger } from '../logger';
-import {
-    CalculateMetaTransactionPriceResponse,
-    CalculateMetaTransactionQuoteParams,
-    GetSwapQuoteRequestParams,
-    GetSwapQuoteResponse,
-    GetTransactionRequestParams,
-    SourceComparison,
-    SwapVersion,
-} from '../types';
+import { SourceComparison, SwapVersion } from '../types';
 
 // Exclude internal sources from comparison
 // NOTE: asset-swapper does not return fillData for Native & MultiHop sources
@@ -41,11 +33,26 @@ const emptyPlaceholderSources = Object.values(ERC20BridgeSource)
         return memo;
     }, []);
 
+interface PartialRequestParams {
+    buyAmount?: BigNumber;
+    sellAmount?: BigNumber;
+}
+
+interface PartialQuote {
+    price: BigNumber;
+    buyAmount: BigNumber;
+    sellAmount: BigNumber;
+    // TODO: handle token addresses
+    // buyTokenAddress: string;
+    // sellTokenAddress: string;
+    quoteReport?: { sourcesConsidered: QuoteReportSource[] };
+}
+
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
         swapVersion: SwapVersion,
-        params: GetSwapQuoteRequestParams | CalculateMetaTransactionQuoteParams | GetTransactionRequestParams,
-        quote: GetSwapQuoteResponse | CalculateMetaTransactionPriceResponse,
+        params: PartialRequestParams,
+        quote: PartialQuote,
     ): SourceComparison[] | undefined {
         if (!quote.quoteReport) {
             logger.error('Missing quote report, cannot calculate price comparison');
@@ -79,13 +86,12 @@ export const priceComparisonUtils = {
 
         // Sort by amount the user will receive and deduplicate to only take the best option for e.g. Kyber
         const uniqueRelevantSources = _.uniqBy(
-            relevantSources
-                .slice()
-                .sort((a, b) =>
-                    direction === 'selling'
-                        ? a.makerAmount.comparedTo(b.makerAmount)
-                        : a.takerAmount.comparedTo(b.takerAmount),
-                ),
+            relevantSources.slice().sort((a, b) =>
+                // TODO: fix this for buying and selling
+                direction === 'selling'
+                    ? a.makerAmount.comparedTo(b.makerAmount)
+                    : a.takerAmount.comparedTo(b.takerAmount),
+            ),
             'liquiditySource',
         );
 
