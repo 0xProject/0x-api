@@ -1,11 +1,14 @@
 import { BridgeReportSource, ERC20BridgeSource, QuoteReportSource } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
+import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
 import { GAS_SCHEDULE_V0, GAS_SCHEDULE_V1 } from '../config';
 import { ZERO } from '../constants';
 import { logger } from '../logger';
-import { SourceComparison, SwapVersion } from '../types';
+import { ChainId, SourceComparison, SwapVersion } from '../types';
+
+import { getTokenMetadataIfExists } from './token_metadata_utils';
 
 // Exclude internal sources from comparison
 // NOTE: asset-swapper does not return fillData for Native & MultiHop sources
@@ -39,17 +42,16 @@ interface PartialRequestParams {
 }
 
 interface PartialQuote {
-    price: BigNumber;
     buyAmount: BigNumber;
     sellAmount: BigNumber;
-    // TODO: handle token addresses
-    // buyTokenAddress: string;
-    // sellTokenAddress: string;
+    buyTokenAddress: string;
+    sellTokenAddress: string;
     quoteReport?: { sourcesConsidered: QuoteReportSource[] };
 }
 
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
+        chainId: ChainId,
         swapVersion: SwapVersion,
         params: PartialRequestParams,
         quote: PartialQuote,
@@ -58,6 +60,9 @@ export const priceComparisonUtils = {
             logger.error('Missing quote report, cannot calculate price comparison');
             return undefined;
         }
+
+        const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
+        const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
 
         const isSelling = !!params.sellAmount;
 
@@ -83,19 +88,22 @@ export const priceComparisonUtils = {
             'liquiditySource',
         );
 
-        const quotePriceDecimalPlaces = quote.price.decimalPlaces();
-
         const sourcePrices: SourceComparison[] = uniqueRelevantSources.map(source => {
             const { liquiditySource, makerAmount, takerAmount } = source;
             const gas = new BigNumber(
                 gasSchedule[swapVersion][source.liquiditySource]!((source as BridgeReportSource).fillData),
             );
 
-            const price = isSelling ? makerAmount.dividedBy(takerAmount) : takerAmount.dividedBy(makerAmount);
+            const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyToken.decimals);
+            const unitTakerAmount = Web3Wrapper.toUnitAmount(takerAmount, sellToken.decimals);
+
+            const price = isSelling
+                ? unitMakerAmount.dividedBy(unitTakerAmount).decimalPlaces(sellToken.decimals)
+                : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(buyToken.decimals);
 
             return {
                 name: liquiditySource,
-                price: price.decimalPlaces(quotePriceDecimalPlaces),
+                price,
                 gas,
             };
         });

@@ -264,11 +264,11 @@ export class MetaTransactionService {
 
         let quoteResponse = apiMetaTransactionQuote;
         if (params.includePriceComparisons) {
-            const prices = priceComparisonUtils.getPriceComparisonFromQuote(
-                swapVersion,
-                params,
-                metaTransactionPriceResponse,
-            );
+            const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, swapVersion, params, {
+                ...metaTransactionPriceResponse,
+                buyTokenAddress: params.buyTokenAddress,
+                sellTokenAddress: params.sellTokenAddress,
+            });
 
             if (prices) {
                 quoteResponse = {
