@@ -123,7 +123,7 @@ export class MetaTransactionService {
             };
         }
 
-        // only generate quote reports for rfqt firm quotes or when specifically requested
+        // only generate quote reports for rfqt firm quotes or when price comparison is requested
         const shouldGenerateQuoteReport = includePriceComparisons || (_rfqt && _rfqt.intentOnFilling);
 
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {

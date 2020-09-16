@@ -61,56 +61,61 @@ export const priceComparisonUtils = {
             return undefined;
         }
 
-        const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
-        const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
+        // NOTE: don't fail quote request if comparison calculations error out
+        try {
+            const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
+            const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
 
-        const isSelling = !!params.sellAmount;
+            const isSelling = !!params.sellAmount;
 
-        const { sourcesConsidered } = quote.quoteReport;
+            const { sourcesConsidered } = quote.quoteReport;
 
-        // Filter matching amount samples with a valid result
-        const fullTradeSources = sourcesConsidered.filter(s =>
-            isSelling
-                ? s.takerAmount.isEqualTo(quote.sellAmount) && s.makerAmount.isGreaterThan(ZERO)
-                : s.makerAmount.isEqualTo(quote.buyAmount) && s.takerAmount.isGreaterThan(ZERO),
-        );
-
-        // Strip out internal sources
-        const relevantSources = fullTradeSources.filter(s => !excludedLiquiditySources.has(s.liquiditySource));
-
-        // Sort by amount the user will receive and deduplicate to only take the best option for e.g. Kyber
-        const uniqueRelevantSources = _.uniqBy(
-            relevantSources
-                .slice()
-                .sort((a, b) =>
-                    isSelling ? b.makerAmount.comparedTo(a.makerAmount) : a.takerAmount.comparedTo(b.takerAmount),
-                ),
-            'liquiditySource',
-        );
-
-        const sourcePrices: SourceComparison[] = uniqueRelevantSources.map(source => {
-            const { liquiditySource, makerAmount, takerAmount } = source;
-            const gas = new BigNumber(
-                gasSchedule[swapVersion][source.liquiditySource]!((source as BridgeReportSource).fillData),
+            // Filter matching amount samples with a valid result
+            const fullTradeSources = sourcesConsidered.filter(s =>
+                isSelling
+                    ? s.takerAmount.isEqualTo(quote.sellAmount) && s.makerAmount.isGreaterThan(ZERO)
+                    : s.makerAmount.isEqualTo(quote.buyAmount) && s.takerAmount.isGreaterThan(ZERO),
             );
 
-            const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyToken.decimals);
-            const unitTakerAmount = Web3Wrapper.toUnitAmount(takerAmount, sellToken.decimals);
+            // Strip out internal sources
+            const relevantSources = fullTradeSources.filter(s => !excludedLiquiditySources.has(s.liquiditySource));
 
-            const price = isSelling
-                ? unitMakerAmount.dividedBy(unitTakerAmount).decimalPlaces(sellToken.decimals)
-                : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(buyToken.decimals);
+            // Sort by amount the user will receive and deduplicate to only take the best option for e.g. Kyber
+            const uniqueRelevantSources = _.uniqBy(
+                relevantSources
+                    .slice()
+                    .sort((a, b) =>
+                        isSelling ? b.makerAmount.comparedTo(a.makerAmount) : a.takerAmount.comparedTo(b.takerAmount),
+                    ),
+                'liquiditySource',
+            );
 
-            return {
-                name: liquiditySource,
-                price,
-                gas,
-            };
-        });
+            const sourcePrices: SourceComparison[] = uniqueRelevantSources.map(source => {
+                const { liquiditySource, makerAmount, takerAmount } = source;
+                const gas = new BigNumber(
+                    gasSchedule[swapVersion][source.liquiditySource]!((source as BridgeReportSource).fillData),
+                );
 
-        // Add null values for all sources we don't have a result for so that we always have a full result set in the response
-        const allSourcePrices = _.uniqBy<SourceComparison>([...sourcePrices, ...emptyPlaceholderSources], 'name');
+                const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyToken.decimals);
+                const unitTakerAmount = Web3Wrapper.toUnitAmount(takerAmount, sellToken.decimals);
 
-        return allSourcePrices;
+                const price = isSelling
+                    ? unitMakerAmount.dividedBy(unitTakerAmount).decimalPlaces(sellToken.decimals)
+                    : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(buyToken.decimals);
+
+                return {
+                    name: liquiditySource,
+                    price,
+                    gas,
+                };
+            });
+
+            // Add null values for all sources we don't have a result for so that we always have a full result set in the response
+            const allSourcePrices = _.uniqBy<SourceComparison>([...sourcePrices, ...emptyPlaceholderSources], 'name');
+
+            return allSourcePrices;
+        } catch (err) {
+            logger.error(err, `Failed to calculate price comparisons`);
+        }
     },
 };
