@@ -17,8 +17,7 @@ const sellAmount = new BigNumber('70100000000000000');
 
 const SUITE_NAME = 'priceComparisonUtils';
 
-// TODO REMOVE
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     describe('getPriceComparisonFromQuote', () => {
         it('returns comparison prices for quote reporter sources when quoting sellAmount', () => {
             const price = buyAmount.div(sellAmount).decimalPlaces(18);
