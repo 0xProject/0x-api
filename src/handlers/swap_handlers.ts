@@ -24,7 +24,13 @@ import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { SwapService } from '../services/swap_service';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
-import { CalculateSwapQuoteParams, GetSwapQuoteRequestParams, GetSwapQuoteResponse, SwapVersion } from '../types';
+import {
+    CalculateSwapQuoteParams,
+    ChainId,
+    GetSwapQuoteRequestParams,
+    GetSwapQuoteResponse,
+    SwapVersion,
+} from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
@@ -243,7 +249,8 @@ export class SwapHandlers {
         }
 
         // Exclude Bancor as a source unless swap involves BNT token
-        const isBNT = sellToken.toUpperCase() === 'BNT' || buyToken.toUpperCase() === 'BNT';
+        const bntAddress = getTokenMetadataIfExists('bnt', ChainId.Mainnet).tokenAddress;
+        const isBNT = sellTokenAddress.toLowerCase() === bntAddress || buyTokenAddress.toLowerCase() === bntAddress;
         const excludedSources = isBNT ? _excludedSources : _excludedSources.concat(ERC20BridgeSource.Bancor);
 
         const calculateSwapQuoteParams: CalculateSwapQuoteParams = {
