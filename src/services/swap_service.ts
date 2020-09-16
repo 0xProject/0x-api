@@ -317,7 +317,15 @@ export class SwapService {
         asks: { depth: BucketedPriceDepth[] };
         bids: { depth: BucketedPriceDepth[] };
     }> {
-        const { buyToken, sellToken, sellAmount, numSamples, sampleDistributionBase, excludedSources } = params;
+        const {
+            buyToken,
+            sellToken,
+            sellAmount,
+            numSamples,
+            sampleDistributionBase,
+            excludedSources,
+            includedSources,
+        } = params;
         const marketDepth = await this._swapQuoter.getBidAskLiquidityForMakerTakerAssetPairAsync(
             buyToken.tokenAddress,
             sellToken.tokenAddress,
@@ -330,6 +338,7 @@ export class SwapService {
                     ERC20BridgeSource.Bancor,
                     ERC20BridgeSource.MultiHop,
                 ],
+                includedSources,
                 sampleDistributionBase,
             },
         );
@@ -471,6 +480,7 @@ export class SwapService {
             isETHSell,
             from,
             excludedSources,
+            includedSources,
             apiKey,
             rfqt,
             swapVersion,
@@ -527,6 +537,7 @@ export class SwapService {
             bridgeSlippage: slippagePercentage,
             gasPrice: providedGasPrice,
             excludedSources: swapQuoteRequestOpts.excludedSources.concat(...(excludedSources || [])),
+            includedSources,
             rfqt: _rfqt,
             shouldGenerateQuoteReport,
         };
