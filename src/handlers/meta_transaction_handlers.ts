@@ -26,7 +26,6 @@ import {
     GetMetaTransactionPriceResponse,
     GetMetaTransactionStatusResponse,
     GetTransactionRequestParams,
-    SwapVersion,
     ZeroExTransactionWithoutDomain,
 } from '../types';
 import { parseUtils } from '../utils/parse_utils';
@@ -47,7 +46,7 @@ export class MetaTransactionHandlers {
         this._metaTransactionService = metaTransactionService;
         this._rateLimiter = rateLimiter;
     }
-    public async getQuoteAsync(swapVersion: SwapVersion, req: express.Request, res: express.Response): Promise<void> {
+    public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header(API_KEY_HEADER);
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
@@ -73,21 +72,18 @@ export class MetaTransactionHandlers {
         const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
         try {
-            const metaTransactionQuote = await this._metaTransactionService.calculateMetaTransactionQuoteAsync(
-                swapVersion,
-                {
-                    takerAddress,
-                    buyTokenAddress,
-                    sellTokenAddress,
-                    buyAmount,
-                    sellAmount,
-                    from: takerAddress,
-                    slippagePercentage,
-                    excludedSources,
-                    apiKey,
-                    includePriceComparisons,
-                },
-            );
+            const metaTransactionQuote = await this._metaTransactionService.calculateMetaTransactionQuoteAsync({
+                takerAddress,
+                buyTokenAddress,
+                sellTokenAddress,
+                buyAmount,
+                sellAmount,
+                from: takerAddress,
+                slippagePercentage,
+                excludedSources,
+                apiKey,
+                includePriceComparisons,
+            });
             res.status(HttpStatus.OK).send(metaTransactionQuote);
         } catch (e) {
             // If this is already a transformed error then just re-throw
@@ -125,7 +121,7 @@ export class MetaTransactionHandlers {
             throw new InternalServerError(e.message);
         }
     }
-    public async getPriceAsync(swapVersion: SwapVersion, req: express.Request, res: express.Response): Promise<void> {
+    public async getPriceAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
@@ -186,7 +182,7 @@ export class MetaTransactionHandlers {
 
             let priceResponse = metaTransactionPriceResponse;
             if (params.includePriceComparisons) {
-                const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, swapVersion, params, {
+                const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
                     ...metaTransactionPrice,
                     buyTokenAddress,
                     sellTokenAddress,

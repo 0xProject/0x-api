@@ -43,7 +43,6 @@ import {
     CalculateMetaTransactionQuoteParams,
     GetMetaTransactionQuoteResponse,
     PostTransactionResponse,
-    SwapVersion,
     TransactionStates,
     TransactionWatcherSignerStatus,
     ZeroExTransactionWithoutDomain,
@@ -190,7 +189,6 @@ export class MetaTransactionService {
         return response;
     }
     public async calculateMetaTransactionQuoteAsync(
-        swapVersion: SwapVersion,
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<GetMetaTransactionQuoteResponse> {
         const metaTransactionPriceResponse = await this.calculateMetaTransactionPriceAsync(params, 'quote');
@@ -264,7 +262,7 @@ export class MetaTransactionService {
 
         let quoteResponse = apiMetaTransactionQuote;
         if (params.includePriceComparisons) {
-            const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, swapVersion, params, {
+            const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
                 ...metaTransactionPriceResponse,
                 buyTokenAddress: params.buyTokenAddress,
                 sellTokenAddress: params.sellTokenAddress,

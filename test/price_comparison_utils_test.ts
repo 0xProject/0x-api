@@ -5,7 +5,7 @@ import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
 
-import { ChainId, SwapVersion } from '../src/types';
+import { ChainId } from '../src/types';
 import { priceComparisonUtils } from '../src/utils/price_comparison_utils';
 import { getTokenMetadataIfExists } from '../src/utils/token_metadata_utils';
 
@@ -24,7 +24,6 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                SwapVersion.V1,
                 { sellAmount },
                 {
                     buyTokenAddress: DAI.tokenAddress,
@@ -66,7 +65,6 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                SwapVersion.V1,
                 { buyAmount },
                 {
                     buyTokenAddress: DAI.tokenAddress,
@@ -108,7 +106,6 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                SwapVersion.V1,
                 { sellAmount },
                 {
                     buyTokenAddress: DAI.tokenAddress,
@@ -156,7 +153,6 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                SwapVersion.V1,
                 { buyAmount },
                 {
                     buyTokenAddress: DAI.tokenAddress,
@@ -205,7 +201,6 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                SwapVersion.V1,
                 { sellAmount },
                 {
                     buyTokenAddress: DAI.tokenAddress,
@@ -246,7 +241,6 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                SwapVersion.V1,
                 { buyAmount },
                 {
                     buyTokenAddress: DAI.tokenAddress,
@@ -288,7 +282,6 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                SwapVersion.V1,
                 { buyAmount: daiAmount },
                 {
                     buyTokenAddress: DAI.tokenAddress,
@@ -325,7 +318,6 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                SwapVersion.V1,
                 { sellAmount: usdcAmount },
                 {
                     buyTokenAddress: DAI.tokenAddress,

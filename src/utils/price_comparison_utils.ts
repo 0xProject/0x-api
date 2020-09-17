@@ -3,10 +3,10 @@ import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { GAS_SCHEDULE_V0, GAS_SCHEDULE_V1 } from '../config';
+import { GAS_SCHEDULE_V1 } from '../config';
 import { ZERO } from '../constants';
 import { logger } from '../logger';
-import { ChainId, SourceComparison, SwapVersion } from '../types';
+import { ChainId, SourceComparison } from '../types';
 
 import { getTokenMetadataIfExists } from './token_metadata_utils';
 
@@ -18,11 +18,6 @@ const excludedLiquiditySources = new Set([
     ERC20BridgeSource.MultiBridge,
     ERC20BridgeSource.LiquidityProvider,
 ]);
-
-const gasSchedule = {
-    [SwapVersion.V0]: GAS_SCHEDULE_V0,
-    [SwapVersion.V1]: GAS_SCHEDULE_V1,
-};
 
 const emptyPlaceholderSources = Object.values(ERC20BridgeSource)
     .filter(liquiditySource => !excludedLiquiditySources.has(liquiditySource))
@@ -52,7 +47,6 @@ interface PartialQuote {
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
         chainId: ChainId,
-        swapVersion: SwapVersion,
         params: PartialRequestParams,
         quote: PartialQuote,
     ): SourceComparison[] | undefined {
@@ -93,7 +87,7 @@ export const priceComparisonUtils = {
             const sourcePrices: SourceComparison[] = uniqueRelevantSources.map(source => {
                 const { liquiditySource, makerAmount, takerAmount } = source;
                 const gas = new BigNumber(
-                    gasSchedule[swapVersion][source.liquiditySource]!((source as BridgeReportSource).fillData),
+                    GAS_SCHEDULE_V1[source.liquiditySource]!((source as BridgeReportSource).fillData),
                 );
 
                 const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyToken.decimals);

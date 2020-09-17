@@ -84,7 +84,7 @@ export class SwapHandlers {
         const cleanedQuote = _.omit(quote, 'quoteReport', 'decodedUniqueId');
         let quoteResponse = cleanedQuote;
         if (params.includePriceComparisons) {
-            const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, swapVersion, params, quote);
+            const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, quote);
 
             if (prices) {
                 quoteResponse = {
@@ -128,7 +128,7 @@ export class SwapHandlers {
 
         let prices: SourceComparison[] | undefined;
         if (params.includePriceComparisons) {
-            prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, swapVersion, params, quote);
+            prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, quote);
         }
 
         const response = {
