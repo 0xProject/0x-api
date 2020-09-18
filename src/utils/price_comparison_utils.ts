@@ -1,11 +1,4 @@
-import {
-    BridgeReportSource,
-    ERC20BridgeSource,
-    MultiHopReportSource,
-    NativeOrderbookReportSource,
-    NativeRFQTReportSource,
-    QuoteReportSource,
-} from '@0x/asset-swapper';
+import { BridgeReportSource, ERC20BridgeSource, MultiHopReportSource, QuoteReportSource } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
@@ -85,9 +78,8 @@ export const priceComparisonUtils = {
                 let gas: BigNumber;
                 let protocolFee: BigNumber | undefined;
                 if (liquiditySource === ERC20BridgeSource.Native) {
-                    const typedSource = source as NativeOrderbookReportSource | NativeRFQTReportSource;
-                    protocolFee = new BigNumber(FEE_SCHEDULE_V1[typedSource.liquiditySource]());
-                    gas = new BigNumber(GAS_SCHEDULE_V1[typedSource.liquiditySource]());
+                    protocolFee = new BigNumber(FEE_SCHEDULE_V1[source.liquiditySource]());
+                    gas = new BigNumber(GAS_SCHEDULE_V1[source.liquiditySource]());
                 } else if (liquiditySource === ERC20BridgeSource.MultiHop) {
                     const typedSource = source as MultiHopReportSource;
                     gas = new BigNumber(GAS_SCHEDULE_V1[typedSource.liquiditySource](typedSource.fillData));

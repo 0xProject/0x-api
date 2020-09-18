@@ -49,6 +49,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(1.1e5),
+                    protocolFee: null,
                 },
 
                 // Kyber sample not found
@@ -56,6 +57,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Kyber,
                     price: null,
                     gas: null,
+                    protocolFee: null,
                 },
             ]);
         });
@@ -90,6 +92,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(1.1e5),
+                    protocolFee: null,
                 },
 
                 // Balancer sample not found
@@ -97,6 +100,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Balancer,
                     price: null,
                     gas: null,
+                    protocolFee: null,
                 },
             ]);
         });
@@ -137,6 +141,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(1.1e5),
+                    protocolFee: null,
                 },
 
                 // MStable placeholder instead of invalid 0 amount result
@@ -144,6 +149,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.MStable,
                     price: null,
                     gas: null,
+                    protocolFee: null,
                 },
             ]);
         });
@@ -184,6 +190,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(1.1e5),
+                    protocolFee: null,
                 },
 
                 // MStable placeholder instead of invalid 0 amount result
@@ -191,6 +198,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.MStable,
                     price: null,
                     gas: null,
+                    protocolFee: null,
                 },
             ]);
         });
@@ -231,6 +239,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Kyber,
                     price: higherPrice,
                     gas: new BigNumber(5e5),
+                    protocolFee: null,
                 },
             ]);
         });
@@ -271,6 +280,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Kyber,
                     price: lowerSellPrice,
                     gas: new BigNumber(5e5),
+                    protocolFee: null,
                 },
             ]);
         });
@@ -307,6 +317,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(1.1e5),
+                    protocolFee: null,
                 },
             ]);
         });
@@ -343,6 +354,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(1.1e5),
+                    protocolFee: null,
                 },
             ]);
         });
