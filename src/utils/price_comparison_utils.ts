@@ -1,35 +1,34 @@
-import { BridgeReportSource, ERC20BridgeSource, QuoteReportSource } from '@0x/asset-swapper';
+import {
+    BridgeReportSource,
+    ERC20BridgeSource,
+    MultiHopReportSource,
+    NativeOrderbookReportSource,
+    NativeRFQTReportSource,
+    QuoteReportSource,
+} from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { GAS_SCHEDULE_V1 } from '../config';
+import { FEE_SCHEDULE_V1, GAS_SCHEDULE_V1 } from '../config';
 import { ZERO } from '../constants';
 import { logger } from '../logger';
 import { ChainId, SourceComparison } from '../types';
 
 import { getTokenMetadataIfExists } from './token_metadata_utils';
 
-// Exclude internal sources from comparison
-// NOTE: asset-swapper does not return fillData for Native & MultiHop sources
-const excludedLiquiditySources = new Set([
-    ERC20BridgeSource.Native,
-    ERC20BridgeSource.MultiHop,
-    ERC20BridgeSource.MultiBridge,
-    ERC20BridgeSource.LiquidityProvider,
-]);
+const renameIfNativeSource = (source: ERC20BridgeSource) => (source === ERC20BridgeSource.Native ? '0x' : source);
 
-const emptyPlaceholderSources = Object.values(ERC20BridgeSource)
-    .filter(liquiditySource => !excludedLiquiditySources.has(liquiditySource))
-    .reduce<SourceComparison[]>((memo, liquiditySource) => {
-        memo.push({
-            name: liquiditySource,
-            price: null,
-            gas: null,
-        });
+const emptyPlaceholderSources = Object.values(ERC20BridgeSource).reduce<SourceComparison[]>((memo, liquiditySource) => {
+    memo.push({
+        name: renameIfNativeSource(liquiditySource),
+        price: null,
+        protocolFee: null,
+        gas: null,
+    });
 
-        return memo;
-    }, []);
+    return memo;
+}, []);
 
 interface PartialRequestParams {
     buyAmount?: BigNumber;
@@ -71,12 +70,9 @@ export const priceComparisonUtils = {
                     : s.makerAmount.isEqualTo(quote.buyAmount) && s.takerAmount.isGreaterThan(ZERO),
             );
 
-            // Strip out internal sources
-            const relevantSources = fullTradeSources.filter(s => !excludedLiquiditySources.has(s.liquiditySource));
-
             // Sort by amount the user will receive and deduplicate to only take the best option for e.g. Kyber
-            const uniqueRelevantSources = _.uniqBy(
-                relevantSources
+            const uniqueSources = _.uniqBy(
+                fullTradeSources
                     .slice()
                     .sort((a, b) =>
                         isSelling ? b.makerAmount.comparedTo(a.makerAmount) : a.takerAmount.comparedTo(b.takerAmount),
@@ -84,11 +80,21 @@ export const priceComparisonUtils = {
                 'liquiditySource',
             );
 
-            const sourcePrices: SourceComparison[] = uniqueRelevantSources.map(source => {
+            const sourcePrices: SourceComparison[] = uniqueSources.map(source => {
                 const { liquiditySource, makerAmount, takerAmount } = source;
-                const gas = new BigNumber(
-                    GAS_SCHEDULE_V1[source.liquiditySource]!((source as BridgeReportSource).fillData),
-                );
+                let gas: BigNumber;
+                let protocolFee: BigNumber | undefined;
+                if (liquiditySource === ERC20BridgeSource.Native) {
+                    const typedSource = source as NativeOrderbookReportSource | NativeRFQTReportSource;
+                    protocolFee = new BigNumber(FEE_SCHEDULE_V1[typedSource.liquiditySource]());
+                    gas = new BigNumber(GAS_SCHEDULE_V1[typedSource.liquiditySource]());
+                } else if (liquiditySource === ERC20BridgeSource.MultiHop) {
+                    const typedSource = source as MultiHopReportSource;
+                    gas = new BigNumber(GAS_SCHEDULE_V1[typedSource.liquiditySource](typedSource.fillData));
+                } else {
+                    const typedSource = source as BridgeReportSource;
+                    gas = new BigNumber(GAS_SCHEDULE_V1[typedSource.liquiditySource](typedSource.fillData));
+                }
 
                 const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyToken.decimals);
                 const unitTakerAmount = Web3Wrapper.toUnitAmount(takerAmount, sellToken.decimals);
@@ -98,8 +104,9 @@ export const priceComparisonUtils = {
                     : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(buyToken.decimals);
 
                 return {
-                    name: liquiditySource,
+                    name: renameIfNativeSource(liquiditySource),
                     price,
+                    protocolFee: protocolFee || null,
                     gas,
                 };
             });
