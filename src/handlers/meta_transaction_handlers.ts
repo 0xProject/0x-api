@@ -391,7 +391,7 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     }
     const _excludedSources =
         req.query.excludedSources === undefined
-            ? undefined
+            ? []
             : parseUtils.parseStringArrForERC20BridgeSources((req.query.excludedSources as string).split(','));
 
     // tslint:disable-next-line:boolean-naming
