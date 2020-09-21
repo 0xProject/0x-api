@@ -3,7 +3,7 @@ import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { FEE_SCHEDULE_V1, GAS_SCHEDULE_V1 } from '../config';
+import { GAS_SCHEDULE_V1 } from '../config';
 import { ZERO } from '../constants';
 import { logger } from '../logger';
 import { ChainId, SourceComparison } from '../types';
@@ -16,7 +16,6 @@ const emptyPlaceholderSources = Object.values(ERC20BridgeSource).reduce<SourceCo
     memo.push({
         name: renameIfNativeSource(liquiditySource),
         price: null,
-        protocolFee: null,
         gas: null,
     });
 
@@ -76,9 +75,7 @@ export const priceComparisonUtils = {
             const sourcePrices: SourceComparison[] = uniqueSources.map(source => {
                 const { liquiditySource, makerAmount, takerAmount } = source;
                 let gas: BigNumber;
-                let protocolFee: BigNumber | undefined;
                 if (liquiditySource === ERC20BridgeSource.Native) {
-                    protocolFee = new BigNumber(FEE_SCHEDULE_V1[source.liquiditySource]());
                     gas = new BigNumber(GAS_SCHEDULE_V1[source.liquiditySource]());
                 } else if (liquiditySource === ERC20BridgeSource.MultiHop) {
                     const typedSource = source as MultiHopReportSource;
@@ -98,7 +95,6 @@ export const priceComparisonUtils = {
                 return {
                     name: renameIfNativeSource(liquiditySource),
                     price,
-                    protocolFee: protocolFee || null,
                     gas,
                 };
             });

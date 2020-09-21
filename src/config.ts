@@ -430,7 +430,7 @@ export const GAS_SCHEDULE_V1: FeeSchedule = {
     },
 };
 
-export const FEE_SCHEDULE_V1: FeeSchedule = Object.assign(
+const FEE_SCHEDULE_V1: FeeSchedule = Object.assign(
     {},
     ...(Object.keys(GAS_SCHEDULE_V1) as ERC20BridgeSource[]).map(k => ({
         [k]:
