@@ -19,12 +19,18 @@ interface ParseRequestForExcludedSourcesParams {
     apiKey?: string;
 }
 
+export interface ParseRequestForExcludedSourcesResult {
+    excludedSources: ERC20BridgeSource[];
+    includedSources: ERC20BridgeSource[];
+    nativeExclusivelyRFQT: boolean;
+}
+
 export const parseUtils = {
     parseRequestForExcludedSources(
         request: ParseRequestForExcludedSourcesParams,
         validApiKeys: string[],
         endpoint: 'price' | 'quote',
-    ): { excludedSources: ERC20BridgeSource[]; includedSources: ERC20BridgeSource[]; nativeExclusivelyRFQT: boolean } {
+    ): ParseRequestForExcludedSourcesResult {
         const excludedIds = request.excludedSources ? request.excludedSources.split(',') : [];
         const includedIds = request.includedSources ? request.includedSources.split(',') : [];
 
