@@ -2,6 +2,7 @@ import {
     AffiliateFee,
     ERC20BridgeSource,
     ExtensionContractType,
+    getSwapMinBuyAmount,
     Orderbook,
     RfqtRequestOpts,
     SwapQuote,
@@ -621,10 +622,8 @@ export class SwapService {
         affiliateFee: PercentageFee,
     ): Promise<SwapQuoteResponsePrice> {
         const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
-        const {
-            makerAssetAmount: guaranteedMakerAssetAmount,
-            totalTakerAssetAmount: guaranteedTotalTakerAssetAmount,
-        } = swapQuote.worstCaseQuoteInfo;
+        const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
+        const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
         const buyTokenDecimals = (await this._tokenDecimalResultCache.getResultAsync(buyTokenAddress)).result;
         const sellTokenDecimals = (await this._tokenDecimalResultCache.getResultAsync(sellTokenAddress)).result;
         const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
