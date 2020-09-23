@@ -178,9 +178,11 @@ export class MetaTransactionHandlers {
             };
 
             let priceResponse = metaTransactionPriceResponse;
-            if (params.includePriceComparisons) {
+            const { quoteReport } = metaTransactionPrice;
+            if (params.includePriceComparisons && quoteReport) {
                 const priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
                     ...metaTransactionPrice,
+                    quoteReport,
                     buyTokenAddress,
                     sellTokenAddress,
                 });
@@ -395,8 +397,7 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
             : parseUtils.parseStringArrForERC20BridgeSources((req.query.excludedSources as string).split(','));
 
     // tslint:disable-next-line:boolean-naming
-    const includePriceComparisons =
-        req.query.includePriceComparisons === undefined ? false : req.query.includePriceComparisons === 'true';
+    const includePriceComparisons = req.query.includePriceComparisons === 'true' ? true : false;
 
     // Exclude Bancor as a source unless swap involves BNT token
     const bntAddress = getTokenMetadataIfExists('bnt', ChainId.Mainnet).tokenAddress;

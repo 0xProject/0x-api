@@ -261,9 +261,10 @@ export class MetaTransactionService {
         };
 
         let quoteResponse = apiMetaTransactionQuote;
-        if (params.includePriceComparisons) {
+        if (params.includePriceComparisons && quoteReport) {
             const priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
                 ...metaTransactionPriceResponse,
+                quoteReport,
                 buyTokenAddress: params.buyTokenAddress,
                 sellTokenAddress: params.sellTokenAddress,
             });

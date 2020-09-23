@@ -84,8 +84,12 @@ export class SwapHandlers {
         }
         const cleanedQuote = _.omit(quote, 'quoteReport', 'decodedUniqueId');
         let quoteResponse = cleanedQuote;
-        if (params.includePriceComparisons) {
-            const priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, quote);
+        const { quoteReport } = quote;
+        if (params.includePriceComparisons && quoteReport) {
+            const priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
+                ...quote,
+                quoteReport,
+            });
 
             if (priceComparisons) {
                 quoteResponse = {
@@ -128,8 +132,12 @@ export class SwapHandlers {
         });
 
         let priceComparisons: SourceComparison[] | undefined;
-        if (params.includePriceComparisons) {
-            priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, quote);
+        const { quoteReport } = quote;
+        if (params.includePriceComparisons && quoteReport) {
+            priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
+                ...quote,
+                quoteReport,
+            });
         }
 
         const response = {
@@ -459,8 +467,7 @@ const parseGetSwapQuoteRequestParams = (
     const skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
 
     // tslint:disable-next-line:boolean-naming
-    const includePriceComparisons =
-        req.query.includePriceComparisons === undefined ? false : req.query.includePriceComparisons === 'true';
+    const includePriceComparisons = req.query.includePriceComparisons === 'true' ? true : false;
     return {
         takerAddress,
         sellToken,

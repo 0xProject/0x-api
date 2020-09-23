@@ -10,11 +10,9 @@ import { ChainId, SourceComparison } from '../types';
 
 import { getTokenMetadataIfExists } from './token_metadata_utils';
 
-const renameIfNativeSource = (source: ERC20BridgeSource) => (source === ERC20BridgeSource.Native ? '0x' : source);
-
 const emptyPlaceholderSources = Object.values(ERC20BridgeSource).reduce<SourceComparison[]>((memo, liquiditySource) => {
     memo.push({
-        name: renameIfNativeSource(liquiditySource),
+        name: liquiditySource,
         price: null,
         gas: null,
     });
@@ -32,7 +30,7 @@ interface PartialQuote {
     sellAmount: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
-    quoteReport?: { sourcesConsidered: QuoteReportSource[] };
+    quoteReport: { sourcesConsidered: QuoteReportSource[] };
 }
 
 export const priceComparisonUtils = {
@@ -41,11 +39,6 @@ export const priceComparisonUtils = {
         params: PartialRequestParams,
         quote: PartialQuote,
     ): SourceComparison[] | undefined {
-        if (!quote.quoteReport) {
-            logger.error('Missing quote report, cannot calculate price comparison');
-            return undefined;
-        }
-
         // NOTE: don't fail quote request if comparison calculations error out
         try {
             const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
@@ -93,7 +86,7 @@ export const priceComparisonUtils = {
                     : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(buyToken.decimals);
 
                 return {
-                    name: renameIfNativeSource(liquiditySource),
+                    name: liquiditySource,
                     price,
                     gas,
                 };

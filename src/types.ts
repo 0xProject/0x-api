@@ -425,7 +425,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
 }
 
 export interface SourceComparison {
-    name: ERC20BridgeSource | '0x';
+    name: ERC20BridgeSource;
     price: BigNumber | null;
     gas: BigNumber | null;
 }
