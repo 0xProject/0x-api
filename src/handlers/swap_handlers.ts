@@ -94,7 +94,10 @@ export class SwapHandlers {
             if (priceComparisons) {
                 quoteResponse = {
                     ...cleanedQuote,
-                    priceComparisons,
+                    priceComparisons: priceComparisons.map(pc => ({
+                        ...pc,
+                        name: pc.name === ERC20BridgeSource.Native ? '0x' : pc.name,
+                    })),
                 };
             }
         }
@@ -155,7 +158,12 @@ export class SwapHandlers {
             sources: quote.sources,
             estimatedGasTokenRefund: quote.estimatedGasTokenRefund,
             allowanceTarget: quote.allowanceTarget,
-            priceComparisons,
+            priceComparisons: priceComparisons
+                ? priceComparisons.map(pc => ({
+                      ...pc,
+                      name: pc.name === ERC20BridgeSource.Native ? '0x' : pc.name,
+                  }))
+                : undefined,
         };
 
         res.status(HttpStatus.OK).send(response);

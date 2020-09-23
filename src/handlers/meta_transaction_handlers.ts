@@ -190,7 +190,10 @@ export class MetaTransactionHandlers {
                 if (priceComparisons) {
                     priceResponse = {
                         ...metaTransactionPriceResponse,
-                        priceComparisons,
+                        priceComparisons: priceComparisons.map(pc => ({
+                            ...pc,
+                            name: pc.name === ERC20BridgeSource.Native ? '0x' : pc.name,
+                        })),
                     };
                 }
             }

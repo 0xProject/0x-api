@@ -421,7 +421,13 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     estimatedGasTokenRefund: BigNumber;
     allowanceTarget?: string;
     quoteReport?: QuoteReport;
-    priceComparisons?: SourceComparison[];
+    priceComparisons?: Array<SourceComparison | RenamedNativeSourceComparison>;
+}
+
+interface RenamedNativeSourceComparison {
+    name: '0x';
+    price: BigNumber | null;
+    gas: BigNumber | null;
 }
 
 export interface SourceComparison {
@@ -450,7 +456,7 @@ interface BasePriceResponse {
     estimatedGasTokenRefund: BigNumber;
     minimumProtocolFee: BigNumber;
     allowanceTarget?: string;
-    priceComparisons?: SourceComparison[];
+    priceComparisons?: Array<SourceComparison | RenamedNativeSourceComparison>;
 }
 
 export interface GetSwapPriceResponse extends BasePriceResponse {}

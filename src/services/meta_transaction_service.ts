@@ -1,4 +1,5 @@
 import {
+    ERC20BridgeSource,
     MarketBuySwapQuote,
     MarketSellSwapQuote,
     Orderbook,
@@ -272,7 +273,10 @@ export class MetaTransactionService {
             if (priceComparisons) {
                 quoteResponse = {
                     ...apiMetaTransactionQuote,
-                    priceComparisons,
+                    priceComparisons: priceComparisons.map(pc => ({
+                        ...pc,
+                        name: pc.name === ERC20BridgeSource.Native ? '0x' : pc.name,
+                    })),
                 };
             }
         }
