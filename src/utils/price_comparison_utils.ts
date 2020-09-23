@@ -55,15 +55,14 @@ export const priceComparisonUtils = {
                     : s.makerAmount.isEqualTo(quote.buyAmount) && s.takerAmount.isGreaterThan(ZERO),
             );
 
-            // Sort by amount the user will receive and deduplicate to only take the best option for e.g. Kyber
-            const uniqueSources = _.uniqBy(
-                fullTradeSources
-                    .slice()
-                    .sort((a, b) =>
-                        isSelling ? b.makerAmount.comparedTo(a.makerAmount) : a.takerAmount.comparedTo(b.takerAmount),
-                    ),
-                'liquiditySource',
-            );
+            // NOTE: Sort sources by the best outcome for the user
+            // if the user is selling we want to maximize the maker amount they will receive
+            // if the user is buying we want to minimize the taker amount they have to pay
+            const sortedSources = isSelling
+                ? fullTradeSources.slice().sort((a, b) => b.makerAmount.comparedTo(a.makerAmount))
+                : fullTradeSources.slice().sort((a, b) => a.takerAmount.comparedTo(b.takerAmount));
+            // Select the best (first in the sorted list) option for each source
+            const uniqueSources = _.uniqBy(sortedSources, 'liquiditySource');
 
             const sourcePrices: SourceComparison[] = uniqueSources.map(source => {
                 const { liquiditySource, makerAmount, takerAmount } = source;
