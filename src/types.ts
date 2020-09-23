@@ -539,6 +539,7 @@ export interface CalculateSwapQuoteParams {
     from: string | undefined;
     isETHSell: boolean;
     isETHBuy: boolean;
+    isMetaTransaction: boolean;
     slippagePercentage?: number;
     gasPrice?: BigNumber;
     excludedSources?: ERC20BridgeSource[];

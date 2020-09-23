@@ -283,6 +283,7 @@ export class SwapHandlers {
             skipValidation,
             swapVersion,
             affiliateFee,
+            isMetaTransaction: false,
         };
         try {
             let swapQuote: GetSwapQuoteResponse;
