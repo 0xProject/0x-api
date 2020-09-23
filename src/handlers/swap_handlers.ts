@@ -85,12 +85,12 @@ export class SwapHandlers {
         const cleanedQuote = _.omit(quote, 'quoteReport', 'decodedUniqueId');
         let quoteResponse = cleanedQuote;
         if (params.includePriceComparisons) {
-            const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, quote);
+            const priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, quote);
 
-            if (prices) {
+            if (priceComparisons) {
                 quoteResponse = {
                     ...cleanedQuote,
-                    prices,
+                    priceComparisons,
                 };
             }
         }
@@ -127,9 +127,9 @@ export class SwapHandlers {
             },
         });
 
-        let prices: SourceComparison[] | undefined;
+        let priceComparisons: SourceComparison[] | undefined;
         if (params.includePriceComparisons) {
-            prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, quote);
+            priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, quote);
         }
 
         const response = {
@@ -147,7 +147,7 @@ export class SwapHandlers {
             sources: quote.sources,
             estimatedGasTokenRefund: quote.estimatedGasTokenRefund,
             allowanceTarget: quote.allowanceTarget,
-            prices,
+            priceComparisons,
         };
 
         res.status(HttpStatus.OK).send(response);

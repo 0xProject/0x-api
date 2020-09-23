@@ -179,16 +179,16 @@ export class MetaTransactionHandlers {
 
             let priceResponse = metaTransactionPriceResponse;
             if (params.includePriceComparisons) {
-                const prices = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
+                const priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
                     ...metaTransactionPrice,
                     buyTokenAddress,
                     sellTokenAddress,
                 });
 
-                if (prices) {
+                if (priceComparisons) {
                     priceResponse = {
                         ...metaTransactionPriceResponse,
-                        prices,
+                        priceComparisons,
                     };
                 }
             }

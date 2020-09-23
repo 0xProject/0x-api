@@ -421,7 +421,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     estimatedGasTokenRefund: BigNumber;
     allowanceTarget?: string;
     quoteReport?: QuoteReport;
-    prices?: SourceComparison[];
+    priceComparisons?: SourceComparison[];
 }
 
 export interface SourceComparison {
@@ -450,7 +450,7 @@ interface BasePriceResponse {
     estimatedGasTokenRefund: BigNumber;
     minimumProtocolFee: BigNumber;
     allowanceTarget?: string;
-    prices?: SourceComparison[];
+    priceComparisons?: SourceComparison[];
 }
 
 export interface GetSwapPriceResponse extends BasePriceResponse {}
