@@ -408,7 +408,7 @@ export const GAS_SCHEDULE_V1: FeeSchedule = {
         let gas = 100e3;
         const path = (fillData as UniswapV2FillData).tokenAddressPath;
         if (path.length > 2) {
-            gas += Math.max(0, path.length - 2) * 50e3; // +50k for each hop.
+            gas += (path.length - 2) * 50e3; // +50k for each hop.
         }
         return gas;
     },
@@ -417,7 +417,7 @@ export const GAS_SCHEDULE_V1: FeeSchedule = {
         let gas = 105e3;
         const path = (fillData as UniswapV2FillData).tokenAddressPath;
         if (path.length > 2) {
-            gas += Math.max(0, path.length - 2) * 50e3; // +50k for each hop.
+            gas += (path.length - 2) * 50e3; // +50k for each hop.
         }
         return gas;
     },
