@@ -67,6 +67,7 @@ export class MetaTransactionHandlers {
             buyAmount,
             slippagePercentage,
             excludedSources,
+            includedSources,
             // tslint:disable-next-line:boolean-naming
             includePriceComparisons,
         } = parseGetTransactionRequestParams(req);
@@ -80,6 +81,7 @@ export class MetaTransactionHandlers {
                 from: takerAddress,
                 slippagePercentage,
                 excludedSources,
+                includedSources,
                 apiKey,
                 includePriceComparisons,
             });
@@ -141,9 +143,10 @@ export class MetaTransactionHandlers {
             buyAmount,
             slippagePercentage,
             excludedSources,
+            includedSources,
             // tslint:disable-next-line:boolean-naming
             includePriceComparisons,
-        } = params;
+        } = parseGetTransactionRequestParams(req);
         try {
             const metaTransactionPrice = await this._metaTransactionService.calculateMetaTransactionPriceAsync(
                 {
@@ -155,6 +158,7 @@ export class MetaTransactionHandlers {
                     from: takerAddress,
                     slippagePercentage,
                     excludedSources,
+                    includedSources,
                     apiKey,
                     includePriceComparisons,
                 },
@@ -402,6 +406,10 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     // tslint:disable-next-line:boolean-naming
     const includePriceComparisons = req.query.includePriceComparisons === 'true' ? true : false;
 
+    const includedSources =
+        req.query.includedSources === undefined
+            ? undefined
+            : parseUtils.parseStringArrForERC20BridgeSources((req.query.includedSources as string).split(','));
     // Exclude Bancor as a source unless swap involves BNT token
     const bntAddress = getTokenMetadataIfExists('bnt', ChainId.Mainnet).tokenAddress;
     const isBNT = sellTokenAddress.toLowerCase() === bntAddress || buyTokenAddress.toLowerCase() === bntAddress;
@@ -415,6 +423,7 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
         buyAmount,
         slippagePercentage,
         excludedSources,
+        includedSources,
         includePriceComparisons,
     };
 };

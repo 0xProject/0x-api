@@ -325,6 +325,7 @@ export const GAS_SCHEDULE_V0: FeeSchedule = {
             case '0xa5407eae9ba41422680e2e00537571bcc53efbfd':
             case '0x93054188d876f558f4a66b2ef1d97d16edf0895b':
             case '0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714':
+            case '0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7':
                 return 6e5;
             default:
                 throw new Error('Unrecognized Curve address');
@@ -387,6 +388,7 @@ export const GAS_SCHEDULE_V1: FeeSchedule = {
             case '0xa5407eae9ba41422680e2e00537571bcc53efbfd':
             case '0x93054188d876f558f4a66b2ef1d97d16edf0895b':
             case '0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714':
+            case '0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7':
                 return 1.5e5;
             case '0xa2b47e3d5c44877cca798226b7b8118f9bfb7a56':
                 return 7.5e5;
@@ -402,9 +404,11 @@ export const GAS_SCHEDULE_V1: FeeSchedule = {
     },
     [ERC20BridgeSource.MultiBridge]: () => 3.5e5,
     [ERC20BridgeSource.UniswapV2]: fillData => {
-        let gas = 1.5e5;
-        if ((fillData as UniswapV2FillData).tokenAddressPath.length > 2) {
-            gas += 5e4;
+        // TODO: Different base cost if to/from ETH.
+        let gas = 100e3;
+        const path = (fillData as UniswapV2FillData).tokenAddressPath;
+        if (path.length > 2) {
+            gas += Math.max(0, path.length - 2) * 50e3; // +50k for each hop.
         }
         return gas;
     },
