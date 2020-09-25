@@ -1,4 +1,13 @@
-import { BridgeReportSource, ERC20BridgeSource, MultiHopReportSource, QuoteReportSource } from '@0x/asset-swapper';
+import {
+    BridgeReportSource,
+    ERC20BridgeSource,
+    FeeSchedule,
+    MultiHopReportSource,
+    NativeRFQTReportSource,
+    QuoteReportSource,
+    SushiSwapFillData,
+    UniswapV2FillData,
+} from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
@@ -9,6 +18,30 @@ import { logger } from '../logger';
 import { ChainId, SourceComparison } from '../types';
 
 import { getTokenMetadataIfExists } from './token_metadata_utils';
+
+// NOTE: Our internal Uniswap gas usage may be lower than the Uniswap UI usage
+// Therefore we need to adjust the gas estimates to be representative of using the Uniswap UI.
+const gasScheduleWithOverrides: FeeSchedule = {
+    ...GAS_SCHEDULE_V1,
+    [ERC20BridgeSource.UniswapV2]: fillData => {
+        let gas = 1.5e5;
+        // tslint:disable-next-line:custom-no-magic-numbers
+        if ((fillData as UniswapV2FillData).tokenAddressPath.length > 2) {
+            // tslint:disable-next-line:custom-no-magic-numbers
+            gas += 5e4;
+        }
+        return gas;
+    },
+    [ERC20BridgeSource.SushiSwap]: fillData => {
+        let gas = 1.5e5;
+        // tslint:disable-next-line:custom-no-magic-numbers
+        if ((fillData as SushiSwapFillData).tokenAddressPath.length > 2) {
+            // tslint:disable-next-line:custom-no-magic-numbers
+            gas += 5e4;
+        }
+        return gas;
+    },
+};
 
 const emptyPlaceholderSources = Object.values(ERC20BridgeSource).reduce<SourceComparison[]>((memo, liquiditySource) => {
     memo.push({
@@ -68,13 +101,14 @@ export const priceComparisonUtils = {
                 const { liquiditySource, makerAmount, takerAmount } = source;
                 let gas: BigNumber;
                 if (liquiditySource === ERC20BridgeSource.Native) {
-                    gas = new BigNumber(GAS_SCHEDULE_V1[source.liquiditySource]());
+                    const typedSource = source as NativeRFQTReportSource;
+                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]());
                 } else if (liquiditySource === ERC20BridgeSource.MultiHop) {
                     const typedSource = source as MultiHopReportSource;
-                    gas = new BigNumber(GAS_SCHEDULE_V1[typedSource.liquiditySource](typedSource.fillData));
+                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource](typedSource.fillData));
                 } else {
                     const typedSource = source as BridgeReportSource;
-                    gas = new BigNumber(GAS_SCHEDULE_V1[typedSource.liquiditySource](typedSource.fillData));
+                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource](typedSource.fillData));
                 }
 
                 const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyToken.decimals);
