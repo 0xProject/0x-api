@@ -265,7 +265,9 @@ export class SwapHandlers {
         // Exclude Bancor as a source unless swap involves BNT token
         const bntAddress = getTokenMetadataIfExists('bnt', ChainId.Mainnet)!.tokenAddress;
         const isBNT = sellTokenAddress.toLowerCase() === bntAddress || buyTokenAddress.toLowerCase() === bntAddress;
-        const excludedSourcesWithBNT = isBNT ? excludedSources : excludedSources.concat(ERC20BridgeSource.Bancor);
+        const excludedSourcesWithBNT = isBNT
+            ? excludedSources
+            : (excludedSources || []).concat(ERC20BridgeSource.Bancor);
 
         const calculateSwapQuoteParams: CalculateSwapQuoteParams = {
             buyTokenAddress,
