@@ -59,8 +59,8 @@ interface PartialRequestParams {
 }
 
 interface PartialQuote {
-    buyAmount: BigNumber;
-    sellAmount: BigNumber;
+    buyAmount?: BigNumber;
+    sellAmount?: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
     quoteReport: { sourcesConsidered: QuoteReportSource[] };

@@ -6,6 +6,7 @@ import {
     DODOFillData,
     ERC20BridgeSource,
     FeeSchedule,
+    FillData,
     MultiHopFillData,
     OrderPrunerPermittedFeeTypes,
     RfqtMakerAssetOfferings,
@@ -381,9 +382,9 @@ export const GAS_SCHEDULE: FeeSchedule = {
         const firstHop = (fillData as MultiHopFillData).firstHopSource;
         const secondHop = (fillData as MultiHopFillData).secondHopSource;
         const firstHopGas =
-            GAS_SCHEDULE[firstHop.source] === undefined ? 0 : GAS_SCHEDULE[firstHop.source](firstHop.fillData);
+            GAS_SCHEDULE[firstHop.source] === undefined ? 0 : GAS_SCHEDULE[firstHop.source]!(firstHop.fillData);
         const secondHopGas =
-            GAS_SCHEDULE[secondHop.source] === undefined ? 0 : GAS_SCHEDULE[secondHop.source](secondHop.fillData);
+            GAS_SCHEDULE[secondHop.source] === undefined ? 0 : GAS_SCHEDULE[secondHop.source]!(secondHop.fillData);
         return new BigNumber(firstHopGas)
             .plus(secondHopGas)
             .plus(30e3)
@@ -402,8 +403,8 @@ const FEE_SCHEDULE: FeeSchedule = Object.assign(
     ...(Object.keys(GAS_SCHEDULE) as ERC20BridgeSource[]).map(k => ({
         [k]:
             k === ERC20BridgeSource.Native
-                ? fillData => PROTOCOL_FEE_MULTIPLIER.plus(GAS_SCHEDULE[k](fillData))
-                : fillData => GAS_SCHEDULE[k](fillData),
+                ? (fillData: FillData) => PROTOCOL_FEE_MULTIPLIER.plus(GAS_SCHEDULE[k]!(fillData))
+                : (fillData: FillData) => GAS_SCHEDULE[k]!(fillData),
     })),
 );
 
@@ -448,7 +449,7 @@ const tokenAdjacencyGraph: TokenAdjacencyGraph = Object.values(TokenMetadatasFor
         ]
             .map(m => m && m.tokenAddress)
             .filter(m => m && m !== tokenKey);
-        acc[tokenKey] = intermediateTokens;
+        acc[tokenKey] = intermediateTokens as string[];
         return acc;
     },
     {},
