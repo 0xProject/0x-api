@@ -59,8 +59,8 @@ interface PartialRequestParams {
 }
 
 interface PartialQuote {
-    buyAmount: BigNumber;
-    sellAmount: BigNumber;
+    buyAmount?: BigNumber;
+    sellAmount?: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
     quoteReport: { sourcesConsidered: QuoteReportSource[] };
@@ -77,7 +77,7 @@ export const priceComparisonUtils = {
             const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
             const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
 
-            if (!buyToken || !sellToken) {
+            if (!buyToken || !sellToken || !quote.buyAmount || !quote.sellAmount) {
                 return undefined;
             }
 
@@ -88,8 +88,8 @@ export const priceComparisonUtils = {
             // Filter matching amount samples with a valid result
             const fullTradeSources = sourcesConsidered.filter(s =>
                 isSelling
-                    ? s.takerAmount.isEqualTo(quote.sellAmount) && s.makerAmount.isGreaterThan(ZERO)
-                    : s.makerAmount.isEqualTo(quote.buyAmount) && s.takerAmount.isGreaterThan(ZERO),
+                    ? s.takerAmount.isEqualTo(quote.sellAmount!) && s.makerAmount.isGreaterThan(ZERO)
+                    : s.makerAmount.isEqualTo(quote.buyAmount!) && s.takerAmount.isGreaterThan(ZERO),
             );
 
             // NOTE: Sort sources by the best outcome for the user

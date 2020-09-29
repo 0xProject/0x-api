@@ -506,7 +506,7 @@ export interface GetSwapQuoteRequestParams {
     buyAmount?: BigNumber;
     slippagePercentage?: number;
     gasPrice?: BigNumber;
-    excludedSources?: ERC20BridgeSource[];
+    excludedSources: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
     rfqt?: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'>;
@@ -540,7 +540,7 @@ export interface CalculateSwapQuoteParams {
     isMetaTransaction: boolean;
     slippagePercentage?: number;
     gasPrice?: BigNumber;
-    excludedSources?: ERC20BridgeSource[];
+    excludedSources: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
     apiKey?: string;
@@ -640,9 +640,14 @@ export interface HttpServiceConfig {
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
 }
 
+interface MarketDepthTokenMetadata {
+    symbol?: string;
+    decimals: number;
+    tokenAddress: string;
+}
 export interface CalaculateMarketDepthParams {
-    buyToken: TokenMetadata;
-    sellToken: TokenMetadata;
+    buyToken: MarketDepthTokenMetadata;
+    sellToken: MarketDepthTokenMetadata;
     sellAmount: BigNumber;
     numSamples: number;
     sampleDistributionBase: number;

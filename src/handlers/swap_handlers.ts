@@ -184,12 +184,12 @@ export class SwapHandlers {
     public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {
         const makerToken = {
             decimals: DEFAULT_TOKEN_DECIMALS,
-            tokenAddress: req.query.buyToken,
+            tokenAddress: req.query.buyToken as string,
             ...getTokenMetadataIfExists(req.query.buyToken as string, CHAIN_ID),
         };
         const takerToken = {
             decimals: DEFAULT_TOKEN_DECIMALS,
-            tokenAddress: req.query.sellToken,
+            tokenAddress: req.query.sellToken as string,
             ...getTokenMetadataIfExists(req.query.sellToken as string, CHAIN_ID),
         };
         if (makerToken.tokenAddress === takerToken.tokenAddress) {
@@ -263,7 +263,7 @@ export class SwapHandlers {
         }
 
         // Exclude Bancor as a source unless swap involves BNT token
-        const bntAddress = getTokenMetadataIfExists('bnt', ChainId.Mainnet).tokenAddress;
+        const bntAddress = getTokenMetadataIfExists('bnt', ChainId.Mainnet)!.tokenAddress;
         const isBNT = sellTokenAddress.toLowerCase() === bntAddress || buyTokenAddress.toLowerCase() === bntAddress;
         const excludedSourcesWithBNT = isBNT ? excludedSources : excludedSources.concat(ERC20BridgeSource.Bancor);
 
@@ -429,8 +429,10 @@ const parseGetSwapQuoteRequestParams = (
         apiKey: apiKey || 'N/A',
     });
 
-    const affiliateAddress = req.query.affiliateAddress as string;
-    const rfqt: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'> = (() => {
+    const affiliateAddress = req.query.affiliateAddress as string | undefined;
+    const rfqt:
+        | Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'>
+        | undefined = (() => {
         if (apiKey) {
             if (endpoint === 'quote' && takerAddress) {
                 return {

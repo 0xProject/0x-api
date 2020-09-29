@@ -152,7 +152,12 @@ export const marketDepthUtils = {
     },
 
     distributeSamplesToBuckets: (depthSide: MarketDepthSide, buckets: BigNumber[], side: MarketOperation) => {
-        const allocatedBuckets = buckets.map((b, i) => ({ price: b, bucket: i, bucketTotal: ZERO, sources: {} }));
+        const allocatedBuckets: {
+            price: BigNumber;
+            bucket: number;
+            bucketTotal: BigNumber;
+            sources: { [key: string]: BigNumber };
+        }[] = buckets.map((b, i) => ({ price: b, bucket: i, bucketTotal: ZERO, sources: {} }));
         const getBucketId = (price: BigNumber): number => {
             return buckets.findIndex(b => {
                 return side === MarketOperation.Sell ? price.isGreaterThanOrEqualTo(b) : price.isLessThanOrEqualTo(b);
