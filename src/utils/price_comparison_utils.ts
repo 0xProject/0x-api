@@ -59,8 +59,8 @@ interface PartialRequestParams {
 }
 
 interface PartialQuote {
-    buyAmount?: BigNumber;
-    sellAmount?: BigNumber;
+    buyAmount: BigNumber;
+    sellAmount: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
     quoteReport: { sourcesConsidered: QuoteReportSource[] };
@@ -76,6 +76,10 @@ export const priceComparisonUtils = {
         try {
             const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
             const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
+
+            if (!buyToken || !sellToken) {
+                return undefined;
+            }
 
             const isSelling = !!params.sellAmount;
 
@@ -103,15 +107,15 @@ export const priceComparisonUtils = {
                 if (liquiditySource === ERC20BridgeSource.Native) {
                     // tslint:disable-next-line:no-unnecessary-type-assertion
                     const typedSource = source as NativeRFQTReportSource;
-                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]());
+                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!());
                 } else if (liquiditySource === ERC20BridgeSource.MultiHop) {
                     // tslint:disable-next-line:no-unnecessary-type-assertion
                     const typedSource = source as MultiHopReportSource;
-                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource](typedSource.fillData));
+                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!(typedSource.fillData));
                 } else {
                     // tslint:disable-next-line:no-unnecessary-type-assertion
                     const typedSource = source as BridgeReportSource;
-                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource](typedSource.fillData));
+                    gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!(typedSource.fillData));
                 }
 
                 const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyToken.decimals);
