@@ -2,6 +2,7 @@ import {
     AffiliateFee,
     ERC20BridgeSource,
     ExtensionContractType,
+    getSwapMinBuyAmount,
     Orderbook,
     RfqtRequestOpts,
     SwapQuote,
@@ -266,7 +267,11 @@ export class SwapService {
         return this._getSwapQuoteForWethAsync(params, true);
     }
 
-    public async getTokenPricesAsync(sellToken: TokenMetadata, unitAmount: BigNumber): Promise<GetTokenPricesResponse> {
+    public async getTokenPricesAsync(
+        swapVersion: SwapVersion,
+        sellToken: TokenMetadata,
+        unitAmount: BigNumber,
+    ): Promise<GetTokenPricesResponse> {
         // Gets the price for buying 1 unit (not base unit as this is different between tokens with differing decimals)
         // returns price in sellToken units, e.g What is the price of 1 ZRX (in DAI)
         // Equivalent to performing multiple swap quotes selling sellToken and buying 1 whole buy token
@@ -288,7 +293,9 @@ export class SwapService {
                         takerAssetData,
                         amounts,
                         {
-                            ...ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS,
+                            ...(swapVersion === SwapVersion.V0
+                                ? ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS
+                                : ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS),
                             bridgeSlippage: 0,
                             maxFallbackSlippage: 0,
                             numSamples: 1,
@@ -494,6 +501,8 @@ export class SwapService {
             rfqt,
             swapVersion,
             affiliateFee,
+            // tslint:disable-next-line:boolean-naming
+            includePriceComparisons,
         } = params;
         let _rfqt: RfqtRequestOpts | undefined;
         const isAllExcluded = Object.values(ERC20BridgeSource).every(s => excludedSources.includes(s));
@@ -536,8 +545,8 @@ export class SwapService {
             };
         }
 
-        // only generate quote reports for rfqt firm quotes
-        const shouldGenerateQuoteReport = rfqt && rfqt.intentOnFilling;
+        // only generate quote reports for rfqt firm quotes or when price comparison is requested
+        const shouldGenerateQuoteReport = includePriceComparisons || (rfqt && rfqt.intentOnFilling);
 
         const swapQuoteRequestOpts =
             swapVersion === SwapVersion.V0 ? ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS : ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS;
@@ -621,40 +630,39 @@ export class SwapService {
         affiliateFee: PercentageFee,
     ): Promise<SwapQuoteResponsePrice> {
         const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
-        const {
-            makerAssetAmount: guaranteedMakerAssetAmount,
-            totalTakerAssetAmount: guaranteedTotalTakerAssetAmount,
-        } = swapQuote.worstCaseQuoteInfo;
+        const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
+        const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
         const buyTokenDecimals = (await this._tokenDecimalResultCache.getResultAsync(buyTokenAddress)).result;
         const sellTokenDecimals = (await this._tokenDecimalResultCache.getResultAsync(sellTokenAddress)).result;
         const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
         const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
-        // Best price
-        const price =
-            buyAmount === undefined
-                ? unitMakerAssetAmount
-                      .dividedBy(affiliateFee.buyTokenPercentageFee + 1)
-                      .dividedBy(unitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
-                : unitTakerAssetAmount
-                      .dividedBy(unitMakerAssetAmount)
-                      .times(affiliateFee.buyTokenPercentageFee + 1)
-                      .decimalPlaces(buyTokenDecimals);
-        // Guaranteed price before revert occurs
         const guaranteedUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAssetAmount, buyTokenDecimals);
         const guaranteedUnitTakerAssetAmount = Web3Wrapper.toUnitAmount(
             guaranteedTotalTakerAssetAmount,
             sellTokenDecimals,
         );
+        const affiliateFeeUnitMakerAssetAmount = guaranteedUnitMakerAssetAmount.times(
+            affiliateFee.buyTokenPercentageFee,
+        );
+        // Best price
+        const price =
+            buyAmount === undefined
+                ? unitMakerAssetAmount
+                      .minus(affiliateFeeUnitMakerAssetAmount)
+                      .dividedBy(unitTakerAssetAmount)
+                      .decimalPlaces(sellTokenDecimals)
+                : unitTakerAssetAmount
+                      .dividedBy(unitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
+                      .decimalPlaces(buyTokenDecimals);
+        // Guaranteed price before revert occurs
         const guaranteedPrice =
             buyAmount === undefined
                 ? guaranteedUnitMakerAssetAmount
-                      .dividedBy(affiliateFee.buyTokenPercentageFee + 1)
+                      .minus(affiliateFeeUnitMakerAssetAmount)
                       .dividedBy(guaranteedUnitTakerAssetAmount)
                       .decimalPlaces(sellTokenDecimals)
                 : guaranteedUnitTakerAssetAmount
-                      .dividedBy(guaranteedUnitMakerAssetAmount)
-                      .times(affiliateFee.buyTokenPercentageFee + 1)
+                      .dividedBy(guaranteedUnitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
                       .decimalPlaces(buyTokenDecimals);
         return {
             price,

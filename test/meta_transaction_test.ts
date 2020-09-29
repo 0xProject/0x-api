@@ -39,7 +39,7 @@ describe(SUITE_NAME, () => {
     let zrx: DummyERC20TokenContract;
 
     before(async () => {
-        await setupApiAsync(SUITE_NAME);
+        await setupApiAsync(SUITE_NAME, { apiLogType: 0 });
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
