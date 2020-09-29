@@ -340,7 +340,7 @@ export class TransactionWatcherSignerService {
             signerMap.set(signerAddress, { count, balance });
         });
         // TODO(oskar) - move to query builder?
-        const res: Array<{ from: string; count: number }> = await this._transactionRepository.query(
+        const res: { from: string; count: number }[] = await this._transactionRepository.query(
             `SELECT transactions.from, COUNT(*) FROM transactions WHERE status in ('submitted','mempool','stuck') GROUP BY transactions.from`,
         );
         res.filter(result => {

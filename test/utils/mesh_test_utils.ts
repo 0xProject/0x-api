@@ -48,7 +48,7 @@ export class MeshTestUtils {
         return validationResults;
     }
 
-    public async addPartialOrdersAsync(orders: Array<Partial<Order>>): Promise<ValidationResults> {
+    public async addPartialOrdersAsync(orders: Partial<Order>[]): Promise<ValidationResults> {
         const signedOrders = await Promise.all(orders.map(order => this._orderFactory.newSignedOrderAsync(order)));
         const validationResults = await this._meshClient.addOrdersAsync(signedOrders);
         await sleepAsync(2);
@@ -87,13 +87,17 @@ export class MeshTestUtils {
         // NOTE(jalextowle): The way that Mesh validation currently works allows us
         // to only set the maker balance a single time. If this changes in the future,
         // this logic may need to be added to `addOrdersAsync`.
+        // tslint:disable-next-line:await-promise
         await this._zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: this._makerAddress });
+        // tslint:disable-next-line:await-promise
         await this._zrxToken
             .approve(this._contractAddresses.erc20Proxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });
+        // tslint:disable-next-line:await-promise
         await this._wethToken
             .deposit()
             .awaitTransactionSuccessAsync({ from: this._makerAddress, value: MAKER_WETH_AMOUNT });
+        // tslint:disable-next-line:await-promise
         await this._wethToken
             .approve(this._contractAddresses.erc20Proxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });

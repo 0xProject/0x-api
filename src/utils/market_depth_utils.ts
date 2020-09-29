@@ -71,7 +71,7 @@ export const marketDepthUtils = {
         return sampleAmounts;
     },
     sampleNativeOrders: (
-        path: Array<DexSample<NativeFillData>>,
+        path: DexSample<NativeFillData>[],
         targetInput: BigNumber,
         side: MarketOperation,
     ): BigNumber => {
@@ -106,7 +106,7 @@ export const marketDepthUtils = {
         const sampleAmounts = marketDepthUtils.getSampleAmountsFromDepthSide(depthSide);
         const nativeSamples = sampleAmounts.map(a => {
             const sample = marketDepthUtils.sampleNativeOrders(
-                depthSide[nativeIndexIfExists] as Array<DexSample<NativeFillData>>,
+                depthSide[nativeIndexIfExists] as DexSample<NativeFillData>[],
                 a,
                 side,
             );
