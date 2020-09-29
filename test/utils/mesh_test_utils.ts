@@ -16,13 +16,13 @@ export const DEFAULT_MAKER_ASSET_AMOUNT = new BigNumber(1);
 export const MAKER_WETH_AMOUNT = new BigNumber('1000000000000000000');
 
 export class MeshTestUtils {
-    protected _accounts: string[];
-    protected _makerAddress: string;
+    protected _accounts!: string[];
+    protected _makerAddress!: string;
     protected _contractAddresses: ContractAddresses = CONTRACT_ADDRESSES;
-    protected _orderFactory: OrderFactory;
-    protected _meshClient: WSClient;
-    protected _zrxToken: DummyERC20TokenContract;
-    protected _wethToken: WETH9Contract;
+    protected _orderFactory!: OrderFactory;
+    protected _meshClient!: WSClient;
+    protected _zrxToken!: DummyERC20TokenContract;
+    protected _wethToken!: WETH9Contract;
     protected _web3Wrapper: Web3Wrapper;
 
     // TODO: This can be extended to allow more types of orders to be created. Some changes
