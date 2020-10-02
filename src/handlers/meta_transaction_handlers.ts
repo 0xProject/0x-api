@@ -537,4 +537,4 @@ const marshallTransactionEntity = (tx: TransactionEntity): GetMetaTransactionSta
         expectedMinedInSec: tx.expectedMinedInSec,
         ethereumTxStatus: tx.txStatus,
     };
-};
+}; // tslint:disable-next-line: max-file-line-count
