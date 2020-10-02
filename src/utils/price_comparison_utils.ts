@@ -101,12 +101,15 @@ export const priceComparisonUtils = {
                 const { liquiditySource, makerAmount, takerAmount } = source;
                 let gas: BigNumber;
                 if (liquiditySource === ERC20BridgeSource.Native) {
+                    // tslint:disable-next-line:no-unnecessary-type-assertion
                     const typedSource = source as NativeRFQTReportSource;
                     gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]());
                 } else if (liquiditySource === ERC20BridgeSource.MultiHop) {
+                    // tslint:disable-next-line:no-unnecessary-type-assertion
                     const typedSource = source as MultiHopReportSource;
                     gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource](typedSource.fillData));
                 } else {
+                    // tslint:disable-next-line:no-unnecessary-type-assertion
                     const typedSource = source as BridgeReportSource;
                     gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource](typedSource.fillData));
                 }
