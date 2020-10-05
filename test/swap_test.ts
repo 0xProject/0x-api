@@ -11,11 +11,7 @@ import * as _ from 'lodash';
 import 'mocha';
 
 import * as config from '../src/config';
-import {
-    AFFILIATE_FEE_TRANSFORMER_GAS,
-    GAS_LIMIT_BUFFER_MULTIPLIER,
-    SWAP_PATH as BASE_SWAP_PATH,
-} from '../src/constants';
+import { AFFILIATE_FEE_TRANSFORMER_GAS, GAS_LIMIT_BUFFER_MULTIPLIER, SWAP_PATH } from '../src/constants';
 import { ValidationErrorCodes, ValidationErrorItem, ValidationErrorReasons } from '../src/errors';
 import { logger } from '../src/logger';
 import { GetSwapQuoteResponse } from '../src/types';
@@ -38,8 +34,6 @@ import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
 
 const SUITE_NAME = '/swap/v1';
-const SWAP_PATH = `${BASE_SWAP_PATH}/v1`;
-
 const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
 const DEFAULT_QUERY_PARAMS = {
     buyToken: 'ZRX',
@@ -49,7 +43,7 @@ const DEFAULT_QUERY_PARAMS = {
 
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
-describe(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let meshUtils: MeshTestUtils;
     let accounts: string[];
     let takerAddress: string;

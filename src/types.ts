@@ -34,12 +34,6 @@ export {
     RollingLimiterIntervalUnit,
 } from './utils/rate-limiters/types';
 
-// lowercase to conform to path names
-export enum SwapVersion {
-    V1 = 'v1',
-    V0 = 'v0',
-}
-
 export enum OrderWatcherLifeCycleEvents {
     Added,
     Removed,
@@ -564,7 +558,6 @@ export interface CalculateSwapQuoteParams {
     apiKey?: string;
     rfqt?: Partial<RfqtRequestOpts>;
     skipValidation: boolean;
-    swapVersion: SwapVersion;
     affiliateFee: PercentageFee;
     includePriceComparisons: boolean;
 }
