@@ -40,16 +40,16 @@ jobs:
             token: ${{ secrets.PAT }}
             repository: 0xProject/0x-main-infra
       - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/staging/*.yml
+        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/v0/staging/*.yml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2.3.0
         with:
             token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][staging] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            title: "[0xApi][staging] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
+            commit-message: "[0xApi-v0][staging] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
+            title: "[0xApi-v0][staging] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
             reviewers: dekz
-            labels: 0xApi, staging
-            branch: "0xApi/staging/${{ steps.parse_pr_info.outputs.ref }}"
+            labels: 0xApi-v0, staging
+            branch: "0xApi-v0/staging/${{ steps.parse_pr_info.outputs.ref }}"
             body: |
               https://github.com/${{ github.repository }}/compare/master...${{ steps.parse_pr_info.outputs.ref }}
               ${{ steps.parse_pr_info.outputs.ref }}
@@ -94,16 +94,16 @@ jobs:
             token: ${{ secrets.PAT }}
             repository: 0xProject/0x-main-infra
       - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/prod/*.yml
+        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/v0/prod/*.yml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2.3.0
         with:
             token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][prod] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            title: "[0xApi][prod] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
+            commit-message: "[0xApi-v0][prod] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
+            title: "[0xApi-v0][prod] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
             reviewers: dekz
-            labels: 0xApi, prod
-            branch: "0xApi/prod/${{ steps.parse_pr_info.outputs.ref }}"
+            labels: 0xApi-v0, prod
+            branch: "0xApi-v0/prod/${{ steps.parse_pr_info.outputs.ref }}"
             body: |
               https://github.com/${{ github.repository }}/compare/master...${{ steps.parse_pr_info.outputs.ref }}
               ${{ steps.parse_pr_info.outputs.ref }}
@@ -148,16 +148,16 @@ jobs:
             token: ${{ secrets.PAT }}
             repository: 0xProject/0x-main-infra
       - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/kovan/*.yml
+        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/v0/kovan/*.yml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2.3.0
         with:
             token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            title: "[0xApi][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
+            commit-message: "[0xApi-v0][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
+            title: "[0xApi-v0][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
             reviewers: dekz
-            labels: 0xApi, kovan
-            branch: "0xApi/kovan/${{ steps.parse_pr_info.outputs.ref }}"
+            labels: 0xApi-v0, kovan
+            branch: "0xApi-v0/kovan/${{ steps.parse_pr_info.outputs.ref }}"
             body: |
               https://github.com/${{ github.repository }}/compare/master...${{ steps.parse_pr_info.outputs.ref }}
               ${{ steps.parse_pr_info.outputs.ref }}
@@ -202,16 +202,16 @@ jobs:
             token: ${{ secrets.PAT }}
             repository: 0xProject/0x-main-infra
       - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/kovan-staging/*.yml
+        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/v0/kovan/staging/*.yml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2.3.0
         with:
             token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][staging][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            title: "[0xApi][staging][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
+            commit-message: "[0xApi-v0][staging][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
+            title: "[0xApi-v0][staging][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
             reviewers: dekz
-            labels: 0xApi, kovan, staging
-            branch: "0xApi/kovan-staging/${{ steps.parse_pr_info.outputs.ref }}"
+            labels: 0xApi-v0, kovan, staging
+            branch: "0xApi-v0/kovan-staging/${{ steps.parse_pr_info.outputs.ref }}"
             body: |
               https://github.com/${{ github.repository }}/compare/master...${{ steps.parse_pr_info.outputs.ref }}
               ${{ steps.parse_pr_info.outputs.ref }}
