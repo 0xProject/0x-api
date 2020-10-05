@@ -1,3 +1,4 @@
+import { QuoteReport } from '@0x/asset-swapper';
 import { ContractTxFunctionObj } from '@0x/base-contract';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import {
@@ -47,6 +48,7 @@ import {
     ZeroExTransactionWithoutDomain,
 } from '../types';
 import { ethGasStationUtils } from '../utils/gas_station_utils';
+import { quoteReportUtils } from '../utils/quote_report_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
 
@@ -83,7 +85,9 @@ export class MetaTransactionService {
 
     public async calculateMetaTransactionQuoteAsync(
         params: CalculateMetaTransactionQuoteParams,
-    ): Promise<GetMetaTransactionQuoteResponseV0 | GetMetaTransactionQuoteResponseV1> {
+    ): Promise<
+        (GetMetaTransactionQuoteResponseV0 | GetMetaTransactionQuoteResponseV1) & { quoteReport?: QuoteReport }
+    > {
         const { swapVersion } = params;
         const quote = await this._calculateMetaTransactionQuoteAsync(params, true);
         const commonQuoteFields = {
@@ -102,7 +106,10 @@ export class MetaTransactionService {
             estimatedGasTokenRefund: ZERO,
             value: quote.protocolFee,
             allowanceTarget: quote.allowanceTarget,
+            quoteReport: quote.quoteReport,
         };
+
+        const shouldLogQuoteReport = quote.quoteReport && params.apiKey !== undefined;
 
         if (swapVersion === SwapVersion.V0) {
             // Go through the Exchange.
@@ -114,10 +121,20 @@ export class MetaTransactionService {
                 quote.takerAddress,
                 normalizeGasPrice(quote.gasPrice),
             );
+
+            const emtxHash = getExchangeMetaTransactionHash(emtx);
+            // log quote report and associate with txn hash if this is an RFQT firm quote
+            if (shouldLogQuoteReport) {
+                quoteReportUtils.logQuoteReport({
+                    submissionBy: 'metaTxn',
+                    quoteReport: quote.quoteReport,
+                    zeroExTransactionHash: emtxHash,
+                });
+            }
             return {
                 ...commonQuoteFields,
                 zeroExTransaction: emtx,
-                zeroExTransactionHash: getExchangeMetaTransactionHash(emtx),
+                zeroExTransactionHash: emtxHash,
             };
         }
         // Go through the Exchange Proxy.
@@ -127,10 +144,21 @@ export class MetaTransactionService {
             normalizeGasPrice(quote.gasPrice),
             calculateProtocolFeeRequiredForOrders(swapVersion, normalizeGasPrice(quote.gasPrice), quote.orders),
         );
+
+        const mtxHash = getExchangeProxyMetaTransactionHash(epmtx);
+
+        // log quote report and associate with txn hash if this is an RFQT firm quote
+        if (shouldLogQuoteReport) {
+            quoteReportUtils.logQuoteReport({
+                submissionBy: 'metaTxn',
+                quoteReport: quote.quoteReport,
+                zeroExTransactionHash: mtxHash,
+            });
+        }
         return {
             ...commonQuoteFields,
             mtx: epmtx,
-            mtxHash: getExchangeProxyMetaTransactionHash(epmtx),
+            mtxHash,
         };
     }
 
@@ -407,6 +435,7 @@ export class MetaTransactionService {
             allowanceTarget: quote.allowanceTarget,
             orders: quote.orders,
             callData: quote.data,
+            quoteReport: quote.quoteReport,
         };
     }
 
