@@ -43,7 +43,7 @@ const DEFAULT_QUERY_PARAMS = {
 
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let meshUtils: MeshTestUtils;
     let accounts: string[];
     let takerAddress: string;
