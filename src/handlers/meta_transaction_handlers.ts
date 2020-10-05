@@ -29,6 +29,7 @@ import {
     GetMetaTransactionPriceResponse,
     GetMetaTransactionStatusResponse,
     GetTransactionRequestParams,
+    SourceComparison,
     SwapVersion,
     ZeroExTransactionWithoutDomain,
 } from '../types';
@@ -62,6 +63,7 @@ export class MetaTransactionHandlers {
         // HACK typescript typing does not allow this valid json-schema
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
         // parse query params
+        const params = parseGetTransactionRequestParams(req);
         const {
             takerAddress,
             sellTokenAddress,
@@ -74,7 +76,7 @@ export class MetaTransactionHandlers {
             affiliateFee,
             // tslint:disable-next-line:boolean-naming
             includePriceComparisons,
-        } = parseGetTransactionRequestParams(req);
+        } = params;
         const sellToken = getTokenMetadataIfExists(sellTokenAddress, CHAIN_ID);
         const buyToken = getTokenMetadataIfExists(buyTokenAddress, CHAIN_ID);
         const isETHBuy = isETHSymbol(buyToken.symbol);
@@ -102,7 +104,28 @@ export class MetaTransactionHandlers {
                 from: takerAddress,
                 isETHSell: false,
             });
-            res.status(HttpStatus.OK).send(metaTransactionQuote);
+
+            let priceComparisons: SourceComparison[] | undefined;
+            const { quoteReport, ...quoteResponse } = metaTransactionQuote;
+            if (params.includePriceComparisons && quoteReport) {
+                priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
+                    ...metaTransactionQuote,
+                    quoteReport,
+                    buyTokenAddress,
+                    sellTokenAddress,
+                });
+            }
+            const metaTransactionQuoteResponse = {
+                ...quoteResponse,
+                priceComparisons: priceComparisons
+                    ? priceComparisons.map(pc => ({
+                          ...pc,
+                          name: pc.name === ERC20BridgeSource.Native ? '0x' : pc.name,
+                      }))
+                    : undefined,
+            };
+
+            res.status(HttpStatus.OK).send(metaTransactionQuoteResponse);
         } catch (e) {
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {
@@ -188,6 +211,17 @@ export class MetaTransactionHandlers {
                 affiliateFee,
             });
 
+            let priceComparisons: SourceComparison[] | undefined;
+            const { quoteReport } = metaTransactionPrice;
+            if (params.includePriceComparisons && quoteReport) {
+                priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
+                    ...metaTransactionPrice,
+                    quoteReport,
+                    buyTokenAddress,
+                    sellTokenAddress,
+                });
+            }
+
             const metaTransactionPriceResponse: GetMetaTransactionPriceResponse = {
                 price: metaTransactionPrice.price,
                 buyAmount: metaTransactionPrice.buyAmount,
@@ -202,29 +236,15 @@ export class MetaTransactionHandlers {
                 protocolFee: metaTransactionPrice.protocolFee,
                 minimumProtocolFee: metaTransactionPrice.minimumProtocolFee,
                 allowanceTarget: metaTransactionPrice.allowanceTarget,
+                priceComparisons: priceComparisons
+                    ? priceComparisons.map(pc => ({
+                          ...pc,
+                          name: pc.name === ERC20BridgeSource.Native ? '0x' : pc.name,
+                      }))
+                    : undefined,
             };
 
-            let priceResponse = metaTransactionPriceResponse;
-            const { quoteReport } = metaTransactionPrice;
-            if (params.includePriceComparisons && quoteReport) {
-                const priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, params, {
-                    ...metaTransactionPrice,
-                    quoteReport,
-                    buyTokenAddress,
-                    sellTokenAddress,
-                });
-
-                if (priceComparisons) {
-                    priceResponse = {
-                        ...metaTransactionPriceResponse,
-                        priceComparisons: priceComparisons.map(pc => ({
-                            ...pc,
-                            name: pc.name === ERC20BridgeSource.Native ? '0x' : pc.name,
-                        })),
-                    };
-                }
-            }
-            res.status(HttpStatus.OK).send(priceResponse);
+            res.status(HttpStatus.OK).send(metaTransactionPriceResponse);
         } catch (e) {
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {
