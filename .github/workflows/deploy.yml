@@ -40,7 +40,7 @@ jobs:
             token: ${{ secrets.PAT }}
             repository: 0xProject/0x-main-infra
       - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/staging/*.yml
+        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/staging/*api.yml env/0x-api/staging/*worker.yml env/0x-api/staging/*signer-service.yml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2.3.0
         with:
@@ -94,7 +94,7 @@ jobs:
             token: ${{ secrets.PAT }}
             repository: 0xProject/0x-main-infra
       - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/prod/*.yml
+        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/prod/*api.yml env/0x-api/prod/*worker.yml env/0x-api/prod/*signer-service.yml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2.3.0
         with:
@@ -148,7 +148,7 @@ jobs:
             token: ${{ secrets.PAT }}
             repository: 0xProject/0x-main-infra
       - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/kovan/*.yml
+        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/kovan/*api.yml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2.3.0
         with:
@@ -202,7 +202,7 @@ jobs:
             token: ${{ secrets.PAT }}
             repository: 0xProject/0x-main-infra
       - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/kovan-staging/*.yml
+        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/kovan-staging/*api.yml env/0x-api/kovan-staging/*signer-service.yml
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v2.3.0
         with:
