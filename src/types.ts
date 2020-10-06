@@ -375,12 +375,6 @@ export interface TokenMetadata {
     tokenAddress: string;
 }
 
-export interface GasTokenRefundInfo {
-    usedGasTokens: number;
-    gasTokenGasCost: BigNumber;
-    gasTokenRefund: BigNumber;
-}
-
 export interface AffiliateFeeAmounts {
     gasCost: BigNumber;
     sellTokenFeeAmount: BigNumber;
@@ -412,7 +406,6 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     from?: string;
     gas: BigNumber;
     estimatedGas: BigNumber;
-    estimatedGasTokenRefund: BigNumber;
     allowanceTarget?: string;
     quoteReport?: QuoteReport;
     priceComparisons?: Array<SourceComparison | RenamedNativeSourceComparison>;
@@ -447,7 +440,6 @@ interface BasePriceResponse {
     gas: BigNumber;
     estimatedGas: BigNumber;
     protocolFee: BigNumber;
-    estimatedGasTokenRefund: BigNumber;
     minimumProtocolFee: BigNumber;
     allowanceTarget?: string;
     priceComparisons?: Array<SourceComparison | RenamedNativeSourceComparison>;

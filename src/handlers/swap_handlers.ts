@@ -148,7 +148,6 @@ export class SwapHandlers {
             sellTokenAddress: quote.sellTokenAddress,
             sellAmount: quote.sellAmount,
             sources: quote.sources,
-            estimatedGasTokenRefund: quote.estimatedGasTokenRefund,
             allowanceTarget: quote.allowanceTarget,
             priceComparisons: priceComparisons
                 ? priceComparisons.map(pc => ({

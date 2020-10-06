@@ -12,7 +12,7 @@ import {
 } from '@0x/asset-swapper';
 import { SwapQuoteRequestOpts, SwapQuoterOpts } from '@0x/asset-swapper/lib/src/types';
 import { ContractAddresses } from '@0x/contract-addresses';
-import { ERC20TokenContract, WETH9Contract } from '@0x/contract-wrappers';
+import { WETH9Contract } from '@0x/contract-wrappers';
 import { assetDataUtils, SupportedProvider } from '@0x/order-utils';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
@@ -30,7 +30,6 @@ import {
 import {
     DEFAULT_VALIDATION_GAS_LIMIT,
     GAS_LIMIT_BUFFER_MULTIPLIER,
-    GST2_WALLET_ADDRESSES,
     NULL_ADDRESS,
     ONE,
     TEN_MINUTES_MS,
@@ -57,7 +56,6 @@ import {
 import { marketDepthUtils } from '../utils/market_depth_utils';
 import { createResultCache, ResultCache } from '../utils/result_cache';
 import { serviceUtils } from '../utils/service_utils';
-import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
 export class SwapService {
     private readonly _provider: SupportedProvider;
@@ -68,7 +66,6 @@ export class SwapService {
     private readonly _contractAddresses: ContractAddresses;
     // Result caches, stored for a few minutes and refetched
     // when the result has expired
-    private readonly _gstBalanceResultCache: ResultCache<BigNumber>;
     private readonly _tokenDecimalResultCache: ResultCache<number>;
 
     constructor(orderbook: Orderbook, provider: SupportedProvider, contractAddresses: ContractAddresses) {
@@ -88,13 +85,6 @@ export class SwapService {
 
         this._contractAddresses = contractAddresses;
         this._wethContract = new WETH9Contract(this._contractAddresses.etherToken, this._provider);
-        const gasTokenContract = new ERC20TokenContract(
-            getTokenMetadataIfExists('GST2', CHAIN_ID).tokenAddress,
-            this._provider,
-        );
-        this._gstBalanceResultCache = createResultCache<BigNumber>(() =>
-            gasTokenContract.balanceOf(GST2_WALLET_ADDRESSES[CHAIN_ID]).callAsync(),
-        );
         this._tokenDecimalResultCache = createResultCache<number>(
             (tokenAddress: string) => serviceUtils.fetchTokenDecimalsIfRequiredAsync(tokenAddress, this._web3Wrapper),
             // tslint:disable-next-line:custom-no-magic-numbers
@@ -141,16 +131,6 @@ export class SwapService {
             { recipient: affiliateFee.recipient, buyTokenFeeAmount, sellTokenFeeAmount },
         );
 
-        let gst2Balance = ZERO;
-        try {
-            gst2Balance = (await this._gstBalanceResultCache.getResultAsync()).result;
-        } catch (err) {
-            logger.error(err);
-        }
-        const { gasTokenRefund, gasTokenGasCost } = serviceUtils.getEstimatedGasTokenRefundInfo(
-            attributedSwapQuote.orders,
-            gst2Balance,
-        );
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas)
             .plus(gasTokenGasCost)
             .plus(affiliateFeeGasCost)
@@ -179,11 +159,6 @@ export class SwapService {
         const undeterministicMultiplier = hasUndeterministicFills ? GAS_LIMIT_BUFFER_MULTIPLIER : 1;
         // Add a buffer to get the worst case gas estimate
         const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(undeterministicMultiplier).integerValue();
-        // Cap the refund at 50% our best estimate
-        const estimatedGasTokenRefund = BigNumber.min(
-            conservativeBestCaseGasEstimate.div(2),
-            gasTokenRefund,
-        ).decimalPlaces(0);
         const { price, guaranteedPrice } = await this._getSwapQuotePriceAsync(
             buyAmount,
             buyTokenAddress,
@@ -223,7 +198,6 @@ export class SwapService {
             sellTokenAddress,
             buyAmount: makerAssetAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAssetAmount,
-            estimatedGasTokenRefund,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
             orders: serviceUtils.cleanSignedOrderFields(orders),
             allowanceTarget,
@@ -400,7 +374,6 @@ export class SwapService {
             gasPrice,
             protocolFee: ZERO,
             minimumProtocolFee: ZERO,
-            estimatedGasTokenRefund: ZERO,
             buyTokenAddress,
             sellTokenAddress,
             buyAmount: amount,

@@ -1,7 +1,7 @@
 import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
-import { assertRoughlyEquals, constants, expect, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
+import { assertRoughlyEquals, expect, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
 import { ObjectMap } from '@0x/types';
 import { BigNumber } from '@0x/utils';
@@ -248,16 +248,6 @@ describe(SUITE_NAME, () => {
                 },
                 {
                     revertErrorReason: 'SpenderERC20TransferFromFailedError',
-                },
-            );
-        });
-        it('should not return estimatedGasTokenRefund: 0 if there are not gas tokens in our wallet', async () => {
-            await quoteAndExpectAsync(
-                {
-                    sellAmount: '1234',
-                },
-                {
-                    estimatedGasTokenRefund: constants.ZERO_AMOUNT,
                 },
             );
         });
