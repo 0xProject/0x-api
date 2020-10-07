@@ -476,12 +476,10 @@ export class SwapService {
         // only generate quote reports for rfqt firm quotes or when price comparison is requested
         const shouldGenerateQuoteReport = includePriceComparisons || (rfqt && rfqt.intentOnFilling);
 
-        let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
-        if (isMetaTransaction || affiliateFee.buyTokenPercentageFee > 0 || affiliateFee.sellTokenPercentageFee > 0) {
-            swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS_NO_VIP;
-        } else {
-            swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS;
-        }
+        const swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts> =
+            isMetaTransaction || affiliateFee.buyTokenPercentageFee > 0 || affiliateFee.sellTokenPercentageFee > 0
+                ? ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS_NO_VIP
+                : ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS;
 
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
             ...swapQuoteRequestOpts,
