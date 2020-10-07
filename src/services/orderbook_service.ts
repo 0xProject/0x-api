@@ -168,8 +168,8 @@ export class OrderBookService {
             if (rejected.length !== 0) {
                 const validationErrors = rejected.map((r, i) => ({
                     field: `signedOrder[${i}]`,
-                    code: meshUtils.rejectedCodeToSRACode(r.status.code),
-                    reason: `${r.status.code}: ${r.status.message}`,
+                    code: meshUtils.rejectedCodeToSRACode(r.code),
+                    reason: `${r.code}: ${r.message}`,
                 }));
                 throw new ValidationError(validationErrors);
             }

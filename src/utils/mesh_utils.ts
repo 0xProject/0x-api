@@ -1,56 +1,39 @@
-import {
-    AcceptedOrderInfo,
-    OrderEvent,
-    OrderEventEndState,
-    OrderInfo,
-    RejectedCode,
-    RejectedOrderInfo,
-} from '@0x/mesh-rpc-client';
+import { OrderEvent, OrderEventEndState, OrderWithMetadata, RejectedOrderCode } from '@0x/mesh-graphql-client';
 
-import { ZERO } from '../constants';
 import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { AddedRemovedUpdate, APIOrderWithMetaData } from '../types';
 
-import { orderUtils } from './order_utils';
-
 export const meshUtils = {
-    orderInfosToApiOrders: (
-        orderEvent: (OrderEvent | AcceptedOrderInfo | RejectedOrderInfo | OrderInfo)[],
-    ): APIOrderWithMetaData[] => {
-        return orderEvent.map(e => meshUtils.orderInfoToAPIOrder(e));
+    orderInfosToApiOrders: (orders: OrderWithMetadata[]): APIOrderWithMetaData[] => {
+        return orders.map(e => meshUtils.orderInfoToAPIOrder(e));
     },
-    orderInfoToAPIOrder: (
-        orderEvent: OrderEvent | AcceptedOrderInfo | RejectedOrderInfo | OrderInfo,
-    ): APIOrderWithMetaData => {
-        const remainingFillableTakerAssetAmount = (orderEvent as OrderEvent).fillableTakerAssetAmount
-            ? (orderEvent as OrderEvent).fillableTakerAssetAmount
-            : ZERO;
+    orderInfoToAPIOrder: (order: OrderWithMetadata): APIOrderWithMetaData => {
+        const remainingFillableTakerAssetAmount = order.fillableTakerAssetAmount;
         return {
-            // orderEvent.signedOrder comes from mesh with string fields, needs to be serialized into SignedOrder
-            order: orderUtils.deserializeOrder(orderEvent.signedOrder as any), // tslint:disable-line:no-unnecessary-type-assertion
+            order,
             metaData: {
-                orderHash: orderEvent.orderHash,
+                orderHash: order.hash,
                 remainingFillableTakerAssetAmount,
             },
         };
     },
-    rejectedCodeToSRACode: (code: RejectedCode): ValidationErrorCodes => {
+    rejectedCodeToSRACode: (code: RejectedOrderCode): ValidationErrorCodes => {
         switch (code) {
-            case RejectedCode.OrderCancelled:
-            case RejectedCode.OrderExpired:
-            case RejectedCode.OrderUnfunded:
-            case RejectedCode.OrderHasInvalidMakerAssetAmount:
-            case RejectedCode.OrderHasInvalidMakerAssetData:
-            case RejectedCode.OrderHasInvalidTakerAssetAmount:
-            case RejectedCode.OrderHasInvalidTakerAssetData:
-            case RejectedCode.OrderFullyFilled: {
+            case RejectedOrderCode.OrderCancelled:
+            case RejectedOrderCode.OrderExpired:
+            case RejectedOrderCode.OrderUnfunded:
+            case RejectedOrderCode.OrderHasInvalidMakerAssetAmount:
+            case RejectedOrderCode.OrderHasInvalidMakerAssetData:
+            case RejectedOrderCode.OrderHasInvalidTakerAssetAmount:
+            case RejectedOrderCode.OrderHasInvalidTakerAssetData:
+            case RejectedOrderCode.OrderFullyFilled: {
                 return ValidationErrorCodes.InvalidOrder;
             }
-            case RejectedCode.OrderHasInvalidSignature: {
+            case RejectedOrderCode.OrderHasInvalidSignature: {
                 return ValidationErrorCodes.InvalidSignatureOrHash;
             }
-            case RejectedCode.OrderForIncorrectChain: {
+            case RejectedOrderCode.OrderForIncorrectChain: {
                 return ValidationErrorCodes.InvalidAddress;
             }
             default:
@@ -62,13 +45,13 @@ export const meshUtils = {
         const removed: APIOrderWithMetaData[] = [];
         const updated: APIOrderWithMetaData[] = [];
         for (const event of orderEvents) {
-            const apiOrder = meshUtils.orderInfoToAPIOrder(event);
+            const apiOrder = meshUtils.orderInfoToAPIOrder(event.order);
             switch (event.endState) {
                 case OrderEventEndState.Added: {
                     added.push(apiOrder);
                     break;
                 }
-                case OrderEventEndState.Invalid:
+                // case OrderEventEndState.Invalid: TODO(kimpers): Invalid state is no longer available, is this an issue?
                 case OrderEventEndState.Cancelled:
                 case OrderEventEndState.Expired:
                 case OrderEventEndState.FullyFilled:

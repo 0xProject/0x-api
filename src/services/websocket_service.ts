@@ -56,7 +56,7 @@ export class WebsocketService {
         string,
         OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
     > = new Map(); // requestId -> { base, quote }
-    private _meshSubscriptionId?: string;
+    private readonly _orderEventsSubscription: ZenObservable.Subscription;
     private static _decodedContractAndAssetData(assetData: string): { assetProxyId: string; data: string[] } {
         let data: string[] = [assetData];
         const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(assetData);
@@ -135,11 +135,12 @@ export class WebsocketService {
         this._server.on('error', WebsocketService._handleError.bind(this));
         this._pongIntervalId = setInterval(this._cleanupConnections.bind(this), wsOpts.pongInterval);
         this._meshClient = meshClient;
-        // tslint:disable-next-line:no-floating-promises
-        this._meshClient
-            .subscribeToOrdersAsync(e => this.orderUpdate(meshUtils.orderInfosToApiOrders(e)))
-            .then(subscriptionId => (this._meshSubscriptionId = subscriptionId));
+
+        this._orderEventsSubscription = this._meshClient
+            .onOrderEvents()
+            .subscribe(events => this.orderUpdate(meshUtils.orderInfosToApiOrders(events.map(e => e.order))));
     }
+
     public async destroyAsync(): Promise<void> {
         clearInterval(this._pongIntervalId);
         for (const ws of this._server.clients) {
@@ -148,13 +149,7 @@ export class WebsocketService {
         this._requestIdToSocket.clear();
         this._requestIdToSubscriptionOpts.clear();
         this._server.close();
-        if (this._meshSubscriptionId) {
-            try {
-                await this._meshClient.unsubscribeAsync(this._meshSubscriptionId);
-            } finally {
-                delete this._meshSubscriptionId;
-            }
-        }
+        this._orderEventsSubscription.unsubscribe();
     }
     public orderUpdate(apiOrders: APIOrder[]): void {
         if (this._server.clients.size === 0) {

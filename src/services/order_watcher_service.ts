@@ -3,7 +3,6 @@ import { Connection } from 'typeorm';
 
 import { MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
 import { SignedOrderEntity } from '../entities';
-import { OrderWatcherSyncError } from '../errors';
 import { alertOnExpiredOrders, logger } from '../logger';
 import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents } from '../types';
 import { MeshClient } from '../utils/mesh_client';
@@ -45,14 +44,14 @@ export class OrderWatcherService {
         });
 
         // 4. Notify if any expired orders were accepted by Mesh
-        const acceptedApiOrders = meshUtils.orderInfosToApiOrders(accepted);
+        const acceptedApiOrders = meshUtils.orderInfosToApiOrders(accepted.map(acceptedOrder => acceptedOrder.order));
         const { expired } = orderUtils.groupByFreshness(acceptedApiOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
         alertOnExpiredOrders(expired, `Erroneously accepted when posting to Mesh`);
 
         // 5. Remove all of the rejected and expired orders from local cache
-        const toRemove = expired.concat(meshUtils.orderInfosToApiOrders(rejected));
-        if (toRemove.length > 0) {
-            await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, toRemove);
+        const orderHashesToRemove = rejected.map(r => r.hash).filter(r => !!r);
+        if (orderHashesToRemove.length > 0) {
+            await this._removeOrdersByOrderHashAsync(orderHashesToRemove);
         }
 
         // 6. Save Mesh orders to local cache and notify if any expired orders were returned
@@ -67,21 +66,31 @@ export class OrderWatcherService {
     constructor(connection: Connection, meshClient: MeshClient) {
         this._connection = connection;
         this._meshClient = meshClient;
-        void this._meshClient.subscribeToOrdersAsync(async orders => {
+        this._meshClient.onOrderEvents().subscribe(async orders => {
             const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
         });
-        this._meshClient.onReconnected(async () => {
-            logger.info('OrderWatcherService reconnecting to Mesh');
-            try {
-                await this.syncOrderbookAsync();
-            } catch (err) {
-                const logError = new OrderWatcherSyncError(`Error on reconnecting Mesh client: [${err.stack}]`);
-                throw logError;
-            }
-        });
+        // TODO(kimpers): How to handle reconnects?
+        // this._meshClient.onReconnected(async () => {
+        // logger.info('OrderWatcherService reconnecting to Mesh');
+        // try {
+        // await this.syncOrderbookAsync();
+        // } catch (err) {
+        // const logError = new OrderWatcherSyncError(`Error on reconnecting Mesh client: [${err.stack}]`);
+        // throw logError;
+        // }
+        // });
+    }
+    private async _removeOrdersByOrderHashAsync(orderHashes: string[]): Promise<void> {
+        // MAX SQL variable size is 999. This limit is imposed via Sqlite
+        // and other databases have higher limits (or no limits at all, eg postgresql)
+        // tslint:disable-next-line:custom-no-magic-numbers
+        const chunks = _.chunk(orderHashes, 999);
+        for (const chunk of chunks) {
+            await this._connection.manager.delete(SignedOrderEntity, chunk);
+        }
     }
     private async _onOrderLifeCycleEventAsync(
         lifecycleEvent: OrderWatcherLifeCycleEvents,
@@ -107,13 +116,7 @@ export class OrderWatcherService {
             }
             case OrderWatcherLifeCycleEvents.Removed: {
                 const orderHashes = orders.map(o => o.metaData.orderHash);
-                // MAX SQL variable size is 999. This limit is imposed via Sqlite
-                // and other databases have higher limits (or no limits at all, eg postgresql)
-                // tslint:disable-next-line:custom-no-magic-numbers
-                const chunks = _.chunk(orderHashes, 999);
-                for (const chunk of chunks) {
-                    await this._connection.manager.delete(SignedOrderEntity, chunk);
-                }
+                await this._removeOrdersByOrderHashAsync(orderHashes);
                 break;
             }
             default:
