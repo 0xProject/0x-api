@@ -10,10 +10,14 @@ import * as _ from 'lodash';
 
 export class MeshClient extends MeshGraphQLClient {
     public async getOrdersAsync(_perPage: number = 200): Promise<{ ordersInfos: OrderWithMetadata[] }> {
+        // TODO: implement
         return null;
     }
 
-    constructor(public readonly webSocketUrl: string, public readonly httpUrl?: string) {
-        super({ webSocketUrl, httpUrl });
+    constructor(public readonly _webSocketUrl: string, public readonly _httpUrl?: string) {
+        super({
+            httpUrl: 'http://localhost:60557/graphql',
+            webSocketUrl: 'ws://localhost:60557/graphql',
+        });
     }
 }
