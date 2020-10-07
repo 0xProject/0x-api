@@ -132,7 +132,6 @@ export class SwapService {
         );
 
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas)
-            .plus(gasTokenGasCost)
             .plus(affiliateFeeGasCost)
             .plus(isETHSell ? WRAP_ETH_GAS : 0)
             .plus(isETHBuy ? UNWRAP_WETH_GAS : 0);
