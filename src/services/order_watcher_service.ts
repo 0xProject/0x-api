@@ -66,11 +66,14 @@ export class OrderWatcherService {
     constructor(connection: Connection, meshClient: MeshClient) {
         this._connection = connection;
         this._meshClient = meshClient;
-        this._meshClient.onOrderEvents().subscribe(async orders => {
-            const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
-            await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
-            await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
-            await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
+        this._meshClient.getStatsAsync().then(async () => {
+            this._meshClient.onOrderEvents().subscribe(async orders => {
+                console.log(orders);
+                const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
+                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
+                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
+                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
+            });
         });
         // TODO(kimpers): How to handle reconnects?
         // this._meshClient.onReconnected(async () => {

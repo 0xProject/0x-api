@@ -30,6 +30,7 @@ services:
             VERBOSITY: 4
             PRIVATE_KEY_PATH: ''
             ENABLE_GRAPHQL_SERVER: 'true'
+            GRAPHQL_SERVER_ADDR: mesh:60557
             ENABLE_GRAPHQL_PLAYGROUND: 'true' # TODO(kimpers): remove this?
             BLOCK_POLLING_INTERVAL: '2s'
             ETHEREUM_RPC_MAX_REQUESTS_PER_24_HR_UTC: '150000'
