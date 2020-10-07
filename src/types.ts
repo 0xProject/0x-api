@@ -448,13 +448,7 @@ export interface GetSwapPriceResponse extends BasePriceResponse {}
 
 export type GetTokenPricesResponse = Price[];
 
-export interface GetMetaTransactionQuoteResponseV0 extends BasePriceResponse {
-    zeroExTransactionHash: string;
-    zeroExTransaction: ZeroExTransaction;
-    orders: SignedOrder[];
-}
-
-export interface GetMetaTransactionQuoteResponseV1 extends BasePriceResponse {
+export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
     mtxHash: string;
     mtx: ExchangeProxyMetaTransaction;
     orders: SignedOrder[];
@@ -490,12 +484,7 @@ export interface CalculateMetaTransactionQuoteResponse {
     allowanceTarget?: string;
 }
 
-export interface PostTransactionResponseV0 {
-    ethereumTransactionHash: string;
-    zeroExTransactionHash: string;
-}
-
-export interface PostTransactionResponseV1 {
+export interface PostTransactionResponse {
     txHash: string;
     mtxHash: string;
 }
@@ -587,7 +576,6 @@ export interface CalculateMetaTransactionQuoteParams {
     includedSources?: ERC20BridgeSource[];
     apiKey: string | undefined;
     includePriceComparisons: boolean;
-    swapVersion: SwapVersion;
     affiliateFee: PercentageFee;
 }
 

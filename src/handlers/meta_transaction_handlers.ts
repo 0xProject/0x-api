@@ -22,7 +22,7 @@ import {
 import { logger } from '../logger';
 import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
-import { isExchangeProxyMetaTransaction, MetaTransactionService } from '../services/meta_transaction_service';
+import { MetaTransactionService } from '../services/meta_transaction_service';
 import {
     ChainId,
     ExchangeProxyMetaTransactionWithoutDomain,
@@ -30,8 +30,6 @@ import {
     GetMetaTransactionStatusResponse,
     GetTransactionRequestParams,
     SourceComparison,
-    SwapVersion,
-    ZeroExTransactionWithoutDomain,
 } from '../types';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
@@ -51,7 +49,7 @@ export class MetaTransactionHandlers {
         this._metaTransactionService = metaTransactionService;
         this._rateLimiter = rateLimiter;
     }
-    public async getQuoteAsync(swapVersion: SwapVersion, req: express.Request, res: express.Response): Promise<void> {
+    public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header(API_KEY_HEADER);
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
@@ -99,7 +97,6 @@ export class MetaTransactionHandlers {
                 apiKey,
                 includePriceComparisons,
                 isETHBuy,
-                swapVersion,
                 affiliateFee,
                 from: takerAddress,
                 isETHSell: false,
@@ -162,7 +159,7 @@ export class MetaTransactionHandlers {
             throw new InternalServerError(e.message);
         }
     }
-    public async getPriceAsync(swapVersion: SwapVersion, req: express.Request, res: express.Response): Promise<void> {
+    public async getPriceAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({
@@ -207,7 +204,6 @@ export class MetaTransactionHandlers {
                 includePriceComparisons,
                 isETHBuy,
                 isETHSell,
-                swapVersion,
                 affiliateFee,
             });
 
@@ -282,7 +278,6 @@ export class MetaTransactionHandlers {
         }
     }
     public async submitTransactionIfWhitelistedAsync(
-        swapVersion: SwapVersion,
         req: express.Request,
         res: express.Response,
     ): Promise<void> {
@@ -298,11 +293,8 @@ export class MetaTransactionHandlers {
         schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
 
         // parse the request body
-        const { mtx, signature } =
-            swapVersion === SwapVersion.V0
-                ? parsePostTransactionRequestBodyV0(req)
-                : parsePostTransactionRequestBodyV1(req);
-        const mtxHash = this._metaTransactionService.getTransactionHash(swapVersion, mtx);
+        const { mtx, signature } = parsePostTransactionRequestBody(req);
+        const mtxHash = this._metaTransactionService.getTransactionHash(mtx);
         const transactionInDatabase = await this._metaTransactionService.findTransactionByHashAsync(mtxHash);
         if (transactionInDatabase !== undefined) {
             // user attemps to submit a mtx already present in the database
@@ -310,10 +302,9 @@ export class MetaTransactionHandlers {
             return;
         }
         try {
-            await this._metaTransactionService.validateTransactionFillAsync(swapVersion, mtx, signature);
+            await this._metaTransactionService.validateTransactionFillAsync(mtx, signature);
 
             const ethTx = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
-                swapVersion,
                 mtx,
                 signature,
             );
@@ -332,7 +323,7 @@ export class MetaTransactionHandlers {
                 if (this._rateLimiter !== undefined) {
                     const rateLimitResponse = await this._rateLimiter.isAllowedAsync({
                         apiKey,
-                        takerAddress: isExchangeProxyMetaTransaction(swapVersion, mtx) ? mtx.signer : mtx.signerAddress,
+                        takerAddress: mtx.signer,
                     });
                     if (isRateLimitedMetaTransactionResponse(rateLimitResponse)) {
                         res.status(HttpStatus.TOO_MANY_REQUESTS).send({
@@ -350,7 +341,6 @@ export class MetaTransactionHandlers {
                     }
                 }
                 const result = await this._metaTransactionService.submitTransactionAsync(
-                    swapVersion,
                     mtxHash,
                     mtx,
                     signature,
@@ -498,33 +488,12 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     };
 };
 
-interface PostTransactionRequestBodyV0 {
-    mtx: ZeroExTransactionWithoutDomain;
-    signature: string;
-}
-
-const parsePostTransactionRequestBodyV0 = (req: any): PostTransactionRequestBodyV0 => {
-    const requestBody = req.body;
-    const signature = requestBody.signature;
-    const mtx: ZeroExTransactionWithoutDomain = {
-        salt: new BigNumber(requestBody.zeroExTransaction.salt),
-        expirationTimeSeconds: new BigNumber(requestBody.zeroExTransaction.expirationTimeSeconds),
-        gasPrice: new BigNumber(requestBody.zeroExTransaction.gasPrice),
-        signerAddress: requestBody.zeroExTransaction.signerAddress,
-        data: requestBody.zeroExTransaction.data,
-    };
-    return {
-        mtx,
-        signature,
-    };
-};
-
-interface PostTransactionRequestBodyV1 {
+interface PostTransactionRequestBody {
     mtx: ExchangeProxyMetaTransactionWithoutDomain;
     signature: string;
 }
 
-const parsePostTransactionRequestBodyV1 = (req: any): PostTransactionRequestBodyV1 => {
+const parsePostTransactionRequestBody = (req: any): PostTransactionRequestBody => {
     const requestBody = req.body;
     const signature = requestBody.signature;
     const mtx: ExchangeProxyMetaTransactionWithoutDomain = {
