@@ -78,9 +78,7 @@ export class MetaTransactionService {
 
     public async calculateMetaTransactionQuoteAsync(
         params: CalculateMetaTransactionQuoteParams,
-    ): Promise<
-        (GetMetaTransactionQuoteResponse) & { quoteReport?: QuoteReport }
-    > {
+    ): Promise<GetMetaTransactionQuoteResponse & { quoteReport?: QuoteReport }> {
         const quote = await this._calculateMetaTransactionQuoteAsync(params, true);
         const commonQuoteFields = {
             price: quote.price,
@@ -138,10 +136,7 @@ export class MetaTransactionService {
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
         signature: string,
     ): Promise<void> {
-        const { executeCall, protocolFee, gasPrice } = this._getMetaTransactionExecutionDetails(
-            mtx,
-            signature,
-        );
+        const { executeCall, protocolFee, gasPrice } = this._getMetaTransactionExecutionDetails(mtx, signature);
 
         if (mtx.maxGasPrice.lt(gasPrice) || mtx.minGasPrice.gt(gasPrice)) {
             throw new Error('mtx gas price out of range');
@@ -184,9 +179,7 @@ export class MetaTransactionService {
         }
     }
 
-    public getTransactionHash(
-        mtx: ExchangeProxyMetaTransactionWithoutDomain,
-    ): string {
+    public getTransactionHash(mtx: ExchangeProxyMetaTransactionWithoutDomain): string {
         return getExchangeProxyMetaTransactionHash({
             ...mtx,
             domain: {
@@ -341,18 +334,13 @@ export class MetaTransactionService {
         };
     }
 
-    private _calculateProtocolFeeRequiredForMetaTransaction(
-        mtx: ExchangeProxyMetaTransactionWithoutDomain,
-    ): BigNumber {
+    private _calculateProtocolFeeRequiredForMetaTransaction(mtx: ExchangeProxyMetaTransactionWithoutDomain): BigNumber {
         const decoded = this._contractWrappers.getAbiDecoder().decodeCalldataOrThrow(mtx.callData, 'ExchangeProxy');
         const supportedFunctions = ['transformERC20'];
         if (!supportedFunctions.includes(decoded.functionName)) {
             throw new Error('unsupported meta-transaction function');
         }
-        return calculateProtocolFeeRequiredForOrders(
-            mtx.minGasPrice,
-            decoded.functionArguments.orders,
-        );
+        return calculateProtocolFeeRequiredForOrders(mtx.minGasPrice, decoded.functionArguments.orders);
     }
 
     private _getMetaTransactionExecutionDetails(
@@ -386,10 +374,7 @@ function createExpirationTime(): BigNumber {
     return new BigNumber(Date.now() + TEN_MINUTES_MS).div(ONE_SECOND_MS).integerValue(BigNumber.ROUND_CEIL);
 }
 
-function calculateProtocolFeeRequiredForOrders(
-    gasPrice: BigNumber,
-    orders: SignedOrder[],
-): BigNumber {
+function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: SignedOrder[]): BigNumber {
     const nativeOrderCount = orders.filter(o =>
         assetDataUtils.isERC20BridgeAssetData(assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData)),
     ).length;
