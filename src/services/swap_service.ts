@@ -240,7 +240,6 @@ export class SwapService {
                             bridgeSlippage: 0,
                             maxFallbackSlippage: 0,
                             numSamples: 1,
-                            shouldBatchBridgeOrders: false,
                         },
                     );
                     return quotes;
