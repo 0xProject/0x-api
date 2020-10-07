@@ -10,8 +10,10 @@ import * as _ from 'lodash';
 
 export class MeshClient extends MeshGraphQLClient {
     public async getOrdersAsync(_perPage: number = 200): Promise<{ ordersInfos: OrderWithMetadata[] }> {
-        // TODO: implement
-        return null;
+        // TODO: implement paginating through all orders
+        const orders = await this.findOrdersAsync();
+        console.log(`${orders.length} found, NOT YET PAGINATED`);
+        return { ordersInfos: orders };
     }
 
     constructor(public readonly _webSocketUrl: string, public readonly _httpUrl?: string) {
