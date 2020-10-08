@@ -363,7 +363,7 @@ describe(SUITE_NAME, () => {
             });
             expect(response.status).to.eq(HttpStatus.OK);
             const meshOrders = await meshUtils.getOrdersAsync();
-            expect(meshOrders.ordersInfos.find(info => info.orderHash === orderHash)).to.not.be.undefined();
+            expect(meshOrders.ordersInfos.find(info => info.hash === orderHash)).to.not.be.undefined();
         });
     });
 });

@@ -3,7 +3,7 @@ import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/cont
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { constants, expect, signingUtils, transactionHashUtils } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
-import { ValidationResults } from '@0x/mesh-rpc-client';
+import { AddOrdersResults } from '@0x/mesh-graphql-client';
 import { SignatureType, SignedOrder, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
@@ -431,7 +431,7 @@ describe(SUITE_NAME, () => {
                 assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: buyAmount,
-                    expectedOrders: [validationResults.accepted[0].signedOrder],
+                    expectedOrders: [validationResults.accepted[0].order],
                     expectedPrice: '1',
                 });
             });
@@ -491,7 +491,7 @@ describe(SUITE_NAME, () => {
                 assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: buyAmount,
-                    expectedOrders: [validationResults.accepted[0].signedOrder],
+                    expectedOrders: [validationResults.accepted[0].order],
                     expectedPrice: '1',
                 });
             });
@@ -514,7 +514,7 @@ describe(SUITE_NAME, () => {
                 assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: largeBuyAmount,
-                    expectedOrders: validationResults.accepted.map(accepted => accepted.signedOrder),
+                    expectedOrders: validationResults.accepted.map(accepted => accepted.order),
                     expectedPrice: '1.5',
                 });
             });
@@ -550,7 +550,7 @@ describe(SUITE_NAME, () => {
             }
 
             describe('single order submission', () => {
-                let validationResults: ValidationResults;
+                let validationResults: AddOrdersResults;
                 const price = '1';
                 const sellAmount = calculateSellAmount(buyAmount, price);
 
@@ -612,14 +612,14 @@ describe(SUITE_NAME, () => {
                     assertCorrectMetaQuote({
                         quote: response.body,
                         expectedBuyAmount: buyAmount,
-                        expectedOrders: [validationResults.accepted[0].signedOrder],
+                        expectedOrders: [validationResults.accepted[0].order],
                         expectedPrice: price,
                     });
                     transaction = response.body.mtx;
                 });
 
                 it.skip('submitting the quote is successful and money changes hands correctly', async () => {
-                    const makerAddress = validationResults.accepted[0].signedOrder.makerAddress;
+                    const makerAddress = validationResults.accepted[0].order.makerAddress;
                     await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: buyAmount });
                     await weth
                         .approve(contractAddresses.erc20Proxy, new BigNumber(buyAmount))
@@ -660,7 +660,7 @@ describe(SUITE_NAME, () => {
 
             // TODO: There is a problem with this test case. It is currently throwing an `IncompleteFillError`
             describe.skip('two order submission', () => {
-                let validationResults: ValidationResults;
+                let validationResults: AddOrdersResults;
                 const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
                 const price = '1.5';
                 const sellAmount = calculateSellAmount(largeBuyAmount, price);
@@ -724,14 +724,14 @@ describe(SUITE_NAME, () => {
                     assertCorrectMetaQuote({
                         quote: response.body,
                         expectedBuyAmount: largeBuyAmount,
-                        expectedOrders: validationResults.accepted.map(accepted => accepted.signedOrder),
+                        expectedOrders: validationResults.accepted.map(accepted => accepted.order),
                         expectedPrice: price,
                     });
                     transaction = response.body.mtx;
                 });
 
                 it('submitting the quote is successful and money changes hands correctly', async () => {
-                    const makerAddress = validationResults.accepted[0].signedOrder.makerAddress;
+                    const makerAddress = validationResults.accepted[0].order.makerAddress;
                     await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: largeBuyAmount });
                     await weth
                         .approve(contractAddresses.erc20Proxy, new BigNumber(largeBuyAmount))

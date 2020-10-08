@@ -5,7 +5,6 @@ import {
     RfqtRequestOpts,
     SupportedProvider,
 } from '@0x/asset-swapper';
-import { AcceptedOrderInfo, RejectedOrderInfo } from '@0x/mesh-rpc-client';
 import {
     APIOrder,
     ExchangeProxyMetaTransaction,
@@ -40,11 +39,6 @@ export enum OrderWatcherLifeCycleEvents {
 }
 
 export type onOrdersUpdateCallback = (orders: APIOrderWithMetaData[]) => void;
-
-export interface AcceptedRejectedResults {
-    accepted: AcceptedOrderInfo[];
-    rejected: RejectedOrderInfo[];
-}
 
 export interface APIOrderMetaData {
     orderHash: string;
