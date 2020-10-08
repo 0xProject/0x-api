@@ -1,25 +1,35 @@
-import { MeshGraphQLClient, OrderWithMetadata } from '@0x/mesh-graphql-client';
-// import { orderHashUtils } from '@0x/order-utils';
-import * as _ from 'lodash';
-
-// import { MESH_ORDERS_BATCH_HTTP_BYTE_LENGTH, MESH_ORDERS_BATCH_SIZE } from '../constants';
-// import { logger } from '../logger';
-
-// import { retryableAxios } from './axios_utils';
-// import { utils } from './utils';
+import { FilterKind, MeshGraphQLClient, OrderWithMetadata } from '@0x/mesh-graphql-client';
 
 export class MeshClient extends MeshGraphQLClient {
-    public async getOrdersAsync(_perPage: number = 200): Promise<{ ordersInfos: OrderWithMetadata[] }> {
-        // TODO: implement paginating through all orders
-        const orders = await this.findOrdersAsync();
-        console.log(`${orders.length} found, NOT YET PAGINATED`);
-        return { ordersInfos: orders };
+    constructor(public readonly webSocketUrl: string, public readonly httpUrl?: string) {
+        super({
+            webSocketUrl: `${webSocketUrl}/graphql`,
+            httpUrl: httpUrl ? `${httpUrl}/graphql` : undefined,
+        });
     }
 
-    constructor(public readonly _webSocketUrl: string, public readonly _httpUrl?: string) {
-        super({
-            httpUrl: 'http://localhost:60557/graphql',
-            webSocketUrl: 'ws://localhost:60557/graphql',
-        });
+    public async getOrdersAsync(perPage: number = 200): Promise<{ ordersInfos: OrderWithMetadata[] }> {
+        let orders: OrderWithMetadata[] = [];
+        let lastOrderHash: string | undefined;
+        do {
+            const currentOrders = await this.findOrdersAsync({
+                limit: perPage,
+                filters: lastOrderHash
+                    ? [
+                          {
+                              field: 'hash',
+                              kind: FilterKind.Greater,
+                              value: lastOrderHash,
+                          },
+                      ]
+                    : undefined,
+            });
+
+            // Mesh will return an empty array when we have iterated through all orders
+            lastOrderHash = currentOrders.length === 0 ? undefined : currentOrders[currentOrders.length - 1]?.hash;
+            orders = [...orders, ...currentOrders];
+        } while (lastOrderHash !== undefined);
+
+        return { ordersInfos: orders };
     }
 }

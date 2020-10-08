@@ -3,6 +3,7 @@ import { Connection } from 'typeorm';
 
 import { MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
 import { SignedOrderEntity } from '../entities';
+import { OrderWatcherSyncError } from '../errors';
 import { alertOnExpiredOrders, logger } from '../logger';
 import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents } from '../types';
 import { MeshClient } from '../utils/mesh_client';
@@ -66,15 +67,20 @@ export class OrderWatcherService {
     constructor(connection: Connection, meshClient: MeshClient) {
         this._connection = connection;
         this._meshClient = meshClient;
-        this._meshClient.getStatsAsync().then(async () => {
-            this._meshClient.onOrderEvents().subscribe(async orders => {
-                console.log(orders);
-                const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
-                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
-                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
-                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
+        this._meshClient
+            .getStatsAsync()
+            .then(async () => {
+                this._meshClient.onOrderEvents().subscribe(async orders => {
+                    const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
+                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
+                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
+                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
+                });
+            })
+            .catch(err => {
+                const logError = new OrderWatcherSyncError(`Error on connecting to Mesh client: [${err.stack}]`);
+                throw logError;
             });
-        });
         // TODO(kimpers): How to handle reconnects?
         // this._meshClient.onReconnected(async () => {
         // logger.info('OrderWatcherService reconnecting to Mesh');
