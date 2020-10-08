@@ -247,18 +247,14 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
 
 async function waitForMeshStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-        let didStartWSServer = false;
-        let didStartHttpServer = false;
+        let didStartGraphQLServer = false;
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
             for (const datum of data) {
-                if (!didStartHttpServer && /.*mesh.*started HTTP RPC server/.test(datum)) {
-                    didStartHttpServer = true;
-                } else if (!didStartWSServer && /.*mesh.*started WS RPC server/.test(datum)) {
-                    didStartWSServer = true;
+                if (!didStartGraphQLServer && /.*mesh.*starting GraphQL server/.test(datum)) {
+                    didStartGraphQLServer = true;
                 }
-
-                if (didStartHttpServer && didStartWSServer) {
+                if (didStartGraphQLServer) {
                     resolve();
                 }
             }
@@ -271,22 +267,20 @@ async function waitForMeshStartupAsync(logStream: ChildProcessWithoutNullStreams
 
 async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-        const hasSeenLog = [0, 0, 0];
+        const hasSeenLog = [0, 0];
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
             for (const datum of data) {
-                if (hasSeenLog[0] < 1 && /.*mesh.*started HTTP RPC server/.test(datum)) {
+                if (hasSeenLog[0] < 1 && /.*mesh.*starting GraphQL server/.test(datum)) {
                     hasSeenLog[0]++;
-                } else if (hasSeenLog[1] < 1 && /.*mesh.*started WS RPC server/.test(datum)) {
-                    hasSeenLog[1]++;
                 } else if (
-                    hasSeenLog[2] < 1 &&
+                    hasSeenLog[1] < 1 &&
                     /.*postgres.*PostgreSQL init process complete; ready for start up./.test(datum)
                 ) {
-                    hasSeenLog[2]++;
+                    hasSeenLog[1]++;
                 }
 
-                if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1 && hasSeenLog[2] === 1) {
+                if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1) {
                     resolve();
                 }
             }
