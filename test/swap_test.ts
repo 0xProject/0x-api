@@ -415,7 +415,7 @@ async function quoteAndExpectAsync(
     expectCorrectQuote(response.body, quoteAssertions);
 }
 
-const PRECISION = 4;
+const PRECISION = 2;
 function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, quoteAssertions: Partial<QuoteAssertion>): void {
     for (const property of Object.keys(quoteAssertions)) {
         if (BigNumber.isBigNumber(quoteAssertions[property])) {
