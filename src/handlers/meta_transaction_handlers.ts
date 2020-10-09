@@ -287,7 +287,8 @@ export class MetaTransactionHandlers {
             });
             return;
         }
-        schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
+        // TODO(kimpers): Add schema validation for ExchangeProxy based meta transactions
+        // schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
 
         // parse the request body
         const { mtx, signature } = parsePostTransactionRequestBody(req);
