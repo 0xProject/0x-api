@@ -70,12 +70,20 @@ export class OrderWatcherService {
         this._meshClient
             .getStatsAsync()
             .then(async () => {
-                this._meshClient.onOrderEvents().subscribe(async orders => {
-                    const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
-                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
-                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
-                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
-                });
+                this._meshClient.onOrderEvents().subscribe(
+                    async orders => {
+                        const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
+                        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
+                        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
+                        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
+                    },
+                    err => {
+                        const logError = new OrderWatcherSyncError(`Error with Mesh client connection: [${err.stack}]`);
+                        logger.error(logError);
+                        // TODO(kimpers): Expected in tests, unexpected in prod!
+                        // throw logError;
+                    },
+                );
             })
             .catch(err => {
                 const logError = new OrderWatcherSyncError(`Error on connecting to Mesh client: [${err.stack}]`);

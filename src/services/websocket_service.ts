@@ -137,9 +137,12 @@ export class WebsocketService {
         this._meshClient = meshClient;
 
         this._meshClient.getStatsAsync().then(() => {
-            this._orderEventsSubscription = this._meshClient
-                .onOrderEvents()
-                .subscribe(events => this.orderUpdate(meshUtils.orderInfosToApiOrders(events.map(e => e.order))));
+            this._orderEventsSubscription = this._meshClient.onOrderEvents().subscribe(
+                events => this.orderUpdate(meshUtils.orderInfosToApiOrders(events.map(e => e.order))),
+                err => {
+                    logger.error(new WebsocketServiceError(err));
+                },
+            );
         });
     }
 
