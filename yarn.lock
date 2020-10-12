@@ -94,9 +94,9 @@
   version "4.11.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/7f1880af64a3fdd7f9e9f8e0b3bed4cde6c810a9"
 
-"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.8.0-uniswap-vip-beta-deedfd886", "@0x/contract-wrappers@^13.8.0":
-  version "13.8.0-uniswap-vip-beta"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/da3810ca09cdab29800dccbe5e42ce606d96af6b"
+"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.8.0-2dc0bff1e", "@0x/contract-wrappers@^13.8.0":
+  version "13.8.0"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/06b1960b304a85bf04f355d945c31649359d58e9"
   dependencies:
     "@0x/assert" "^3.0.9"
     "@0x/base-contract" "^6.2.3"
@@ -417,9 +417,9 @@
   optionalDependencies:
     "@ledgerhq/hw-transport-node-hid" "^4.3.0"
 
-"@0x/order-utils@0xProject/gitpkg-registry#0x-order-utils-v10.3.0-beta-deedfd886", "@0x/order-utils@^10.2.4", "@0x/order-utils@^10.3.0":
-  version "10.3.0-beta"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/aef1ce87034e9f4e9a3e52514676a552d100cbc7"
+"@0x/order-utils@0xProject/gitpkg-registry#0x-order-utils-v10.3.0-2dc0bff1e", "@0x/order-utils@^10.2.4", "@0x/order-utils@^10.3.0":
+  version "10.3.0"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/ab4e8e421f687764b96a64378b7cf398839dda0c"
   dependencies:
     "@0x/assert" "^3.0.9"
     "@0x/contract-addresses" "^4.11.0"
