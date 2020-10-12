@@ -335,7 +335,7 @@ export class MetaTransactionService {
     }
 
     private _calculateProtocolFeeRequiredForMetaTransaction(mtx: ExchangeProxyMetaTransactionWithoutDomain): BigNumber {
-        const decoded = this._contractWrappers.getAbiDecoder().decodeCalldataOrThrow(mtx.callData, 'ExchangeProxy');
+        const decoded = this._contractWrappers.getAbiDecoder().decodeCalldataOrThrow(mtx.callData, 'IZeroEx');
         const supportedFunctions = ['transformERC20'];
         if (!supportedFunctions.includes(decoded.functionName)) {
             throw new Error('unsupported meta-transaction function');
