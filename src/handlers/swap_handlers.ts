@@ -77,8 +77,8 @@ export class SwapHandlers {
                     decodedUniqueId: quote.decodedUniqueId,
                     buyTokenAddress: quote.buyTokenAddress,
                     sellTokenAddress: quote.sellTokenAddress,
-                    buyAmount: quote.buyAmount,
-                    sellAmount: quote.sellAmount,
+                    buyAmount: params.buyAmount,
+                    sellAmount: params.sellAmount,
                 });
             }
         }
