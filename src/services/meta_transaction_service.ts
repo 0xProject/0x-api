@@ -181,7 +181,7 @@ export class MetaTransactionService {
         }
 
         try {
-            executeCall.callAsync({
+            await executeCall.callAsync({
                 gasPrice,
                 from: PUBLIC_ADDRESS_FOR_ETH_CALLS,
                 value: protocolFee,
