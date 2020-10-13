@@ -57,6 +57,10 @@ interface Transformation {
     data: string;
 }
 
+interface TxHashObject {
+    txHash: string;
+}
+
 export class MetaTransactionService {
     private readonly _provider: SupportedProvider;
     private readonly _contractWrappers: ContractWrappers;
@@ -278,12 +282,12 @@ export class MetaTransactionService {
         return signerStatus.live === true && hasUpdatedRecently;
     }
 
-    private async _waitUntilTxHashAsync(txEntity: TransactionEntity): Promise<{ txHash: string }> {
-        return utils.runWithTimeout(async () => {
+    private async _waitUntilTxHashAsync(txEntity: TransactionEntity): Promise<TxHashObject> {
+        return utils.runWithTimeout<TxHashObject>(async () => {
             while (true) {
                 const tx = await this._transactionEntityRepository.findOne(txEntity.refHash);
                 if (!utils.isNil(tx) && !utils.isNil(tx.txHash) && !utils.isNil(tx.data)) {
-                    return { ethereumTransactionHash: tx.txHash };
+                    return { txHash: tx.txHash };
                 }
 
                 await utils.delayAsync(SUBMITTED_TX_DB_POLLING_INTERVAL_MS);
