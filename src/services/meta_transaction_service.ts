@@ -1,14 +1,17 @@
 import { QuoteReport } from '@0x/asset-swapper';
 import { ContractTxFunctionObj } from '@0x/base-contract';
+import { ContractAddresses } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import {
     assetDataUtils,
+    decodeFillQuoteTransformerData,
+    findTransformerNonce,
     generatePseudoRandomSalt,
     getExchangeProxyMetaTransactionHash,
     SupportedProvider,
 } from '@0x/order-utils';
 import { PartialTxParams } from '@0x/subproviders';
-import { ExchangeProxyMetaTransaction, SignedOrder } from '@0x/types';
+import { ExchangeProxyMetaTransaction, Order, SignedOrder } from '@0x/types';
 import { BigNumber, RevertError } from '@0x/utils';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Connection, Repository } from 'typeorm';
@@ -49,6 +52,11 @@ interface SwapService {
     calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse>;
 }
 
+interface Transformation {
+    deploymentNonce: BigNumber;
+    data: string;
+}
+
 export class MetaTransactionService {
     private readonly _provider: SupportedProvider;
     private readonly _contractWrappers: ContractWrappers;
@@ -56,18 +64,25 @@ export class MetaTransactionService {
     private readonly _transactionEntityRepository: Repository<TransactionEntity>;
     private readonly _kvRepository: Repository<KeyValueEntity>;
     private readonly _swapService: SwapService;
+    private readonly _contractAddresses: ContractAddresses;
 
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
         return META_TXN_SUBMIT_WHITELISTED_API_KEYS.includes(apiKey);
     }
 
-    constructor(provider: SupportedProvider, dbConnection: Connection, swapService: SwapService) {
+    constructor(
+        provider: SupportedProvider,
+        dbConnection: Connection,
+        swapService: SwapService,
+        contractAddresses: ContractAddresses,
+    ) {
         this._provider = provider;
         this._contractWrappers = new ContractWrappers(this._provider, { chainId: CHAIN_ID });
         this._connection = dbConnection;
         this._transactionEntityRepository = this._connection.getRepository(TransactionEntity);
         this._kvRepository = this._connection.getRepository(KeyValueEntity);
         this._swapService = swapService;
+        this._contractAddresses = contractAddresses;
     }
 
     public async calculateMetaTransactionPriceAsync(
@@ -340,7 +355,25 @@ export class MetaTransactionService {
         if (!supportedFunctions.includes(decoded.functionName)) {
             throw new Error('unsupported meta-transaction function');
         }
-        return calculateProtocolFeeRequiredForOrders(mtx.minGasPrice, decoded.functionArguments.orders);
+
+        const fillQuoteTransformerDeploymentNonce = findTransformerNonce(
+            this._contractAddresses.transformers.fillQuoteTransformer,
+            this._contractAddresses.exchangeProxyTransformerDeployer,
+        );
+
+        const transformations: Transformation[] = decoded.functionArguments.transformations;
+
+        const fillQuoteTransformation = transformations.find(
+            t => t.deploymentNonce.toString() === fillQuoteTransformerDeploymentNonce.toString(),
+        );
+
+        if (!fillQuoteTransformation) {
+            throw new Error('Could not find fill quote transformation in decoded calldata');
+        }
+
+        const decodedFillQuoteTransformerData = decodeFillQuoteTransformerData(fillQuoteTransformation.data);
+
+        return calculateProtocolFeeRequiredForOrders(mtx.minGasPrice, decodedFillQuoteTransformerData.orders);
     }
 
     private _getMetaTransactionExecutionDetails(
@@ -374,7 +407,7 @@ function createExpirationTime(): BigNumber {
     return new BigNumber(Date.now() + TEN_MINUTES_MS).div(ONE_SECOND_MS).integerValue(BigNumber.ROUND_CEIL);
 }
 
-function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: SignedOrder[]): BigNumber {
+function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: Array<SignedOrder | Order>): BigNumber {
     const nativeOrderCount = orders.filter(o =>
         assetDataUtils.isERC20BridgeAssetData(assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData)),
     ).length;

@@ -148,7 +148,12 @@ export async function getDefaultAppDependenciesAsync(
     let metaTransactionService: MetaTransactionService | undefined;
     try {
         swapService = createSwapServiceFromOrderBookService(orderBookService, provider, contractAddresses);
-        metaTransactionService = createMetaTxnServiceFromSwapService(provider, connection, swapService);
+        metaTransactionService = createMetaTxnServiceFromSwapService(
+            provider,
+            connection,
+            swapService,
+            contractAddresses,
+        );
     } catch (err) {
         logger.error(err.stack);
     }
@@ -263,6 +268,7 @@ export function createMetaTxnServiceFromSwapService(
     provider: SupportedProvider,
     dbConnection: Connection,
     swapService: SwapService,
+    contractAddresses: ContractAddresses,
 ): MetaTransactionService {
-    return new MetaTransactionService(provider, dbConnection, swapService);
+    return new MetaTransactionService(provider, dbConnection, swapService, contractAddresses);
 }

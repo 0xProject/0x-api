@@ -90,7 +90,12 @@ describe('transaction watcher service', () => {
         const stakingDataService = new StakingDataService(connection);
         const websocketOpts = { path: SRA_PATH };
         const swapService = createSwapServiceFromOrderBookService(orderBookService, provider, contractAddresses);
-        const metaTransactionService = createMetaTxnServiceFromSwapService(provider, connection, swapService);
+        const metaTransactionService = createMetaTxnServiceFromSwapService(
+            provider,
+            connection,
+            swapService,
+            contractAddresses,
+        );
         const meshClient = new MeshClient(
             defaultHttpServiceConfig.meshWebsocketUri,
             defaultHttpServiceConfig.meshHttpUri,
