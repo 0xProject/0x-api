@@ -90,7 +90,6 @@
         "@0x/dev-utils": "^3.2.1",
         "@0x/migrations": "^6.2.4",
         "@0x/tslint-config": "^4.0.0",
-        "@0x/types": "^3.2.0",
         "@0x/typescript-typings": "^5.0.1",
         "@balancer-labs/sor": "^0.3.0",
         "@semantic-release/changelog": "^5.0.1",
