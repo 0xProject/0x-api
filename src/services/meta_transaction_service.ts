@@ -136,6 +136,10 @@ export class MetaTransactionService {
                 submissionBy: 'metaTxn',
                 quoteReport: quote.quoteReport,
                 zeroExTransactionHash: mtxHash,
+                buyTokenAddress: params.buyTokenAddress,
+                sellTokenAddress: params.sellTokenAddress,
+                buyAmount: params.buyAmount,
+                sellAmount: params.sellAmount,
             });
         }
         return {
