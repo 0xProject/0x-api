@@ -67,6 +67,7 @@ export const liquiditySources0xOnly = [
     { name: 'Swerve', proportion: '0' },
     { name: 'SushiSwap', proportion: '0' },
     { name: 'DODO', proportion: '0' },
+    { name: 'CREAM', proportion: '0' },
 ];
 
 export const randomSellQuote = {
