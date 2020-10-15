@@ -300,7 +300,7 @@ export class MetaTransactionHandlers {
             return;
         }
         try {
-            await this._metaTransactionService.validateTransactionFillAsync(mtx, signature);
+            await this._metaTransactionService.validateTransactionIsFillableAsync(mtx, signature);
 
             const ethTx = await this._metaTransactionService.generatePartialExecuteTransactionEthereumTransactionAsync(
                 mtx,

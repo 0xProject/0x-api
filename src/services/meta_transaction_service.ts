@@ -69,6 +69,7 @@ export class MetaTransactionService {
     private readonly _kvRepository: Repository<KeyValueEntity>;
     private readonly _swapService: SwapService;
     private readonly _contractAddresses: ContractAddresses;
+    private readonly _fillQuoteTransformerDeploymentNonce: number;
 
     public static isEligibleForFreeMetaTxn(apiKey: string): boolean {
         return META_TXN_SUBMIT_WHITELISTED_API_KEYS.includes(apiKey);
@@ -87,6 +88,10 @@ export class MetaTransactionService {
         this._kvRepository = this._connection.getRepository(KeyValueEntity);
         this._swapService = swapService;
         this._contractAddresses = contractAddresses;
+        this._fillQuoteTransformerDeploymentNonce = findTransformerNonce(
+            this._contractAddresses.transformers.fillQuoteTransformer,
+            this._contractAddresses.exchangeProxyTransformerDeployer,
+        );
     }
 
     public async calculateMetaTransactionPriceAsync(
@@ -155,7 +160,7 @@ export class MetaTransactionService {
         });
     }
 
-    public async validateTransactionFillAsync(
+    public async validateTransactionIsFillableAsync(
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
         signature: string,
     ): Promise<void> {
@@ -364,24 +369,27 @@ export class MetaTransactionService {
             throw new Error('unsupported meta-transaction function');
         }
 
-        const fillQuoteTransformerDeploymentNonce = findTransformerNonce(
-            this._contractAddresses.transformers.fillQuoteTransformer,
-            this._contractAddresses.exchangeProxyTransformerDeployer,
-        );
-
         const transformations: Transformation[] = decoded.functionArguments.transformations;
 
-        const fillQuoteTransformation = transformations.find(
-            t => t.deploymentNonce.toString() === fillQuoteTransformerDeploymentNonce.toString(),
+        const fillQuoteTransformations = transformations.filter(
+            t => t.deploymentNonce.toString() === this._fillQuoteTransformerDeploymentNonce.toString(),
         );
 
-        if (!fillQuoteTransformation) {
+        if (fillQuoteTransformations.length === 0) {
             throw new Error('Could not find fill quote transformation in decoded calldata');
         }
 
-        const decodedFillQuoteTransformerData = decodeFillQuoteTransformerData(fillQuoteTransformation.data);
+        const totalProtocolFeeRequiredForOrders = fillQuoteTransformations.reduce((memo, transformation) => {
+            const decodedFillQuoteTransformerData = decodeFillQuoteTransformerData(transformation.data);
+            const protocolFee = calculateProtocolFeeRequiredForOrders(
+                mtx.maxGasPrice,
+                decodedFillQuoteTransformerData.orders,
+            );
 
-        return calculateProtocolFeeRequiredForOrders(mtx.minGasPrice, decodedFillQuoteTransformerData.orders);
+            return memo.plus(protocolFee);
+        }, new BigNumber(0));
+
+        return totalProtocolFeeRequiredForOrders;
     }
 
     private _getMetaTransactionExecutionDetails(
