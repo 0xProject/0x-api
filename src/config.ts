@@ -11,6 +11,7 @@ import {
     OrderPrunerPermittedFeeTypes,
     RfqtMakerAssetOfferings,
     SamplerOverrides,
+    SnowSwapFillData,
     SOURCE_FLAGS,
     SushiSwapFillData,
     SwapQuoteRequestOpts,
@@ -450,7 +451,16 @@ export const GAS_SCHEDULE: FeeSchedule = {
     [ERC20BridgeSource.MStable]: () => 700e3,
     [ERC20BridgeSource.Mooniswap]: () => 220e3,
     [ERC20BridgeSource.Swerve]: () => 150e3,
-    [ERC20BridgeSource.SnowSwap]: () => 150e3,
+    [ERC20BridgeSource.SnowSwap]: fillData => {
+        switch ((fillData as SnowSwapFillData).pool.poolAddress.toLowerCase()) {
+            case '0xbf7ccd6c446acfcc5df023043f2167b62e81899b':
+                return 1000e3;
+            case '0x4571753311e37ddb44faa8fb78a6df9a6e3c6c0b':
+                return 1500e3;
+            default:
+                throw new Error('Unrecognized SnowSwap address');
+        }
+    },
     [ERC20BridgeSource.Shell]: () => 300e3,
     [ERC20BridgeSource.MultiHop]: fillData => {
         const firstHop = (fillData as MultiHopFillData).firstHopSource;
