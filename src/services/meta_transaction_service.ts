@@ -16,7 +16,12 @@ import { BigNumber, RevertError } from '@0x/utils';
 import { utils as web3WrapperUtils } from '@0x/web3-wrapper/lib/src/utils';
 import { Connection, Repository } from 'typeorm';
 
-import { CHAIN_ID, META_TXN_RELAY_EXPECTED_MINED_SEC, META_TXN_SUBMIT_WHITELISTED_API_KEYS } from '../config';
+import {
+    CHAIN_ID,
+    META_TXN_RELAY_EXPECTED_MINED_SEC,
+    META_TXN_SUBMIT_WHITELISTED_API_KEYS,
+    PROTOCOL_FEE_MULTIPLIER,
+} from '../config';
 import {
     DEFAULT_VALIDATION_GAS_LIMIT,
     NULL_ADDRESS,
@@ -424,9 +429,9 @@ function createExpirationTime(): BigNumber {
 }
 
 function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: Array<SignedOrder | Order>): BigNumber {
-    const nativeOrderCount = orders.filter(o =>
-        assetDataUtils.isERC20BridgeAssetData(assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData)),
+    const nativeOrderCount = orders.filter(
+        o => !assetDataUtils.isERC20BridgeAssetData(assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData)),
     ).length;
-    return gasPrice.times(nativeOrderCount);
+    return gasPrice.times(nativeOrderCount).times(PROTOCOL_FEE_MULTIPLIER);
 }
 // tslint:disable-next-line: max-file-line-count
