@@ -34,10 +34,11 @@ import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
 
 const SUITE_NAME = '/swap/v1';
+const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
 const DEFAULT_QUERY_PARAMS = {
     buyToken: 'ZRX',
     sellToken: 'WETH',
-    includedSources: '0x',
+    excludedSources: EXCLUDED_SOURCES.join(','),
 };
 
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');

@@ -1,3 +1,4 @@
+import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { constants, expect, signingUtils, transactionHashUtils } from '@0x/contracts-test-utils';
@@ -66,12 +67,12 @@ describe(SUITE_NAME, () => {
     after(async () => {
         await teardownApiAsync(SUITE_NAME);
     });
-
+    const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
     const DEFAULT_QUERY_PARAMS = {
         buyToken: 'ZRX',
         sellToken: 'WETH',
         buyAmount,
-        includedSources: '0x',
+        excludedSources: EXCLUDED_SOURCES.join(','),
     };
 
     async function assertFailureAsync(baseRoute: string, testCase: TestCase): Promise<void> {
@@ -81,8 +82,8 @@ describe(SUITE_NAME, () => {
         });
         const response = await httpGetAsync({ route });
         expect(response.type).to.be.eq('application/json');
-        expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
         expect(response.body).to.be.deep.eq(testCase.body);
+        expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
     }
 
     interface TestCase {
