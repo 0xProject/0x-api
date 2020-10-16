@@ -315,6 +315,17 @@ const EXCLUDED_SOURCES = (() => {
     }
 })();
 
+const EXCLUDED_FEE_SOURCES = (() => {
+    switch (CHAIN_ID) {
+        case ChainId.Mainnet:
+            return [];
+        case ChainId.Kovan:
+            return [ERC20BridgeSource.Uniswap];
+        default:
+            return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
+    }
+})();
+
 // We are keeping cost in gross gas for just the portion of the fill
 // overhead is then later added ontop of the conservative estimate
 export const GAS_SCHEDULE: FeeSchedule = {
@@ -398,6 +409,7 @@ const FEE_SCHEDULE: FeeSchedule = Object.assign(
 
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
+    excludedFeeSources: EXCLUDED_FEE_SOURCES,
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
