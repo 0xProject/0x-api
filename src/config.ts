@@ -278,7 +278,7 @@ export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(70000);
 const EXCLUDED_SOURCES = (() => {
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [];
+            return [ERC20BridgeSource.MultiBridge];
         case ChainId.Kovan:
             return [
                 ERC20BridgeSource.Balancer,
@@ -314,6 +314,17 @@ const EXCLUDED_SOURCES = (() => {
                 ERC20BridgeSource.SushiSwap,
                 ERC20BridgeSource.Cream,
             ];
+    }
+})();
+
+const EXCLUDED_FEE_SOURCES = (() => {
+    switch (CHAIN_ID) {
+        case ChainId.Mainnet:
+            return [];
+        case ChainId.Kovan:
+            return [ERC20BridgeSource.Uniswap];
+        default:
+            return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
     }
 })();
 
@@ -373,6 +384,7 @@ const FEE_SCHEDULE_V0: FeeSchedule = Object.assign(
 
 export const ASSET_SWAPPER_MARKET_ORDERS_V0_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: [...EXCLUDED_SOURCES, ERC20BridgeSource.MultiHop],
+    excludedFeeSources: EXCLUDED_FEE_SOURCES,
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
@@ -467,6 +479,7 @@ const FEE_SCHEDULE_V1: FeeSchedule = Object.assign(
 
 export const ASSET_SWAPPER_MARKET_ORDERS_V1_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
+    excludedFeeSources: EXCLUDED_FEE_SOURCES,
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
