@@ -442,7 +442,7 @@ export const GAS_SCHEDULE_V1: FeeSchedule = {
         return gas;
     },
     [ERC20BridgeSource.Balancer]: () => 120e3,
-    [ERC20BridgeSource.Cream]: () => 400e3,
+    [ERC20BridgeSource.Cream]: () => 300e3,
     [ERC20BridgeSource.MStable]: () => 700e3,
     [ERC20BridgeSource.Mooniswap]: () => 220e3,
     [ERC20BridgeSource.Swerve]: () => 150e3,
