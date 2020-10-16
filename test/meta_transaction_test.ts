@@ -1,4 +1,3 @@
-import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { constants, expect, signingUtils, transactionHashUtils } from '@0x/contracts-test-utils';
@@ -68,12 +67,11 @@ describe(SUITE_NAME, () => {
         await teardownApiAsync(SUITE_NAME);
     });
 
-    const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
     const DEFAULT_QUERY_PARAMS = {
         buyToken: 'ZRX',
         sellToken: 'WETH',
         buyAmount,
-        excludedSources: EXCLUDED_SOURCES.join(','),
+        includedSources: '0x',
     };
 
     async function assertFailureAsync(baseRoute: string, testCase: TestCase): Promise<void> {
