@@ -381,10 +381,8 @@ export const GAS_SCHEDULE: FeeSchedule = {
     [ERC20BridgeSource.MultiHop]: fillData => {
         const firstHop = (fillData as MultiHopFillData).firstHopSource;
         const secondHop = (fillData as MultiHopFillData).secondHopSource;
-        const firstHopGas =
-            GAS_SCHEDULE[firstHop.source] === undefined ? 0 : GAS_SCHEDULE[firstHop.source]!(firstHop.fillData);
-        const secondHopGas =
-            GAS_SCHEDULE[secondHop.source] === undefined ? 0 : GAS_SCHEDULE[secondHop.source]!(secondHop.fillData);
+        const firstHopGas = GAS_SCHEDULE[firstHop.source]?.(firstHop.fillData) ?? 0;
+        const secondHopGas = GAS_SCHEDULE[secondHop.source]?.(secondHop.fillData) ?? 0;
         return new BigNumber(firstHopGas)
             .plus(secondHopGas)
             .plus(30e3)
