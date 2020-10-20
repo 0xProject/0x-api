@@ -39,7 +39,7 @@ import { serviceUtils } from '../utils/service_utils';
 import {
     findTokenAddressOrThrowApiError,
     getTokenMetadataIfExists,
-    isETHSymbol,
+    isETHSymbolOrAddress,
     isWETHSymbolOrAddress,
 } from '../utils/token_metadata_utils';
 
@@ -243,8 +243,8 @@ export class SwapHandlers {
             includePriceComparisons,
         } = params;
 
-        const isETHSell = isETHSymbol(sellToken);
-        const isETHBuy = isETHSymbol(buyToken);
+        const isETHSell = isETHSymbolOrAddress(sellToken);
+        const isETHBuy = isETHSymbolOrAddress(buyToken);
         const sellTokenAddress = findTokenAddressOrThrowApiError(isETHSell ? 'WETH' : sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(isETHBuy ? 'WETH' : buyToken, 'buyToken', CHAIN_ID);
         const isWrap = isETHSell && isWETHSymbolOrAddress(buyToken, CHAIN_ID);
