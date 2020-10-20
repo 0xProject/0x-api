@@ -1,6 +1,5 @@
 import { assert } from '@0x/assert';
 import { ERC20BridgeSource, SwapQuoterError } from '@0x/asset-swapper';
-import { ETH_TOKEN_ADDRESS } from '@0x/order-utils';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -193,8 +192,13 @@ export class MetaTransactionHandlers {
         } = parseGetTransactionRequestParams(req);
         const sellToken = getTokenMetadataIfExists(sellTokenAddress, CHAIN_ID);
         const buyToken = getTokenMetadataIfExists(buyTokenAddress, CHAIN_ID);
-        const isETHSell = isETHSymbolOrAddress(sellToken!.symbol);
         const isETHBuy = isETHSymbolOrAddress(buyToken!.symbol);
+
+        // ETH selling isn't supported.
+        if (isETHSymbolOrAddress(sellToken!.symbol)) {
+            throw new EthSellNotSupportedError();
+        }
+
         try {
             const metaTransactionPrice = await this._metaTransactionService.calculateMetaTransactionPriceAsync({
                 takerAddress,
@@ -209,7 +213,7 @@ export class MetaTransactionHandlers {
                 apiKey,
                 includePriceComparisons,
                 isETHBuy,
-                isETHSell,
+                isETHSell: false,
                 affiliateFee,
             });
 
@@ -228,8 +232,8 @@ export class MetaTransactionHandlers {
                 price: metaTransactionPrice.price,
                 buyAmount: metaTransactionPrice.buyAmount!,
                 sellAmount: metaTransactionPrice.sellAmount!,
-                sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellTokenAddress,
-                buyTokenAddress: isETHBuy ? ETH_TOKEN_ADDRESS : buyTokenAddress,
+                sellTokenAddress,
+                buyTokenAddress,
                 sources: metaTransactionPrice.sources,
                 value: metaTransactionPrice.protocolFee,
                 gasPrice: metaTransactionPrice.gasPrice,

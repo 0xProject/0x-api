@@ -245,6 +245,7 @@ export class SwapHandlers {
 
         const isETHSell = isETHSymbolOrAddress(sellToken);
         const isETHBuy = isETHSymbolOrAddress(buyToken);
+        // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
         const sellTokenAddress = findTokenAddressOrThrowApiError(isETHSell ? 'WETH' : sellToken, 'sellToken', CHAIN_ID);
         const buyTokenAddress = findTokenAddressOrThrowApiError(isETHBuy ? 'WETH' : buyToken, 'buyToken', CHAIN_ID);
         const isWrap = isETHSell && isWETHSymbolOrAddress(buyToken, CHAIN_ID);
