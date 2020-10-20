@@ -1,5 +1,6 @@
 import { assert } from '@0x/assert';
 import { ERC20BridgeSource, SwapQuoterError } from '@0x/asset-swapper';
+import { ETH_TOKEN_ADDRESS } from '@0x/order-utils';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -98,9 +99,9 @@ export class MetaTransactionHandlers {
                 apiKey,
                 includePriceComparisons,
                 isETHBuy,
+                isETHSell: false,
                 affiliateFee,
                 from: takerAddress,
-                isETHSell: false,
             });
 
             let priceComparisons: SourceComparison[] | undefined;
@@ -223,8 +224,8 @@ export class MetaTransactionHandlers {
                 price: metaTransactionPrice.price,
                 buyAmount: metaTransactionPrice.buyAmount!,
                 sellAmount: metaTransactionPrice.sellAmount!,
-                sellTokenAddress,
-                buyTokenAddress,
+                sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellTokenAddress,
+                buyTokenAddress: isETHBuy ? ETH_TOKEN_ADDRESS : buyTokenAddress,
                 sources: metaTransactionPrice.sources,
                 value: metaTransactionPrice.protocolFee,
                 gasPrice: metaTransactionPrice.gasPrice,

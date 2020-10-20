@@ -16,7 +16,7 @@ export function getTokenMetadataIfExists(tokenAddressOrSymbol: string, chainId: 
             tm => tm.tokenAddresses[chainId].toLowerCase() === tokenAddressOrSymbol.toLowerCase(),
         );
     } else {
-        const normalizedSymbol = (isETHSymbol(tokenAddressOrSymbol) ? 'WETH' : tokenAddressOrSymbol).toLowerCase();
+        const normalizedSymbol = tokenAddressOrSymbol.toLowerCase();
         entry = TokenMetadatasForChains.find(tm => tm.symbol.toLowerCase() === normalizedSymbol);
     }
 

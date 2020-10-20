@@ -245,8 +245,8 @@ export class SwapHandlers {
 
         const isETHSell = isETHSymbol(sellToken);
         const isETHBuy = isETHSymbol(buyToken);
-        const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
-        const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
+        const sellTokenAddress = findTokenAddressOrThrowApiError(isETHSell ? 'WETH' : sellToken, 'sellToken', CHAIN_ID);
+        const buyTokenAddress = findTokenAddressOrThrowApiError(isETHBuy ? 'WETH' : buyToken, 'buyToken', CHAIN_ID);
         const isWrap = isETHSell && isWETHSymbolOrAddress(buyToken, CHAIN_ID);
         const isUnwrap = isWETHSymbolOrAddress(sellToken, CHAIN_ID) && isETHBuy;
         // if token addresses are the same but a unwrap or wrap operation is requested, ignore error
