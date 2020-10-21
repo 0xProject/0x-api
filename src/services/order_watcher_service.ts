@@ -50,7 +50,7 @@ export class OrderWatcherService {
         alertOnExpiredOrders(expired, `Erroneously accepted when posting to Mesh`);
 
         // 5. Remove all of the rejected and expired orders from local cache
-        const orderHashesToRemove = rejected.map(r => r.hash).filter(r => !!r);
+        const orderHashesToRemove = rejected.map(r => r.hash).filter(r => !!r) as string[];
         if (orderHashesToRemove.length > 0) {
             await this._removeOrdersByOrderHashAsync(orderHashesToRemove);
         }
