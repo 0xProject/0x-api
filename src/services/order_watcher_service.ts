@@ -80,8 +80,7 @@ export class OrderWatcherService {
                     err => {
                         const logError = new OrderWatcherSyncError(`Error with Mesh client connection: [${err.stack}]`);
                         logger.error(logError);
-                        // TODO(kimpers): Expected in tests, unexpected in prod!
-                        // throw logError;
+                        throw logError;
                     },
                 );
             })
