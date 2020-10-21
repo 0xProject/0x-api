@@ -14,6 +14,7 @@ import * as config from '../src/config';
 import { META_TRANSACTION_PATH, ONE_SECOND_MS, TEN_MINUTES_MS } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 import { GetMetaTransactionQuoteResponse } from '../src/types';
+import { meshUtils } from '../src/utils/mesh_utils';
 
 import { ETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
 import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
@@ -216,14 +217,14 @@ describe(SUITE_NAME, () => {
         });
 
         context('success tests', () => {
-            let meshUtils: MeshTestUtils;
+            let meshTestUtils: MeshTestUtils;
             const price = '1';
             const sellAmount = calculateSellAmount(buyAmount, price);
 
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
-                meshUtils = new MeshTestUtils(provider);
-                await meshUtils.setupUtilsAsync();
+                meshTestUtils = new MeshTestUtils(provider);
+                await meshTestUtils.setupUtilsAsync();
             });
 
             afterEach(async () => {
@@ -233,7 +234,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the only order in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersWithPricesAsync([1]);
+                const validationResults = await meshTestUtils.addOrdersWithPricesAsync([1]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
@@ -256,7 +257,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the cheaper order in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
+                const validationResults = await meshTestUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/price`,
@@ -279,7 +280,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should show the price of the combination of the two orders in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
+                const validationResults = await meshTestUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const largeOrderPrice = '1.5';
                 const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
@@ -395,13 +396,13 @@ describe(SUITE_NAME, () => {
         });
 
         context('success tests', () => {
-            let meshUtils: MeshTestUtils;
+            let meshTestUtils: MeshTestUtils;
 
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
                 await setupMeshAsync(SUITE_NAME);
-                meshUtils = new MeshTestUtils(provider);
-                await meshUtils.setupUtilsAsync();
+                meshTestUtils = new MeshTestUtils(provider);
+                await meshTestUtils.setupUtilsAsync();
             });
 
             afterEach(async () => {
@@ -416,7 +417,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should return a quote of the only order in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersWithPricesAsync([1]);
+                const validationResults = await meshTestUtils.addOrdersWithPricesAsync([1]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/quote`,
@@ -431,7 +432,7 @@ describe(SUITE_NAME, () => {
                 assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: buyAmount,
-                    expectedOrders: [validationResults.accepted[0].order],
+                    expectedOrders: [meshUtils.orderWithMetadataToSignedOrder(validationResults.accepted[0].order)],
                     expectedPrice: '1',
                 });
             });
@@ -475,7 +476,7 @@ describe(SUITE_NAME, () => {
             });
 
             it('should return a quote of the cheaper order in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
+                const validationResults = await meshTestUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const route = constructRoute({
                     baseRoute: `${META_TRANSACTION_PATH}/quote`,
@@ -491,13 +492,13 @@ describe(SUITE_NAME, () => {
                 assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: buyAmount,
-                    expectedOrders: [validationResults.accepted[0].order],
+                    expectedOrders: [meshUtils.orderWithMetadataToSignedOrder(validationResults.accepted[0].order)],
                     expectedPrice: '1',
                 });
             });
 
             it('should return a quote of the combination of the two orders in Mesh', async () => {
-                const validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
+                const validationResults = await meshTestUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 const largeBuyAmount = DEFAULT_MAKER_ASSET_AMOUNT.times(2).toString();
                 const route = constructRoute({
@@ -514,7 +515,9 @@ describe(SUITE_NAME, () => {
                 assertCorrectMetaQuote({
                     quote: response.body,
                     expectedBuyAmount: largeBuyAmount,
-                    expectedOrders: validationResults.accepted.map(accepted => accepted.order),
+                    expectedOrders: validationResults.accepted.map(accepted =>
+                        meshUtils.orderWithMetadataToSignedOrder(accepted.order),
+                    ),
                     expectedPrice: '1.5',
                 });
             });
@@ -537,7 +540,7 @@ describe(SUITE_NAME, () => {
         });
 
         context('success tests', () => {
-            let meshUtils: MeshTestUtils;
+            let meshTestUtils: MeshTestUtils;
 
             function signZeroExTransaction(transaction: ZeroExTransaction, signingAddress: string): string {
                 const transactionHashBuffer = transactionHashUtils.getTransactionHashBuffer(transaction);
@@ -554,15 +557,13 @@ describe(SUITE_NAME, () => {
                 const price = '1';
                 const sellAmount = calculateSellAmount(buyAmount, price);
 
-                // NOTE(jalextowle): This must be a `before` hook because `beforeEach`
-                // hooks execute after all of the `before` hooks (even if they are nested).
-                before(async () => {
+                beforeEach(async () => {
                     await blockchainLifecycle.startAsync();
-                    meshUtils = new MeshTestUtils(provider);
-                    await meshUtils.setupUtilsAsync();
+                    meshTestUtils = new MeshTestUtils(provider);
+                    await meshTestUtils.setupUtilsAsync();
                 });
 
-                after(async () => {
+                afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
                     await teardownMeshAsync(SUITE_NAME);
                     // NOTE(jalextowle): Spin up a new Mesh instance so that it will
@@ -570,8 +571,8 @@ describe(SUITE_NAME, () => {
                     await setupMeshAsync(SUITE_NAME);
                 });
 
-                before(async () => {
-                    validationResults = await meshUtils.addOrdersWithPricesAsync([1]);
+                beforeEach(async () => {
+                    validationResults = await meshTestUtils.addOrdersWithPricesAsync([1]);
                     expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 });
 
@@ -612,7 +613,7 @@ describe(SUITE_NAME, () => {
                     assertCorrectMetaQuote({
                         quote: response.body,
                         expectedBuyAmount: buyAmount,
-                        expectedOrders: [validationResults.accepted[0].order],
+                        expectedOrders: [meshUtils.orderWithMetadataToSignedOrder(validationResults.accepted[0].order)],
                         expectedPrice: price,
                     });
                     transaction = response.body.mtx;
@@ -665,15 +666,13 @@ describe(SUITE_NAME, () => {
                 const price = '1.5';
                 const sellAmount = calculateSellAmount(largeBuyAmount, price);
 
-                // NOTE(jalextowle): This must be a `before` hook because `beforeEach`
-                // hooks execute after all of the `before` hooks (even if they are nested).
-                before(async () => {
+                beforeEach(async () => {
                     await blockchainLifecycle.startAsync();
-                    meshUtils = new MeshTestUtils(provider);
-                    await meshUtils.setupUtilsAsync();
+                    meshTestUtils = new MeshTestUtils(provider);
+                    await meshTestUtils.setupUtilsAsync();
                 });
 
-                after(async () => {
+                afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
                     await teardownMeshAsync(SUITE_NAME);
                     // NOTE(jalextowle): Spin up a new Mesh instance so that it will
@@ -681,8 +680,8 @@ describe(SUITE_NAME, () => {
                     await setupMeshAsync(SUITE_NAME);
                 });
 
-                before(async () => {
-                    validationResults = await meshUtils.addOrdersWithPricesAsync([1, 2]);
+                beforeEach(async () => {
+                    validationResults = await meshTestUtils.addOrdersWithPricesAsync([1, 2]);
                     expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 });
 

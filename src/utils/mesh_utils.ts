@@ -1,17 +1,29 @@
-import { OrderEvent, OrderEventEndState, OrderWithMetadata, RejectedOrderCode } from '@0x/mesh-graphql-client';
+import {
+    OrderEvent,
+    OrderEventEndState,
+    OrderWithMetadata,
+    RejectedOrderCode,
+    SignedOrder,
+} from '@0x/mesh-graphql-client';
+import * as _ from 'lodash';
 
 import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { AddedRemovedUpdate, APIOrderWithMetaData } from '../types';
 
 export const meshUtils = {
+    orderWithMetadataToSignedOrder(order: OrderWithMetadata): SignedOrder {
+        const cleanedOrder: SignedOrder = _.omit(order, ['hash', 'fillableTakerAssetAmount']);
+
+        return cleanedOrder;
+    },
     orderInfosToApiOrders: (orders: OrderWithMetadata[]): APIOrderWithMetaData[] => {
         return orders.map(e => meshUtils.orderInfoToAPIOrder(e));
     },
     orderInfoToAPIOrder: (order: OrderWithMetadata): APIOrderWithMetaData => {
         const remainingFillableTakerAssetAmount = order.fillableTakerAssetAmount;
         return {
-            order,
+            order: meshUtils.orderWithMetadataToSignedOrder(order),
             metaData: {
                 orderHash: order.hash,
                 remainingFillableTakerAssetAmount,
