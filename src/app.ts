@@ -21,6 +21,7 @@ import { SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { logger } from './logger';
 import { OrderBookServiceOrderProvider } from './order_book_service_order_provider';
+import { RfqtQuoteProcessor } from './rfqt_quote_processor';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
@@ -60,6 +61,7 @@ export interface AppDependencies {
     transactionWatcherService?: TransactionWatcherSignerService;
     metricsService?: MetricsService;
     rateLimiter?: MetaTransactionRateLimiter;
+    rfqtQuoteProcessor?: RfqtQuoteProcessor;
 }
 
 async function deploySamplerContractAsync(
@@ -146,11 +148,17 @@ export async function getDefaultAppDependenciesAsync(
     }
 
     const orderBookService = new OrderBookService(connection, meshClient);
+    const rfqtQuoteProcessor = new RfqtQuoteProcessor(connection, logger.warn);
 
     let swapService: SwapService | undefined;
     let metaTransactionService: MetaTransactionService | undefined;
     try {
-        swapService = createSwapServiceFromOrderBookService(orderBookService, provider, contractAddresses);
+        swapService = createSwapServiceFromOrderBookService(
+            orderBookService,
+            rfqtQuoteProcessor,
+            provider,
+            contractAddresses,
+        );
         metaTransactionService = createMetaTxnServiceFromSwapService(
             provider,
             connection,
@@ -254,13 +262,14 @@ function createMetaTransactionRateLimiterFromConfig(
  */
 export function createSwapServiceFromOrderBookService(
     orderBookService: OrderBookService,
+    rfqtQuoteProcessor: RfqtQuoteProcessor,
     provider: SupportedProvider,
     contractAddresses: AssetSwapperContractAddresses,
 ): SwapService {
     const orderStore = new OrderStoreDbAdapter(orderBookService);
     const orderProvider = new OrderBookServiceOrderProvider(orderStore, orderBookService);
     const orderBook = new Orderbook(orderProvider, orderStore);
-    return new SwapService(orderBook, provider, contractAddresses);
+    return new SwapService(orderBook, provider, contractAddresses, rfqtQuoteProcessor);
 }
 
 /**
