@@ -281,7 +281,9 @@ const EXCLUDED_SOURCES = (() => {
         case ChainId.Mainnet:
             return [ERC20BridgeSource.MultiBridge];
         case ChainId.Kovan:
-            return allERC20BridgeSources.filter(s => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2);
+            return allERC20BridgeSources.filter(
+                s => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
+            );
         default:
             return allERC20BridgeSources;
     }
