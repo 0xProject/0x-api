@@ -67,37 +67,26 @@ export class OrderWatcherService {
     constructor(connection: Connection, meshClient: MeshClient) {
         this._connection = connection;
         this._meshClient = meshClient;
-        this._meshClient
-            .getStatsAsync()
-            .then(async () => {
-                this._meshClient.onOrderEvents().subscribe(
-                    async orders => {
-                        const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
-                        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
-                        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
-                        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
-                    },
-                    err => {
-                        const logError = new OrderWatcherSyncError(`Error with Mesh client connection: [${err.stack}]`);
-                        logger.error(logError);
-                        throw logError;
-                    },
-                );
-            })
-            .catch(err => {
-                const logError = new OrderWatcherSyncError(`Error on connecting to Mesh client: [${err.stack}]`);
+        this._meshClient.onOrderEvents().subscribe({
+            next: async orders => {
+                const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
+                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
+                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
+                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
+            },
+            error: err => {
+                const logError = new OrderWatcherSyncError(`Error with Mesh client connection: [${err.stack}]`);
+                logger.error(logError);
+            },
+        });
+        this._meshClient.onReconnected(() => {
+            logger.info('OrderWatcherService reconnected to Mesh. Re-syncing orders');
+            this.syncOrderbookAsync().catch(err => {
+                const logError = new OrderWatcherSyncError(`Error on reconnecting Mesh client: [${err.stack}]`);
+                logger.error(logError);
                 throw logError;
             });
-        // TODO(kimpers): How to handle reconnects?
-        // this._meshClient.onReconnected(async () => {
-        // logger.info('OrderWatcherService reconnecting to Mesh');
-        // try {
-        // await this.syncOrderbookAsync();
-        // } catch (err) {
-        // const logError = new OrderWatcherSyncError(`Error on reconnecting Mesh client: [${err.stack}]`);
-        // throw logError;
-        // }
-        // });
+        });
     }
     private async _removeOrdersByOrderHashAsync(orderHashes: string[]): Promise<void> {
         // MAX SQL variable size is 999. This limit is imposed via Sqlite
