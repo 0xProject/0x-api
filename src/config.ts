@@ -276,7 +276,6 @@ export const PRICE_AWARE_RFQ_ENABLED: boolean = _.isEmpty(process.env.PRICE_AWAR
     ? false
     : assertEnvVarType('PRICE_AWARE_RFQ_ENABLED', process.env.PRICE_AWARE_RFQ_ENABLED, EnvVarType.Boolean);
 
-
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision
