@@ -285,7 +285,7 @@ const EXCLUDED_SOURCES = (() => {
                 s => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
             );
         default:
-            return allERC20BridgeSources;
+            return allERC20BridgeSources.filter(s => s !== ERC20BridgeSource.Native);
     }
 })();
 
