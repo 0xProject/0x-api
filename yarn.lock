@@ -433,10 +433,9 @@
     dexie "^3.0.1"
     ethereum-types "^3.0.0"
 
-"@0x/mesh-graphql-client@^10.1.0":
+"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.1.0-960501b4":
   version "10.1.0"
-  resolved "https://registry.yarnpkg.com/@0x/mesh-graphql-client/-/mesh-graphql-client-10.1.0.tgz#7fef30460b88d470dda31a6496cbd17bf198bd2c"
-  integrity sha512-OXyxh7hTX9d9bWNRWmnKFsW7LRpm/qfuEq2WWY6aS9Ke4pmp0cl2b9uZkYXmWr94Y2ySaX8OG7xtcZJ3mE9HbQ==
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/c200839c50af36bf86cf7ba1f0dae9019a9cf3a9"
   dependencies:
     "@0x/mesh-browser-lite" "^10.1.0"
     "@0x/types" "^3.2.0"
