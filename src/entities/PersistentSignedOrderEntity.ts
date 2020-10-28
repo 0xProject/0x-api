@@ -3,9 +3,10 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 import { SignedOrderEntity } from './SignedOrderEntity';
 
-// identical to SignedOrderEntity, but persists after cancellation, expiration, etc
-// we save these to support account history for Matcha front-end
-@Entity({ name: 'signed_orders' })
+// Adds a field `orderState` to SignedOrderEntity
+// Persists after cancellation, expiration, etc
+// We save these to support account history for Matcha front-end
+@Entity({ name: 'persistent_signed_orders' })
 export class PersistentSignedOrderEntity extends SignedOrderEntity {
     @PrimaryColumn({ name: 'hash', type: 'varchar' })
     public hash?: string;

@@ -1,5 +1,5 @@
 import { APIOrder, OrderbookResponse, PaginatedCollection } from '@0x/connect';
-import { OrderEventEndState } from '@0x/mesh-rpc-client';
+import { AcceptedOrderInfo, OrderEventEndState } from '@0x/mesh-rpc-client';
 import { AssetPairsItem, OrdersRequestOpts, SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
@@ -189,30 +189,20 @@ export class OrderBookService {
         return this.addOrdersAsync([signedOrder], pinned);
     }
     public async addOrdersAsync(signedOrders: SignedOrder[], pinned: boolean): Promise<void> {
-        if (this._meshClient) {
-            const { rejected } = await this._meshClient.addOrdersAsync(signedOrders, pinned);
-            if (rejected.length !== 0) {
-                const validationErrors = rejected.map((r, i) => ({
-                    field: `signedOrder[${i}]`,
-                    code: meshUtils.rejectedCodeToSRACode(r.status.code),
-                    reason: `${r.status.code}: ${r.status.message}`,
-                }));
-                throw new ValidationError(validationErrors);
-            }
-            // Order Watcher Service will handle persistence
-            return;
-        }
-        throw new Error('Could not add order to mesh.');
+        // Order Watcher Service will handle persistence
+        await this._addOrdersAsync(signedOrders, pinned);
+        return;
     }
     public async addPersistentOrdersAsync(signedOrders: SignedOrder[], pinned: boolean): Promise<void> {
-        await this.addOrdersAsync(signedOrders, pinned);
-        const persistentOrders = signedOrders.map(order => {
+        const accepted = await this._addOrdersAsync(signedOrders, pinned);
+        const persistentOrders = accepted.map(orderInfo => {
+            const order = orderInfo.signedOrder;
             const apiOrder: APIOrderWithMetaData = {
                 order,
                 metaData: {
                     state: OrderEventEndState.Added,
-                    remainingFillableTakerAssetAmount: order.takerAssetAmount,
-                    orderHash: 'xxx', // todo
+                    remainingFillableTakerAssetAmount: orderInfo.fillableTakerAssetAmount,
+                    orderHash: orderInfo.orderHash,
                 },
             };
             return orderUtils.serializePersistentOrder(apiOrder);
@@ -226,5 +216,21 @@ export class OrderBookService {
     }
     public async splitOrdersByPinningAsync(signedOrders: SignedOrder[]): Promise<PinResult> {
         return orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);
+    }
+    private async _addOrdersAsync(signedOrders: SignedOrder[], pinned: boolean): Promise<AcceptedOrderInfo[]> {
+        if (this._meshClient) {
+            const { rejected, accepted } = await this._meshClient.addOrdersAsync(signedOrders, pinned);
+            if (rejected.length !== 0) {
+                const validationErrors = rejected.map((r, i) => ({
+                    field: `signedOrder[${i}]`,
+                    code: meshUtils.rejectedCodeToSRACode(r.status.code),
+                    reason: `${r.status.code}: ${r.status.message}`,
+                }));
+                throw new ValidationError(validationErrors);
+            }
+            // Order Watcher Service will handle persistence
+            return accepted;
+        }
+        throw new Error('Could not add order to mesh.');
     }
 }

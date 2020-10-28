@@ -137,8 +137,8 @@ export class OrderWatcherService {
                 );
 
                 // 2. Create the Update queries
+                // tslint:disable-next-line:promise-function-async
                 const updatePromises = filtered.map(apiOrder => {
-                    // tslint:disable-line:promise-function-async
                     const { remainingFillableTakerAssetAmount, state: orderState, orderHash } = apiOrder.metaData;
                     return this._connection.manager.update(PersistentSignedOrderEntity, orderHash, {
                         remainingFillableTakerAssetAmount: remainingFillableTakerAssetAmount.toString(),
