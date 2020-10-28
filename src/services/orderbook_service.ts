@@ -6,6 +6,7 @@ import { Connection, In } from 'typeorm';
 
 import { SRA_ORDER_EXPIRATION_BUFFER_SECONDS, SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS } from '../config';
 import { SignedOrderEntity } from '../entities';
+import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { ValidationError } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
 import { APIOrderWithMetaData, PinResult } from '../types';
@@ -132,8 +133,29 @@ export class OrderBookService {
         const { fresh, expired } = orderUtils.groupByFreshness(apiOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
         alertOnExpiredOrders(expired);
 
-        // Post-filters
-        const filteredApiOrders = orderUtils.filterOrders(fresh, ordersFilterParams);
+        // Join with persistent orders
+        let persistentOrders: APIOrderWithMetaData[] = [];
+        if (ordersFilterParams.unfillable === true) {
+            const persistentOrderEntities = (await this._connection.manager.find(PersistentSignedOrderEntity, {
+                where: filterObject,
+            })) as Required<PersistentSignedOrderEntity>[];
+            const unfillableStates = [
+                OrderEventEndState.Cancelled,
+                OrderEventEndState.Expired,
+                OrderEventEndState.FullyFilled,
+                OrderEventEndState.Invalid,
+                OrderEventEndState.StoppedWatching,
+                OrderEventEndState.Unfunded,
+            ];
+            persistentOrders = persistentOrderEntities.map(orderUtils.deserializeOrderToAPIOrder).filter(apiOrder => {
+                return apiOrder.metaData.state && unfillableStates.includes(apiOrder.metaData.state);
+            });
+        }
+
+        // Post-filters (query fields that don't exist verbatim in the order)
+        const filteredApiOrders = orderUtils.filterOrders(fresh.concat(persistentOrders), ordersFilterParams);
+
+        // Paginate
         const paginatedApiOrders = paginationUtils.paginate(filteredApiOrders, page, perPage);
         return paginatedApiOrders;
     }

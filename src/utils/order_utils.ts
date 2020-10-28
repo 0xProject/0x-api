@@ -35,7 +35,7 @@ import { SignedOrderEntity } from '../entities';
 import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { logger } from '../logger';
 import * as queries from '../queries/staking_queries';
-import { APIOrderWithMetaData, PinResult, RawPool } from '../types';
+import { APIOrderMetaData, APIOrderWithMetaData, PinResult, RawPool } from '../types';
 
 import { createResultCache, ResultCache } from './result_cache';
 
@@ -208,16 +208,20 @@ export const orderUtils = {
         };
         return signedOrder;
     },
-    deserializeOrderToAPIOrder: (signedOrderEntity: Required<SignedOrderEntity>): APIOrder => {
+    deserializeOrderToAPIOrder: (
+        signedOrderEntity: Required<SignedOrderEntity> | Required<PersistentSignedOrderEntity>,
+    ): APIOrderWithMetaData => {
         const order = orderUtils.deserializeOrder(signedOrderEntity);
-        const apiOrder: APIOrder = {
-            order,
-            metaData: {
-                orderHash: signedOrderEntity.hash,
-                remainingFillableTakerAssetAmount: signedOrderEntity.remainingFillableTakerAssetAmount,
-            },
+        const state = (signedOrderEntity as PersistentSignedOrderEntity).orderState;
+        const metaData: APIOrderMetaData = {
+            orderHash: signedOrderEntity.hash,
+            remainingFillableTakerAssetAmount: new BigNumber(signedOrderEntity.remainingFillableTakerAssetAmount),
+            state,
         };
-        return apiOrder;
+        return {
+            order,
+            metaData,
+        };
     },
     serializeOrder: (apiOrder: APIOrderWithMetaData): SignedOrderEntity => {
         const signedOrder = apiOrder.order;
@@ -287,38 +291,31 @@ export const orderUtils = {
         return orderConfigResponse;
     },
     filterOrders: (apiOrders: APIOrder[], filters: OrdersRequestOpts): APIOrder[] => {
-        let filteredOrders = apiOrders;
         const { traderAddress, makerAssetAddress, takerAssetAddress, makerAssetProxyId, takerAssetProxyId } = filters;
-        if (traderAddress) {
-            filteredOrders = filteredOrders.filter(
-                apiOrder =>
-                    apiOrder.order.makerAddress === traderAddress || apiOrder.order.takerAddress === traderAddress,
+        const matchTraderAddress = (order: SignedOrder, filterAddress?: string): boolean =>
+            filterAddress ? order.makerAddress === filterAddress || order.takerAddress === filterAddress : true;
+        const matchMakerAssetAddress = (order: SignedOrder, filterAddress?: string): boolean =>
+            filterAddress ? orderUtils.includesTokenAddress(order.makerAssetData, filterAddress) : true;
+        const matchTakerAssetAddress = (order: SignedOrder, filterAddress?: string): boolean =>
+            filterAddress ? orderUtils.includesTokenAddress(order.takerAssetData, filterAddress) : true;
+        const matchMakerAssetProxyId = (order: SignedOrder, filterAddress?: string): boolean =>
+            filterAddress
+                ? assetDataUtils.decodeAssetDataOrThrow(order.makerAssetData).assetProxyId === makerAssetProxyId
+                : true;
+        const matchTakerAssetProxyId = (order: SignedOrder, filterAddress?: string): boolean =>
+            filterAddress
+                ? assetDataUtils.decodeAssetDataOrThrow(order.takerAssetData).assetProxyId === takerAssetProxyId
+                : true;
+        const filteredOrders = apiOrders.filter(apiOrder => {
+            const o = apiOrder.order;
+            return (
+                matchTraderAddress(o, traderAddress) &&
+                matchMakerAssetAddress(o, makerAssetAddress) &&
+                matchTakerAssetAddress(o, takerAssetAddress) &&
+                matchMakerAssetProxyId(o, makerAssetProxyId) &&
+                matchTakerAssetProxyId(o, takerAssetProxyId)
             );
-        }
-        if (makerAssetAddress) {
-            filteredOrders = filteredOrders.filter(apiOrder =>
-                orderUtils.includesTokenAddress(apiOrder.order.makerAssetData, makerAssetAddress),
-            );
-        }
-        if (takerAssetAddress) {
-            filteredOrders = filteredOrders.filter(apiOrder =>
-                orderUtils.includesTokenAddress(apiOrder.order.takerAssetData, takerAssetAddress),
-            );
-        }
-        if (makerAssetProxyId) {
-            filteredOrders = filteredOrders.filter(
-                apiOrder =>
-                    assetDataUtils.decodeAssetDataOrThrow(apiOrder.order.makerAssetData).assetProxyId ===
-                    makerAssetProxyId,
-            );
-        }
-        if (takerAssetProxyId) {
-            filteredOrders = filteredOrders.filter(
-                apiOrder =>
-                    assetDataUtils.decodeAssetDataOrThrow(apiOrder.order.takerAssetData).assetProxyId ===
-                    takerAssetProxyId,
-            );
-        }
+        });
         return filteredOrders;
     },
     // splitOrdersByPinning splits the orders into those we wish to pin in our Mesh node and

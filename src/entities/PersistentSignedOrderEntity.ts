@@ -1,10 +1,12 @@
 import { OrderEventEndState } from '@0x/mesh-rpc-client';
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 
+import { SignedOrderEntity } from './SignedOrderEntity';
+
 // identical to SignedOrderEntity, but persists after cancellation, expiration, etc
 // we save these to support account history for Matcha front-end
 @Entity({ name: 'signed_orders' })
-export class PersistentSignedOrderEntity {
+export class PersistentSignedOrderEntity extends SignedOrderEntity {
     @PrimaryColumn({ name: 'hash', type: 'varchar' })
     public hash?: string;
 
@@ -84,24 +86,7 @@ export class PersistentSignedOrderEntity {
             orderState?: OrderEventEndState;
         } = {},
     ) {
-        this.hash = opts.hash;
-        this.senderAddress = opts.senderAddress;
-        this.makerAddress = opts.makerAddress;
-        this.takerAddress = opts.takerAddress;
-        this.makerAssetData = opts.makerAssetData;
-        this.takerAssetData = opts.takerAssetData;
-        this.exchangeAddress = opts.exchangeAddress;
-        this.feeRecipientAddress = opts.feeRecipientAddress;
-        this.expirationTimeSeconds = opts.expirationTimeSeconds;
-        this.makerFee = opts.makerFee;
-        this.takerFee = opts.takerFee;
-        this.makerFeeAssetData = opts.makerFeeAssetData;
-        this.takerFeeAssetData = opts.takerFeeAssetData;
-        this.makerAssetAmount = opts.makerAssetAmount;
-        this.takerAssetAmount = opts.takerAssetAmount;
-        this.salt = opts.salt;
-        this.signature = opts.signature;
-        this.remainingFillableTakerAssetAmount = opts.remainingFillableTakerAssetAmount;
+        super(opts);
         this.orderState = opts.orderState || OrderEventEndState.Added;
     }
 }
