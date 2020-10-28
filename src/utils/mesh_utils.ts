@@ -115,6 +115,7 @@ export const meshUtils = {
                 case OrderEventEndState.FillabilityIncreased:
                 case OrderEventEndState.Filled: {
                     updated.push(apiOrder);
+                    persistentUpdated.push(apiOrder);
                     break;
                 }
                 default:

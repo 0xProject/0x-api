@@ -3,6 +3,7 @@ import { Connection } from 'typeorm';
 
 import { MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
 import { SignedOrderEntity } from '../entities';
+import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { OrderWatcherSyncError } from '../errors';
 import { alertOnExpiredOrders, logger } from '../logger';
 import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents } from '../types';
@@ -101,6 +102,8 @@ export class OrderWatcherService {
         switch (lifecycleEvent) {
             case OrderWatcherLifeCycleEvents.Updated:
             case OrderWatcherLifeCycleEvents.Added: {
+                // We only add to SignedOrders table, NOT PersistentSignedOrders table.
+                // PersistentSignedOrders should ONLY be added via the POST /orders/persistent endpoint
                 const allowedOrders = orders.filter(
                     apiOrder => !orderUtils.isIgnoredOrder(MESH_IGNORED_ADDRESSES, apiOrder),
                 );
@@ -125,8 +128,39 @@ export class OrderWatcherService {
                 break;
             }
             case OrderWatcherLifeCycleEvents.PersistentUpdated: {
-                const persistentOrderModels = orders.map(o => orderUtils.serializePersistentOrder(o));
-                await this._connection.manager.save(persistentOrderModels, { chunk: 900 });
+                // Only update orders that exist in PersistentSignedOrders table. Avoid accidentally
+                // adding open orderbook orders to the table.
+
+                // 1. Filter out ignored
+                const filtered = orders.filter(
+                    apiOrder => !orderUtils.isIgnoredOrder(MESH_IGNORED_ADDRESSES, apiOrder),
+                );
+
+                // 2. Create the Update queries
+                const updatePromises = filtered.map(apiOrder => {
+                    // tslint:disable-line:promise-function-async
+                    const { remainingFillableTakerAssetAmount, state: orderState, orderHash } = apiOrder.metaData;
+                    return this._connection.manager.update(PersistentSignedOrderEntity, orderHash, {
+                        remainingFillableTakerAssetAmount: remainingFillableTakerAssetAmount.toString(),
+                        orderState,
+                    });
+                });
+
+                // 3. Wait for results
+                await Promise.allSettled(updatePromises).then(results => {
+                    // Group by success or failure. Open orderbook orders should fail.
+                    const { fulfilled, rejected } = results.reduce(
+                        (acc, r, i) => {
+                            r.status === 'fulfilled' ? acc.fulfilled.push(i) : acc.rejected.push(i);
+                            return acc;
+                        },
+                        { fulfilled: [] as number[], rejected: [] as number[] },
+                    );
+                    // Log the results. Failed order hashes should be hashes that don't exist in PersistentSignedOrder table
+                    logger.info(`Updated persistent orders. ${fulfilled.length} success; ${rejected.length} failed.\n
+                        Success order hashes: [${fulfilled.map(i => filtered[i].metaData.orderHash).toString()}]\n
+                        Failed order hashes: [${rejected.map(i => filtered[i].metaData.orderHash)}]`);
+                });
                 break;
             }
             default:
