@@ -329,9 +329,18 @@
     jsonschema "^1.2.0"
     lodash.values "^4.3.0"
 
-"@0x/json-schemas@^5.0.4", "@0x/json-schemas@^5.0.7", "@0x/json-schemas@^5.1.0", "@0x/json-schemas@^5.2.3":
+"@0x/json-schemas@^5.0.7", "@0x/json-schemas@^5.1.0", "@0x/json-schemas@^5.2.3":
   version "5.2.3"
   resolved "https://registry.yarnpkg.com/@0x/json-schemas/-/json-schemas-5.2.3.tgz#22125f36fb23ffe757009feb2329aaca88bce982"
+  dependencies:
+    "@0x/typescript-typings" "^5.1.5"
+    "@types/node" "12.12.54"
+    jsonschema "^1.2.0"
+    lodash.values "^4.3.0"
+
+"@0x/json-schemas@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@0x/json-schemas/-/json-schemas-5.3.0.tgz#5017df3515e874e9727a9795461bd237ece03f85"
   dependencies:
     "@0x/typescript-typings" "^5.1.5"
     "@types/node" "12.12.54"
@@ -596,6 +605,14 @@
 "@0x/types@^3.1.2", "@0x/types@^3.2.0", "@0x/types@^3.2.4":
   version "3.2.4"
   resolved "https://registry.yarnpkg.com/@0x/types/-/types-3.2.4.tgz#0a94dff0d2a023f4f648edf3bb39136a5561928a"
+  dependencies:
+    "@types/node" "12.12.54"
+    bignumber.js "~9.0.0"
+    ethereum-types "^3.3.3"
+
+"@0x/types@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@0x/types/-/types-3.3.0.tgz#98c5ee91b66c7cc1719cfece6c3e5477c90bf9c5"
   dependencies:
     "@types/node" "12.12.54"
     bignumber.js "~9.0.0"

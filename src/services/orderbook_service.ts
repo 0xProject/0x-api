@@ -139,6 +139,8 @@ export class OrderBookService {
             const persistentOrderEntities = (await this._connection.manager.find(PersistentSignedOrderEntity, {
                 where: filterObject,
             })) as Required<PersistentSignedOrderEntity>[];
+            // This should match the states that trigger a removal from the SignedOrders table
+            // Defined in meshUtils.calculateOrderLifecycle
             const unfillableStates = [
                 OrderEventEndState.Cancelled,
                 OrderEventEndState.Expired,
