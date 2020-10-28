@@ -55,6 +55,10 @@ export class OrderWatcherService {
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, toRemove);
         }
 
+        // 5a. Don't remove persistent orders, but update their state with the rejection info from Mesh
+        const toUpdate = meshUtils.orderInfosToApiOrders(rejected);
+        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.PersistentUpdated, toUpdate);
+
         // 6. Save Mesh orders to local cache and notify if any expired orders were returned
         const meshOrders = meshUtils.orderInfosToApiOrders(ordersInfos);
         const groupedOrders = orderUtils.groupByFreshness(meshOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
@@ -68,9 +72,13 @@ export class OrderWatcherService {
         this._connection = connection;
         this._meshClient = meshClient;
         void this._meshClient.subscribeToOrdersAsync(async orders => {
-            const { added, removed, updated } = meshUtils.calculateAddedRemovedUpdated(orders);
+            const { added, removed, updated, persistentUpdated } = meshUtils.calculateOrderLifecycle(orders);
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
+            await this._onOrderLifeCycleEventAsync(
+                OrderWatcherLifeCycleEvents.PersistentUpdated,
+                updated.concat(persistentUpdated),
+            );
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
         });
         this._meshClient.onReconnected(async () => {
@@ -114,6 +122,11 @@ export class OrderWatcherService {
                 for (const chunk of chunks) {
                     await this._connection.manager.delete(SignedOrderEntity, chunk);
                 }
+                break;
+            }
+            case OrderWatcherLifeCycleEvents.PersistentUpdated: {
+                const persistentOrderModels = orders.map(o => orderUtils.serializePersistentOrder(o));
+                await this._connection.manager.save(persistentOrderModels, { chunk: 900 });
                 break;
             }
             default:

@@ -1,4 +1,5 @@
 import { APIOrder, OrderConfigRequest, OrderConfigResponse } from '@0x/connect';
+import { OrderEventEndState } from '@0x/mesh-rpc-client';
 import { assetDataUtils } from '@0x/order-utils';
 import {
     Asset,
@@ -31,6 +32,7 @@ import {
 } from '../config';
 import { MAX_TOKEN_SUPPLY_POSSIBLE, NULL_ADDRESS, ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
 import { SignedOrderEntity } from '../entities';
+import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { logger } from '../logger';
 import * as queries from '../queries/staking_queries';
 import { APIOrderWithMetaData, PinResult, RawPool } from '../types';
@@ -240,6 +242,31 @@ export const orderUtils = {
             remainingFillableTakerAssetAmount: apiOrder.metaData.remainingFillableTakerAssetAmount.toString(),
         });
         return signedOrderEntity;
+    },
+    serializePersistentOrder: (apiOrder: APIOrderWithMetaData): PersistentSignedOrderEntity => {
+        const signedOrder = apiOrder.order;
+        const persistentOrder = new PersistentSignedOrderEntity({
+            signature: signedOrder.signature,
+            senderAddress: signedOrder.senderAddress,
+            makerAddress: signedOrder.makerAddress,
+            takerAddress: signedOrder.takerAddress,
+            makerAssetAmount: signedOrder.makerAssetAmount.toString(),
+            takerAssetAmount: signedOrder.takerAssetAmount.toString(),
+            makerAssetData: signedOrder.makerAssetData,
+            takerAssetData: signedOrder.takerAssetData,
+            makerFee: signedOrder.makerFee.toString(),
+            takerFee: signedOrder.takerFee.toString(),
+            makerFeeAssetData: signedOrder.makerFeeAssetData.toString(),
+            takerFeeAssetData: signedOrder.takerFeeAssetData.toString(),
+            salt: signedOrder.salt.toString(),
+            exchangeAddress: signedOrder.exchangeAddress,
+            feeRecipientAddress: signedOrder.feeRecipientAddress,
+            expirationTimeSeconds: signedOrder.expirationTimeSeconds.toString(),
+            hash: apiOrder.metaData.orderHash,
+            remainingFillableTakerAssetAmount: apiOrder.metaData.remainingFillableTakerAssetAmount.toString(),
+            orderState: apiOrder.metaData.state || OrderEventEndState.Added,
+        });
+        return persistentOrder;
     },
     signedOrderToAssetPair: (signedOrder: SignedOrder): AssetPairsItem => {
         return {

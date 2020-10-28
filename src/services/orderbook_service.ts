@@ -1,13 +1,14 @@
 import { APIOrder, OrderbookResponse, PaginatedCollection } from '@0x/connect';
+import { OrderEventEndState } from '@0x/mesh-rpc-client';
 import { AssetPairsItem, OrdersRequestOpts, SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
 
-import { SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
+import { SRA_ORDER_EXPIRATION_BUFFER_SECONDS, SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS } from '../config';
 import { SignedOrderEntity } from '../entities';
 import { ValidationError } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { PinResult } from '../types';
+import { APIOrderWithMetaData, PinResult } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -16,6 +17,9 @@ import { paginationUtils } from '../utils/pagination_utils';
 export class OrderBookService {
     private readonly _meshClient?: MeshClient;
     private readonly _connection: Connection;
+    public static isAllowedPersistentOrders(apiKey: string): boolean {
+        return SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS.includes(apiKey);
+    }
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<APIOrder | undefined> {
         const signedOrderEntityIfExists = await this._connection.manager.findOne(SignedOrderEntity, orderHash);
         if (signedOrderEntityIfExists === undefined) {
@@ -177,6 +181,26 @@ export class OrderBookService {
             return;
         }
         throw new Error('Could not add order to mesh.');
+    }
+    public async addPersistentOrdersAsync(signedOrders: SignedOrder[], pinned: boolean): Promise<void> {
+        await this.addOrdersAsync(signedOrders, pinned);
+        const persistentOrders = signedOrders.map(order => {
+            const apiOrder: APIOrderWithMetaData = {
+                order,
+                metaData: {
+                    state: OrderEventEndState.Added,
+                    remainingFillableTakerAssetAmount: order.takerAssetAmount,
+                    orderHash: 'xxx', // todo
+                },
+            };
+            return orderUtils.serializePersistentOrder(apiOrder);
+        });
+        // MAX SQL variable size is 999. This limit is imposed via Sqlite.
+        // The SELECT query is not entirely effecient and pulls in all attributes
+        // so we need to leave space for the attributes on the model represented
+        // as SQL variables in the "AS" syntax. We leave 99 free for the
+        // signedOrders model
+        await this._connection.manager.save(persistentOrders, { chunk: 900 });
     }
     public async splitOrdersByPinningAsync(signedOrders: SignedOrder[]): Promise<PinResult> {
         return orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);

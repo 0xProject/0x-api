@@ -5,7 +5,7 @@ import {
     RfqtRequestOpts,
     SupportedProvider,
 } from '@0x/asset-swapper';
-import { AcceptedOrderInfo, RejectedOrderInfo } from '@0x/mesh-rpc-client';
+import { AcceptedOrderInfo, OrderEventEndState, RejectedOrderInfo } from '@0x/mesh-rpc-client';
 import {
     APIOrder,
     ExchangeProxyMetaTransaction,
@@ -37,6 +37,14 @@ export enum OrderWatcherLifeCycleEvents {
     Added,
     Removed,
     Updated,
+    PersistentUpdated,
+}
+
+export interface OrdersByLifecycleEvents {
+    added: APIOrderWithMetaData[];
+    removed: APIOrderWithMetaData[];
+    updated: APIOrderWithMetaData[];
+    persistentUpdated: APIOrderWithMetaData[];
 }
 
 export type onOrdersUpdateCallback = (orders: APIOrderWithMetaData[]) => void;
@@ -49,6 +57,7 @@ export interface AcceptedRejectedResults {
 export interface APIOrderMetaData {
     orderHash: string;
     remainingFillableTakerAssetAmount: BigNumber;
+    state?: OrderEventEndState;
 }
 
 export interface APIOrderWithMetaData extends APIOrder {
@@ -76,12 +85,6 @@ export enum MessageChannels {
 }
 export interface UpdateOrdersChannelMessageWithChannel extends UpdateOrdersChannelMessage {
     channel: MessageChannels;
-}
-
-export interface AddedRemovedUpdate {
-    added: APIOrderWithMetaData[];
-    removed: APIOrderWithMetaData[];
-    updated: APIOrderWithMetaData[];
 }
 
 // Staking types
