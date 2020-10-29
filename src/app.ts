@@ -127,7 +127,7 @@ export async function getDefaultAppDependenciesAsync(
     const stakingDataService = new StakingDataService(connection);
 
     let meshClient: MeshClient | undefined;
-    if (config.meshWebsocketUri !== undefined) {
+    if (config.meshWebsocketUri !== undefined && config.meshHttpUri !== undefined) {
         meshClient = new MeshClient(config.meshWebsocketUri, config.meshHttpUri);
         // HACK(kimpers): Need to wait for Mesh initialization to finish before we can subscribe to event updates
         // When the stats request has resolved Mesh is ready to receive subscriptions
