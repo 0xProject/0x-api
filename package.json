@@ -38,7 +38,8 @@
         "start:service:transaction_watcher": "node -r dotenv/config lib/src/runners/transaction_watcher_signer_service_runner.js",
         "start:service:signer": "node -r dotenv/config lib/src/runners/signer_runner.js",
         "lint": "tslint --project . --format stylish && yarn prettier:ci",
-        "release": "curl -v -H \"Accept: application/vnd.github.everest-preview+json\" -H \"Authorization: token ${GITHUB_TOKEN}\" https://api.github.com/repos/0xProject/0x-api/dispatches -d '{ \"event_type\": \"semantic-release\" }'"
+        "release": "curl -v -H \"Accept: application/vnd.github.everest-preview+json\" -H \"Authorization: token ${GITHUB_TOKEN}\" https://api.github.com/repos/0xProject/0x-api/dispatches -d '{ \"event_type\": \"semantic-release\" }'",
+        "docker-compose-start-dev": "docker-compose -f docker-compose.yml -f docker-compose-dev.yml up"
     },
     "config": {
         "prettier_target": "{.,test/**,src/**}/*.{ts,tsx,json,md}"
