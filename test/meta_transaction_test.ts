@@ -17,13 +17,16 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import { ETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
-import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
+import { setupApiAsync, setupMeshAsync, sleepAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
 
 const SUITE_NAME = 'meta transactions tests';
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
+
+// HACK(kimpers): Mesh v10 & 0x API setup/teardown ready state detection is flaky so we add some artificial delay
+const ENV_SETUP_DELAY_SECONDS = 10;
 
 describe(SUITE_NAME, () => {
     let accounts: string[];
@@ -231,8 +234,11 @@ describe(SUITE_NAME, () => {
                 await blockchainLifecycle.revertAsync();
                 await teardownApiAsync(SUITE_NAME, undefined, false);
                 await teardownMeshAsync(SUITE_NAME);
+                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupMeshAsync(SUITE_NAME);
+                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupApiAsync(SUITE_NAME, undefined, false);
+                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
             });
 
             it('should show the price of the only order in Mesh', async () => {
@@ -411,14 +417,11 @@ describe(SUITE_NAME, () => {
                 await blockchainLifecycle.revertAsync();
                 await teardownApiAsync(SUITE_NAME, undefined, false);
                 await teardownMeshAsync(SUITE_NAME);
+                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupMeshAsync(SUITE_NAME);
+                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupApiAsync(SUITE_NAME, undefined, false);
-            });
-
-            // NOTE(jalextowle): Spin up a new Mesh instance so that it will
-            // be available for future test suites.
-            after(async () => {
-                // await setupMeshAsync(SUITE_NAME);
+                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
             });
 
             it('should return a quote of the only order in Mesh', async () => {
@@ -566,19 +569,20 @@ describe(SUITE_NAME, () => {
                     await blockchainLifecycle.startAsync();
                     meshTestUtils = new MeshTestUtils(provider);
                     await meshTestUtils.setupUtilsAsync();
+
+                    validationResults = await meshTestUtils.addOrdersWithPricesAsync([1]);
+                    expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
                 });
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
                     await teardownApiAsync(SUITE_NAME, undefined, false);
                     await teardownMeshAsync(SUITE_NAME);
+                    await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                     await setupMeshAsync(SUITE_NAME);
+                    await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                     await setupApiAsync(SUITE_NAME, undefined, false);
-                });
-
-                beforeEach(async () => {
-                    validationResults = await meshTestUtils.addOrdersWithPricesAsync([1]);
-                    expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
+                    await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 });
 
                 it('price checking yields the correct market price', async () => {

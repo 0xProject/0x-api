@@ -202,6 +202,17 @@ function directLogs(
     }
 }
 
+/**
+ * Sleeps for X seconds before resolving
+ * @param timeSeconds  number of seconds to sleep
+ */
+export async function sleepAsync(timeSeconds: number): Promise<void> {
+    return new Promise<void>(resolve => {
+        const secondsPerMillisecond = 1000;
+        setTimeout(resolve, timeSeconds * secondsPerMillisecond);
+    });
+}
+
 const volumeRegex = new RegExp(/[ \t\r]*volumes:.*\n([ \t\r]*-.*\n)+/, 'g');
 let didCreateFreshComposeFile = false;
 
@@ -318,10 +329,4 @@ async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<v
             throw e;
         }
     }
-}
-async function sleepAsync(timeSeconds: number): Promise<void> {
-    return new Promise<void>(resolve => {
-        const secondsPerMillisecond = 1000;
-        setTimeout(resolve, timeSeconds * secondsPerMillisecond);
-    });
 }
