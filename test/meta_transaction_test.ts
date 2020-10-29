@@ -17,7 +17,7 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import { ETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
-import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
+import { LogType, setupApiAsync, teardownApiAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
@@ -41,7 +41,7 @@ describe(SUITE_NAME, () => {
     let zrx: DummyERC20TokenContract;
 
     beforeEach(async () => {
-        await setupApiAsync(SUITE_NAME);
+        await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console });
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -229,8 +229,8 @@ describe(SUITE_NAME, () => {
 
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
-                await teardownMeshAsync(SUITE_NAME);
-                await setupMeshAsync(SUITE_NAME);
+                // await teardownMeshAsync(SUITE_NAME);
+                // await setupMeshAsync(SUITE_NAME);
             });
 
             it('should show the price of the only order in Mesh', async () => {
@@ -400,20 +400,20 @@ describe(SUITE_NAME, () => {
 
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
-                await setupMeshAsync(SUITE_NAME);
+                // await setupMeshAsync(SUITE_NAME);
                 meshTestUtils = new MeshTestUtils(provider);
                 await meshTestUtils.setupUtilsAsync();
             });
 
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
-                await teardownMeshAsync(SUITE_NAME);
+                // await teardownMeshAsync(SUITE_NAME);
             });
 
             // NOTE(jalextowle): Spin up a new Mesh instance so that it will
             // be available for future test suites.
             after(async () => {
-                await setupMeshAsync(SUITE_NAME);
+                // await setupMeshAsync(SUITE_NAME);
             });
 
             it('should return a quote of the only order in Mesh', async () => {
@@ -439,7 +439,7 @@ describe(SUITE_NAME, () => {
 
             it('should support buying ETH by symbol and 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', async () => {
                 for (const buyToken of ['ETH', ETH_TOKEN_ADDRESS]) {
-                    await meshUtils.addPartialOrdersAsync([
+                    await meshTestUtils.addPartialOrdersAsync([
                         {
                             makerAssetData: ZRX_ASSET_DATA,
                             takerAssetData: WETH_ASSET_DATA,
@@ -565,10 +565,10 @@ describe(SUITE_NAME, () => {
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
-                    await teardownMeshAsync(SUITE_NAME);
+                    // await teardownMeshAsync(SUITE_NAME);
                     // NOTE(jalextowle): Spin up a new Mesh instance so that it will
                     // be available for future test suites.
-                    await setupMeshAsync(SUITE_NAME);
+                    // await setupMeshAsync(SUITE_NAME);
                 });
 
                 beforeEach(async () => {
@@ -674,10 +674,10 @@ describe(SUITE_NAME, () => {
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
-                    await teardownMeshAsync(SUITE_NAME);
-                    // NOTE(jalextowle): Spin up a new Mesh instance so that it will
-                    // be available for future test suites.
-                    await setupMeshAsync(SUITE_NAME);
+                    // await teardownMeshAsync(SUITE_NAME);
+                    //// NOTE(jalextowle): Spin up a new Mesh instance so that it will
+                    //// be available for future test suites.
+                    // await setupMeshAsync(SUITE_NAME);
                 });
 
                 beforeEach(async () => {
