@@ -31,7 +31,7 @@ import {
     ZRX_ASSET_DATA,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
-import { setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
+import { setupApiAsync, teardownApiAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
 import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
@@ -73,7 +73,6 @@ describe(SUITE_NAME, () => {
 
         // Set up liquidity.
         await blockchainLifecycle.startAsync();
-        await setupMeshAsync(SUITE_NAME);
         meshUtils = new MeshTestUtils(provider);
         await meshUtils.setupUtilsAsync();
         await meshUtils.addPartialOrdersAsync([
@@ -124,7 +123,6 @@ describe(SUITE_NAME, () => {
     });
     after(async () => {
         await blockchainLifecycle.revertAsync();
-        await teardownMeshAsync(SUITE_NAME);
         await teardownApiAsync(SUITE_NAME);
     });
     describe('/quote', () => {
