@@ -338,9 +338,9 @@
     jsonschema "^1.2.0"
     lodash.values "^4.3.0"
 
-"@0x/json-schemas@^5.3.0":
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/@0x/json-schemas/-/json-schemas-5.3.0.tgz#5017df3515e874e9727a9795461bd237ece03f85"
+"@0x/json-schemas@^5.3.1":
+  version "5.3.1"
+  resolved "https://registry.yarnpkg.com/@0x/json-schemas/-/json-schemas-5.3.1.tgz#61741de5f1a12b033b1872629660905c5fe726e0"
   dependencies:
     "@0x/typescript-typings" "^5.1.5"
     "@types/node" "12.12.54"
@@ -657,11 +657,29 @@
     js-sha3 "^0.7.0"
     lodash "^4.17.11"
 
-"@0x/utils@^5.4.0", "@0x/utils@^5.4.1", "@0x/utils@^5.5.0", "@0x/utils@^5.5.1", "@0x/utils@^5.6.3":
+"@0x/utils@^5.4.0", "@0x/utils@^5.4.1", "@0x/utils@^5.5.1", "@0x/utils@^5.6.3":
   version "5.6.3"
   resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-5.6.3.tgz#c8ed7f5634b6983a6add12a31daf10739bb75044"
   dependencies:
     "@0x/types" "^3.2.4"
+    "@0x/typescript-typings" "^5.1.5"
+    "@types/node" "12.12.54"
+    abortcontroller-polyfill "^1.1.9"
+    bignumber.js "~9.0.0"
+    chalk "^2.3.0"
+    detect-node "2.0.3"
+    ethereum-types "^3.3.3"
+    ethereumjs-util "^5.1.1"
+    ethers "~4.0.4"
+    isomorphic-fetch "2.2.1"
+    js-sha3 "^0.7.0"
+    lodash "^4.17.11"
+
+"@0x/utils@^5.6.4":
+  version "5.6.4"
+  resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-5.6.4.tgz#0158ec3243bbee444d90afbd79981321d19ccdfd"
+  dependencies:
+    "@0x/types" "^3.3.0"
     "@0x/typescript-typings" "^5.1.5"
     "@types/node" "12.12.54"
     abortcontroller-polyfill "^1.1.9"
