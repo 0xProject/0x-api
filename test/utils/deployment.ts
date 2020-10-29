@@ -114,7 +114,6 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     await confirmPostgresConnectivityAsync();
     // Create a test db connection in this instance, and synchronize it
     await getTestDBConnectionAsync();
-    await sleepAsync(15); // tslint:disable-line:custom-no-magic-numbers
 }
 
 /**
@@ -254,7 +253,7 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
         });
         setTimeout(() => {
             reject(new Error('Timed out waiting for 0x-api logs'));
-        }, 40000); // tslint:disable-line:custom-no-magic-numbers
+        }, 30000); // tslint:disable-line:custom-no-magic-numbers
     });
 }
 
