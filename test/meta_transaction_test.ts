@@ -26,7 +26,7 @@ const SUITE_NAME = 'meta transactions tests';
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
 // HACK(kimpers): Mesh v10 & 0x API setup/teardown ready state detection is flaky so we add some artificial delay
-const ENV_SETUP_DELAY_SECONDS = 10;
+const ENV_SETUP_DELAY_SECONDS = 20;
 
 describe(SUITE_NAME, () => {
     let accounts: string[];
@@ -238,7 +238,6 @@ describe(SUITE_NAME, () => {
                 await setupMeshAsync(SUITE_NAME);
                 await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupApiAsync(SUITE_NAME, undefined, false);
-                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
             });
 
             it('should show the price of the only order in Mesh', async () => {
@@ -421,7 +420,6 @@ describe(SUITE_NAME, () => {
                 await setupMeshAsync(SUITE_NAME);
                 await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupApiAsync(SUITE_NAME, undefined, false);
-                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
             });
 
             it('should return a quote of the only order in Mesh', async () => {
@@ -443,44 +441,6 @@ describe(SUITE_NAME, () => {
                     expectedOrders: [meshUtils.orderWithMetadataToSignedOrder(validationResults.accepted[0].order)],
                     expectedPrice: '1',
                 });
-            });
-
-            it('should support buying ETH by symbol and 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', async () => {
-                for (const buyToken of ['ETH', ETH_TOKEN_ADDRESS]) {
-                    await meshTestUtils.addPartialOrdersAsync([
-                        {
-                            makerAssetData: ZRX_ASSET_DATA,
-                            takerAssetData: WETH_ASSET_DATA,
-                            makerAssetAmount: ONE_THOUSAND_IN_BASE,
-                            takerAssetAmount: ONE_THOUSAND_IN_BASE,
-                        },
-                        {
-                            makerAssetData: WETH_ASSET_DATA,
-                            takerAssetData: ZRX_ASSET_DATA,
-                            makerAssetAmount: MAKER_WETH_AMOUNT,
-                            takerAssetAmount: ONE_THOUSAND_IN_BASE,
-                        },
-                    ]);
-                    const args = {
-                        baseRoute: `${META_TRANSACTION_PATH}/quote`,
-                        queryParams: {
-                            buyToken,
-                            sellToken: 'ZRX',
-                            buyAmount: '1000',
-                            excludedSources: EXCLUDED_SOURCES.join(','),
-                            takerAddress,
-                        },
-                    };
-                    const route = constructRoute(args);
-                    const response = await httpGetAsync({ route });
-                    expect(response.type).to.be.eq('application/json');
-                    expect(response.status).to.be.eq(HttpStatus.OK);
-                    expect(response.body).to.include({
-                        buyAmount: '1000',
-                        buyTokenAddress: ETH_TOKEN_ADDRESS,
-                        sellTokenAddress: ZRX_TOKEN_ADDRESS,
-                    });
-                }
             });
 
             it('should return a quote of the cheaper order in Mesh', async () => {
@@ -528,6 +488,44 @@ describe(SUITE_NAME, () => {
                     ),
                     expectedPrice: '1.5',
                 });
+            });
+
+            it('should support buying ETH by symbol and 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', async () => {
+                for (const buyToken of ['ETH', ETH_TOKEN_ADDRESS]) {
+                    await meshTestUtils.addPartialOrdersAsync([
+                        {
+                            makerAssetData: ZRX_ASSET_DATA,
+                            takerAssetData: WETH_ASSET_DATA,
+                            makerAssetAmount: ONE_THOUSAND_IN_BASE,
+                            takerAssetAmount: ONE_THOUSAND_IN_BASE,
+                        },
+                        {
+                            makerAssetData: WETH_ASSET_DATA,
+                            takerAssetData: ZRX_ASSET_DATA,
+                            makerAssetAmount: MAKER_WETH_AMOUNT,
+                            takerAssetAmount: ONE_THOUSAND_IN_BASE,
+                        },
+                    ]);
+                    const args = {
+                        baseRoute: `${META_TRANSACTION_PATH}/quote`,
+                        queryParams: {
+                            buyToken,
+                            sellToken: 'ZRX',
+                            buyAmount: '1000',
+                            excludedSources: EXCLUDED_SOURCES.join(','),
+                            takerAddress,
+                        },
+                    };
+                    const route = constructRoute(args);
+                    const response = await httpGetAsync({ route });
+                    expect(response.type).to.be.eq('application/json');
+                    expect(response.status).to.be.eq(HttpStatus.OK);
+                    expect(response.body).to.include({
+                        buyAmount: '1000',
+                        buyTokenAddress: ETH_TOKEN_ADDRESS,
+                        sellTokenAddress: ZRX_TOKEN_ADDRESS,
+                    });
+                }
             });
         });
     });
@@ -582,7 +580,6 @@ describe(SUITE_NAME, () => {
                     await setupMeshAsync(SUITE_NAME);
                     await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                     await setupApiAsync(SUITE_NAME, undefined, false);
-                    await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 });
 
                 it('price checking yields the correct market price', async () => {
