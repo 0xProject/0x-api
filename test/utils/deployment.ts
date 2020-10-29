@@ -34,11 +34,17 @@ let start: ChildProcessWithoutNullStreams | undefined;
  * Sets up a 0x-api instance.
  * @param logConfig Where logs should be directed.
  */
-export async function setupApiAsync(suiteName: string, logConfig: LoggingConfig = {}): Promise<void> {
+export async function setupApiAsync(
+    suiteName: string,
+    logConfig: LoggingConfig = {},
+    withDependencies: boolean = true,
+): Promise<void> {
     if (start) {
         throw new Error('Old 0x-api instance has not been torn down');
     }
-    await setupDependenciesAsync(suiteName, logConfig.dependencyLogType);
+    if (withDependencies) {
+        await setupDependenciesAsync(suiteName, logConfig.dependencyLogType);
+    }
     start = spawn('yarn', ['start'], {
         cwd: apiRootDir,
         env: process.env,
@@ -53,13 +59,19 @@ export async function setupApiAsync(suiteName: string, logConfig: LoggingConfig 
  *        helps to make the logs more intelligible.
  * @param logType Indicates where logs should be directed.
  */
-export async function teardownApiAsync(suiteName: string, logType?: LogType): Promise<void> {
+export async function teardownApiAsync(
+    suiteName: string,
+    logType?: LogType,
+    withDependencies: boolean = true,
+): Promise<void> {
     if (!start) {
         throw new Error('There is no 0x-api instance to tear down');
     }
     await killAsync(HTTP_PORT);
     start = undefined;
-    await teardownDependenciesAsync(suiteName, logType);
+    if (withDependencies) {
+        await teardownDependenciesAsync(suiteName, logType);
+    }
 }
 
 async function killAsync(port: number): Promise<void> {

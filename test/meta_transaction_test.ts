@@ -17,7 +17,7 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import { ETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
-import { LogType, setupApiAsync, teardownApiAsync } from './utils/deployment';
+import { LogType, setupApiAsync, setupMeshAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
@@ -40,7 +40,7 @@ describe(SUITE_NAME, () => {
     let weth: WETH9Contract;
     let zrx: DummyERC20TokenContract;
 
-    beforeEach(async () => {
+    before(async () => {
         await setupApiAsync(SUITE_NAME, { apiLogType: LogType.Console });
 
         // connect to ganache and run contract migrations
@@ -66,7 +66,7 @@ describe(SUITE_NAME, () => {
         zrx = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
     });
 
-    afterEach(async () => {
+    after(async () => {
         await teardownApiAsync(SUITE_NAME);
     });
 
@@ -229,8 +229,10 @@ describe(SUITE_NAME, () => {
 
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
-                // await teardownMeshAsync(SUITE_NAME);
-                // await setupMeshAsync(SUITE_NAME);
+                await teardownApiAsync(SUITE_NAME, undefined, false);
+                await teardownMeshAsync(SUITE_NAME);
+                await setupMeshAsync(SUITE_NAME);
+                await setupApiAsync(SUITE_NAME, undefined, false);
             });
 
             it('should show the price of the only order in Mesh', async () => {
@@ -407,7 +409,10 @@ describe(SUITE_NAME, () => {
 
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
-                // await teardownMeshAsync(SUITE_NAME);
+                await teardownApiAsync(SUITE_NAME, undefined, false);
+                await teardownMeshAsync(SUITE_NAME);
+                await setupMeshAsync(SUITE_NAME);
+                await setupApiAsync(SUITE_NAME, undefined, false);
             });
 
             // NOTE(jalextowle): Spin up a new Mesh instance so that it will
@@ -565,10 +570,10 @@ describe(SUITE_NAME, () => {
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
-                    // await teardownMeshAsync(SUITE_NAME);
-                    // NOTE(jalextowle): Spin up a new Mesh instance so that it will
-                    // be available for future test suites.
-                    // await setupMeshAsync(SUITE_NAME);
+                    await teardownApiAsync(SUITE_NAME, undefined, false);
+                    await teardownMeshAsync(SUITE_NAME);
+                    await setupMeshAsync(SUITE_NAME);
+                    await setupApiAsync(SUITE_NAME, undefined, false);
                 });
 
                 beforeEach(async () => {
@@ -674,10 +679,10 @@ describe(SUITE_NAME, () => {
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
-                    // await teardownMeshAsync(SUITE_NAME);
-                    //// NOTE(jalextowle): Spin up a new Mesh instance so that it will
-                    //// be available for future test suites.
-                    // await setupMeshAsync(SUITE_NAME);
+                    await teardownApiAsync(SUITE_NAME, undefined, false);
+                    await teardownMeshAsync(SUITE_NAME);
+                    await setupMeshAsync(SUITE_NAME);
+                    await setupApiAsync(SUITE_NAME, undefined, false);
                 });
 
                 beforeEach(async () => {
