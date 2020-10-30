@@ -234,7 +234,6 @@ describe(SUITE_NAME, () => {
                 await blockchainLifecycle.revertAsync();
                 await teardownApiAsync(SUITE_NAME, undefined, false);
                 await teardownMeshAsync(SUITE_NAME);
-                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupMeshAsync(SUITE_NAME);
                 await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupApiAsync(SUITE_NAME, undefined, false);
@@ -416,7 +415,6 @@ describe(SUITE_NAME, () => {
                 await blockchainLifecycle.revertAsync();
                 await teardownApiAsync(SUITE_NAME, undefined, false);
                 await teardownMeshAsync(SUITE_NAME);
-                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupMeshAsync(SUITE_NAME);
                 await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                 await setupApiAsync(SUITE_NAME, undefined, false);
@@ -576,7 +574,6 @@ describe(SUITE_NAME, () => {
                     await blockchainLifecycle.revertAsync();
                     await teardownApiAsync(SUITE_NAME, undefined, false);
                     await teardownMeshAsync(SUITE_NAME);
-                    await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                     await setupMeshAsync(SUITE_NAME);
                     await sleepAsync(ENV_SETUP_DELAY_SECONDS);
                     await setupApiAsync(SUITE_NAME, undefined, false);
