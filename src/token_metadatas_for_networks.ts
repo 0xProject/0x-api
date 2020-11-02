@@ -731,10 +731,20 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
     },
     {
         symbol: 'LEND',
-        name: 'Aave',
+        name: 'EthLend',
         decimals: 18,
         tokenAddresses: {
             [ChainId.Mainnet]: '0x80fb784b7ed66730e8b1dbd9820afd29931aab03',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'AAVE',
+        name: 'Aave',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
             [ChainId.Kovan]: NULL_ADDRESS,
             [ChainId.Ganache]: NULL_ADDRESS,
         },
@@ -10980,16 +10990,6 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         },
     },
     {
-        symbol: 'UNI',
-        name: 'Unipot',
-        decimals: 8,
-        tokenAddresses: {
-            [ChainId.Mainnet]: '0x3e370a6c8255b065bd42bc0ac9255b269cfcc172',
-            [ChainId.Kovan]: NULL_ADDRESS,
-            [ChainId.Ganache]: NULL_ADDRESS,
-        },
-    },
-    {
         symbol: 'HILK',
         name: 'HilkCoin',
         decimals: 16,
@@ -12225,6 +12225,56 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         decimals: 18,
         tokenAddresses: {
             [ChainId.Mainnet]: '0x68a118ef45063051eac49c7e647ce5ace48a68a5',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'AUDIO',
+        name: 'Audius',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x18aaa7115705e8be94bffebde57af9bfc265b998',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'DTA',
+        name: 'Data',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x69b148395ce0015c13e36bffbad63f49ef874e03',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'KORE',
+        name: 'Kore',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0xa866f0198208eb07c83081d5136be7f775c2399e',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'DOUGH',
+        name: 'PieDAO DOUGH v2',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0xad32a8e6220741182940c5abf610bde99e737b2d',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'USDN',
+        name: 'Neutrino USD',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x674c6ad92fd080e4004b2312b45f796a192d27a0',
             [ChainId.Kovan]: NULL_ADDRESS,
             [ChainId.Ganache]: NULL_ADDRESS,
         },
