@@ -1,5 +1,3 @@
-// tslint:disable-next-line:no-implicit-dependencies
-
 import { Web3Wrapper } from '@0x/dev-utils';
 import { SupportedProvider } from '@0x/subproviders';
 import { logUtils } from '@0x/utils';
