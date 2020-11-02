@@ -12,7 +12,7 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/assert@^3.0.13", "@0x/assert@^3.0.4", "@0x/assert@^3.0.6", "@0x/assert@^3.0.9":
+"@0x/assert@^3.0.13", "@0x/assert@^3.0.6", "@0x/assert@^3.0.9":
   version "3.0.13"
   resolved "https://registry.yarnpkg.com/@0x/assert/-/assert-3.0.13.tgz#6894b719301aa3e8096a58a19726b1454f3e0bae"
   dependencies:
@@ -115,11 +115,15 @@
     uuid "^3.3.2"
     websocket "^1.0.26"
 
-"@0x/contract-addresses@0xProject/gitpkg-registry#0x-contract-addresses-v5.0.1-9816019bc", "@0x/contract-addresses@^4.11.0", "@0x/contract-addresses@^4.12.0", "@0x/contract-addresses@^5.0.1":
+"@0x/contract-addresses@^4.11.0", "@0x/contract-addresses@^4.12.0":
+  version "4.12.0"
+  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-4.12.0.tgz#2adb0bcde763ad13437f782adf25c403107ff428"
+
+"@0x/contract-addresses@^5.0.1":
   version "5.0.1"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/6e999efc275de45fb4d5cfe8d611d1303093e7e9"
 
-"@0x/contract-wrappers@0xProject/gitpkg-registry#0x-contract-wrappers-v13.8.0-2dc0bff1e", "@0x/contract-wrappers@^13.8.0", "@0x/contract-wrappers@^13.9.2":
+"@0x/contract-wrappers@^13.8.0":
   version "13.8.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/06b1960b304a85bf04f355d945c31649359d58e9"
   dependencies:
@@ -131,6 +135,20 @@
     "@0x/utils" "^5.5.1"
     "@0x/web3-wrapper" "^7.2.0"
     ethereum-types "^3.2.0"
+    ethers "~4.0.4"
+
+"@0x/contract-wrappers@^13.9.2":
+  version "13.9.2"
+  resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.9.2.tgz#087f04bc3ebc14128e33b6256ea7f1da34dab1b8"
+  dependencies:
+    "@0x/assert" "^3.0.13"
+    "@0x/base-contract" "^6.2.7"
+    "@0x/contract-addresses" "^5.0.1"
+    "@0x/json-schemas" "^5.2.3"
+    "@0x/types" "^3.2.4"
+    "@0x/utils" "^5.6.3"
+    "@0x/web3-wrapper" "^7.2.4"
+    ethereum-types "^3.3.3"
     ethers "~4.0.4"
 
 "@0x/contracts-asset-proxy@^3.5.0":
@@ -451,7 +469,7 @@
   optionalDependencies:
     "@ledgerhq/hw-transport-node-hid" "^4.3.0"
 
-"@0x/order-utils@0xProject/gitpkg-registry#0x-order-utils-v10.3.0-2dc0bff1e", "@0x/order-utils@^10.2.4", "@0x/order-utils@^10.3.0", "@0x/order-utils@^10.4.0", "@0x/order-utils@^10.4.2":
+"@0x/order-utils@^10.2.4", "@0x/order-utils@^10.3.0":
   version "10.3.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/ab4e8e421f687764b96a64378b7cf398839dda0c"
   dependencies:
@@ -461,6 +479,20 @@
     "@0x/json-schemas" "^5.1.0"
     "@0x/utils" "^5.5.1"
     "@0x/web3-wrapper" "^7.2.0"
+    ethereumjs-util "^5.1.1"
+    ethers "~4.0.4"
+    lodash "^4.17.11"
+
+"@0x/order-utils@^10.4.0", "@0x/order-utils@^10.4.2":
+  version "10.4.2"
+  resolved "https://registry.yarnpkg.com/@0x/order-utils/-/order-utils-10.4.2.tgz#8fb5c518e0c7b03fbb386e651f4ad14427e11e58"
+  dependencies:
+    "@0x/assert" "^3.0.13"
+    "@0x/contract-addresses" "^5.0.1"
+    "@0x/contract-wrappers" "^13.9.2"
+    "@0x/json-schemas" "^5.2.3"
+    "@0x/utils" "^5.6.3"
+    "@0x/web3-wrapper" "^7.2.4"
     ethereumjs-util "^5.1.1"
     ethers "~4.0.4"
     lodash "^4.17.11"
@@ -703,7 +735,7 @@
     ethereum-types "^2.2.0-beta.2"
     popper.js "1.14.3"
 
-"@0x/typescript-typings@^5.0.1", "@0x/typescript-typings@^5.0.2", "@0x/typescript-typings@^5.1.1", "@0x/typescript-typings@^5.1.5":
+"@0x/typescript-typings@^5.0.2", "@0x/typescript-typings@^5.1.1", "@0x/typescript-typings@^5.1.5":
   version "5.1.5"
   resolved "https://registry.yarnpkg.com/@0x/typescript-typings/-/typescript-typings-5.1.5.tgz#dd0ad20ef42dad9d054886fd1da72839145b5863"
   dependencies:
@@ -732,7 +764,7 @@
     js-sha3 "^0.7.0"
     lodash "^4.17.11"
 
-"@0x/utils@^5.4.0", "@0x/utils@^5.4.1", "@0x/utils@^5.5.0", "@0x/utils@^5.5.1", "@0x/utils@^5.6.3":
+"@0x/utils@^5.4.0", "@0x/utils@^5.4.1", "@0x/utils@^5.5.1", "@0x/utils@^5.6.3":
   version "5.6.3"
   resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-5.6.3.tgz#c8ed7f5634b6983a6add12a31daf10739bb75044"
   dependencies:
@@ -784,7 +816,7 @@
     websocket "^1.0.28"
     xhr2-cookies "1.1.0"
 
-"@0x/web3-wrapper@^7.0.7", "@0x/web3-wrapper@^7.2.0", "@0x/web3-wrapper@^7.2.4":
+"@0x/web3-wrapper@^7.2.0", "@0x/web3-wrapper@^7.2.4":
   version "7.2.4"
   resolved "https://registry.yarnpkg.com/@0x/web3-wrapper/-/web3-wrapper-7.2.4.tgz#c66a506900c1144c465b971ae2cad3b580619f1f"
   dependencies:
