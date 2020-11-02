@@ -16,9 +16,4 @@ describe('RfqtQuoteProcessor', () => {
             ).to.eql([]);
         });
     });
-    describe('#onValidQuotes', () => {
-        it('can be invoked without crashing', () => {
-            new RfqtQuoteProcessor((undefined as unknown) as Connection, logUtils.warn).onValidQuotes([]);
-        });
-    });
 });

@@ -86,7 +86,6 @@ export class SwapService {
                 warningLogger: logger.warn.bind(logger),
                 infoLogger: logger.info.bind(logger),
                 firmQuoteValidator: rfqtQuoteProcessor,
-                quoteObserver: rfqtQuoteProcessor,
             },
             contractAddresses,
         };
