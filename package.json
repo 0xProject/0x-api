@@ -23,6 +23,7 @@
         "dev:service:meta_transaction_http": "nodemon -r dotenv/config src/runners/http_meta_transaction_service_runner.ts | pino-pretty",
         "dev:service:order_watcher": "nodemon -r dotenv/config src/runners/order_watcher_service_runner.ts | pino-pretty",
         "dev:service:transaction_watcher": "nodemon -r dotenv/config src/runners/transaction_watcher_signer_service_runner.ts | pino-pretty",
+        "dev:service:maker_validation_cache": "nodemon -r dotenv/config src/runners/rfq_maker_balance_checker.ts | pino-pretty",
         "watch": "tsc -w",
         "fix": "tslint --project . --format stylish --fix && yarn prettier",
         "prettier": "prettier --write ${npm_package_config_prettier_target} --config .prettierrc",
@@ -35,6 +36,7 @@
         "start:service:meta_transaction_http": "node -r dotenv/config lib/src/runners/http_meta_transaction_service_runner.js",
         "start:service:order_watcher": "node -r dotenv/config lib/src/runners/order_watcher_service_runner.js",
         "start:service:transaction_watcher": "node -r dotenv/config lib/src/runners/transaction_watcher_signer_service_runner.js",
+        "start:service:maker_validation_cache": "node -r dotenv/config lib/src/runners/rfq_maker_balance_checker.js",
         "start:service:signer": "node -r dotenv/config lib/src/runners/signer_runner.js",
         "lint": "tslint --project . --format stylish && yarn prettier:ci",
         "release": "curl -v -H \"Accept: application/vnd.github.everest-preview+json\" -H \"Authorization: token ${GITHUB_TOKEN}\" https://api.github.com/repos/0xProject/0x-api/dispatches -d '{ \"event_type\": \"semantic-release\" }'"
