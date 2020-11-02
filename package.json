@@ -83,11 +83,14 @@
             ]
         ]
     },
+    "resolutions": {
+        "@0x/orderbook": "0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023"
+    },
     "devDependencies": {
         "@0x/contracts-erc20": "^3.1.5",
         "@0x/contracts-erc20-bridge-sampler": "^1.5.1",
         "@0x/contracts-test-utils": "^5.3.2",
-        "@0x/dev-utils": "^3.2.1",
+        "@0x/dev-utils": "^4.0.1",
         "@0x/migrations": "^6.2.4",
         "@0x/tslint-config": "^4.0.0",
         "@0x/typescript-typings": "^5.1.5",
@@ -122,7 +125,7 @@
     },
     "dependencies": {
         "@0x/assert": "^3.0.17",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v4.8.1-e10a81023",
+        "@0x/asset-swapper": "^5.0.0",
         "@0x/base-contract": "^6.2.11",
         "@0x/connect": "^6.0.4",
         "@0x/contract-addresses": "^5.0.1",
