@@ -42,23 +42,23 @@ if (require.main === module) {
     })().catch(error => logger.error(error.stack));
 }
 
-async function runRfqBalanceCheckerAsync(
-    _dependencies: AppDependencies,
-    provider: SupportedProvider,
-): Promise<void> {
+async function runRfqBalanceCheckerAsync(_dependencies: AppDependencies, provider: SupportedProvider): Promise<void> {
     const workerId = uniqueId('rfqw_');
     const client = new Web3Wrapper(provider);
     let lastBlockSeen = -1;
-    while(true) {
+    while (true) {
         const newBlock = await client.getBlockNumberAsync();
         if (lastBlockSeen < newBlock) {
             // Do work here with new block here.
             lastBlockSeen = newBlock;
             LATEST_BLOCK_PROCESSED_GAUGE.labels(workerId).set(lastBlockSeen);
-            logUtils.log({
-                block: lastBlockSeen,
-                workerId,
-            }, "Found new block");
+            logUtils.log(
+                {
+                    block: lastBlockSeen,
+                    workerId,
+                },
+                'Found new block',
+            );
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
         } else {
             await delay(DELAY_WHEN_NEW_BLOCK_NOT_FOUND);
