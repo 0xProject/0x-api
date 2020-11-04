@@ -19,7 +19,7 @@ import { APIOrderWithMetaData } from '../src/types';
 import * as MeshClientModule from '../src/utils/mesh_client';
 import { orderUtils } from '../src/utils/order_utils';
 
-import { setupDependenciesAsync, teardownDependenciesAsync, teardownMeshAsync } from './utils/deployment';
+import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { MeshClient as MeshClientMock } from './utils/mesh_client_mock';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
@@ -79,9 +79,6 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        // We won't need Mesh as it's mocked out
-        // TODO(kimpers): Don't spin up Mesh in the first place
-        await teardownMeshAsync(SUITE_NAME);
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {

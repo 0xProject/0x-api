@@ -133,54 +133,6 @@ export async function teardownDependenciesAsync(suiteName: string, logType?: Log
     didTearDown = true;
 }
 
-/**
- * Starts up 0x-mesh.
- * @param suiteName The name of the test suite that is using this function. This
- *        helps to make the logs more intelligible.
- * @param logType Indicates where logs should be directed.
- */
-export async function setupMeshAsync(suiteName: string, logType?: LogType): Promise<void> {
-    await createFreshDockerComposeFileOnceAsync();
-    // Spin up a 0x-mesh instance
-    const up = spawn('docker-compose', ['up', 'mesh'], {
-        cwd: testRootDir,
-        env: {
-            ...process.env,
-            ETHEREUM_RPC_URL: 'http://ganache:8545',
-            ETHEREUM_CHAIN_ID: '1337',
-        },
-    });
-    directLogs(up, suiteName, 'up', logType);
-
-    await waitForMeshStartupAsync(up);
-
-    // HACK(jalextowle): For some reason, Mesh Clients would connect to
-    // the old mesh node. Try to remove this.
-    await sleepAsync(15); // tslint:disable-line:custom-no-magic-numbers
-}
-
-/**
- * Tears down the running 0x-mesh instance.
- * @param suiteName The name of the test suite that is using this function. This
- *        helps to make the logs more intelligible.
- * @param logType Indicates where logs should be directed.
- */
-export async function teardownMeshAsync(suiteName: string, logType?: LogType): Promise<void> {
-    const stop = spawn('docker-compose', ['stop', 'mesh'], {
-        cwd: testRootDir,
-    });
-    directLogs(stop, suiteName, 'mesh_stop', logType);
-    const stopTimeout = 10000;
-    await waitForCloseAsync(stop, 'mesh_stop', stopTimeout);
-
-    const rm = spawn('docker-compose', ['rm', '-f', '-s', '-v', 'mesh'], {
-        cwd: testRootDir,
-    });
-    directLogs(rm, suiteName, 'mesh_rm', logType);
-    const rmTimeout = 10000;
-    await waitForCloseAsync(rm, 'mesh_rm', rmTimeout);
-}
-
 function directLogs(
     stream: ChildProcessWithoutNullStreams,
     suiteName: string,
@@ -268,42 +220,20 @@ async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams)
     });
 }
 
-async function waitForMeshStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-        let didStartGraphQLServer = false;
-        logStream.stdout.on('data', (chunk: Buffer) => {
-            const data = chunk.toString().split('\n');
-            for (const datum of data) {
-                if (!didStartGraphQLServer && /.*mesh.*starting GraphQL server/.test(datum)) {
-                    didStartGraphQLServer = true;
-                }
-                if (didStartGraphQLServer) {
-                    resolve();
-                }
-            }
-        });
-        setTimeout(() => {
-            reject(new Error('Timed out waiting for 0x-mesh logs'));
-        }, 10000); // tslint:disable-line:custom-no-magic-numbers
-    });
-}
-
 async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-        const hasSeenLog = [0, 0];
+        const hasSeenLog = [0];
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
             for (const datum of data) {
-                if (hasSeenLog[0] < 1 && /.*mesh.*starting GraphQL server/.test(datum)) {
-                    hasSeenLog[0]++;
-                } else if (
-                    hasSeenLog[1] < 1 &&
+                if (
+                    hasSeenLog[0] < 1 &&
                     /.*postgres.*PostgreSQL init process complete; ready for start up./.test(datum)
                 ) {
-                    hasSeenLog[1]++;
+                    hasSeenLog[0]++;
                 }
 
-                if (hasSeenLog[0] === 1 && hasSeenLog[1] === 1) {
+                if (hasSeenLog[0] === 1) {
                     resolve();
                 }
             }
