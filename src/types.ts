@@ -530,6 +530,7 @@ export interface GetTransactionRequestParams {
     includedSources?: ERC20BridgeSource[];
     includePriceComparisons: boolean;
     affiliateFee: PercentageFee;
+    affiliateAddress?: string;
 }
 
 export interface CalculateSwapQuoteParams {
@@ -580,6 +581,7 @@ export interface CalculateMetaTransactionQuoteParams {
     apiKey: string | undefined;
     includePriceComparisons: boolean;
     affiliateFee: PercentageFee;
+    affiliateAddress: string | undefined;
 }
 
 export enum TransactionStates {
@@ -643,14 +645,14 @@ export interface HttpServiceConfig {
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
 }
 
-interface TokenMetadataOptionalSymbol {
+export interface TokenMetadataOptionalSymbol {
     symbol?: string;
     decimals: number;
     tokenAddress: string;
 }
 export interface CalaculateMarketDepthParams {
-    buyToken: TokenMetadataOptionalSymbol;
-    sellToken: TokenMetadataOptionalSymbol;
+    buyToken: string;
+    sellToken: string;
     sellAmount: BigNumber;
     numSamples: number;
     sampleDistributionBase: number;

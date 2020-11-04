@@ -286,46 +286,16 @@ export const DEFAULT_ERC20_TOKEN_PRECISION = 18;
 export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(70000);
 
 const EXCLUDED_SOURCES = (() => {
+    const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
             return [ERC20BridgeSource.MultiBridge];
         case ChainId.Kovan:
-            return [
-                ERC20BridgeSource.Balancer,
-                ERC20BridgeSource.Bancor,
-                ERC20BridgeSource.Curve,
-                ERC20BridgeSource.Dodo,
-                ERC20BridgeSource.Kyber,
-                ERC20BridgeSource.LiquidityProvider,
-                ERC20BridgeSource.MStable,
-                ERC20BridgeSource.Mooniswap,
-                ERC20BridgeSource.Swerve,
-                ERC20BridgeSource.SnowSwap,
-                ERC20BridgeSource.Shell,
-                ERC20BridgeSource.SushiSwap,
-                ERC20BridgeSource.Cream,
-            ];
+            return allERC20BridgeSources.filter(
+                s => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
+            );
         default:
-            return [
-                ERC20BridgeSource.Balancer,
-                ERC20BridgeSource.Bancor,
-                ERC20BridgeSource.Curve,
-                ERC20BridgeSource.Dodo,
-                ERC20BridgeSource.Eth2Dai,
-                ERC20BridgeSource.Kyber,
-                ERC20BridgeSource.LiquidityProvider,
-                ERC20BridgeSource.MultiBridge,
-                ERC20BridgeSource.MStable,
-                ERC20BridgeSource.Uniswap,
-                ERC20BridgeSource.UniswapV2,
-                ERC20BridgeSource.Mooniswap,
-                ERC20BridgeSource.MultiHop,
-                ERC20BridgeSource.Swerve,
-                ERC20BridgeSource.SnowSwap,
-                ERC20BridgeSource.Shell,
-                ERC20BridgeSource.SushiSwap,
-                ERC20BridgeSource.Cream,
-            ];
+            return allERC20BridgeSources.filter(s => s !== ERC20BridgeSource.Native);
     }
 })();
 
@@ -368,18 +338,18 @@ export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     }
 })();
 
-const tokenAdjacencyGraph: TokenAdjacencyGraph = Object.values(TokenMetadatasForChains).reduce(
+export const DEFAULT_INTERMEDIATE_TOKENS = [
+    getTokenMetadataIfExists('WETH', CHAIN_ID)?.tokenAddress,
+    getTokenMetadataIfExists('DAI', CHAIN_ID)?.tokenAddress,
+    getTokenMetadataIfExists('USDC', CHAIN_ID)?.tokenAddress,
+    getTokenMetadataIfExists('USDT', CHAIN_ID)?.tokenAddress,
+    getTokenMetadataIfExists('WBTC', CHAIN_ID)?.tokenAddress,
+].filter(t => t) as string[];
+
+export const DEFAULT_TOKEN_ADJACENCY: TokenAdjacencyGraph = Object.values(TokenMetadatasForChains).reduce(
     (acc: TokenAdjacencyGraph, t: TokenMetadataAndChainAddresses) => {
         const tokenKey = t.tokenAddresses[CHAIN_ID];
-        const intermediateTokens = [
-            getTokenMetadataIfExists('WETH', CHAIN_ID),
-            getTokenMetadataIfExists('DAI', CHAIN_ID),
-            getTokenMetadataIfExists('USDC', CHAIN_ID),
-            getTokenMetadataIfExists('WBTC', CHAIN_ID),
-        ]
-            .map(m => m && m.tokenAddress)
-            .filter(m => m && m !== tokenKey);
-        acc[tokenKey] = intermediateTokens as string[];
+        acc[tokenKey] = DEFAULT_INTERMEDIATE_TOKENS;
         return acc;
     },
     {},
@@ -396,7 +366,6 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
     samplerOverrides: SAMPLER_OVERRIDES,
-    tokenAdjacencyGraph,
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {

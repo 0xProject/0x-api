@@ -76,16 +76,15 @@ export class MetaTransactionHandlers {
             slippagePercentage,
             excludedSources,
             includedSources,
+            affiliateAddress,
             affiliateFee,
             // tslint:disable-next-line:boolean-naming
             includePriceComparisons,
         } = params;
-        const sellToken = getTokenMetadataIfExists(sellTokenAddress, CHAIN_ID);
-        const buyToken = getTokenMetadataIfExists(buyTokenAddress, CHAIN_ID);
-        const isETHBuy = isETHSymbolOrAddress(buyToken!.symbol);
+        const isETHBuy = isETHSymbolOrAddress(buyTokenAddress);
 
         // ETH selling isn't supported.
-        if (isETHSymbolOrAddress(sellToken!.symbol)) {
+        if (isETHSymbolOrAddress(sellTokenAddress)) {
             throw new EthSellNotSupportedError();
         }
 
@@ -103,6 +102,7 @@ export class MetaTransactionHandlers {
                 includePriceComparisons,
                 isETHBuy,
                 isETHSell: false,
+                affiliateAddress,
                 affiliateFee,
                 from: takerAddress,
             });
@@ -187,15 +187,14 @@ export class MetaTransactionHandlers {
             excludedSources,
             includedSources,
             affiliateFee,
+            affiliateAddress,
             // tslint:disable-next-line:boolean-naming
             includePriceComparisons,
         } = parseGetTransactionRequestParams(req);
-        const sellToken = getTokenMetadataIfExists(sellTokenAddress, CHAIN_ID);
-        const buyToken = getTokenMetadataIfExists(buyTokenAddress, CHAIN_ID);
-        const isETHBuy = isETHSymbolOrAddress(buyToken!.symbol);
+        const isETHBuy = isETHSymbolOrAddress(buyTokenAddress);
 
         // ETH selling isn't supported.
-        if (isETHSymbolOrAddress(sellToken!.symbol)) {
+        if (isETHSymbolOrAddress(sellTokenAddress)) {
             throw new EthSellNotSupportedError();
         }
 
@@ -215,6 +214,7 @@ export class MetaTransactionHandlers {
                 isETHBuy,
                 isETHSell: false,
                 affiliateFee,
+                affiliateAddress,
             });
 
             let priceComparisons: SourceComparison[] | undefined;
@@ -482,6 +482,8 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
               buyTokenPercentageFee: 0,
           };
 
+    const affiliateAddress = req.query.affiliateAddress as string | undefined;
+
     return {
         takerAddress,
         sellTokenAddress,
@@ -493,6 +495,7 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
         includedSources,
         includePriceComparisons,
         affiliateFee,
+        affiliateAddress,
     };
 };
 
