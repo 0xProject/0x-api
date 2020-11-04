@@ -73,7 +73,7 @@ async function newAPIOrderAsync(
     return apiOrder;
 }
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let chainId: number;
     let contractAddresses: ContractAddresses;
     let makerAddress: string;

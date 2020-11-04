@@ -87,25 +87,10 @@ export const meshUtils = {
                     break;
                 }
                 case OrderEventEndState.Invalid:
-                    removed.push(apiOrder);
-                    persistentUpdated.push(apiOrder);
-                    break;
                 case OrderEventEndState.Cancelled:
-                    removed.push(apiOrder);
-                    persistentUpdated.push(apiOrder);
-                    break;
                 case OrderEventEndState.Expired:
-                    removed.push(apiOrder);
-                    persistentUpdated.push(apiOrder);
-                    break;
                 case OrderEventEndState.FullyFilled:
-                    removed.push(apiOrder);
-                    persistentUpdated.push(apiOrder);
-                    break;
                 case OrderEventEndState.StoppedWatching:
-                    removed.push(apiOrder);
-                    persistentUpdated.push(apiOrder);
-                    break;
                 case OrderEventEndState.Unfunded: {
                     removed.push(apiOrder);
                     persistentUpdated.push(apiOrder);
