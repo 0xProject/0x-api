@@ -1,3 +1,15 @@
+// tslint:disable:ordered-imports
+import { ImportMock } from 'ts-mock-imports';
+import * as MeshClientModule from '../src/utils/mesh_client';
+import { getConnection } from 'typeorm';
+import { MeshClient as MeshClientMock } from './utils/mesh_client_mock';
+const _meshClientMock = new MeshClientMock('ws://localhost:60557', 'http://localhost:60557');
+const meshClientMockManager = ImportMock.mockClass(MeshClientModule, 'MeshClient');
+meshClientMockManager.mock('getStatsAsync').callsFake(_meshClientMock.getStatsAsync.bind(_meshClientMock));
+meshClientMockManager.mock('getOrdersAsync').callsFake(_meshClientMock.getOrdersAsync.bind(_meshClientMock));
+meshClientMockManager.mock('addOrdersAsync').callsFake(_meshClientMock.addOrdersAsync.bind(_meshClientMock));
+meshClientMockManager.mock('onOrderEvents').callsFake(_meshClientMock.onOrderEvents.bind(_meshClientMock));
+
 import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
@@ -19,12 +31,7 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import { ETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
-import {
-    setupDependenciesAsync,
-    setupMeshAsync,
-    teardownDependenciesAsync,
-    teardownMeshAsync,
-} from './utils/deployment';
+import { setupDependenciesAsync, teardownDependenciesAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
@@ -53,6 +60,8 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
+        // We won't need Mesh as it's mocked out
+        await teardownMeshAsync(SUITE_NAME);
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -91,6 +100,11 @@ describe(SUITE_NAME, () => {
             });
         });
         await teardownDependenciesAsync(SUITE_NAME);
+    });
+
+    beforeEach(async () => {
+        _meshClientMock.resetClient();
+        await getConnection().synchronize(true);
     });
 
     const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
@@ -252,8 +266,6 @@ describe(SUITE_NAME, () => {
 
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
-                await teardownMeshAsync(SUITE_NAME);
-                await setupMeshAsync(SUITE_NAME);
             });
 
             it('should show the price of the only order in Mesh', async () => {
@@ -423,15 +435,12 @@ describe(SUITE_NAME, () => {
 
             beforeEach(async () => {
                 await blockchainLifecycle.startAsync();
-                // await setupMeshAsync(SUITE_NAME);
                 meshTestUtils = new MeshTestUtils(provider);
                 await meshTestUtils.setupUtilsAsync();
             });
 
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
-                await teardownMeshAsync(SUITE_NAME);
-                await setupMeshAsync(SUITE_NAME);
             });
 
             it('should return a quote of the only order in Mesh', async () => {
@@ -586,8 +595,6 @@ describe(SUITE_NAME, () => {
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
-                    await teardownMeshAsync(SUITE_NAME);
-                    await setupMeshAsync(SUITE_NAME);
                 });
 
                 it('price checking yields the correct market price', async () => {
@@ -689,8 +696,6 @@ describe(SUITE_NAME, () => {
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
-                    await teardownMeshAsync(SUITE_NAME);
-                    await setupMeshAsync(SUITE_NAME);
                 });
 
                 beforeEach(async () => {
