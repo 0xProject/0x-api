@@ -40,7 +40,7 @@
         "release": "curl -v -H \"Accept: application/vnd.github.everest-preview+json\" -H \"Authorization: token ${GITHUB_TOKEN}\" https://api.github.com/repos/0xProject/0x-api/dispatches -d '{ \"event_type\": \"semantic-release\" }'"
     },
     "config": {
-        "prettier_target": "{.,test/**,src/**}/*.{ts,tsx,json,md}"
+        "prettier_target": "{.,test/**,src/**,migrations}/*.{ts,tsx,json,md}"
     },
     "release": {
         "plugins": [

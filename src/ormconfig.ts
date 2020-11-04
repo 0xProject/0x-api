@@ -1,8 +1,7 @@
 import { ConnectionOptions } from 'typeorm';
 
 import { POSTGRES_READ_REPLICA_URIS, POSTGRES_URI } from './config';
-import { KeyValueEntity, SignedOrderEntity, TransactionEntity } from './entities';
-import { PersistentSignedOrderEntity } from './entities/PersistentSignedOrderEntity';
+import { KeyValueEntity, PersistentSignedOrderEntity, SignedOrderEntity, TransactionEntity } from './entities';
 
 const entities = [SignedOrderEntity, PersistentSignedOrderEntity, TransactionEntity, KeyValueEntity];
 
@@ -17,6 +16,7 @@ export const config: ConnectionOptions = {
         max: 15,
         statement_timeout: 10000,
     },
+    migrations: ['migrations/*.js'],
     ...(POSTGRES_READ_REPLICA_URIS
         ? {
               replication: {
