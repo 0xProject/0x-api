@@ -89,6 +89,7 @@
         "@0x/contracts-test-utils": "^5.3.2",
         "@0x/dev-utils": "^3.2.1",
         "@0x/migrations": "^6.2.4",
+        "@0x/quote-server": "^3.1.0",
         "@0x/tslint-config": "^4.0.0",
         "@0x/typescript-typings": "^5.0.1",
         "@balancer-labs/sor": "^0.3.0",
