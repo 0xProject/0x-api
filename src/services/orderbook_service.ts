@@ -1,6 +1,6 @@
 import { APIOrder, OrderbookResponse, PaginatedCollection } from '@0x/connect';
 import { AcceptedOrderInfo, OrderEventEndState } from '@0x/mesh-rpc-client';
-import { AssetPairsItem, OrdersRequestOpts, SignedOrder } from '@0x/types';
+import { AssetPairsItem, SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
 
@@ -9,7 +9,7 @@ import { SignedOrderEntity } from '../entities';
 import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { ValidationError } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { APIOrderWithMetaData, PinResult } from '../types';
+import { APIOrderWithMetaData, PinResult, SRAGetOrdersRequestOpts } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -109,7 +109,7 @@ export class OrderBookService {
     public async getOrdersAsync(
         page: number,
         perPage: number,
-        ordersFilterParams: OrdersRequestOpts,
+        ordersFilterParams: SRAGetOrdersRequestOpts,
     ): Promise<PaginatedCollection<APIOrder>> {
         // Pre-filters
         const filterObjectWithValuesIfExist: Partial<SignedOrder> = {

@@ -63,7 +63,7 @@ export class SRAHandlers {
         }
     }
     public async ordersAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.query, schemas.ordersRequestOptsSchema);
+        schemaUtils.validateSchema(req.query, apiSchemas.sraGetOrdersRequestSchema);
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const paginatedOrders = await this._orderBook.getOrdersAsync(page, perPage, req.query);
         res.status(HttpStatus.OK).send(paginatedOrders);

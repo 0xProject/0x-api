@@ -11,7 +11,6 @@ import {
     ERC20BridgeAssetData,
     ERC721AssetData,
     MultiAssetData,
-    OrdersRequestOpts,
     SignedOrder,
     StaticCallAssetData,
 } from '@0x/types';
@@ -35,7 +34,7 @@ import { SignedOrderEntity } from '../entities';
 import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { logger } from '../logger';
 import * as queries from '../queries/staking_queries';
-import { APIOrderMetaData, APIOrderWithMetaData, PinResult, RawPool } from '../types';
+import { APIOrderMetaData, APIOrderWithMetaData, PinResult, RawPool, SRAGetOrdersRequestOpts } from '../types';
 
 import { createResultCache, ResultCache } from './result_cache';
 
@@ -290,7 +289,7 @@ export const orderUtils = {
         };
         return orderConfigResponse;
     },
-    filterOrders: (apiOrders: APIOrder[], filters: OrdersRequestOpts): APIOrder[] => {
+    filterOrders: (apiOrders: APIOrder[], filters: SRAGetOrdersRequestOpts): APIOrder[] => {
         const { traderAddress, makerAssetAddress, takerAssetAddress, makerAssetProxyId, takerAssetProxyId } = filters;
         const matchTraderAddress = (order: SignedOrder, filterAddress?: string): boolean =>
             filterAddress ? order.makerAddress === filterAddress || order.takerAddress === filterAddress : true;

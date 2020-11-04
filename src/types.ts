@@ -666,4 +666,21 @@ export interface BucketedPriceDepth {
     bucket: number;
     bucketTotal: BigNumber;
 }
+export interface SRAGetOrdersRequestOpts {
+    makerAssetProxyId?: string;
+    takerAssetProxyId?: string;
+    makerAssetAddress?: string;
+    takerAssetAddress?: string;
+    exchangeAddress?: string;
+    senderAddress?: string;
+    makerAssetData?: string;
+    takerAssetData?: string;
+    makerFeeAssetData?: string;
+    takerFeeAssetData?: string;
+    makerAddress?: string;
+    takerAddress?: string;
+    traderAddress?: string;
+    feeRecipientAddress?: string;
+    unfillable?: boolean; // default false
+}
 // tslint:disable-line:max-file-line-count
