@@ -41,8 +41,8 @@ const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 describe(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
-
     let dependencies: AppDependencies;
+
     let accounts: string[];
     let chainId: number;
     let contractAddresses: ContractAddresses;
@@ -71,6 +71,10 @@ describe(SUITE_NAME, () => {
         };
         provider = web3Factory.getRpcProvider(ganacheConfigs);
 
+        // start the 0x-api app
+        dependencies = await getDefaultAppDependenciesAsync(provider, config.defaultHttpServiceConfig);
+        ({ app, server } = await getAppAsync({ ...dependencies }, config.defaultHttpServiceConfig));
+
         const web3Wrapper = new Web3Wrapper(provider);
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
 
@@ -84,10 +88,6 @@ describe(SUITE_NAME, () => {
 
         weth = new WETH9Contract(contractAddresses.etherToken, provider);
         zrx = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
-
-        // start the 0x-api app
-        dependencies = await getDefaultAppDependenciesAsync(provider, config.defaultHttpServiceConfig);
-        ({ app, server } = await getAppAsync({ ...dependencies }, config.defaultHttpServiceConfig));
     });
 
     after(async () => {
