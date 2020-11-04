@@ -7,9 +7,11 @@ import { AddOrdersResults } from '@0x/mesh-graphql-client';
 import { SignatureType, SignedOrder, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 
+import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
 import { META_TRANSACTION_PATH, ONE_SECOND_MS, TEN_MINUTES_MS } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
@@ -17,7 +19,12 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import { ETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
-import { setupApiAsync, setupMeshAsync, sleepAsync, teardownApiAsync, teardownMeshAsync } from './utils/deployment';
+import {
+    setupDependenciesAsync,
+    setupMeshAsync,
+    teardownDependenciesAsync,
+    teardownMeshAsync,
+} from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
@@ -25,10 +32,11 @@ import { liquiditySources0xOnly } from './utils/mocks';
 const SUITE_NAME = 'meta transactions tests';
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
-// HACK(kimpers): Mesh v10 & 0x API setup/teardown ready state detection is flaky so we add some artificial delay
-const ENV_SETUP_DELAY_SECONDS = 20;
-
 describe(SUITE_NAME, () => {
+    let app: Express.Application;
+    let server: Server;
+
+    let dependencies: AppDependencies;
     let accounts: string[];
     let chainId: number;
     let contractAddresses: ContractAddresses;
@@ -44,7 +52,7 @@ describe(SUITE_NAME, () => {
     let zrx: DummyERC20TokenContract;
 
     before(async () => {
-        await setupApiAsync(SUITE_NAME);
+        await setupDependenciesAsync(SUITE_NAME);
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -67,10 +75,22 @@ describe(SUITE_NAME, () => {
 
         weth = new WETH9Contract(contractAddresses.etherToken, provider);
         zrx = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
+
+        // start the 0x-api app
+        dependencies = await getDefaultAppDependenciesAsync(provider, config.defaultHttpServiceConfig);
+        ({ app, server } = await getAppAsync({ ...dependencies }, config.defaultHttpServiceConfig));
     });
 
     after(async () => {
-        await teardownApiAsync(SUITE_NAME);
+        await new Promise<void>((resolve, reject) => {
+            server.close((err?: Error) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve();
+            });
+        });
+        await teardownDependenciesAsync(SUITE_NAME);
     });
 
     const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
@@ -86,7 +106,7 @@ describe(SUITE_NAME, () => {
             baseRoute,
             queryParams: testCase.takerAddress ? { ...testCase.queryParams, takerAddress } : testCase.queryParams,
         });
-        const response = await httpGetAsync({ route });
+        const response = await httpGetAsync({ app, route });
         expect(response.type).to.be.eq('application/json');
         expect(response.body).to.be.deep.eq(testCase.body);
         expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
@@ -232,11 +252,8 @@ describe(SUITE_NAME, () => {
 
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
-                await teardownApiAsync(SUITE_NAME, undefined, false);
                 await teardownMeshAsync(SUITE_NAME);
                 await setupMeshAsync(SUITE_NAME);
-                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
-                await setupApiAsync(SUITE_NAME, undefined, false);
             });
 
             it('should show the price of the only order in Mesh', async () => {
@@ -249,7 +266,7 @@ describe(SUITE_NAME, () => {
                         takerAddress,
                     },
                 });
-                const response = await httpGetAsync({ route });
+                const response = await httpGetAsync({ app, route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 expect(response.body.sources).to.be.deep.eq(liquiditySources0xOnly);
@@ -272,7 +289,7 @@ describe(SUITE_NAME, () => {
                         takerAddress,
                     },
                 });
-                const response = await httpGetAsync({ route });
+                const response = await httpGetAsync({ app, route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 expect(response.body.sources).to.be.deep.eq(liquiditySources0xOnly);
@@ -299,7 +316,7 @@ describe(SUITE_NAME, () => {
                         takerAddress,
                     },
                 });
-                const response = await httpGetAsync({ route });
+                const response = await httpGetAsync({ app, route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 expect(response.body.sources).to.be.deep.eq(liquiditySources0xOnly);
@@ -413,11 +430,8 @@ describe(SUITE_NAME, () => {
 
             afterEach(async () => {
                 await blockchainLifecycle.revertAsync();
-                await teardownApiAsync(SUITE_NAME, undefined, false);
                 await teardownMeshAsync(SUITE_NAME);
                 await setupMeshAsync(SUITE_NAME);
-                await sleepAsync(ENV_SETUP_DELAY_SECONDS);
-                await setupApiAsync(SUITE_NAME, undefined, false);
             });
 
             it('should return a quote of the only order in Mesh', async () => {
@@ -430,7 +444,7 @@ describe(SUITE_NAME, () => {
                         takerAddress,
                     },
                 });
-                const response = await httpGetAsync({ route });
+                const response = await httpGetAsync({ app, route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 assertCorrectMetaQuote({
@@ -452,7 +466,7 @@ describe(SUITE_NAME, () => {
                         takerAddress,
                     },
                 });
-                const response = await httpGetAsync({ route });
+                const response = await httpGetAsync({ app, route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 assertCorrectMetaQuote({
@@ -475,7 +489,7 @@ describe(SUITE_NAME, () => {
                         takerAddress,
                     },
                 });
-                const response = await httpGetAsync({ route });
+                const response = await httpGetAsync({ app, route });
                 expect(response.type).to.be.eq('application/json');
                 expect(response.status).to.be.eq(HttpStatus.OK);
                 assertCorrectMetaQuote({
@@ -515,7 +529,7 @@ describe(SUITE_NAME, () => {
                         },
                     };
                     const route = constructRoute(args);
-                    const response = await httpGetAsync({ route });
+                    const response = await httpGetAsync({ app, route });
                     expect(response.type).to.be.eq('application/json');
                     expect(response.status).to.be.eq(HttpStatus.OK);
                     expect(response.body).to.include({
@@ -533,7 +547,7 @@ describe(SUITE_NAME, () => {
 
         context('failure tests', () => {
             it('should return InvalidAPIKey error if invalid UUID supplied as API Key', async () => {
-                const response = await httpPostAsync({ route: requestBase, headers: { '0x-api-key': 'foobar' } });
+                const response = await httpPostAsync({ app, route: requestBase, headers: { '0x-api-key': 'foobar' } });
                 expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
                 expect(response.type).to.be.eq('application/json');
                 expect(response.body).to.be.deep.eq({
@@ -572,11 +586,8 @@ describe(SUITE_NAME, () => {
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
-                    await teardownApiAsync(SUITE_NAME, undefined, false);
                     await teardownMeshAsync(SUITE_NAME);
                     await setupMeshAsync(SUITE_NAME);
-                    await sleepAsync(ENV_SETUP_DELAY_SECONDS);
-                    await setupApiAsync(SUITE_NAME, undefined, false);
                 });
 
                 it('price checking yields the correct market price', async () => {
@@ -587,7 +598,7 @@ describe(SUITE_NAME, () => {
                             takerAddress,
                         },
                     });
-                    const response = await httpGetAsync({ route });
+                    const response = await httpGetAsync({ app, route });
                     expect(response.type).to.be.eq('application/json');
                     expect(response.status).to.be.eq(HttpStatus.OK);
                     expect(response.body.sources).to.be.deep.eq(liquiditySources0xOnly);
@@ -610,7 +621,7 @@ describe(SUITE_NAME, () => {
                             takerAddress,
                         },
                     });
-                    const response = await httpGetAsync({ route });
+                    const response = await httpGetAsync({ app, route });
                     expect(response.type).to.be.eq('application/json');
                     expect(response.status).to.be.eq(HttpStatus.OK);
                     assertCorrectMetaQuote({
@@ -639,6 +650,7 @@ describe(SUITE_NAME, () => {
                         baseRoute: `${META_TRANSACTION_PATH}/submit`,
                     });
                     const response = await httpPostAsync({
+                        app,
                         route,
                         body: {
                             mtx: transaction,
@@ -677,10 +689,8 @@ describe(SUITE_NAME, () => {
 
                 afterEach(async () => {
                     await blockchainLifecycle.revertAsync();
-                    await teardownApiAsync(SUITE_NAME, undefined, false);
                     await teardownMeshAsync(SUITE_NAME);
                     await setupMeshAsync(SUITE_NAME);
-                    await setupApiAsync(SUITE_NAME, undefined, false);
                 });
 
                 beforeEach(async () => {
@@ -697,7 +707,7 @@ describe(SUITE_NAME, () => {
                             takerAddress,
                         },
                     });
-                    const response = await httpGetAsync({ route });
+                    const response = await httpGetAsync({ app, route });
                     expect(response.type).to.be.eq('application/json');
                     expect(response.status).to.be.eq(HttpStatus.OK);
                     expect(response.body.sources).to.be.deep.eq(liquiditySources0xOnly);
@@ -720,7 +730,7 @@ describe(SUITE_NAME, () => {
                             takerAddress,
                         },
                     });
-                    const response = await httpGetAsync({ route });
+                    const response = await httpGetAsync({ app, route });
                     expect(response.type).to.be.eq('application/json');
                     expect(response.status).to.be.eq(HttpStatus.OK);
                     assertCorrectMetaQuote({
@@ -749,6 +759,7 @@ describe(SUITE_NAME, () => {
                         baseRoute: `${META_TRANSACTION_PATH}/submit`,
                     });
                     const response = await httpPostAsync({
+                        app,
                         route,
                         body: {
                             mtx: transaction,
