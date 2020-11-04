@@ -1,15 +1,3 @@
-// tslint:disable:ordered-imports
-import { ImportMock } from 'ts-mock-imports';
-import * as MeshClientModule from '../src/utils/mesh_client';
-import { getConnection } from 'typeorm';
-import { MeshClient as MeshClientMock } from './utils/mesh_client_mock';
-const _meshClientMock = new MeshClientMock('ws://localhost:60557', 'http://localhost:60557');
-const meshClientMockManager = ImportMock.mockClass(MeshClientModule, 'MeshClient');
-meshClientMockManager.mock('getStatsAsync').callsFake(_meshClientMock.getStatsAsync.bind(_meshClientMock));
-meshClientMockManager.mock('getOrdersAsync').callsFake(_meshClientMock.getOrdersAsync.bind(_meshClientMock));
-meshClientMockManager.mock('addOrdersAsync').callsFake(_meshClientMock.addOrdersAsync.bind(_meshClientMock));
-meshClientMockManager.mock('onOrderEvents').callsFake(_meshClientMock.onOrderEvents.bind(_meshClientMock));
-
 import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
@@ -22,19 +10,30 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
+import { ImportMock } from 'ts-mock-imports';
+import { getConnection } from 'typeorm';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
 import { META_TRANSACTION_PATH, ONE_SECOND_MS, TEN_MINUTES_MS } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 import { GetMetaTransactionQuoteResponse } from '../src/types';
+import * as MeshClientModule from '../src/utils/mesh_client';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import { ETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync, teardownMeshAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
+import { MeshClient as MeshClientMock } from './utils/mesh_client_mock';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
+
+const _meshClientMock = new MeshClientMock();
+const meshClientMockManager = ImportMock.mockClass(MeshClientModule, 'MeshClient');
+meshClientMockManager.mock('getStatsAsync').callsFake(_meshClientMock.getStatsAsync.bind(_meshClientMock));
+meshClientMockManager.mock('getOrdersAsync').callsFake(_meshClientMock.getOrdersAsync.bind(_meshClientMock));
+meshClientMockManager.mock('addOrdersAsync').callsFake(_meshClientMock.addOrdersAsync.bind(_meshClientMock));
+meshClientMockManager.mock('onOrderEvents').callsFake(_meshClientMock.onOrderEvents.bind(_meshClientMock));
 
 const SUITE_NAME = 'meta transactions tests';
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
@@ -61,6 +60,7 @@ describe(SUITE_NAME, () => {
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         // We won't need Mesh as it's mocked out
+        // TODO(kimpers): Don't spin up Mesh in the first place
         await teardownMeshAsync(SUITE_NAME);
 
         // connect to ganache and run contract migrations
@@ -100,10 +100,11 @@ describe(SUITE_NAME, () => {
             });
         });
         await teardownDependenciesAsync(SUITE_NAME);
+        meshClientMockManager.restore();
     });
 
     beforeEach(async () => {
-        _meshClientMock.resetClient();
+        _meshClientMock._resetClient();
         await getConnection().synchronize(true);
     });
 

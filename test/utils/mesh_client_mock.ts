@@ -33,15 +33,13 @@ export class MeshClient {
         this._nextOrderEventsCB = observer.next.bind(observer);
     });
 
-    constructor(public readonly webSocketUrl: string, public readonly httpUrl?: string) {}
-
     // NOTE: Mock only method
-    public resetClient(): void {
+    public _resetClient(): void {
         console.log('RESETTING');
         this._orders = [];
     }
     // NOTE: Mock only method
-    public getOrderState(): OrderWithMetadata[] {
+    public _getOrderState(): OrderWithMetadata[] {
         return this._orders;
     }
 
