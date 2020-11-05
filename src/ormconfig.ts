@@ -5,7 +5,7 @@ import { KeyValueEntity, PersistentSignedOrderEntity, SignedOrderEntity, Transac
 
 const entities = [SignedOrderEntity, PersistentSignedOrderEntity, TransactionEntity, KeyValueEntity];
 
-export const config: ConnectionOptions = {
+const config: ConnectionOptions = {
     type: 'postgres',
     entities,
     // Disable synchronization in production
@@ -26,3 +26,4 @@ export const config: ConnectionOptions = {
           }
         : { url: POSTGRES_URI }),
 };
+module.exports = config;
