@@ -8,7 +8,6 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
-import { getConnection } from 'typeorm';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
@@ -18,6 +17,7 @@ import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationError
 import { APIOrderWithMetaData } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
 
+import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
@@ -126,11 +126,12 @@ describe(SUITE_NAME, () => {
                 resolve();
             });
         });
+        await resetState();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
     beforeEach(async () => {
-        await getConnection().synchronize(true);
+        await resetState();
     });
 
     describe('/fee_recipients', () => {

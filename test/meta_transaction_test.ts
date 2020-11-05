@@ -10,7 +10,6 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
-import { getConnection } from 'typeorm';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
@@ -20,6 +19,7 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import { ETH_TOKEN_ADDRESS, WETH_ASSET_DATA, ZRX_ASSET_DATA, ZRX_TOKEN_ADDRESS } from './constants';
+import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
@@ -70,6 +70,7 @@ describe(SUITE_NAME, () => {
 
         chainId = await web3Wrapper.getChainIdAsync();
         contractAddresses = getContractAddressesForChainOrThrow(chainId);
+
         buyTokenAddress = contractAddresses.zrxToken;
         sellTokenAddress = contractAddresses.etherToken;
 
@@ -86,11 +87,12 @@ describe(SUITE_NAME, () => {
                 resolve();
             });
         });
+        await resetState();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
     beforeEach(async () => {
-        await getConnection().synchronize(true);
+        await resetState();
     });
 
     const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);

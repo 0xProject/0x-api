@@ -10,7 +10,6 @@ import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 import 'mocha';
-import { getConnection } from 'typeorm';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
@@ -34,6 +33,7 @@ import {
     ZRX_ASSET_DATA,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
+import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
 import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
@@ -63,6 +63,7 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
+        await resetState();
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -147,7 +148,7 @@ describe(SUITE_NAME, () => {
     });
 
     beforeEach(async () => {
-        await getConnection().synchronize(true);
+        await resetState();
     });
     describe('/quote', () => {
         it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
