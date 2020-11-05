@@ -1,10 +1,9 @@
 import { logUtils as log } from '@0x/utils';
-import { ChildProcessWithoutNullStreams, exec, spawn } from 'child_process';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 
-import { HTTP_PORT } from '../../src/config';
 import { getDBConnectionAsync } from '../../src/db_connection';
 
 import { getTestDBConnectionAsync } from './db_connection';
@@ -26,56 +25,6 @@ export enum LogType {
 export interface LoggingConfig {
     apiLogType?: LogType;
     dependencyLogType?: LogType;
-}
-
-let start: ChildProcessWithoutNullStreams | undefined;
-
-/**
- * Sets up a 0x-api instance.
- * @param logConfig Where logs should be directed.
- */
-export async function setupApiAsync(
-    suiteName: string,
-    logConfig: LoggingConfig = {},
-    withDependencies: boolean = true,
-): Promise<void> {
-    if (start) {
-        throw new Error('Old 0x-api instance has not been torn down');
-    }
-    if (withDependencies) {
-        await setupDependenciesAsync(suiteName, logConfig.dependencyLogType);
-    }
-    start = spawn('yarn', ['start'], {
-        cwd: apiRootDir,
-        env: process.env,
-    });
-    directLogs(start, suiteName, 'start', logConfig.apiLogType);
-    await waitForApiStartupAsync(start);
-}
-
-/**
- * Tears down the old 0x-api instance.
- * @param suiteName The name of the test suite that is using this function. This
- *        helps to make the logs more intelligible.
- * @param logType Indicates where logs should be directed.
- */
-export async function teardownApiAsync(
-    suiteName: string,
-    logType?: LogType,
-    withDependencies: boolean = true,
-): Promise<void> {
-    if (!start) {
-        throw new Error('There is no 0x-api instance to tear down');
-    }
-    await killAsync(HTTP_PORT);
-    start = undefined;
-    if (withDependencies) {
-        await teardownDependenciesAsync(suiteName, logType);
-    }
-}
-
-async function killAsync(port: number): Promise<void> {
-    await promisify(exec)(`lsof -ti :${port} | xargs kill -9`);
 }
 
 let didTearDown = false;
@@ -154,17 +103,6 @@ function directLogs(
     }
 }
 
-/**
- * Sleeps for X seconds before resolving
- * @param timeSeconds  number of seconds to sleep
- */
-export async function sleepAsync(timeSeconds: number): Promise<void> {
-    return new Promise<void>(resolve => {
-        const secondsPerMillisecond = 1000;
-        setTimeout(resolve, timeSeconds * secondsPerMillisecond);
-    });
-}
-
 const volumeRegex = new RegExp(/[ \t\r]*volumes:.*\n([ \t\r]*-.*\n)+/, 'g');
 let didCreateFreshComposeFile = false;
 
@@ -204,37 +142,14 @@ async function waitForCloseAsync(
     });
 }
 
-async function waitForApiStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-        logStream.stdout.on('data', (chunk: Buffer) => {
-            const data = chunk.toString().split('\n');
-            for (const datum of data) {
-                if (/server listening.*/.test(datum)) {
-                    resolve();
-                }
-            }
-        });
-        setTimeout(() => {
-            reject(new Error('Timed out waiting for 0x-api logs'));
-        }, 30000); // tslint:disable-line:custom-no-magic-numbers
-    });
-}
-
 async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullStreams): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-        const hasSeenLog = [0];
         logStream.stdout.on('data', (chunk: Buffer) => {
             const data = chunk.toString().split('\n');
             for (const datum of data) {
-                if (
-                    hasSeenLog[0] < 1 &&
-                    /.*postgres.*PostgreSQL init process complete; ready for start up./.test(datum)
-                ) {
-                    hasSeenLog[0]++;
-                }
-
-                if (hasSeenLog[0] === 1) {
+                if (/.*postgres.*PostgreSQL init process complete; ready for start up./.test(datum)) {
                     resolve();
+                    return;
                 }
             }
         });
@@ -259,4 +174,11 @@ async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<v
             throw e;
         }
     }
+}
+
+async function sleepAsync(timeSeconds: number): Promise<void> {
+    return new Promise<void>(resolve => {
+        const secondsPerMillisecond = 1000;
+        setTimeout(resolve, timeSeconds * secondsPerMillisecond);
+    });
 }
