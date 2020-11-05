@@ -63,7 +63,6 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        await resetState();
 
         // connect to ganache and run contract migrations
         const ganacheConfigs = {
@@ -135,7 +134,6 @@ describe(SUITE_NAME, () => {
     });
 
     after(async () => {
-        await resetState();
         await blockchainLifecycle.revertAsync();
         await new Promise<void>((resolve, reject) => {
             server.close((err?: Error) => {
@@ -145,6 +143,7 @@ describe(SUITE_NAME, () => {
                 resolve();
             });
         });
+        await resetState();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 

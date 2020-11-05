@@ -7,6 +7,7 @@ import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
+import * as _ from 'lodash';
 import 'mocha';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
@@ -32,25 +33,6 @@ const EMPTY_PAGINATED_RESPONSE = {
 };
 
 const TOMORROW = new BigNumber(Date.now() + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
-async function addNewSignedOrderAsync(
-    orderFactory: OrderFactory,
-    params: Partial<Order>,
-    remainingFillableAssetAmount?: BigNumber,
-): Promise<APIOrderWithMetaData> {
-    const order = await orderFactory.newSignedOrderAsync({
-        expirationTimeSeconds: TOMORROW,
-        ...params,
-    });
-    const apiOrder: APIOrderWithMetaData = {
-        order,
-        metaData: {
-            orderHash: orderHashUtils.getOrderHash(order),
-            remainingFillableTakerAssetAmount: remainingFillableAssetAmount || order.takerAssetAmount,
-        },
-    };
-    await (await getDBConnectionAsync()).manager.save(orderUtils.serializeOrder(apiOrder));
-    return apiOrder;
-}
 describe(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
@@ -67,6 +49,31 @@ describe(SUITE_NAME, () => {
 
     let orderFactory: OrderFactory;
     let meshUtils: MeshTestUtils;
+
+    async function addNewOrderAsync(
+        params: Partial<Order>,
+        remainingFillableAssetAmount?: BigNumber,
+    ): Promise<APIOrderWithMetaData> {
+        const validationResults = await meshUtils.addPartialOrdersAsync([
+            {
+                expirationTimeSeconds: TOMORROW,
+                ...params,
+            },
+        ]);
+
+        expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
+
+        const order = validationResults.accepted[0].order;
+        const apiOrder: APIOrderWithMetaData = {
+            order: _.omit(order, ['fillableTakerAssetAmount', 'hash']),
+            metaData: {
+                orderHash: order.hash,
+                remainingFillableTakerAssetAmount: remainingFillableAssetAmount || order.takerAssetAmount,
+            },
+        };
+
+        return apiOrder;
+    }
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
@@ -111,13 +118,8 @@ describe(SUITE_NAME, () => {
         };
         const privateKey = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
         orderFactory = new OrderFactory(privateKey, defaultOrderParams);
-        await blockchainLifecycle.startAsync();
-
-        meshUtils = new MeshTestUtils(provider);
-        await meshUtils.setupUtilsAsync();
     });
     after(async () => {
-        await blockchainLifecycle.revertAsync();
         await new Promise<void>((resolve, reject) => {
             server.close((err?: Error) => {
                 if (err) {
@@ -132,6 +134,13 @@ describe(SUITE_NAME, () => {
 
     beforeEach(async () => {
         await resetState();
+        await blockchainLifecycle.startAsync();
+        meshUtils = new MeshTestUtils(provider);
+        await meshUtils.setupUtilsAsync();
+    });
+
+    afterEach(async () => {
+        await blockchainLifecycle.revertAsync();
     });
 
     describe('/fee_recipients', () => {
@@ -156,7 +165,7 @@ describe(SUITE_NAME, () => {
             expect(response.body).to.deep.eq(EMPTY_PAGINATED_RESPONSE);
         });
         it('should return orders in the local cache', async () => {
-            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const apiOrder = await addNewOrderAsync({});
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders` });
 
             expect(response.type).to.eq(`application/json`);
@@ -170,7 +179,7 @@ describe(SUITE_NAME, () => {
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
         });
         it('should return orders filtered by query params', async () => {
-            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const apiOrder = await addNewOrderAsync({});
             const response = await httpGetAsync({
                 app,
                 route: `${SRA_PATH}/orders?makerAddress=${apiOrder.order.makerAddress}`,
@@ -187,7 +196,7 @@ describe(SUITE_NAME, () => {
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
         });
         it('should return empty response when filtered by query params', async () => {
-            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const apiOrder = await addNewOrderAsync({});
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders?makerAddress=${NULL_ADDRESS}` });
 
             expect(response.type).to.eq(`application/json`);
@@ -197,7 +206,7 @@ describe(SUITE_NAME, () => {
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
         });
         it('should normalize addresses to lowercase', async () => {
-            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const apiOrder = await addNewOrderAsync({});
             const response = await httpGetAsync({
                 app,
                 route: `${SRA_PATH}/orders?makerAddress=${apiOrder.order.makerAddress.toUpperCase()}`,
@@ -216,7 +225,7 @@ describe(SUITE_NAME, () => {
     });
     describe('GET /order', () => {
         it('should return order by order hash', async () => {
-            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const apiOrder = await addNewOrderAsync({});
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
 
             expect(response.type).to.eq(`application/json`);
@@ -226,7 +235,7 @@ describe(SUITE_NAME, () => {
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
         });
         it('should return 404 if order is not found', async () => {
-            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const apiOrder = await addNewOrderAsync({});
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
             expect(response.status).to.deep.eq(HttpStatus.NOT_FOUND);
@@ -247,7 +256,7 @@ describe(SUITE_NAME, () => {
     });
     describe('GET /orderbook', () => {
         it('should return orderbook for a given pair', async () => {
-            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const apiOrder = await addNewOrderAsync({});
             const response = await httpGetAsync({
                 app,
                 route: constructRoute({
@@ -273,7 +282,7 @@ describe(SUITE_NAME, () => {
             expect(response.body).to.deep.eq(expectedResponse);
         });
         it('should return empty response if no matching orders', async () => {
-            const apiOrder = await addNewSignedOrderAsync(orderFactory, {});
+            const apiOrder = await addNewOrderAsync({});
             const response = await httpGetAsync({
                 app,
                 route: constructRoute({

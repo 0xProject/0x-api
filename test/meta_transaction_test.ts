@@ -452,6 +452,44 @@ describe(SUITE_NAME, () => {
                 });
             });
 
+            it('should support buying ETH by symbol and 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', async () => {
+                for (const buyToken of ['ETH', ETH_TOKEN_ADDRESS]) {
+                    await meshTestUtils.addPartialOrdersAsync([
+                        {
+                            makerAssetData: ZRX_ASSET_DATA,
+                            takerAssetData: WETH_ASSET_DATA,
+                            makerAssetAmount: ONE_THOUSAND_IN_BASE,
+                            takerAssetAmount: ONE_THOUSAND_IN_BASE,
+                        },
+                        {
+                            makerAssetData: WETH_ASSET_DATA,
+                            takerAssetData: ZRX_ASSET_DATA,
+                            makerAssetAmount: MAKER_WETH_AMOUNT,
+                            takerAssetAmount: ONE_THOUSAND_IN_BASE,
+                        },
+                    ]);
+                    const args = {
+                        baseRoute: `${META_TRANSACTION_PATH}/quote`,
+                        queryParams: {
+                            buyToken,
+                            sellToken: 'ZRX',
+                            buyAmount: '1000',
+                            excludedSources: EXCLUDED_SOURCES.join(','),
+                            takerAddress,
+                        },
+                    };
+                    const route = constructRoute(args);
+                    const response = await httpGetAsync({ app, route });
+                    expect(response.type).to.be.eq('application/json');
+                    expect(response.status).to.be.eq(HttpStatus.OK);
+                    expect(response.body).to.include({
+                        buyAmount: '1000',
+                        buyTokenAddress: ETH_TOKEN_ADDRESS,
+                        sellTokenAddress: ZRX_TOKEN_ADDRESS,
+                    });
+                }
+            });
+
             it('should return a quote of the cheaper order in Mesh', async () => {
                 const validationResults = await meshTestUtils.addOrdersWithPricesAsync([1, 2]);
                 expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
@@ -497,44 +535,6 @@ describe(SUITE_NAME, () => {
                     ),
                     expectedPrice: '1.5',
                 });
-            });
-
-            it('should support buying ETH by symbol and 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', async () => {
-                for (const buyToken of ['ETH', ETH_TOKEN_ADDRESS]) {
-                    await meshTestUtils.addPartialOrdersAsync([
-                        {
-                            makerAssetData: ZRX_ASSET_DATA,
-                            takerAssetData: WETH_ASSET_DATA,
-                            makerAssetAmount: ONE_THOUSAND_IN_BASE,
-                            takerAssetAmount: ONE_THOUSAND_IN_BASE,
-                        },
-                        {
-                            makerAssetData: WETH_ASSET_DATA,
-                            takerAssetData: ZRX_ASSET_DATA,
-                            makerAssetAmount: MAKER_WETH_AMOUNT,
-                            takerAssetAmount: ONE_THOUSAND_IN_BASE,
-                        },
-                    ]);
-                    const args = {
-                        baseRoute: `${META_TRANSACTION_PATH}/quote`,
-                        queryParams: {
-                            buyToken,
-                            sellToken: 'ZRX',
-                            buyAmount: '1000',
-                            excludedSources: EXCLUDED_SOURCES.join(','),
-                            takerAddress,
-                        },
-                    };
-                    const route = constructRoute(args);
-                    const response = await httpGetAsync({ app, route });
-                    expect(response.type).to.be.eq('application/json');
-                    expect(response.status).to.be.eq(HttpStatus.OK);
-                    expect(response.body).to.include({
-                        buyAmount: '1000',
-                        buyTokenAddress: ETH_TOKEN_ADDRESS,
-                        sellTokenAddress: ZRX_TOKEN_ADDRESS,
-                    });
-                }
             });
         });
     });
