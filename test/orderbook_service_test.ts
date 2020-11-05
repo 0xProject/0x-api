@@ -172,6 +172,7 @@ describe(SUITE_NAME, () => {
             await savePersistentOrderAsync(apiOrder);
             const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {
                 unfillable: true,
+                makerAddress: apiOrder.order.makerAddress,
             });
             expect(response).to.deep.eq({
                 ...EMPTY_PAGINATED_RESPONSE,

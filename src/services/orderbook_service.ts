@@ -7,7 +7,7 @@ import { Connection, In } from 'typeorm';
 import { SRA_ORDER_EXPIRATION_BUFFER_SECONDS, SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS } from '../config';
 import { SignedOrderEntity } from '../entities';
 import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
-import { ValidationError } from '../errors';
+import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
 import { APIOrderWithMetaData, PinResult, SRAGetOrdersRequestOpts } from '../types';
 import { MeshClient } from '../utils/mesh_client';
@@ -136,6 +136,15 @@ export class OrderBookService {
         // Join with persistent orders
         let persistentOrders: APIOrderWithMetaData[] = [];
         if (ordersFilterParams.unfillable === true) {
+            if (filterObject.makerAddress === undefined) {
+                throw new ValidationError([
+                    {
+                        field: 'makerAddress',
+                        code: ValidationErrorCodes.RequiredField,
+                        reason: ValidationErrorReasons.UnfillableRequiresMakerAddress,
+                    },
+                ]);
+            }
             const persistentOrderEntities = (await this._connection.manager.find(PersistentSignedOrderEntity, {
                 where: filterObject,
             })) as Required<PersistentSignedOrderEntity>[];
