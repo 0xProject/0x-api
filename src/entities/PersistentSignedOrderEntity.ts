@@ -1,5 +1,5 @@
 import { OrderEventEndState } from '@0x/mesh-rpc-client';
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 import { SignedOrderEntity } from './SignedOrderEntity';
 
@@ -14,21 +14,25 @@ export class PersistentSignedOrderEntity extends SignedOrderEntity {
     @Column({ name: 'sender_address', type: 'varchar' })
     public senderAddress?: string;
 
+    @Index()
     @Column({ name: 'maker_address', type: 'varchar' })
     public makerAddress?: string;
 
     @Column({ name: 'taker_address', type: 'varchar' })
     public takerAddress?: string;
 
+    @Index()
     @Column({ name: 'maker_asset_data', type: 'varchar' })
     public makerAssetData?: string;
 
+    @Index()
     @Column({ name: 'taker_asset_data', type: 'varchar' })
     public takerAssetData?: string;
 
     @Column({ name: 'exchange_address', type: 'varchar' })
     public exchangeAddress?: string;
 
+    @Index()
     @Column({ name: 'fee_recipient_address', type: 'varchar' })
     public feeRecipientAddress?: string;
 

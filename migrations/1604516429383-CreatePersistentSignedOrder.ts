@@ -1,14 +1,19 @@
 import { OrderEventEndState } from '@0x/mesh-rpc-client';
-import { MigrationInterface, QueryRunner, Table } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 const OrderEventEndStateStrings = Object.keys(OrderEventEndState).filter(x => isNaN(parseInt(x, 10)));
 
 export class CreatePersistentSignedOrder1604516429383 implements MigrationInterface {
+    public indices = ['maker_address', 'maker_asset_data', 'taker_asset_data', 'fee_recipient_address'].map(
+        colName => new TableIndex({ columnNames: [colName] }),
+    );
+    public tableName = 'persistent_signed_orders';
+
     // tslint:disable-next-line
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(
             new Table({
-                name: 'persistent_signed_orders',
+                name: this.tableName,
                 columns: [
                     { name: 'hash', type: 'varchar', isPrimary: true },
                     { name: 'sender_address', type: 'varchar' },
@@ -33,10 +38,12 @@ export class CreatePersistentSignedOrder1604516429383 implements MigrationInterf
             }),
             true,
         );
+        await queryRunner.createIndices(this.tableName, this.indices);
     }
 
     // tslint:disable-next-line
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable('persistent_signed_orders');
+        await queryRunner.dropIndices(this.tableName, this.indices);
+        await queryRunner.dropTable(this.tableName);
     }
 }

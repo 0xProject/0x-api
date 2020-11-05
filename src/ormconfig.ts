@@ -16,7 +16,7 @@ export const config: ConnectionOptions = {
         max: 15,
         statement_timeout: 10000,
     },
-    migrations: ['migrations/*.js'],
+    migrations: ['../migrations/*.js'],
     ...(POSTGRES_READ_REPLICA_URIS
         ? {
               replication: {
