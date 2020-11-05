@@ -8,7 +8,7 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
-import { ImportMock } from 'ts-mock-imports';
+import { getConnection } from 'typeorm';
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
@@ -16,20 +16,11 @@ import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, SRA_PATH } from '../src/c
 import { getDBConnectionAsync } from '../src/db_connection';
 import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 import { APIOrderWithMetaData } from '../src/types';
-import * as MeshClientModule from '../src/utils/mesh_client';
 import { orderUtils } from '../src/utils/order_utils';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
-import { MeshClient as MeshClientMock } from './utils/mesh_client_mock';
 import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
-
-const _meshClientMock = new MeshClientMock();
-const meshClientMockManager = ImportMock.mockClass(MeshClientModule, 'MeshClient');
-meshClientMockManager.mock('getStatsAsync').callsFake(_meshClientMock.getStatsAsync.bind(_meshClientMock));
-meshClientMockManager.mock('getOrdersAsync').callsFake(_meshClientMock.getOrdersAsync.bind(_meshClientMock));
-meshClientMockManager.mock('addOrdersAsync').callsFake(_meshClientMock.addOrdersAsync.bind(_meshClientMock));
-meshClientMockManager.mock('onOrderEvents').callsFake(_meshClientMock.onOrderEvents.bind(_meshClientMock));
 
 const SUITE_NAME = 'Standard Relayer API (SRA) tests';
 
@@ -136,7 +127,10 @@ describe(SUITE_NAME, () => {
             });
         });
         await teardownDependenciesAsync(SUITE_NAME);
-        meshClientMockManager.restore();
+    });
+
+    beforeEach(async () => {
+        await getConnection().synchronize(true);
     });
 
     describe('/fee_recipients', () => {
@@ -376,9 +370,6 @@ describe(SUITE_NAME, () => {
         });
     });
     describe('POST /order', () => {
-        beforeEach(async () => {
-            _meshClientMock._resetClient();
-        });
         it('should return HTTP OK on success', async () => {
             const order = await orderFactory.newSignedOrderAsync({
                 expirationTimeSeconds: TOMORROW,
