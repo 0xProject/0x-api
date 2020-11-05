@@ -135,6 +135,7 @@ describe(SUITE_NAME, () => {
     });
 
     after(async () => {
+        await resetState();
         await blockchainLifecycle.revertAsync();
         await new Promise<void>((resolve, reject) => {
             server.close((err?: Error) => {
@@ -147,9 +148,6 @@ describe(SUITE_NAME, () => {
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
-    beforeEach(async () => {
-        await resetState();
-    });
     describe('/quote', () => {
         it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
             await quoteAndExpectAsync(
