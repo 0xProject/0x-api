@@ -11,6 +11,8 @@ import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 
+// Force reload of the app avoid variables being polluted between test suites
+delete require.cache[require.resolve('../src/app')];
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
 import { META_TRANSACTION_PATH, ONE_SECOND_MS, TEN_MINUTES_MS } from '../src/constants';
