@@ -35,7 +35,6 @@ export class MeshClient {
 
     // NOTE: Mock only method
     public _resetClient(): void {
-        console.log('RESETTING');
         this._orders = [];
     }
     // NOTE: Mock only method
@@ -68,8 +67,6 @@ export class MeshClient {
     }
 
     public async getOrdersAsync(_perPage: number = 200): Promise<{ ordersInfos: OrderWithMetadata[] }> {
-        console.log('-----GETTING ORDERS----');
-        console.log(this._orders);
         return {
             ordersInfos: this._orders,
         };
@@ -80,9 +77,7 @@ export class MeshClient {
         _pinned: boolean = true,
         _opts?: AddOrdersOpts,
     ): Promise<AddOrdersResults> {
-        console.log('-----ADDING ORDERS------');
         const ordersWithMetadata: OrderWithMetadata[] = orders.map(toOrderWithMetadata);
-        console.log(ordersWithMetadata);
         this._orders = [...this._orders, ...ordersWithMetadata];
 
         const addedOrdersResult = {
