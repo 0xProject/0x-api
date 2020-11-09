@@ -8,8 +8,7 @@ const entities = [SignedOrderEntity, PersistentSignedOrderEntity, TransactionEnt
 const config: ConnectionOptions = {
     type: 'postgres',
     entities,
-    // Disable synchronization in production
-    synchronize: process.env.NODE_ENV ? process.env.NODE_ENV === 'test' : false,
+    synchronize: false,
     logging: true,
     logger: 'debug',
     extra: {
