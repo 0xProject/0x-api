@@ -325,8 +325,15 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
     sampleDistributionBase: 1.05,
-    exchangeProxyOverhead: (sourceFlags: number) =>
-        [SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags) ? TX_BASE_GAS : new BigNumber(150e3),
+    exchangeProxyOverhead: (sourceFlags: number) => {
+        if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
+            return TX_BASE_GAS;
+        } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
+            return new BigNumber(83e3);
+        } else {
+            return new BigNumber(150e3);
+        }
+    },
     runLimit: 2 ** 8,
     shouldGenerateQuoteReport: false,
 };
