@@ -1,4 +1,5 @@
 import { FilterKind, MeshGraphQLClient, OrderWithMetadata } from '@0x/mesh-graphql-client';
+import * as _ from 'lodash';
 
 export class MeshClient extends MeshGraphQLClient {
     constructor(public readonly webSocketUrl: string, public readonly httpUrl?: string) {
@@ -30,6 +31,9 @@ export class MeshClient extends MeshGraphQLClient {
             orders = [...orders, ...currentOrders];
         } while (lastOrderHash !== undefined);
 
-        return { ordersInfos: orders };
+        // NOTE: Due to how we are paginating through orders by hash we can end up with duplicates
+        const uniqOrders = _.uniqBy(orders, 'hash');
+
+        return { ordersInfos: uniqOrders };
     }
 }
