@@ -7,9 +7,18 @@ import {
 } from '@0x/mesh-graphql-client';
 import * as _ from 'lodash';
 
+import { ZERO } from '../constants';
 import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
-import { AddedRemovedUpdate, APIOrderWithMetaData } from '../types';
+import { AcceptedOrderResult, APIOrderWithMetaData, OrdersByLifecycleEvents, RejectedOrderResult } from '../types';
+
+type OrderData = AcceptedOrderResult | RejectedOrderResult | OrderEvent | OrderWithMetadata;
+
+const isOrderEvent = (orderData: OrderData): orderData is OrderEvent => !!(orderData as OrderEvent).endState;
+const isRejectedOrderResult = (orderData: OrderData): orderData is RejectedOrderResult =>
+    !!(orderData as RejectedOrderResult).code;
+const isOrderWithMetadata = (orderData: OrderData): orderData is OrderWithMetadata =>
+    !!(orderData as OrderWithMetadata).fillableTakerAssetAmount;
 
 export const meshUtils = {
     orderWithMetadataToSignedOrder(order: OrderWithMetadata): SignedOrder {
@@ -17,18 +26,58 @@ export const meshUtils = {
 
         return cleanedOrder;
     },
-    orderInfosToApiOrders: (orders: OrderWithMetadata[]): APIOrderWithMetaData[] => {
+    orderInfosToApiOrders: (orders: OrderData[]): APIOrderWithMetaData[] => {
         return orders.map(e => meshUtils.orderInfoToAPIOrder(e));
     },
-    orderInfoToAPIOrder: (order: OrderWithMetadata): APIOrderWithMetaData => {
-        const remainingFillableTakerAssetAmount = order.fillableTakerAssetAmount;
+    orderInfoToAPIOrder: (orderData: OrderData): APIOrderWithMetaData => {
+        let order: SignedOrder;
+        let remainingFillableTakerAssetAmount = ZERO;
+        let orderHash: string;
+        let state: OrderEventEndState | undefined;
+        if (isOrderWithMetadata(orderData)) {
+            order = meshUtils.orderWithMetadataToSignedOrder(orderData);
+            remainingFillableTakerAssetAmount = orderData.fillableTakerAssetAmount;
+            orderHash = orderData.hash;
+        } else if (isOrderEvent(orderData)) {
+            order = meshUtils.orderWithMetadataToSignedOrder(orderData.order);
+            remainingFillableTakerAssetAmount = orderData.order.fillableTakerAssetAmount;
+            orderHash = orderData.order.hash;
+
+            state = orderData.endState;
+        } else if (isRejectedOrderResult(orderData)) {
+            order = orderData.order;
+            // TODO(kimpers): sometimes this will not exist according to Mesh GQL spec. Is this a problem?
+            orderHash = orderData.hash!;
+
+            state = meshUtils.rejectedCodeToOrderState(orderData.code);
+        } else {
+            order = meshUtils.orderWithMetadataToSignedOrder(orderData.order);
+            remainingFillableTakerAssetAmount = orderData.order.fillableTakerAssetAmount;
+            orderHash = orderData.order.hash;
+        }
+
         return {
-            order: meshUtils.orderWithMetadataToSignedOrder(order),
+            order,
             metaData: {
-                orderHash: order.hash,
+                orderHash,
                 remainingFillableTakerAssetAmount,
+                state,
             },
         };
+    },
+    rejectedCodeToOrderState: (code: RejectedOrderCode): OrderEventEndState | undefined => {
+        switch (code) {
+            case RejectedOrderCode.OrderCancelled:
+                return OrderEventEndState.Cancelled;
+            case RejectedOrderCode.OrderExpired:
+                return OrderEventEndState.Expired;
+            case RejectedOrderCode.OrderUnfunded:
+                return OrderEventEndState.Unfunded;
+            case RejectedOrderCode.OrderFullyFilled:
+                return OrderEventEndState.FullyFilled;
+            default:
+                return undefined;
+        }
     },
     rejectedCodeToSRACode: (code: RejectedOrderCode): ValidationErrorCodes => {
         switch (code) {
@@ -52,12 +101,13 @@ export const meshUtils = {
                 return ValidationErrorCodes.InternalError;
         }
     },
-    calculateAddedRemovedUpdated: (orderEvents: OrderEvent[]): AddedRemovedUpdate => {
+    calculateOrderLifecycle: (orderEvents: OrderEvent[]): OrdersByLifecycleEvents => {
         const added: APIOrderWithMetaData[] = [];
         const removed: APIOrderWithMetaData[] = [];
         const updated: APIOrderWithMetaData[] = [];
+        const persistentUpdated: APIOrderWithMetaData[] = [];
         for (const event of orderEvents) {
-            const apiOrder = meshUtils.orderInfoToAPIOrder(event.order);
+            const apiOrder = meshUtils.orderInfoToAPIOrder(event);
             switch (event.endState) {
                 case OrderEventEndState.Added: {
                     added.push(apiOrder);
@@ -70,12 +120,14 @@ export const meshUtils = {
                 case OrderEventEndState.StoppedWatching:
                 case OrderEventEndState.Unfunded: {
                     removed.push(apiOrder);
+                    persistentUpdated.push(apiOrder);
                     break;
                 }
                 case OrderEventEndState.Unexpired:
                 case OrderEventEndState.FillabilityIncreased:
                 case OrderEventEndState.Filled: {
                     updated.push(apiOrder);
+                    persistentUpdated.push(apiOrder);
                     break;
                 }
                 default:
@@ -83,6 +135,6 @@ export const meshUtils = {
                     break;
             }
         }
-        return { added, removed, updated };
+        return { added, removed, updated, persistentUpdated };
     },
 };

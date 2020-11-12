@@ -28,7 +28,7 @@ const toOrderWithMetadata = (order: SignedOrder): OrderWithMetadata => ({
 
 export class MeshClient {
     private _orders: OrderWithMetadata[] = [];
-    private _nextOrderEventsCB!: (orders: OrderEvent[]) => void;
+
     private readonly _ordersObservable: Observable<OrderEvent[]> = new Observable<OrderEvent[]>(observer => {
         this._nextOrderEventsCB = observer.next.bind(observer);
     });
@@ -103,4 +103,6 @@ export class MeshClient {
     public onOrderEvents(): Observable<OrderEvent[]> {
         return this._ordersObservable;
     }
+    // tslint:disable-next-line:no-empty
+    private _nextOrderEventsCB: (orders: OrderEvent[]) => void = (_orders: OrderEvent[]) => {};
 }

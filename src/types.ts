@@ -5,6 +5,7 @@ import {
     RfqtRequestOpts,
     SupportedProvider,
 } from '@0x/asset-swapper';
+import { OrderEventEndState, OrderWithMetadata, RejectedOrderCode } from '@0x/mesh-graphql-client';
 import {
     APIOrder,
     ExchangeProxyMetaTransaction,
@@ -36,6 +37,36 @@ export enum OrderWatcherLifeCycleEvents {
     Added,
     Removed,
     Updated,
+    PersistentUpdated,
+}
+
+// TODO(kimpers): export from Mesh client
+export interface AcceptedOrderResult {
+    // The order that was accepted, including metadata.
+    order: OrderWithMetadata;
+    // Whether or not the order is new. Set to true if this is the first time this Mesh node has accepted the order
+    // and false otherwise.
+    isNew: boolean;
+}
+
+export interface RejectedOrderResult {
+    // The hash of the order. May be null if the hash could not be computed.
+    hash?: string;
+    // The order that was rejected.
+    order: SignedOrder;
+    // A machine-readable code indicating why the order was rejected. This code is designed to
+    // be used by programs and applications and will never change without breaking backwards-compatibility.
+    code: RejectedOrderCode;
+    // A human-readable message indicating why the order was rejected. This message may change
+    // in future releases and is not covered by backwards-compatibility guarantees.
+    message: string;
+}
+
+export interface OrdersByLifecycleEvents {
+    added: APIOrderWithMetaData[];
+    removed: APIOrderWithMetaData[];
+    updated: APIOrderWithMetaData[];
+    persistentUpdated: APIOrderWithMetaData[];
 }
 
 export type onOrdersUpdateCallback = (orders: APIOrderWithMetaData[]) => void;
@@ -43,6 +74,7 @@ export type onOrdersUpdateCallback = (orders: APIOrderWithMetaData[]) => void;
 export interface APIOrderMetaData {
     orderHash: string;
     remainingFillableTakerAssetAmount: BigNumber;
+    state?: OrderEventEndState;
 }
 
 export interface APIOrderWithMetaData extends APIOrder {
@@ -70,12 +102,6 @@ export enum MessageChannels {
 }
 export interface UpdateOrdersChannelMessageWithChannel extends UpdateOrdersChannelMessage {
     channel: MessageChannels;
-}
-
-export interface AddedRemovedUpdate {
-    added: APIOrderWithMetaData[];
-    removed: APIOrderWithMetaData[];
-    updated: APIOrderWithMetaData[];
 }
 
 // Staking types
@@ -656,5 +682,22 @@ export interface BucketedPriceDepth {
     price: BigNumber;
     bucket: number;
     bucketTotal: BigNumber;
+}
+export interface SRAGetOrdersRequestOpts {
+    makerAssetProxyId?: string;
+    takerAssetProxyId?: string;
+    makerAssetAddress?: string;
+    takerAssetAddress?: string;
+    exchangeAddress?: string;
+    senderAddress?: string;
+    makerAssetData?: string;
+    takerAssetData?: string;
+    makerFeeAssetData?: string;
+    takerFeeAssetData?: string;
+    makerAddress?: string;
+    takerAddress?: string;
+    traderAddress?: string;
+    feeRecipientAddress?: string;
+    unfillable?: boolean; // default false
 }
 // tslint:disable-line:max-file-line-count

@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-        "lib": ["es2017", "dom"],
-        "target": "es6",
+        "lib": ["es2020", "dom"],
+        "target": "es2019",
         "outDir": "lib",
         "strict": true,
         "downlevelIteration": true,
@@ -15,6 +15,6 @@
         "resolveJsonModule": true,
         "allowSyntheticDefaultImports": true
     },
-    "include": ["src/**/*.ts", "test/**/*.ts", "integration-test/**/*.ts"],
+    "include": ["src/**/*.ts", "test/**/*.ts", "integration-test/**/*.ts", "migrations/*.ts"],
     "files": ["./src/schemas/swap_quote_request_schema.json"]
 }
