@@ -65,6 +65,10 @@ import { createResultCache, ResultCache } from '../utils/result_cache';
 import { serviceUtils } from '../utils/service_utils';
 import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
+const tokensThatAssertAllowance = TokenMetadatasForChains.filter(m => ['LINK', 'USDT'].includes(m.symbol)).map(m =>
+    m.tokenAddresses[CHAIN_ID].toLowerCase(),
+);
+
 export class SwapService {
     private readonly _provider: SupportedProvider;
     private readonly _swapQuoter: SwapQuoter;
@@ -180,7 +184,9 @@ export class SwapService {
         let adjustedWorstCaseProtocolFee = protocolFee;
         let adjustedValue = value;
 
-        const erc20AllowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
+        const erc20AllowanceTarget = tokensThatAssertAllowance.includes(sellTokenAddress.toLowerCase())
+            ? this._contractAddresses.exchangeProxy
+            : this._contractAddresses.exchangeProxyAllowanceTarget;
         // With v1 we are able to fill bridges directly so the protocol fee is lower
         const nativeFills = _.flatten(swapQuote.orders.map(order => order.fills)).filter(
             fill => fill.source === ERC20BridgeSource.Native,
