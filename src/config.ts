@@ -328,8 +328,6 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     exchangeProxyOverhead: (sourceFlags: number) => {
         if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
             return TX_BASE_GAS;
-        } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
-            return new BigNumber(83e3);
         } else {
             return new BigNumber(150e3);
         }

@@ -34,10 +34,10 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@^5.1.0":
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-5.1.0.tgz#a729085c81d0aa1b5685cc4f2d996cd2baf935cb"
-  integrity sha512-YMx2p7A3KOkMlZjl9iltax5YLqAGATiN0jWIvtTeqEK0oVk987v2xT9+IPQtL6LsOQAnWagniASEhfMqZj2mag==
+"@0x/asset-swapper@^5.1.1":
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-5.1.1.tgz#6bc6f75edf41b904fa26c635381237665725209f"
+  integrity sha512-AvwQ36Ffg8dDlgZp2wOIK1GY5inqwNK/nGWigiJQTW/SbXOZYIVFyl0KFAs93OFFe11K/T9C9McC0sPY3BcYFA==
   dependencies:
     "@0x/assert" "^3.0.17"
     "@0x/base-contract" "^6.2.11"
