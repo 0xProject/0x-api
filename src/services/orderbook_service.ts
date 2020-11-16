@@ -4,7 +4,11 @@ import { AssetPairsItem, SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
 
-import { SRA_ORDER_EXPIRATION_BUFFER_SECONDS, SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS } from '../config';
+import {
+    DB_ORDERS_UPDATE_CHUNK_SIZE,
+    SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
+    SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
+} from '../config';
 import { SignedOrderEntity } from '../entities';
 import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
@@ -223,7 +227,7 @@ export class OrderBookService {
         // so we need to leave space for the attributes on the model represented
         // as SQL variables in the "AS" syntax. We leave 99 free for the
         // signedOrders model
-        await this._connection.manager.save(persistentOrders, { chunk: 900 });
+        await this._connection.manager.save(persistentOrders, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
     }
     public async splitOrdersByPinningAsync(signedOrders: SignedOrder[]): Promise<PinResult> {
         return orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);

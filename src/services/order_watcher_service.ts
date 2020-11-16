@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import { Connection } from 'typeorm';
 
-import { MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
+import { DB_ORDERS_UPDATE_CHUNK_SIZE, MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
 import { SignedOrderEntity } from '../entities';
 import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { OrderWatcherSyncError } from '../errors';
@@ -127,7 +127,7 @@ export class OrderWatcherService {
                 // so we need to leave space for the attributes on the model represented
                 // as SQL variables in the "AS" syntax. We leave 99 free for the
                 // signedOrders model
-                await this._connection.manager.save(signedOrdersModel, { chunk: 900 });
+                await this._connection.manager.save(signedOrdersModel, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
                 break;
             }
             case OrderWatcherLifeCycleEvents.Removed: {

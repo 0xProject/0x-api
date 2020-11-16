@@ -113,6 +113,8 @@ export const PINNED_MM_ADDRESSES: string[] = _.isEmpty(process.env.PINNED_MM_ADD
     ? []
     : assertEnvVarType('PINNED_MM_ADDRESSES', process.env.PINNED_MM_ADDRESSES, EnvVarType.AddressList);
 
+export const DB_ORDERS_UPDATE_CHUNK_SIZE = 450;
+
 // Ethereum RPC Url
 export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.Url);
 
