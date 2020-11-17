@@ -68,6 +68,52 @@ export class SwapService {
     private readonly _wethContract: WETH9Contract;
     private readonly _contractAddresses: ContractAddresses;
 
+    private static _getSwapQuotePrice(
+        buyAmount: BigNumber | undefined,
+        buyTokenDecimals: number,
+        sellTokenDecimals: number,
+        swapQuote: SwapQuote,
+        affiliateFee: PercentageFee,
+    ): SwapQuoteResponsePrice {
+        const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
+        const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
+        const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
+        const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
+        const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
+        const guaranteedUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAssetAmount, buyTokenDecimals);
+        const guaranteedUnitTakerAssetAmount = Web3Wrapper.toUnitAmount(
+            guaranteedTotalTakerAssetAmount,
+            sellTokenDecimals,
+        );
+        const affiliateFeeUnitMakerAssetAmount = guaranteedUnitMakerAssetAmount.times(
+            affiliateFee.buyTokenPercentageFee,
+        );
+        // Best price
+        const price =
+            buyAmount === undefined
+                ? unitMakerAssetAmount
+                      .minus(affiliateFeeUnitMakerAssetAmount)
+                      .dividedBy(unitTakerAssetAmount)
+                      .decimalPlaces(sellTokenDecimals)
+                : unitTakerAssetAmount
+                      .dividedBy(unitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
+                      .decimalPlaces(buyTokenDecimals);
+        // Guaranteed price before revert occurs
+        const guaranteedPrice =
+            buyAmount === undefined
+                ? guaranteedUnitMakerAssetAmount
+                      .minus(affiliateFeeUnitMakerAssetAmount)
+                      .dividedBy(guaranteedUnitTakerAssetAmount)
+                      .decimalPlaces(sellTokenDecimals)
+                : guaranteedUnitTakerAssetAmount
+                      .dividedBy(guaranteedUnitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
+                      .decimalPlaces(buyTokenDecimals);
+        return {
+            price,
+            guaranteedPrice,
+        };
+    }
+
     constructor(orderbook: Orderbook, provider: SupportedProvider, contractAddresses: AssetSwapperContractAddresses) {
         this._provider = provider;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
@@ -157,7 +203,7 @@ export class SwapService {
         // Add a buffer to get the worst case gas estimate
         const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(undeterministicMultiplier).integerValue();
         const { makerTokenDecimals, takerTokenDecimals } = swapQuote;
-        const { price, guaranteedPrice } = await this._getSwapQuotePriceAsync(
+        const { price, guaranteedPrice } = SwapService._getSwapQuotePrice(
             buyAmount,
             makerTokenDecimals,
             takerTokenDecimals,
@@ -559,53 +605,6 @@ export class SwapService {
             value,
             data: affiliatedData,
             decodedUniqueId,
-        };
-    }
-
-    // tslint:disable-next-line:prefer-function-over-method
-    private async _getSwapQuotePriceAsync(
-        buyAmount: BigNumber | undefined,
-        buyTokenDecimals: number,
-        sellTokenDecimals: number,
-        swapQuote: SwapQuote,
-        affiliateFee: PercentageFee,
-    ): Promise<SwapQuoteResponsePrice> {
-        const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
-        const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
-        const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
-        const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
-        const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
-        const guaranteedUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAssetAmount, buyTokenDecimals);
-        const guaranteedUnitTakerAssetAmount = Web3Wrapper.toUnitAmount(
-            guaranteedTotalTakerAssetAmount,
-            sellTokenDecimals,
-        );
-        const affiliateFeeUnitMakerAssetAmount = guaranteedUnitMakerAssetAmount.times(
-            affiliateFee.buyTokenPercentageFee,
-        );
-        // Best price
-        const price =
-            buyAmount === undefined
-                ? unitMakerAssetAmount
-                      .minus(affiliateFeeUnitMakerAssetAmount)
-                      .dividedBy(unitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
-                : unitTakerAssetAmount
-                      .dividedBy(unitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
-                      .decimalPlaces(buyTokenDecimals);
-        // Guaranteed price before revert occurs
-        const guaranteedPrice =
-            buyAmount === undefined
-                ? guaranteedUnitMakerAssetAmount
-                      .minus(affiliateFeeUnitMakerAssetAmount)
-                      .dividedBy(guaranteedUnitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
-                : guaranteedUnitTakerAssetAmount
-                      .dividedBy(guaranteedUnitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
-                      .decimalPlaces(buyTokenDecimals);
-        return {
-            price,
-            guaranteedPrice,
         };
     }
 }
