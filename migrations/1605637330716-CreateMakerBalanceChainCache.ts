@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 const makerBalanceChainCacheTable = new Table({
     name: 'maker_balance_chain_cache',
@@ -13,7 +13,6 @@ const makerBalanceChainCacheTable = new Table({
 });
 
 export class CreateMakerBalanceChainCache1605637330716 implements MigrationInterface {
-
     public async up(queryRunner: QueryRunner): Promise<any> {
         queryRunner.createTable(makerBalanceChainCacheTable);
     }
@@ -21,5 +20,4 @@ export class CreateMakerBalanceChainCache1605637330716 implements MigrationInter
     public async down(queryRunner: QueryRunner): Promise<any> {
         queryRunner.dropTable(makerBalanceChainCacheTable);
     }
-
 }
