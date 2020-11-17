@@ -12,7 +12,10 @@ export class MakerBalanceChainCache {
     @PrimaryColumn({ name: 'maker_address', type: 'varchar' })
     public makerAddress?: string;
 
-    @Column({ name: 'balance', type: 'numeric', nullable: true, transformer: BigNumberTransformer })
+    @Column({ name: 'time_first_seen', type: 'timestamptz' })
+    public timeFirstSeen?: Date;
+
+    @Column({ name: 'balance', type: 'varchar', nullable: true, transformer: BigNumberTransformer })
     public balance?: BigNumber | null;
 
     @Column({ name: 'time_of_sample', type: 'timestamptz', nullable: true })

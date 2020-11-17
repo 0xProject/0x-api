@@ -5,6 +5,7 @@ const makerBalanceChainCacheTable = new Table({
     columns: [
         { name: 'token_address', type: 'varchar', isPrimary: true },
         { name: 'maker_address', type: 'varchar', isPrimary: true },
+        { name: 'time_first_seen', type: 'timestamptz' },
         // fields are nullable for the job that adds new rows upon
         // discovery of a new maker address
         { name: 'balance', type: 'varchar', isNullable: true },
