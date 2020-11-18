@@ -126,6 +126,15 @@ export const MESH_WEBSOCKET_URI = _.isEmpty(process.env.MESH_WEBSOCKET_URI)
 export const MESH_HTTP_URI = _.isEmpty(process.env.MESH_HTTP_URI)
     ? 'http://localhost:60557'
     : assertEnvVarType('assertEnvVarType', process.env.MESH_HTTP_URI, EnvVarType.Url);
+
+export const MESH_GET_ORDERS_DEFAULT_PAGE_SIZE = _.isEmpty(process.env.MESH_GET_ORDERS_DEFAULT_PAGE_SIZE)
+    ? 200
+    : assertEnvVarType(
+          'MESH_GET_ORDERS_DEFAULT_PAGE_SIZE',
+          process.env.MESH_GET_ORDERS_DEFAULT_PAGE_SIZE,
+          EnvVarType.Integer,
+      );
+
 // The fee recipient for orders
 export const FEE_RECIPIENT_ADDRESS = _.isEmpty(process.env.FEE_RECIPIENT_ADDRESS)
     ? NULL_ADDRESS

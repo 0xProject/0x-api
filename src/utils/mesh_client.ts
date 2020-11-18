@@ -1,6 +1,8 @@
 import { FilterKind, MeshGraphQLClient, OrderWithMetadata } from '@0x/mesh-graphql-client';
 import * as _ from 'lodash';
 
+import { MESH_GET_ORDERS_DEFAULT_PAGE_SIZE as DEFAULT_PAGE_SIZE } from '../config';
+
 export class MeshClient extends MeshGraphQLClient {
     constructor(public readonly webSocketUrl: string, public readonly httpUrl?: string) {
         super({
@@ -9,7 +11,7 @@ export class MeshClient extends MeshGraphQLClient {
         });
     }
 
-    public async getOrdersAsync(perPage: number = 200): Promise<{ ordersInfos: OrderWithMetadata[] }> {
+    public async getOrdersAsync(perPage: number = DEFAULT_PAGE_SIZE): Promise<{ ordersInfos: OrderWithMetadata[] }> {
         let orders: OrderWithMetadata[] = [];
         let lastOrderHash: string | undefined;
         do {
