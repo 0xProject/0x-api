@@ -234,9 +234,13 @@ export class SwapService {
         // potential RFQT orders cannot be filled, so to avoid this we pad the protocol fee amount
         // specifically when RFQT orders are included in the quote
         if (hasRFQTOrders) {
-            const fastestGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync('fastest');
-            // tslint:disable-next-line:custom-no-magic-numbers
             const maxGasPricePadding = gasPrice.times(RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER);
+            const fastestGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync('fastest').catch(err => {
+                logger.error(err, 'Failed to fetch ETH Gas Station fastest gas price');
+
+                // Failed to fetch fastest gas estimate, use max padded fast instead
+                return maxGasPricePadding;
+            });
             const paddedGasPrice = BigNumber.min(fastestGasPrice, maxGasPricePadding);
 
             adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
