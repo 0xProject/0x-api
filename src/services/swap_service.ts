@@ -241,7 +241,9 @@ export class SwapService {
                 // Failed to fetch fastest gas estimate, use max padded fast instead
                 return maxGasPricePadding;
             });
-            const paddedGasPrice = BigNumber.min(fastestGasPrice, maxGasPricePadding);
+
+            // Use the fastest price but make sure it's never more than max padding and never less than supplied gas price
+            const paddedGasPrice = BigNumber.max(BigNumber.min(fastestGasPrice, maxGasPricePadding), gasPrice);
 
             adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
                 .times(paddedGasPrice)
