@@ -223,7 +223,7 @@ export class OrderBookService {
         // so we need to leave space for the attributes on the model represented
         // as SQL variables in the "AS" syntax. We leave 99 free for the
         // signedOrders model
-        await this._connection.manager.save(persistentOrders, { chunk: 900 });
+        await this._connection.getRepository(PersistentSignedOrderEntity).save(persistentOrders);
     }
     public async splitOrdersByPinningAsync(signedOrders: SignedOrder[]): Promise<PinResult> {
         return orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);

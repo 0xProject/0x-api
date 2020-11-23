@@ -113,7 +113,7 @@ export class OrderWatcherService {
                 // so we need to leave space for the attributes on the model represented
                 // as SQL variables in the "AS" syntax. We leave 99 free for the
                 // signedOrders model
-                await this._connection.manager.save(signedOrdersModel, { chunk: 900 });
+                await this._connection.getRepository(SignedOrderEntity).save(signedOrdersModel, { chunk: 900 });
                 break;
             }
             case OrderWatcherLifeCycleEvents.Removed: {
@@ -123,7 +123,7 @@ export class OrderWatcherService {
                 // tslint:disable-next-line:custom-no-magic-numbers
                 const chunks = _.chunk(orderHashes, 999);
                 for (const chunk of chunks) {
-                    await this._connection.manager.delete(SignedOrderEntity, chunk);
+                    await this._connection.getRepository(SignedOrderEntity).delete(chunk);
                 }
                 break;
             }
@@ -137,10 +137,12 @@ export class OrderWatcherService {
                 );
 
                 // 2. Create the Update queries
+                // Use Update instead of Save to throw an error if the order doesn't already exist in the table
+                // We do this to avoid saving non-persistent orders
                 // tslint:disable-next-line:promise-function-async
-                const updatePromises = filtered.map(apiOrder => {
+                const updatePromises = filtered.map(async apiOrder => {
                     const { remainingFillableTakerAssetAmount, state: orderState, orderHash } = apiOrder.metaData;
-                    return this._connection.manager.update(PersistentSignedOrderEntity, orderHash, {
+                    return this._connection.getRepository(PersistentSignedOrderEntity).update(orderHash, {
                         remainingFillableTakerAssetAmount: remainingFillableTakerAssetAmount.toString(),
                         orderState,
                     });
@@ -148,7 +150,7 @@ export class OrderWatcherService {
 
                 // 3. Wait for results
                 await Promise.allSettled(updatePromises).then(results => {
-                    // Group by success or failure. Open orderbook orders should fail.
+                    // Group by success or failure. Non-persistent orders should fail
                     const { fulfilled, rejected } = results.reduce(
                         (acc, r, i) => {
                             r.status === 'fulfilled' ? acc.fulfilled.push(i) : acc.rejected.push(i);
