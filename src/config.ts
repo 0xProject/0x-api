@@ -293,8 +293,7 @@ export const DEFAULT_ERC20_TOKEN_PRECISION = 18;
 
 export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(70000);
 
-// TODO(kimpers): Add the real limit here when it's been decided
-export const RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER = 1.3;
+export const RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER = 1.2;
 
 const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
