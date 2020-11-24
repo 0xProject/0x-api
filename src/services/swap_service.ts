@@ -96,20 +96,20 @@ export class SwapService {
                 ? unitMakerAssetAmount
                       .minus(affiliateFeeUnitMakerAssetAmount)
                       .dividedBy(unitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
+                      .decimalPlaces(buyTokenDecimals)
                 : unitTakerAssetAmount
                       .dividedBy(unitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
-                      .decimalPlaces(buyTokenDecimals);
+                      .decimalPlaces(sellTokenDecimals);
         // Guaranteed price before revert occurs
         const guaranteedPrice =
             buyAmount === undefined
                 ? guaranteedUnitMakerAssetAmount
                       .minus(affiliateFeeUnitMakerAssetAmount)
                       .dividedBy(guaranteedUnitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
+                      .decimalPlaces(buyTokenDecimals)
                 : guaranteedUnitTakerAssetAmount
                       .dividedBy(guaranteedUnitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
-                      .decimalPlaces(buyTokenDecimals);
+                      .decimalPlaces(sellTokenDecimals);
         return {
             price,
             guaranteedPrice,

@@ -122,8 +122,8 @@ export const priceComparisonUtils = {
                 const unitTakerAmount = Web3Wrapper.toUnitAmount(takerAmount, sellToken.decimals);
 
                 const price = isSelling
-                    ? unitMakerAmount.dividedBy(unitTakerAmount).decimalPlaces(sellToken.decimals)
-                    : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(buyToken.decimals);
+                    ? unitMakerAmount.dividedBy(unitTakerAmount).decimalPlaces(buyToken.decimals)
+                    : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(sellToken.decimals);
 
                 return {
                     name: liquiditySource,
