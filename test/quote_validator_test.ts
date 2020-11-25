@@ -58,13 +58,15 @@ describe.only(SUITE_NAME, () => {
         chainCacheRepository = connection.getRepository(MakerBalanceChainCache);
         validator = new PostgresBackedFirmQuoteValidator(chainCacheRepository);
     });
-    after(async () => {
+    afterEach(async () => {
         await chainCacheRepository.query('TRUNCATE TABLE maker_balance_chain_cache;')
         // await teardownDependenciesAsync(SUITE_NAME);
     });
 
     describe('PostgresBackedFirmQuoteValidator', async () => {
         it('should fail gracefully and mark orders as fully fillable if no entries are found', async () => {
+            const beforefilter = await chainCacheRepository.count();
+            expect(beforefilter).to.eql(0);
             const orders = [800, 801, 802].map(takerAmount => {
                 return createOrder(
                     MAKER1_ADDRESS,
@@ -81,6 +83,9 @@ describe.only(SUITE_NAME, () => {
                 '801000000',
                 '802000000',
             ]);
+
+            const afterFilter = await chainCacheRepository.count();
+            expect(afterFilter).to.eql(1);
         });
 
         it('should correctly report no taker fillable amount if makers do not have a balance', async () => {
@@ -121,6 +126,8 @@ describe.only(SUITE_NAME, () => {
                     Web3Wrapper.toBaseUnitAmount(1000, 6),
                 );
             });
+            // Balances were adjusted accordingly, and Maker4 was added to the chain cache
+            const now = new Date();
             const results = await validator.getRFQTTakerFillableAmounts(orders);
             expect(results.length).to.eql(4);
             expect(results.map(r => r.toString())).to.eql([
@@ -129,6 +136,15 @@ describe.only(SUITE_NAME, () => {
                 "1000000000",
                 "1000000000",
             ]);
+
+            // MAKER4 did not exist in the cache, so check to ensure it's been added.
+            const maker4Entry = await chainCacheRepository.findOneOrFail({
+                where: {
+                    makerAddress: MAKER4_ADDRESS,
+                    tokenAddress: DAI_TOKEN,
+                }
+            });
+            expect(maker4Entry.timeFirstSeen).to.be.gt(now);
         });
     });
 });

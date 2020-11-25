@@ -1,12 +1,14 @@
 import { BigNumber, RfqtFirmQuoteValidator, SignedOrder } from '@0x/asset-swapper';
 import { assetDataUtils, ERC20AssetData } from '@0x/order-utils';
-import { In } from 'typeorm';
+import { In, IsNull, Not } from 'typeorm';
 import { Repository } from 'typeorm/repository/Repository';
+import { ONE_SECOND_MS } from '../constants';
 import { MakerBalanceChainCache } from '../entities/MakerBalanceChainCacheEntity';
 import { logger } from '../logger';
 
 
 const BIG_NUMBER_ZERO = new BigNumber(0);
+const THRESHOLD_CACHE_EXPIRED_MS = 2 * 60 * ONE_SECOND_MS;
 
 
 export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator {
@@ -47,27 +49,47 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
             where: [{
                 tokenAddress: makerTokenAddresses[0],
                 makerAddress: In(makerAddresses),
-            }]
+            }],
         });
+
+        const nowUnix = (new Date()).getTime();
         for (const result of cacheResults) {
 
             // TODO: validate the `timeOfSample`
-
-            if ((result.balance !== undefined) && (result.balance !== null)) {
-                makerLookup[result.makerAddress!] = result.balance;
+            if (!result.timeOfSample) {
+                // If a record exists but a time of sample does not yet exist, this means that the cache entry has not yet been
+                // populated by the worker process. This may be due to a new address being added a few minutes ago, but it could
+                // also be due to a bug in the worker.
+                const timeFirstSeen = result.timeFirstSeen ? result.timeFirstSeen.getTime() : 0;
+                const msPassedSinceLastSeen =  - timeFirstSeen;
+                if (msPassedSinceLastSeen > THRESHOLD_CACHE_EXPIRED_MS) {
+                    logger.error(`Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} was first added on ${timeFirstSeen} which is more than ${THRESHOLD_CACHE_EXPIRED_MS}. Assuming worker is stuck.`)
+                    makerLookup[result.makerAddress!] = BIG_NUMBER_ZERO;
+                }
+            } else if (nowUnix - result.timeOfSample.getTime() > THRESHOLD_CACHE_EXPIRED_MS) {
+                // In this case a cache entry exists, but it's simply too old and this should never really happen unless the worker is stuck.
+                logger.error(`Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} was last refreshed on ${result.timeOfSample.getTime()} which is more than ${THRESHOLD_CACHE_EXPIRED_MS}. Assuming worker is stuck.`)
+                makerLookup[result.makerAddress!] = BIG_NUMBER_ZERO;
             }
+
+            // Quick validity check to ensure data isn't invalid. This should never happen
+            if (!result.balance) {
+                logger.error(`Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} has a null balance. This should never happen`);
+                makerLookup[result.makerAddress!] = BIG_NUMBER_ZERO;
+            }
+            makerLookup[result.makerAddress!] = result.balance;
         }
 
         // Finally, adjust takerFillableAmount based on maker balances
-        return quotes.map(quote => {
+        const makerAddressesToAddToCacheSet: Set<string> = new Set();
+        const takerFillableAmounts =  quotes.map(quote => {
             const makerTokenBalanceForMaker: BigNumber | undefined = makerLookup[quote.makerAddress];
 
             // TODO: Add Prometheus hooks
             if (makerTokenBalanceForMaker === undefined) {
-                // ERROR: maker token balance was never seen, therefore this may be a new address
-                // or there could be some issue with the worker process. Error on the side of assuming
-                // the order is fillable.
+                // ERROR: maker token balance was never seen, therefore this is a new address.
                 logger.error(`Cannot find cache for token ${makerTokenAddresses[0]} and maker ${quote.makerAddress}. If this error persists, there could be a problem`);
+                makerAddressesToAddToCacheSet.add(quote.makerAddress);
                 return quote.takerAssetAmount;
             }
 
@@ -84,6 +106,22 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
             // Order is partially fillable, because Maker has a fraction of the assets
             return makerTokenBalanceForMaker.times(quote.takerAssetAmount).div(quote.makerAssetAmount);
         });
+
+        // If any new addresses were found, add new addresses to cache
+        const makerAddressesToAddToCache = Array.from(makerAddressesToAddToCacheSet);
+        if (makerAddressesToAddToCache.length > 0) {
+            logger.info(`Adding new addresses to cache: ${JSON.stringify(makerAddressesToAddToCache)}`);
+            await this._chainCacheRepository.insert(
+                makerAddressesToAddToCache.map(makerAddress => {
+                    return {
+                        makerAddress,
+                        tokenAddress: makerTokenAddresses[0],
+                        timeFirstSeen: 'NOW()',
+                    };
+                })
+            );
+        }
+        return takerFillableAmounts;
     }
 
 }
