@@ -10,7 +10,7 @@ import 'mocha';
 import { Connection, Repository } from 'typeorm';
 
 import { TransactionEntity } from '../src/entities';
-import { MakerBalanceChainCache } from '../src/entities/MakerBalanceChainCacheEntity';
+import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
 import { PostgresBackedFirmQuoteValidator } from '../src/services/firm_quote_validator';
 
 import { getTestDBConnectionAsync } from './utils/db_connection';
@@ -18,7 +18,7 @@ import { setupDependenciesAsync } from './utils/deployment';
 
 const SUITE_NAME = 'QuoteValidatorTest';
 let connection: Connection;
-let chainCacheRepository: Repository<MakerBalanceChainCache>;
+let chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
 
 
 const createOrder = (makerAddress: string, makerToken: string, takerToken: string, makerAssetAmount: BigNumber, takerAssetAmount: BigNumber): SignedOrder => {
@@ -56,7 +56,7 @@ describe.only(SUITE_NAME, () => {
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         connection = await getTestDBConnectionAsync();
-        chainCacheRepository = connection.getRepository(MakerBalanceChainCache);
+        chainCacheRepository = connection.getRepository(MakerBalanceChainCacheEntity);
         validator = new PostgresBackedFirmQuoteValidator(chainCacheRepository);
     });
     afterEach(async () => {

@@ -4,7 +4,7 @@ import { In } from 'typeorm';
 import { Repository } from 'typeorm/repository/Repository';
 
 import { ONE_SECOND_MS } from '../constants';
-import { MakerBalanceChainCache } from '../entities/MakerBalanceChainCacheEntity';
+import { MakerBalanceChainCacheEntity } from '../entities/MakerBalanceChainCacheEntity';
 import { logger } from '../logger';
 
 
@@ -13,7 +13,7 @@ const THRESHOLD_CACHE_EXPIRED_MS = 2 * 60 * ONE_SECOND_MS;
 
 
 export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator {
-    private readonly _chainCacheRepository: Repository<MakerBalanceChainCache>;
+    private readonly _chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
     private readonly _cacheExpiryThresholdMs: number;
 
     private static _calculateTakerFillableAmountsFromQuotes(quotes: SignedOrder[], makerLookup: {[key: string]: BigNumber}): {makerAddressesToAddToCache: string[]; takerFillableAmounts: BigNumber[]} {
@@ -52,7 +52,7 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
         };
     }
 
-    constructor(chainCacheRepository: Repository<MakerBalanceChainCache>, cacheExpiryThresholdMs: number = THRESHOLD_CACHE_EXPIRED_MS) {
+    constructor(chainCacheRepository: Repository<MakerBalanceChainCacheEntity>, cacheExpiryThresholdMs: number = THRESHOLD_CACHE_EXPIRED_MS) {
         this._chainCacheRepository = chainCacheRepository;
         this._cacheExpiryThresholdMs = cacheExpiryThresholdMs;
     }
@@ -86,7 +86,7 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
         });
         const nowUnix = (new Date()).getTime();
         for (const result of cacheResults) {
-            makerLookup[result.makerAddress] = this._calculateMakerBalanceFromResult(result, makerTokenAddress, nowUnix);
+            makerLookup[result.makerAddress!] = this._calculateMakerBalanceFromResult(result, makerTokenAddress, nowUnix);
         }
 
         // Finally, adjust takerFillableAmount based on maker balances
@@ -116,7 +116,7 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
         return takerFillableAmounts;
     }
 
-    private _calculateMakerBalanceFromResult(result: MakerBalanceChainCache, makerTokenAddress: string, nowUnix: number): BigNumber {
+    private _calculateMakerBalanceFromResult(result: MakerBalanceChainCacheEntity, makerTokenAddress: string, nowUnix: number): BigNumber {
         if (!result.timeOfSample) {
             // If a record exists but a time of sample does not yet exist, this means that the cache entry has not yet been
             // populated by the worker process. This may be due to a new address being added a few minutes ago, but it could

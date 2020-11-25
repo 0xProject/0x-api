@@ -20,7 +20,7 @@ import { Connection } from 'typeorm';
 import { CHAIN_ID } from './config';
 import { RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
-import { MakerBalanceChainCache } from './entities/MakerBalanceChainCacheEntity';
+import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
 import { OrderBookServiceOrderProvider } from './order_book_service_order_provider';
 import { runHttpServiceAsync } from './runners/http_service_runner';
@@ -151,7 +151,7 @@ export async function getDefaultAppDependenciesAsync(
     const orderBookService = new OrderBookService(connection, meshClient);
 
     const rfqFirmQuoteValidator = new PostgresBackedFirmQuoteValidator(
-        connection.getRepository(MakerBalanceChainCache),
+        connection.getRepository(MakerBalanceChainCacheEntity),
         RFQ_FIRM_QUOTE_CACHE_EXPIRY,
     );
 

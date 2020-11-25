@@ -25,7 +25,7 @@ import {
 import { META_TRANSACTION_PATH, RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
-import { MakerBalanceChainCache } from '../src/entities/MakerBalanceChainCacheEntity';
+import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
 import { GeneralErrorCodes } from '../src/errors';
 import { PostgresBackedFirmQuoteValidator } from '../src/services/firm_quote_validator';
 import { MetricsService } from '../src/services/metrics_service';
@@ -92,7 +92,7 @@ describe('transaction watcher service', () => {
         const stakingDataService = new StakingDataService(connection);
         const websocketOpts = { path: SRA_PATH };
         const rfqFirmQuoteValidator = new PostgresBackedFirmQuoteValidator(
-            connection.getRepository(MakerBalanceChainCache),
+            connection.getRepository(MakerBalanceChainCacheEntity),
             RFQ_FIRM_QUOTE_CACHE_EXPIRY,
         );
         const swapService = createSwapServiceFromOrderBookService(orderBookService, rfqFirmQuoteValidator, provider, contractAddresses);
