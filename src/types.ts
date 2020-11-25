@@ -407,6 +407,8 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     from?: string;
     gas: BigNumber;
     estimatedGas: BigNumber;
+    ethToInputRate: BigNumber;
+    ethToOutputRate: BigNumber;
     allowanceTarget?: string;
     quoteReport?: QuoteReport;
     priceComparisons?: (SourceComparison | RenamedNativeSourceComparison)[];
@@ -483,6 +485,8 @@ export interface CalculateMetaTransactionQuoteResponse {
     quoteReport?: QuoteReport;
     orders: SignedOrder[];
     callData: string;
+    ethToOutputRate: BigNumber;
+    ethToInputRate: BigNumber;
     allowanceTarget?: string;
 }
 

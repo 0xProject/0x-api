@@ -123,4 +123,6 @@ export const randomSellQuote = {
     isTwoHop: false,
     makerTokenDecimals: 18,
     takerTokenDecimals: 18,
+    ethToInputRate: new BigNumber(0),
+    ethToOutputRate: new BigNumber(0),
 };

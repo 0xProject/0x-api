@@ -127,6 +127,8 @@ export class MetaTransactionService {
             estimatedGasTokenRefund: ZERO,
             value: quote.protocolFee,
             allowanceTarget: quote.allowanceTarget,
+            ethToInputRate: quote.ethToInputRate,
+            ethToOutputRate: quote.ethToOutputRate,
             quoteReport: quote.quoteReport,
         };
 
@@ -368,6 +370,8 @@ export class MetaTransactionService {
             allowanceTarget: quote.allowanceTarget,
             orders: quote.orders,
             callData: quote.data,
+            ethToInputRate: quote.ethToInputRate,
+            ethToOutputRate: quote.ethToOutputRate,
             quoteReport: quote.quoteReport,
         };
     }
