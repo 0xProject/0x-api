@@ -112,19 +112,27 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
             return makerTokenBalanceForMaker.times(quote.takerAssetAmount).div(quote.makerAssetAmount).integerValue(BigNumber.ROUND_DOWN);
         });
 
-        // If any new addresses were found, add new addresses to cache
+        // If any new addresses were found, add new addresses to cache.
+        // NOTE: since this insertion happens on the web processes, we need to gracefully handle conflict
+        // that can happen if two threads try to insert the same entry at the same time. This is why we add
+        // the "ON CONFLICT" clause.
         const makerAddressesToAddToCache = Array.from(makerAddressesToAddToCacheSet);
         if (makerAddressesToAddToCache.length > 0) {
             logger.info(`Adding new addresses to cache: ${JSON.stringify(makerAddressesToAddToCache)}`);
-            await this._chainCacheRepository.insert(
-                makerAddressesToAddToCache.map(makerAddress => {
-                    return {
-                        makerAddress,
-                        tokenAddress: makerTokenAddresses[0],
-                        timeFirstSeen: 'NOW()',
-                    };
-                }),
-            );
+            await this._chainCacheRepository
+                .createQueryBuilder()
+                .insert()
+                .values(
+                    makerAddressesToAddToCache.map(makerAddress => {
+                        return {
+                            makerAddress,
+                            tokenAddress: makerTokenAddresses[0],
+                            timeFirstSeen: 'NOW()',
+                        };
+                    })
+                )
+                .onConflict(`("token_address", "maker_address") DO NOTHING`)
+                .execute();
         }
         return takerFillableAmounts;
     }
