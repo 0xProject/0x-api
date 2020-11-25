@@ -3,9 +3,10 @@ import {
     AssetSwapperContractAddresses,
     ERC20BridgeSource,
     ExtensionContractType,
+    GetMarketOrdersRfqtOpts,
     getSwapMinBuyAmount,
     Orderbook,
-    RfqtRequestOpts,
+    RfqtFirmQuoteValidator,
     SwapQuote,
     SwapQuoteConsumer,
     SwapQuoteGetOutputOpts,
@@ -67,6 +68,7 @@ export class SwapService {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _wethContract: WETH9Contract;
     private readonly _contractAddresses: ContractAddresses;
+    private readonly _firmQuoteValidator: RfqtFirmQuoteValidator | undefined;
 
     private static _getSwapQuotePrice(
         buyAmount: BigNumber | undefined,
@@ -114,8 +116,9 @@ export class SwapService {
         };
     }
 
-    constructor(orderbook: Orderbook, provider: SupportedProvider, contractAddresses: AssetSwapperContractAddresses) {
+    constructor(orderbook: Orderbook, provider: SupportedProvider, contractAddresses: AssetSwapperContractAddresses, firmQuoteValidator?: RfqtFirmQuoteValidator | undefined) {
         this._provider = provider;
+        this._firmQuoteValidator = firmQuoteValidator;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             ...SWAP_QUOTER_OPTS,
             rfqt: {
@@ -507,7 +510,7 @@ export class SwapService {
         // Normalize to lower case
         const sellTokenAddress = rawSellTokenAddress.toLowerCase();
         const buyTokenAddress = rawBuyTokenAddress.toLowerCase();
-        let _rfqt: RfqtRequestOpts | undefined;
+        let _rfqt: GetMarketOrdersRfqtOpts | undefined;
         const isAllExcluded = Object.values(ERC20BridgeSource).every(s => excludedSources.includes(s));
         if (isAllExcluded) {
             throw new ValidationError([
@@ -537,6 +540,7 @@ export class SwapService {
                     isFirmPriceAwareEnabled: FIRM_PRICE_AWARE_RFQ_ENABLED,
                     isIndicativePriceAwareEnabled: INDICATIVE_PRICE_AWARE_RFQ_ENABLED,
                 },
+                firmQuoteValidator: this._firmQuoteValidator,
             };
         }
 

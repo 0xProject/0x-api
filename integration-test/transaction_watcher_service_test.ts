@@ -22,10 +22,12 @@ import {
     META_TXN_RELAY_PRIVATE_KEYS,
     META_TXN_SIGNING_ENABLED,
 } from '../src/config';
-import { META_TRANSACTION_PATH, SRA_PATH } from '../src/constants';
+import { META_TRANSACTION_PATH, RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
+import { MakerBalanceChainCache } from '../src/entities/MakerBalanceChainCacheEntity';
 import { GeneralErrorCodes } from '../src/errors';
+import { PostgresBackedFirmQuoteValidator } from '../src/services/firm_quote_validator';
 import { MetricsService } from '../src/services/metrics_service';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { StakingDataService } from '../src/services/staking_data_service';
@@ -89,7 +91,11 @@ describe('transaction watcher service', () => {
         const orderBookService = new OrderBookService(connection);
         const stakingDataService = new StakingDataService(connection);
         const websocketOpts = { path: SRA_PATH };
-        const swapService = createSwapServiceFromOrderBookService(orderBookService, provider, contractAddresses);
+        const rfqFirmQuoteValidator = new PostgresBackedFirmQuoteValidator(
+            connection.getRepository(MakerBalanceChainCache),
+            RFQ_FIRM_QUOTE_CACHE_EXPIRY,
+        );
+        const swapService = createSwapServiceFromOrderBookService(orderBookService, rfqFirmQuoteValidator, provider, contractAddresses);
         const metaTransactionService = createMetaTxnServiceFromSwapService(
             provider,
             connection,

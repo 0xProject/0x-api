@@ -8,6 +8,7 @@ import {
     ContractAddresses,
     ERC20BridgeSamplerContract,
     Orderbook,
+    RfqtFirmQuoteValidator,
     SupportedProvider,
 } from '@0x/asset-swapper';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
@@ -17,12 +18,14 @@ import { Server } from 'http';
 import { Connection } from 'typeorm';
 
 import { CHAIN_ID } from './config';
-import { SRA_PATH } from './constants';
+import { RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
+import { MakerBalanceChainCache } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
 import { OrderBookServiceOrderProvider } from './order_book_service_order_provider';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_runner';
+import { PostgresBackedFirmQuoteValidator } from './services/firm_quote_validator';
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { MetricsService } from './services/metrics_service';
 import { OrderBookService } from './services/orderbook_service';
@@ -147,10 +150,15 @@ export async function getDefaultAppDependenciesAsync(
 
     const orderBookService = new OrderBookService(connection, meshClient);
 
+    const rfqFirmQuoteValidator = new PostgresBackedFirmQuoteValidator(
+        connection.getRepository(MakerBalanceChainCache),
+        RFQ_FIRM_QUOTE_CACHE_EXPIRY,
+    );
+
     let swapService: SwapService | undefined;
     let metaTransactionService: MetaTransactionService | undefined;
     try {
-        swapService = createSwapServiceFromOrderBookService(orderBookService, provider, contractAddresses);
+        swapService = createSwapServiceFromOrderBookService(orderBookService, rfqFirmQuoteValidator, provider, contractAddresses);
         metaTransactionService = createMetaTxnServiceFromSwapService(
             provider,
             connection,
@@ -254,13 +262,14 @@ function createMetaTransactionRateLimiterFromConfig(
  */
 export function createSwapServiceFromOrderBookService(
     orderBookService: OrderBookService,
+    rfqFirmQuoteValidator: RfqtFirmQuoteValidator,
     provider: SupportedProvider,
     contractAddresses: AssetSwapperContractAddresses,
 ): SwapService {
     const orderStore = new OrderStoreDbAdapter(orderBookService);
     const orderProvider = new OrderBookServiceOrderProvider(orderStore, orderBookService);
     const orderBook = new Orderbook(orderProvider, orderStore);
-    return new SwapService(orderBook, provider, contractAddresses);
+    return new SwapService(orderBook, provider, contractAddresses, rfqFirmQuoteValidator);
 }
 
 /**
