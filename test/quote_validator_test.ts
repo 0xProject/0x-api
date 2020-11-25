@@ -43,7 +43,7 @@ const createOrder = (makerAddress: string, makerToken: string, takerToken: strin
     };
 };
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     const DAI_TOKEN = randomAddress();
     const USDC_TOKEN = randomAddress();
     const MAKER1_ADDRESS = randomAddress();
