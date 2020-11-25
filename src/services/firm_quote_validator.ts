@@ -127,7 +127,7 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
                 logger.error(`Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} was first added on ${timeFirstSeen} which is more than ${this._cacheExpiryThresholdMs}. Assuming worker is stuck.`);
                 return BIG_NUMBER_ZERO;
             } else {
-                logger.error(`Cannot find cache for token ${makerTokenAddress} and maker ${result.makerAddress}. This entry was recently added so assuming the entire taker fillable amount is available`);
+                logger.warn(`Cannot find cache for token ${makerTokenAddress} and maker ${result.makerAddress}. This entry was recently added so assuming the entire taker fillable amount is available`);
                 return new BigNumber(Number.POSITIVE_INFINITY);
             }
         } else if (nowUnix - result.timeOfSample.getTime() > this._cacheExpiryThresholdMs) {
