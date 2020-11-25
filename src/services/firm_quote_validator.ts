@@ -51,33 +51,34 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
                 makerAddress: In(makerAddresses),
             }],
         });
-
         const nowUnix = (new Date()).getTime();
+        const recordsRecentlyAddedWithNoCache = new Set();
         for (const result of cacheResults) {
 
-            // TODO: validate the `timeOfSample`
             if (!result.timeOfSample) {
                 // If a record exists but a time of sample does not yet exist, this means that the cache entry has not yet been
                 // populated by the worker process. This may be due to a new address being added a few minutes ago, but it could
                 // also be due to a bug in the worker.
                 const timeFirstSeen = result.timeFirstSeen ? result.timeFirstSeen.getTime() : 0;
-                const msPassedSinceLastSeen =  - timeFirstSeen;
+                const msPassedSinceLastSeen = nowUnix - timeFirstSeen;
                 if (msPassedSinceLastSeen > THRESHOLD_CACHE_EXPIRED_MS) {
                     logger.error(`Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} was first added on ${timeFirstSeen} which is more than ${THRESHOLD_CACHE_EXPIRED_MS}. Assuming worker is stuck.`)
                     makerLookup[result.makerAddress!] = BIG_NUMBER_ZERO;
+                } else {
+                    recordsRecentlyAddedWithNoCache.add(result.makerAddress)
                 }
             } else if (nowUnix - result.timeOfSample.getTime() > THRESHOLD_CACHE_EXPIRED_MS) {
                 // In this case a cache entry exists, but it's simply too old and this should never really happen unless the worker is stuck.
                 logger.error(`Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} was last refreshed on ${result.timeOfSample.getTime()} which is more than ${THRESHOLD_CACHE_EXPIRED_MS}. Assuming worker is stuck.`)
                 makerLookup[result.makerAddress!] = BIG_NUMBER_ZERO;
+            } else {
+                // Quick validity check to ensure data isn't invalid. This should never happen if `timeOfSample` exists.
+                if (!result.balance) {
+                    logger.error(`Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} has a null balance. This should never happen`);
+                    makerLookup[result.makerAddress!] = BIG_NUMBER_ZERO;
+                }
+                makerLookup[result.makerAddress!] = result.balance;
             }
-
-            // Quick validity check to ensure data isn't invalid. This should never happen
-            if (!result.balance) {
-                logger.error(`Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} has a null balance. This should never happen`);
-                makerLookup[result.makerAddress!] = BIG_NUMBER_ZERO;
-            }
-            makerLookup[result.makerAddress!] = result.balance;
         }
 
         // Finally, adjust takerFillableAmount based on maker balances
@@ -87,9 +88,13 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
 
             // TODO: Add Prometheus hooks
             if (makerTokenBalanceForMaker === undefined) {
-                // ERROR: maker token balance was never seen, therefore this is a new address.
-                logger.error(`Cannot find cache for token ${makerTokenAddresses[0]} and maker ${quote.makerAddress}. If this error persists, there could be a problem`);
-                makerAddressesToAddToCacheSet.add(quote.makerAddress);
+                if (!recordsRecentlyAddedWithNoCache.has(quote.makerAddress)) {
+                    // ERROR: maker token balance was never seen, therefore this is a new address.
+                    logger.error(`Cannot find cache for token ${makerTokenAddresses[0]} and maker ${quote.makerAddress}. Creating a new cache entry`);
+                    makerAddressesToAddToCacheSet.add(quote.makerAddress);
+                } else {
+                    logger.error(`Cannot find cache for token ${makerTokenAddresses[0]} and maker ${quote.makerAddress}. This entry was recently added so assuming the entire taker fillable amount is available`);
+                }
                 return quote.takerAssetAmount;
             }
 
@@ -104,7 +109,7 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
             }
 
             // Order is partially fillable, because Maker has a fraction of the assets
-            return makerTokenBalanceForMaker.times(quote.takerAssetAmount).div(quote.makerAssetAmount);
+            return makerTokenBalanceForMaker.times(quote.takerAssetAmount).div(quote.makerAssetAmount).integerValue(BigNumber.ROUND_DOWN);
         });
 
         // If any new addresses were found, add new addresses to cache
@@ -118,7 +123,7 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
                         tokenAddress: makerTokenAddresses[0],
                         timeFirstSeen: 'NOW()',
                     };
-                })
+                }),
             );
         }
         return takerFillableAmounts;

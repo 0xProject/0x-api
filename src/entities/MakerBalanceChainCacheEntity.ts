@@ -1,10 +1,11 @@
 import { BigNumber } from '@0x/utils';
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 import { BigNumberTransformer } from './transformers';
 
 // A table of cached erc20 balances for RFQT market makers
 @Entity({ name: 'maker_balance_chain_cache' })
+@Index(["tokenAddress", "makerAddress"])
 export class MakerBalanceChainCache {
     @PrimaryColumn({ name: 'token_address', type: 'varchar' })
     public tokenAddress?: string;
