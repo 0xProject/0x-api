@@ -25,11 +25,10 @@ import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
     CHAIN_ID,
-    DEFAULT_INTERMEDIATE_TOKENS,
-    DEFAULT_TOKEN_ADJACENCY,
     FIRM_PRICE_AWARE_RFQ_ENABLED,
     INDICATIVE_PRICE_AWARE_RFQ_ENABLED,
     PROTOCOL_FEE_MULTIPLIER,
+    RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER,
     RFQT_REQUEST_MAX_RESPONSE_MS,
     SWAP_QUOTER_OPTS,
 } from '../config';
@@ -38,7 +37,6 @@ import {
     GAS_LIMIT_BUFFER_MULTIPLIER,
     NULL_ADDRESS,
     ONE,
-    TEN_MINUTES_MS,
     UNWRAP_QUOTE_GAS,
     UNWRAP_WETH_GAS,
     WRAP_ETH_GAS,
@@ -60,10 +58,9 @@ import {
     TokenMetadata,
     TokenMetadataOptionalSymbol,
 } from '../types';
+import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { marketDepthUtils } from '../utils/market_depth_utils';
-import { createResultCache, ResultCache } from '../utils/result_cache';
 import { serviceUtils } from '../utils/service_utils';
-import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
 export class SwapService {
     private readonly _provider: SupportedProvider;
@@ -72,9 +69,52 @@ export class SwapService {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _wethContract: WETH9Contract;
     private readonly _contractAddresses: ContractAddresses;
-    // Result caches, stored for a few minutes and refetched
-    // when the result has expired
-    private readonly _tokenDecimalResultCache: ResultCache<number>;
+
+    private static _getSwapQuotePrice(
+        buyAmount: BigNumber | undefined,
+        buyTokenDecimals: number,
+        sellTokenDecimals: number,
+        swapQuote: SwapQuote,
+        affiliateFee: PercentageFee,
+    ): SwapQuoteResponsePrice {
+        const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
+        const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
+        const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
+        const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
+        const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
+        const guaranteedUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAssetAmount, buyTokenDecimals);
+        const guaranteedUnitTakerAssetAmount = Web3Wrapper.toUnitAmount(
+            guaranteedTotalTakerAssetAmount,
+            sellTokenDecimals,
+        );
+        const affiliateFeeUnitMakerAssetAmount = guaranteedUnitMakerAssetAmount.times(
+            affiliateFee.buyTokenPercentageFee,
+        );
+        // Best price
+        const price =
+            buyAmount === undefined
+                ? unitMakerAssetAmount
+                      .minus(affiliateFeeUnitMakerAssetAmount)
+                      .dividedBy(unitTakerAssetAmount)
+                      .decimalPlaces(sellTokenDecimals)
+                : unitTakerAssetAmount
+                      .dividedBy(unitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
+                      .decimalPlaces(buyTokenDecimals);
+        // Guaranteed price before revert occurs
+        const guaranteedPrice =
+            buyAmount === undefined
+                ? guaranteedUnitMakerAssetAmount
+                      .minus(affiliateFeeUnitMakerAssetAmount)
+                      .dividedBy(guaranteedUnitTakerAssetAmount)
+                      .decimalPlaces(sellTokenDecimals)
+                : guaranteedUnitTakerAssetAmount
+                      .dividedBy(guaranteedUnitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
+                      .decimalPlaces(buyTokenDecimals);
+        return {
+            price,
+            guaranteedPrice,
+        };
+    }
 
     constructor(orderbook: Orderbook, provider: SupportedProvider, contractAddresses: AssetSwapperContractAddresses) {
         this._provider = provider;
@@ -93,11 +133,6 @@ export class SwapService {
 
         this._contractAddresses = contractAddresses;
         this._wethContract = new WETH9Contract(this._contractAddresses.etherToken, this._provider);
-        this._tokenDecimalResultCache = createResultCache<number>(
-            (tokenAddress: string) => serviceUtils.fetchTokenDecimalsIfRequiredAsync(tokenAddress, this._web3Wrapper),
-            // tslint:disable-next-line:custom-no-magic-numbers
-            TEN_MINUTES_MS * 6 * 24,
-        );
     }
 
     public async calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse> {
@@ -169,10 +204,11 @@ export class SwapService {
         const undeterministicMultiplier = hasUndeterministicFills ? GAS_LIMIT_BUFFER_MULTIPLIER : 1;
         // Add a buffer to get the worst case gas estimate
         const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(undeterministicMultiplier).integerValue();
-        const { price, guaranteedPrice } = await this._getSwapQuotePriceAsync(
+        const { makerTokenDecimals, takerTokenDecimals } = swapQuote;
+        const { price, guaranteedPrice } = SwapService._getSwapQuotePrice(
             buyAmount,
-            buyTokenAddress,
-            sellTokenAddress,
+            makerTokenDecimals,
+            takerTokenDecimals,
             attributedSwapQuote,
             affiliateFee,
         );
@@ -185,7 +221,39 @@ export class SwapService {
         const nativeFills = _.flatten(swapQuote.orders.map(order => order.fills)).filter(
             fill => fill.source === ERC20BridgeSource.Native,
         );
-        adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER).times(gasPrice).times(nativeFills.length);
+
+        const hasRFQTOrders = swapQuote.orders.some(order => {
+            const isNativeOrder = order.fills.some(fill => fill.source === ERC20BridgeSource.Native);
+            const hasTakerAddress = order.takerAddress !== NULL_ADDRESS;
+
+            return isNativeOrder && hasTakerAddress;
+        });
+
+        // NOTE: Takers have a tendency to bump the gas price in order to speed up their trades
+        // for Native orders this often leads to an insufficient protocol fee being included and
+        // potential RFQT orders cannot be filled, so to avoid this we pad the protocol fee amount
+        // specifically when RFQT orders are included in the quote
+        if (hasRFQTOrders) {
+            const maxGasPricePadding = gasPrice.times(RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER);
+            const fastestGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync('fastest').catch(err => {
+                logger.error(err, 'Failed to fetch ETH Gas Station fastest gas price');
+
+                // Failed to fetch fastest gas estimate, use max padded fast instead
+                return maxGasPricePadding;
+            });
+
+            // Use the fastest price but make sure it's never more than max padding and never less than supplied gas price
+            const paddedGasPrice = BigNumber.max(BigNumber.min(fastestGasPrice, maxGasPricePadding), gasPrice);
+
+            adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
+                .times(paddedGasPrice)
+                .times(nativeFills.length);
+        } else {
+            adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
+                .times(gasPrice)
+                .times(nativeFills.length);
+        }
+
         adjustedValue = isETHSell
             ? adjustedWorstCaseProtocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAssetAmount)
             : adjustedWorstCaseProtocolFee;
@@ -288,20 +356,18 @@ export class SwapService {
         sellToken: TokenMetadataOptionalSymbol;
     }> {
         const {
-            buyToken: rawBuyToken,
-            sellToken: rawSellToken,
+            buyToken: buyToken,
+            sellToken: sellToken,
             sellAmount,
             numSamples,
             sampleDistributionBase,
             excludedSources,
             includedSources,
         } = params;
-        const buyToken = await this._getTokenMetadataAsync(rawBuyToken);
-        const sellToken = await this._getTokenMetadataAsync(rawSellToken);
 
         const marketDepth = await this._swapQuoter.getBidAskLiquidityForMakerTakerAssetPairAsync(
-            buyToken.tokenAddress,
-            sellToken.tokenAddress,
+            buyToken,
+            sellToken,
             sellAmount,
             {
                 numSamples,
@@ -320,7 +386,9 @@ export class SwapService {
         const scalePriceByDecimals = (priceDepth: BucketedPriceDepth[]) =>
             priceDepth.map(b => ({
                 ...b,
-                price: b.price.times(new BigNumber(10).pow(sellToken.decimals - buyToken.decimals)),
+                price: b.price.times(
+                    new BigNumber(10).pow(marketDepth.takerTokenDecimals - marketDepth.makerTokenDecimals),
+                ),
             }));
         const askDepth = scalePriceByDecimals(
             marketDepthUtils.calculateDepthForSide(
@@ -347,8 +415,14 @@ export class SwapService {
             // We're BUYING sellToken (DAI) (50k) and selling buyToken
             // Price goes from LOW to HIGH
             bids: { depth: bidDepth },
-            buyToken,
-            sellToken,
+            buyToken: {
+                tokenAddress: buyToken,
+                decimals: marketDepth.makerTokenDecimals,
+            },
+            sellToken: {
+                tokenAddress: sellToken,
+                decimals: marketDepth.takerTokenDecimals,
+            },
         };
     }
 
@@ -508,13 +582,6 @@ export class SwapService {
                 ? ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP
                 : ASSET_SWAPPER_MARKET_ORDERS_OPTS;
 
-        // Compute the adjacent tokens for the buy and sell tookens
-        const tokenAdjacencyGraph = {
-            [buyTokenAddress]: DEFAULT_INTERMEDIATE_TOKENS,
-            [sellTokenAddress]: DEFAULT_INTERMEDIATE_TOKENS,
-            ...DEFAULT_TOKEN_ADJACENCY,
-        };
-
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
             ...swapQuoteRequestOpts,
             bridgeSlippage: slippagePercentage,
@@ -523,7 +590,6 @@ export class SwapService {
             includedSources,
             rfqt: _rfqt,
             shouldGenerateQuoteReport,
-            tokenAdjacencyGraph,
         };
 
         if (sellAmount !== undefined) {
@@ -573,65 +639,6 @@ export class SwapService {
             value,
             data: affiliatedData,
             decodedUniqueId,
-        };
-    }
-
-    private async _getSwapQuotePriceAsync(
-        buyAmount: BigNumber | undefined,
-        buyTokenAddress: string,
-        sellTokenAddress: string,
-        swapQuote: SwapQuote,
-        affiliateFee: PercentageFee,
-    ): Promise<SwapQuoteResponsePrice> {
-        const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
-        const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
-        const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
-        const buyTokenDecimals = (await this._getTokenMetadataAsync(buyTokenAddress)).decimals;
-        const sellTokenDecimals = (await this._getTokenMetadataAsync(sellTokenAddress)).decimals;
-        const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
-        const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
-        const guaranteedUnitMakerAssetAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAssetAmount, buyTokenDecimals);
-        const guaranteedUnitTakerAssetAmount = Web3Wrapper.toUnitAmount(
-            guaranteedTotalTakerAssetAmount,
-            sellTokenDecimals,
-        );
-        const affiliateFeeUnitMakerAssetAmount = guaranteedUnitMakerAssetAmount.times(
-            affiliateFee.buyTokenPercentageFee,
-        );
-        // Best price
-        const price =
-            buyAmount === undefined
-                ? unitMakerAssetAmount
-                      .minus(affiliateFeeUnitMakerAssetAmount)
-                      .dividedBy(unitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
-                : unitTakerAssetAmount
-                      .dividedBy(unitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
-                      .decimalPlaces(buyTokenDecimals);
-        // Guaranteed price before revert occurs
-        const guaranteedPrice =
-            buyAmount === undefined
-                ? guaranteedUnitMakerAssetAmount
-                      .minus(affiliateFeeUnitMakerAssetAmount)
-                      .dividedBy(guaranteedUnitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
-                : guaranteedUnitTakerAssetAmount
-                      .dividedBy(guaranteedUnitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
-                      .decimalPlaces(buyTokenDecimals);
-        return {
-            price,
-            guaranteedPrice,
-        };
-    }
-
-    private async _getTokenMetadataAsync(symbolOrAddress: string): Promise<TokenMetadataOptionalSymbol> {
-        const mappedMetadata = getTokenMetadataIfExists(symbolOrAddress, CHAIN_ID);
-        if (mappedMetadata) {
-            return mappedMetadata;
-        }
-        return {
-            tokenAddress: symbolOrAddress,
-            decimals: (await this._tokenDecimalResultCache.getResultAsync(symbolOrAddress)).result,
         };
     }
 }
