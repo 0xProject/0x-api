@@ -28,7 +28,7 @@ import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_run
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { MetricsService } from './services/metrics_service';
 import { OrderBookService } from './services/orderbook_service';
-import { PostgresRfqtFirmQuoteValidator } from './services/postgres_backed_firm_quote_validator';
+import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';

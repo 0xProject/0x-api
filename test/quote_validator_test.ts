@@ -10,7 +10,7 @@ import { Connection, Repository } from 'typeorm';
 
 import { ONE_MINUTE_MS } from '../src/constants';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
-import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_backed_firm_quote_validator';
+import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
 
 import { getTestDBConnectionAsync } from './utils/db_connection';
 import { setupDependenciesAsync } from './utils/deployment';

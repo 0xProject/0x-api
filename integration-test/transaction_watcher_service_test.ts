@@ -29,7 +29,7 @@ import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainC
 import { GeneralErrorCodes } from '../src/errors';
 import { MetricsService } from '../src/services/metrics_service';
 import { OrderBookService } from '../src/services/orderbook_service';
-import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_backed_firm_quote_validator';
+import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
 import { StakingDataService } from '../src/services/staking_data_service';
 import { TransactionWatcherSignerService } from '../src/services/transaction_watcher_signer_service';
 import { ChainId, TransactionStates, TransactionWatcherSignerServiceConfig } from '../src/types';
