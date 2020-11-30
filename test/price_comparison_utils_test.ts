@@ -197,7 +197,7 @@ describe(SUITE_NAME, () => {
 
         it('returns the Kyber results with highest makerAmount when quoting sellAmount', () => {
             const higherBuyAmount = buyAmount.plus(1e18);
-            const higherPrice = higherBuyAmount.div(sellAmount).decimalPlaces(18);
+            const higherPrice = higherBuyAmount.div(sellAmount).decimalPlaces(18, BigNumber.ROUND_FLOOR);
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
