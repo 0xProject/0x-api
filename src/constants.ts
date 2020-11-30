@@ -86,3 +86,7 @@ export const MARKET_DEPTH_END_PRICE_SLIPPAGE_PERC = 20;
 
 // Logging
 export const NUMBER_SOURCES_PER_LOG_LINE = 12;
+
+// ABI for balance checker
+export const BALANCE_CHECKER_ABI = [{'constant': true, 'inputs': [{'name': 'user', 'type': 'address'}, {'name': 'token', 'type': 'address'}], 'name': 'tokenBalance', 'outputs': [{'name': '', 'type': 'uint256'}], 'payable': false, 'stateMutability': 'view', 'type': 'function'}, {'constant': true, 'inputs': [{'name': 'users', 'type': 'address[]'}, {'name': 'tokens', 'type': 'address[]'}], 'name': 'balances', 'outputs': [{'name': '', 'type': 'uint256[]'}], 'payable': false, 'stateMutability': 'view', 'type': 'function'}, {'payable': true, 'stateMutability': 'payable', 'type': 'fallback'}];
+export const BALANCE_CHECKER_ADDRESS = '0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39';
