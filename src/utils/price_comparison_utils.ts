@@ -63,6 +63,8 @@ interface PartialQuote {
     sellAmount?: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
+    ethToInputRate: BigNumber;
+    ethToOutputRate: BigNumber;
     quoteReport: { sourcesConsidered: QuoteReportSource[] };
 }
 

@@ -242,6 +242,8 @@ export class MetaTransactionHandlers {
                 protocolFee: metaTransactionPrice.protocolFee,
                 minimumProtocolFee: metaTransactionPrice.minimumProtocolFee,
                 allowanceTarget: metaTransactionPrice.allowanceTarget,
+                ethToInputRate: metaTransactionPrice.ethToInputRate,
+                ethToOutputRate: metaTransactionPrice.ethToOutputRate,
                 priceComparisons: priceComparisons
                     ? priceComparisons.map(pc => ({
                           ...pc,

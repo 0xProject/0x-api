@@ -14,6 +14,8 @@ const DAI = getTokenMetadataIfExists('DAI', ChainId.Mainnet)!;
 const USDC = getTokenMetadataIfExists('USDC', ChainId.Mainnet)!;
 const buyAmount = new BigNumber('23318242912334152626');
 const sellAmount = new BigNumber('70100000000000000');
+const ethToInputRate = buyAmount.div(sellAmount).decimalPlaces(18);
+const ethToOutputRate = new BigNumber(1);
 
 const SUITE_NAME = 'priceComparisonUtils';
 
@@ -30,6 +32,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
+                    ethToInputRate,
+                    ethToOutputRate,
                     quoteReport: {
                         sourcesConsidered: [
                             {
@@ -71,6 +75,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
+                    ethToInputRate,
+                    ethToOutputRate,
                     quoteReport: {
                         sourcesConsidered: [
                             {
@@ -112,6 +118,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
+                    ethToInputRate,
+                    ethToOutputRate,
                     quoteReport: {
                         sourcesConsidered: [
                             {
@@ -159,6 +167,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
+                    ethToInputRate,
+                    ethToOutputRate,
                     quoteReport: {
                         sourcesConsidered: [
                             {
@@ -206,6 +216,8 @@ describe(SUITE_NAME, () => {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount: higherBuyAmount,
+                    ethToInputRate,
+                    ethToOutputRate,
                     sellAmount,
                     quoteReport: {
                         sourcesConsidered: [
@@ -247,6 +259,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount: lowerSellAmount,
+                    ethToInputRate,
+                    ethToOutputRate,
                     quoteReport: {
                         sourcesConsidered: [
                             {
@@ -288,6 +302,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: USDC.tokenAddress,
                     buyAmount: daiAmount,
                     sellAmount: usdcAmount,
+                    ethToInputRate,
+                    ethToOutputRate,
                     quoteReport: {
                         sourcesConsidered: [
                             {
@@ -324,6 +340,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: USDC.tokenAddress,
                     buyAmount: daiAmount,
                     sellAmount: usdcAmount,
+                    ethToInputRate,
+                    ethToOutputRate,
                     quoteReport: {
                         sourcesConsidered: [
                             {

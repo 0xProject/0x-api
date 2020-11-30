@@ -153,6 +153,8 @@ export class SwapHandlers {
             sellAmount: quote.sellAmount,
             sources: quote.sources,
             allowanceTarget: quote.allowanceTarget,
+            ethToInputRate: quote.ethToInputRate,
+            ethToOutputRate: quote.ethToOutputRate,
             priceComparisons: priceComparisons
                 ? priceComparisons.map(pc => ({
                       ...pc,

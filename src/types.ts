@@ -444,6 +444,8 @@ interface BasePriceResponse {
     estimatedGas: BigNumber;
     protocolFee: BigNumber;
     minimumProtocolFee: BigNumber;
+    ethToInputRate: BigNumber;
+    ethToOutputRate: BigNumber;
     allowanceTarget?: string;
     priceComparisons?: (SourceComparison | RenamedNativeSourceComparison)[];
 }
