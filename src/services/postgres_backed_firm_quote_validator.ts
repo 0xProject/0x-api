@@ -11,7 +11,7 @@ import { logger } from '../logger';
 const THRESHOLD_CACHE_EXPIRED_MS = ONE_MINUTE_MS * 2;
 
 
-export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator {
+export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
     private readonly _chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
     private readonly _cacheExpiryThresholdMs: number;
 
@@ -90,7 +90,7 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
         }
 
         // Finally, adjust takerFillableAmount based on maker balances
-        const {makerAddressesToAddToCache, takerFillableAmounts} = PostgresBackedFirmQuoteValidator._calculateTakerFillableAmountsFromQuotes(quotes, makerLookup);
+        const {makerAddressesToAddToCache, takerFillableAmounts} = PostgresRfqtFirmQuoteValidator._calculateTakerFillableAmountsFromQuotes(quotes, makerLookup);
 
         // If any new addresses were found, add new addresses to cache.
         // NOTE: since this insertion happens on the web processes, we need to gracefully handle conflict

@@ -10,7 +10,7 @@ import { Connection, Repository } from 'typeorm';
 
 import { ONE_MINUTE_MS } from '../src/constants';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
-import { PostgresBackedFirmQuoteValidator } from '../src/services/postgres_backed_firm_quote_validator';
+import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_backed_firm_quote_validator';
 
 import { getTestDBConnectionAsync } from './utils/db_connection';
 import { setupDependenciesAsync } from './utils/deployment';
@@ -50,13 +50,13 @@ describe(SUITE_NAME, () => {
     const MAKER3_ADDRESS = randomAddress();
     const MAKER4_ADDRESS = randomAddress();
 
-    let validator: PostgresBackedFirmQuoteValidator;
+    let validator: PostgresRfqtFirmQuoteValidator;
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         connection = await getTestDBConnectionAsync();
         chainCacheRepository = connection.getRepository(MakerBalanceChainCacheEntity);
-        validator = new PostgresBackedFirmQuoteValidator(chainCacheRepository);
+        validator = new PostgresRfqtFirmQuoteValidator(chainCacheRepository);
     });
     afterEach(async () => {
         await chainCacheRepository.query('TRUNCATE TABLE maker_balance_chain_cache;');

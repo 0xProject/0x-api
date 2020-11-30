@@ -28,7 +28,7 @@ import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_run
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { MetricsService } from './services/metrics_service';
 import { OrderBookService } from './services/orderbook_service';
-import { PostgresBackedFirmQuoteValidator } from './services/postgres_backed_firm_quote_validator';
+import { PostgresRfqtFirmQuoteValidator } from './services/postgres_backed_firm_quote_validator';
 import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
@@ -150,7 +150,7 @@ export async function getDefaultAppDependenciesAsync(
 
     const orderBookService = new OrderBookService(connection, meshClient);
 
-    const rfqFirmQuoteValidator = new PostgresBackedFirmQuoteValidator(
+    const rfqtFirmQuoteValidator = new PostgresRfqtFirmQuoteValidator(
         connection.getRepository(MakerBalanceChainCacheEntity),
         RFQ_FIRM_QUOTE_CACHE_EXPIRY,
     );
@@ -158,7 +158,7 @@ export async function getDefaultAppDependenciesAsync(
     let swapService: SwapService | undefined;
     let metaTransactionService: MetaTransactionService | undefined;
     try {
-        swapService = createSwapServiceFromOrderBookService(orderBookService, rfqFirmQuoteValidator, provider, contractAddresses);
+        swapService = createSwapServiceFromOrderBookService(orderBookService, rfqtFirmQuoteValidator, provider, contractAddresses);
         metaTransactionService = createMetaTxnServiceFromSwapService(
             provider,
             connection,
