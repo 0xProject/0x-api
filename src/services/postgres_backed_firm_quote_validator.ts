@@ -38,7 +38,7 @@ export class PostgresBackedFirmQuoteValidator implements RfqtFirmQuoteValidator 
 
             // Order is partially fillable, because Maker has a fraction of the assets
             const partialFillableAmount = makerTokenBalanceForMaker.times(quote.takerAssetAmount).div(quote.makerAssetAmount).integerValue(BigNumber.ROUND_DOWN);
-            logger.warn(`Maker ${quote.makerAddress} balance is ${makerTokenBalanceForMaker.toString()} and can only partially cover order size ${quote.makerAssetAmount.toString()}. takerAssetAmount was reduced from ${quote.takerAssetAmount.toString()} to ${partialFillableAmount.toString()}`)
+            logger.warn(`Maker ${quote.makerAddress} balance is ${makerTokenBalanceForMaker.toString()} and can only partially cover order size ${quote.makerAssetAmount.toString()}. takerAssetAmount was reduced from ${quote.takerAssetAmount.toString()} to ${partialFillableAmount.toString()}`);
             if (!partialFillableAmount.isFinite()) {
                 logger.error(`Calculated maker token balance is infinite, which caused the partialFillableAmount to be infinite. This should never happen`);
                 return ZERO;

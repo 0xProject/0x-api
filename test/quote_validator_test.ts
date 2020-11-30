@@ -8,8 +8,9 @@ import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
 
+import { ONE_MINUTE_MS } from '../src/constants';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
-import { PostgresBackedFirmQuoteValidator } from '../src/services/firm_quote_validator';
+import { PostgresBackedFirmQuoteValidator } from '../src/services/postgres_backed_firm_quote_validator';
 
 import { getTestDBConnectionAsync } from './utils/db_connection';
 import { setupDependenciesAsync } from './utils/deployment';
@@ -58,7 +59,7 @@ describe(SUITE_NAME, () => {
         validator = new PostgresBackedFirmQuoteValidator(chainCacheRepository);
     });
     afterEach(async () => {
-        await chainCacheRepository.query('TRUNCATE TABLE maker_balance_chain_cache;')
+        await chainCacheRepository.query('TRUNCATE TABLE maker_balance_chain_cache;');
         // await teardownDependenciesAsync(SUITE_NAME);
     });
 
@@ -150,7 +151,7 @@ describe(SUITE_NAME, () => {
         });
 
         it('should correctly report no taker fillable amount if makers do not have a balance', async () => {
-            const oneMinuteAgo = new Date((new Date()).getTime() - 60 * ONE_SECOND_MS);
+            const oneMinuteAgo = new Date((new Date()).getTime() - ONE_MINUTE_MS);
 
             // Maker1 does not have capital
             // Maker2 has some capital
