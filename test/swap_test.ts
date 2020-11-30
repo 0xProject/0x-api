@@ -1,3 +1,5 @@
+// tslint:disable:max-file-line-count
+
 import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
@@ -215,6 +217,7 @@ describe(SUITE_NAME, () => {
             const gasPrice = new BigNumber('150000000000');
             const protocolFee = gasPrice.times(config.PROTOCOL_FEE_MULTIPLIER);
             await quoteAndExpectAsync(
+                app,
                 { sellAmount: '1234', gasPrice: '150000000000' },
                 { gasPrice, protocolFee, value: protocolFee },
             );
