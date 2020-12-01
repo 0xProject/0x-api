@@ -19,8 +19,13 @@ const SUITE_NAME = 'QuoteValidatorTest';
 let connection: Connection;
 let chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
 
-
-const createOrder = (makerAddress: string, makerToken: string, takerToken: string, makerAssetAmount: BigNumber, takerAssetAmount: BigNumber): SignedOrder => {
+const createOrder = (
+    makerAddress: string,
+    makerToken: string,
+    takerToken: string,
+    makerAssetAmount: BigNumber,
+    takerAssetAmount: BigNumber,
+): SignedOrder => {
     return {
         chainId: 1337,
         exchangeAddress: randomAddress(),
@@ -78,11 +83,7 @@ describe(SUITE_NAME, () => {
             });
             const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(3);
-            expect(results.map(r => r.toString())).to.eql([
-                '800000000',
-                '801000000',
-                '802000000',
-            ]);
+            expect(results.map(r => r.toString())).to.eql(['800000000', '801000000', '802000000']);
 
             const afterFilter = await chainCacheRepository.count();
             expect(afterFilter).to.eql(1);
@@ -97,7 +98,7 @@ describe(SUITE_NAME, () => {
                 timeOfSample: 'NOW()',
             });
 
-            const orderToValidate =  createOrder(
+            const orderToValidate = createOrder(
                 MAKER1_ADDRESS,
                 DAI_TOKEN,
                 USDC_TOKEN,
@@ -107,28 +108,28 @@ describe(SUITE_NAME, () => {
             const results = await validator.getRfqtTakerFillableAmountsAsync([orderToValidate]);
             expect(results.length).to.eql(1);
             expect(results.map(r => r.toString())).to.eql([
-                '342857142',    // 342.857142
+                '342857142', // 342.857142
             ]);
         });
 
         it('should ignore orders that have a stale cache', async () => {
-            const fiveMinuteAgo = new Date((new Date()).getTime() - 5 * 60 * ONE_SECOND_MS);
+            const fiveMinuteAgo = new Date(new Date().getTime() - 5 * 60 * ONE_SECOND_MS);
             await chainCacheRepository.insert({
                 makerAddress: MAKER1_ADDRESS,
                 tokenAddress: DAI_TOKEN,
                 balance: Web3Wrapper.toBaseUnitAmount(300, 18),
-                timeFirstSeen: new Date(fiveMinuteAgo.getTime() - (ONE_SECOND_MS * 30)),
+                timeFirstSeen: new Date(fiveMinuteAgo.getTime() - ONE_SECOND_MS * 30),
                 timeOfSample: fiveMinuteAgo,
             });
             await chainCacheRepository.insert({
                 makerAddress: MAKER2_ADDRESS,
                 tokenAddress: DAI_TOKEN,
-                timeFirstSeen: new Date(fiveMinuteAgo.getTime() - (ONE_SECOND_MS * 30)),
+                timeFirstSeen: new Date(fiveMinuteAgo.getTime() - ONE_SECOND_MS * 30),
             });
             await chainCacheRepository.insert({
                 makerAddress: MAKER3_ADDRESS,
                 tokenAddress: DAI_TOKEN,
-                timeFirstSeen: new Date(new Date().getTime() - (ONE_SECOND_MS * 30)),
+                timeFirstSeen: new Date(new Date().getTime() - ONE_SECOND_MS * 30),
             });
 
             const orders = [MAKER1_ADDRESS, MAKER2_ADDRESS, MAKER3_ADDRESS].map(makerAddress => {
@@ -143,15 +144,14 @@ describe(SUITE_NAME, () => {
             const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(3);
             expect(results.map(r => r.toString())).to.eql([
-                '0',            // order maker has a cache entry which is too old
-                '0',            // order maker never had a cache entry and was first seen 5 minutes ago - not fillable
-                '800000000',    // order maker has a cache entry and was seen 30 seconds ago - fully fillable
+                '0', // order maker has a cache entry which is too old
+                '0', // order maker never had a cache entry and was first seen 5 minutes ago - not fillable
+                '800000000', // order maker has a cache entry and was seen 30 seconds ago - fully fillable
             ]);
-
         });
 
         it('should correctly report no taker fillable amount if makers do not have a balance', async () => {
-            const oneMinuteAgo = new Date((new Date()).getTime() - ONE_MINUTE_MS);
+            const oneMinuteAgo = new Date(new Date().getTime() - ONE_MINUTE_MS);
 
             // Maker1 does not have capital
             // Maker2 has some capital
@@ -192,19 +192,14 @@ describe(SUITE_NAME, () => {
             const now = new Date();
             const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(4);
-            expect(results.map(r => r.toString())).to.eql([
-                '0',
-                '120000000',
-                '1000000000',
-                '1000000000',
-            ]);
+            expect(results.map(r => r.toString())).to.eql(['0', '120000000', '1000000000', '1000000000']);
 
             // MAKER4 did not exist in the cache, so check to ensure it's been added.
             const maker4Entry = await chainCacheRepository.findOneOrFail({
                 where: {
                     makerAddress: MAKER4_ADDRESS,
                     tokenAddress: DAI_TOKEN,
-                }
+                },
             });
             expect(maker4Entry.timeFirstSeen).to.be.gt(now);
         });

@@ -158,7 +158,12 @@ export async function getDefaultAppDependenciesAsync(
     let swapService: SwapService | undefined;
     let metaTransactionService: MetaTransactionService | undefined;
     try {
-        swapService = createSwapServiceFromOrderBookService(orderBookService, rfqtFirmQuoteValidator, provider, contractAddresses);
+        swapService = createSwapServiceFromOrderBookService(
+            orderBookService,
+            rfqtFirmQuoteValidator,
+            provider,
+            contractAddresses,
+        );
         metaTransactionService = createMetaTxnServiceFromSwapService(
             provider,
             connection,

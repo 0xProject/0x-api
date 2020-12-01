@@ -118,7 +118,12 @@ export class SwapService {
         };
     }
 
-    constructor(orderbook: Orderbook, provider: SupportedProvider, contractAddresses: AssetSwapperContractAddresses, firmQuoteValidator?: RfqtFirmQuoteValidator | undefined) {
+    constructor(
+        orderbook: Orderbook,
+        provider: SupportedProvider,
+        contractAddresses: AssetSwapperContractAddresses,
+        firmQuoteValidator?: RfqtFirmQuoteValidator | undefined,
+    ) {
         this._provider = provider;
         this._firmQuoteValidator = firmQuoteValidator;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
