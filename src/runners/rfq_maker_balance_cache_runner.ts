@@ -3,7 +3,7 @@ import * as delay from 'delay';
 // HACK: ethers is already a dependency from another package, using it here
 // tslint:disable-next-line:no-implicit-dependencies
 import { ethers } from 'ethers';
-import { uniqueId } from 'lodash';
+import * as _ from 'lodash';
 import { Gauge } from 'prom-client';
 import { Connection } from 'typeorm';
 
@@ -14,8 +14,11 @@ import { MakerBalanceChainCacheEntity } from '../entities';
 import { logger } from '../logger';
 import { createResultCache, ResultCache } from '../utils/result_cache';
 
+// tslint:disable-next-line:custom-no-magic-numbers
 const DELAY_WHEN_NEW_BLOCK_FOUND = ONE_SECOND_MS * 5;
 const DELAY_WHEN_NEW_BLOCK_NOT_FOUND = ONE_SECOND_MS;
+// The eth_call will run out of gas if there are too many balance calls at once
+const MAX_BALANCE_CHECKS_PER_CALL = 1000;
 
 // Metric collection related fields
 const LATEST_BLOCK_PROCESSED_GAUGE = new Gauge({
@@ -58,7 +61,7 @@ async function runRfqBalanceCheckerAsync(
     connection: Connection,
     balanceCheckerContractInterface: ethers.Contract,
 ): Promise<void> {
-    const workerId = uniqueId('rfqw_');
+    const workerId = _.uniqueId('rfqw_');
     let lastBlockSeen = -1;
     while (true) {
         const newBlock = await ethersProvider.getBlockNumber();
@@ -128,11 +131,19 @@ async function _getErc20BalancesAsync(
     balanceCheckerContractInterface: ethers.Contract,
     balancesCallInput: BalancesCallInput,
 ): Promise<string[]> {
-    const balances = await balanceCheckerContractInterface.functions.balances(
-        balancesCallInput.addresses,
-        balancesCallInput.tokens,
+    // due to gas contraints limit the call to 1K balance checks
+    const addressesChunkedArray = _.chunk(balancesCallInput.addresses, MAX_BALANCE_CHECKS_PER_CALL);
+    const tokensChunkedArray = _.chunk(balancesCallInput.tokens, MAX_BALANCE_CHECKS_PER_CALL);
+
+    const balances = await Promise.all(
+        addressesChunkedArray.map(async (addresses, i) => {
+            return balanceCheckerContractInterface.functions.balances(addresses, tokensChunkedArray[i]);
+        }),
     );
-    return balances.map((bal: any) => bal.toString());
+
+    const balancesFlattened = Array.prototype.concat.apply([], balances);
+
+    return balancesFlattened.map((bal: any) => bal.toString());
 }
 
 async function _updateErc20BalancesAsync(
