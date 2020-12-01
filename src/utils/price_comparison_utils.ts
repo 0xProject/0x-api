@@ -61,6 +61,7 @@ interface PartialRequestParams {
 interface PartialQuote {
     buyAmount?: BigNumber;
     sellAmount?: BigNumber;
+    gasPrice: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
     ethToInputRate: BigNumber;
@@ -78,6 +79,7 @@ export const priceComparisonUtils = {
         try {
             const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
             const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
+            const ethToken = getTokenMetadataIfExists('WETH', chainId)!;
 
             if (!buyToken || !sellToken || !quote.buyAmount || !quote.sellAmount) {
                 return undefined;
@@ -94,17 +96,8 @@ export const priceComparisonUtils = {
                     : s.makerAmount.isEqualTo(quote.buyAmount!) && s.takerAmount.isGreaterThan(ZERO),
             );
 
-            // NOTE: Sort sources by the best outcome for the user
-            // if the user is selling we want to maximize the maker amount they will receive
-            // if the user is buying we want to minimize the taker amount they have to pay
-            const sortedSources = isSelling
-                ? fullTradeSources.slice().sort((a, b) => b.makerAmount.comparedTo(a.makerAmount))
-                : fullTradeSources.slice().sort((a, b) => a.takerAmount.comparedTo(b.takerAmount));
-            // Select the best (first in the sorted list) option for each source
-            const uniqueSources = _.uniqBy(sortedSources, 'liquiditySource');
-
-            const sourcePrices: SourceComparison[] = uniqueSources.map(source => {
-                const { liquiditySource, makerAmount, takerAmount } = source;
+            const tradeSourcesWithGas = fullTradeSources.map(source => {
+                const { liquiditySource } = source;
                 let gas: BigNumber;
                 if (liquiditySource === ERC20BridgeSource.Native) {
                     // tslint:disable-next-line:no-unnecessary-type-assertion
@@ -120,8 +113,57 @@ export const priceComparisonUtils = {
                     gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!(typedSource.fillData));
                 }
 
-                const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyToken.decimals);
-                const unitTakerAmount = Web3Wrapper.toUnitAmount(takerAmount, sellToken.decimals);
+                const unitMakerAmount = Web3Wrapper.toUnitAmount(source.makerAmount, buyToken.decimals);
+                const unitTakerAmount = Web3Wrapper.toUnitAmount(source.takerAmount, sellToken.decimals);
+
+                return {
+                    ...source,
+                    gas,
+                    unitTakerAmount,
+                    unitMakerAmount,
+                };
+            });
+
+            const ethUnitAmount = new BigNumber(10).pow(ethToken.decimals);
+            // NOTE: Sort sources by the best outcome for the user
+            // if the user is selling we want to maximize the maker amount they will receive
+            // if the user is buying we want to minimize the taker amount they have to pay
+            const sortedSources = isSelling
+                ? tradeSourcesWithGas.slice().sort((a, b) => {
+                      const aGasCostMakerAssetUnitAmount = a.gas
+                          .times(quote.gasPrice)
+                          .dividedBy(ethUnitAmount)
+                          .times(quote.ethToOutputRate);
+                      const bGasCostMakerAssetUnitAmount = b.gas
+                          .times(quote.gasPrice)
+                          .dividedBy(ethUnitAmount)
+                          .times(quote.ethToOutputRate);
+
+                      const aTotal = a.unitMakerAmount.minus(aGasCostMakerAssetUnitAmount);
+                      const bTotal = b.unitMakerAmount.minus(bGasCostMakerAssetUnitAmount);
+
+                      return bTotal.comparedTo(aTotal);
+                  })
+                : tradeSourcesWithGas.slice().sort((a, b) => {
+                      const aGasCostTakerAssetUnitAmount = a.gas
+                          .times(quote.gasPrice)
+                          .dividedBy(ethUnitAmount)
+                          .times(quote.ethToInputRate);
+                      const bGasCostTakerAssetUnitAmount = b.gas
+                          .times(quote.gasPrice)
+                          .dividedBy(ethUnitAmount)
+                          .times(quote.ethToInputRate);
+
+                      const aTotal = a.unitTakerAmount.plus(aGasCostTakerAssetUnitAmount);
+                      const bTotal = b.unitTakerAmount.plus(bGasCostTakerAssetUnitAmount);
+
+                      return aTotal.comparedTo(bTotal);
+                  });
+            // Select the best (first in the sorted list) option for each source
+            const uniqueSources = _.uniqBy(sortedSources, 'liquiditySource');
+
+            const sourcePrices: SourceComparison[] = uniqueSources.map(source => {
+                const { liquiditySource, unitMakerAmount, unitTakerAmount, gas } = source;
 
                 const price = isSelling
                     ? unitMakerAmount.dividedBy(unitTakerAmount).decimalPlaces(sellToken.decimals)
