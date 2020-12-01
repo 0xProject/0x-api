@@ -76,7 +76,7 @@ describe(SUITE_NAME, () => {
                     Web3Wrapper.toBaseUnitAmount(takerAmount, 6),
                 );
             });
-            const results = await validator.getRFQTTakerFillableAmounts(orders);
+            const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(3);
             expect(results.map(r => r.toString())).to.eql([
                 '800000000',
@@ -104,7 +104,7 @@ describe(SUITE_NAME, () => {
                 Web3Wrapper.toBaseUnitAmount(700, 18),
                 Web3Wrapper.toBaseUnitAmount(800, 6),
             );
-            const results = await validator.getRFQTTakerFillableAmounts([orderToValidate]);
+            const results = await validator.getRfqtTakerFillableAmountsAsync([orderToValidate]);
             expect(results.length).to.eql(1);
             expect(results.map(r => r.toString())).to.eql([
                 '342857142',    // 342.857142
@@ -140,7 +140,7 @@ describe(SUITE_NAME, () => {
                     Web3Wrapper.toBaseUnitAmount(800, 6),
                 );
             });
-            const results = await validator.getRFQTTakerFillableAmounts(orders);
+            const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(3);
             expect(results.map(r => r.toString())).to.eql([
                 '0',            // order maker has a cache entry which is too old
@@ -190,7 +190,7 @@ describe(SUITE_NAME, () => {
             });
             // Balances were adjusted accordingly, and Maker4 was added to the chain cache
             const now = new Date();
-            const results = await validator.getRFQTTakerFillableAmounts(orders);
+            const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(4);
             expect(results.map(r => r.toString())).to.eql([
                 '0',

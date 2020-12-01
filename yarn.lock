@@ -34,9 +34,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@^5.2.0":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v5.2.0-0c08353b2":
   version "5.2.0"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-5.2.0.tgz#e40ec6e19cc782aa848c478895aaacfdcf491e7b"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/aeb6120f37d302daaea68c2a0c872747c09b6417"
   dependencies:
     "@0x/assert" "^3.0.17"
     "@0x/base-contract" "^6.2.11"
@@ -548,7 +548,7 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/orderbook@0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023", "@0x/orderbook@github:0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023":
+"@0x/orderbook@0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023":
   version "2.2.7"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/c4b7cdf7770608fa1005a3f91c740ed417541fd9"
   dependencies:

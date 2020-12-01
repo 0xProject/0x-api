@@ -58,7 +58,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
     }
 
     // tslint:disable-next-line: prefer-function-over-method
-    public async getRFQTTakerFillableAmounts(quotes: SignedOrder[]): Promise<BigNumber[]> {
+    public async getRfqtTakerFillableAmountsAsync(quotes: SignedOrder[]): Promise<BigNumber[]> {
         // TODO: Handle error on query
 
         // Ensure that all quotes have the same exact maker token.
