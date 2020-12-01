@@ -1,9 +1,12 @@
 import {
     ERC20BridgeSource,
+    getQuoteInfoMinBuyAmount,
     getSwapMinBuyAmount,
+    MarketOperation,
     OptimizedMarketOrder,
     SignedOrder,
     SwapQuote,
+    SwapQuoteInfo,
     SwapQuoteOrdersBreakdown,
 } from '@0x/asset-swapper';
 import { assetDataUtils } from '@0x/order-utils';
@@ -188,5 +191,19 @@ export const serviceUtils = {
             buyTokenFeeAmount,
             gasCost: buyTokenFeeAmount.isZero() ? ZERO : AFFILIATE_FEE_TRANSFORMER_GAS,
         };
+    },
+    // don't use for TwoHop. Use getAffiliateFeeAmounts instead for TwoHop
+    getBuyTokenFeeAmount(
+        fee: PercentageFee,
+        quoteInfo: SwapQuoteInfo,
+        orders: OptimizedMarketOrder[],
+        marketOperation: MarketOperation,
+    ): BigNumber {
+        const minBuyAmount = getQuoteInfoMinBuyAmount(quoteInfo, orders, marketOperation);
+        const buyTokenFeeAmount = minBuyAmount
+            .times(fee.buyTokenPercentageFee)
+            .dividedBy(fee.buyTokenPercentageFee + 1)
+            .integerValue(BigNumber.ROUND_DOWN);
+        return buyTokenFeeAmount;
     },
 };

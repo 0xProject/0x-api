@@ -149,25 +149,19 @@ export class SwapService {
             skipValidation,
             affiliateFee,
         } = params;
+        /*
+         * Get the swap quote and affiliate fee amounts
+         */
         const swapQuote = await this._getMarketBuyOrSellQuoteAsync(params);
-
-        const attributedSwapQuote = {
-            ...swapQuote,
-            orders: serviceUtils.attributeSwapQuoteOrders(swapQuote.orders),
-        };
-        const {
-            makerAssetAmount,
-            totalTakerAssetAmount,
-            protocolFeeInWeiAmount: bestCaseProtocolFee,
-        } = attributedSwapQuote.bestCaseQuoteInfo;
-        const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = attributedSwapQuote.worstCaseQuoteInfo;
-        const { orders, gasPrice, sourceBreakdown, quoteReport } = attributedSwapQuote;
-
         const {
             gasCost: affiliateFeeGasCost,
             buyTokenFeeAmount,
             sellTokenFeeAmount,
         } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
+
+        /*
+         * Get transaction data
+         */
         const { to, value, data, decodedUniqueId } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
             isETHSell,
@@ -177,6 +171,11 @@ export class SwapService {
             { recipient: affiliateFee.recipient, buyTokenFeeAmount, sellTokenFeeAmount },
         );
 
+        /*
+         * Calculate best and worst case gas estimate
+         */
+        const { gasPrice } = swapQuote;
+        const worstCaseGas = new BigNumber(swapQuote.worstCaseQuoteInfo.gas);
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas)
             .plus(affiliateFeeGasCost)
             .plus(isETHSell ? WRAP_ETH_GAS : 0)
@@ -204,28 +203,17 @@ export class SwapService {
         const undeterministicMultiplier = hasUndeterministicFills ? GAS_LIMIT_BUFFER_MULTIPLIER : 1;
         // Add a buffer to get the worst case gas estimate
         const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(undeterministicMultiplier).integerValue();
-        const { makerTokenDecimals, takerTokenDecimals } = swapQuote;
-        const { price, guaranteedPrice } = SwapService._getSwapQuotePrice(
-            buyAmount,
-            makerTokenDecimals,
-            takerTokenDecimals,
-            attributedSwapQuote,
-            affiliateFee,
-        );
 
-        let adjustedWorstCaseProtocolFee = protocolFee;
+        /*
+         * Calculate protocol fee and value
+         */
+        let adjustedWorstCaseProtocolFee = swapQuote.worstCaseQuoteInfo.protocolFeeInWeiAmount;
         let adjustedValue = value;
 
-        const erc20AllowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
-        // With v1 we are able to fill bridges directly so the protocol fee is lower
-        const nativeFills = _.flatten(swapQuote.orders.map(order => order.fills)).filter(
-            fill => fill.source === ERC20BridgeSource.Native,
-        );
-
+        // Check if RFQT orders are in the quote
         const hasRFQTOrders = swapQuote.orders.some(order => {
             const isNativeOrder = order.fills.some(fill => fill.source === ERC20BridgeSource.Native);
             const hasTakerAddress = order.takerAddress !== NULL_ADDRESS;
-
             return isNativeOrder && hasTakerAddress;
         });
 
@@ -233,32 +221,70 @@ export class SwapService {
         // for Native orders this often leads to an insufficient protocol fee being included and
         // potential RFQT orders cannot be filled, so to avoid this we pad the protocol fee amount
         // specifically when RFQT orders are included in the quote
+        let gasPriceModifier = gasPrice;
         if (hasRFQTOrders) {
             const maxGasPricePadding = gasPrice.times(RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER);
             const fastestGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync('fastest').catch(err => {
                 logger.error(err, 'Failed to fetch ETH Gas Station fastest gas price');
-
                 // Failed to fetch fastest gas estimate, use max padded fast instead
                 return maxGasPricePadding;
             });
-
             // Use the fastest price but make sure it's never more than max padding and never less than supplied gas price
             const paddedGasPrice = BigNumber.max(BigNumber.min(fastestGasPrice, maxGasPricePadding), gasPrice);
-
-            adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
-                .times(paddedGasPrice)
-                .times(nativeFills.length);
-        } else {
-            adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
-                .times(gasPrice)
-                .times(nativeFills.length);
+            gasPriceModifier = paddedGasPrice;
         }
+
+        // With v1 we are able to fill bridges directly so the protocol fee is lower
+        const numNativeFills = _.flatten(swapQuote.orders.map(order => order.fills)).filter(
+            fill => fill.source === ERC20BridgeSource.Native,
+        ).length;
+
+        adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
+            .times(gasPriceModifier)
+            .times(numNativeFills);
 
         adjustedValue = isETHSell
             ? adjustedWorstCaseProtocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAssetAmount)
             : adjustedWorstCaseProtocolFee;
 
-        const allowanceTarget = isETHSell ? NULL_ADDRESS : erc20AllowanceTarget;
+        /*
+         * Calculate price and guaranteed price
+         */
+        const { makerTokenDecimals, takerTokenDecimals } = swapQuote;
+        const { price, guaranteedPrice } = SwapService._getSwapQuotePrice(
+            buyAmount,
+            makerTokenDecimals,
+            takerTokenDecimals,
+            swapQuote,
+            affiliateFee,
+        );
+
+        /*
+         * Calculate alternate amounts if not using our optimizer
+         */
+        const buyTokenFeeAmountForUnoptimizedQuote = serviceUtils.getBuyTokenFeeAmount(
+            affiliateFee,
+            swapQuote.unoptimizedQuoteInfo,
+            swapQuote.unoptimizedOrders,
+            swapQuote.type,
+        );
+        const unoptimizedBuyAmount = swapQuote.unoptimizedQuoteInfo.makerAssetAmount.minus(
+            buyTokenFeeAmountForUnoptimizedQuote,
+        );
+        const unoptimizedSellAmount = swapQuote.unoptimizedQuoteInfo.totalTakerAssetAmount;
+
+        /*
+         * Assign other fields and format API response
+         */
+        const allowanceTarget = isETHSell ? NULL_ADDRESS : this._contractAddresses.exchangeProxyAllowanceTarget;
+        const sources = serviceUtils.convertSourceBreakdownToArray(swapQuote.sourceBreakdown);
+        const orders = serviceUtils.cleanSignedOrderFields(serviceUtils.attributeSwapQuoteOrders(swapQuote.orders));
+        const { quoteReport } = swapQuote;
+        const {
+            makerAssetAmount,
+            totalTakerAssetAmount,
+            protocolFeeInWeiAmount: bestCaseProtocolFee,
+        } = swapQuote.bestCaseQuoteInfo;
 
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
@@ -277,8 +303,10 @@ export class SwapService {
             sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellTokenAddress,
             buyAmount: makerAssetAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAssetAmount,
-            sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
-            orders: serviceUtils.cleanSignedOrderFields(orders),
+            unoptimizedBuyAmount,
+            unoptimizedSellAmount,
+            sources,
+            orders,
             allowanceTarget,
             decodedUniqueId,
             quoteReport,
@@ -469,6 +497,8 @@ export class SwapService {
             sellTokenAddress,
             buyAmount: amount,
             sellAmount: amount,
+            unoptimizedBuyAmount: amount,
+            unoptimizedSellAmount: amount,
             sources: [],
             orders: [],
             allowanceTarget: NULL_ADDRESS,

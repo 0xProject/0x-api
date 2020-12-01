@@ -400,7 +400,9 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     minimumProtocolFee: BigNumber;
     orders: SignedOrder[];
     buyAmount: BigNumber;
+    unoptimizedBuyAmount: BigNumber;
     sellAmount: BigNumber;
+    unoptimizedSellAmount: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
     sources: GetSwapQuoteResponseLiquiditySource[];

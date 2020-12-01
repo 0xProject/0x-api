@@ -1,5 +1,6 @@
-import { ERC20BridgeSource, getSwapMinBuyAmount } from '@0x/asset-swapper';
+import { ERC20BridgeSource, getQuoteInfoMinBuyAmount, getSwapMinBuyAmount } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
+import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import 'mocha';
@@ -102,6 +103,44 @@ describe(SUITE_NAME, () => {
                 sellTokenFeeAmount: ZERO,
                 gasCost: AFFILIATE_FEE_TRANSFORMER_GAS,
             });
+        });
+    });
+    describe('getBuyTokenFeeAmount', () => {
+        it('returns the correct amounts when fee is zero', () => {
+            const affiliateFee = {
+                recipient: '',
+                buyTokenPercentageFee: 0,
+                sellTokenPercentageFee: 0,
+            };
+            const buyTokenFee = serviceUtils.getBuyTokenFeeAmount(
+                affiliateFee,
+                randomSellQuote.unoptimizedQuoteInfo,
+                randomSellQuote.unoptimizedOrders,
+                randomSellQuote.type,
+            );
+            expect(buyTokenFee).to.deep.equal(ZERO);
+        });
+        it('returns the  correct amounts when fee is non-zero', () => {
+            const affiliateFee = {
+                recipient: '',
+                buyTokenPercentageFee: 0.01,
+                sellTokenPercentageFee: 0,
+            };
+            const buyTokenFee = serviceUtils.getBuyTokenFeeAmount(
+                affiliateFee,
+                randomSellQuote.unoptimizedQuoteInfo,
+                randomSellQuote.unoptimizedOrders,
+                randomSellQuote.type,
+            );
+            const expected = getQuoteInfoMinBuyAmount(
+                randomSellQuote.unoptimizedQuoteInfo,
+                randomSellQuote.unoptimizedOrders,
+                MarketOperation.Sell,
+            )
+                .times(affiliateFee.buyTokenPercentageFee)
+                .dividedBy(affiliateFee.buyTokenPercentageFee + 1)
+                .integerValue(BigNumber.ROUND_DOWN);
+            expect(buyTokenFee).to.deep.equal(expected);
         });
     });
 });
