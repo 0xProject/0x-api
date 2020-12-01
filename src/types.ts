@@ -527,6 +527,7 @@ export interface CalculateSwapQuoteParams extends SwapQuoteParamsBase {
     gasPrice?: BigNumber;
     rfqt?: Partial<RfqtRequestOpts>;
     skipValidation: boolean;
+    shouldSellEntireBalance: boolean;
 }
 
 export interface CalculateMetaTransactionQuoteResponse extends QuoteBase {
