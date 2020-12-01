@@ -68,12 +68,6 @@ export interface WebsocketSRAOpts {
     path: string;
 }
 
-export interface MakerToken {
-    makerAddress: string;
-    tokenAddress: string;
-}
-
-
 export interface OrderChannelRequest {
     type: string;
     channel: MessageChannels;

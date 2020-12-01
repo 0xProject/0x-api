@@ -1,4 +1,4 @@
-import { logUtils } from '@0x/utils';
+import { BigNumber, logUtils } from '@0x/utils';
 import * as delay from 'delay';
 // HACK: ethers is already a dependency from another package, using it here
 // tslint:disable-next-line:no-implicit-dependencies
@@ -14,7 +14,7 @@ import { MakerBalanceChainCacheEntity } from '../entities';
 import { logger } from '../logger';
 import { createResultCache, ResultCache } from '../utils/result_cache';
 
-const DELAY_WHEN_NEW_BLOCK_FOUND = ONE_SECOND_MS * 10;
+const DELAY_WHEN_NEW_BLOCK_FOUND = ONE_SECOND_MS * 5;
 const DELAY_WHEN_NEW_BLOCK_NOT_FOUND = ONE_SECOND_MS;
 
 // Metric collection related fields
@@ -43,7 +43,9 @@ interface BalancesCallInput {
 if (require.main === module) {
     (async () => {
         logger.info('running RFQ balance cache runner');
-        const ethersProvider = new ethers.providers.JsonRpcProvider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
+        const ethersProvider = new ethers.providers.JsonRpcProvider(
+            defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl,
+        );
         const connection = await getDBConnectionAsync();
         const balanceCheckerContractInterface = await _getBalanceCheckerContractInterfaceAsync(ethersProvider);
 
@@ -63,19 +65,21 @@ async function runRfqBalanceCheckerAsync(
         if (lastBlockSeen < newBlock) {
             lastBlockSeen = newBlock;
             LATEST_BLOCK_PROCESSED_GAUGE.labels(workerId).set(lastBlockSeen);
-            logUtils.log({
-                block: lastBlockSeen,
-                workerId,
-            }, 'Found new block');
+            logUtils.log(
+                {
+                    block: lastBlockSeen,
+                    workerId,
+                },
+                'Found new block',
+            );
 
             const makerTokens = await _getMakerTokensAsync(connection);
-            const balancesCallInput = splitValues(makerTokens);
+            const balancesCallInput = _splitValues(makerTokens);
 
-            const erc20Balances = await _getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput.addresses, balancesCallInput.tokens);
+            const updateTime = new Date();
+            const erc20Balances = await _getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput);
 
-            logUtils.log(erc20Balances);
-            logUtils.log(newBlock);
-
+            await _updateErc20BalancesAsync(balancesCallInput, erc20Balances, connection, updateTime);
 
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
         } else {
@@ -89,30 +93,66 @@ async function runRfqBalanceCheckerAsync(
 let MAKER_TOKEN_CACHE: ResultCache<MakerBalanceChainCacheEntity[]>;
 const _getMakerTokensAsync = async (connection: Connection) => {
     if (!MAKER_TOKEN_CACHE) {
-        MAKER_TOKEN_CACHE = createResultCache<any[]>(() => connection.getRepository(MakerBalanceChainCacheEntity).createQueryBuilder().select(['token_address', 'maker_address']).getMany(), TEN_MINUTES_MS);
+        logUtils.log('updating cache');
+        MAKER_TOKEN_CACHE = createResultCache<any[]>(
+            () =>
+                connection
+                    .getRepository(MakerBalanceChainCacheEntity)
+                    .createQueryBuilder('maker_balance_chain_cache')
+                    .select(['maker_balance_chain_cache.tokenAddress', 'maker_balance_chain_cache.makerAddress'])
+                    .getMany(),
+            TEN_MINUTES_MS,
+        );
     }
     return (await MAKER_TOKEN_CACHE.getResultAsync()).result;
 };
 
-function splitValues(makerTokens: MakerBalanceChainCacheEntity[]): BalancesCallInput {
+function _splitValues(makerTokens: MakerBalanceChainCacheEntity[]): BalancesCallInput {
     const functionInputs: BalancesCallInput = { addresses: [], tokens: [] };
 
-    return makerTokens.reduce(({addresses, tokens}, makerToken) => {
-
-      return {
-        addresses: addresses.concat(makerToken.makerAddress as string),
-        tokens: tokens.concat(makerToken.tokenAddress as string)
-      };
+    return makerTokens.reduce(({ addresses, tokens }, makerToken) => {
+        return {
+            addresses: addresses.concat(makerToken.makerAddress as string),
+            tokens: tokens.concat(makerToken.tokenAddress as string),
+        };
     }, functionInputs);
 }
 
-async function _getBalanceCheckerContractInterfaceAsync(provider: ethers.providers.JsonRpcProvider): Promise<ethers.Contract> {
+async function _getBalanceCheckerContractInterfaceAsync(
+    provider: ethers.providers.JsonRpcProvider,
+): Promise<ethers.Contract> {
     return new ethers.Contract(BALANCE_CHECKER_ADDRESS, BALANCE_CHECKER_ABI, provider);
 }
 
-async function _getErc20BalancesAsync(balanceCheckerContractInterface: ethers.Contract, addresses: string[], tokens: string[]): Promise<string[]> {
-    const balances = await balanceCheckerContractInterface.functions.balances(addresses, tokens);
+async function _getErc20BalancesAsync(
+    balanceCheckerContractInterface: ethers.Contract,
+    balancesCallInput: BalancesCallInput,
+): Promise<string[]> {
+    const balances = await balanceCheckerContractInterface.functions.balances(
+        balancesCallInput.addresses,
+        balancesCallInput.tokens,
+    );
     return balances.map((bal: any) => bal.toString());
 }
 
+async function _updateErc20BalancesAsync(
+    balancesCallInput: BalancesCallInput,
+    balances: string[],
+    connection: Connection,
+    updateTime: Date,
+): Promise<void> {
+    const toSave = await Promise.all(
+        balancesCallInput.addresses.map(async (addr, i) => {
+            const dbEntity = new MakerBalanceChainCacheEntity();
 
+            dbEntity.makerAddress = addr;
+            dbEntity.tokenAddress = balancesCallInput.tokens[i];
+            dbEntity.balance = new BigNumber(balances[i]);
+            dbEntity.timeOfSample = updateTime;
+
+            return dbEntity;
+        }),
+    );
+
+    await connection.getRepository(MakerBalanceChainCacheEntity).save(toSave);
+}
