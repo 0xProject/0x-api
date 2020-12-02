@@ -64,8 +64,8 @@ interface PartialQuote {
     gasPrice: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
-    ethToInputRate: BigNumber;
-    ethToOutputRate: BigNumber;
+    ethToSellTokenRate: BigNumber;
+    ethToBuyTokenRate: BigNumber;
     quoteReport: { sourcesConsidered: QuoteReportSource[] };
 }
 
@@ -133,11 +133,11 @@ export const priceComparisonUtils = {
                       const aGasCostMakerAssetUnitAmount = a.gas
                           .times(quote.gasPrice)
                           .dividedBy(ethUnitAmount)
-                          .times(quote.ethToOutputRate);
+                          .times(quote.ethToBuyTokenRate);
                       const bGasCostMakerAssetUnitAmount = b.gas
                           .times(quote.gasPrice)
                           .dividedBy(ethUnitAmount)
-                          .times(quote.ethToOutputRate);
+                          .times(quote.ethToBuyTokenRate);
 
                       const aTotal = a.unitMakerAmount.minus(aGasCostMakerAssetUnitAmount);
                       const bTotal = b.unitMakerAmount.minus(bGasCostMakerAssetUnitAmount);
@@ -148,11 +148,11 @@ export const priceComparisonUtils = {
                       const aGasCostTakerAssetUnitAmount = a.gas
                           .times(quote.gasPrice)
                           .dividedBy(ethUnitAmount)
-                          .times(quote.ethToInputRate);
+                          .times(quote.ethToSellTokenRate);
                       const bGasCostTakerAssetUnitAmount = b.gas
                           .times(quote.gasPrice)
                           .dividedBy(ethUnitAmount)
-                          .times(quote.ethToInputRate);
+                          .times(quote.ethToSellTokenRate);
 
                       const aTotal = a.unitTakerAmount.plus(aGasCostTakerAssetUnitAmount);
                       const bTotal = b.unitTakerAmount.plus(bGasCostTakerAssetUnitAmount);

@@ -111,6 +111,7 @@ export class MetaTransactionService {
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<GetMetaTransactionQuoteResponse & { quoteReport?: QuoteReport }> {
         const quote = await this._calculateMetaTransactionQuoteAsync(params, true);
+        const { ethToSellTokenRate, ethToBuyTokenRate } = quote;
         const commonQuoteFields = {
             price: quote.price,
             sellTokenAddress: params.sellTokenAddress,
@@ -127,8 +128,8 @@ export class MetaTransactionService {
             estimatedGasTokenRefund: ZERO,
             value: quote.protocolFee,
             allowanceTarget: quote.allowanceTarget,
-            ethToInputRate: quote.ethToInputRate,
-            ethToOutputRate: quote.ethToOutputRate,
+            ethToSellTokenRate,
+            ethToBuyTokenRate,
             quoteReport: quote.quoteReport,
         };
 
@@ -357,6 +358,7 @@ export class MetaTransactionService {
         };
 
         const quote = await this._swapService.calculateSwapQuoteAsync(quoteParams);
+        const { ethToSellTokenRate, ethToBuyTokenRate } = quote;
         return {
             takerAddress: params.takerAddress,
             price: quote.price,
@@ -370,8 +372,8 @@ export class MetaTransactionService {
             allowanceTarget: quote.allowanceTarget,
             orders: quote.orders,
             callData: quote.data,
-            ethToInputRate: quote.ethToInputRate,
-            ethToOutputRate: quote.ethToOutputRate,
+            ethToSellTokenRate,
+            ethToBuyTokenRate,
             quoteReport: quote.quoteReport,
         };
     }

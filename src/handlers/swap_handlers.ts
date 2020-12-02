@@ -139,6 +139,7 @@ export class SwapHandlers {
             });
         }
 
+        const { ethToSellTokenRate, ethToBuyTokenRate } = quote;
         const response = {
             price: quote.price,
             value: quote.value,
@@ -153,8 +154,8 @@ export class SwapHandlers {
             sellAmount: quote.sellAmount,
             sources: quote.sources,
             allowanceTarget: quote.allowanceTarget,
-            ethToInputRate: quote.ethToInputRate,
-            ethToOutputRate: quote.ethToOutputRate,
+            ethToSellTokenRate,
+            ethToBuyTokenRate,
             priceComparisons: priceComparisons
                 ? priceComparisons.map(pc => ({
                       ...pc,
