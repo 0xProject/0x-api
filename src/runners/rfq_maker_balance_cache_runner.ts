@@ -1,30 +1,50 @@
+import { BalanceCheckerContract } from '@0x/asset-swapper';
+import { artifacts } from '@0x/asset-swapper/lib/src/artifacts';
+import { BlockParamLiteral, SupportedProvider, Web3Wrapper } from '@0x/dev-utils';
 import { BigNumber, logUtils } from '@0x/utils';
 import * as delay from 'delay';
-// HACK: ethers is already a dependency from another package, using it here
-// tslint:disable-next-line:no-implicit-dependencies
-import { ethers } from 'ethers';
 import * as _ from 'lodash';
 import { Gauge } from 'prom-client';
 import { Connection } from 'typeorm';
 
 import { defaultHttpServiceWithRateLimiterConfig } from '../config';
-import { BALANCE_CHECKER_ABI, BALANCE_CHECKER_ADDRESS, ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
+import { ONE_SECOND_MS } from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
 import { MakerBalanceChainCacheEntity } from '../entities';
 import { logger } from '../logger';
+import { providerUtils } from '../utils/provider_utils';
 import { createResultCache, ResultCache } from '../utils/result_cache';
 
 // tslint:disable-next-line:custom-no-magic-numbers
 const DELAY_WHEN_NEW_BLOCK_FOUND = ONE_SECOND_MS * 5;
 const DELAY_WHEN_NEW_BLOCK_NOT_FOUND = ONE_SECOND_MS;
+// tslint:disable-next-line:custom-no-magic-numbers
+const CACHE_MAKER_TOKENS_FOR_MS = ONE_SECOND_MS * 30;
 // The eth_call will run out of gas if there are too many balance calls at once
 const MAX_BALANCE_CHECKS_PER_CALL = 1000;
+const BALANCE_CHECKER_GAS_LIMIT = 5500000;
+// Maximum balances to save at once
+const MAX_ROWS_TO_UPDATE = 1000;
+
+const RANDOM_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
 
 // Metric collection related fields
 const LATEST_BLOCK_PROCESSED_GAUGE = new Gauge({
     name: 'rfqtw_latest_block_processed',
     help: 'Latest block processed by the RFQ worker process',
     labelNames: ['workerId'],
+});
+
+const MAKER_BALANCE_CACHE_RESULT_COUNT = new Gauge({
+    name: 'maker_balance_cache_result_count',
+    help: 'Records the number of records being returned by the DB',
+    labelNames: [],
+});
+
+const MAKER_BALANCE_CACHE_RETRIEVAL_TIME = new Gauge({
+    name: 'maker_balance_cache_retrieval_time',
+    help: 'Records the amount of time needed to grab records',
+    labelNames: [],
 });
 
 process.on('uncaughtException', err => {
@@ -46,25 +66,26 @@ interface BalancesCallInput {
 if (require.main === module) {
     (async () => {
         logger.info('running RFQ balance cache runner');
-        const ethersProvider = new ethers.providers.JsonRpcProvider(
-            defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl,
-        );
-        const connection = await getDBConnectionAsync();
-        const balanceCheckerContractInterface = await _getBalanceCheckerContractInterfaceAsync(ethersProvider);
 
-        await runRfqBalanceCheckerAsync(ethersProvider, connection, balanceCheckerContractInterface);
+        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
+        const web3Wrapper = new Web3Wrapper(provider);
+
+        const connection = await getDBConnectionAsync();
+        const balanceCheckerContractInterface = getBalanceCheckerContractInterfaceAsync(provider);
+
+        await runRfqBalanceCheckerAsync(web3Wrapper, connection, balanceCheckerContractInterface);
     })().catch(error => logger.error(error.stack));
 }
 
 async function runRfqBalanceCheckerAsync(
-    ethersProvider: ethers.providers.JsonRpcProvider,
+    web3Wrapper: Web3Wrapper,
     connection: Connection,
-    balanceCheckerContractInterface: ethers.Contract,
+    balanceCheckerContractInterface: BalanceCheckerContract,
 ): Promise<void> {
     const workerId = _.uniqueId('rfqw_');
     let lastBlockSeen = -1;
     while (true) {
-        const newBlock = await ethersProvider.getBlockNumber();
+        const newBlock = await web3Wrapper.getBlockNumberAsync();
         if (lastBlockSeen < newBlock) {
             lastBlockSeen = newBlock;
             LATEST_BLOCK_PROCESSED_GAUGE.labels(workerId).set(lastBlockSeen);
@@ -76,13 +97,13 @@ async function runRfqBalanceCheckerAsync(
                 'Found new block',
             );
 
-            const makerTokens = await _getMakerTokensAsync(connection);
-            const balancesCallInput = _splitValues(makerTokens);
+            const makerTokens = await getMakerTokensAsync(connection);
+            const balancesCallInput = splitValues(makerTokens);
 
             const updateTime = new Date();
-            const erc20Balances = await _getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput);
+            const erc20Balances = await getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput);
 
-            await _updateErc20BalancesAsync(balancesCallInput, erc20Balances, connection, updateTime);
+            await updateErc20BalancesAsync(balancesCallInput, erc20Balances, connection, updateTime);
 
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
         } else {
@@ -94,9 +115,10 @@ async function runRfqBalanceCheckerAsync(
 // NOTE: this only returns a partial entity class, just token address and maker address
 // Cache the query results to reduce reads from the DB
 let MAKER_TOKEN_CACHE: ResultCache<MakerBalanceChainCacheEntity[]>;
-const _getMakerTokensAsync = async (connection: Connection) => {
+async function getMakerTokensAsync(connection: Connection): Promise<MakerBalanceChainCacheEntity[]> {
+    const start = new Date().getTime();
+
     if (!MAKER_TOKEN_CACHE) {
-        logUtils.log('updating cache');
         MAKER_TOKEN_CACHE = createResultCache<any[]>(
             () =>
                 connection
@@ -104,40 +126,54 @@ const _getMakerTokensAsync = async (connection: Connection) => {
                     .createQueryBuilder('maker_balance_chain_cache')
                     .select(['maker_balance_chain_cache.tokenAddress', 'maker_balance_chain_cache.makerAddress'])
                     .getMany(),
-            TEN_MINUTES_MS,
+            CACHE_MAKER_TOKENS_FOR_MS,
         );
     }
-    return (await MAKER_TOKEN_CACHE.getResultAsync()).result;
-};
+    const results = (await MAKER_TOKEN_CACHE.getResultAsync()).result;
 
-function _splitValues(makerTokens: MakerBalanceChainCacheEntity[]): BalancesCallInput {
+    MAKER_BALANCE_CACHE_RESULT_COUNT.set(results.length);
+    MAKER_BALANCE_CACHE_RETRIEVAL_TIME.set(new Date().getTime() - start);
+
+    return results;
+}
+
+function splitValues(makerTokens: MakerBalanceChainCacheEntity[]): BalancesCallInput {
     const functionInputs: BalancesCallInput = { addresses: [], tokens: [] };
 
     return makerTokens.reduce(({ addresses, tokens }, makerToken) => {
         return {
-            addresses: addresses.concat(makerToken.makerAddress as string),
-            tokens: tokens.concat(makerToken.tokenAddress as string),
+            addresses: addresses.concat(makerToken.makerAddress!),
+            tokens: tokens.concat(makerToken.tokenAddress!),
         };
     }, functionInputs);
 }
 
-async function _getBalanceCheckerContractInterfaceAsync(
-    provider: ethers.providers.JsonRpcProvider,
-): Promise<ethers.Contract> {
-    return new ethers.Contract(BALANCE_CHECKER_ADDRESS, BALANCE_CHECKER_ABI, provider);
+function getBalanceCheckerContractInterfaceAsync(provider: SupportedProvider): BalanceCheckerContract {
+    return new BalanceCheckerContract(RANDOM_ADDRESS, provider, { gas: BALANCE_CHECKER_GAS_LIMIT });
 }
 
-async function _getErc20BalancesAsync(
-    balanceCheckerContractInterface: ethers.Contract,
+async function getErc20BalancesAsync(
+    balanceCheckerContractInterface: BalanceCheckerContract,
     balancesCallInput: BalancesCallInput,
 ): Promise<string[]> {
     // due to gas contraints limit the call to 1K balance checks
     const addressesChunkedArray = _.chunk(balancesCallInput.addresses, MAX_BALANCE_CHECKS_PER_CALL);
     const tokensChunkedArray = _.chunk(balancesCallInput.tokens, MAX_BALANCE_CHECKS_PER_CALL);
 
+    const balanceCheckerByteCode = _.get(artifacts.BalanceChecker, 'compilerOutput.evm.deployedBytecode.object');
+
     const balances = await Promise.all(
-        addressesChunkedArray.map(async (addresses, i) => {
-            return balanceCheckerContractInterface.functions.balances(addresses, tokensChunkedArray[i]);
+        _.zip(addressesChunkedArray, tokensChunkedArray).map(async ([addressesChunk, tokensChunk]) => {
+            return balanceCheckerContractInterface.balances(addressesChunk!, tokensChunk!).callAsync(
+                {
+                    overrides: {
+                        [RANDOM_ADDRESS]: {
+                            code: balanceCheckerByteCode,
+                        },
+                    },
+                },
+                BlockParamLiteral.Latest,
+            );
         }),
     );
 
@@ -146,24 +182,22 @@ async function _getErc20BalancesAsync(
     return balancesFlattened.map((bal: any) => bal.toString());
 }
 
-async function _updateErc20BalancesAsync(
+async function updateErc20BalancesAsync(
     balancesCallInput: BalancesCallInput,
     balances: string[],
     connection: Connection,
     updateTime: Date,
 ): Promise<void> {
-    const toSave = await Promise.all(
-        balancesCallInput.addresses.map(async (addr, i) => {
-            const dbEntity = new MakerBalanceChainCacheEntity();
+    const toSave = balancesCallInput.addresses.map((addr, i) => {
+        const dbEntity = new MakerBalanceChainCacheEntity();
 
-            dbEntity.makerAddress = addr;
-            dbEntity.tokenAddress = balancesCallInput.tokens[i];
-            dbEntity.balance = new BigNumber(balances[i]);
-            dbEntity.timeOfSample = updateTime;
+        dbEntity.makerAddress = addr;
+        dbEntity.tokenAddress = balancesCallInput.tokens[i];
+        dbEntity.balance = new BigNumber(balances[i]);
+        dbEntity.timeOfSample = updateTime;
 
-            return dbEntity;
-        }),
-    );
+        return dbEntity;
+    });
 
-    await connection.getRepository(MakerBalanceChainCacheEntity).save(toSave);
+    await connection.getRepository(MakerBalanceChainCacheEntity).save(toSave, { chunk: MAX_ROWS_TO_UPDATE });
 }
