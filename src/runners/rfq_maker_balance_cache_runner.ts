@@ -38,13 +38,11 @@ const LATEST_BLOCK_PROCESSED_GAUGE = new Gauge({
 const MAKER_BALANCE_CACHE_RESULT_COUNT = new Gauge({
     name: 'maker_balance_cache_result_count',
     help: 'Records the number of records being returned by the DB',
-    labelNames: [],
 });
 
 const MAKER_BALANCE_CACHE_RETRIEVAL_TIME = new Gauge({
     name: 'maker_balance_cache_retrieval_time',
     help: 'Records the amount of time needed to grab records',
-    labelNames: [],
 });
 
 process.on('uncaughtException', err => {
@@ -71,13 +69,13 @@ if (require.main === module) {
         const web3Wrapper = new Web3Wrapper(provider);
 
         const connection = await getDBConnectionAsync();
-        const balanceCheckerContractInterface = getBalanceCheckerContractInterfaceAsync(provider);
+        const balanceCheckerContractInterface = getBalanceCheckerContractInterface(RANDOM_ADDRESS, provider);
 
-        await runRfqBalanceCheckerAsync(web3Wrapper, connection, balanceCheckerContractInterface);
+        await runRfqBalanceCacheAsync(web3Wrapper, connection, balanceCheckerContractInterface);
     })().catch(error => logger.error(error.stack));
 }
 
-async function runRfqBalanceCheckerAsync(
+async function runRfqBalanceCacheAsync(
     web3Wrapper: Web3Wrapper,
     connection: Connection,
     balanceCheckerContractInterface: BalanceCheckerContract,
@@ -97,19 +95,34 @@ async function runRfqBalanceCheckerAsync(
                 'Found new block',
             );
 
-            const makerTokens = await getMakerTokensAsync(connection);
-            const balancesCallInput = splitValues(makerTokens);
-
-            const updateTime = new Date();
-            const erc20Balances = await getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput);
-
-            await updateErc20BalancesAsync(balancesCallInput, erc20Balances, connection, updateTime);
+            await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true);
 
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
         } else {
             await delay(DELAY_WHEN_NEW_BLOCK_NOT_FOUND);
         }
     }
+}
+
+/**
+ * This function retrieves and caches ERC20 balances of RFQ market makers
+ */
+export async function cacheRfqBalancesAsync(
+    connection: Connection,
+    balanceCheckerContractInterface: BalanceCheckerContract,
+    codeOverride: boolean,
+): Promise<void> {
+    const makerTokens = await getMakerTokensAsync(connection);
+    const balancesCallInput = splitValues(makerTokens);
+
+    logUtils.log(balancesCallInput);
+
+    const updateTime = new Date();
+    const erc20Balances = await getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput, codeOverride);
+
+    logUtils.log(erc20Balances);
+
+    await updateErc20BalancesAsync(balancesCallInput, erc20Balances, connection, updateTime);
 }
 
 // NOTE: this only returns a partial entity class, just token address and maker address
@@ -148,13 +161,21 @@ function splitValues(makerTokens: MakerBalanceChainCacheEntity[]): BalancesCallI
     }, functionInputs);
 }
 
-function getBalanceCheckerContractInterfaceAsync(provider: SupportedProvider): BalanceCheckerContract {
-    return new BalanceCheckerContract(RANDOM_ADDRESS, provider, { gas: BALANCE_CHECKER_GAS_LIMIT });
+/**
+ * Returns the balaceChecker interface given a random address
+ */
+export function getBalanceCheckerContractInterface(
+    contractAddress: string,
+    provider: SupportedProvider,
+): BalanceCheckerContract {
+    return new BalanceCheckerContract(contractAddress, provider, { gas: BALANCE_CHECKER_GAS_LIMIT });
 }
 
 async function getErc20BalancesAsync(
     balanceCheckerContractInterface: BalanceCheckerContract,
     balancesCallInput: BalancesCallInput,
+    // HACK: allow for testing on ganache without override
+    codeOverride: boolean,
 ): Promise<string[]> {
     // due to gas contraints limit the call to 1K balance checks
     const addressesChunkedArray = _.chunk(balancesCallInput.addresses, MAX_BALANCE_CHECKS_PER_CALL);
@@ -164,16 +185,18 @@ async function getErc20BalancesAsync(
 
     const balances = await Promise.all(
         _.zip(addressesChunkedArray, tokensChunkedArray).map(async ([addressesChunk, tokensChunk]) => {
-            return balanceCheckerContractInterface.balances(addressesChunk!, tokensChunk!).callAsync(
-                {
-                    overrides: {
-                        [RANDOM_ADDRESS]: {
-                            code: balanceCheckerByteCode,
-                        },
-                    },
-                },
-                BlockParamLiteral.Latest,
-            );
+            return !codeOverride
+                ? balanceCheckerContractInterface.balances(addressesChunk!, tokensChunk!).callAsync()
+                : balanceCheckerContractInterface.balances(addressesChunk!, tokensChunk!).callAsync(
+                      {
+                          overrides: {
+                              [RANDOM_ADDRESS]: {
+                                  code: balanceCheckerByteCode,
+                              },
+                          },
+                      },
+                      BlockParamLiteral.Latest,
+                  );
         }),
     );
 
