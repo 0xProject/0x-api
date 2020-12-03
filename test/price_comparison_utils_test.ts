@@ -630,7 +630,7 @@ describe(SUITE_NAME, () => {
             const price = buyAmount
                 .plus(1e18)
                 .div(sellAmount)
-                .decimalPlaces(18);
+                .decimalPlaces(18, BigNumber.ROUND_FLOOR);
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
                 { sellAmount },
@@ -679,7 +679,7 @@ describe(SUITE_NAME, () => {
             const price = sellAmount
                 .minus(0.004e18)
                 .div(buyAmount)
-                .decimalPlaces(18);
+                .decimalPlaces(18, BigNumber.ROUND_CEIL);
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
                 { buyAmount },
