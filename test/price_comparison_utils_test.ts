@@ -4,6 +4,7 @@
 
 import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
+import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
 import { ZERO } from '../src/constants';
@@ -19,6 +20,7 @@ const sellAmount = new BigNumber('70100000000000000');
 const ethToDaiRate = buyAmount.div(sellAmount).decimalPlaces(18);
 const ethToWethRate = new BigNumber(1);
 const gasPrice = new BigNumber(100000000000); // 100 GWEI
+const estimatedGas = new BigNumber(136000);
 
 const SUITE_NAME = 'priceComparisonUtils';
 
@@ -29,7 +31,7 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                { sellAmount },
+                MarketOperation.Sell,
                 {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: WETH.tokenAddress,
@@ -38,7 +40,9 @@ describe(SUITE_NAME, () => {
                     sellTokenToEthRate: ethToWethRate,
                     buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
+                    estimatedGas,
                     quoteReport: {
+                        sourcesDelivered: [],
                         sourcesConsidered: [
                             {
                                 makerAmount: buyAmount,
@@ -71,29 +75,27 @@ describe(SUITE_NAME, () => {
         it('returns comparison prices for quote reporter sources when quoting buyAmount', () => {
             const price = sellAmount.div(buyAmount).decimalPlaces(18);
 
-            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
-                ChainId.Mainnet,
-                { buyAmount },
-                {
-                    buyTokenAddress: DAI.tokenAddress,
-                    sellTokenAddress: WETH.tokenAddress,
-                    buyAmount,
-                    sellAmount,
-                    sellTokenToEthRate: ethToWethRate,
-                    buyTokenToEthRate: ethToDaiRate,
-                    gasPrice,
-                    quoteReport: {
-                        sourcesConsidered: [
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount,
-                                liquiditySource: ERC20BridgeSource.Uniswap,
-                                fillData: {},
-                            },
-                        ],
-                    },
+            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
+                buyAmount,
+                sellAmount,
+                sellTokenToEthRate: ethToWethRate,
+                buyTokenToEthRate: ethToDaiRate,
+                gasPrice,
+                estimatedGas,
+                quoteReport: {
+                    sourcesDelivered: [],
+                    sourcesConsidered: [
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount,
+                            liquiditySource: ERC20BridgeSource.Uniswap,
+                            fillData: {},
+                        },
+                    ],
                 },
-            );
+            });
 
             expect(comparisons).to.deep.include.members([
                 // Uniswap sample found
@@ -117,7 +119,7 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                { sellAmount },
+                MarketOperation.Sell,
                 {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: WETH.tokenAddress,
@@ -126,7 +128,9 @@ describe(SUITE_NAME, () => {
                     sellTokenToEthRate: ethToWethRate,
                     buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
+                    estimatedGas,
                     quoteReport: {
+                        sourcesDelivered: [],
                         sourcesConsidered: [
                             {
                                 makerAmount: buyAmount,
@@ -165,35 +169,33 @@ describe(SUITE_NAME, () => {
         it('filters out incomplete samples with 0 takerAmount when quoting buyAmount', () => {
             const price = sellAmount.div(buyAmount).decimalPlaces(18);
 
-            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
-                ChainId.Mainnet,
-                { buyAmount },
-                {
-                    buyTokenAddress: DAI.tokenAddress,
-                    sellTokenAddress: WETH.tokenAddress,
-                    buyAmount,
-                    sellAmount,
-                    sellTokenToEthRate: ethToWethRate,
-                    buyTokenToEthRate: ethToDaiRate,
-                    gasPrice,
-                    quoteReport: {
-                        sourcesConsidered: [
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount,
-                                liquiditySource: ERC20BridgeSource.Uniswap,
-                                fillData: {},
-                            },
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: ZERO,
-                                liquiditySource: ERC20BridgeSource.MStable,
-                                fillData: {},
-                            },
-                        ],
-                    },
+            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
+                buyAmount,
+                sellAmount,
+                sellTokenToEthRate: ethToWethRate,
+                buyTokenToEthRate: ethToDaiRate,
+                gasPrice,
+                estimatedGas,
+                quoteReport: {
+                    sourcesDelivered: [],
+                    sourcesConsidered: [
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount,
+                            liquiditySource: ERC20BridgeSource.Uniswap,
+                            fillData: {},
+                        },
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: ZERO,
+                            liquiditySource: ERC20BridgeSource.MStable,
+                            fillData: {},
+                        },
+                    ],
                 },
-            );
+            });
 
             expect(comparisons).to.deep.include.members([
                 // Uniswap sample found
@@ -218,7 +220,7 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                { sellAmount },
+                MarketOperation.Sell,
                 {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: WETH.tokenAddress,
@@ -227,7 +229,9 @@ describe(SUITE_NAME, () => {
                     buyTokenToEthRate: ethToDaiRate,
                     sellAmount,
                     gasPrice,
+                    estimatedGas,
                     quoteReport: {
+                        sourcesDelivered: [],
                         sourcesConsidered: [
                             {
                                 makerAmount: buyAmount,
@@ -259,35 +263,33 @@ describe(SUITE_NAME, () => {
             const lowerSellAmount = sellAmount.minus(0.01e18);
             const lowerSellPrice = lowerSellAmount.div(buyAmount).decimalPlaces(18);
 
-            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
-                ChainId.Mainnet,
-                { buyAmount },
-                {
-                    buyTokenAddress: DAI.tokenAddress,
-                    sellTokenAddress: WETH.tokenAddress,
-                    buyAmount,
-                    sellAmount: lowerSellAmount,
-                    sellTokenToEthRate: ethToWethRate,
-                    buyTokenToEthRate: ethToDaiRate,
-                    gasPrice,
-                    quoteReport: {
-                        sourcesConsidered: [
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount,
-                                liquiditySource: ERC20BridgeSource.Kyber,
-                                fillData: {},
-                            },
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: lowerSellAmount,
-                                liquiditySource: ERC20BridgeSource.Kyber,
-                                fillData: {},
-                            },
-                        ],
-                    },
+            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
+                buyAmount,
+                sellAmount: lowerSellAmount,
+                sellTokenToEthRate: ethToWethRate,
+                buyTokenToEthRate: ethToDaiRate,
+                gasPrice,
+                estimatedGas,
+                quoteReport: {
+                    sourcesDelivered: [],
+                    sourcesConsidered: [
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount,
+                            liquiditySource: ERC20BridgeSource.Kyber,
+                            fillData: {},
+                        },
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: lowerSellAmount,
+                            liquiditySource: ERC20BridgeSource.Kyber,
+                            fillData: {},
+                        },
+                    ],
                 },
-            );
+            });
 
             expect(comparisons).to.deep.include.members([
                 {
@@ -309,7 +311,7 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                { sellAmount: usdcAmount },
+                MarketOperation.Sell,
                 {
                     buyTokenAddress: WETH.tokenAddress,
                     sellTokenAddress: USDC.tokenAddress,
@@ -318,7 +320,9 @@ describe(SUITE_NAME, () => {
                     sellTokenToEthRate: ethToDaiRate,
                     buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
+                    estimatedGas,
                     quoteReport: {
+                        sourcesDelivered: [],
                         sourcesConsidered: [
                             {
                                 makerAmount: wethAmount,
@@ -350,29 +354,27 @@ describe(SUITE_NAME, () => {
                 .times(1e12)
                 .decimalPlaces(6);
 
-            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
-                ChainId.Mainnet,
-                { buyAmount: wethAmount },
-                {
-                    buyTokenAddress: WETH.tokenAddress,
-                    sellTokenAddress: USDC.tokenAddress,
-                    buyAmount: wethAmount,
-                    sellAmount: usdcAmount,
-                    sellTokenToEthRate: ethToDaiRate,
-                    buyTokenToEthRate: ethToDaiRate,
-                    gasPrice,
-                    quoteReport: {
-                        sourcesConsidered: [
-                            {
-                                makerAmount: wethAmount,
-                                takerAmount: usdcAmount,
-                                liquiditySource: ERC20BridgeSource.Uniswap,
-                                fillData: {},
-                            },
-                        ],
-                    },
+            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
+                buyTokenAddress: WETH.tokenAddress,
+                sellTokenAddress: USDC.tokenAddress,
+                buyAmount: wethAmount,
+                sellAmount: usdcAmount,
+                sellTokenToEthRate: ethToDaiRate,
+                buyTokenToEthRate: ethToDaiRate,
+                gasPrice,
+                estimatedGas,
+                quoteReport: {
+                    sourcesDelivered: [],
+                    sourcesConsidered: [
+                        {
+                            makerAmount: wethAmount,
+                            takerAmount: usdcAmount,
+                            liquiditySource: ERC20BridgeSource.Uniswap,
+                            fillData: {},
+                        },
+                    ],
                 },
-            );
+            });
 
             expect(comparisons).to.deep.include.members([
                 // Uniswap sample found
@@ -391,7 +393,7 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                { sellAmount: usdcAmount },
+                MarketOperation.Sell,
                 {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: USDC.tokenAddress,
@@ -400,7 +402,9 @@ describe(SUITE_NAME, () => {
                     sellTokenToEthRate: ethToWethRate,
                     buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
+                    estimatedGas,
                     quoteReport: {
+                        sourcesDelivered: [],
                         sourcesConsidered: [
                             {
                                 makerAmount: daiAmount,
@@ -425,49 +429,47 @@ describe(SUITE_NAME, () => {
 
         it('returns the sample with lowest gas usage for the same output amounts when quoting buyAmount', () => {
             const price = sellAmount.div(buyAmount).decimalPlaces(18);
-            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
-                ChainId.Mainnet,
-                { buyAmount },
-                {
-                    buyTokenAddress: DAI.tokenAddress,
-                    sellTokenAddress: WETH.tokenAddress,
-                    buyAmount,
-                    sellAmount,
-                    sellTokenToEthRate: ethToWethRate,
-                    buyTokenToEthRate: ethToDaiRate,
-                    gasPrice,
-                    quoteReport: {
-                        sourcesConsidered: [
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount,
-                                liquiditySource: ERC20BridgeSource.UniswapV2,
-                                fillData: {
-                                    // Path length > 2 receives a higher gas estimate
-                                    tokenAddressPath: [{}, {}, {}],
-                                },
+            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
+                buyAmount,
+                sellAmount,
+                sellTokenToEthRate: ethToWethRate,
+                buyTokenToEthRate: ethToDaiRate,
+                gasPrice,
+                estimatedGas,
+                quoteReport: {
+                    sourcesDelivered: [],
+                    sourcesConsidered: [
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount,
+                            liquiditySource: ERC20BridgeSource.UniswapV2,
+                            fillData: {
+                                // Path length > 2 receives a higher gas estimate
+                                tokenAddressPath: [{}, {}, {}],
                             },
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount,
-                                liquiditySource: ERC20BridgeSource.UniswapV2,
-                                fillData: {
-                                    tokenAddressPath: [],
-                                },
+                        },
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount,
+                            liquiditySource: ERC20BridgeSource.UniswapV2,
+                            fillData: {
+                                tokenAddressPath: [],
                             },
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount,
-                                liquiditySource: ERC20BridgeSource.UniswapV2,
-                                fillData: {
-                                    // Path length > 2 receives a higher gas estimate
-                                    tokenAddressPath: [{}, {}, {}],
-                                },
+                        },
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount,
+                            liquiditySource: ERC20BridgeSource.UniswapV2,
+                            fillData: {
+                                // Path length > 2 receives a higher gas estimate
+                                tokenAddressPath: [{}, {}, {}],
                             },
-                        ],
-                    },
+                        },
+                    ],
                 },
-            );
+            });
 
             expect(comparisons).to.deep.include.members([
                 {
@@ -483,7 +485,7 @@ describe(SUITE_NAME, () => {
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                { sellAmount },
+                MarketOperation.Sell,
                 {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: WETH.tokenAddress,
@@ -492,7 +494,9 @@ describe(SUITE_NAME, () => {
                     sellTokenToEthRate: ethToWethRate,
                     buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
+                    estimatedGas,
                     quoteReport: {
+                        sourcesDelivered: [],
                         sourcesConsidered: [
                             {
                                 makerAmount: buyAmount,
@@ -538,7 +542,7 @@ describe(SUITE_NAME, () => {
             const price = buyAmount.div(sellAmount).decimalPlaces(18);
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                { sellAmount },
+                MarketOperation.Sell,
                 {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: WETH.tokenAddress,
@@ -547,7 +551,9 @@ describe(SUITE_NAME, () => {
                     sellTokenToEthRate: ethToWethRate,
                     buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
+                    estimatedGas,
                     quoteReport: {
+                        sourcesDelivered: [],
                         sourcesConsidered: [
                             {
                                 makerAmount: buyAmount.plus(1e18), // $1 more received but roughly $1.66 higher gas costs
@@ -582,40 +588,38 @@ describe(SUITE_NAME, () => {
 
         it('returns the overall cheapest sample taking gas into account for buyAmount quotes', () => {
             const price = sellAmount.div(buyAmount).decimalPlaces(18);
-            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
-                ChainId.Mainnet,
-                { buyAmount },
-                {
-                    buyTokenAddress: DAI.tokenAddress,
-                    sellTokenAddress: WETH.tokenAddress,
-                    buyAmount,
-                    sellAmount,
-                    sellTokenToEthRate: ethToWethRate,
-                    buyTokenToEthRate: ethToDaiRate,
-                    gasPrice,
-                    quoteReport: {
-                        sourcesConsidered: [
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount.minus(0.004e18), // Taker needs to sell $1.33 less but $1.66 higher gas costs
-                                liquiditySource: ERC20BridgeSource.UniswapV2,
-                                fillData: {
-                                    // Path length > 2 receives a higher gas estimate
-                                    tokenAddressPath: [{}, {}, {}],
-                                },
+            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
+                buyAmount,
+                sellAmount,
+                sellTokenToEthRate: ethToWethRate,
+                buyTokenToEthRate: ethToDaiRate,
+                gasPrice,
+                estimatedGas,
+                quoteReport: {
+                    sourcesDelivered: [],
+                    sourcesConsidered: [
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount.minus(0.004e18), // Taker needs to sell $1.33 less but $1.66 higher gas costs
+                            liquiditySource: ERC20BridgeSource.UniswapV2,
+                            fillData: {
+                                // Path length > 2 receives a higher gas estimate
+                                tokenAddressPath: [{}, {}, {}],
                             },
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount,
-                                liquiditySource: ERC20BridgeSource.UniswapV2,
-                                fillData: {
-                                    tokenAddressPath: [],
-                                },
+                        },
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount,
+                            liquiditySource: ERC20BridgeSource.UniswapV2,
+                            fillData: {
+                                tokenAddressPath: [],
                             },
-                        ],
-                    },
+                        },
+                    ],
                 },
-            );
+            });
 
             expect(comparisons).to.deep.include.members([
                 {
@@ -633,7 +637,7 @@ describe(SUITE_NAME, () => {
                 .decimalPlaces(18, BigNumber.ROUND_FLOOR);
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
                 ChainId.Mainnet,
-                { sellAmount },
+                MarketOperation.Sell,
                 {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: WETH.tokenAddress,
@@ -642,7 +646,9 @@ describe(SUITE_NAME, () => {
                     sellTokenToEthRate: ethToWethRate,
                     buyTokenToEthRate: ZERO,
                     gasPrice,
+                    estimatedGas,
                     quoteReport: {
+                        sourcesDelivered: [],
                         sourcesConsidered: [
                             {
                                 makerAmount: buyAmount.plus(1e18), // $1 more received but roughly $1.66 higher gas costs
@@ -680,40 +686,38 @@ describe(SUITE_NAME, () => {
                 .minus(0.004e18)
                 .div(buyAmount)
                 .decimalPlaces(18, BigNumber.ROUND_CEIL);
-            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(
-                ChainId.Mainnet,
-                { buyAmount },
-                {
-                    buyTokenAddress: DAI.tokenAddress,
-                    sellTokenAddress: WETH.tokenAddress,
-                    buyAmount,
-                    sellAmount,
-                    sellTokenToEthRate: ZERO,
-                    buyTokenToEthRate: ethToDaiRate,
-                    gasPrice,
-                    quoteReport: {
-                        sourcesConsidered: [
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount.minus(0.004e18), // Taker needs to sell $1.33 less but $1.66 higher gas costs
-                                liquiditySource: ERC20BridgeSource.UniswapV2,
-                                fillData: {
-                                    // Path length > 2 receives a higher gas estimate
-                                    tokenAddressPath: [{}, {}, {}],
-                                },
+            const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
+                buyAmount,
+                sellAmount,
+                sellTokenToEthRate: ZERO,
+                buyTokenToEthRate: ethToDaiRate,
+                gasPrice,
+                estimatedGas,
+                quoteReport: {
+                    sourcesDelivered: [],
+                    sourcesConsidered: [
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount.minus(0.004e18), // Taker needs to sell $1.33 less but $1.66 higher gas costs
+                            liquiditySource: ERC20BridgeSource.UniswapV2,
+                            fillData: {
+                                // Path length > 2 receives a higher gas estimate
+                                tokenAddressPath: [{}, {}, {}],
                             },
-                            {
-                                makerAmount: buyAmount,
-                                takerAmount: sellAmount,
-                                liquiditySource: ERC20BridgeSource.UniswapV2,
-                                fillData: {
-                                    tokenAddressPath: [],
-                                },
+                        },
+                        {
+                            makerAmount: buyAmount,
+                            takerAmount: sellAmount,
+                            liquiditySource: ERC20BridgeSource.UniswapV2,
+                            fillData: {
+                                tokenAddressPath: [],
                             },
-                        ],
-                    },
+                        },
+                    ],
                 },
-            );
+            });
 
             expect(comparisons).to.deep.include.members([
                 {
