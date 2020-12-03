@@ -54,7 +54,6 @@ import {
     GetTokenPricesResponse,
     PercentageFee,
     SwapQuoteResponsePartialTransaction,
-    SwapQuoteResponsePrice,
     TokenMetadata,
     TokenMetadataOptionalSymbol,
 } from '../types';
@@ -77,7 +76,7 @@ export class SwapService {
         sellTokenDecimals: number,
         swapQuote: SwapQuote,
         affiliateFee: PercentageFee,
-    ): SwapQuoteResponsePrice {
+    ): { price: BigNumber; guaranteedPrice: BigNumber } {
         const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
         const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
         const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
