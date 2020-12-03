@@ -382,33 +382,35 @@ export interface AffiliateFeeAmounts {
     buyTokenFeeAmount: BigNumber;
 }
 
-export interface SwapQuoteResponsePartialTransaction {
-    to: string;
-    data: string;
-    value: BigNumber;
-    decodedUniqueId: string;
-}
+/**
+ * Begin request and response types related to quotes
+ */
 
-export interface SwapQuoteResponsePrice {
+// Shared common types
+interface QuoteBase {
     price: BigNumber;
-    guaranteedPrice: BigNumber;
-}
-
-export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, SwapQuoteResponsePrice {
-    gasPrice: BigNumber;
-    protocolFee: BigNumber;
-    minimumProtocolFee: BigNumber;
-    orders: SignedOrder[];
     buyAmount: BigNumber;
     sellAmount: BigNumber;
-    buyTokenAddress: string;
-    sellTokenAddress: string;
     sources: GetSwapQuoteResponseLiquiditySource[];
-    from?: string;
-    gas: BigNumber;
+    gasPrice: BigNumber;
     estimatedGas: BigNumber;
+    protocolFee: BigNumber;
+    minimumProtocolFee: BigNumber;
     allowanceTarget?: string;
-    quoteReport?: QuoteReport;
+}
+
+export interface GetSwapQuoteResponseLiquiditySource {
+    name: string;
+    proportion: BigNumber;
+    intermediateToken?: string;
+    hops?: string[];
+}
+
+interface BasePriceResponse extends QuoteBase {
+    sellTokenAddress: string;
+    buyTokenAddress: string;
+    value: BigNumber;
+    gas: BigNumber;
     priceComparisons?: (SourceComparison | RenamedNativeSourceComparison)[];
 }
 
@@ -424,82 +426,28 @@ export interface SourceComparison {
     gas: BigNumber | null;
 }
 
-export interface Price {
-    symbol: string;
-    price: BigNumber;
-}
-
-interface BasePriceResponse {
-    price: BigNumber;
-    buyAmount: BigNumber;
-    sellAmount: BigNumber;
-    sellTokenAddress: string;
-    buyTokenAddress: string;
-    sources: GetSwapQuoteResponseLiquiditySource[];
-    value: BigNumber;
-    gasPrice: BigNumber;
-    gas: BigNumber;
-    estimatedGas: BigNumber;
-    protocolFee: BigNumber;
-    minimumProtocolFee: BigNumber;
-    allowanceTarget?: string;
-    priceComparisons?: (SourceComparison | RenamedNativeSourceComparison)[];
-}
-
-export interface GetSwapPriceResponse extends BasePriceResponse {}
-
-export type GetTokenPricesResponse = Price[];
-
-export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
-    mtxHash: string;
-    mtx: ExchangeProxyMetaTransaction;
-    orders: SignedOrder[];
-}
-
-export interface GetMetaTransactionPriceResponse extends BasePriceResponse {}
-
-export interface GetMetaTransactionStatusResponse {
-    refHash: string;
-    hash?: string;
-    status: string;
-    gasPrice?: BigNumber;
-    updatedAt?: Date;
-    blockNumber?: number;
-    expectedMinedInSec?: number;
-    ethereumTxStatus?: number;
-}
-
-// takerAddress, sellAmount, buyAmount, swapQuote, price
-export interface CalculateMetaTransactionQuoteResponse {
-    price: BigNumber;
-    buyAmount: BigNumber | undefined;
-    sellAmount: BigNumber | undefined;
-    takerAddress: string;
-    sources: GetSwapQuoteResponseLiquiditySource[];
-    gasPrice: BigNumber;
-    protocolFee: BigNumber;
-    minimumProtocolFee: BigNumber;
-    estimatedGas: BigNumber;
-    quoteReport?: QuoteReport;
-    orders: SignedOrder[];
-    callData: string;
-    allowanceTarget?: string;
-}
-
-export interface PostTransactionResponse {
-    txHash: string;
-    mtxHash: string;
-}
-
 export interface PercentageFee {
     recipient: string;
     sellTokenPercentageFee: number;
     buyTokenPercentageFee: number;
 }
-export type ZeroExTransactionWithoutDomain = Omit<ZeroExTransaction, 'domain'>;
 
-export type ExchangeProxyMetaTransactionWithoutDomain = Omit<ExchangeProxyMetaTransaction, 'domain'>;
+// GET /swap/quote
+export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, BasePriceResponse {
+    guaranteedPrice: BigNumber;
+    orders: SignedOrder[];
+    from?: string;
+    quoteReport?: QuoteReport;
+}
 
+export interface SwapQuoteResponsePartialTransaction {
+    to: string;
+    data: string;
+    decodedUniqueId: string;
+    value: BigNumber;
+}
+
+// Request params
 export interface GetSwapQuoteRequestParams {
     sellToken: string;
     buyToken: string;
@@ -518,6 +466,39 @@ export interface GetSwapQuoteRequestParams {
     includePriceComparisons: boolean;
 }
 
+// GET /swap/price
+export interface GetSwapPriceResponse extends BasePriceResponse {}
+
+// GET /swap/prices
+export type GetTokenPricesResponse = Price[];
+export interface Price {
+    symbol: string;
+    price: BigNumber;
+}
+
+// GET /meta_transaction/quote
+export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
+    mtxHash: string;
+    mtx: ExchangeProxyMetaTransaction;
+    orders: SignedOrder[];
+}
+
+// GET /meta_transaction/price
+export interface GetMetaTransactionPriceResponse extends BasePriceResponse {}
+
+// GET /meta_transaction/status/:txhash
+export interface GetMetaTransactionStatusResponse {
+    refHash: string;
+    hash?: string;
+    status: string;
+    gasPrice?: BigNumber;
+    updatedAt?: Date;
+    blockNumber?: number;
+    expectedMinedInSec?: number;
+    ethereumTxStatus?: number;
+}
+
+// Request params
 export interface GetTransactionRequestParams {
     takerAddress: string;
     sellTokenAddress: string;
@@ -532,7 +513,18 @@ export interface GetTransactionRequestParams {
     affiliateAddress?: string;
 }
 
-export interface CalculateSwapQuoteParams {
+// POST /meta_transaction/submit
+export interface PostTransactionResponse {
+    txHash: string;
+    mtxHash: string;
+}
+
+// Interim types
+export type ZeroExTransactionWithoutDomain = Omit<ZeroExTransaction, 'domain'>;
+
+export type ExchangeProxyMetaTransactionWithoutDomain = Omit<ExchangeProxyMetaTransaction, 'domain'>;
+
+interface CalculateQuoteParamsBase {
     buyTokenAddress: string;
     sellTokenAddress: string;
     buyAmount: BigNumber | undefined;
@@ -540,47 +532,40 @@ export interface CalculateSwapQuoteParams {
     from: string | undefined;
     isETHSell: boolean;
     isETHBuy: boolean;
-    isMetaTransaction: boolean;
     slippagePercentage?: number;
-    gasPrice?: BigNumber;
     excludedSources: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
     apiKey?: string;
-    rfqt?: Partial<RfqtRequestOpts>;
-    skipValidation: boolean;
     affiliateFee: PercentageFee;
     includePriceComparisons: boolean;
 }
 
-export interface GetSwapQuoteResponseLiquiditySource {
-    name: string;
-    proportion: BigNumber;
-    intermediateToken?: string;
-    hops?: string[];
+export interface CalculateSwapQuoteParams extends CalculateQuoteParamsBase {
+    isMetaTransaction: boolean;
+    gasPrice?: BigNumber;
+    rfqt?: Partial<RfqtRequestOpts>;
+    skipValidation: boolean;
 }
+
+export interface CalculateMetaTransactionQuoteResponse extends QuoteBase {
+    takerAddress: string;
+    quoteReport?: QuoteReport;
+    orders: SignedOrder[];
+    callData: string;
+}
+
+export interface CalculateMetaTransactionQuoteParams extends CalculateQuoteParamsBase {
+    takerAddress: string;
+}
+
+/**
+ * End quote-related tyoes
+ */
 
 export interface PinResult {
     pin: SignedOrder[];
     doNotPin: SignedOrder[];
-}
-
-export interface CalculateMetaTransactionQuoteParams {
-    takerAddress: string;
-    buyTokenAddress: string;
-    sellTokenAddress: string;
-    buyAmount: BigNumber | undefined;
-    sellAmount: BigNumber | undefined;
-    isETHSell: boolean;
-    isETHBuy: boolean;
-    from: string | undefined;
-    slippagePercentage?: number;
-    excludedSources: ERC20BridgeSource[];
-    includedSources?: ERC20BridgeSource[];
-    apiKey: string | undefined;
-    includePriceComparisons: boolean;
-    affiliateFee: PercentageFee;
-    affiliateAddress: string | undefined;
 }
 
 export enum TransactionStates {
