@@ -93,7 +93,7 @@ describe(SUITE_NAME, () => {
 
     describe('runRfqBalanceCheckerAsync', () => {
         it('correctly updates maker addresses', async () => {
-            await cacheRfqBalancesAsync(dbConnection, balanceCheckerContract, false);
+            await cacheRfqBalancesAsync(dbConnection, balanceCheckerContract, false, '');
 
             const maker1 = await dbConnection
                 .getRepository(MakerBalanceChainCacheEntity)

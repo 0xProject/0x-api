@@ -38,11 +38,13 @@ const LATEST_BLOCK_PROCESSED_GAUGE = new Gauge({
 const MAKER_BALANCE_CACHE_RESULT_COUNT = new Gauge({
     name: 'maker_balance_cache_result_count',
     help: 'Records the number of records being returned by the DB',
+    labelNames: ['workerId'],
 });
 
 const MAKER_BALANCE_CACHE_RETRIEVAL_TIME = new Gauge({
     name: 'maker_balance_cache_retrieval_time',
     help: 'Records the amount of time needed to grab records',
+    labelNames: ['workerId'],
 });
 
 process.on('uncaughtException', err => {
@@ -95,7 +97,7 @@ async function runRfqBalanceCacheAsync(
                 'Found new block',
             );
 
-            await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true);
+            await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true, workerId);
 
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
         } else {
@@ -111,8 +113,9 @@ export async function cacheRfqBalancesAsync(
     connection: Connection,
     balanceCheckerContractInterface: BalanceCheckerContract,
     codeOverride: boolean,
+    workerId: string,
 ): Promise<void> {
-    const makerTokens = await getMakerTokensAsync(connection);
+    const makerTokens = await getMakerTokensAsync(connection, workerId);
     const balancesCallInput = splitValues(makerTokens);
 
     const updateTime = new Date();
@@ -124,7 +127,7 @@ export async function cacheRfqBalancesAsync(
 // NOTE: this only returns a partial entity class, just token address and maker address
 // Cache the query results to reduce reads from the DB
 let MAKER_TOKEN_CACHE: ResultCache<MakerBalanceChainCacheEntity[]>;
-async function getMakerTokensAsync(connection: Connection): Promise<MakerBalanceChainCacheEntity[]> {
+async function getMakerTokensAsync(connection: Connection, workerId: string): Promise<MakerBalanceChainCacheEntity[]> {
     const start = new Date().getTime();
 
     if (!MAKER_TOKEN_CACHE) {
@@ -140,8 +143,8 @@ async function getMakerTokensAsync(connection: Connection): Promise<MakerBalance
     }
     const results = (await MAKER_TOKEN_CACHE.getResultAsync()).result;
 
-    MAKER_BALANCE_CACHE_RESULT_COUNT.set(results.length);
-    MAKER_BALANCE_CACHE_RETRIEVAL_TIME.set(new Date().getTime() - start);
+    MAKER_BALANCE_CACHE_RESULT_COUNT.labels(workerId).set(results.length);
+    MAKER_BALANCE_CACHE_RETRIEVAL_TIME.labels(workerId).set(new Date().getTime() - start);
 
     return results;
 }
@@ -181,19 +184,16 @@ async function getErc20BalancesAsync(
 
     const balances = await Promise.all(
         _.zip(addressesChunkedArray, tokensChunkedArray).map(async ([addressesChunk, tokensChunk]) => {
-            return !codeOverride
-                ? balanceCheckerContractInterface.balances(addressesChunk!, tokensChunk!).callAsync()
-                : balanceCheckerContractInterface.balances(addressesChunk!, tokensChunk!).callAsync(
-                      {
-                          overrides: {
-                              [RANDOM_ADDRESS]: {
-                                  code: balanceCheckerByteCode,
-                              },
-                          },
-                      },
-                      BlockParamLiteral.Latest,
-                  );
-        }),
+            const txOpts = codeOverride ? {
+                overrides: {
+                    [RANDOM_ADDRESS]: {
+                        code: balanceCheckerByteCode,
+                    },
+                },
+            } : {};
+
+            return balanceCheckerContractInterface.balances(addressesChunk!, tokensChunk!).callAsync(txOpts, BlockParamLiteral.Latest);
+        })
     );
 
     const balancesFlattened = Array.prototype.concat.apply([], balances);
