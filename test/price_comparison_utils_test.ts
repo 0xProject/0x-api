@@ -35,8 +35,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -79,8 +79,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -123,8 +123,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -173,8 +173,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -223,8 +223,8 @@ describe(SUITE_NAME, () => {
                     buyTokenAddress: DAI.tokenAddress,
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount: higherBuyAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     sellAmount,
                     gasPrice,
                     quoteReport: {
@@ -267,8 +267,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount: lowerSellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -311,8 +311,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: USDC.tokenAddress,
                     buyAmount: daiAmount,
                     sellAmount: usdcAmount,
-                    ethToSellTokenRate: ethToDaiRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToDaiRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -350,8 +350,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: USDC.tokenAddress,
                     buyAmount: daiAmount,
                     sellAmount: usdcAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -386,8 +386,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -442,8 +442,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -497,8 +497,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -543,8 +543,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -579,7 +579,7 @@ describe(SUITE_NAME, () => {
             ]);
         });
 
-        it('ignores gas cost when ethToBuyTokenRate is 0 for sellAmount quotes', () => {
+        it('ignores gas cost when buyTokenToEthRate is 0 for sellAmount quotes', () => {
             const price = buyAmount
                 .plus(1e18)
                 .div(sellAmount)
@@ -592,8 +592,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ethToWethRate,
-                    ethToBuyTokenRate: ZERO,
+                    sellTokenToEthRate: ethToWethRate,
+                    buyTokenToEthRate: ZERO,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [
@@ -628,7 +628,7 @@ describe(SUITE_NAME, () => {
             ]);
         });
 
-        it('ignores gas cost when ethToSellTokenRate is 0 for buyAmount quotes', () => {
+        it('ignores gas cost when sellTokenToEthRate is 0 for buyAmount quotes', () => {
             const price = sellAmount
                 .minus(0.004e18)
                 .div(buyAmount)
@@ -641,8 +641,8 @@ describe(SUITE_NAME, () => {
                     sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
-                    ethToSellTokenRate: ZERO,
-                    ethToBuyTokenRate: ethToDaiRate,
+                    sellTokenToEthRate: ZERO,
+                    buyTokenToEthRate: ethToDaiRate,
                     gasPrice,
                     quoteReport: {
                         sourcesConsidered: [

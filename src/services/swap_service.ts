@@ -260,7 +260,7 @@ export class SwapService {
 
         const allowanceTarget = isETHSell ? NULL_ADDRESS : erc20AllowanceTarget;
 
-        const { ethToTakerAssetRate, ethToMakerAssetRate } = swapQuote;
+        const { takerAssetToEthRate, makerAssetToEthRate } = swapQuote;
 
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
@@ -283,8 +283,8 @@ export class SwapService {
             orders: serviceUtils.cleanSignedOrderFields(orders),
             allowanceTarget,
             decodedUniqueId,
-            ethToSellTokenRate: ethToTakerAssetRate,
-            ethToBuyTokenRate: ethToMakerAssetRate,
+            sellTokenToEthRate: takerAssetToEthRate,
+            buyTokenToEthRate: makerAssetToEthRate,
             quoteReport,
         };
         return apiSwapQuote;
@@ -475,8 +475,8 @@ export class SwapService {
             sellAmount: amount,
             sources: [],
             orders: [],
-            ethToSellTokenRate: new BigNumber(1),
-            ethToBuyTokenRate: new BigNumber(1),
+            sellTokenToEthRate: new BigNumber(1),
+            buyTokenToEthRate: new BigNumber(1),
             allowanceTarget: NULL_ADDRESS,
         };
         return apiSwapQuote;

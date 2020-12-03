@@ -407,8 +407,8 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     from?: string;
     gas: BigNumber;
     estimatedGas: BigNumber;
-    ethToSellTokenRate: BigNumber;
-    ethToBuyTokenRate: BigNumber;
+    sellTokenToEthRate: BigNumber;
+    buyTokenToEthRate: BigNumber;
     allowanceTarget?: string;
     quoteReport?: QuoteReport;
     priceComparisons?: (SourceComparison | RenamedNativeSourceComparison)[];
@@ -444,8 +444,8 @@ interface BasePriceResponse {
     estimatedGas: BigNumber;
     protocolFee: BigNumber;
     minimumProtocolFee: BigNumber;
-    ethToSellTokenRate: BigNumber;
-    ethToBuyTokenRate: BigNumber;
+    sellTokenToEthRate: BigNumber;
+    buyTokenToEthRate: BigNumber;
     allowanceTarget?: string;
     priceComparisons?: (SourceComparison | RenamedNativeSourceComparison)[];
 }
@@ -487,8 +487,8 @@ export interface CalculateMetaTransactionQuoteResponse {
     quoteReport?: QuoteReport;
     orders: SignedOrder[];
     callData: string;
-    ethToSellTokenRate: BigNumber;
-    ethToBuyTokenRate: BigNumber;
+    sellTokenToEthRate: BigNumber;
+    buyTokenToEthRate: BigNumber;
     allowanceTarget?: string;
 }
 

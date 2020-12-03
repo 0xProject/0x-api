@@ -128,6 +128,6 @@ export const randomSellQuote: SwapQuote = {
     takerTokenDecimals: 18,
     unoptimizedOrders: orders,
     unoptimizedQuoteInfo: bestCaseQuoteInfo,
-    ethToTakerAssetRate: new BigNumber(0),
-    ethToMakerAssetRate: new BigNumber(0),
+    takerAssetToEthRate: new BigNumber(0),
+    makerAssetToEthRate: new BigNumber(0),
 };

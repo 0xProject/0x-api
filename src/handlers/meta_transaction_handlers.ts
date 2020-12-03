@@ -228,7 +228,7 @@ export class MetaTransactionHandlers {
                 });
             }
 
-            const { ethToSellTokenRate, ethToBuyTokenRate } = metaTransactionPrice;
+            const { sellTokenToEthRate, buyTokenToEthRate } = metaTransactionPrice;
 
             const metaTransactionPriceResponse: GetMetaTransactionPriceResponse = {
                 price: metaTransactionPrice.price,
@@ -244,8 +244,8 @@ export class MetaTransactionHandlers {
                 protocolFee: metaTransactionPrice.protocolFee,
                 minimumProtocolFee: metaTransactionPrice.minimumProtocolFee,
                 allowanceTarget: metaTransactionPrice.allowanceTarget,
-                ethToSellTokenRate,
-                ethToBuyTokenRate,
+                sellTokenToEthRate,
+                buyTokenToEthRate,
                 priceComparisons: priceComparisons
                     ? priceComparisons.map(pc => ({
                           ...pc,
