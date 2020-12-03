@@ -184,16 +184,20 @@ async function getErc20BalancesAsync(
 
     const balances = await Promise.all(
         _.zip(addressesChunkedArray, tokensChunkedArray).map(async ([addressesChunk, tokensChunk]) => {
-            const txOpts = codeOverride ? {
-                overrides: {
-                    [RANDOM_ADDRESS]: {
-                        code: balanceCheckerByteCode,
-                    },
-                },
-            } : {};
+            const txOpts = codeOverride
+                ? {
+                      overrides: {
+                          [RANDOM_ADDRESS]: {
+                              code: balanceCheckerByteCode,
+                          },
+                      },
+                  }
+                : {};
 
-            return balanceCheckerContractInterface.balances(addressesChunk!, tokensChunk!).callAsync(txOpts, BlockParamLiteral.Latest);
-        })
+            return balanceCheckerContractInterface
+                .balances(addressesChunk!, tokensChunk!)
+                .callAsync(txOpts, BlockParamLiteral.Latest);
+        }),
     );
 
     const balancesFlattened = Array.prototype.concat.apply([], balances);
