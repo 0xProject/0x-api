@@ -115,12 +115,8 @@ export async function cacheRfqBalancesAsync(
     const makerTokens = await getMakerTokensAsync(connection);
     const balancesCallInput = splitValues(makerTokens);
 
-    logUtils.log(balancesCallInput);
-
     const updateTime = new Date();
     const erc20Balances = await getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput, codeOverride);
-
-    logUtils.log(erc20Balances);
 
     await updateErc20BalancesAsync(balancesCallInput, erc20Balances, connection, updateTime);
 }

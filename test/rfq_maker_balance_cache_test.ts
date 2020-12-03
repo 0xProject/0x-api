@@ -58,7 +58,7 @@ describe(SUITE_NAME, () => {
         );
 
         await zrx.mint(new BigNumber(100)).awaitTransactionSuccessAsync({ from: makerAddress1 });
-        await zrx.mint(new BigNumber(100)).awaitTransactionSuccessAsync({ from: makerAddress2 });
+        await zrx.mint(new BigNumber(150)).awaitTransactionSuccessAsync({ from: makerAddress2 });
 
         balanceCheckerContract = await BalanceCheckerContract.deployFrom0xArtifactAsync(
             artifacts.BalanceChecker,
@@ -114,7 +114,7 @@ describe(SUITE_NAME, () => {
                 .getOne();
 
             expect(maker1!.balance).to.be.deep.equal(new BigNumber(100));
-            expect(maker2!.balance).to.be.deep.equal(new BigNumber(100));
+            expect(maker2!.balance).to.be.deep.equal(new BigNumber(150));
         });
     });
 });
