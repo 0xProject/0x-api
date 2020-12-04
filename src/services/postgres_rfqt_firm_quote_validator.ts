@@ -1,5 +1,7 @@
 import { BigNumber, RfqtFirmQuoteValidator, SignedOrder } from '@0x/asset-swapper';
 import { assetDataUtils, ERC20AssetData } from '@0x/order-utils';
+import * as _ from 'lodash';
+import { Counter, Gauge } from 'prom-client';
 import { In } from 'typeorm';
 import { Repository } from 'typeorm/repository/Repository';
 
@@ -8,59 +10,46 @@ import { MakerBalanceChainCacheEntity } from '../entities/MakerBalanceChainCache
 import { logger } from '../logger';
 
 const THRESHOLD_CACHE_EXPIRED_MS = ONE_MINUTE_MS * 2;
+const ORDER_FULLY_FILLABLE = new Counter({
+    name: 'rfqtv_validator_order_fully_fillable',
+    help: 'Number of orders validated to be fully fillable',
+    labelNames: ['workerId'],
+});
+const ORDER_PARTIALLY_FILLABLE = new Counter({
+    name: 'rfqtv_validator_order_partially_fillable',
+    help: 'Number of orders validated to be partially fillable',
+    labelNames: ['workerId'],
+});
+const ORDER_NOT_FILLABLE = new Counter({
+    name: 'rfqtv_validator_order_not_fillable',
+    help: 'Number of orders validated to be not fillable',
+    labelNames: ['workerId'],
+});
+const CACHE_CHECKED = new Counter({
+    name: 'rfqtv_validator_cache_checked',
+    help: 'Number of times we checked cache',
+    labelNames: ['workerId'],
+});
+const CACHE_EXPIRED = new Counter({
+    name: 'rfqtv_validator_cache_expired',
+    help: 'Number of times the cache was expired',
+    labelNames: ['workerId'],
+});
+const NEW_ADDRESSES_SEEN = new Counter({
+    name: 'rfqtv_new_addresses_seen',
+    help: 'New addresses were added to the cache',
+    labelNames: ['workerId'],
+});
+const PG_LATENCY_READ = new Gauge({
+    name: 'rfqtv_pg_latency',
+    help: 'Query latency',
+    labelNames: ['workerId'],
+});
 
 export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
     private readonly _chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
     private readonly _cacheExpiryThresholdMs: number;
-
-    private static _calculateTakerFillableAmountsFromQuotes(
-        quotes: SignedOrder[],
-        makerLookup: { [key: string]: BigNumber },
-    ): { makerAddressesToAddToCache: string[]; takerFillableAmounts: BigNumber[] } {
-        const makerAddressesToAddToCacheSet: Set<string> = new Set();
-        const takerFillableAmounts = quotes.map(quote => {
-            const makerTokenBalanceForMaker: BigNumber | undefined = makerLookup[quote.makerAddress];
-
-            // TODO: Add Prometheus hooks
-            if (makerTokenBalanceForMaker === undefined) {
-                makerAddressesToAddToCacheSet.add(quote.makerAddress);
-                return quote.takerAssetAmount;
-            }
-
-            // Order is fully fillable, because Maker has 100% of the assets
-            if (makerTokenBalanceForMaker.gte(quote.makerAssetAmount)) {
-                return quote.takerAssetAmount;
-            }
-
-            // Order is empty, return zero
-            if (quote.makerAssetAmount.lte(0)) {
-                return ZERO;
-            }
-
-            // Order is partially fillable, because Maker has a fraction of the assets
-            const partialFillableAmount = makerTokenBalanceForMaker
-                .times(quote.takerAssetAmount)
-                .div(quote.makerAssetAmount)
-                .integerValue(BigNumber.ROUND_DOWN);
-            logger.warn(
-                `Maker ${
-                    quote.makerAddress
-                } balance is ${makerTokenBalanceForMaker.toString()} and can only partially cover order size ${quote.makerAssetAmount.toString()}. takerAssetAmount was reduced from ${quote.takerAssetAmount.toString()} to ${partialFillableAmount.toString()}`,
-            );
-            if (!partialFillableAmount.isFinite()) {
-                logger.error(
-                    `Calculated maker token balance is infinite, which caused the partialFillableAmount to be infinite. This should never happen`,
-                );
-                return ZERO;
-            }
-            return partialFillableAmount;
-        });
-        const makerAddressesToAddToCache = Array.from(makerAddressesToAddToCacheSet);
-        return {
-            makerAddressesToAddToCache,
-            takerFillableAmounts,
-        };
-    }
+    private readonly _workerId: string;
 
     constructor(
         chainCacheRepository: Repository<MakerBalanceChainCacheEntity>,
@@ -68,6 +57,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
     ) {
         this._chainCacheRepository = chainCacheRepository;
         this._cacheExpiryThresholdMs = cacheExpiryThresholdMs;
+        this._workerId = _.uniqueId('rfqw_');
     }
 
     // tslint:disable-next-line: prefer-function-over-method
@@ -95,6 +85,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
         // the set to an array so that it can work with TypeORM.
         const makerLookup: { [key: string]: BigNumber } = {};
         const makerAddresses = Array.from(new Set(quotes.map(quote => quote.makerAddress)));
+        const timeStart = new Date().getTime();
         const cacheResults = await this._chainCacheRepository.find({
             where: [
                 {
@@ -103,6 +94,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
                 },
             ],
         });
+        PG_LATENCY_READ.labels(this._workerId).set(new Date().getTime() - timeStart);
         const nowUnix = new Date().getTime();
         for (const result of cacheResults) {
             makerLookup[result.makerAddress!] = this._calculateMakerBalanceFromResult(
@@ -113,10 +105,10 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
         }
 
         // Finally, adjust takerFillableAmount based on maker balances
-        const {
-            makerAddressesToAddToCache,
-            takerFillableAmounts,
-        } = PostgresRfqtFirmQuoteValidator._calculateTakerFillableAmountsFromQuotes(quotes, makerLookup);
+        const { makerAddressesToAddToCache, takerFillableAmounts } = this._calculateTakerFillableAmountsFromQuotes(
+            quotes,
+            makerLookup,
+        );
 
         // If any new addresses were found, add new addresses to cache.
         // NOTE: since this insertion happens on the web processes, we need to gracefully handle conflict
@@ -124,6 +116,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
         // the "ON CONFLICT" clause.
         if (makerAddressesToAddToCache.length > 0) {
             logger.info(`Adding new addresses to cache: ${JSON.stringify(makerAddressesToAddToCache)}`);
+            NEW_ADDRESSES_SEEN.labels(this._workerId).inc(makerAddressesToAddToCache.length);
             await this._chainCacheRepository
                 .createQueryBuilder()
                 .insert()
@@ -142,11 +135,65 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
         return takerFillableAmounts;
     }
 
+    private _calculateTakerFillableAmountsFromQuotes(
+        quotes: SignedOrder[],
+        makerLookup: { [key: string]: BigNumber },
+    ): { makerAddressesToAddToCache: string[]; takerFillableAmounts: BigNumber[] } {
+        const makerAddressesToAddToCacheSet: Set<string> = new Set();
+        const takerFillableAmounts = quotes.map(quote => {
+            const makerTokenBalanceForMaker: BigNumber | undefined = makerLookup[quote.makerAddress];
+
+            // TODO: Add Prometheus hooks
+            if (makerTokenBalanceForMaker === undefined) {
+                makerAddressesToAddToCacheSet.add(quote.makerAddress);
+                ORDER_FULLY_FILLABLE.labels(this._workerId);
+                return quote.takerAssetAmount;
+            }
+
+            // Order is fully fillable, because Maker has 100% of the assets
+            if (makerTokenBalanceForMaker.gte(quote.makerAssetAmount)) {
+                ORDER_FULLY_FILLABLE.labels(this._workerId);
+                return quote.takerAssetAmount;
+            }
+
+            // Order is empty, return zero
+            if (quote.makerAssetAmount.lte(0)) {
+                ORDER_NOT_FILLABLE.labels(this._workerId).inc();
+                return ZERO;
+            }
+
+            // Order is partially fillable, because Maker has a fraction of the assets
+            const partialFillableAmount = makerTokenBalanceForMaker
+                .times(quote.takerAssetAmount)
+                .div(quote.makerAssetAmount)
+                .integerValue(BigNumber.ROUND_DOWN);
+            logger.warn(
+                `Maker ${
+                    quote.makerAddress
+                } balance is ${makerTokenBalanceForMaker.toString()} and can only partially cover order size ${quote.makerAssetAmount.toString()}. takerAssetAmount was reduced from ${quote.takerAssetAmount.toString()} to ${partialFillableAmount.toString()}`,
+            );
+            if (!partialFillableAmount.isFinite()) {
+                logger.error(
+                    `Calculated maker token balance is infinite, which caused the partialFillableAmount to be infinite. This should never happen`,
+                );
+                return ZERO;
+            }
+            ORDER_PARTIALLY_FILLABLE.labels(this._workerId).inc();
+            return partialFillableAmount;
+        });
+        const makerAddressesToAddToCache = Array.from(makerAddressesToAddToCacheSet);
+        return {
+            makerAddressesToAddToCache,
+            takerFillableAmounts,
+        };
+    }
+
     private _calculateMakerBalanceFromResult(
         result: MakerBalanceChainCacheEntity,
         makerTokenAddress: string,
         nowUnix: number,
     ): BigNumber {
+        CACHE_CHECKED.labels(this._workerId).inc();
         if (!result.timeOfSample) {
             // If a record exists but a time of sample does not yet exist, this means that the cache entry has not yet been
             // populated by the worker process. This may be due to a new address being added a few minutes ago, but it could
@@ -157,6 +204,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
                 logger.error(
                     `Cache entry for maker ${result.makerAddress} and token ${result.tokenAddress} was first added on ${timeFirstSeen} which is more than ${this._cacheExpiryThresholdMs} ms ago. Assuming worker is stuck and setting maker balance to 0.`,
                 );
+                CACHE_EXPIRED.labels(this._workerId).inc();
                 return ZERO;
             } else {
                 logger.warn(
@@ -173,6 +221,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
                     this._cacheExpiryThresholdMs
                 } ms ago. Assuming worker is stuck and setting maker balance to 0.`,
             );
+            CACHE_EXPIRED.labels(this._workerId).inc();
             return ZERO;
         }
 
