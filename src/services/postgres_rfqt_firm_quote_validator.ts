@@ -25,6 +25,11 @@ const ORDER_NOT_FILLABLE = new Counter({
     help: 'Number of orders validated to be not fillable',
     labelNames: ['workerId'],
 });
+const ORDER_NOT_VALIDATED = new Counter({
+    name: 'rfqtv_validator_order_not_validated',
+    help: 'Number of orders not validated',
+    labelNames: ['workerId'],
+})
 const CACHE_CHECKED = new Counter({
     name: 'rfqtv_validator_cache_checked',
     help: 'Number of times we checked cache',
@@ -146,13 +151,13 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
             // TODO: Add Prometheus hooks
             if (makerTokenBalanceForMaker === undefined) {
                 makerAddressesToAddToCacheSet.add(quote.makerAddress);
-                ORDER_FULLY_FILLABLE.labels(this._workerId);
+                ORDER_NOT_VALIDATED.labels(this._workerId).inc();
                 return quote.takerAssetAmount;
             }
 
             // Order is fully fillable, because Maker has 100% of the assets
             if (makerTokenBalanceForMaker.gte(quote.makerAssetAmount)) {
-                ORDER_FULLY_FILLABLE.labels(this._workerId);
+                ORDER_FULLY_FILLABLE.labels(this._workerId).inc();
                 return quote.takerAssetAmount;
             }
 
