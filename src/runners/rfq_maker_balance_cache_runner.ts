@@ -19,7 +19,7 @@ import { createResultCache, ResultCache } from '../utils/result_cache';
 const DELAY_WHEN_NEW_BLOCK_FOUND = ONE_SECOND_MS * 5;
 const DELAY_WHEN_NEW_BLOCK_NOT_FOUND = ONE_SECOND_MS;
 // tslint:disable-next-line:custom-no-magic-numbers
-const CACHE_MAKER_TOKENS_FOR_MS = Math.floor(RFQ_FIRM_QUOTE_CACHE_EXPIRY / 30);
+const CACHE_MAKER_TOKENS_FOR_MS = Math.floor(RFQ_FIRM_QUOTE_CACHE_EXPIRY / 4);
 // The eth_call will run out of gas if there are too many balance calls at once
 const MAX_BALANCE_CHECKS_PER_CALL = 1000;
 const BALANCE_CHECKER_GAS_LIMIT = 5500000;
