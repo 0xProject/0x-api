@@ -88,8 +88,4 @@ export const MARKET_DEPTH_END_PRICE_SLIPPAGE_PERC = 20;
 export const NUMBER_SOURCES_PER_LOG_LINE = 12;
 
 // RFQ Quote Validator expiration threshold
-
-// NOTE: Until worker component is created, we set an infinite expiry
-// rate which will allow us to start writing out records to the cache
-// table without causing all quotes to be invalid.
-export const RFQ_FIRM_QUOTE_CACHE_EXPIRY = Number.POSITIVE_INFINITY;
+export const RFQ_FIRM_QUOTE_CACHE_EXPIRY = ONE_MINUTE_MS * 2;
