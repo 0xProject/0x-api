@@ -29,7 +29,7 @@ const ORDER_NOT_VALIDATED = new Counter({
     name: 'rfqtv_validator_order_not_validated',
     help: 'Number of orders not validated',
     labelNames: ['workerId'],
-})
+});
 const CACHE_CHECKED = new Counter({
     name: 'rfqtv_validator_cache_checked',
     help: 'Number of times we checked cache',
