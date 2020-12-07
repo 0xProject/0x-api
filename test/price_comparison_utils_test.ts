@@ -61,6 +61,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(90e3),
+                    savingsInEth: new BigNumber('-0.0046'),
                 },
 
                 // Kyber sample not found
@@ -103,6 +104,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(90e3),
+                    savingsInEth: new BigNumber('-0.0046'),
                 },
 
                 // Balancer sample not found
@@ -155,6 +157,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(90e3),
+                    savingsInEth: new BigNumber('-0.0046'),
                 },
 
                 // MStable placeholder instead of invalid 0 amount result
@@ -203,6 +206,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(90e3),
+                    savingsInEth: new BigNumber('-0.0046'),
                 },
 
                 // MStable placeholder instead of invalid 0 amount result
@@ -255,6 +259,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Kyber,
                     price: higherPrice,
                     gas: new BigNumber(4.5e5),
+                    savingsInEth: new BigNumber(0.0314),
                 },
             ]);
         });
@@ -296,6 +301,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Kyber,
                     price: lowerSellPrice,
                     gas: new BigNumber(4.5e5),
+                    savingsInEth: new BigNumber(0.0314),
                 },
             ]);
         });
@@ -341,6 +347,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(90e3),
+                    savingsInEth: new BigNumber('-0.0046'),
                 },
             ]);
         });
@@ -382,6 +389,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(90e3),
+                    savingsInEth: new BigNumber('-0.0046'),
                 },
             ]);
         });
@@ -423,6 +431,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Uniswap,
                     price,
                     gas: new BigNumber(90e3),
+                    savingsInEth: new BigNumber('-0.0046'),
                 },
             ]);
         });
@@ -476,6 +485,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.UniswapV2,
                     price,
                     gas: new BigNumber(1.5e5),
+                    savingsInEth: new BigNumber('0.0014'),
                 },
             ]);
         });
@@ -534,6 +544,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.UniswapV2,
                     price,
                     gas: new BigNumber(1.5e5),
+                    savingsInEth: new BigNumber('0.0014'),
                 },
             ]);
         });
@@ -582,6 +593,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.UniswapV2,
                     price,
                     gas: new BigNumber(1.5e5),
+                    savingsInEth: new BigNumber('0.0014'),
                 },
             ]);
         });
@@ -626,6 +638,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.UniswapV2,
                     price,
                     gas: new BigNumber(1.5e5),
+                    savingsInEth: new BigNumber('0.0014'),
                 },
             ]);
         });
@@ -677,6 +690,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.UniswapV2,
                     price,
                     gas: new BigNumber(2e5),
+                    savingsInEth: ZERO,
                 },
             ]);
         });
@@ -724,6 +738,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.UniswapV2,
                     price,
                     gas: new BigNumber(2e5),
+                    savingsInEth: ZERO,
                 },
             ]);
         });

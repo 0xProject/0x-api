@@ -163,16 +163,19 @@ function getPriceComparisonFromQuoteOrThrow(
     // *** Calculate additional fields that we want to return *** //
 
     // Calculate savings (Part 1): Cost of the quote including gas
-    const quoteGasCost = quote.estimatedGas
+    const quoteGasCostInTokens = quote.estimatedGas
         .times(quote.gasPrice)
         .dividedBy(ethUnitAmount)
         .times(quoteTokenToEthRate);
     const unitAmount = isSelling
         ? Web3Wrapper.toUnitAmount(quote.buyAmount, buyToken.decimals)
         : Web3Wrapper.toUnitAmount(quote.sellAmount, sellToken.decimals);
-    const unitAmountAfterGasCosts = isSelling ? unitAmount.minus(quoteGasCost) : unitAmount.plus(quoteGasCost);
+    const unitAmountAfterGasCosts = isSelling
+        ? unitAmount.minus(quoteGasCostInTokens)
+        : unitAmount.plus(quoteGasCostInTokens);
     const roundingStrategy = isSelling ? BigNumber.ROUND_FLOOR : BigNumber.ROUND_CEIL;
 
+    // Transform the fields
     const sourcePrices: SourceComparison[] = bestQuotesFromEverySource.map(source => {
         const { liquiditySource, unitMakerAmount, unitTakerAmount, gas } = source;
 
@@ -185,7 +188,9 @@ function getPriceComparisonFromQuoteOrThrow(
         const savingsInTokens = isSelling
             ? unitAmountAfterGasCosts.minus(source.unitMakerAmountAfterGasCosts)
             : source.unitTakerAmountAfterGasCosts.minus(unitAmountAfterGasCosts);
-        const savingsInEth = savingsInTokens.dividedBy(quoteTokenToEthRate).decimalPlaces(ethToken.decimals);
+        const savingsInEth = quoteTokenToEthRate.gt(ZERO)
+            ? savingsInTokens.dividedBy(quoteTokenToEthRate).decimalPlaces(ethToken.decimals)
+            : ZERO;
 
         return {
             name: liquiditySource,
