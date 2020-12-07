@@ -61,6 +61,7 @@ import {
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { marketDepthUtils } from '../utils/market_depth_utils';
 import { serviceUtils } from '../utils/service_utils';
+import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
 export class SwapService {
     private readonly _provider: SupportedProvider;
@@ -265,6 +266,15 @@ export class SwapService {
 
         const { takerAssetToEthRate, makerAssetToEthRate } = swapQuote;
 
+        // Convert into unit amounts
+        const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
+        const sellTokenToEthRate = takerAssetToEthRate
+            .times(new BigNumber(10).pow(wethToken.decimals - takerTokenDecimals))
+            .decimalPlaces(takerTokenDecimals);
+        const buyTokenToEthRate = makerAssetToEthRate
+            .times(new BigNumber(10).pow(wethToken.decimals - makerTokenDecimals))
+            .decimalPlaces(makerTokenDecimals);
+
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
             guaranteedPrice,
@@ -286,8 +296,8 @@ export class SwapService {
             orders: serviceUtils.cleanSignedOrderFields(orders),
             allowanceTarget,
             decodedUniqueId,
-            sellTokenToEthRate: takerAssetToEthRate,
-            buyTokenToEthRate: makerAssetToEthRate,
+            sellTokenToEthRate,
+            buyTokenToEthRate,
             quoteReport,
         };
         return apiSwapQuote;
