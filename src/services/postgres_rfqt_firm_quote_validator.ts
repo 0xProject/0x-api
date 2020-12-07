@@ -1,7 +1,7 @@
 import { BigNumber, RfqtFirmQuoteValidator, SignedOrder } from '@0x/asset-swapper';
 import { assetDataUtils, ERC20AssetData } from '@0x/order-utils';
 import * as _ from 'lodash';
-import { Counter, Gauge } from 'prom-client';
+import { Counter, Summary } from 'prom-client';
 import { In } from 'typeorm';
 import { Repository } from 'typeorm/repository/Repository';
 
@@ -45,7 +45,7 @@ const NEW_ADDRESSES_SEEN = new Counter({
     help: 'New addresses were added to the cache',
     labelNames: ['workerId'],
 });
-const PG_LATENCY_READ = new Gauge({
+const PG_LATENCY_READ = new Summary({
     name: 'rfqtv_pg_latency',
     help: 'Query latency',
     labelNames: ['workerId'],
@@ -99,7 +99,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
                 },
             ],
         });
-        PG_LATENCY_READ.labels(this._workerId).set(new Date().getTime() - timeStart);
+        PG_LATENCY_READ.labels(this._workerId).observe(new Date().getTime() - timeStart);
         const nowUnix = new Date().getTime();
         for (const result of cacheResults) {
             makerLookup[result.makerAddress!] = this._calculateMakerBalanceFromResult(
