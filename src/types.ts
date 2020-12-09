@@ -464,6 +464,7 @@ export interface GetSwapQuoteRequestParams extends SwapQuoteParamsBase {
     gasPrice?: BigNumber;
     rfqt?: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'>;
     skipValidation: boolean;
+    shouldSellEntireBalance: boolean;
 }
 
 // GET /swap/price
