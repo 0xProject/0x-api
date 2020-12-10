@@ -6,7 +6,7 @@ export class AddTimestampToPersistentSignedOrders1607361624530 implements Migrat
             'persistent_signed_orders',
             new TableColumn({
                 name: 'created_at',
-                type: 'TIMESTAMP WITH TIME ZONE',
+                type: 'TIMESTAMP WITH TIME ZONE NOT NULL',
                 default: 'now()',
             }),
         );
