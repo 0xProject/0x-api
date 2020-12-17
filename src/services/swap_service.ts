@@ -58,7 +58,6 @@ import {
     TokenMetadata,
     TokenMetadataOptionalSymbol,
 } from '../types';
-import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { marketDepthUtils } from '../utils/market_depth_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
