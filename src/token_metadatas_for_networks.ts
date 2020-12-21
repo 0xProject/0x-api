@@ -1079,4 +1079,74 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
             [ChainId.Ganache]: NULL_ADDRESS,
         },
     },
+    {
+        symbol: 'BTC++',
+        name: 'PieDAO BTC++',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x0327112423F3A68efdF1fcF402F6c5CB9f7C33fd',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'USD++',
+        name: 'PieDAO USD++',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x9a48bd0ec040ea4f1d3147c025cd4076a2e71e3e',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'DEFI+S',
+        name: 'PieDAO DEFI Small Cap',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0xad6a626ae2b43dcb1b39430ce496d2fa0365ba9c',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'DEFI+L',
+        name: 'PieDAO DEFI Large Cap',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x78f225869c08d478c34e5f645d07a87d3fe8eb78',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'DEFI++',
+        name: 'PieDAO DEFI++',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x8D1ce361eb68e9E05573443C407D4A3Bed23B033',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'DXY',
+        name: 'PieDAO DeFi Yield',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x992e9f1d29e2fdb57a9e09a78e122fafe3720cc5',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
+    {
+        symbol: 'DOUGH',
+        name: 'PieDAO DOUGH v2',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0xad32A8e6220741182940c5aBF610bDE99E737b2D',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
 ];
