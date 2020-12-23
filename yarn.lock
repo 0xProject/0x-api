@@ -665,7 +665,7 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/orderbook@0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023", "@0x/orderbook@github:0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023":
+"@0x/orderbook@0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023":
   version "2.2.7"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/c4b7cdf7770608fa1005a3f91c740ed417541fd9"
   dependencies:
@@ -5351,8 +5351,8 @@ heartbeats@^5.0.1:
   resolved "https://registry.yarnpkg.com/heartbeats/-/heartbeats-5.0.1.tgz#c0d476151982e707faac49345143b9582de40cae"
 
 highlight.js@^10.0.0:
-  version "10.4.0"
-  resolved "https://registry.yarnpkg.com/highlight.js/-/highlight.js-10.4.0.tgz#ef3ce475e5dfa7a48484260b49ea242ddab823a0"
+  version "10.4.1"
+  resolved "https://registry.yarnpkg.com/highlight.js/-/highlight.js-10.4.1.tgz#d48fbcf4a9971c4361b3f95f302747afe19dbad0"
 
 hmac-drbg@^1.0.0:
   version "1.0.1"
