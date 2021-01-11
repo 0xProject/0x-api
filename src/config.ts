@@ -341,6 +341,8 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     exchangeProxyOverhead: (sourceFlags: number) => {
         if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
             return TX_BASE_GAS;
+        } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
+            return TX_BASE_GAS.plus(10e3);
         } else {
             return new BigNumber(150e3);
         }
@@ -407,34 +409,17 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
     let returnValue;
     switch (expectedType) {
         case EnvVarType.Port:
-            try {
-                returnValue = parseInt(value, 10);
-                const isWithinRange = returnValue >= 0 && returnValue <= 65535;
-                if (!isWithinRange) {
-                    throw new Error();
-                }
-            } catch (err) {
+            returnValue = parseInt(value, 10);
+            const isWithinRange = returnValue >= 0 && returnValue <= 65535;
+            if (isNaN(returnValue) || !isWithinRange) {
                 throw new Error(`${name} must be between 0 to 65535, found ${value}.`);
             }
             return returnValue;
-        case EnvVarType.Integer:
-            try {
-                returnValue = parseInt(value, 10);
-            } catch (err) {
-                throw new Error(`${name} must be a valid integer, found ${value}.`);
-            }
-            return returnValue;
-        case EnvVarType.KeepAliveTimeout:
-            try {
-                returnValue = parseInt(value, 10);
-            } catch (err) {
-                throw new Error(`${name} must be a valid integer, found ${value}.`);
-            }
-            return returnValue;
         case EnvVarType.ChainId:
-            try {
-                returnValue = parseInt(value, 10);
-            } catch (err) {
+        case EnvVarType.KeepAliveTimeout:
+        case EnvVarType.Integer:
+            returnValue = parseInt(value, 10);
+            if (isNaN(returnValue)) {
                 throw new Error(`${name} must be a valid integer, found ${value}.`);
             }
             return returnValue;
@@ -452,12 +437,8 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.Boolean:
             return value === 'true';
         case EnvVarType.UnitAmount:
-            try {
-                returnValue = new BigNumber(parseFloat(value));
-                if (returnValue.isNegative()) {
-                    throw new Error();
-                }
-            } catch (err) {
+            returnValue = new BigNumber(parseFloat(value));
+            if (returnValue.isNaN() || returnValue.isNegative()) {
                 throw new Error(`${name} must be valid number greater than 0.`);
             }
             return returnValue;
@@ -529,14 +510,12 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             for (const liquidityProvider in registry) {
                 assert.isETHAddressHex('liquidity provider address', liquidityProvider);
 
-                const tokens = registry[liquidityProvider];
-                assert.isArray(`value in liquidity provider registry, for index ${liquidityProvider},`, tokens);
+                const { tokens, gasCost } = registry[liquidityProvider];
+                assert.isArray(`token list for liquidity provider ${liquidityProvider}`, tokens);
                 tokens.forEach((token, i) => {
-                    assert.isETHAddressHex(
-                        `token address for asset ${i} for liquidity provider ${liquidityProvider}`,
-                        token,
-                    );
+                    assert.isETHAddressHex(`address of token ${i} for liquidity provider ${liquidityProvider}`, token);
                 });
+                assert.isNumber(`gas cost for liquidity provider ${liquidityProvider}`, gasCost);
             }
             return registry;
 

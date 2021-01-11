@@ -68,6 +68,9 @@ export class PersistentSignedOrderEntity extends SignedOrderEntity {
 
     @Column({ name: 'state', type: 'enum', enum: OrderEventEndState, default: OrderEventEndState.Added })
     public orderState?: OrderEventEndState;
+
+    @Column({ name: 'created_at', type: 'timestamptz', default: 'now()' })
+    public createdAt?: string;
     constructor(
         opts: {
             hash?: string;

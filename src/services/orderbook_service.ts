@@ -114,13 +114,19 @@ export class OrderBookService {
         page: number,
         perPage: number,
         ordersFilterParams: SRAGetOrdersRequestOpts,
-    ): Promise<PaginatedCollection<APIOrder>> {
+    ): Promise<PaginatedCollection<APIOrderWithMetaData>> {
         // Pre-filters
-        const filterObjectWithValuesIfExist: Partial<SignedOrder> = {
+        const filterObjectWithValuesIfExist = {
             exchangeAddress: ordersFilterParams.exchangeAddress,
             senderAddress: ordersFilterParams.senderAddress,
-            makerAssetData: ordersFilterParams.makerAssetData,
-            takerAssetData: ordersFilterParams.takerAssetData,
+            makerAssetData: orderUtils.assetDataOrAssetProxyId(
+                ordersFilterParams.makerAssetData,
+                ordersFilterParams.makerAssetProxyId,
+            ),
+            takerAssetData: orderUtils.assetDataOrAssetProxyId(
+                ordersFilterParams.takerAssetData,
+                ordersFilterParams.takerAssetProxyId,
+            ),
             makerAddress: ordersFilterParams.makerAddress,
             takerAddress: ordersFilterParams.takerAddress,
             feeRecipientAddress: ordersFilterParams.feeRecipientAddress,
@@ -128,10 +134,21 @@ export class OrderBookService {
             takerFeeAssetData: ordersFilterParams.takerFeeAssetData,
         };
         const filterObject = _.pickBy(filterObjectWithValuesIfExist, _.identity.bind(_));
-        const signedOrderEntities = (await this._connection.manager.find(SignedOrderEntity, {
-            where: filterObject,
-        })) as Required<SignedOrderEntity>[];
-        const apiOrders = signedOrderEntities.map(orderUtils.deserializeOrderToAPIOrder);
+        const [signedOrderCount, signedOrderEntities] = await Promise.all([
+            this._connection.manager.count(SignedOrderEntity, {
+                where: filterObject,
+            }),
+            this._connection.manager.find(SignedOrderEntity, {
+                where: filterObject,
+                ...paginationUtils.paginateDBFilters(page, perPage),
+                order: {
+                    hash: 'ASC',
+                },
+            }),
+        ]);
+        const apiOrders = (signedOrderEntities as Required<SignedOrderEntity>[]).map(
+            orderUtils.deserializeOrderToAPIOrder,
+        );
 
         // check for expired orders
         const { fresh, expired } = orderUtils.groupByFreshness(apiOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
@@ -139,6 +156,7 @@ export class OrderBookService {
 
         // Join with persistent orders
         let persistentOrders: APIOrderWithMetaData[] = [];
+        let persistentOrdersCount = 0;
         if (ordersFilterParams.isUnfillable === true) {
             if (filterObject.makerAddress === undefined) {
                 throw new ValidationError([
@@ -149,9 +167,17 @@ export class OrderBookService {
                     },
                 ]);
             }
-            const persistentOrderEntities = (await this._connection.manager.find(PersistentSignedOrderEntity, {
-                where: filterObject,
-            })) as Required<PersistentSignedOrderEntity>[];
+            let persistentOrderEntities = [];
+            [persistentOrdersCount, persistentOrderEntities] = await Promise.all([
+                this._connection.manager.count(PersistentSignedOrderEntity, { where: filterObject }),
+                this._connection.manager.find(PersistentSignedOrderEntity, {
+                    where: filterObject,
+                    ...paginationUtils.paginateDBFilters(page, perPage),
+                    order: {
+                        hash: 'ASC',
+                    },
+                }),
+            ]);
             // This should match the states that trigger a removal from the SignedOrders table
             // Defined in meshUtils.calculateOrderLifecycle
             const unfillableStates = [
@@ -162,16 +188,19 @@ export class OrderBookService {
                 OrderEventEndState.StoppedWatching,
                 OrderEventEndState.Unfunded,
             ];
-            persistentOrders = persistentOrderEntities.map(orderUtils.deserializeOrderToAPIOrder).filter(apiOrder => {
-                return apiOrder.metaData.state && unfillableStates.includes(apiOrder.metaData.state);
-            });
+            persistentOrders = (persistentOrderEntities as Required<PersistentSignedOrderEntity>[])
+                .map(orderUtils.deserializeOrderToAPIOrder)
+                .filter(apiOrder => {
+                    return apiOrder.metaData.state && unfillableStates.includes(apiOrder.metaData.state);
+                });
         }
 
         // Post-filters (query fields that don't exist verbatim in the order)
         const filteredApiOrders = orderUtils.filterOrders(fresh.concat(persistentOrders), ordersFilterParams);
+        const total = signedOrderCount + persistentOrdersCount;
 
         // Paginate
-        const paginatedApiOrders = paginationUtils.paginate(filteredApiOrders, page, perPage);
+        const paginatedApiOrders = paginationUtils.paginateSerialize(filteredApiOrders, total, page, perPage);
         return paginatedApiOrders;
     }
     public async getBatchOrdersAsync(
@@ -211,15 +240,7 @@ export class OrderBookService {
     public async addPersistentOrdersAsync(signedOrders: SignedOrder[], pinned: boolean): Promise<void> {
         const accepted = await this._addOrdersAsync(signedOrders, pinned);
         const persistentOrders = accepted.map(orderInfo => {
-            const { order } = orderInfo;
-            const apiOrder: APIOrderWithMetaData = {
-                order: meshUtils.orderWithMetadataToSignedOrder(order),
-                metaData: {
-                    state: OrderEventEndState.Added,
-                    remainingFillableTakerAssetAmount: order.fillableTakerAssetAmount,
-                    orderHash: order.hash,
-                },
-            };
+            const apiOrder = meshUtils.orderInfoToAPIOrder({ ...orderInfo, endState: OrderEventEndState.Added });
             return orderUtils.serializePersistentOrder(apiOrder);
         });
         // MAX SQL variable size is 999. This limit is imposed via Sqlite.

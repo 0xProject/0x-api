@@ -1,5 +1,4 @@
-import { QuoteReport } from '@0x/asset-swapper';
-import { ContractTxFunctionObj } from '@0x/base-contract';
+import { ContractTxFunctionObj, QuoteReport } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import {
@@ -13,6 +12,7 @@ import {
 import { PartialTxParams } from '@0x/subproviders';
 import { ExchangeProxyMetaTransaction, Order, SignedOrder } from '@0x/types';
 import { BigNumber, RevertError } from '@0x/utils';
+import * as _ from 'lodash';
 import { Connection, Repository } from 'typeorm';
 
 import {
@@ -111,6 +111,7 @@ export class MetaTransactionService {
         params: CalculateMetaTransactionQuoteParams,
     ): Promise<GetMetaTransactionQuoteResponse & { quoteReport?: QuoteReport }> {
         const quote = await this._calculateMetaTransactionQuoteAsync(params, true);
+        const { sellTokenToEthRate, buyTokenToEthRate } = quote;
         const commonQuoteFields = {
             price: quote.price,
             sellTokenAddress: params.sellTokenAddress,
@@ -127,6 +128,8 @@ export class MetaTransactionService {
             estimatedGasTokenRefund: ZERO,
             value: quote.protocolFee,
             allowanceTarget: quote.allowanceTarget,
+            sellTokenToEthRate,
+            buyTokenToEthRate,
             quoteReport: quote.quoteReport,
         };
 
@@ -352,23 +355,30 @@ export class MetaTransactionService {
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
             buyTokenAddress: params.isETHBuy ? WETHToken.tokenAddress : params.buyTokenAddress,
             sellTokenAddress: params.sellTokenAddress,
+            shouldSellEntireBalance: false,
         };
 
         const quote = await this._swapService.calculateSwapQuoteAsync(quoteParams);
         return {
+            ..._.pick(quote, [
+                'price',
+                'gasPrice',
+                'protocolFee',
+                'sources',
+                'buyAmount',
+                'sellAmount',
+                'estimatedGas',
+                'allowanceTarget',
+                'orders',
+                'sellTokenToEthRate',
+                'buyTokenToEthRate',
+                'quoteReport',
+            ]),
+            buyTokenAddress: params.buyTokenAddress,
+            sellTokenAddress: params.sellTokenAddress,
             takerAddress: params.takerAddress,
-            price: quote.price,
-            gasPrice: quote.gasPrice,
-            protocolFee: quote.protocolFee,
-            minimumProtocolFee: quote.protocolFee,
-            sources: quote.sources,
-            buyAmount: quote.buyAmount,
-            sellAmount: quote.sellAmount,
-            estimatedGas: quote.estimatedGas,
-            allowanceTarget: quote.allowanceTarget,
-            orders: quote.orders,
             callData: quote.data,
-            quoteReport: quote.quoteReport,
+            minimumProtocolFee: quote.protocolFee,
         };
     }
 

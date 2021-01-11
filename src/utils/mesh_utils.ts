@@ -101,16 +101,14 @@ export const meshUtils = {
                 return ValidationErrorCodes.InternalError;
         }
     },
-    calculateOrderLifecycle: (orderEvents: OrderEvent[]): OrdersByLifecycleEvents => {
+    calculateOrderLifecycle: (orders: APIOrderWithMetaData[]): OrdersByLifecycleEvents => {
         const added: APIOrderWithMetaData[] = [];
         const removed: APIOrderWithMetaData[] = [];
         const updated: APIOrderWithMetaData[] = [];
-        const persistentUpdated: APIOrderWithMetaData[] = [];
-        for (const event of orderEvents) {
-            const apiOrder = meshUtils.orderInfoToAPIOrder(event);
-            switch (event.endState) {
+        for (const order of orders) {
+            switch (order.metaData.state as OrderEventEndState) {
                 case OrderEventEndState.Added: {
-                    added.push(apiOrder);
+                    added.push(order);
                     break;
                 }
                 // case OrderEventEndState.Invalid: TODO(kimpers): Invalid state is no longer available, is this an issue?
@@ -119,22 +117,20 @@ export const meshUtils = {
                 case OrderEventEndState.FullyFilled:
                 case OrderEventEndState.StoppedWatching:
                 case OrderEventEndState.Unfunded: {
-                    removed.push(apiOrder);
-                    persistentUpdated.push(apiOrder);
+                    removed.push(order);
                     break;
                 }
                 case OrderEventEndState.Unexpired:
                 case OrderEventEndState.FillabilityIncreased:
                 case OrderEventEndState.Filled: {
-                    updated.push(apiOrder);
-                    persistentUpdated.push(apiOrder);
+                    updated.push(order);
                     break;
                 }
                 default:
-                    logger.error('Unknown Mesh Event', event.endState, event);
+                    logger.error('Unknown Mesh Event State', order.metaData.state, order);
                     break;
             }
         }
-        return { added, removed, updated, persistentUpdated };
+        return { added, removed, updated };
     },
 };

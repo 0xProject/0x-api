@@ -15,7 +15,7 @@ import {
     StaticCallAssetData,
 } from '@0x/types';
 import { BigNumber, errorUtils } from '@0x/utils';
-import { Connection } from 'typeorm';
+import { Connection, In, Like } from 'typeorm';
 
 import {
     CHAIN_ID,
@@ -212,10 +212,12 @@ export const orderUtils = {
     ): APIOrderWithMetaData => {
         const order = orderUtils.deserializeOrder(signedOrderEntity);
         const state = (signedOrderEntity as PersistentSignedOrderEntity).orderState;
+        const createdAt = (signedOrderEntity as PersistentSignedOrderEntity).createdAt;
         const metaData: APIOrderMetaData = {
             orderHash: signedOrderEntity.hash,
             remainingFillableTakerAssetAmount: new BigNumber(signedOrderEntity.remainingFillableTakerAssetAmount),
             state,
+            createdAt,
         };
         return {
             order,
@@ -289,7 +291,19 @@ export const orderUtils = {
         };
         return orderConfigResponse;
     },
-    filterOrders: (apiOrders: APIOrder[], filters: SRAGetOrdersRequestOpts): APIOrder[] => {
+    assetDataOrAssetProxyId: (assetData: string | string[] | undefined, assetProxyId: string | undefined) => {
+        if (!assetData && !assetProxyId) {
+            return undefined;
+        }
+        if (assetProxyId) {
+            return Like(`${assetProxyId}%`);
+        }
+        if (Array.isArray(assetData)) {
+            return In(assetData);
+        }
+        return assetData;
+    },
+    filterOrders: (apiOrders: APIOrderWithMetaData[], filters: SRAGetOrdersRequestOpts): APIOrderWithMetaData[] => {
         const { traderAddress, makerAssetAddress, takerAssetAddress, makerAssetProxyId, takerAssetProxyId } = filters;
         const matchTraderAddress = (order: SignedOrder, filterAddress?: string): boolean =>
             filterAddress ? order.makerAddress === filterAddress || order.takerAddress === filterAddress : true;

@@ -1,5 +1,6 @@
+import { SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
-import { Connection } from 'typeorm';
+import { Connection, In, Not } from 'typeorm';
 
 import { DB_ORDERS_UPDATE_CHUNK_SIZE, MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
 import { SignedOrderEntity } from '../entities';
@@ -11,6 +12,10 @@ import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 
+interface ValidationResults {
+    accepted: APIOrderWithMetaData[];
+    rejected: APIOrderWithMetaData[];
+}
 export class OrderWatcherService {
     private readonly _meshClient: MeshClient;
     private readonly _connection: Connection;
@@ -31,13 +36,14 @@ export class OrderWatcherService {
         // TODO(dekz): Mesh can reject due to InternalError or EthRPCRequestFailed.
         // in the future we can attempt to retry these a few times. Ultimately if we
         // cannot validate the order we cannot keep the order around
-        const pinResult = await orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);
-        const [pinnedValidationResults, unpinnedValidationResults] = await Promise.all([
-            this._meshClient.addOrdersAsync(pinResult.pin, true),
-            this._meshClient.addOrdersAsync(pinResult.doNotPin, false),
-        ]);
-        const accepted = [...pinnedValidationResults.accepted, ...unpinnedValidationResults.accepted];
-        const rejected = [...pinnedValidationResults.rejected, ...unpinnedValidationResults.rejected];
+        const { pin, doNotPin } = await orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);
+        const { accepted, rejected } = await Promise.all([
+            this._addOrdersToMeshAsync(pin, true),
+            this._addOrdersToMeshAsync(doNotPin, false),
+        ]).then(results => ({
+            accepted: results.map(r => r.accepted).flat(),
+            rejected: results.map(r => r.rejected).flat(),
+        }));
 
         logger.info('OrderWatcherService sync', {
             accepted: accepted.length,
@@ -46,27 +52,36 @@ export class OrderWatcherService {
         });
 
         // 4. Notify if any expired orders were accepted by Mesh
-        const acceptedApiOrders = meshUtils.orderInfosToApiOrders(accepted);
-        const { expired } = orderUtils.groupByFreshness(acceptedApiOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
+        const { expired } = orderUtils.groupByFreshness(accepted, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
         alertOnExpiredOrders(expired, `Erroneously accepted when posting to Mesh`);
 
         // 5. Remove all of the rejected and expired orders from local cache
-        const orderHashesToRemove = rejected.map(r => r.hash).filter(r => !!r) as string[];
-        if (orderHashesToRemove.length > 0) {
-            await this._removeOrdersByOrderHashAsync(orderHashesToRemove);
+        const toRemove = [...rejected, ...expired];
+        if (toRemove.length > 0) {
+            await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, toRemove);
         }
 
-        // 5a. Don't remove persistent orders, but update their state with the rejection info from Mesh
-        const toUpdate = meshUtils.orderInfosToApiOrders(rejected);
-        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.PersistentUpdated, toUpdate);
-
-        // 6. Save Mesh orders to local cache and notify if any expired orders were returned
+        // 6. Save new Mesh orders to local cache and notify if any expired orders were returned
         const meshOrders = meshUtils.orderInfosToApiOrders(ordersInfos);
         const groupedOrders = orderUtils.groupByFreshness(meshOrders, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
         alertOnExpiredOrders(groupedOrders.expired, `Mesh client returned expired orders`);
         if (groupedOrders.fresh.length > 0) {
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, groupedOrders.fresh);
         }
+
+        // 7. Update state of persistent orders
+        const excludeHashes = signedOrderModels.map(o => o.hash);
+        const persistentOrders = (
+            await this._connection.manager.find(PersistentSignedOrderEntity, { hash: Not(In(excludeHashes)) })
+        ).map(o => orderUtils.deserializeOrder(o as Required<PersistentSignedOrderEntity>));
+        logger.info(`Found ${persistentOrders.length} persistent orders, posting to Mesh for validation`);
+        const { accepted: persistentAccepted, rejected: persistentRejected } = await this._addOrdersToMeshAsync(
+            persistentOrders,
+            false,
+        );
+        const allOrders = [...persistentAccepted, ...persistentRejected, ...accepted, ...rejected];
+        await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.PersistentUpdated, allOrders);
+
         logger.info('OrderWatcherService sync complete');
     }
     constructor(connection: Connection, meshClient: MeshClient) {
@@ -74,14 +89,15 @@ export class OrderWatcherService {
         this._meshClient = meshClient;
         this._meshClient.onOrderEvents().subscribe({
             next: async orders => {
-                const { added, removed, updated, persistentUpdated } = meshUtils.calculateOrderLifecycle(orders);
+                const apiOrders = meshUtils.orderInfosToApiOrders(orders);
+                const { added, removed, updated } = meshUtils.calculateOrderLifecycle(apiOrders);
                 await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
                 await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
                 await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
-                await this._onOrderLifeCycleEventAsync(
-                    OrderWatcherLifeCycleEvents.PersistentUpdated,
-                    updated.concat(persistentUpdated),
-                );
+                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.PersistentUpdated, [
+                    ...removed,
+                    ...updated,
+                ]);
             },
             error: err => {
                 const logError = new OrderWatcherSyncError(`Error with Mesh client connection: [${err.stack}]`);
@@ -145,34 +161,40 @@ export class OrderWatcherService {
                 );
 
                 // 2. Create the Update queries
+                // Use Update instead of Save to throw an error if the order doesn't already exist in the table
+                // We do this to avoid saving non-persistent orders
                 // tslint:disable-next-line:promise-function-async
                 const updatePromises = filtered.map(apiOrder => {
-                    const { remainingFillableTakerAssetAmount, state: orderState, orderHash } = apiOrder.metaData;
-                    return this._connection.manager.update(PersistentSignedOrderEntity, orderHash, {
-                        remainingFillableTakerAssetAmount: remainingFillableTakerAssetAmount.toString(),
-                        orderState,
-                    });
+                    const entity = orderUtils.serializePersistentOrder(apiOrder);
+                    // will ignore any orders that don't already exist in this table
+                    return this._connection
+                        .getRepository(PersistentSignedOrderEntity)
+                        .update(apiOrder.metaData.orderHash, entity);
                 });
 
                 // 3. Wait for results
                 await Promise.allSettled(updatePromises).then(results => {
-                    // Group by success or failure. Open orderbook orders should fail.
-                    const { fulfilled, rejected } = results.reduce(
-                        (acc, r, i) => {
-                            r.status === 'fulfilled' ? acc.fulfilled.push(i) : acc.rejected.push(i);
-                            return acc;
-                        },
-                        { fulfilled: [] as number[], rejected: [] as number[] },
+                    let [fulfilled, rejected] = [0, 0];
+                    results.forEach(r =>
+                        r.status === 'fulfilled' && r.value.affected! > 0 ? fulfilled++ : rejected++,
                     );
-                    // Log the results. Failed order hashes should be hashes that don't exist in PersistentSignedOrder table
-                    logger.info(`Updated persistent orders. ${fulfilled.length} success; ${rejected.length} failed.\n
-                        Success order hashes: [${fulfilled.map(i => filtered[i].metaData.orderHash).toString()}]\n
-                        Failed order hashes: [${rejected.map(i => filtered[i].metaData.orderHash)}]`);
+                    logger.info('Persistent orders update', {
+                        attempted: orders.length,
+                        updated: fulfilled,
+                        ignored: rejected,
+                    });
                 });
                 break;
             }
             default:
             // Do Nothing
         }
+    }
+    private async _addOrdersToMeshAsync(orders: SignedOrder[], pinned: boolean = false): Promise<ValidationResults> {
+        const { accepted, rejected } = await this._meshClient.addOrdersAsync(orders, pinned);
+        return {
+            accepted: meshUtils.orderInfosToApiOrders(accepted),
+            rejected: meshUtils.orderInfosToApiOrders(rejected),
+        };
     }
 }

@@ -3,9 +3,10 @@ import {
     AssetSwapperContractAddresses,
     ERC20BridgeSource,
     ExtensionContractType,
+    GetMarketOrdersRfqtOpts,
     getSwapMinBuyAmount,
     Orderbook,
-    RfqtRequestOpts,
+    RfqtFirmQuoteValidator,
     SwapQuote,
     SwapQuoteConsumer,
     SwapQuoteGetOutputOpts,
@@ -54,13 +55,12 @@ import {
     GetTokenPricesResponse,
     PercentageFee,
     SwapQuoteResponsePartialTransaction,
-    SwapQuoteResponsePrice,
     TokenMetadata,
     TokenMetadataOptionalSymbol,
 } from '../types';
-import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { marketDepthUtils } from '../utils/market_depth_utils';
 import { serviceUtils } from '../utils/service_utils';
+import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
 export class SwapService {
     private readonly _provider: SupportedProvider;
@@ -69,6 +69,7 @@ export class SwapService {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _wethContract: WETH9Contract;
     private readonly _contractAddresses: ContractAddresses;
+    private readonly _firmQuoteValidator: RfqtFirmQuoteValidator | undefined;
 
     private static _getSwapQuotePrice(
         buyAmount: BigNumber | undefined,
@@ -76,7 +77,7 @@ export class SwapService {
         sellTokenDecimals: number,
         swapQuote: SwapQuote,
         affiliateFee: PercentageFee,
-    ): SwapQuoteResponsePrice {
+    ): { price: BigNumber; guaranteedPrice: BigNumber } {
         const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
         const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
         const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
@@ -90,34 +91,43 @@ export class SwapService {
         const affiliateFeeUnitMakerAssetAmount = guaranteedUnitMakerAssetAmount.times(
             affiliateFee.buyTokenPercentageFee,
         );
+
+        const isSelling = buyAmount === undefined;
+        // NOTE: In order to not communicate a price better than the actual quote we
+        // should make sure to always round towards a worse price
+        const roundingStrategy = isSelling ? BigNumber.ROUND_FLOOR : BigNumber.ROUND_CEIL;
         // Best price
-        const price =
-            buyAmount === undefined
-                ? unitMakerAssetAmount
-                      .minus(affiliateFeeUnitMakerAssetAmount)
-                      .dividedBy(unitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
-                : unitTakerAssetAmount
-                      .dividedBy(unitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
-                      .decimalPlaces(buyTokenDecimals);
+        const price = isSelling
+            ? unitMakerAssetAmount
+                  .minus(affiliateFeeUnitMakerAssetAmount)
+                  .dividedBy(unitTakerAssetAmount)
+                  .decimalPlaces(buyTokenDecimals, roundingStrategy)
+            : unitTakerAssetAmount
+                  .dividedBy(unitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
+                  .decimalPlaces(sellTokenDecimals, roundingStrategy);
         // Guaranteed price before revert occurs
-        const guaranteedPrice =
-            buyAmount === undefined
-                ? guaranteedUnitMakerAssetAmount
-                      .minus(affiliateFeeUnitMakerAssetAmount)
-                      .dividedBy(guaranteedUnitTakerAssetAmount)
-                      .decimalPlaces(sellTokenDecimals)
-                : guaranteedUnitTakerAssetAmount
-                      .dividedBy(guaranteedUnitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
-                      .decimalPlaces(buyTokenDecimals);
+        const guaranteedPrice = isSelling
+            ? guaranteedUnitMakerAssetAmount
+                  .minus(affiliateFeeUnitMakerAssetAmount)
+                  .dividedBy(guaranteedUnitTakerAssetAmount)
+                  .decimalPlaces(buyTokenDecimals, roundingStrategy)
+            : guaranteedUnitTakerAssetAmount
+                  .dividedBy(guaranteedUnitMakerAssetAmount.minus(affiliateFeeUnitMakerAssetAmount))
+                  .decimalPlaces(sellTokenDecimals, roundingStrategy);
         return {
             price,
             guaranteedPrice,
         };
     }
 
-    constructor(orderbook: Orderbook, provider: SupportedProvider, contractAddresses: AssetSwapperContractAddresses) {
+    constructor(
+        orderbook: Orderbook,
+        provider: SupportedProvider,
+        contractAddresses: AssetSwapperContractAddresses,
+        firmQuoteValidator?: RfqtFirmQuoteValidator | undefined,
+    ) {
         this._provider = provider;
+        this._firmQuoteValidator = firmQuoteValidator;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             ...SWAP_QUOTER_OPTS,
             rfqt: {
@@ -148,6 +158,7 @@ export class SwapService {
             // tslint:disable-next-line:boolean-naming
             skipValidation,
             affiliateFee,
+            shouldSellEntireBalance,
         } = params;
         const swapQuote = await this._getMarketBuyOrSellQuoteAsync(params);
 
@@ -173,6 +184,7 @@ export class SwapService {
             isETHSell,
             isETHBuy,
             isMetaTransaction,
+            shouldSellEntireBalance,
             affiliateAddress,
             { recipient: affiliateFee.recipient, buyTokenFeeAmount, sellTokenFeeAmount },
         );
@@ -216,7 +228,12 @@ export class SwapService {
         let adjustedWorstCaseProtocolFee = protocolFee;
         let adjustedValue = value;
 
-        const erc20AllowanceTarget = this._contractAddresses.exchangeProxyAllowanceTarget;
+        // If the entire caller amount is requested to be sold, this requires the new allowance target
+        // i.e the exchange proxy. The old allowance target will eventually be deprecated
+        const erc20AllowanceTarget = shouldSellEntireBalance
+            ? this._contractAddresses.exchangeProxy
+            : this._contractAddresses.exchangeProxyAllowanceTarget;
+
         // With v1 we are able to fill bridges directly so the protocol fee is lower
         const nativeFills = _.flatten(swapQuote.orders.map(order => order.fills)).filter(
             fill => fill.source === ERC20BridgeSource.Native,
@@ -235,15 +252,9 @@ export class SwapService {
         // specifically when RFQT orders are included in the quote
         if (hasRFQTOrders) {
             const maxGasPricePadding = gasPrice.times(RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER);
-            const fastestGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync('fastest').catch(err => {
-                logger.error(err, 'Failed to fetch ETH Gas Station fastest gas price');
-
-                // Failed to fetch fastest gas estimate, use max padded fast instead
-                return maxGasPricePadding;
-            });
 
             // Use the fastest price but make sure it's never more than max padding and never less than supplied gas price
-            const paddedGasPrice = BigNumber.max(BigNumber.min(fastestGasPrice, maxGasPricePadding), gasPrice);
+            const paddedGasPrice = BigNumber.max(maxGasPricePadding, gasPrice);
 
             adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
                 .times(paddedGasPrice)
@@ -259,6 +270,17 @@ export class SwapService {
             : adjustedWorstCaseProtocolFee;
 
         const allowanceTarget = isETHSell ? NULL_ADDRESS : erc20AllowanceTarget;
+
+        const { takerAssetToEthRate, makerAssetToEthRate } = swapQuote;
+
+        // Convert into unit amounts
+        const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
+        const sellTokenToEthRate = takerAssetToEthRate
+            .times(new BigNumber(10).pow(wethToken.decimals - takerTokenDecimals))
+            .decimalPlaces(takerTokenDecimals);
+        const buyTokenToEthRate = makerAssetToEthRate
+            .times(new BigNumber(10).pow(wethToken.decimals - makerTokenDecimals))
+            .decimalPlaces(makerTokenDecimals);
 
         const apiSwapQuote: GetSwapQuoteResponse = {
             price,
@@ -281,6 +303,8 @@ export class SwapService {
             orders: serviceUtils.cleanSignedOrderFields(orders),
             allowanceTarget,
             decodedUniqueId,
+            sellTokenToEthRate,
+            buyTokenToEthRate,
             quoteReport,
         };
         return apiSwapQuote;
@@ -337,7 +361,9 @@ export class SwapService {
                 const { makerAssetAmount, totalTakerAssetAmount } = quote.bestCaseQuoteInfo;
                 const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
                 const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
-                const price = unitTakerAssetAmount.dividedBy(unitMakerAssetAmount).decimalPlaces(sellTokenDecimals);
+                const price = unitTakerAssetAmount
+                    .dividedBy(unitMakerAssetAmount)
+                    .decimalPlaces(sellTokenDecimals, BigNumber.ROUND_CEIL);
                 return {
                     symbol: queryAssetData[i].symbol,
                     price,
@@ -374,7 +400,6 @@ export class SwapService {
                 excludedSources: [
                     ...(excludedSources || []),
                     ERC20BridgeSource.MultiBridge,
-                    ERC20BridgeSource.Bancor,
                     ERC20BridgeSource.MultiHop,
                 ],
                 includedSources,
@@ -471,6 +496,8 @@ export class SwapService {
             sellAmount: amount,
             sources: [],
             orders: [],
+            sellTokenToEthRate: new BigNumber(1),
+            buyTokenToEthRate: new BigNumber(1),
             allowanceTarget: NULL_ADDRESS,
         };
         return apiSwapQuote;
@@ -541,7 +568,7 @@ export class SwapService {
         // Normalize to lower case
         const sellTokenAddress = rawSellTokenAddress.toLowerCase();
         const buyTokenAddress = rawBuyTokenAddress.toLowerCase();
-        let _rfqt: RfqtRequestOpts | undefined;
+        let _rfqt: GetMarketOrdersRfqtOpts | undefined;
         const isAllExcluded = Object.values(ERC20BridgeSource).every(s => excludedSources.includes(s));
         if (isAllExcluded) {
             throw new ValidationError([
@@ -571,6 +598,7 @@ export class SwapService {
                     isFirmPriceAwareEnabled: FIRM_PRICE_AWARE_RFQ_ENABLED,
                     isIndicativePriceAwareEnabled: INDICATIVE_PRICE_AWARE_RFQ_ENABLED,
                 },
+                firmQuoteValidator: this._firmQuoteValidator,
             };
         }
 
@@ -619,12 +647,13 @@ export class SwapService {
         isFromETH: boolean,
         isToETH: boolean,
         isMetaTransaction: boolean,
+        shouldSellEntireBalance: boolean,
         affiliateAddress: string | undefined,
         affiliateFee: AffiliateFee,
     ): Promise<SwapQuoteResponsePartialTransaction> {
         const opts: Partial<SwapQuoteGetOutputOpts> = {
             useExtensionContract: ExtensionContractType.ExchangeProxy,
-            extensionContractOpts: { isFromETH, isToETH, isMetaTransaction, affiliateFee },
+            extensionContractOpts: { isFromETH, isToETH, isMetaTransaction, shouldSellEntireBalance, affiliateFee },
         };
 
         const {
