@@ -1,9 +1,9 @@
 import { assert } from '@0x/assert';
 import { Callback, ErrorCallback, Subprovider } from '@0x/subproviders';
-import { StatusCodes } from '@0x/types';
 import { fetchAsync } from '@0x/utils';
 import { JSONRPCRequestPayload } from 'ethereum-types';
-import JsonRpcError = require('json-rpc-error');
+
+import { InternalServerError } from './errors';
 
 /**
  * This class implements the [web3-provider-engine](https://github.com/MetaMask/provider-engine) subprovider interface.
@@ -54,34 +54,20 @@ export class RPCSubprovider extends Subprovider {
                 this._requestTimeoutMs,
             );
         } catch (err) {
-            end(new JsonRpcError.InternalError(err));
+            end(err);
             return;
         }
 
-        const text = await response.text();
         if (!response.ok) {
-            const statusCode = response.status;
-            switch (statusCode) {
-                case StatusCodes.MethodNotAllowed:
-                    end(new JsonRpcError.MethodNotFound());
-                    return;
-                case StatusCodes.GatewayTimeout:
-                    const errMsg =
-                        'Gateway timeout. The request took too long to process. This can happen when querying logs over too wide a block range.';
-                    const err = new Error(errMsg);
-                    end(new JsonRpcError.InternalError(err));
-                    return;
-                default:
-                    end(new JsonRpcError.InternalError(text));
-                    return;
-            }
+            const msg = `RPCSubprovider: ${response.status} ${response.statusText}`;
+            return end(new InternalServerError(msg));
         }
 
         let data;
         try {
-            data = JSON.parse(text);
+            data = JSON.parse(await response.text());
         } catch (err) {
-            end(new JsonRpcError.InternalError(err));
+            end(err);
             return;
         }
 

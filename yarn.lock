@@ -48,7 +48,6 @@
 "@0x/asset-swapper@^5.6.2":
   version "5.6.2"
   resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-5.6.2.tgz#946cbc7f6db328f61d54d73e871e9774fe475e32"
-  integrity sha512-9ecxrFxX13IKwJiTaZxxfoia1IldAYEyJ9wfXRjvKGIBwx3WK6dZrzGrEej3wOT7Fo84ydAiqU+u4aMaU0DGBw==
   dependencies:
     "@0x/assert" "^3.0.19"
     "@0x/base-contract" "^6.2.14"
@@ -191,7 +190,6 @@
 "@0x/contract-wrappers@^13.12.0":
   version "13.12.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.12.0.tgz#7847090571fe4db18b84f20e5be0e38950c4f26c"
-  integrity sha512-mw+jgQQVSdzuzRv1buNwrTg7hOukRN9L3HW8p1biz9S5TeykQZA7NDfL7ASBW8f3LVO/bc6TI2hUJ/Nujm6nYg==
   dependencies:
     "@0x/assert" "^3.0.19"
     "@0x/base-contract" "^6.2.14"
@@ -642,7 +640,6 @@
 "@0x/order-utils@^10.4.13":
   version "10.4.13"
   resolved "https://registry.yarnpkg.com/@0x/order-utils/-/order-utils-10.4.13.tgz#9be075a94c446459508b1d92dbcec7a909bfaf45"
-  integrity sha512-12Q7F+LjVuJZFH1V7fpB3+TiFIdhzNiGlWJOEW3LDlE4NghgKOHkan/uPbtaF2kgUJr2AqNaMrkmnVMsZflLaQ==
   dependencies:
     "@0x/assert" "^3.0.19"
     "@0x/contract-addresses" "^5.8.0"
@@ -668,7 +665,7 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/orderbook@0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023", "@0x/orderbook@github:0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023":
+"@0x/orderbook@0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023":
   version "2.2.7"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/c4b7cdf7770608fa1005a3f91c740ed417541fd9"
   dependencies:
