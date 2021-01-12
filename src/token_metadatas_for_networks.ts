@@ -501,16 +501,6 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
     },
     {
         decimals: 18,
-        symbol: 'ICX',
-        name: 'ICON',
-        tokenAddresses: {
-            [ChainId.Mainnet]: '0xb5a5f22694352c15b00323844ad545abb2b11028',
-            [ChainId.Kovan]: NULL_ADDRESS,
-            [ChainId.Ganache]: NULL_ADDRESS,
-        },
-    },
-    {
-        decimals: 18,
         symbol: 'NMR',
         name: 'Numeraire',
         tokenAddresses: {
