@@ -1079,4 +1079,14 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
             [ChainId.Ganache]: NULL_ADDRESS,
         },
     },
+    {
+        symbol: 'AAVE',
+        name: 'AAVE',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
 ];
