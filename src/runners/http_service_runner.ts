@@ -9,6 +9,7 @@ import { META_TRANSACTION_PATH, METRICS_PATH, SRA_PATH, STAKING_PATH, SWAP_PATH 
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
+import { cacheControl } from '../middleware/cache_control';
 import { errorHandler } from '../middleware/error_handling';
 import { createMetaTransactionRouter } from '../routers/meta_transaction_router';
 import { createMetricsRouter } from '../routers/metrics_router';
@@ -71,6 +72,7 @@ export async function runHttpServiceAsync(
 
     // transform all values of `req.query.[xx]Address` to lowercase
     app.use(addressNormalizer);
+    app.use(cacheControl);
 
     // staking http service
     app.use(STAKING_PATH, createStakingRouter(dependencies.stakingDataService));
