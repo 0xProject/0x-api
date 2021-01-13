@@ -118,8 +118,10 @@ export class OrderWatcherService {
         // and other databases have higher limits (or no limits at all, eg postgresql)
         // tslint:disable-next-line:custom-no-magic-numbers
         const chunks = _.chunk(orderHashes, 999);
+
+        const signedOrderRepository = this._connection.getRepository(SignedOrderEntity);
         for (const chunk of chunks) {
-            await this._connection.manager.delete(SignedOrderEntity, chunk);
+            await signedOrderRepository.delete(chunk);
         }
     }
     private async _onOrderLifeCycleEventAsync(
@@ -143,7 +145,9 @@ export class OrderWatcherService {
                 // so we need to leave space for the attributes on the model represented
                 // as SQL variables in the "AS" syntax. We leave 99 free for the
                 // signedOrders model
-                await this._connection.manager.save(signedOrdersModel, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
+                await this._connection
+                    .getRepository(SignedOrderEntity)
+                    .save(signedOrdersModel, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
                 break;
             }
             case OrderWatcherLifeCycleEvents.Removed: {
