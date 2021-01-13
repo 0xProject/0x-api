@@ -191,7 +191,11 @@ export const RFQT_REGISTRY_PASSWORDS: string[] = _.isEmpty(process.env.RFQT_REGI
 
 export const RFQT_API_KEY_WHITELIST: string[] = _.isEmpty(process.env.RFQT_API_KEY_WHITELIST_JSON)
     ? []
-    : assertEnvVarType('RFQT_API_KEY_WHITELIST_JSON', process.env.RFQT_API_KEY_WHITELIST_JSON, EnvVarType.JsonStringList);
+    : assertEnvVarType(
+          'RFQT_API_KEY_WHITELIST_JSON',
+          process.env.RFQT_API_KEY_WHITELIST_JSON,
+          EnvVarType.JsonStringList,
+      );
 
 export const PLP_API_KEY_WHITELIST: string[] = _.isEmpty(process.env.PLP_API_KEY_WHITELIST_JSON)
     ? []
@@ -471,7 +475,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             return apiKeys;
         case EnvVarType.JsonStringList:
             assert.isString(name, value);
-            return JSON.parse(value)
+            return JSON.parse(value);
         case EnvVarType.RfqtMakerAssetOfferings:
             const offerings: RfqtMakerAssetOfferings = JSON.parse(value);
             // tslint:disable-next-line:forin
