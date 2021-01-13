@@ -1,49 +1,58 @@
+import * as express from 'express';
 import { Connection } from 'typeorm';
 
 import { getDefaultAppDependenciesAsync } from '../app';
-import { defaultHttpServiceWithRateLimiterConfig } from '../config';
+import { defaultHttpServiceConfig } from '../config';
+import { METRICS_PATH } from '../constants';
 import { OrderWatcherSyncError } from '../errors';
 import { logger } from '../logger';
+import { createMetricsRouter } from '../routers/metrics_router';
+import { MetricsService } from '../services/metrics_service';
 import { OrderWatcherService } from '../services/order_watcher_service';
 import { MeshClient } from '../utils/mesh_client';
 import { providerUtils } from '../utils/provider_utils';
 
 if (require.main === module) {
     (async () => {
-        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
-        const { connection, meshClient } = await getDefaultAppDependenciesAsync(
-            provider,
-            defaultHttpServiceWithRateLimiterConfig,
-        );
+        const provider = providerUtils.createWeb3Provider(defaultHttpServiceConfig.ethereumRpcUrl);
+        const { connection, meshClient } = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceConfig);
+        if (defaultHttpServiceConfig.enablePrometheusMetrics) {
+            const app = express();
+            const metricsService = new MetricsService();
+            const metricsRouter = createMetricsRouter(metricsService);
+            app.use(METRICS_PATH, metricsRouter);
+            const server = app.listen(defaultHttpServiceConfig.prometheusPort, () => {
+                logger.info(`Metrics (HTTP) listening on port ${defaultHttpServiceConfig.prometheusPort}`);
+            });
+            server.on('error', (err) => {
+                logger.error(err);
+            });
+        }
 
         if (meshClient) {
             await runOrderWatcherServiceAsync(connection, meshClient);
 
             logger.info(
-                `Order Watching Service started!\nConfig: ${JSON.stringify(
-                    defaultHttpServiceWithRateLimiterConfig,
-                    null,
-                    2,
-                )}`,
+                `Order Watching Service started!\nConfig: ${JSON.stringify(defaultHttpServiceConfig, null, 2)}`,
             );
         } else {
             logger.error(
                 `Order Watching Service could not be started! Could not start mesh client!\nConfig: ${JSON.stringify(
-                    defaultHttpServiceWithRateLimiterConfig,
+                    defaultHttpServiceConfig,
                     null,
                     2,
                 )}`,
             );
             process.exit(1);
         }
-    })().catch(error => logger.error(error.stack));
+    })().catch((error) => logger.error(error.stack));
 }
-process.on('uncaughtException', err => {
+process.on('uncaughtException', (err) => {
     logger.error(err);
     process.exit(1);
 });
 
-process.on('unhandledRejection', err => {
+process.on('unhandledRejection', (err) => {
     if (err) {
         logger.error(err);
     }
