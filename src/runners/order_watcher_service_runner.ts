@@ -15,11 +15,16 @@ import { providerUtils } from '../utils/provider_utils';
 if (require.main === module) {
     (async () => {
         const provider = providerUtils.createWeb3Provider(defaultHttpServiceConfig.ethereumRpcUrl);
-        const { connection, meshClient } = await getDefaultAppDependenciesAsync(provider, defaultHttpServiceConfig);
+        const { connection, meshClient, metricsService } = await getDefaultAppDependenciesAsync(
+            provider,
+            defaultHttpServiceConfig,
+        );
         if (defaultHttpServiceConfig.enablePrometheusMetrics) {
             const app = express();
-            const metricsService = new MetricsService();
-            const metricsRouter = createMetricsRouter(metricsService);
+            const metricsRouter =
+                metricsService !== undefined
+                    ? createMetricsRouter(metricsService)
+                    : createMetricsRouter(new MetricsService());
             app.use(METRICS_PATH, metricsRouter);
             const server = app.listen(defaultHttpServiceConfig.prometheusPort, () => {
                 logger.info(`Metrics (HTTP) listening on port ${defaultHttpServiceConfig.prometheusPort}`);
