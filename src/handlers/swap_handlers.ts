@@ -5,8 +5,9 @@ import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
+import { Counter } from 'prom-client';
 
-import { CHAIN_ID, PLP_API_KEY_WHITELIST, RFQT_API_KEY_WHITELIST } from '../config';
+import { CHAIN_ID, PLP_API_KEY_WHITELIST, RFQT_API_KEY_WHITELIST, RFQT_REGISTRY_PASSWORDS } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
@@ -45,6 +46,15 @@ import {
 
 import { quoteReportUtils } from './../utils/quote_report_utils';
 
+const BEARER_RE = /^Bearer\s(.{36})$/;
+const REGISTRY_SET: Set<string> = new Set(RFQT_REGISTRY_PASSWORDS)
+const REGISTRY_ENDPOINT_FETCHED = new Counter({
+    name: 'swap_handler_registry_endpoint_fetched',
+    help: 'Requests to the swap handler',
+    labelNames: ['identifier'],
+});
+
+
 export class SwapHandlers {
     private readonly _swapService: SwapService;
     public static rootAsync(_req: express.Request, res: express.Response): void {
@@ -53,6 +63,23 @@ export class SwapHandlers {
     }
     constructor(swapService: SwapService) {
         this._swapService = swapService;
+    }
+
+    public async getRfqRegistryAsync(req: express.Request, res: express.Response): Promise<void> {
+        const auth = req.header('Authorization');
+        if (auth === undefined) {
+            return res.status(HttpStatus.UNAUTHORIZED).end()
+        }
+        REGISTRY_ENDPOINT_FETCHED.labels(auth).inc();
+        const authTokenRegex = auth.match(BEARER_RE);
+        if (!authTokenRegex) {
+            return res.status(HttpStatus.UNAUTHORIZED).end()
+        }
+        const authToken = authTokenRegex[1];
+        if (!REGISTRY_SET.has(authToken)) {
+            return res.status(HttpStatus.UNAUTHORIZED).end()
+        }
+        res.status(HttpStatus.OK).send(RFQT_API_KEY_WHITELIST).end();
     }
 
     public async getSwapQuoteAsync(req: express.Request, res: express.Response): Promise<void> {

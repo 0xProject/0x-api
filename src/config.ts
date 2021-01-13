@@ -52,6 +52,7 @@ enum EnvVarType {
     RfqtMakerAssetOfferings,
     RateLimitConfig,
     LiquidityProviderRegistry,
+    JsonStringList,
 }
 
 // Log level for pino.js
@@ -183,6 +184,10 @@ export const LIQUIDITY_PROVIDER_REGISTRY: LiquidityProviderRegistry = _.isEmpty(
           process.env.LIQUIDITY_PROVIDER_REGISTRY,
           EnvVarType.LiquidityProviderRegistry,
       );
+
+export const RFQT_REGISTRY_PASSWORDS: string[] = _.isEmpty(process.env.RFQT_REGISTRY_PASSWORDS)
+    ? []
+    : assertEnvVarType('RFQT_REGISTRY_PASSWORDS', process.env.RFQT_REGISTRY_PASSWORDS, EnvVarType.JsonStringList);
 
 export const RFQT_API_KEY_WHITELIST: string[] = _.isEmpty(process.env.RFQT_API_KEY_WHITELIST)
     ? []
@@ -464,6 +469,9 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 }
             });
             return apiKeys;
+        case EnvVarType.JsonStringList:
+            assert.isString(name, value);
+            return JSON.parse(value)
         case EnvVarType.RfqtMakerAssetOfferings:
             const offerings: RfqtMakerAssetOfferings = JSON.parse(value);
             // tslint:disable-next-line:forin
