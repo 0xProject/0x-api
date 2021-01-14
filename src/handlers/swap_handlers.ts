@@ -46,7 +46,7 @@ import {
 
 import { quoteReportUtils } from './../utils/quote_report_utils';
 
-const BEARER_RE = /^Bearer\s(.{36})$/;
+const BEARER_REGEX = /^Bearer\s(.{36})$/;
 const REGISTRY_SET: Set<string> = new Set(RFQT_REGISTRY_PASSWORDS);
 const REGISTRY_ENDPOINT_FETCHED = new Counter({
     name: 'swap_handler_registry_endpoint_fetched',
@@ -67,7 +67,7 @@ export class SwapHandlers {
             return res.status(HttpStatus.UNAUTHORIZED).end();
         }
         REGISTRY_ENDPOINT_FETCHED.labels(auth).inc();
-        const authTokenRegex = auth.match(BEARER_RE);
+        const authTokenRegex = auth.match(BEARER_REGEX);
         if (!authTokenRegex) {
             return res.status(HttpStatus.UNAUTHORIZED).end();
         }
