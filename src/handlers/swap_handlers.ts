@@ -63,10 +63,10 @@ export class SwapHandlers {
 
     public static async getRfqRegistryAsync(req: express.Request, res: express.Response): Promise<void> {
         const auth = req.header('Authorization');
+        REGISTRY_ENDPOINT_FETCHED.labels(auth || 'N/A').inc();
         if (auth === undefined) {
             return res.status(HttpStatus.UNAUTHORIZED).end();
         }
-        REGISTRY_ENDPOINT_FETCHED.labels(auth).inc();
         const authTokenRegex = auth.match(BEARER_REGEX);
         if (!authTokenRegex) {
             return res.status(HttpStatus.UNAUTHORIZED).end();
