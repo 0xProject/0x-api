@@ -565,14 +565,14 @@
     dexie "^3.0.1"
     ethereum-types "^3.0.0"
 
-"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.1.0-ed4b4978":
+"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.1.0-22400d00":
   version "10.1.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/fee5c19debe54e59b99eae2cdecf6022fd4d2203"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/b810bbe6102202c4f9a31bac35def324c15ea551"
   dependencies:
     "@0x/mesh-browser-lite" "^10.1.0"
     "@0x/types" "^3.2.0"
     "@0x/utils" "^5.4.0"
-    "@apollo/client" "^3.2.3"
+    "@apollo/client" "^3.3.6"
     "@types/ws" "^7.2.6"
     graphql "^15.3.0"
     react "*"
@@ -1177,7 +1177,7 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@apollo/client@^3.2.3":
+"@apollo/client@^3.3.6":
   version "3.3.6"
   resolved "https://registry.yarnpkg.com/@apollo/client/-/client-3.3.6.tgz#f359646308167f38d5bc498dfc2344c888400093"
   integrity sha512-XSm/STyNS8aHdDigLLACKNMHwI0qaQmEHWHtTP+jHe/E1wZRnn66VZMMgwKLy2V4uHISHfmiZ4KpUKDPeJAKqg==
