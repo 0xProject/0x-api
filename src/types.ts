@@ -611,7 +611,7 @@ export interface TransactionWatcherSignerServiceConfig {
 export interface HttpServiceConfig {
     httpPort: number;
     healthcheckHttpPort: number;
-    ethereumRpcUrl: string;
+    ethereumRpcUrl: string[];
     httpKeepAliveTimeout: number;
     httpHeadersTimeout: number;
     enablePrometheusMetrics: boolean;
