@@ -1,5 +1,6 @@
 import { assert } from '@0x/assert';
 import { Callback, ErrorCallback, Subprovider } from '@0x/subproviders';
+import { logUtils } from '@0x/utils';
 import { fetchAsync } from '@0x/utils';
 import { JSONRPCRequestPayload } from 'ethereum-types';
 
@@ -10,17 +11,17 @@ import { InternalServerError } from './errors';
  * It forwards on JSON RPC requests to the supplied `rpcUrl` endpoint
  */
 export class RPCSubprovider extends Subprovider {
-    private readonly _rpcUrl: string;
+    private readonly _rpcUrls: string[];
     private readonly _requestTimeoutMs: number;
     /**
      * @param rpcUrl URL to the backing Ethereum node to which JSON RPC requests should be sent
      * @param requestTimeoutMs Amount of miliseconds to wait before timing out the JSON RPC request
      */
-    constructor(rpcUrl: string, requestTimeoutMs: number = 20000) {
+    constructor(rpcUrls: string[], requestTimeoutMs: number = 20000) {
         super();
-        assert.isString('rpcUrl', rpcUrl);
+        rpcUrls.forEach(r => assert.isString('rpcUrl', r));
         assert.isNumber('requestTimeoutMs', requestTimeoutMs);
-        this._rpcUrl = rpcUrl;
+        this._rpcUrls = rpcUrls;
         this._requestTimeoutMs = requestTimeoutMs;
     }
     /**
@@ -33,26 +34,9 @@ export class RPCSubprovider extends Subprovider {
      */
     // tslint:disable-next-line:prefer-function-over-method async-suffix
     public async handleRequest(payload: JSONRPCRequestPayload, _next: Callback, end: ErrorCallback): Promise<void> {
-        const finalPayload = Subprovider._createFinalPayload(payload);
-        const headers = new Headers({
-            Accept: 'application/json',
-            'Accept-Encoding': 'gzip, deflate',
-            Connection: 'keep-alive',
-            'Content-Type': 'application/json',
-        });
-
         let response: Response;
         try {
-            response = await fetchAsync(
-                this._rpcUrl,
-                {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(finalPayload),
-                    keepalive: true,
-                },
-                this._requestTimeoutMs,
-            );
+            response = await this._fetchResponseAsync(this._rpcUrls, payload);
         } catch (err) {
             end(err);
             return;
@@ -76,5 +60,57 @@ export class RPCSubprovider extends Subprovider {
             return;
         }
         end(null, data.result);
+    }
+
+    /**
+     * Attempts each RPC url one by one until a parsable response is returned.
+     * Attempts the next provider on a 429 or network error.
+     * @param rpcUrls
+     * @param payload
+     */
+    private async _fetchResponseAsync(rpcUrls: string[], payload: JSONRPCRequestPayload): Promise<Response> {
+        const finalPayload = Subprovider._createFinalPayload(payload);
+        const headers = new Headers({
+            Accept: 'application/json',
+            'Accept-Encoding': 'gzip, deflate',
+            Connection: 'keep-alive',
+            'Content-Type': 'application/json',
+        });
+        const body = JSON.stringify(finalPayload);
+
+        let response: Response | undefined;
+        let error: Error | undefined;
+        for (const rpcUrl of rpcUrls) {
+            try {
+                response = await fetchAsync(
+                    rpcUrl,
+                    {
+                        method: 'POST',
+                        headers,
+                        body,
+                        keepalive: true,
+                    },
+                    this._requestTimeoutMs,
+                );
+                switch (response.status) {
+                    case 429: // Rate limited
+                    case 502: // Bad Gateway
+                    case 503: // Service Unavailable
+                        logUtils.log(`RPCSubprovider failure on ${rpcUrl}`);
+                        continue;
+                    default:
+                        break;
+                }
+            } catch (err) {
+                error = err;
+                logUtils.log(`RPCSubprovider failure on ${rpcUrl} ${err.message}`);
+            }
+        }
+
+        if (!response) {
+            const err = error || new InternalServerError('RPCSubprovider exhausted all RPC urls');
+            throw err;
+        }
+        return response;
     }
 }
