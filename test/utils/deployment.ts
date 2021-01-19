@@ -28,6 +28,7 @@ export interface LoggingConfig {
 }
 
 let didTearDown = false;
+const dockerComposeFilename = 'docker-compose-test.yml';
 
 /**
  * Sets up 0x-api's dependencies.
@@ -45,7 +46,7 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     }
 
     // Spin up the 0x-api dependencies
-    const up = spawn('docker-compose', ['up'], {
+    const up = spawn('docker-compose', ['-f', dockerComposeFilename, 'up'], {
         cwd: testRootDir,
         env: {
             ...process.env,
@@ -72,8 +73,8 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
  * @param logType Indicates where logs should be directed.
  */
 export async function teardownDependenciesAsync(suiteName: string, logType?: LogType): Promise<void> {
-    // Tear down any existing docker containers from the `docker-compose.yml` file.
-    const down = spawn('docker-compose', ['down'], {
+    // Tear down any existing docker containers from the `docker-compose-test.yml` file.
+    const down = spawn('docker-compose', ['-f', dockerComposeFilename, 'down'], {
         cwd: testRootDir,
     });
     directLogs(down, suiteName, 'down', logType);
@@ -106,15 +107,18 @@ function directLogs(
 const volumeRegex = new RegExp(/[ \t\r]*volumes:.*\n([ \t\r]*-.*\n)+/, 'g');
 let didCreateFreshComposeFile = false;
 
-// Removes the volume fields from the docker-compose.yml to fix a
+// Removes the volume fields from the docker-compose-test.yml to fix a
 // docker compatibility issue with Linux systems.
 // Issue: https://github.com/0xProject/0x-api/issues/186
 async function createFreshDockerComposeFileOnceAsync(): Promise<void> {
     if (didCreateFreshComposeFile) {
         return;
     }
-    const dockerComposeString = (await promisify(fs.readFile)(`${apiRootDir}/docker-compose.yml`)).toString();
-    await promisify(fs.writeFile)(`${testRootDir}/docker-compose.yml`, dockerComposeString.replace(volumeRegex, ''));
+    const dockerComposeString = (await promisify(fs.readFile)(`${apiRootDir}/${dockerComposeFilename}`)).toString();
+    await promisify(fs.writeFile)(
+        `${testRootDir}/${dockerComposeFilename}`,
+        dockerComposeString.replace(volumeRegex, ''),
+    );
     didCreateFreshComposeFile = true;
 }
 
