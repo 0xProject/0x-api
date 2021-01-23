@@ -322,20 +322,16 @@ export const poolTotalProtocolFeesGeneratedQuery = `
                   case when fwe.protocol_version='v4' then fwe.pool
                       else esps.pool_id end
                    as pool_id
-                  , SUM(protocol_fee_paid) / 1e18 AS total_protocol_fees
-                  , COUNT(*) AS number_of_fills
-              FROM fills_with_epochs fwe
-              LEFT JOIN staking.epoch_start_pool_status esps ON
-                  fwe.maker = ANY(esps.maker_addresses)
-                  AND fwe.epoch_id = esps.epoch_id
-              WHERE
-                  (case when fe.protocol_version='v4'
-                      then fe.pool != '0'
-                      else pi.pool_id is not null
-                  end)
-                  AND (case when fe.protocol_version='v4'
-                      then fe.pool = $1
-                      else pi.pool_id = $1
+                , SUM(protocol_fee_paid) / 1e18 AS total_protocol_fees
+                , COUNT(*) AS number_of_fills
+            FROM fills_with_epochs fwe
+            LEFT JOIN staking.epoch_start_pool_status esps ON
+                fwe.maker = ANY(esps.maker_addresses)
+                AND fwe.epoch_id = esps.epoch_id
+            WHERE
+                (case when protocol_version='v4'
+                      then pool = $1
+                      else pool_id = $1
                       end)
             GROUP BY 1;
 `;
