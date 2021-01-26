@@ -16,7 +16,7 @@ import {
 } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
-import { assetDataUtils, ETH_TOKEN_ADDRESS, SupportedProvider } from '@0x/order-utils';
+import { ETH_TOKEN_ADDRESS, SupportedProvider } from '@0x/order-utils';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
@@ -78,8 +78,8 @@ export class SwapService {
         swapQuote: SwapQuote,
         affiliateFee: PercentageFee,
     ): { price: BigNumber; guaranteedPrice: BigNumber } {
-        const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
-        const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
+        const { makerAmount: makerAssetAmount, totalTakerAmount: totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
+        const { totalTakerAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
         const guaranteedMakerAssetAmount = getSwapMinBuyAmount(swapQuote);
         const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
         const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
@@ -121,7 +121,7 @@ export class SwapService {
     }
 
     constructor(
-        orderbook: Orderbook,
+        _orderbook: Orderbook,
         provider: SupportedProvider,
         contractAddresses: AssetSwapperContractAddresses,
         firmQuoteValidator?: RfqtFirmQuoteValidator | undefined,
@@ -137,7 +137,15 @@ export class SwapService {
             },
             contractAddresses,
         };
-        this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
+        this._swapQuoter = new SwapQuoter(
+            this._provider,
+            {
+                getBatchOrdersAsync: () => Promise.resolve([]),
+                getOrdersAsync: () => Promise.resolve([]),
+                destroyAsync: () => Promise.resolve(),
+            },
+            swapQuoterOpts,
+        );
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._provider, swapQuoterOpts);
         this._web3Wrapper = new Web3Wrapper(this._provider);
 
@@ -167,8 +175,8 @@ export class SwapService {
             orders: serviceUtils.attributeSwapQuoteOrders(swapQuote.orders),
         };
         const {
-            makerAssetAmount,
-            totalTakerAssetAmount,
+            makerAmount: makerAssetAmount,
+            totalTakerAmount: totalTakerAssetAmount,
             protocolFeeInWeiAmount: bestCaseProtocolFee,
         } = attributedSwapQuote.bestCaseQuoteInfo;
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = attributedSwapQuote.worstCaseQuoteInfo;
@@ -233,12 +241,13 @@ export class SwapService {
             fill => fill.source === ERC20BridgeSource.Native,
         );
 
-        const hasRFQTOrders = swapQuote.orders.some(order => {
-            const isNativeOrder = order.fills.some(fill => fill.source === ERC20BridgeSource.Native);
-            const hasTakerAddress = order.takerAddress !== NULL_ADDRESS;
+        //const hasRFQTOrders = swapQuote.orders.some(order => {
+        //    const isNativeOrder = order.fills.some(fill => fill.source === ERC20BridgeSource.Native);
+        //    const hasTakerAddress = order.takerAddress !== NULL_ADDRESS;
 
-            return isNativeOrder && hasTakerAddress;
-        });
+        //    return isNativeOrder && hasTakerAddress;
+        //});
+        const hasRFQTOrders = false;
 
         // NOTE: Takers have a tendency to bump the gas price in order to speed up their trades
         // for Native orders this often leads to an insufficient protocol fee being included and
@@ -260,20 +269,22 @@ export class SwapService {
         }
 
         adjustedValue = isETHSell
-            ? adjustedWorstCaseProtocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAssetAmount)
+            ? // TODO JACOB
+              // ? adjustedWorstCaseProtocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAmount)
+              adjustedWorstCaseProtocolFee.plus(swapQuote.bestCaseQuoteInfo.takerAmount)
             : adjustedWorstCaseProtocolFee;
 
         // No allowance target is needed if this is an ETH sell, so set to 0x000..
         const allowanceTarget = isETHSell ? NULL_ADDRESS : this._contractAddresses.exchangeProxy;
 
-        const { takerAssetToEthRate, makerAssetToEthRate } = swapQuote;
+        const { takerTokenToEthRate, makerTokenToEthRate } = swapQuote;
 
         // Convert into unit amounts
         const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
-        const sellTokenToEthRate = takerAssetToEthRate
+        const sellTokenToEthRate = takerTokenToEthRate
             .times(new BigNumber(10).pow(wethToken.decimals - takerTokenDecimals))
             .decimalPlaces(takerTokenDecimals);
-        const buyTokenToEthRate = makerAssetToEthRate
+        const buyTokenToEthRate = makerTokenToEthRate
             .times(new BigNumber(10).pow(wethToken.decimals - makerTokenDecimals))
             .decimalPlaces(makerTokenDecimals);
 
@@ -295,7 +306,8 @@ export class SwapService {
             buyAmount: makerAssetAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAssetAmount,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
-            orders: serviceUtils.cleanSignedOrderFields(orders),
+            // orders: serviceUtils.cleanSignedOrderFields(orders),
+            orders: orders as any,
             allowanceTarget,
             decodedUniqueId,
             sellTokenToEthRate,
@@ -317,22 +329,18 @@ export class SwapService {
         // Gets the price for buying 1 unit (not base unit as this is different between tokens with differing decimals)
         // returns price in sellToken units, e.g What is the price of 1 ZRX (in DAI)
         // Equivalent to performing multiple swap quotes selling sellToken and buying 1 whole buy token
-        const takerAssetData = assetDataUtils.encodeERC20AssetData(sellToken.tokenAddress);
-        const queryAssetData = TokenMetadatasForChains.filter(m => m.symbol !== sellToken.symbol).filter(
+        const queryTokens = TokenMetadatasForChains.filter(m => m.symbol !== sellToken.symbol).filter(
             m => m.tokenAddresses[CHAIN_ID] !== NULL_ADDRESS,
         );
         const chunkSize = 15;
-        const assetDataChunks = _.chunk(queryAssetData, chunkSize);
+        const assetDataChunks = _.chunk(queryTokens, chunkSize);
         const allResults = _.flatten(
             await Promise.all(
                 assetDataChunks.map(async a => {
-                    const encodedAssetData = a.map(m =>
-                        assetDataUtils.encodeERC20AssetData(m.tokenAddresses[CHAIN_ID]),
-                    );
                     const amounts = a.map(m => Web3Wrapper.toBaseUnitAmount(unitAmount, m.decimals));
-                    const quotes = await this._swapQuoter.getBatchMarketBuySwapQuoteForAssetDataAsync(
-                        encodedAssetData,
-                        takerAssetData,
+                    const quotes = await this._swapQuoter.getBatchMarketBuySwapQuoteAsync(
+                        a.map(m => m.tokenAddresses[CHAIN_ID]),
+                        sellToken.tokenAddress,
                         amounts,
                         {
                             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
@@ -351,16 +359,19 @@ export class SwapService {
                 if (!quote) {
                     return undefined;
                 }
-                const buyTokenDecimals = queryAssetData[i].decimals;
+                const buyTokenDecimals = queryTokens[i].decimals;
                 const sellTokenDecimals = sellToken.decimals;
-                const { makerAssetAmount, totalTakerAssetAmount } = quote.bestCaseQuoteInfo;
+                const {
+                    makerAmount: makerAssetAmount,
+                    totalTakerAmount: totalTakerAssetAmount,
+                } = quote.bestCaseQuoteInfo;
                 const unitMakerAssetAmount = Web3Wrapper.toUnitAmount(makerAssetAmount, buyTokenDecimals);
                 const unitTakerAssetAmount = Web3Wrapper.toUnitAmount(totalTakerAssetAmount, sellTokenDecimals);
                 const price = unitTakerAssetAmount
                     .dividedBy(unitMakerAssetAmount)
                     .decimalPlaces(sellTokenDecimals, BigNumber.ROUND_CEIL);
                 return {
-                    symbol: queryAssetData[i].symbol,
+                    symbol: queryTokens[i].symbol,
                     price,
                 };
             })

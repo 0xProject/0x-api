@@ -1,10 +1,10 @@
 import {
-    BridgeReportSource,
+    BridgeQuoteReportEntry,
     DEFAULT_GAS_SCHEDULE,
     ERC20BridgeSource,
     FeeSchedule,
-    MultiHopReportSource,
-    NativeRFQTReportSource,
+    MultiHopQuoteReportEntry,
+    NativeRfqOrderQuoteReportEntry,
     QuoteReport,
     SushiSwapFillData,
     UniswapV2FillData,
@@ -116,15 +116,15 @@ function getPriceComparisonFromQuoteOrThrow(
         let gas: BigNumber;
         if (liquiditySource === ERC20BridgeSource.Native) {
             // tslint:disable-next-line:no-unnecessary-type-assertion
-            const typedSource = source as NativeRFQTReportSource;
+            const typedSource = source as NativeRfqOrderQuoteReportEntry;
             gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!());
         } else if (liquiditySource === ERC20BridgeSource.MultiHop) {
             // tslint:disable-next-line:no-unnecessary-type-assertion
-            const typedSource = source as MultiHopReportSource;
+            const typedSource = source as MultiHopQuoteReportEntry;
             gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!(typedSource.fillData));
         } else {
             // tslint:disable-next-line:no-unnecessary-type-assertion
-            const typedSource = source as BridgeReportSource;
+            const typedSource = source as BridgeQuoteReportEntry;
             gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!(typedSource.fillData));
         }
 

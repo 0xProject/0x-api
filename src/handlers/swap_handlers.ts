@@ -6,6 +6,7 @@ import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
 import { Counter } from 'prom-client';
+import { FillQuoteTransformerOrderType } from '../../../0x-monorepo/node_modules/@0x/protocol-utils/lib/src';
 
 import { CHAIN_ID, PLP_API_KEY_WHITELIST, RFQT_API_KEY_WHITELIST, RFQT_REGISTRY_PASSWORDS } from '../config';
 import {
@@ -95,7 +96,10 @@ export class SwapHandlers {
                     sellToken: params.sellToken,
                     buyAmount: params.buyAmount,
                     sellAmount: params.sellAmount,
-                    makers: quote.orders.map(order => order.makerAddress),
+                    // TODO jacob
+                    makers: quote.orders
+                        .filter(o => o.type !== FillQuoteTransformerOrderType.Bridge)
+                        .map(order => (order.fillData as any).makerAddress),
                 },
             });
             if (quote.quoteReport && params.rfqt && params.rfqt.intentOnFilling) {
@@ -142,7 +146,10 @@ export class SwapHandlers {
                 sellToken: params.sellToken,
                 buyAmount: params.buyAmount,
                 sellAmount: params.sellAmount,
-                makers: quote.orders.map(o => o.makerAddress),
+                // TODO jacob
+                makers: quote.orders
+                    .filter(o => o.type !== FillQuoteTransformerOrderType.Bridge)
+                    .map(order => (order.fillData as any).makerAddress),
             },
         });
 

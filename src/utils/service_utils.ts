@@ -6,7 +6,6 @@ import {
     SwapQuote,
     SwapQuoteOrdersBreakdown,
 } from '@0x/asset-swapper';
-import { assetDataUtils } from '@0x/order-utils';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
@@ -22,7 +21,6 @@ import {
 } from '../constants';
 import { logger } from '../logger';
 import { AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource, PercentageFee } from '../types';
-import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
 import { numberUtils } from './number_utils';
@@ -32,13 +30,14 @@ export const serviceUtils = {
         // Where possible, attribute any fills of these orders to the Fee Recipient Address
         return orders.map(o => {
             try {
-                const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData);
-                if (orderUtils.isBridgeAssetData(decodedAssetData)) {
-                    return {
-                        ...o,
-                        feeRecipientAddress: FEE_RECIPIENT_ADDRESS,
-                    };
-                }
+                // TODO jacob
+                //const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData);
+                //if (orderUtils.isBridgeAssetData(decodedAssetData)) {
+                //    return {
+                //        ...o,
+                //        feeRecipientAddress: FEE_RECIPIENT_ADDRESS,
+                //    };
+                //}
                 // tslint:disable-next-line:no-empty
             } catch (err) {}
             // Default to unmodified order

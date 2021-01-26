@@ -1,6 +1,7 @@
 import {
     ContractAddresses,
     ERC20BridgeSource,
+    OptimizedMarketOrder,
     QuoteReport,
     RfqtRequestOpts,
     SupportedProvider,
@@ -444,7 +445,7 @@ interface SwapQuoteParamsBase {
 // GET /swap/quote
 export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, BasePriceResponse {
     guaranteedPrice: BigNumber;
-    orders: SignedOrder[];
+    orders: OptimizedMarketOrder[];
     from?: string;
     quoteReport?: QuoteReport;
 }
@@ -482,7 +483,7 @@ export interface Price {
 export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
     mtxHash: string;
     mtx: ExchangeProxyMetaTransaction;
-    orders: SignedOrder[];
+    orders: OptimizedMarketOrder[];
 }
 
 // GET /meta_transaction/price
@@ -537,7 +538,7 @@ export interface CalculateMetaTransactionQuoteResponse extends QuoteBase {
     buyTokenAddress: string;
     takerAddress: string;
     quoteReport?: QuoteReport;
-    orders: SignedOrder[];
+    orders: OptimizedMarketOrder[];
     callData: string;
 }
 

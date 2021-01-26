@@ -1,19 +1,19 @@
-import { ContractTxFunctionObj, QuoteReport } from '@0x/asset-swapper';
+import { ContractTxFunctionObj, OptimizedMarketOrder, QuoteReport } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
 import {
-    assetDataUtils,
-    decodeFillQuoteTransformerData,
     findTransformerNonce,
     generatePseudoRandomSalt,
     getExchangeProxyMetaTransactionHash,
     SupportedProvider,
 } from '@0x/order-utils';
 import { PartialTxParams } from '@0x/subproviders';
-import { ExchangeProxyMetaTransaction, Order, SignedOrder } from '@0x/types';
+import { ExchangeProxyMetaTransaction } from '@0x/types';
 import { BigNumber, RevertError } from '@0x/utils';
 import * as _ from 'lodash';
 import { Connection, Repository } from 'typeorm';
+import { ZERO_AMOUNT } from '../../../0x-monorepo/node_modules/@0x/order-utils/lib/src';
+import { FillQuoteTransformerOrderType } from '../../../0x-monorepo/node_modules/@0x/protocol-utils/lib/src';
 
 import {
     CHAIN_ID,
@@ -399,15 +399,17 @@ export class MetaTransactionService {
             throw new Error('Could not find fill quote transformation in decoded calldata');
         }
 
-        const totalProtocolFeeRequiredForOrders = fillQuoteTransformations.reduce((memo, transformation) => {
-            const decodedFillQuoteTransformerData = decodeFillQuoteTransformerData(transformation.data);
-            const protocolFee = calculateProtocolFeeRequiredForOrders(
-                mtx.maxGasPrice,
-                decodedFillQuoteTransformerData.orders,
-            );
+        // TODO jacob
+        const totalProtocolFeeRequiredForOrders = ZERO_AMOUNT;
+        //fillQuoteTransformations.reduce((memo, transformation) => {
+        //    const decodedFillQuoteTransformerData = decodeFillQuoteTransformerData(transformation.data);
+        //    const protocolFee = calculateProtocolFeeRequiredForOrders(
+        //        mtx.maxGasPrice,
+        //        decodedFillQuoteTransformerData.orders,
+        //    );
 
-            return memo.plus(protocolFee);
-        }, new BigNumber(0));
+        //    return memo.plus(protocolFee);
+        //}, new BigNumber(0));
 
         return totalProtocolFeeRequiredForOrders;
     }
@@ -443,10 +445,8 @@ function createExpirationTime(): BigNumber {
     return new BigNumber(Date.now() + TEN_MINUTES_MS).div(ONE_SECOND_MS).integerValue(BigNumber.ROUND_CEIL);
 }
 
-function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: (SignedOrder | Order)[]): BigNumber {
-    const nativeOrderCount = orders.filter(
-        o => !assetDataUtils.isERC20BridgeAssetData(assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData)),
-    ).length;
+function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: OptimizedMarketOrder[]): BigNumber {
+    const nativeOrderCount = orders.filter(o => o.type === FillQuoteTransformerOrderType.Limit).length;
     return gasPrice.times(nativeOrderCount).times(PROTOCOL_FEE_MULTIPLIER);
 }
 // tslint:disable-next-line: max-file-line-count
