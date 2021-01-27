@@ -15,7 +15,7 @@ import {
 } from '../errors';
 import { schemas as apiSchemas } from '../schemas/schemas';
 import { OrderBookService } from '../services/orderbook_service';
-import { SignedOrderV4 } from '../types';
+import { SignedLimitOrder } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 import { parseUtils } from '../utils/parse_utils';
@@ -153,8 +153,8 @@ function validateAssetTokenOrThrow(allowedTokens: string[], tokenAddress: string
 }
 
 // As the order come in as JSON they need to be turned into the correct types such as BigNumber
-function unmarshallOrder(signedOrderRaw: any): SignedOrderV4 {
-    const signedOrder: SignedOrderV4 = {
+function unmarshallOrder(signedOrderRaw: any): SignedLimitOrder {
+    const signedOrder: SignedLimitOrder = {
         ...signedOrderRaw,
         takerTokenFeeAmount: new BigNumber(signedOrderRaw.takerTokenFeeAmount),
         makerAmount: new BigNumber(signedOrderRaw.makerAmount),
@@ -166,7 +166,7 @@ function unmarshallOrder(signedOrderRaw: any): SignedOrderV4 {
 }
 
 // As the orders come in as JSON they need to be turned into the correct types such as BigNumber
-function unmarshallOrders(signedOrdersRaw: any[]): SignedOrderV4[] {
+function unmarshallOrders(signedOrdersRaw: any[]): SignedLimitOrder[] {
     return signedOrdersRaw.map(signedOrderRaw => {
         return unmarshallOrder(signedOrderRaw);
     });

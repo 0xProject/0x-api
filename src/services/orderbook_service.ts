@@ -16,7 +16,7 @@ import {
     APIOrder,
     APIOrderWithMetaData,
     PinResult,
-    SignedOrderV4,
+    SignedLimitOrder,
     SRAGetOrdersRequestOpts,
 } from '../types';
 import { MeshClient } from '../utils/mesh_client';
@@ -229,15 +229,15 @@ export class OrderBookService {
         this._meshClient = meshClient;
         this._connection = connection;
     }
-    public async addOrderAsync(signedOrder: SignedOrderV4, pinned: boolean): Promise<void> {
+    public async addOrderAsync(signedOrder: SignedLimitOrder, pinned: boolean): Promise<void> {
         return this.addOrdersAsync([signedOrder], pinned);
     }
-    public async addOrdersAsync(signedOrders: SignedOrderV4[], pinned: boolean): Promise<void> {
+    public async addOrdersAsync(signedOrders: SignedLimitOrder[], pinned: boolean): Promise<void> {
         // Order Watcher Service will handle persistence
         await this._addOrdersAsync(signedOrders, pinned);
         return;
     }
-    public async addPersistentOrdersAsync(signedOrders: SignedOrderV4[], pinned: boolean): Promise<void> {
+    public async addPersistentOrdersAsync(signedOrders: SignedLimitOrder[], pinned: boolean): Promise<void> {
         const accepted = await this._addOrdersAsync(signedOrders, pinned);
         const persistentOrders = accepted.map(orderInfo => {
             const apiOrder = meshUtils.orderInfoToAPIOrder({ ...orderInfo, endState: OrderEventEndState.Added });
@@ -252,10 +252,10 @@ export class OrderBookService {
             .getRepository(PersistentSignedOrderV4Entity)
             .save(persistentOrders, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
     }
-    public async splitOrdersByPinningAsync(signedOrders: SignedOrderV4[]): Promise<PinResult> {
+    public async splitOrdersByPinningAsync(signedOrders: SignedLimitOrder[]): Promise<PinResult> {
         return orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);
     }
-    private async _addOrdersAsync(signedOrders: SignedOrderV4[], pinned: boolean): Promise<AcceptedOrderResult[]> {
+    private async _addOrdersAsync(signedOrders: SignedLimitOrder[], pinned: boolean): Promise<AcceptedOrderResult[]> {
         if (this._meshClient) {
             // TODO(kimpers): FIX TYPES HERE
             const { rejected, accepted } = await this._meshClient.addOrdersV4Async(

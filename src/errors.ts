@@ -3,7 +3,7 @@ import { RevertError } from '@0x/utils';
 import * as HttpStatus from 'http-status-codes';
 
 import { ONE_SECOND_MS } from './constants';
-import { SignedOrderV4 } from './types';
+import { SignedLimitOrder } from './types';
 
 // tslint:disable:max-classes-per-file
 
@@ -160,7 +160,7 @@ export class ExpiredOrderError extends AlertError {
     public message = `Found expired order!`;
     public expiry: number;
     public expiredForSeconds: number;
-    constructor(public order: SignedOrderV4, public currentThreshold: number, public details?: string) {
+    constructor(public order: SignedLimitOrder, public currentThreshold: number, public details?: string) {
         super();
         this.expiry = order.expiry.toNumber();
         this.expiredForSeconds = Date.now() / ONE_SECOND_MS - this.expiry;

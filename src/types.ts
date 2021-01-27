@@ -6,11 +6,10 @@ import {
     SupportedProvider,
 } from '@0x/asset-swapper';
 import { OrderEventEndState, RejectedOrderCode } from '@0x/mesh-graphql-client';
-import { Signature } from '@0x/protocol-utils';
+import { LimitOrderFields, Signature } from '@0x/protocol-utils';
 import {
     ExchangeProxyMetaTransaction,
     OrdersChannelSubscriptionOpts,
-    SignedOrder,
     UpdateOrdersChannelMessage,
     ZeroExTransaction,
 } from '@0x/types';
@@ -41,7 +40,7 @@ export enum OrderWatcherLifeCycleEvents {
 }
 
 // TODO(kimpers): export from Mesh client
-export interface OrderWithMetadataV4 extends SignedOrderV4 {
+export interface OrderWithMetadataV4 extends SignedLimitOrder {
     hash: string;
     fillableTakerAssetAmount: BigNumber;
 }
@@ -57,7 +56,7 @@ export interface RejectedOrderResult {
     // The hash of the order. May be null if the hash could not be computed.
     hash?: string;
     // The order that was rejected.
-    order: SignedOrderV4;
+    order: SignedLimitOrder;
     // A machine-readable code indicating why the order was rejected. This code is designed to
     // be used by programs and applications and will never change without breaking backwards-compatibility.
     code: RejectedOrderCode;
@@ -83,7 +82,7 @@ export interface APIOrderMetaData {
 
 // TODO(kimpers): Consolidate types in @0x/types
 export interface APIOrder {
-    order: SignedOrderV4;
+    order: SignedLimitOrder;
     metaData: object;
 }
 export interface APIOrderWithMetaData extends APIOrder {
@@ -574,8 +573,8 @@ export interface CalculateMetaTransactionQuoteParams extends SwapQuoteParamsBase
  */
 
 export interface PinResult {
-    pin: SignedOrderV4[];
-    doNotPin: SignedOrderV4[];
+    pin: SignedLimitOrder[];
+    doNotPin: SignedLimitOrder[];
 }
 
 export enum TransactionStates {
@@ -672,25 +671,7 @@ export interface SRAGetOrdersRequestOpts {
     isUnfillable?: boolean; // default false
 }
 
-// TODO(kimpers): Consolidate types
-// This is copied from the mesh client
-export interface OrderV4 {
-    chainId: number;
-    verifyingContract: string;
-    makerToken: string;
-    takerToken: string;
-    makerAmount: BigNumber;
-    takerAmount: BigNumber;
-    takerTokenFeeAmount: BigNumber;
-    maker: string;
-    taker: string;
-    sender: string;
-    feeRecipient: string;
-    pool: string;
-    expiry: BigNumber;
-    salt: BigNumber;
-}
-export interface SignedOrderV4 extends OrderV4 {
+export interface SignedLimitOrder extends LimitOrderFields {
     signature: Signature;
 }
 // tslint:disable-line:max-file-line-count

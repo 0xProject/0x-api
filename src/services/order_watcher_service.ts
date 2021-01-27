@@ -1,4 +1,3 @@
-import { SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In, Not } from 'typeorm';
 
@@ -6,7 +5,7 @@ import { DB_ORDERS_UPDATE_CHUNK_SIZE, MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATI
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { OrderWatcherSyncError } from '../errors';
 import { alertOnExpiredOrders, logger } from '../logger';
-import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents, SignedOrderV4 } from '../types';
+import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents, SignedLimitOrder } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -193,7 +192,10 @@ export class OrderWatcherService {
             // Do Nothing
         }
     }
-    private async _addOrdersToMeshAsync(orders: SignedOrderV4[], pinned: boolean = false): Promise<ValidationResults> {
+    private async _addOrdersToMeshAsync(
+        orders: SignedLimitOrder[],
+        pinned: boolean = false,
+    ): Promise<ValidationResults> {
         const { accepted, rejected } = await this._meshClient.addOrdersV4Async(orders, pinned);
         return {
             accepted: meshUtils.orderInfosToApiOrders(accepted),
