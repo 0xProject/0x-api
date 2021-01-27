@@ -1,5 +1,4 @@
 import { schemas } from '@0x/json-schemas';
-import { assetDataUtils, SignedOrder } from '@0x/order-utils';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
@@ -16,6 +15,7 @@ import {
 } from '../errors';
 import { schemas as apiSchemas } from '../schemas/schemas';
 import { OrderBookService } from '../services/orderbook_service';
+import { SignedOrderV4 } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 import { parseUtils } from '../utils/parse_utils';
@@ -93,8 +93,8 @@ export class SRAHandlers {
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.makerAssetData, 'makerAssetData');
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.takerAssetData, 'takerAssetData');
+            validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
+            validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
         }
         const pinResult = await this._orderBook.splitOrdersByPinningAsync([signedOrder]);
         const isPinned = pinResult.pin.length === 1;
@@ -107,8 +107,8 @@ export class SRAHandlers {
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;
             for (const signedOrder of signedOrders) {
-                validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.makerAssetData, 'makerAssetData');
-                validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.takerAssetData, 'takerAssetData');
+                validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
+                validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
             }
         }
         const pinResult = await this._orderBook.splitOrdersByPinningAsync(signedOrders);
@@ -132,49 +132,41 @@ export class SRAHandlers {
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.makerAssetData, 'makerAssetData');
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.takerAssetData, 'takerAssetData');
+            validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
+            validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
         }
         await this._orderBook.addPersistentOrdersAsync([signedOrder], false);
         res.status(HttpStatus.OK).send();
     }
 }
 
-function validateAssetDataIsWhitelistedOrThrow(allowedTokens: string[], assetData: string, field: string): void {
-    const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(assetData);
-    if (orderUtils.isMultiAssetData(decodedAssetData)) {
-        for (const [, nestedAssetDataElement] of decodedAssetData.nestedAssetData.entries()) {
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, nestedAssetDataElement, field);
-        }
-    } else if (orderUtils.isTokenAssetData(decodedAssetData)) {
-        if (!allowedTokens.includes(decodedAssetData.tokenAddress)) {
-            throw new ValidationError([
-                {
-                    field,
-                    code: ValidationErrorCodes.ValueOutOfRange,
-                    reason: `${decodedAssetData.tokenAddress} not supported`,
-                },
-            ]);
-        }
+function validateAssetTokenOrThrow(allowedTokens: string[], tokenAddress: string, field: string): void {
+    if (!allowedTokens.includes(tokenAddress)) {
+        throw new ValidationError([
+            {
+                field,
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: `${tokenAddress} not supported`,
+            },
+        ]);
     }
 }
 
 // As the order come in as JSON they need to be turned into the correct types such as BigNumber
-function unmarshallOrder(signedOrderRaw: any): SignedOrder {
-    const signedOrder = {
+function unmarshallOrder(signedOrderRaw: any): SignedOrderV4 {
+    const signedOrder: SignedOrderV4 = {
         ...signedOrderRaw,
+        takerTokenFeeAmount: new BigNumber(signedOrderRaw.takerTokenFeeAmount),
+        makerAmount: new BigNumber(signedOrderRaw.makerAmount),
+        takerAmount: new BigNumber(signedOrderRaw.takerAmount),
+        expiry: new BigNumber(signedOrderRaw.expiry),
         salt: new BigNumber(signedOrderRaw.salt),
-        makerAssetAmount: new BigNumber(signedOrderRaw.makerAssetAmount),
-        takerAssetAmount: new BigNumber(signedOrderRaw.takerAssetAmount),
-        makerFee: new BigNumber(signedOrderRaw.makerFee),
-        takerFee: new BigNumber(signedOrderRaw.takerFee),
-        expirationTimeSeconds: new BigNumber(signedOrderRaw.expirationTimeSeconds),
     };
     return signedOrder;
 }
 
 // As the orders come in as JSON they need to be turned into the correct types such as BigNumber
-function unmarshallOrders(signedOrdersRaw: any[]): SignedOrder[] {
+function unmarshallOrders(signedOrdersRaw: any[]): SignedOrderV4[] {
     return signedOrdersRaw.map(signedOrderRaw => {
         return unmarshallOrder(signedOrderRaw);
     });

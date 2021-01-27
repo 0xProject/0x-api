@@ -1,10 +1,7 @@
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
-import { assetDataUtils } from '@0x/order-utils';
+import { Signature, SignatureType } from '@0x/protocol-utils';
 import {
-    APIOrder,
-    Asset,
     AssetData,
-    AssetPairsItem,
     AssetProxyId,
     ERC1155AssetData,
     ERC20AssetData,
@@ -13,15 +10,13 @@ import {
     MultiAssetData,
     OrderConfigRequest,
     OrderConfigResponse,
-    SignedOrder,
     StaticCallAssetData,
 } from '@0x/types';
-import { BigNumber, errorUtils } from '@0x/utils';
+import { BigNumber } from '@0x/utils';
 import { Connection, In, Like } from 'typeorm';
 
 import {
     CHAIN_ID,
-    DEFAULT_ERC20_TOKEN_PRECISION,
     FEE_RECIPIENT_ADDRESS,
     MAKER_FEE_ASSET_DATA,
     MAKER_FEE_UNIT_AMOUNT,
@@ -31,63 +26,21 @@ import {
     TAKER_FEE_ASSET_DATA,
     TAKER_FEE_UNIT_AMOUNT,
 } from '../config';
-import { MAX_TOKEN_SUPPLY_POSSIBLE, NULL_ADDRESS, ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
-import { SignedOrderEntity } from '../entities';
-import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
+import { NULL_ADDRESS, ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
+import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { logger } from '../logger';
 import * as queries from '../queries/staking_queries';
-import { APIOrderMetaData, APIOrderWithMetaData, PinResult, RawPool, SRAGetOrdersRequestOpts } from '../types';
+import {
+    APIOrder,
+    APIOrderMetaData,
+    APIOrderWithMetaData,
+    PinResult,
+    RawPool,
+    SignedOrderV4,
+    SRAGetOrdersRequestOpts,
+} from '../types';
 
 import { createResultCache, ResultCache } from './result_cache';
-
-const DEFAULT_ERC721_ASSET = {
-    minAmount: new BigNumber(0),
-    maxAmount: new BigNumber(1),
-    precision: 0,
-};
-const DEFAULT_ERC20_ASSET = {
-    minAmount: new BigNumber(0),
-    maxAmount: MAX_TOKEN_SUPPLY_POSSIBLE,
-    precision: DEFAULT_ERC20_TOKEN_PRECISION,
-};
-
-const DEFAULT_ERC1155_ASSET = {
-    minAmount: new BigNumber(0),
-    maxAmount: MAX_TOKEN_SUPPLY_POSSIBLE,
-    precision: 0,
-};
-
-const DEFAULT_MULTIASSET = {
-    minAmount: new BigNumber(0),
-    maxAmount: MAX_TOKEN_SUPPLY_POSSIBLE,
-    precision: 0,
-};
-
-const DEFAULT_STATIC_CALL = {
-    minAmount: new BigNumber(1),
-    maxAmount: MAX_TOKEN_SUPPLY_POSSIBLE,
-    precision: 0,
-};
-const proxyIdToDefaults: { [id: string]: Partial<Asset> } = {
-    [AssetProxyId.ERC20]: DEFAULT_ERC20_ASSET,
-    [AssetProxyId.ERC721]: DEFAULT_ERC721_ASSET,
-    [AssetProxyId.ERC1155]: DEFAULT_ERC1155_ASSET,
-    [AssetProxyId.MultiAsset]: DEFAULT_MULTIASSET,
-    [AssetProxyId.StaticCall]: DEFAULT_STATIC_CALL,
-    [AssetProxyId.ERC20Bridge]: DEFAULT_ERC20_ASSET,
-};
-
-const assetDataToAsset = (assetData: string): Asset => {
-    const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(assetData);
-    const defaultAsset = proxyIdToDefaults[decodedAssetData.assetProxyId];
-    if (defaultAsset === undefined) {
-        throw errorUtils.spawnSwitchErr('assetProxyId', decodedAssetData.assetProxyId);
-    }
-    return {
-        ...defaultAsset,
-        assetData,
-    } as Asset; // tslint:disable-line:no-object-literal-type-assertion
-};
 
 // Cache the expensive query of current epoch stats
 let PIN_CACHE: ResultCache<any>;
@@ -100,11 +53,13 @@ const getPoolsAsync = async (connection: Connection) => {
 
 export const orderUtils = {
     isIgnoredOrder: (addressesToIgnore: string[], apiOrder: APIOrder): boolean => {
-        return (
-            addressesToIgnore.includes(apiOrder.order.makerAddress) ||
-            orderUtils.includesTokenAddresses(apiOrder.order.makerAssetData, addressesToIgnore) ||
-            orderUtils.includesTokenAddresses(apiOrder.order.takerAssetData, addressesToIgnore)
-        );
+        return addressesToIgnore.some(addressToIgnore => {
+            const { maker, makerToken, takerToken } = apiOrder.order;
+
+            return [maker.toLowerCase(), makerToken.toLowerCase(), takerToken.toLowerCase()].includes(
+                addressToIgnore.toLowerCase(),
+            );
+        });
     },
     isMultiAssetData: (decodedAssetData: AssetData): decodedAssetData is MultiAssetData => {
         return decodedAssetData.assetProxyId === AssetProxyId.MultiAsset;
@@ -132,7 +87,7 @@ export const orderUtils = {
         expirationBufferSeconds: number = SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     ): boolean => {
         const dateNowSeconds = Date.now() / ONE_SECOND_MS;
-        return apiOrder.order.expirationTimeSeconds.toNumber() > dateNowSeconds + expirationBufferSeconds;
+        return apiOrder.order.expiry.toNumber() > dateNowSeconds + expirationBufferSeconds;
     },
     groupByFreshness: <T extends APIOrder>(
         apiOrders: T[],
@@ -146,75 +101,68 @@ export const orderUtils = {
         }
         return accumulator;
     },
-    compareAskOrder: (orderA: SignedOrder, orderB: SignedOrder): number => {
-        const orderAPrice = orderA.takerAssetAmount.div(orderA.makerAssetAmount);
-        const orderBPrice = orderB.takerAssetAmount.div(orderB.makerAssetAmount);
+    compareAskOrder: (orderA: SignedOrderV4, orderB: SignedOrderV4): number => {
+        const orderAPrice = orderA.takerAmount.div(orderA.makerAmount);
+        const orderBPrice = orderB.takerAmount.div(orderB.makerAmount);
         if (!orderAPrice.isEqualTo(orderBPrice)) {
             return orderAPrice.comparedTo(orderBPrice);
         }
         return orderUtils.compareOrderByFeeRatio(orderA, orderB);
     },
-    compareBidOrder: (orderA: SignedOrder, orderB: SignedOrder): number => {
-        const orderAPrice = orderA.makerAssetAmount.div(orderA.takerAssetAmount);
-        const orderBPrice = orderB.makerAssetAmount.div(orderB.takerAssetAmount);
+    compareBidOrder: (orderA: SignedOrderV4, orderB: SignedOrderV4): number => {
+        const orderAPrice = orderA.makerAmount.div(orderA.takerAmount);
+        const orderBPrice = orderB.makerAmount.div(orderB.takerAmount);
         if (!orderAPrice.isEqualTo(orderBPrice)) {
             return orderBPrice.comparedTo(orderAPrice);
         }
         return orderUtils.compareOrderByFeeRatio(orderA, orderB);
     },
-    compareOrderByFeeRatio: (orderA: SignedOrder, orderB: SignedOrder): number => {
-        const orderAFeePrice = orderA.takerFee.div(orderA.takerAssetAmount);
-        const orderBFeePrice = orderB.takerFee.div(orderB.takerAssetAmount);
+    compareOrderByFeeRatio: (orderA: SignedOrderV4, orderB: SignedOrderV4): number => {
+        const orderAFeePrice = orderA.takerTokenFeeAmount.div(orderA.takerAmount);
+        const orderBFeePrice = orderB.takerTokenFeeAmount.div(orderB.takerAmount);
         if (!orderAFeePrice.isEqualTo(orderBFeePrice)) {
             return orderBFeePrice.comparedTo(orderAFeePrice);
         }
-        return orderA.expirationTimeSeconds.comparedTo(orderB.expirationTimeSeconds);
+        return orderA.expiry.comparedTo(orderB.expiry);
     },
-    includesTokenAddresses: (assetData: string, tokenAddresses: string[]): boolean => {
-        const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(assetData);
-        if (orderUtils.isMultiAssetData(decodedAssetData)) {
-            for (const [, nestedAssetDataElement] of decodedAssetData.nestedAssetData.entries()) {
-                if (orderUtils.includesTokenAddresses(nestedAssetDataElement, tokenAddresses)) {
-                    return true;
-                }
-            }
-            return false;
-        } else if (orderUtils.isTokenAssetData(decodedAssetData)) {
-            return tokenAddresses.find(a => a === decodedAssetData.tokenAddress) !== undefined;
-        }
-        return false;
+    deserializeSignature: (signatureStr: string): Signature => {
+        // TODO(kimpers): validation needed here
+        const [signatureType, r, s, v] = signatureStr.split(',');
+        return {
+            signatureType: parseInt(signatureType, 10) as SignatureType,
+            r,
+            s,
+            v: parseInt(v, 10),
+        };
     },
-    includesTokenAddress: (assetData: string, tokenAddress: string): boolean => {
-        return orderUtils.includesTokenAddresses(assetData, [tokenAddress]);
-    },
-    deserializeOrder: (signedOrderEntity: Required<SignedOrderEntity>): SignedOrder => {
-        const signedOrder: SignedOrder = {
-            signature: signedOrderEntity.signature,
-            senderAddress: signedOrderEntity.senderAddress,
-            makerAddress: signedOrderEntity.makerAddress,
-            takerAddress: signedOrderEntity.takerAddress,
-            makerFee: new BigNumber(signedOrderEntity.makerFee),
-            takerFee: new BigNumber(signedOrderEntity.takerFee),
-            makerAssetAmount: new BigNumber(signedOrderEntity.makerAssetAmount),
-            takerAssetAmount: new BigNumber(signedOrderEntity.takerAssetAmount),
-            makerAssetData: signedOrderEntity.makerAssetData,
-            takerAssetData: signedOrderEntity.takerAssetData,
+    deserializeOrder: (
+        signedOrderEntity: Required<SignedOrderV4Entity | PersistentSignedOrderV4Entity>,
+    ): SignedOrderV4 => {
+        const signedOrder: SignedOrderV4 = {
+            signature: orderUtils.deserializeSignature(signedOrderEntity.signature),
+            sender: signedOrderEntity.sender,
+            maker: signedOrderEntity.maker,
+            taker: signedOrderEntity.taker,
+            takerTokenFeeAmount: new BigNumber(signedOrderEntity.takerTokenFeeAmount),
+            makerAmount: new BigNumber(signedOrderEntity.makerAmount),
+            takerAmount: new BigNumber(signedOrderEntity.takerAmount),
+            makerToken: signedOrderEntity.makerToken,
+            takerToken: signedOrderEntity.takerToken,
             salt: new BigNumber(signedOrderEntity.salt),
-            exchangeAddress: signedOrderEntity.exchangeAddress,
-            feeRecipientAddress: signedOrderEntity.feeRecipientAddress,
-            expirationTimeSeconds: new BigNumber(signedOrderEntity.expirationTimeSeconds),
-            makerFeeAssetData: signedOrderEntity.makerFeeAssetData,
+            verifyingContract: signedOrderEntity.verifyingContract,
+            feeRecipient: signedOrderEntity.feeRecipient,
+            expiry: new BigNumber(signedOrderEntity.expiry),
             chainId: CHAIN_ID,
-            takerFeeAssetData: signedOrderEntity.takerFeeAssetData,
+            pool: signedOrderEntity.pool,
         };
         return signedOrder;
     },
     deserializeOrderToAPIOrder: (
-        signedOrderEntity: Required<SignedOrderEntity> | Required<PersistentSignedOrderEntity>,
+        signedOrderEntity: Required<SignedOrderV4Entity> | Required<PersistentSignedOrderV4Entity>,
     ): APIOrderWithMetaData => {
         const order = orderUtils.deserializeOrder(signedOrderEntity);
-        const state = (signedOrderEntity as PersistentSignedOrderEntity).orderState;
-        const createdAt = (signedOrderEntity as PersistentSignedOrderEntity).createdAt;
+        const state = (signedOrderEntity as PersistentSignedOrderV4Entity).orderState;
+        const createdAt = (signedOrderEntity as PersistentSignedOrderV4Entity).createdAt;
         const metaData: APIOrderMetaData = {
             orderHash: signedOrderEntity.hash,
             remainingFillableTakerAssetAmount: new BigNumber(signedOrderEntity.remainingFillableTakerAssetAmount),
@@ -226,60 +174,52 @@ export const orderUtils = {
             metaData,
         };
     },
-    serializeOrder: (apiOrder: APIOrderWithMetaData): SignedOrderEntity => {
+    serializeSignature: (signature: Signature) => {
+        const { signatureType, r, s, v } = signature;
+        return [signatureType, r, s, v].join(',');
+    },
+    serializeOrder: (apiOrder: APIOrderWithMetaData): SignedOrderV4Entity => {
         const signedOrder = apiOrder.order;
-        const signedOrderEntity = new SignedOrderEntity({
-            signature: signedOrder.signature,
-            senderAddress: signedOrder.senderAddress,
-            makerAddress: signedOrder.makerAddress,
-            takerAddress: signedOrder.takerAddress,
-            makerAssetAmount: signedOrder.makerAssetAmount.toString(),
-            takerAssetAmount: signedOrder.takerAssetAmount.toString(),
-            makerAssetData: signedOrder.makerAssetData,
-            takerAssetData: signedOrder.takerAssetData,
-            makerFee: signedOrder.makerFee.toString(),
-            takerFee: signedOrder.takerFee.toString(),
-            makerFeeAssetData: signedOrder.makerFeeAssetData.toString(),
-            takerFeeAssetData: signedOrder.takerFeeAssetData.toString(),
+        const signedOrderEntity = new SignedOrderV4Entity({
+            signature: orderUtils.serializeSignature(signedOrder.signature),
+            sender: signedOrder.sender,
+            maker: signedOrder.maker,
+            taker: signedOrder.taker,
+            makerAmount: signedOrder.makerAmount.toString(),
+            takerAmount: signedOrder.takerAmount.toString(),
+            makerToken: signedOrder.makerToken,
+            takerToken: signedOrder.takerToken,
+            takerTokenFeeAmount: signedOrder.takerTokenFeeAmount.toString(),
             salt: signedOrder.salt.toString(),
-            exchangeAddress: signedOrder.exchangeAddress,
-            feeRecipientAddress: signedOrder.feeRecipientAddress,
-            expirationTimeSeconds: signedOrder.expirationTimeSeconds.toString(),
+            verifyingContract: signedOrder.verifyingContract,
+            feeRecipient: signedOrder.feeRecipient,
+            expiry: signedOrder.expiry.toString(),
             hash: apiOrder.metaData.orderHash,
             remainingFillableTakerAssetAmount: apiOrder.metaData.remainingFillableTakerAssetAmount.toString(),
         });
         return signedOrderEntity;
     },
-    serializePersistentOrder: (apiOrder: APIOrderWithMetaData): PersistentSignedOrderEntity => {
+    serializePersistentOrder: (apiOrder: APIOrderWithMetaData): PersistentSignedOrderV4Entity => {
         const signedOrder = apiOrder.order;
-        const persistentOrder = new PersistentSignedOrderEntity({
-            signature: signedOrder.signature,
-            senderAddress: signedOrder.senderAddress,
-            makerAddress: signedOrder.makerAddress,
-            takerAddress: signedOrder.takerAddress,
-            makerAssetAmount: signedOrder.makerAssetAmount.toString(),
-            takerAssetAmount: signedOrder.takerAssetAmount.toString(),
-            makerAssetData: signedOrder.makerAssetData,
-            takerAssetData: signedOrder.takerAssetData,
-            makerFee: signedOrder.makerFee.toString(),
-            takerFee: signedOrder.takerFee.toString(),
-            makerFeeAssetData: signedOrder.makerFeeAssetData.toString(),
-            takerFeeAssetData: signedOrder.takerFeeAssetData.toString(),
+        const persistentOrder = new PersistentSignedOrderV4Entity({
+            signature: orderUtils.serializeSignature(signedOrder.signature),
+            sender: signedOrder.sender,
+            maker: signedOrder.maker,
+            taker: signedOrder.taker,
+            makerAmount: signedOrder.makerAmount.toString(),
+            takerAmount: signedOrder.takerAmount.toString(),
+            makerToken: signedOrder.makerToken,
+            takerToken: signedOrder.takerToken,
+            takerTokenFeeAmount: signedOrder.takerTokenFeeAmount.toString(),
             salt: signedOrder.salt.toString(),
-            exchangeAddress: signedOrder.exchangeAddress,
-            feeRecipientAddress: signedOrder.feeRecipientAddress,
-            expirationTimeSeconds: signedOrder.expirationTimeSeconds.toString(),
+            verifyingContract: signedOrder.verifyingContract,
+            feeRecipient: signedOrder.feeRecipient,
+            expiry: signedOrder.expiry.toString(),
             hash: apiOrder.metaData.orderHash,
             remainingFillableTakerAssetAmount: apiOrder.metaData.remainingFillableTakerAssetAmount.toString(),
             orderState: apiOrder.metaData.state || OrderEventEndState.Added,
         });
         return persistentOrder;
-    },
-    signedOrderToAssetPair: (signedOrder: SignedOrder): AssetPairsItem => {
-        return {
-            assetDataA: assetDataToAsset(signedOrder.makerAssetData),
-            assetDataB: assetDataToAsset(signedOrder.takerAssetData),
-        };
     },
     getOrderConfig: (_order: Partial<OrderConfigRequest>): OrderConfigResponse => {
         const normalizedFeeRecipient = FEE_RECIPIENT_ADDRESS.toLowerCase();
@@ -306,29 +246,20 @@ export const orderUtils = {
         return assetData;
     },
     filterOrders: (apiOrders: APIOrderWithMetaData[], filters: SRAGetOrdersRequestOpts): APIOrderWithMetaData[] => {
-        const { traderAddress, makerAssetAddress, takerAssetAddress, makerAssetProxyId, takerAssetProxyId } = filters;
-        const matchTraderAddress = (order: SignedOrder, filterAddress?: string): boolean =>
-            filterAddress ? order.makerAddress === filterAddress || order.takerAddress === filterAddress : true;
-        const matchMakerAssetAddress = (order: SignedOrder, filterAddress?: string): boolean =>
-            filterAddress ? orderUtils.includesTokenAddress(order.makerAssetData, filterAddress) : true;
-        const matchTakerAssetAddress = (order: SignedOrder, filterAddress?: string): boolean =>
-            filterAddress ? orderUtils.includesTokenAddress(order.takerAssetData, filterAddress) : true;
-        const matchMakerAssetProxyId = (order: SignedOrder, filterAddress?: string): boolean =>
-            filterAddress
-                ? assetDataUtils.decodeAssetDataOrThrow(order.makerAssetData).assetProxyId === makerAssetProxyId
-                : true;
-        const matchTakerAssetProxyId = (order: SignedOrder, filterAddress?: string): boolean =>
-            filterAddress
-                ? assetDataUtils.decodeAssetDataOrThrow(order.takerAssetData).assetProxyId === takerAssetProxyId
-                : true;
+        // TODO(kimpers): Clean up filters and naming
+        const { traderAddress, makerAssetAddress, takerAssetAddress } = filters;
+        const matchTraderAddress = (order: SignedOrderV4, filterAddress?: string): boolean =>
+            filterAddress ? order.maker === filterAddress || order.taker === filterAddress : true;
+        const matchMakerTokenAddress = (order: SignedOrderV4, filterAddress?: string): boolean =>
+            filterAddress ? order.makerToken === filterAddress : true;
+        const matchTakerTokenAddress = (order: SignedOrderV4, filterAddress?: string): boolean =>
+            filterAddress ? order.takerToken === filterAddress : true;
         const filteredOrders = apiOrders.filter(apiOrder => {
             const o = apiOrder.order;
             return (
                 matchTraderAddress(o, traderAddress) &&
-                matchMakerAssetAddress(o, makerAssetAddress) &&
-                matchTakerAssetAddress(o, takerAssetAddress) &&
-                matchMakerAssetProxyId(o, makerAssetProxyId) &&
-                matchTakerAssetProxyId(o, takerAssetProxyId)
+                matchMakerTokenAddress(o, makerAssetAddress) &&
+                matchTakerTokenAddress(o, takerAssetAddress)
             );
         });
         return filteredOrders;
@@ -336,7 +267,7 @@ export const orderUtils = {
     // splitOrdersByPinning splits the orders into those we wish to pin in our Mesh node and
     // those we wish not to pin. We wish to pin the orders of MMers with a lot of ZRX at stake and
     // who have a track record of acting benevolently.
-    async splitOrdersByPinningAsync(connection: Connection, signedOrders: SignedOrder[]): Promise<PinResult> {
+    async splitOrdersByPinningAsync(connection: Connection, signedOrders: SignedOrderV4[]): Promise<PinResult> {
         let currentPools = [];
         // HACK(jalextowle): This query will fail when running against Ganache, so we
         // skip it an only use pinned MMers. A deployed staking system that allows this
@@ -358,7 +289,7 @@ export const orderUtils = {
             doNotPin: [],
         };
         signedOrders.forEach(signedOrder => {
-            if (makerAddresses.includes(signedOrder.makerAddress)) {
+            if (makerAddresses.includes(signedOrder.maker)) {
                 pinResult.pin.push(signedOrder);
             } else {
                 pinResult.doNotPin.push(signedOrder);

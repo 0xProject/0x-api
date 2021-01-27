@@ -6,8 +6,8 @@ import {
     SupportedProvider,
 } from '@0x/asset-swapper';
 import { OrderEventEndState, OrderWithMetadata, RejectedOrderCode } from '@0x/mesh-graphql-client';
+import { Signature } from '@0x/protocol-utils';
 import {
-    APIOrder,
     ExchangeProxyMetaTransaction,
     OrdersChannelSubscriptionOpts,
     SignedOrder,
@@ -77,6 +77,11 @@ export interface APIOrderMetaData {
     createdAt?: string;
 }
 
+// TODO(kimpers): Consolidate types in @0x/types
+export interface APIOrder {
+    order: SignedOrderV4;
+    metaData: object;
+}
 export interface APIOrderWithMetaData extends APIOrder {
     metaData: APIOrderMetaData;
 }
@@ -565,8 +570,8 @@ export interface CalculateMetaTransactionQuoteParams extends SwapQuoteParamsBase
  */
 
 export interface PinResult {
-    pin: SignedOrder[];
-    doNotPin: SignedOrder[];
+    pin: SignedOrderV4[];
+    doNotPin: SignedOrderV4[];
 }
 
 export enum TransactionStates {
@@ -667,5 +672,27 @@ export interface SRAGetOrdersRequestOpts {
     traderAddress?: string;
     feeRecipientAddress?: string;
     isUnfillable?: boolean; // default false
+}
+
+// TODO(kimpers): Consolidate types
+// This is copied from the mesh client
+export interface OrderV4 {
+    chainId: number;
+    verifyingContract: string;
+    makerToken: string;
+    takerToken: string;
+    makerAmount: BigNumber;
+    takerAmount: BigNumber;
+    takerTokenFeeAmount: BigNumber;
+    maker: string;
+    taker: string;
+    sender: string;
+    feeRecipient: string;
+    pool: string;
+    expiry: BigNumber;
+    salt: BigNumber;
+}
+export interface SignedOrderV4 extends OrderV4 {
+    signature: Signature;
 }
 // tslint:disable-line:max-file-line-count

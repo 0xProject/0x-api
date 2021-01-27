@@ -12,7 +12,7 @@ import { SignedOrderEntity } from '../entities';
 import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { AcceptedOrderResult, APIOrderWithMetaData, PinResult, SRAGetOrdersRequestOpts } from '../types';
+import { AcceptedOrderResult, APIOrderWithMetaData, PinResult, SignedOrderV4, SRAGetOrdersRequestOpts } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -251,12 +251,12 @@ export class OrderBookService {
             .getRepository(PersistentSignedOrderEntity)
             .save(persistentOrders, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
     }
-    public async splitOrdersByPinningAsync(signedOrders: SignedOrder[]): Promise<PinResult> {
+    public async splitOrdersByPinningAsync(signedOrders: SignedOrderV4[]): Promise<PinResult> {
         return orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);
     }
     private async _addOrdersAsync(signedOrders: SignedOrder[], pinned: boolean): Promise<AcceptedOrderResult[]> {
         if (this._meshClient) {
-            const { rejected, accepted } = await this._meshClient.addOrdersAsync(signedOrders, pinned);
+            const { rejected, accepted } = await this._meshClient.addOrdersV4Async(signedOrders, pinned);
             if (rejected.length !== 0) {
                 const validationErrors = rejected.map((r, i) => ({
                     field: `signedOrder[${i}]`,

@@ -553,9 +553,10 @@
     jsonschema "^1.2.0"
     lodash.values "^4.3.0"
 
-"@0x/mesh-browser-lite@^10.1.0":
+"@0x/mesh-browser-lite@^10.2.0":
   version "10.1.0"
   resolved "https://registry.yarnpkg.com/@0x/mesh-browser-lite/-/mesh-browser-lite-10.1.0.tgz#13770c249f7187c9b9eb35e0681180ad7f485fdf"
+  integrity sha512-woLTLeLhdM18JL8kx+6m65LQeZiefGR0yaJtP6jfQHsJZvOMmlzCMEa7iDakueg+tnYWYLpHpfv2lnHBRn3IvA==
   dependencies:
     "@0x/order-utils" "^10.2.0"
     "@0x/utils" "^5.4.0"
@@ -563,11 +564,12 @@
     dexie "^3.0.1"
     ethereum-types "^3.0.0"
 
-"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.1.0-22400d00":
-  version "10.1.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/b810bbe6102202c4f9a31bac35def324c15ea551"
+"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.2.0-526abd90":
+  version "10.2.0"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/14a9d43dc4e9dcd959f122ad08f01eb9b6517f04"
   dependencies:
-    "@0x/mesh-browser-lite" "^10.1.0"
+    "@0x/mesh-browser-lite" "^10.2.0"
+    "@0x/protocol-utils" "^1.1.4"
     "@0x/types" "^3.2.0"
     "@0x/utils" "^5.4.0"
     "@apollo/client" "^3.3.6"
@@ -682,7 +684,7 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/protocol-utils@^1.2.0":
+"@0x/protocol-utils@^1.1.4", "@0x/protocol-utils@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-1.2.0.tgz#b7892e23fce24274418eb3c9cd318625b61a68e7"
   dependencies:
