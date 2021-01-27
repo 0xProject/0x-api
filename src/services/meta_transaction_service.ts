@@ -39,9 +39,9 @@ import { logger } from '../logger';
 import {
     CalculateMetaTransactionQuoteParams,
     CalculateMetaTransactionQuoteResponse,
-    CalculateSwapQuoteParams,
     ExchangeProxyMetaTransactionWithoutDomain,
     GetMetaTransactionQuoteResponse,
+    GetSwapQuoteParams,
     GetSwapQuoteResponse,
     PostTransactionResponse,
     TransactionStates,
@@ -56,7 +56,7 @@ import { utils } from '../utils/utils';
 const WETHToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
 
 interface SwapService {
-    calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse>;
+    calculateSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
 }
 
 interface Transformation {
@@ -114,11 +114,11 @@ export class MetaTransactionService {
         const { sellTokenToEthRate, buyTokenToEthRate } = quote;
         const commonQuoteFields = {
             price: quote.price,
-            sellTokenAddress: params.sellTokenAddress,
-            buyTokenAddress: params.buyTokenAddress,
+            sellToken: params.sellTokenAddress,
+            buyToken: params.buyTokenAddress,
             buyAmount: quote.buyAmount!,
             sellAmount: quote.sellAmount!,
-            orders: quote.orders,
+            // orders: quote.orders,
             sources: quote.sources,
             gasPrice: quote.gasPrice,
             estimatedGas: quote.estimatedGas,
@@ -138,9 +138,10 @@ export class MetaTransactionService {
         // Go through the Exchange Proxy.
         const epmtx = this._generateExchangeProxyMetaTransaction(
             quote.callData,
-            quote.takerAddress,
+            quote.taker,
             normalizeGasPrice(quote.gasPrice),
-            calculateProtocolFeeRequiredForOrders(normalizeGasPrice(quote.gasPrice), quote.orders),
+            // calculateProtocolFeeRequiredForOrders(normalizeGasPrice(quote.gasPrice), quote.orders), // todo (xianny): HACK
+            calculateProtocolFeeRequiredForOrders(normalizeGasPrice(quote.gasPrice), []),
         );
 
         const mtxHash = getExchangeProxyMetaTransactionHash(epmtx);
@@ -353,32 +354,31 @@ export class MetaTransactionService {
             isMetaTransaction: true,
             ...params,
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-            buyTokenAddress: params.isETHBuy ? WETHToken.tokenAddress : params.buyTokenAddress,
-            sellTokenAddress: params.sellTokenAddress,
+            buyToken: params.isETHBuy ? WETHToken.tokenAddress : params.buyTokenAddress,
+            sellToken: params.sellTokenAddress,
             shouldSellEntireBalance: false,
+            isWrap: false,
+            isUnwrap: false,
         };
 
         const quote = await this._swapService.calculateSwapQuoteAsync(quoteParams);
         return {
-            ..._.pick(quote, [
-                'price',
-                'gasPrice',
-                'protocolFee',
-                'sources',
-                'buyAmount',
-                'sellAmount',
-                'estimatedGas',
-                'allowanceTarget',
-                'orders',
-                'sellTokenToEthRate',
-                'buyTokenToEthRate',
-                'quoteReport',
-            ]),
-            buyTokenAddress: params.buyTokenAddress,
-            sellTokenAddress: params.sellTokenAddress,
-            takerAddress: params.takerAddress,
+            price: quote.price,
+            gasPrice: quote.gasPrice,
+            protocolFee: quote.protocolFee,
+            sources: quote.sources,
+            buyAmount: quote.buyAmount,
+            sellAmount: quote.sellAmount,
+            estimatedGas: quote.estimatedGas,
+            allowanceTarget: quote.allowanceTarget,
+            sellTokenToEthRate: quote.sellTokenToEthRate,
+            buyTokenToEthRate: quote.buyTokenToEthRate,
+            quoteReport: quote.quoteReport,
             callData: quote.data,
             minimumProtocolFee: quote.protocolFee,
+            buyToken: params.buyTokenAddress,
+            sellToken: params.sellTokenAddress,
+            taker: params.takerAddress,
         };
     }
 

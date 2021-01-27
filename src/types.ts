@@ -427,8 +427,8 @@ export interface GetSwapQuoteResponseLiquiditySource {
 }
 
 export interface BasePriceResponse extends QuoteBase {
-    sellTokenAddress: string;
-    buyTokenAddress: string;
+    sellToken: string;
+    buyToken: string;
     value: BigNumber;
     gas: BigNumber;
     priceComparisons?: SourceComparison[];
@@ -461,7 +461,7 @@ interface SwapQuoteParamsBase {
 // GET /swap/quote
 export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, BasePriceResponse {
     guaranteedPrice: BigNumber;
-    orders: SignedOrder[];
+    // orders: SignedOrder[];
     from?: string;
     quoteReport?: QuoteReport;
 }
@@ -474,7 +474,7 @@ export interface SwapQuoteResponsePartialTransaction {
 }
 
 // Request params
-export interface GetSwapQuoteRequestParams extends SwapQuoteParamsBase {
+export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
     sellToken: string;
     buyToken: string;
     takerAddress?: string;
@@ -483,6 +483,11 @@ export interface GetSwapQuoteRequestParams extends SwapQuoteParamsBase {
     rfqt?: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'>;
     skipValidation: boolean;
     shouldSellEntireBalance: boolean;
+    isWrap: boolean;
+    isUnwrap: boolean;
+    isETHSell: boolean;
+    isETHBuy: boolean;
+    isMetaTransaction: boolean;
 }
 
 // GET /swap/price
@@ -499,7 +504,7 @@ export interface Price {
 export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
     mtxHash: string;
     mtx: ExchangeProxyMetaTransaction;
-    orders: SignedOrder[];
+    // orders: SignedOrder[];
 }
 
 // GET /meta_transaction/price
@@ -535,26 +540,12 @@ export type ZeroExTransactionWithoutDomain = Omit<ZeroExTransaction, 'domain'>;
 
 export type ExchangeProxyMetaTransactionWithoutDomain = Omit<ExchangeProxyMetaTransaction, 'domain'>;
 
-export interface CalculateSwapQuoteParams extends SwapQuoteParamsBase {
-    buyTokenAddress: string;
-    sellTokenAddress: string;
-    from: string | undefined;
-    isETHSell: boolean;
-    isETHBuy: boolean;
-    apiKey?: string;
-    isMetaTransaction: boolean;
-    gasPrice?: BigNumber;
-    rfqt?: Partial<RfqtRequestOpts>;
-    skipValidation: boolean;
-    shouldSellEntireBalance: boolean;
-}
-
 export interface CalculateMetaTransactionQuoteResponse extends QuoteBase {
-    sellTokenAddress: string;
-    buyTokenAddress: string;
-    takerAddress: string;
+    sellToken: string;
+    buyToken: string;
+    taker: string;
     quoteReport?: QuoteReport;
-    orders: SignedOrder[];
+    // orders: SignedOrder[];
     callData: string;
 }
 
