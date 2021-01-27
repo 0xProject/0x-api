@@ -1,9 +1,9 @@
-import { APIOrder } from '@0x/types';
 import * as pino from 'pino';
 
 import { LOGGER_INCLUDE_TIMESTAMP, LOG_LEVEL, MAX_ORDER_EXPIRATION_BUFFER_SECONDS } from './config';
 import { ONE_SECOND_MS } from './constants';
 import { ExpiredOrderError } from './errors';
+import { APIOrder } from './types';
 
 export const logger = pino({
     level: LOG_LEVEL,
@@ -21,7 +21,7 @@ export function alertOnExpiredOrders(expired: APIOrder[], details?: string): voi
     if (
         expired.find((order, i) => {
             idx = i;
-            return order.order.expirationTimeSeconds.toNumber() > maxExpirationTimeSeconds;
+            return order.order.expiry.toNumber() > maxExpirationTimeSeconds;
         })
     ) {
         const error = new ExpiredOrderError(expired[idx].order, MAX_ORDER_EXPIRATION_BUFFER_SECONDS, details);

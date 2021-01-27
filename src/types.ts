@@ -5,7 +5,7 @@ import {
     RfqtRequestOpts,
     SupportedProvider,
 } from '@0x/asset-swapper';
-import { OrderEventEndState, OrderWithMetadata, RejectedOrderCode } from '@0x/mesh-graphql-client';
+import { OrderEventEndState, RejectedOrderCode } from '@0x/mesh-graphql-client';
 import { Signature } from '@0x/protocol-utils';
 import {
     ExchangeProxyMetaTransaction,
@@ -41,9 +41,13 @@ export enum OrderWatcherLifeCycleEvents {
 }
 
 // TODO(kimpers): export from Mesh client
+export interface OrderWithMetadataV4 extends SignedOrderV4 {
+    hash: string;
+    fillableTakerAssetAmount: BigNumber;
+}
 export interface AcceptedOrderResult {
     // The order that was accepted, including metadata.
-    order: OrderWithMetadata;
+    order: OrderWithMetadataV4;
     // Whether or not the order is new. Set to true if this is the first time this Mesh node has accepted the order
     // and false otherwise.
     isNew: boolean;
@@ -657,20 +661,14 @@ export interface BucketedPriceDepth {
     bucketTotal: BigNumber;
 }
 export interface SRAGetOrdersRequestOpts {
-    makerAssetProxyId?: string;
-    takerAssetProxyId?: string;
-    makerAssetAddress?: string;
-    takerAssetAddress?: string;
-    exchangeAddress?: string;
-    senderAddress?: string;
-    makerAssetData?: string | string[];
-    takerAssetData?: string | string[];
-    makerFeeAssetData?: string;
-    takerFeeAssetData?: string;
-    makerAddress?: string;
-    takerAddress?: string;
-    traderAddress?: string;
-    feeRecipientAddress?: string;
+    makerToken?: string;
+    takerToken?: string;
+    verifyingContract?: string;
+    sender?: string;
+    takerTokenFeeAmount?: string;
+    maker?: string;
+    taker?: string;
+    feeRecipient?: string;
     isUnfillable?: boolean; // default false
 }
 
