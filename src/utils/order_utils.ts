@@ -247,7 +247,7 @@ export const orderUtils = {
     },
     filterOrders: (apiOrders: APIOrderWithMetaData[], filters: SRAGetOrdersRequestOpts): APIOrderWithMetaData[] => {
         // TODO(kimpers): Clean up filters and naming
-        const { traderAddress, makerAssetAddress, takerAssetAddress } = filters;
+        const { sender, takerToken, makerToken } = filters;
         const matchTraderAddress = (order: SignedOrderV4, filterAddress?: string): boolean =>
             filterAddress ? order.maker === filterAddress || order.taker === filterAddress : true;
         const matchMakerTokenAddress = (order: SignedOrderV4, filterAddress?: string): boolean =>
@@ -257,9 +257,9 @@ export const orderUtils = {
         const filteredOrders = apiOrders.filter(apiOrder => {
             const o = apiOrder.order;
             return (
-                matchTraderAddress(o, traderAddress) &&
-                matchMakerTokenAddress(o, makerAssetAddress) &&
-                matchTakerTokenAddress(o, takerAssetAddress)
+                matchTraderAddress(o, sender) &&
+                matchMakerTokenAddress(o, takerToken) &&
+                matchTakerTokenAddress(o, makerToken)
             );
         });
         return filteredOrders;

@@ -3,11 +3,10 @@ import * as _ from 'lodash';
 import { Connection, In, Not } from 'typeorm';
 
 import { DB_ORDERS_UPDATE_CHUNK_SIZE, MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATION_BUFFER_SECONDS } from '../config';
-import { SignedOrderEntity } from '../entities';
-import { PersistentSignedOrderEntity } from '../entities/PersistentSignedOrderEntity';
+import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { OrderWatcherSyncError } from '../errors';
 import { alertOnExpiredOrders, logger } from '../logger';
-import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents } from '../types';
+import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents, SignedOrderV4 } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -24,8 +23,8 @@ export class OrderWatcherService {
         logger.info('OrderWatcherService syncing orderbook with Mesh');
 
         // 1. Get orders from local cache
-        const signedOrderModels = (await this._connection.manager.find(SignedOrderEntity)) as Required<
-            SignedOrderEntity
+        const signedOrderModels = (await this._connection.manager.find(SignedOrderV4Entity)) as Required<
+            SignedOrderV4Entity
         >[];
         const signedOrders = signedOrderModels.map(orderUtils.deserializeOrder);
 
@@ -72,8 +71,8 @@ export class OrderWatcherService {
         // 7. Update state of persistent orders
         const excludeHashes = signedOrderModels.map(o => o.hash);
         const persistentOrders = (
-            await this._connection.manager.find(PersistentSignedOrderEntity, { hash: Not(In(excludeHashes)) })
-        ).map(o => orderUtils.deserializeOrder(o as Required<PersistentSignedOrderEntity>));
+            await this._connection.manager.find(PersistentSignedOrderV4Entity, { hash: Not(In(excludeHashes)) })
+        ).map(o => orderUtils.deserializeOrder(o as Required<PersistentSignedOrderV4Entity>));
         logger.info(`Found ${persistentOrders.length} persistent orders, posting to Mesh for validation`);
         const { accepted: persistentAccepted, rejected: persistentRejected } = await this._addOrdersToMeshAsync(
             persistentOrders,
@@ -119,7 +118,7 @@ export class OrderWatcherService {
         // tslint:disable-next-line:custom-no-magic-numbers
         const chunks = _.chunk(orderHashes, 999);
 
-        const signedOrderRepository = this._connection.getRepository(SignedOrderEntity);
+        const signedOrderRepository = this._connection.getRepository(SignedOrderV4Entity);
         for (const chunk of chunks) {
             await signedOrderRepository.delete(chunk);
         }
@@ -146,7 +145,7 @@ export class OrderWatcherService {
                 // as SQL variables in the "AS" syntax. We leave 99 free for the
                 // signedOrders model
                 await this._connection
-                    .getRepository(SignedOrderEntity)
+                    .getRepository(SignedOrderV4Entity)
                     .save(signedOrdersModel, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
                 break;
             }
@@ -172,7 +171,7 @@ export class OrderWatcherService {
                     const entity = orderUtils.serializePersistentOrder(apiOrder);
                     // will ignore any orders that don't already exist in this table
                     return this._connection
-                        .getRepository(PersistentSignedOrderEntity)
+                        .getRepository(PersistentSignedOrderV4Entity)
                         .update(apiOrder.metaData.orderHash, entity);
                 });
 
@@ -194,8 +193,8 @@ export class OrderWatcherService {
             // Do Nothing
         }
     }
-    private async _addOrdersToMeshAsync(orders: SignedOrder[], pinned: boolean = false): Promise<ValidationResults> {
-        const { accepted, rejected } = await this._meshClient.addOrdersAsync(orders, pinned);
+    private async _addOrdersToMeshAsync(orders: SignedOrderV4[], pinned: boolean = false): Promise<ValidationResults> {
+        const { accepted, rejected } = await this._meshClient.addOrdersV4Async(orders, pinned);
         return {
             accepted: meshUtils.orderInfosToApiOrders(accepted),
             rejected: meshUtils.orderInfosToApiOrders(rejected),

@@ -1,4 +1,4 @@
-import { ObjectMap, SignedOrder } from '@0x/types';
+import { ObjectMap } from '@0x/types';
 import { RevertError } from '@0x/utils';
 import * as HttpStatus from 'http-status-codes';
 

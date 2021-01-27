@@ -57,7 +57,7 @@ export interface RejectedOrderResult {
     // The hash of the order. May be null if the hash could not be computed.
     hash?: string;
     // The order that was rejected.
-    order: SignedOrder;
+    order: SignedOrderV4;
     // A machine-readable code indicating why the order was rejected. This code is designed to
     // be used by programs and applications and will never change without breaking backwards-compatibility.
     code: RejectedOrderCode;
