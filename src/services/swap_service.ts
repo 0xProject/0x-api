@@ -25,8 +25,6 @@ import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
     CHAIN_ID,
-    FIRM_PRICE_AWARE_RFQ_ENABLED,
-    INDICATIVE_PRICE_AWARE_RFQ_ENABLED,
     RFQT_REQUEST_MAX_RESPONSE_MS,
     SWAP_QUOTER_OPTS,
 } from '../config';
@@ -185,10 +183,6 @@ export class SwapService {
                 makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
                 takerAddress: NULL_ADDRESS,
                 txOrigin: takerAddress!,
-                priceAwareRFQFlag: {
-                    isFirmPriceAwareEnabled: FIRM_PRICE_AWARE_RFQ_ENABLED,
-                    isIndicativePriceAwareEnabled: INDICATIVE_PRICE_AWARE_RFQ_ENABLED,
-                },
                 firmQuoteValidator: this._firmQuoteValidator,
             };
         }
