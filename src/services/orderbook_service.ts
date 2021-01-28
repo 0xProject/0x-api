@@ -1,4 +1,4 @@
-import { OrderEventEndState } from '@0x/mesh-graphql-client';
+import { AcceptedOrderResult, OrderEventEndState, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
 import { AssetPairsItem, OrderbookResponse, PaginatedCollection } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
@@ -11,14 +11,7 @@ import {
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import {
-    AcceptedOrderResult,
-    APIOrder,
-    APIOrderWithMetaData,
-    PinResult,
-    SignedLimitOrder,
-    SRAGetOrdersRequestOpts,
-} from '../types';
+import { APIOrder, APIOrderWithMetaData, PinResult, SignedLimitOrder, SRAGetOrdersRequestOpts } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -255,7 +248,10 @@ export class OrderBookService {
     public async splitOrdersByPinningAsync(signedOrders: SignedLimitOrder[]): Promise<PinResult> {
         return orderUtils.splitOrdersByPinningAsync(this._connection, signedOrders);
     }
-    private async _addOrdersAsync(signedOrders: SignedLimitOrder[], pinned: boolean): Promise<AcceptedOrderResult[]> {
+    private async _addOrdersAsync(
+        signedOrders: SignedLimitOrder[],
+        pinned: boolean,
+    ): Promise<AcceptedOrderResult<OrderWithMetadataV4>[]> {
         if (this._meshClient) {
             // TODO(kimpers): FIX TYPES HERE
             const { rejected, accepted } = await this._meshClient.addOrdersV4Async(

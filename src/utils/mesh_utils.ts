@@ -1,23 +1,27 @@
-import { OrderEvent, OrderEventEndState, RejectedOrderCode } from '@0x/mesh-graphql-client';
+import {
+    AcceptedOrderResult,
+    OrderEvent,
+    OrderEventEndState,
+    OrderWithMetadataV4,
+    RejectedOrderCode,
+    RejectedOrderResult,
+} from '@0x/mesh-graphql-client';
 import * as _ from 'lodash';
 
 import { ZERO } from '../constants';
 import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
-import {
-    AcceptedOrderResult,
-    APIOrderWithMetaData,
-    OrdersByLifecycleEvents,
-    OrderWithMetadataV4,
-    RejectedOrderResult,
-    SignedLimitOrder,
-} from '../types';
+import { APIOrderWithMetaData, OrdersByLifecycleEvents, SignedLimitOrder } from '../types';
 
-type OrderData = AcceptedOrderResult | RejectedOrderResult | OrderEvent | OrderWithMetadataV4;
+type OrderData =
+    | AcceptedOrderResult<OrderWithMetadataV4>
+    | RejectedOrderResult<SignedLimitOrder>
+    | OrderEvent
+    | OrderWithMetadataV4;
 
 const isOrderEvent = (orderData: OrderData): orderData is OrderEvent => !!(orderData as OrderEvent).endState;
-const isRejectedOrderResult = (orderData: OrderData): orderData is RejectedOrderResult =>
-    !!(orderData as RejectedOrderResult).code;
+const isRejectedOrderResult = (orderData: OrderData): orderData is RejectedOrderResult<SignedLimitOrder> =>
+    !!(orderData as RejectedOrderResult<SignedLimitOrder>).code;
 const isOrderWithMetadata = (orderData: OrderData): orderData is OrderWithMetadataV4 =>
     !!(orderData as OrderWithMetadataV4).fillableTakerAssetAmount;
 

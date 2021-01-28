@@ -5,7 +5,7 @@ import {
     RfqtRequestOpts,
     SupportedProvider,
 } from '@0x/asset-swapper';
-import { OrderEventEndState, RejectedOrderCode } from '@0x/mesh-graphql-client';
+import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { LimitOrderFields, Signature } from '@0x/protocol-utils';
 import {
     ExchangeProxyMetaTransaction,
@@ -37,32 +37,6 @@ export enum OrderWatcherLifeCycleEvents {
     Removed,
     Updated,
     PersistentUpdated,
-}
-
-// TODO(kimpers): export from Mesh client
-export interface OrderWithMetadataV4 extends SignedLimitOrder {
-    hash: string;
-    fillableTakerAssetAmount: BigNumber;
-}
-export interface AcceptedOrderResult {
-    // The order that was accepted, including metadata.
-    order: OrderWithMetadataV4;
-    // Whether or not the order is new. Set to true if this is the first time this Mesh node has accepted the order
-    // and false otherwise.
-    isNew: boolean;
-}
-
-export interface RejectedOrderResult {
-    // The hash of the order. May be null if the hash could not be computed.
-    hash?: string;
-    // The order that was rejected.
-    order: SignedLimitOrder;
-    // A machine-readable code indicating why the order was rejected. This code is designed to
-    // be used by programs and applications and will never change without breaking backwards-compatibility.
-    code: RejectedOrderCode;
-    // A human-readable message indicating why the order was rejected. This message may change
-    // in future releases and is not covered by backwards-compatibility guarantees.
-    message: string;
 }
 
 export interface OrdersByLifecycleEvents {
