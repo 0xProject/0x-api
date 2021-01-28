@@ -71,8 +71,6 @@ export interface OrdersByLifecycleEvents {
     updated: APIOrderWithMetaData[];
 }
 
-export type onOrdersUpdateCallback = (orders: APIOrderWithMetaData[]) => void;
-
 export interface APIOrderMetaData {
     orderHash: string;
     remainingFillableTakerAssetAmount: BigNumber;

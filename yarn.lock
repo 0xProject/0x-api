@@ -564,9 +564,9 @@
     dexie "^3.0.1"
     ethereum-types "^3.0.0"
 
-"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.2.0-526abd90":
+"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.2.0-5c47b493":
   version "10.2.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/14a9d43dc4e9dcd959f122ad08f01eb9b6517f04"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/de614a092498c78404bcc0e2860209843ff44b5c"
   dependencies:
     "@0x/mesh-browser-lite" "^10.2.0"
     "@0x/protocol-utils" "^1.1.4"
@@ -1893,7 +1893,7 @@
   version "11.1.7"
   resolved "https://registry.yarnpkg.com/@types/yargs/-/yargs-11.1.7.tgz#a5be4a5f0f4b77b8accdd476004ce911f4241e8f"
 
-"@types/zen-observable@^0.8.0", "@types/zen-observable@^0.8.1":
+"@types/zen-observable@^0.8.0":
   version "0.8.2"
   resolved "https://registry.yarnpkg.com/@types/zen-observable/-/zen-observable-0.8.2.tgz#808c9fa7e4517274ed555fa158f2de4b4f468e71"
 

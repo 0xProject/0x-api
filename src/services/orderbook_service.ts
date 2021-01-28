@@ -276,8 +276,6 @@ export class OrderBookService {
                 ...o,
                 order: {
                     ...o.order,
-                    exchangeAddress: undefined,
-                    verifyingContract: o.order.exchangeAddress,
                     signature: {
                         ...o.order.signature,
                         signatureType: o.order.signature.signatureType as any,

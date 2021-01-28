@@ -1,28 +1,29 @@
-import {
-    OrderEvent,
-    OrderEventEndState,
-    OrderWithMetadata,
-    RejectedOrderCode,
-    SignedOrder,
-} from '@0x/mesh-graphql-client';
+import { OrderEvent, OrderEventEndState, RejectedOrderCode } from '@0x/mesh-graphql-client';
 import * as _ from 'lodash';
 
 import { ZERO } from '../constants';
 import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
-import { AcceptedOrderResult, APIOrderWithMetaData, OrdersByLifecycleEvents, RejectedOrderResult } from '../types';
+import {
+    AcceptedOrderResult,
+    APIOrderWithMetaData,
+    OrdersByLifecycleEvents,
+    OrderWithMetadataV4,
+    RejectedOrderResult,
+    SignedLimitOrder,
+} from '../types';
 
-type OrderData = AcceptedOrderResult | RejectedOrderResult | OrderEvent | OrderWithMetadata;
+type OrderData = AcceptedOrderResult | RejectedOrderResult | OrderEvent | OrderWithMetadataV4;
 
 const isOrderEvent = (orderData: OrderData): orderData is OrderEvent => !!(orderData as OrderEvent).endState;
 const isRejectedOrderResult = (orderData: OrderData): orderData is RejectedOrderResult =>
     !!(orderData as RejectedOrderResult).code;
-const isOrderWithMetadata = (orderData: OrderData): orderData is OrderWithMetadata =>
-    !!(orderData as OrderWithMetadata).fillableTakerAssetAmount;
+const isOrderWithMetadata = (orderData: OrderData): orderData is OrderWithMetadataV4 =>
+    !!(orderData as OrderWithMetadataV4).fillableTakerAssetAmount;
 
 export const meshUtils = {
-    orderWithMetadataToSignedOrder(order: OrderWithMetadata): SignedOrder {
-        const cleanedOrder: SignedOrder = _.omit(order, ['hash', 'fillableTakerAssetAmount']);
+    orderWithMetadataToSignedOrder(order: OrderWithMetadataV4): SignedLimitOrder {
+        const cleanedOrder: SignedLimitOrder = _.omit(order, ['hash', 'fillableTakerAssetAmount']);
 
         return cleanedOrder;
     },
@@ -30,7 +31,7 @@ export const meshUtils = {
         return orders.map(e => meshUtils.orderInfoToAPIOrder(e));
     },
     orderInfoToAPIOrder: (orderData: OrderData): APIOrderWithMetaData => {
-        let order: SignedOrder;
+        let order: SignedLimitOrder;
         let remainingFillableTakerAssetAmount = ZERO;
         let orderHash: string;
         let state: OrderEventEndState | undefined;
@@ -39,7 +40,7 @@ export const meshUtils = {
             remainingFillableTakerAssetAmount = orderData.fillableTakerAssetAmount;
             orderHash = orderData.hash;
         } else if (isOrderEvent(orderData)) {
-            order = meshUtils.orderWithMetadataToSignedOrder(orderData.order);
+            order = meshUtils.orderWithMetadataToSignedOrder(orderData.orderv4);
             remainingFillableTakerAssetAmount = orderData.order.fillableTakerAssetAmount;
             orderHash = orderData.order.hash;
 
