@@ -1,9 +1,10 @@
-import { Orderbook, SignedLimitOrder } from '@0x/asset-swapper';
+import { LimitOrderFields, Orderbook, SignedOrder } from '@0x/asset-swapper';
 // import { APIOrder } from '@0x/types';
 // import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../constants';
 
 import { OrderBookService } from '../services/orderbook_service';
 
+type SignedLimitOrder = SignedOrder<LimitOrderFields>;
 // tslint:disable
 export class AssetSwapperOrderbook extends Orderbook {
     constructor(public readonly orderbookService: OrderBookService) {
