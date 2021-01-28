@@ -1,10 +1,9 @@
 import { schemas } from '@0x/json-schemas';
 import { assetDataUtils } from '@0x/order-utils';
 import {
-    APIOrder,
     AssetProxyId,
     MultiAssetDataWithRecursiveDecoding,
-    OrdersChannelMessageTypes,
+    // OrdersChannelMessageTypes,
     OrdersChannelSubscriptionOpts,
     SignedOrder,
     WebsocketConnectionEventType,
@@ -13,15 +12,16 @@ import * as http from 'http';
 import * as _ from 'lodash';
 import * as WebSocket from 'ws';
 
-import { MESH_IGNORED_ADDRESSES } from '../config';
+// import { MESH_IGNORED_ADDRESSES } from '../config';
 import { MalformedJSONError, NotImplementedError, WebsocketServiceError } from '../errors';
 import { logger } from '../logger';
 import { generateError } from '../middleware/error_handling';
 import {
-    MessageChannels,
+    APIOrder,
+    // MessageChannels,
     MessageTypes,
     OrderChannelRequest,
-    UpdateOrdersChannelMessageWithChannel,
+    // UpdateOrdersChannelMessageWithChannel,
     WebsocketSRAOpts,
 } from '../types';
 import { MeshClient } from '../utils/mesh_client';
@@ -76,6 +76,8 @@ export class WebsocketService {
         }
         return { data, assetProxyId: decodedAssetData.assetProxyId };
     }
+    // TODO(kimpers): Fix Matching to support V4
+    // @ts-ignore
     private static _matchesOrdersChannelSubscription(
         order: SignedOrder,
         opts: OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS,
@@ -137,7 +139,7 @@ export class WebsocketService {
         this._meshClient = meshClient;
 
         this._orderEventsSubscription = this._meshClient.onOrderEvents().subscribe({
-            next: events => this.orderUpdate(meshUtils.orderInfosToApiOrders(events.map(e => e.order))),
+            next: events => this.orderUpdate(meshUtils.orderInfosToApiOrders(events.map(e => e.orderv4))),
             error: err => {
                 logger.error(new WebsocketServiceError(err));
             },
@@ -156,42 +158,43 @@ export class WebsocketService {
             this._orderEventsSubscription.unsubscribe();
         }
     }
-    public orderUpdate(apiOrders: APIOrder[]): void {
+    public orderUpdate(_apiOrders: APIOrder[]): void {
         if (this._server.clients.size === 0) {
             return;
         }
-        const response: Partial<UpdateOrdersChannelMessageWithChannel> = {
-            type: OrdersChannelMessageTypes.Update,
-            channel: MessageChannels.Orders,
-            payload: apiOrders,
-        };
-        const allowedOrders = apiOrders.filter(
-            apiOrder => !orderUtils.isIgnoredOrder(MESH_IGNORED_ADDRESSES, apiOrder),
-        );
-        for (const order of allowedOrders) {
-            // Future optimisation is to invert this structure so the order isn't duplicated over many request ids
-            // order->requestIds it is less likely to get multiple order updates and more likely
-            // to have many subscribers and a single order
-            const requestIdToOrders: { [requestId: string]: Set<APIOrder> } = {};
-            for (const [requestId, subscriptionOpts] of this._requestIdToSubscriptionOpts) {
-                if (WebsocketService._matchesOrdersChannelSubscription(order.order, subscriptionOpts)) {
-                    if (requestIdToOrders[requestId]) {
-                        const orderSet = requestIdToOrders[requestId];
-                        orderSet.add(order);
-                    } else {
-                        const orderSet = new Set<APIOrder>();
-                        orderSet.add(order);
-                        requestIdToOrders[requestId] = orderSet;
-                    }
-                }
-            }
-            for (const [requestId, orders] of Object.entries(requestIdToOrders)) {
-                const ws = this._requestIdToSocket.get(requestId);
-                if (ws) {
-                    ws.send(JSON.stringify({ ...response, payload: Array.from(orders), requestId }));
-                }
-            }
-        }
+        throw new Error('FIX ME IMPLEMENT WEBSOCKET V4 updates');
+        // const response: Partial<UpdateOrdersChannelMessageWithChannel> = {
+        // type: OrdersChannelMessageTypes.Update,
+        // channel: MessageChannels.Orders,
+        // payload: apiOrders,
+        // };
+        // const allowedOrders = apiOrders.filter(
+        // apiOrder => !orderUtils.isIgnoredOrder(MESH_IGNORED_ADDRESSES, apiOrder),
+        // );
+        // for (const order of allowedOrders) {
+        //// Future optimisation is to invert this structure so the order isn't duplicated over many request ids
+        //// order->requestIds it is less likely to get multiple order updates and more likely
+        //// to have many subscribers and a single order
+        // const requestIdToOrders: { [requestId: string]: Set<APIOrder> } = {};
+        // for (const [requestId, subscriptionOpts] of this._requestIdToSubscriptionOpts) {
+        // if (WebsocketService._matchesOrdersChannelSubscription(order.order, subscriptionOpts)) {
+        // if (requestIdToOrders[requestId]) {
+        // const orderSet = requestIdToOrders[requestId];
+        // orderSet.add(order);
+        // } else {
+        // const orderSet = new Set<APIOrder>();
+        // orderSet.add(order);
+        // requestIdToOrders[requestId] = orderSet;
+        // }
+        // }
+        // }
+        // for (const [requestId, orders] of Object.entries(requestIdToOrders)) {
+        // const ws = this._requestIdToSocket.get(requestId);
+        // if (ws) {
+        // ws.send(JSON.stringify({ ...response, payload: Array.from(orders), requestId }));
+        // }
+        // }
+        // }
     }
     private _processConnection(ws: WrappedWebSocket, _req: http.IncomingMessage): void {
         ws.on('pong', this._pongHandler(ws).bind(this));

@@ -28,7 +28,7 @@ export class OrderWatcherService {
         const signedOrders = signedOrderModels.map(orderUtils.deserializeOrder);
 
         // 2. Get orders from Mesh
-        const { ordersInfos } = await this._meshClient.getOrdersAsync();
+        const { ordersInfos } = await this._meshClient.getOrdersV4Async();
 
         // 3. Validate local cache state by posting to Mesh
         // TODO(dekz): Mesh can reject due to InternalError or EthRPCRequestFailed.

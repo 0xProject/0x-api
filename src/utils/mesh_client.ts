@@ -1,4 +1,4 @@
-import { FilterKind, MeshGraphQLClient, OrderWithMetadata } from '@0x/mesh-graphql-client';
+import { FilterKind, MeshGraphQLClient, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
 import * as _ from 'lodash';
 
 import { MESH_GET_ORDERS_DEFAULT_PAGE_SIZE as DEFAULT_PAGE_SIZE } from '../config';
@@ -11,11 +11,13 @@ export class MeshClient extends MeshGraphQLClient {
         });
     }
 
-    public async getOrdersAsync(perPage: number = DEFAULT_PAGE_SIZE): Promise<{ ordersInfos: OrderWithMetadata[] }> {
-        let orders: OrderWithMetadata[] = [];
+    public async getOrdersV4Async(
+        perPage: number = DEFAULT_PAGE_SIZE,
+    ): Promise<{ ordersInfos: OrderWithMetadataV4[] }> {
+        let orders: OrderWithMetadataV4[] = [];
         let lastOrderHash: string | undefined;
         do {
-            const currentOrders = await this.findOrdersAsync({
+            const currentOrders = await this.findOrdersV4Async({
                 limit: perPage,
                 filters: lastOrderHash
                     ? [
