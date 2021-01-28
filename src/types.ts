@@ -462,6 +462,7 @@ interface SwapQuoteParamsBase {
 export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, BasePriceResponse {
     guaranteedPrice: BigNumber;
     // orders: SignedOrder[];
+    orders?: any;
     from?: string;
     quoteReport?: QuoteReport;
 }

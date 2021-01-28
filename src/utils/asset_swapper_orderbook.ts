@@ -1,4 +1,5 @@
-import { APIOrder, Orderbook, OrderbookOrder } from '@0x/asset-swapper';
+import { APIOrder, LimitOrderFields, Orderbook } from '@0x/asset-swapper';
+import { SignedOrder } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/types';
 
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../constants';
 import { OrderBookService } from '../services/orderbook_service';
@@ -12,8 +13,8 @@ export class AssetSwapperOrderbook extends Orderbook {
     public async getOrdersAsync(
         makerAssetData: string,
         takerAssetData: string,
-        pruneFn?: (o: OrderbookOrder) => boolean,
-    ): Promise<OrderbookOrder[]> {
+        pruneFn?: (o: SignedOrder<LimitOrderFields>) => boolean,
+    ): Promise<Array<SignedOrder<LimitOrderFields>>> {
         const apiOrders = await this.orderbookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {
             makerAssetData,
             takerAssetData,
@@ -25,15 +26,15 @@ export class AssetSwapperOrderbook extends Orderbook {
     public async getBatchOrdersAsync(
         makerTokens: string[],
         takerToken: string,
-        pruneFn?: (o: OrderbookOrder) => boolean,
-    ): Promise<OrderbookOrder[][]> {
+        pruneFn?: (o: SignedOrder<LimitOrderFields>) => boolean,
+    ): Promise<SignedOrder<LimitOrderFields>[][]> {
         const apiOrders = await this.orderbookService.getBatchOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, makerTokens, [
             takerToken,
         ]);
         const orders = apiOrders.records.map(apiOrderToOrderbookOrder);
         const pruned = pruneFn ? orders.filter(pruneFn) : orders;
-        const groupedByMakerToken: OrderbookOrder[][] = makerTokens.map(token =>
-            pruned.filter(o => o.makerToken === token),
+        const groupedByMakerToken: SignedOrder<LimitOrderFields>[][] = makerTokens.map(token =>
+            pruned.filter(o => o.order.makerToken === token),
         );
         return groupedByMakerToken;
     }
@@ -44,6 +45,6 @@ export class AssetSwapperOrderbook extends Orderbook {
 }
 
 // TODO
-function apiOrderToOrderbookOrder(apiOrder: APIOrder): OrderbookOrder {
-    return (apiOrder as any) as OrderbookOrder;
+function apiOrderToOrderbookOrder(apiOrder: APIOrder): SignedOrder<LimitOrderFields> {
+    return (apiOrder as any) as SignedOrder<LimitOrderFields>;
 }

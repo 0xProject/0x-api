@@ -3,10 +3,7 @@ import {
     AssetSwapperContractAddresses,
     ERC20BridgeSource,
     ExtensionContractType,
-    FillQuoteTransformerOrderType,
     GetMarketOrdersRfqtOpts,
-    getSwapMinBuyAmount,
-    NativeRfqOrderFillData,
     Orderbook,
     RfqtFirmQuoteValidator,
     SwapQuote,
@@ -30,8 +27,6 @@ import {
     CHAIN_ID,
     FIRM_PRICE_AWARE_RFQ_ENABLED,
     INDICATIVE_PRICE_AWARE_RFQ_ENABLED,
-    PROTOCOL_FEE_MULTIPLIER,
-    RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER,
     RFQT_REQUEST_MAX_RESPONSE_MS,
     SWAP_QUOTER_OPTS,
 } from '../config';
@@ -81,12 +76,14 @@ export class SwapService {
         affiliateFee: PercentageFee,
     ): { price: BigNumber; guaranteedPrice: BigNumber } {
         const { makerAmount, totalTakerAmount } = swapQuote.bestCaseQuoteInfo;
-        const { totalTakerAmount: guaranteedtotalTakerAmount } = swapQuote.worstCaseQuoteInfo;
-        const guaranteedMakerAmount = getSwapMinBuyAmount(swapQuote);
+        const {
+            totalTakerAmount: guaranteedTotalTakerAmount,
+            makerAmount: guaranteedMakerAmount,
+        } = swapQuote.worstCaseQuoteInfo;
         const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyTokenDecimals);
         const unitTakerAmount = Web3Wrapper.toUnitAmount(totalTakerAmount, sellTokenDecimals);
         const guaranteedUnitMakerAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAmount, buyTokenDecimals);
-        const guaranteedUnitTakerAmount = Web3Wrapper.toUnitAmount(guaranteedtotalTakerAmount, sellTokenDecimals);
+        const guaranteedUnitTakerAmount = Web3Wrapper.toUnitAmount(guaranteedTotalTakerAmount, sellTokenDecimals);
         const affiliateFeeUnitMakerAmount = guaranteedUnitMakerAmount.times(affiliateFee.buyTokenPercentageFee);
 
         const isSelling = buyAmount === undefined;
@@ -121,10 +118,12 @@ export class SwapService {
         orderbook: Orderbook,
         provider: SupportedProvider,
         contractAddresses: AssetSwapperContractAddresses,
-        firmQuoteValidator?: RfqtFirmQuoteValidator | undefined,
+        _firmQuoteValidator?: RfqtFirmQuoteValidator | undefined,
     ) {
         this._provider = provider;
-        this._firmQuoteValidator = firmQuoteValidator;
+        // TODO jacob re-enable
+        // this._firmQuoteValidator = firmQuoteValidator;
+        this._firmQuoteValidator = undefined;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             ...SWAP_QUOTER_OPTS,
             rfqt: {
@@ -171,19 +170,21 @@ export class SwapService {
         // Only enable RFQT if there's an API key and either (a) it's a
         // forwarder transaction (isETHSell===true), (b) there's a taker
         // address present, or (c) it's an indicative quote.
+        //
+        // Note 0xAPI maps takerAddress query parameter to txOrigin as takerAddress is always Exchange Proxy or a VIP
         const shouldEnableRfqt =
             apiKey !== undefined && (isETHSell || takerAddress !== undefined || (rfqt && rfqt.isIndicative));
         if (shouldEnableRfqt) {
             // The taker is always the ExchangeProxy's FlashWallet
             // as it allows us to optionally transform assets (i.e Deposit ETH into WETH)
             // Since the FlashWallet is the taker it needs to be forwarded to the quote provider
-            const newTakerAddress = this._contractAddresses.exchangeProxyFlashWallet;
             _rfqt = {
                 ...rfqt,
                 intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
                 apiKey: apiKey!,
                 makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
-                takerAddress: newTakerAddress,
+                takerAddress: NULL_ADDRESS,
+                txOrigin: takerAddress!,
                 priceAwareRFQFlag: {
                     isFirmPriceAwareEnabled: FIRM_PRICE_AWARE_RFQ_ENABLED,
                     isIndicativePriceAwareEnabled: INDICATIVE_PRICE_AWARE_RFQ_ENABLED,
@@ -285,39 +286,6 @@ export class SwapService {
         let adjustedWorstCaseProtocolFee = protocolFee;
         let adjustedValue = value;
 
-        // With v1 we are able to fill bridges directly so the protocol fee is lower
-        const nativeFills = _.flatten(swapQuote.orders.map(order => order.fills)).filter(
-            fill => fill.source === ERC20BridgeSource.Native,
-        );
-
-        const hasRFQTOrders = swapQuote.orders.some(order => {
-            const isNativeOrder = order.fills.some(fill => fill.source === ERC20BridgeSource.Native);
-            const hasTakerAddress =
-                order.type === FillQuoteTransformerOrderType.Rfq &&
-                (order.fillData as NativeRfqOrderFillData).order.taker !== NULL_ADDRESS;
-
-            return isNativeOrder && hasTakerAddress;
-        });
-
-        // NOTE: Takers have a tendency to bump the gas price in order to speed up their trades
-        // for Native orders this often leads to an insufficient protocol fee being included and
-        // potential RFQT orders cannot be filled, so to avoid this we pad the protocol fee amount
-        // specifically when RFQT orders are included in the quote
-        if (hasRFQTOrders) {
-            const maxGasPricePadding = gasPrice.times(RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER);
-
-            // Use the fastest price but make sure it's never more than max padding and never less than supplied gas price
-            const paddedGasPrice = BigNumber.max(maxGasPricePadding, gasPrice);
-
-            adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
-                .times(paddedGasPrice)
-                .times(nativeFills.length);
-        } else {
-            adjustedWorstCaseProtocolFee = new BigNumber(PROTOCOL_FEE_MULTIPLIER)
-                .times(gasPrice)
-                .times(nativeFills.length);
-        }
-
         adjustedValue = isETHSell
             ? adjustedWorstCaseProtocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAmount)
             : adjustedWorstCaseProtocolFee;
@@ -354,7 +322,7 @@ export class SwapService {
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
-            // orders: serviceUtils.cleanSignedOrderFields(orders),
+            orders: swapQuote.orders,
             allowanceTarget,
             decodedUniqueId,
             sellTokenToEthRate,
@@ -546,7 +514,7 @@ export class SwapService {
             buyAmount: amount,
             sellAmount: amount,
             sources: [],
-            // orders: [],
+            orders: [],
             sellTokenToEthRate: new BigNumber(1),
             buyTokenToEthRate: new BigNumber(1),
             allowanceTarget: NULL_ADDRESS,
