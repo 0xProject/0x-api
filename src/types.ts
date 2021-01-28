@@ -52,11 +52,6 @@ export interface APIOrderMetaData {
     createdAt?: string;
 }
 
-// TODO(kimpers): Consolidate types in @0x/types
-export interface APIOrder {
-    order: SignedLimitOrder;
-    metaData: object;
-}
 export interface APIOrderWithMetaData extends APIOrder {
     metaData: APIOrderMetaData;
 }
@@ -645,5 +640,22 @@ export interface SRAGetOrdersRequestOpts {
 
 export interface SignedLimitOrder extends LimitOrderFields {
     signature: Signature;
+}
+
+// TODO(kimpers): Consolidate types in @0x/types
+export interface APIOrder {
+    order: SignedLimitOrder;
+    metaData: object;
+}
+
+export interface OrderbookResponse {
+    bids: PaginatedCollection<APIOrder>;
+    asks: PaginatedCollection<APIOrder>;
+}
+export interface PaginatedCollection<T> {
+    total: number;
+    page: number;
+    perPage: number;
+    records: T[];
 }
 // tslint:disable-line:max-file-line-count

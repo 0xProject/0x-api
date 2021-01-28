@@ -11,7 +11,15 @@ import {
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { APIOrder, APIOrderWithMetaData, PinResult, SignedLimitOrder, SRAGetOrdersRequestOpts } from '../types';
+import {
+    APIOrder,
+    APIOrderWithMetaData,
+    OrderbookResponse,
+    PaginatedCollection,
+    PinResult,
+    SignedLimitOrder,
+    SRAGetOrdersRequestOpts,
+} from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
@@ -74,38 +82,37 @@ export class OrderBookService {
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getOrderBookAsync(
-        _page: number,
-        _perPage: number,
-        _baseAssetData: string,
-        _quoteAssetData: string,
+        page: number,
+        perPage: number,
+        baseToken: string,
+        quoteToken: string,
     ): Promise<OrderbookResponse> {
-        throw new Error('TODO IMPLEMENT');
-        // const orderEntities = await this._connection.manager.find(SignedOrderV4Entity, {
-        // where: {
-        // takerAssetData: In([baseAssetData, quoteAssetData]),
-        // makerAssetData: In([baseAssetData, quoteAssetData]),
-        // },
-        // });
-        // const bidSignedOrderEntities = orderEntities.filter(
-        // o => o.takerAssetData === baseAssetData && o.makerAssetData === quoteAssetData,
-        // );
-        // const askSignedOrderEntities = orderEntities.filter(
-        // o => o.takerAssetData === quoteAssetData && o.makerAssetData === baseAssetData,
-        // );
-        // const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Required<SignedOrderV4Entity>[])
-        // .map(orderUtils.deserializeOrderToAPIOrder)
-        // .filter(orderUtils.isFreshOrder)
-        // .sort((orderA, orderB) => orderUtils.compareBidOrder(orderA.order, orderB.order));
-        // const askApiOrders: APIOrder[] = (askSignedOrderEntities as Required<SignedOrderV4Entity>[])
-        // .map(orderUtils.deserializeOrderToAPIOrder)
-        // .filter(orderUtils.isFreshOrder)
-        // .sort((orderA, orderB) => orderUtils.compareAskOrder(orderA.order, orderB.order));
-        // const paginatedBidApiOrders = paginationUtils.paginate(bidApiOrders, page, perPage);
-        // const paginatedAskApiOrders = paginationUtils.paginate(askApiOrders, page, perPage);
-        // return {
-        // bids: paginatedBidApiOrders,
-        // asks: paginatedAskApiOrders,
-        // };
+        const orderEntities = await this._connection.manager.find(SignedOrderV4Entity, {
+            where: {
+                takerAssetData: In([baseToken, quoteToken]),
+                makerAssetData: In([baseToken, quoteToken]),
+            },
+        });
+        const bidSignedOrderEntities = orderEntities.filter(
+            o => o.takerToken === baseToken && o.makerToken === quoteToken,
+        );
+        const askSignedOrderEntities = orderEntities.filter(
+            o => o.takerToken === quoteToken && o.makerToken === baseToken,
+        );
+        const bidApiOrders: APIOrder[] = (bidSignedOrderEntities as Required<SignedOrderV4Entity>[])
+            .map(orderUtils.deserializeOrderToAPIOrder)
+            .filter(orderUtils.isFreshOrder)
+            .sort((orderA, orderB) => orderUtils.compareBidOrder(orderA.order, orderB.order));
+        const askApiOrders: APIOrder[] = (askSignedOrderEntities as Required<SignedOrderV4Entity>[])
+            .map(orderUtils.deserializeOrderToAPIOrder)
+            .filter(orderUtils.isFreshOrder)
+            .sort((orderA, orderB) => orderUtils.compareAskOrder(orderA.order, orderB.order));
+        const paginatedBidApiOrders = paginationUtils.paginate(bidApiOrders, page, perPage);
+        const paginatedAskApiOrders = paginationUtils.paginate(askApiOrders, page, perPage);
+        return {
+            bids: paginatedBidApiOrders,
+            asks: paginatedAskApiOrders,
+        };
     }
 
     // TODO:(leo) Do all filtering and pagination in a DB (requires stored procedures or redundant fields)
