@@ -564,14 +564,14 @@
     dexie "^3.0.1"
     ethereum-types "^3.0.0"
 
-"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.2.0-5c47b493":
+"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v10.2.0-00b627c0":
   version "10.2.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/de614a092498c78404bcc0e2860209843ff44b5c"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/d2e3f6ed1b1bdac870e945a270b4b004aad7a2eb"
   dependencies:
     "@0x/mesh-browser-lite" "^10.2.0"
     "@0x/protocol-utils" "^1.1.4"
     "@0x/types" "^3.2.0"
-    "@0x/utils" "^5.4.0"
+    "@0x/utils" "^6.2.0"
     "@apollo/client" "^3.3.6"
     "@types/ws" "^7.2.6"
     graphql "^15.3.0"

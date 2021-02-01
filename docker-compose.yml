@@ -28,14 +28,14 @@ services:
             CHAIN_ID: '${CHAIN_ID}'
             POSTGRES_URI: 'postgres://api:api@postgres/api'
     mesh:
-        image: 0xorg/mesh:10.2.0
+        image: overmorrow/mesh:v4rc3
         depends_on:
             - ganache
         restart: on-failure
         environment:
             ETHEREUM_RPC_URL: '${ETHEREUM_RPC_URL}'
             ETHEREUM_CHAIN_ID: '${CHAIN_ID}'
-            USE_BOOTSTRAP_LIST: 'false'
+            #USE_BOOTSTRAP_LIST: 'false'
             VERBOSITY: 4
             PRIVATE_KEY_PATH: ''
             ENABLE_GRAPHQL_SERVER: 'true'
