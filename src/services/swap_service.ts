@@ -1,5 +1,5 @@
 import {
-    AffiliateFee,
+    AffiliateFeeAmount,
     AssetSwapperContractAddresses,
     ERC20BridgeSource,
     ExtensionContractType,
@@ -53,7 +53,7 @@ import {
     CalculateSwapQuoteParams,
     GetSwapQuoteResponse,
     GetTokenPricesResponse,
-    PercentageFee,
+    AffiliateFee,
     SwapQuoteResponsePartialTransaction,
     TokenMetadata,
     TokenMetadataOptionalSymbol,
@@ -76,7 +76,7 @@ export class SwapService {
         buyTokenDecimals: number,
         sellTokenDecimals: number,
         swapQuote: SwapQuote,
-        affiliateFee: PercentageFee,
+        affiliateFee: AffiliateFee,
     ): { price: BigNumber; guaranteedPrice: BigNumber } {
         const { makerAssetAmount, totalTakerAssetAmount } = swapQuote.bestCaseQuoteInfo;
         const { totalTakerAssetAmount: guaranteedTotalTakerAssetAmount } = swapQuote.worstCaseQuoteInfo;
@@ -186,7 +186,12 @@ export class SwapService {
             isMetaTransaction,
             shouldSellEntireBalance,
             affiliateAddress,
-            { recipient: affiliateFee.recipient, buyTokenFeeAmount, sellTokenFeeAmount },
+            {
+                recipient: affiliateFee.recipient,
+                feeType: affiliateFee.feeType,
+                buyTokenFeeAmount,
+                sellTokenFeeAmount,
+            },
         );
 
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas)
@@ -266,14 +271,14 @@ export class SwapService {
         // No allowance target is needed if this is an ETH sell, so set to 0x000..
         const allowanceTarget = isETHSell ? NULL_ADDRESS : this._contractAddresses.exchangeProxy;
 
-        const { takerAssetToEthRate, makerAssetToEthRate } = swapQuote;
+        const { takerAssetPriceForOneEth, makerAssetPriceForOneEth } = swapQuote;
 
         // Convert into unit amounts
         const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
-        const sellTokenToEthRate = takerAssetToEthRate
+        const sellTokenToEthRate = takerAssetPriceForOneEth
             .times(new BigNumber(10).pow(wethToken.decimals - takerTokenDecimals))
             .decimalPlaces(takerTokenDecimals);
-        const buyTokenToEthRate = makerAssetToEthRate
+        const buyTokenToEthRate = makerAssetPriceForOneEth
             .times(new BigNumber(10).pow(wethToken.decimals - makerTokenDecimals))
             .decimalPlaces(makerTokenDecimals);
 
@@ -600,6 +605,7 @@ export class SwapService {
         // only generate quote reports for rfqt firm quotes or when price comparison is requested
         const shouldGenerateQuoteReport = includePriceComparisons || (rfqt && rfqt.intentOnFilling);
 
+        // TODO:(Romain): should we not use the same logic to know if VIP cant be used or not
         const swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts> =
             isMetaTransaction || affiliateFee.buyTokenPercentageFee > 0 || affiliateFee.sellTokenPercentageFee > 0
                 ? ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP
@@ -644,7 +650,7 @@ export class SwapService {
         isMetaTransaction: boolean,
         shouldSellEntireBalance: boolean,
         affiliateAddress: string | undefined,
-        affiliateFee: AffiliateFee,
+        affiliateFee: AffiliateFeeAmount,
     ): Promise<SwapQuoteResponsePartialTransaction> {
         const opts: Partial<SwapQuoteGetOutputOpts> = {
             useExtensionContract: ExtensionContractType.ExchangeProxy,

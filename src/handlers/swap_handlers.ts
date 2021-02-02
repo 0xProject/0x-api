@@ -27,6 +27,7 @@ import { schemas } from '../schemas/schemas';
 import { SwapService } from '../services/swap_service';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
+    AffiliateFeeType,
     CalculateSwapQuoteParams,
     GetSwapPriceResponse,
     GetSwapQuoteRequestParams,
@@ -393,13 +394,51 @@ const parseGetSwapQuoteRequestParams = (
             },
         ]);
     }
+
+    let feeType = AffiliateFeeType.None;
+    if (req.query.feeType === 'positive-slippage') {
+        feeType = AffiliateFeeType.PositiveSlippageFee;
+    } else if (buyTokenPercentageFee > 0) {
+        feeType = AffiliateFeeType.PercentageFee;
+    }
+
+    if (feeType === AffiliateFeeType.PositiveSlippageFee) {
+        // can't have percentage fee and positive slippage fee at the same time
+        if (buyTokenPercentageFee) {
+            throw new ValidationError([
+                {
+                    field: 'buyTokenPercentageFee',
+                    code: ValidationErrorCodes.UnsupportedOption,
+                    reason: ValidationErrorReasons.MultipleFeeTypesUsed,
+                },
+                {
+                    field: 'feeType',
+                    code: ValidationErrorCodes.UnsupportedOption,
+                    reason: ValidationErrorReasons.MultipleFeeTypesUsed,
+                },
+            ]);
+        }
+    }
+
+    if (feeType !== AffiliateFeeType.None && feeRecipient === undefined) {
+        throw new ValidationError([
+            {
+                field: 'feeRecipient',
+                code: ValidationErrorCodes.UnsupportedOption,
+                reason: ValidationErrorReasons.FeeRecipientMissing,
+            },
+        ]);
+    }
+
     const affiliateFee = feeRecipient
         ? {
+              feeType,
               recipient: feeRecipient,
               sellTokenPercentageFee,
               buyTokenPercentageFee,
           }
         : {
+              feeType,
               recipient: NULL_ADDRESS,
               sellTokenPercentageFee: 0,
               buyTokenPercentageFee: 0,

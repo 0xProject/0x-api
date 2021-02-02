@@ -393,6 +393,29 @@ describe(SUITE_NAME, () => {
                     },
                 );
             });
+            it('validation error if both percentage and positive slippage fee enabled', async () => {
+                await quoteAndExpectAsync(
+                    {
+                        ...sellQuoteParams,
+                        feeType: 'positive-slippage',
+                        buyTokenPercentageFee: '0.9',
+                    },
+                    {
+                        validationErrors: [
+                            {
+                                code: ValidationErrorCodes.UnsupportedOption,
+                                field: 'buyTokenPercentageFee',
+                                reason: ValidationErrorReasons.MultipleFeeTypesUsed,
+                            },
+                            {
+                                code: ValidationErrorCodes.UnsupportedOption,
+                                field: 'feeType',
+                                reason: ValidationErrorReasons.MultipleFeeTypesUsed,
+                            },
+                        ],
+                    },
+                );
+            });
         });
 
         describe('affiliate address', () => {

@@ -424,7 +424,14 @@ export interface SourceComparison {
     savingsInEth?: BigNumber;
 }
 
-export interface PercentageFee {
+export enum AffiliateFeeType {
+    None,
+    PercentageFee,
+    PositiveSlippageFee,
+}
+
+export interface AffiliateFee {
+    feeType: AffiliateFeeType;
     recipient: string;
     sellTokenPercentageFee: number;
     buyTokenPercentageFee: number;
@@ -437,7 +444,7 @@ interface SwapQuoteParamsBase {
     excludedSources: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
-    affiliateFee: PercentageFee;
+    affiliateFee: AffiliateFee;
     includePriceComparisons?: boolean;
 }
 

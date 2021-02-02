@@ -26,6 +26,7 @@ import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import {
+    AffiliateFeeType,
     ChainId,
     ExchangeProxyMetaTransactionWithoutDomain,
     GetMetaTransactionPriceResponse,
@@ -403,11 +404,13 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     }
     const affiliateFee = feeRecipient
         ? {
+              feeType: AffiliateFeeType.PercentageFee,
               recipient: feeRecipient,
               sellTokenPercentageFee,
               buyTokenPercentageFee,
           }
         : {
+              feeType: AffiliateFeeType.None,
               recipient: NULL_ADDRESS,
               sellTokenPercentageFee: 0,
               buyTokenPercentageFee: 0,

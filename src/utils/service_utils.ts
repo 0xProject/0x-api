@@ -6,6 +6,7 @@ import {
     SwapQuote,
     SwapQuoteOrdersBreakdown,
 } from '@0x/asset-swapper';
+import { AffiliateFeeType } from '@0x/asset-swapper/lib/src/types';
 import { assetDataUtils } from '@0x/order-utils';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
@@ -20,8 +21,9 @@ import {
     PERCENTAGE_SIG_DIGITS,
     ZERO,
 } from '../constants';
+import { POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS } from '@0x/asset-swapper/lib/src/constants';
 import { logger } from '../logger';
-import { AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource, PercentageFee } from '../types';
+import { AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource, AffiliateFee } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { findTokenDecimalsIfExists } from '../utils/token_metadata_utils';
 
@@ -177,16 +179,22 @@ export const serviceUtils = {
             return [...acc, obj];
         }, []);
     },
-    getAffiliateFeeAmounts(quote: SwapQuote, fee: PercentageFee): AffiliateFeeAmounts {
+    getAffiliateFeeAmounts(quote: SwapQuote, fee: AffiliateFee): AffiliateFeeAmounts {
         const minBuyAmount = getSwapMinBuyAmount(quote);
         const buyTokenFeeAmount = minBuyAmount
             .times(fee.buyTokenPercentageFee)
             .dividedBy(fee.buyTokenPercentageFee + 1)
             .integerValue(BigNumber.ROUND_DOWN);
+        let gasCost = ZERO;
+        if (fee.feeType === AffiliateFeeType.PercentageFee) {
+            gasCost = AFFILIATE_FEE_TRANSFORMER_GAS;
+        } else if (fee.feeType === AffiliateFeeType.PositiveSlippageFee) {
+            gasCost = POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS;
+        }
         return {
             sellTokenFeeAmount: ZERO,
             buyTokenFeeAmount,
-            gasCost: buyTokenFeeAmount.isZero() ? ZERO : AFFILIATE_FEE_TRANSFORMER_GAS,
+            gasCost,
         };
     },
 };
