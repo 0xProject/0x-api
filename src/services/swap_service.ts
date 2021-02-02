@@ -116,12 +116,10 @@ export class SwapService {
         orderbook: Orderbook,
         provider: SupportedProvider,
         contractAddresses: AssetSwapperContractAddresses,
-        _firmQuoteValidator?: RfqtFirmQuoteValidator | undefined,
+        firmQuoteValidator?: RfqtFirmQuoteValidator | undefined,
     ) {
         this._provider = provider;
-        // TODO jacob re-enable
-        // this._firmQuoteValidator = firmQuoteValidator;
-        this._firmQuoteValidator = undefined;
+        this._firmQuoteValidator = firmQuoteValidator;
         const swapQuoterOpts: Partial<SwapQuoterOpts> = {
             ...SWAP_QUOTER_OPTS,
             rfqt: {

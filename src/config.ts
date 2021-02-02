@@ -381,7 +381,6 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     tokenAdjacencyGraph: { default: DEFAULT_INTERMEDIATE_TOKENS },
     liquidityProviderRegistry: LIQUIDITY_PROVIDER_REGISTRY,
 };
-console.log(SWAP_QUOTER_OPTS.rfqt);
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
     httpPort: HTTP_PORT,

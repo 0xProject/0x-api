@@ -1,10 +1,7 @@
 import {
-    BridgeQuoteReportEntry,
     DEFAULT_GAS_SCHEDULE,
     ERC20BridgeSource,
     FeeSchedule,
-    MultiHopQuoteReportEntry,
-    NativeRfqOrderQuoteReportEntry,
     QuoteReport,
     SushiSwapFillData,
     UniswapV2FillData,
@@ -112,21 +109,7 @@ function getPriceComparisonFromQuoteOrThrow(
 
     // Calculate the maker/taker amounts after factoring in gas costs
     const tradeSourcesWithGas = fullTradeSources.map(source => {
-        const { liquiditySource } = source;
-        let gas: BigNumber;
-        if (liquiditySource === ERC20BridgeSource.Native) {
-            // tslint:disable-next-line:no-unnecessary-type-assertion
-            const typedSource = source as NativeRfqOrderQuoteReportEntry;
-            gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!());
-        } else if (liquiditySource === ERC20BridgeSource.MultiHop) {
-            // tslint:disable-next-line:no-unnecessary-type-assertion
-            const typedSource = source as MultiHopQuoteReportEntry;
-            gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!(typedSource.fillData));
-        } else {
-            // tslint:disable-next-line:no-unnecessary-type-assertion
-            const typedSource = source as BridgeQuoteReportEntry;
-            gas = new BigNumber(gasScheduleWithOverrides[typedSource.liquiditySource]!(typedSource.fillData));
-        }
+        let gas = new BigNumber(gasScheduleWithOverrides[source.liquiditySource]!(source.fillData));
 
         const gasCost = gas
             .times(quote.gasPrice)

@@ -1,4 +1,4 @@
-import { BigNumber, BridgeQuoteReportEntry, QuoteReport, QuoteReportEntry } from '@0x/asset-swapper';
+import { BigNumber, QuoteReport, QuoteReportEntry } from '@0x/asset-swapper';
 import _ = require('lodash');
 
 import { NUMBER_SOURCES_PER_LOG_LINE } from '../constants';
@@ -39,14 +39,9 @@ export const quoteReportUtils = {
         // NOTE: Removes bridge report fillData which we do not want to log to Kibana
         const qr: QuoteReport = {
             ...logOpts.quoteReport,
-            sourcesConsidered: logOpts.quoteReport.sourcesConsidered.map(source => {
-                const cleanedSource = { ...source };
-                if ((cleanedSource as BridgeQuoteReportEntry).fillData) {
-                    delete (cleanedSource as BridgeQuoteReportEntry).fillData;
-                }
-
-                return cleanedSource;
-            }),
+            sourcesConsidered: logOpts.quoteReport.sourcesConsidered.map(
+                source => _.omit(source, ['fillData']) as QuoteReportEntry,
+            ),
         };
 
         let logBase: { [key: string]: string | boolean | undefined } = {

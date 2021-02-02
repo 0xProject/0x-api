@@ -1,4 +1,4 @@
-import { ERC20BridgeSource, getSwapMinBuyAmount, SwapQuote, SwapQuoteOrdersBreakdown } from '@0x/asset-swapper';
+import { ERC20BridgeSource, SwapQuote, SwapQuoteOrdersBreakdown } from '@0x/asset-swapper';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
@@ -146,7 +146,7 @@ export const serviceUtils = {
         }, []);
     },
     getAffiliateFeeAmounts(quote: SwapQuote, fee: PercentageFee): AffiliateFeeAmounts {
-        const minBuyAmount = getSwapMinBuyAmount(quote);
+        const minBuyAmount = quote.worstCaseQuoteInfo.makerAmount;
         const buyTokenFeeAmount = minBuyAmount
             .times(fee.buyTokenPercentageFee)
             .dividedBy(fee.buyTokenPercentageFee + 1)
