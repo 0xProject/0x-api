@@ -1,12 +1,12 @@
 // tslint:disable:max-file-line-count
-import { ERC20BridgeSource, rfqtMocker, SignedOrder } from '@0x/asset-swapper';
+import { ERC20BridgeSource, RfqOrderFields, rfqtMocker } from '@0x/asset-swapper';
+import { Signature } from '@0x/protocol-utils';
 import { quoteRequestorHttpClient } from '@0x/asset-swapper/lib/src/utils/quote_requestor';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, web3Factory } from '@0x/dev-utils';
-import { signatureUtils } from '@0x/order-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
@@ -14,6 +14,7 @@ import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
+import { RfqOrder } from '../../0x-monorepo/node_modules/@0x/protocol-utils/lib/src';
 
 // Force reload of the app avoid variables being polluted between test suites
 delete require.cache[require.resolve('../src/app')];
@@ -27,7 +28,7 @@ import { SWAP_PATH as BASE_SWAP_PATH } from '../src/constants';
 
 import { CONTRACT_ADDRESSES } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { ganacheZrxWethOrderExchangeProxy, rfqtIndicativeQuoteResponse } from './utils/mocks';
+import { ganacheZrxWethRfqOrderExchangeProxy, rfqtIndicativeQuoteResponse } from './utils/mocks';
 
 let app: Express.Application;
 let server: Server;
@@ -93,7 +94,7 @@ describe(SUITE_NAME, () => {
     describe('v1', async () => {
         const SWAP_PATH = `${BASE_SWAP_PATH}`;
         let DEFAULT_RFQT_RESPONSE_DATA: object;
-        let signedOrder: SignedOrder;
+        let signedOrder: RfqOrderFields & { signature: Signature };
         before(async () => {
             const flashWalletAddress = CONTRACT_ADDRESSES.exchangeProxyFlashWallet;
             DEFAULT_RFQT_RESPONSE_DATA = {
@@ -108,17 +109,9 @@ describe(SUITE_NAME, () => {
                     comparisonPrice: undefined,
                 },
             };
-            const order: SignedOrder = {
-                ...ganacheZrxWethOrderExchangeProxy,
-                takerAddress: flashWalletAddress,
-                makerAssetAmount: new BigNumber(ganacheZrxWethOrderExchangeProxy.makerAssetAmount),
-                takerAssetAmount: new BigNumber(ganacheZrxWethOrderExchangeProxy.takerAssetAmount),
-                takerFee: new BigNumber(ganacheZrxWethOrderExchangeProxy.takerFee),
-                makerFee: new BigNumber(ganacheZrxWethOrderExchangeProxy.makerFee),
-                expirationTimeSeconds: new BigNumber(ganacheZrxWethOrderExchangeProxy.expirationTimeSeconds),
-                salt: new BigNumber(ganacheZrxWethOrderExchangeProxy.salt),
-            };
-            signedOrder = await signatureUtils.ecSignOrderAsync(provider, order, order.makerAddress);
+            const order = new RfqOrder(ganacheZrxWethRfqOrderExchangeProxy);
+            const signature = await order.getSignatureWithProviderAsync(provider);
+            signedOrder = { ...order, signature };
             signedOrder = JSON.parse(JSON.stringify(signedOrder));
         });
 

@@ -505,7 +505,8 @@ export interface Price {
 export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
     mtxHash: string;
     mtx: ExchangeProxyMetaTransaction;
-    // orders: SignedOrder[];
+    // orders: SignedOrder[]
+    orders?: any;
 }
 
 // GET /meta_transaction/price
