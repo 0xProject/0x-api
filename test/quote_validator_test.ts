@@ -29,7 +29,7 @@ const createRfqOrder = (
         takerToken,
         chainId: 1337,
         verifyingContract: randomAddress(),
-        maker: maker,
+        maker,
         taker: NULL_ADDRESS,
         txOrigin: NULL_ADDRESS,
         pool: NULL_BYTES,

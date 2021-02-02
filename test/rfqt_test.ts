@@ -1,6 +1,5 @@
 // tslint:disable:max-file-line-count
-import { ERC20BridgeSource, RfqOrderFields, rfqtMocker } from '@0x/asset-swapper';
-import { Signature, RfqOrder } from '@0x/protocol-utils';
+import { ERC20BridgeSource, RfqOrder, RfqOrderFields, rfqtMocker, Signature } from '@0x/asset-swapper';
 import { quoteRequestorHttpClient } from '@0x/asset-swapper/lib/src/utils/quote_requestor';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
@@ -15,8 +14,6 @@ import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
 
-// Force reload of the app avoid variables being polluted between test suites
-delete require.cache[require.resolve('../src/app')];
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import {
     defaultHttpServiceWithRateLimiterConfig,
@@ -28,6 +25,9 @@ import { SWAP_PATH as BASE_SWAP_PATH } from '../src/constants';
 import { CONTRACT_ADDRESSES } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { ganacheZrxWethRfqOrderExchangeProxy, rfqtIndicativeQuoteResponse } from './utils/mocks';
+
+// Force reload of the app avoid variables being polluted between test suites
+delete require.cache[require.resolve('../src/app')];
 
 let app: Express.Application;
 let server: Server;

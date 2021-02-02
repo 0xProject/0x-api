@@ -275,12 +275,9 @@ export class SwapService {
             affiliateFee,
         );
 
-        let adjustedWorstCaseProtocolFee = protocolFee;
         let adjustedValue = value;
 
-        adjustedValue = isETHSell
-            ? adjustedWorstCaseProtocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAmount)
-            : adjustedWorstCaseProtocolFee;
+        adjustedValue = isETHSell ? protocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAmount) : protocolFee;
 
         // No allowance target is needed if this is an ETH sell, so set to 0x000..
         const allowanceTarget = isETHSell ? NULL_ADDRESS : this._contractAddresses.exchangeProxy;
@@ -306,8 +303,8 @@ export class SwapService {
             estimatedGas: conservativeBestCaseGasEstimate,
             from: takerAddress,
             gasPrice,
-            protocolFee: adjustedWorstCaseProtocolFee,
-            minimumProtocolFee: BigNumber.min(adjustedWorstCaseProtocolFee, bestCaseProtocolFee),
+            protocolFee,
+            minimumProtocolFee: BigNumber.min(protocolFee, bestCaseProtocolFee),
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
             buyToken: isETHBuy ? ETH_TOKEN_ADDRESS : buyToken,
             sellToken: isETHSell ? ETH_TOKEN_ADDRESS : sellToken,

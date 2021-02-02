@@ -14,7 +14,7 @@ export class AssetSwapperOrderbook extends Orderbook {
         makerAssetData: string,
         takerAssetData: string,
         pruneFn?: (o: SignedOrder<LimitOrderFields>) => boolean,
-    ): Promise<Array<SignedOrder<LimitOrderFields>>> {
+    ): Promise<SignedOrder<LimitOrderFields>[]> {
         const apiOrders = await this.orderbookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {
             makerAssetData,
             takerAssetData,

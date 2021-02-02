@@ -109,7 +109,7 @@ function getPriceComparisonFromQuoteOrThrow(
 
     // Calculate the maker/taker amounts after factoring in gas costs
     const tradeSourcesWithGas = fullTradeSources.map(source => {
-        let gas = new BigNumber(gasScheduleWithOverrides[source.liquiditySource]!(source.fillData));
+        const gas = new BigNumber(gasScheduleWithOverrides[source.liquiditySource]!(source.fillData));
 
         const gasCost = gas
             .times(quote.gasPrice)
