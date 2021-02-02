@@ -88,7 +88,8 @@
         ]
     },
     "resolutions": {
-        "@0x/orderbook": "0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023"
+        "@0x/orderbook": "0xProject/gitpkg-registry#0x-orderbook-v2.2.7-e10a81023",
+        "@0x/protocol-utils": "0xProject/gitpkg-registry#0x-protocol-utils-v1.1.4-f579cb493"
     },
     "devDependencies": {
         "@0x/contracts-erc20": "^3.2.10",

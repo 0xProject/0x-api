@@ -10,7 +10,6 @@ import { Connection, Repository } from 'typeorm';
 delete require.cache[require.resolve('../src/app')];
 import {
     createMetaTxnServiceFromSwapService,
-    createSwapServiceFromOrderBookService,
     getAppAsync,
     getContractAddressesForNetworkOrThrowAsync,
 } from '../src/app';
@@ -33,8 +32,10 @@ import { MetricsService } from '../src/services/metrics_service';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
 import { StakingDataService } from '../src/services/staking_data_service';
+import { SwapService } from '../src/services/swap_service';
 import { TransactionWatcherSignerService } from '../src/services/transaction_watcher_signer_service';
 import { ChainId, TransactionStates, TransactionWatcherSignerServiceConfig } from '../src/types';
+import { AssetSwapperOrderbook } from '../src/utils/asset_swapper_orderbook';
 import { MeshClient } from '../src/utils/mesh_client';
 import { utils } from '../src/utils/utils';
 
@@ -97,7 +98,12 @@ describe('transaction watcher service', () => {
             connection.getRepository(MakerBalanceChainCacheEntity),
             RFQ_FIRM_QUOTE_CACHE_EXPIRY,
         );
-        const swapService = createSwapServiceFromOrderBookService(orderBookService, rfqFirmQuoteValidator, provider, contractAddresses);
+        const swapService = new SwapService(
+            new AssetSwapperOrderbook(orderBookService),
+            provider,
+            contractAddresses,
+            rfqFirmQuoteValidator,
+        );
         const metaTransactionService = createMetaTxnServiceFromSwapService(
             provider,
             connection,
