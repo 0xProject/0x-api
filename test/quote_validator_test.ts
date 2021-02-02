@@ -1,14 +1,12 @@
 // tslint:disable:custom-no-magic-numbers
 import { RfqOrderFields } from '@0x/asset-swapper';
-import { ONE_SECOND_MS } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
 import { expect, randomAddress } from '@0x/contracts-test-utils';
 import { Web3Wrapper } from '@0x/dev-utils';
-import { BigNumber, NULL_ADDRESS } from '@0x/utils';
+import { BigNumber, NULL_ADDRESS, NULL_BYTES } from '@0x/utils';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
-import { NULL_BYTES } from '../../0x-monorepo/node_modules/@0x/order-utils/lib/src';
 
-import { ONE_MINUTE_MS } from '../src/constants';
+import { ONE_MINUTE_MS, ONE_SECOND_MS } from '../src/constants';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
 import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
 

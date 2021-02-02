@@ -1,6 +1,6 @@
 // tslint:disable:max-file-line-count
 import { ERC20BridgeSource, RfqOrderFields, rfqtMocker } from '@0x/asset-swapper';
-import { Signature } from '@0x/protocol-utils';
+import { Signature, RfqOrder } from '@0x/protocol-utils';
 import { quoteRequestorHttpClient } from '@0x/asset-swapper/lib/src/utils/quote_requestor';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
@@ -14,7 +14,6 @@ import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
-import { RfqOrder } from '../../0x-monorepo/node_modules/@0x/protocol-utils/lib/src';
 
 // Force reload of the app avoid variables being polluted between test suites
 delete require.cache[require.resolve('../src/app')];
