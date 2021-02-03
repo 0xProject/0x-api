@@ -7,7 +7,7 @@ import { OrderWatcherSyncError } from '../errors';
 import { alertOnExpiredOrders, logger } from '../logger';
 import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents, SignedLimitOrder } from '../types';
 import { MeshClient } from '../utils/mesh_client';
-import { meshUtils } from '../utils/mesh_utils';
+import { meshUtils, OrderEventV4 } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 
 interface ValidationResults {
@@ -87,7 +87,10 @@ export class OrderWatcherService {
         this._meshClient = meshClient;
         this._meshClient.onOrderEvents().subscribe({
             next: async orders => {
-                const apiOrders = meshUtils.orderInfosToApiOrders(orders);
+                // NOTE: We only care about V4 order updates
+                const apiOrders = orders
+                    .filter(o => !!o.orderv4)
+                    .map(e => meshUtils.orderEventToAPIOrder(e as OrderEventV4));
                 const { added, removed, updated } = meshUtils.calculateOrderLifecycle(apiOrders);
                 await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
                 await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);

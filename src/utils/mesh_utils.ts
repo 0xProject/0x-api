@@ -13,23 +13,43 @@ import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { APIOrderWithMetaData, OrdersByLifecycleEvents, SignedLimitOrder } from '../types';
 
+type AcceptedOrderWithEndState = AcceptedOrderResult<OrderWithMetadataV4> & { endState: OrderEventEndState };
 type OrderData =
     | AcceptedOrderResult<OrderWithMetadataV4>
+    | AcceptedOrderWithEndState
     | RejectedOrderResult<SignedLimitOrder>
-    | OrderEvent
     | OrderWithMetadataV4;
 
-const isOrderEvent = (orderData: OrderData): orderData is OrderEvent => !!(orderData as OrderEvent).endState;
 const isRejectedOrderResult = (orderData: OrderData): orderData is RejectedOrderResult<SignedLimitOrder> =>
     !!(orderData as RejectedOrderResult<SignedLimitOrder>).code;
 const isOrderWithMetadata = (orderData: OrderData): orderData is OrderWithMetadataV4 =>
     !!(orderData as OrderWithMetadataV4).fillableTakerAssetAmount;
+
+const isAcceptedOrderWithEndState = (orderData: OrderData): orderData is AcceptedOrderWithEndState =>
+    (orderData as AcceptedOrderWithEndState).isNew !== undefined && !!(orderData as AcceptedOrderWithEndState).endState;
+
+export type OrderEventV4 = OrderEvent & { orderv4: OrderWithMetadataV4 };
 
 export const meshUtils = {
     orderWithMetadataToSignedOrder(order: OrderWithMetadataV4): SignedLimitOrder {
         const cleanedOrder: SignedLimitOrder = _.omit(order, ['hash', 'fillableTakerAssetAmount']);
 
         return cleanedOrder;
+    },
+    orderEventToAPIOrder: (orderData: OrderEventV4): APIOrderWithMetaData => {
+        const order = meshUtils.orderWithMetadataToSignedOrder(orderData.orderv4);
+        const remainingFillableTakerAssetAmount = orderData.orderv4.fillableTakerAssetAmount;
+        const orderHash = orderData.orderv4.hash;
+        const state = orderData.endState;
+
+        return {
+            order,
+            metaData: {
+                orderHash,
+                remainingFillableTakerAssetAmount,
+                state,
+            },
+        };
     },
     orderInfosToApiOrders: (orders: OrderData[]): APIOrderWithMetaData[] => {
         return orders.map(e => meshUtils.orderInfoToAPIOrder(e));
@@ -43,12 +63,6 @@ export const meshUtils = {
             order = meshUtils.orderWithMetadataToSignedOrder(orderData);
             remainingFillableTakerAssetAmount = orderData.fillableTakerAssetAmount;
             orderHash = orderData.hash;
-        } else if (isOrderEvent(orderData)) {
-            order = meshUtils.orderWithMetadataToSignedOrder(orderData.orderv4);
-            remainingFillableTakerAssetAmount = orderData.order.fillableTakerAssetAmount;
-            orderHash = orderData.order.hash;
-
-            state = orderData.endState;
         } else if (isRejectedOrderResult(orderData)) {
             order = orderData.order;
             // TODO(kimpers): sometimes this will not exist according to Mesh GQL spec. Is this a problem?
@@ -59,6 +73,10 @@ export const meshUtils = {
             order = meshUtils.orderWithMetadataToSignedOrder(orderData.order);
             remainingFillableTakerAssetAmount = orderData.order.fillableTakerAssetAmount;
             orderHash = orderData.order.hash;
+            // For persistent orders we add an end state
+            if (isAcceptedOrderWithEndState(orderData)) {
+                state = orderData.endState;
+            }
         }
 
         return {

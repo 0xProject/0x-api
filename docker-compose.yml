@@ -28,7 +28,7 @@ services:
             CHAIN_ID: '${CHAIN_ID}'
             POSTGRES_URI: 'postgres://api:api@postgres/api'
     mesh:
-        image: overmorrow/mesh:v4rc3
+        image: remcob/mesh:v4rc4
         depends_on:
             - ganache
         restart: on-failure

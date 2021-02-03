@@ -25,7 +25,7 @@ import {
     WebsocketSRAOpts,
 } from '../types';
 import { MeshClient } from '../utils/mesh_client';
-import { meshUtils } from '../utils/mesh_utils';
+import { meshUtils, OrderEventV4 } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
@@ -139,7 +139,11 @@ export class WebsocketService {
         this._meshClient = meshClient;
 
         this._orderEventsSubscription = this._meshClient.onOrderEvents().subscribe({
-            next: events => this.orderUpdate(meshUtils.orderInfosToApiOrders(events.map(e => e.orderv4))),
+            next: events =>
+                this.orderUpdate(
+                    // NOTE: We only care about V4 order updates
+                    events.filter(e => !!e.orderv4).map(e => meshUtils.orderEventToAPIOrder(e as OrderEventV4)),
+                ),
             error: err => {
                 logger.error(new WebsocketServiceError(err));
             },
