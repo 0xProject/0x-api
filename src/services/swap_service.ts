@@ -15,10 +15,11 @@ import {
 } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
-import { ETH_TOKEN_ADDRESS, SupportedProvider } from '@0x/order-utils';
+import { ETH_TOKEN_ADDRESS } from '@0x/protocol-utils';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
+import { SupportedProvider } from 'ethereum-types';
 import * as _ from 'lodash';
 
 import {

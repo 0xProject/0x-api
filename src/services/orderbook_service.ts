@@ -1,6 +1,5 @@
-import { APIOrder, OrderbookResponse, PaginatedCollection } from '@0x/connect';
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
-import { AssetPairsItem, SignedOrder } from '@0x/types';
+import { APIOrder, AssetPairsItem, OrderbookResponse, PaginatedCollection, SignedOrder } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
 
