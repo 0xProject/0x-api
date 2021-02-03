@@ -1,4 +1,4 @@
-import { Orderbook, SignedNativeOrder } from '@0x/asset-swapper';
+import { LimitOrderFields, Orderbook, SignedOrder } from '@0x/asset-swapper';
 
 import { OrderBookService } from '../services/orderbook_service';
 // tslint:disable
@@ -12,7 +12,7 @@ export class AssetSwapperOrderbook extends Orderbook {
     public async getOrdersAsync(): // makerToken: string,
     // takerToken: string,
     // pruneFn?: (o: SignedNativeOrder) => boolean,
-    Promise<SignedNativeOrder[]> {
+    Promise<SignedOrder<LimitOrderFields>[]> {
         return [];
         // const apiOrders = await this.orderbookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {
         //     makerAssetData,
@@ -25,7 +25,7 @@ export class AssetSwapperOrderbook extends Orderbook {
     public async getBatchOrdersAsync(): // makerTokens: string[],
     // takerToken: string,
     // pruneFn?: (o: SignedNativeOrder) => boolean,
-    Promise<SignedNativeOrder[][]> {
+    Promise<SignedOrder<LimitOrderFields>[][]> {
         return [];
         // const apiOrders = await this.orderbookService.getBatchOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, makerTokens, [
         //     takerToken,
