@@ -260,11 +260,7 @@ export class OrderBookService {
         pinned: boolean,
     ): Promise<AcceptedOrderResult<OrderWithMetadataV4>[]> {
         if (this._meshClient) {
-            // TODO(kimpers): FIX TYPES HERE
-            const { rejected, accepted } = await this._meshClient.addOrdersV4Async(
-                signedOrders.map(o => ({ ...o, exchangeAddress: o.verifyingContract })),
-                pinned,
-            );
+            const { rejected, accepted } = await this._meshClient.addOrdersV4Async(signedOrders, pinned);
             if (rejected.length !== 0) {
                 const validationErrors = rejected.map((r, i) => ({
                     field: `signedOrder[${i}]`,
@@ -274,17 +270,7 @@ export class OrderBookService {
                 throw new ValidationError(validationErrors);
             }
             // Order Watcher Service will handle persistence
-            // TODO(kimpers): fix types here!
-            return accepted.map(o => ({
-                ...o,
-                order: {
-                    ...o.order,
-                    signature: {
-                        ...o.order.signature,
-                        signatureType: o.order.signature.signatureType as any,
-                    },
-                },
-            }));
+            return accepted;
         }
         throw new Error('Could not add order to mesh.');
     }

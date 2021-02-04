@@ -5,7 +5,7 @@ import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
 import { FEE_RECIPIENT_ADDRESS, WHITELISTED_TOKENS } from '../config';
-import { SRA_DOCS_URL } from '../constants';
+import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
 import {
     GeneralErrorCodes,
     generalErrorCodeToReason,
@@ -155,8 +155,15 @@ function validateAssetTokenOrThrow(allowedTokens: string[], tokenAddress: string
 // As the order come in as JSON they need to be turned into the correct types such as BigNumber
 function unmarshallOrder(signedOrderRaw: any): SignedLimitOrder {
     const signedOrder: SignedLimitOrder = {
+        // Defaults...
+        taker: NULL_ADDRESS,
+        feeRecipient: NULL_ADDRESS,
+        pool: '0x0000000000000000000000000000000000000000000000000000000000000000',
         ...signedOrderRaw,
-        takerTokenFeeAmount: new BigNumber(signedOrderRaw.takerTokenFeeAmount),
+        sender: NULL_ADDRESS, // NOTE: Mesh currently only supports orders with sender 0x000...
+        takerTokenFeeAmount: signedOrderRaw.takerTokenFeeAmount
+            ? new BigNumber(signedOrderRaw.takerTokenFeeAmount)
+            : ZERO,
         makerAmount: new BigNumber(signedOrderRaw.makerAmount),
         takerAmount: new BigNumber(signedOrderRaw.takerAmount),
         expiry: new BigNumber(signedOrderRaw.expiry),
