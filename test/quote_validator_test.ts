@@ -13,7 +13,7 @@ import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_fi
 import { getTestDBConnectionAsync } from './utils/db_connection';
 import { setupDependenciesAsync } from './utils/deployment';
 
-const SUITE_NAME = 'QuoteValidatorTest';
+const SUITE_NAME = 'PostgresRfqtFirmQuoteValidator';
 let connection: Connection;
 let chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
 

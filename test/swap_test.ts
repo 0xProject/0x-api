@@ -4,7 +4,7 @@ import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { assertRoughlyEquals, expect, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
-import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
+import { BlockchainLifecycle, Web3ProviderEngine } from '@0x/dev-utils';
 import { ObjectMap } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
@@ -25,7 +25,9 @@ import { isETHSymbolOrAddress } from '../src/utils/token_metadata_utils';
 
 import {
     CONTRACT_ADDRESSES,
+    ETHEREUM_RPC_URL,
     ETH_TOKEN_ADDRESS,
+    getProvider,
     MATCHA_AFFILIATE_ADDRESS,
     MATCHA_AFFILIATE_ENCODED_PARTIAL_ORDER_DATA,
     MAX_INT,
@@ -45,7 +47,7 @@ import { constructRoute, httpGetAsync } from './utils/http_utils';
 import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
 
-const SUITE_NAME = '/swap/v1';
+const SUITE_NAME = 'Swap API';
 const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
 const DEFAULT_QUERY_PARAMS = {
     buyToken: 'ZRX',
@@ -55,7 +57,8 @@ const DEFAULT_QUERY_PARAMS = {
 
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
-describe(SUITE_NAME, () => {
+// Enable this test with SRA v4. Currently we cannot access V4 orders on Mesh.
+describe.skip(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
     let dependencies: AppDependencies;
@@ -68,19 +71,19 @@ describe(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
 
     before(async () => {
-        await setupDependenciesAsync(SUITE_NAME);
-
-        // connect to ganache and run contract migrations
-        const ganacheConfigs = {
-            shouldUseInProcessGanache: false,
-            shouldAllowUnlimitedContractSize: true,
-            rpcUrl: config.ETHEREUM_RPC_URL,
-        };
-        provider = web3Factory.getRpcProvider(ganacheConfigs);
+        const shouldStartMesh = true;
+        await setupDependenciesAsync(SUITE_NAME, shouldStartMesh);
+        provider = getProvider();
 
         // start the 0x-api app
-        dependencies = await getDefaultAppDependenciesAsync(provider, config.defaultHttpServiceConfig);
-        ({ app, server } = await getAppAsync({ ...dependencies }, config.defaultHttpServiceConfig));
+        dependencies = await getDefaultAppDependenciesAsync(provider, {
+            ...config.defaultHttpServiceConfig,
+            ethereumRpcUrl: ETHEREUM_RPC_URL,
+        });
+        ({ app, server } = await getAppAsync(
+            { ...dependencies },
+            { ...config.defaultHttpServiceConfig, ethereumRpcUrl: ETHEREUM_RPC_URL },
+        ));
 
         const web3Wrapper = new Web3Wrapper(provider);
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
@@ -154,7 +157,7 @@ describe(SUITE_NAME, () => {
     });
 
     describe('/quote', () => {
-        it("with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
+        it("should respond with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
             await quoteAndExpectAsync(
                 app,
                 { buyAmount: '10000000000000000000000000000000' },

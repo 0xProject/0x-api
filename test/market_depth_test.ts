@@ -11,7 +11,7 @@ const B = (v: number | string) => new BigNumber(v);
 
 // tslint:disable:custom-no-magic-numbers
 
-const SUITE_NAME = 'market depth utils';
+const SUITE_NAME = 'marketDepthUtils';
 describe(SUITE_NAME, () => {
     const defaultSample = { output: B(10), source: ERC20BridgeSource.Uniswap, fillData: {} as any };
     const nativeSample = { output: B(10), source: ERC20BridgeSource.Native, fillData: {} as any };
@@ -104,8 +104,8 @@ describe(SUITE_NAME, () => {
             );
             expect(results).to.deep.include(uniPath);
             expect(results).to.deep.include([
-                { input: B(1), output: B(4), source: ERC20BridgeSource.Native },
-                { input: B(2), output: B(8), source: ERC20BridgeSource.Native },
+                { input: B(1), output: B(4), source: ERC20BridgeSource.Native, fillData: {} },
+                { input: B(2), output: B(8), source: ERC20BridgeSource.Native, fillData: {} },
             ]);
         });
     });
@@ -235,6 +235,8 @@ describe(SUITE_NAME, () => {
     describe('calculateDepthForSide', () => {
         // Essentially orders not samples
         const nativePath = [{ ...nativeSample, input: B(10), output: B(80) }];
+        // fake Curve pool address because it's used in calculations to assign a unique source
+        const curveFillData = { pool: { poolAddress: '123' } };
         it('calculates prices and allocates into buckets. Partial 0x', async () => {
             const dexPaths = [
                 [
@@ -242,8 +244,20 @@ describe(SUITE_NAME, () => {
                     { ...defaultSample, input: B(2), output: B(11), source: ERC20BridgeSource.Uniswap },
                 ],
                 [
-                    { ...defaultSample, input: B(1), output: B(0), source: ERC20BridgeSource.Curve },
-                    { ...defaultSample, input: B(2), output: B(0), source: ERC20BridgeSource.Curve },
+                    {
+                        ...defaultSample,
+                        input: B(1),
+                        output: B(0),
+                        source: ERC20BridgeSource.Curve,
+                        fillData: curveFillData,
+                    },
+                    {
+                        ...defaultSample,
+                        input: B(2),
+                        output: B(0),
+                        source: ERC20BridgeSource.Curve,
+                        fillData: curveFillData,
+                    },
                 ],
             ];
             const result = marketDepthUtils.calculateDepthForSide(
@@ -304,9 +318,27 @@ describe(SUITE_NAME, () => {
                     { ...defaultSample, input: B(10), output: B(0), source: ERC20BridgeSource.Uniswap },
                 ],
                 [
-                    { ...defaultSample, input: B(1), output: B(0), source: ERC20BridgeSource.Curve },
-                    { ...defaultSample, input: B(2), output: B(0), source: ERC20BridgeSource.Curve },
-                    { ...defaultSample, input: B(10), output: B(0), source: ERC20BridgeSource.Curve },
+                    {
+                        ...defaultSample,
+                        input: B(1),
+                        output: B(0),
+                        source: ERC20BridgeSource.Curve,
+                        fillData: curveFillData,
+                    },
+                    {
+                        ...defaultSample,
+                        input: B(2),
+                        output: B(0),
+                        source: ERC20BridgeSource.Curve,
+                        fillData: curveFillData,
+                    },
+                    {
+                        ...defaultSample,
+                        input: B(10),
+                        output: B(0),
+                        source: ERC20BridgeSource.Curve,
+                        fillData: curveFillData,
+                    },
                 ],
             ];
             const result = marketDepthUtils.calculateDepthForSide(

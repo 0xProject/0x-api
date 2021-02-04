@@ -66,7 +66,7 @@ async function _waitUntilStatusAsync(
     throw new Error(`failed to grab transaction: ${txHash} in a ${status} state`);
 }
 
-describe('transaction watcher service', () => {
+describe('Transaction Watcher Service integration test', () => {
     before(async () => {
         const providerEngine = new Web3ProviderEngine();
         providerEngine.addProvider(new RPCSubprovider(ETHEREUM_RPC_URL));

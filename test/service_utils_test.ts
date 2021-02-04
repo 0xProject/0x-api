@@ -10,7 +10,7 @@ import { serviceUtils } from '../src/utils/service_utils';
 import { AFFILIATE_DATA_SELECTOR } from './constants';
 import { randomSellQuote } from './utils/mocks';
 
-const SUITE_NAME = 'serviceUtils test';
+const SUITE_NAME = 'serviceUtils';
 
 // tslint:disable:custom-no-magic-numbers
 describe(SUITE_NAME, () => {

@@ -172,9 +172,6 @@ export class SwapService {
         const shouldEnableRfqt =
             apiKey !== undefined && (isETHSell || takerAddress !== undefined || (rfqt && rfqt.isIndicative));
         if (shouldEnableRfqt) {
-            // The taker is always the ExchangeProxy's FlashWallet
-            // as it allows us to optionally transform assets (i.e Deposit ETH into WETH)
-            // Since the FlashWallet is the taker it needs to be forwarded to the quote provider
             _rfqt = {
                 ...rfqt,
                 intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,

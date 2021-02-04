@@ -14,7 +14,7 @@
         "db:migrate": "./node_modules/.bin/typeorm migration:run --config ./lib/src/ormconfig.js ",
         "db:revert": "./node_modules/.bin/typeorm migration:revert --config ./lib/src/ormconfig.js ",
         "integration-test": "mocha --require source-map-support/register --require make-promises-safe lib/integration-test/**/*_test.js --timeout 200000 --exit",
-        "test": "echo 'yarn test:rest && yarn test:metatx && yarn test:rfqt'",
+        "test": "yarn test:rest && yarn test:metatx && yarn test:rfqt",
         "test:metatx": "env-cmd -f ./test/test_env mocha --file lib/test/test_setup.js --require source-map-support/register --require make-promises-safe lib/test/meta_transaction_**.js --timeout 200000 --exit --bail",
         "test:rest": "env-cmd -f ./test/test_env mocha --file lib/test/test_setup.js --exclude lib/test/rfqt_test.js --exclude lib/test/meta_transaction_test.js --require source-map-support/register --require make-promises-safe lib/test/**/*_test.js --timeout 200000 --exit --bail",
         "test:rfqt": "env-cmd -f ./test/test_env mocha --file lib/test/test_setup.js --require source-map-support/register --require make-promises-safe lib/test/rfqt_**.js --timeout 200000 --exit --bail",
@@ -131,7 +131,7 @@
     },
     "dependencies": {
         "@0x/assert": "^3.0.17",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v5.8.0-66867c5ff",
+        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v5.8.0-7f49ac4f1",
         "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v5.9.0-bf1e4a509",
         "@0x/contract-wrappers": "^13.10.2",
         "@0x/json-schemas": "^5.3.1",
