@@ -48,12 +48,13 @@ import { InsufficientFundsError, ValidationError, ValidationErrorCodes } from '.
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
+    AffiliateFee,
+    AffiliateFeeType,
     BucketedPriceDepth,
     CalaculateMarketDepthParams,
     CalculateSwapQuoteParams,
     GetSwapQuoteResponse,
     GetTokenPricesResponse,
-    AffiliateFee,
     SwapQuoteResponsePartialTransaction,
     TokenMetadata,
     TokenMetadataOptionalSymbol,
@@ -271,14 +272,14 @@ export class SwapService {
         // No allowance target is needed if this is an ETH sell, so set to 0x000..
         const allowanceTarget = isETHSell ? NULL_ADDRESS : this._contractAddresses.exchangeProxy;
 
-        const { takerAssetPriceForOneEth, makerAssetPriceForOneEth } = swapQuote;
+        const { takerAssetsPerEth, makerAssetsPerEth } = swapQuote;
 
         // Convert into unit amounts
         const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
-        const sellTokenToEthRate = takerAssetPriceForOneEth
+        const sellTokenToEthRate = takerAssetsPerEth
             .times(new BigNumber(10).pow(wethToken.decimals - takerTokenDecimals))
             .decimalPlaces(takerTokenDecimals);
-        const buyTokenToEthRate = makerAssetPriceForOneEth
+        const buyTokenToEthRate = makerAssetsPerEth
             .times(new BigNumber(10).pow(wethToken.decimals - makerTokenDecimals))
             .decimalPlaces(makerTokenDecimals);
 
@@ -605,9 +606,11 @@ export class SwapService {
         // only generate quote reports for rfqt firm quotes or when price comparison is requested
         const shouldGenerateQuoteReport = includePriceComparisons || (rfqt && rfqt.intentOnFilling);
 
-        // TODO:(Romain): should we not use the same logic to know if VIP cant be used or not
         const swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts> =
-            isMetaTransaction || affiliateFee.buyTokenPercentageFee > 0 || affiliateFee.sellTokenPercentageFee > 0
+            isMetaTransaction ||
+            affiliateFee.buyTokenPercentageFee > 0 ||
+            affiliateFee.sellTokenPercentageFee > 0 ||
+            affiliateFee.feeType !== AffiliateFeeType.None
                 ? ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP
                 : ASSET_SWAPPER_MARKET_ORDERS_OPTS;
 
