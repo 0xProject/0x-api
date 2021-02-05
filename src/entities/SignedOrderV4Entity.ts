@@ -1,34 +1,5 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-// makerToken: NULL_ADDRESS,
-//
-// takerToken: NULL_ADDRESS,
-// makerAmount: ZERO,
-// takerAmount: ZERO,
-// maker: NULL_ADDRESS,
-// taker: NULL_ADDRESS,
-// pool: hexUtils.leftPad(0),
-// expiry: ZERO,
-// salt: ZERO,
-// chainId: 1,
-// verifyingContract: getContractAddressesForChainOrThrow(1).exchangeProxy,
-// takerTokenFeeAmount: ZERO,
-// sender: NULL_ADDRESS,
-// feeRecipient: NULL_ADDRESS,
-//
-// { type: 'address', name: 'makerToken' },
-// { type: 'address', name: 'takerToken' },
-// { type: 'uint128', name: 'makerAmount' },
-// { type: 'uint128', name: 'takerAmount' },
-// { type: 'uint128', name: 'takerTokenFeeAmount' },
-// { type: 'address', name: 'maker' },
-// { type: 'address', name: 'taker' },
-// { type: 'address', name: 'sender' },
-// { type: 'address', name: 'feeRecipient' },
-// { type: 'bytes32', name: 'pool' },
-// { type: 'uint64', name: 'expiry' },
-// { type: 'uint256', name: 'salt' },
-
 @Entity({ name: 'signed_orders_v4' })
 export class SignedOrderV4Entity {
     @PrimaryColumn({ name: 'hash', type: 'varchar' })

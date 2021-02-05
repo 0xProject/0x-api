@@ -1,13 +1,13 @@
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
-import { SignedOrderEntity } from './SignedOrderEntity';
+import { SignedOrderV4Entity } from './SignedOrderV4Entity';
 
 // Adds a field `orderState` to SignedOrderEntity
 // Persists after cancellation, expiration, etc
 // We save these to support account history for Matcha front-end
 @Entity({ name: 'persistent_signed_orders_v4' })
-export class PersistentSignedOrderV4Entity extends SignedOrderEntity {
+export class PersistentSignedOrderV4Entity extends SignedOrderV4Entity {
     @PrimaryColumn({ name: 'hash', type: 'varchar' })
     public hash?: string;
 
