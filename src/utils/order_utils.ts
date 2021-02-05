@@ -126,7 +126,7 @@ export const orderUtils = {
         return orderA.expiry.comparedTo(orderB.expiry);
     },
     deserializeSignature: (signatureStr: string): Signature => {
-        // TODO(kimpers): validation needed here
+        // TODO(kimpers): [V4] validation needed here
         const [signatureType, r, s, v] = signatureStr.split(',');
         return {
             signatureType: parseInt(signatureType, 10) as SignatureType,
@@ -248,7 +248,7 @@ export const orderUtils = {
         return assetData;
     },
     filterOrders: (apiOrders: APIOrderWithMetaData[], filters: SRAGetOrdersRequestOpts): APIOrderWithMetaData[] => {
-        // TODO(kimpers): Clean up filters and naming
+        // TODO(kimpers): [V4] Clean up filters and naming
         const { sender, takerToken, makerToken } = filters;
         const matchTraderAddress = (order: SignedLimitOrder, filterAddress?: string): boolean =>
             filterAddress ? order.maker === filterAddress || order.taker === filterAddress : true;
