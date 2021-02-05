@@ -682,4 +682,22 @@ export interface OrdersChannelSubscriptionOpts {
     makerToken?: string;
     takerToken?: string;
 }
+
+// NOTE: For /sra/v4/asset_pairs
+export interface TokenPairsRequestOpts {
+    tokenA?: string;
+    tokenB?: string;
+}
+export declare type TokenPairsResponse = PaginatedCollection<TokenPairsItem>;
+export interface TokenPairsItem {
+    tokenA: Token;
+    tokenB: Token;
+}
+export interface Token {
+    tokenAddress: string;
+    // TODO(kimpers) [V4] what do we return here?
+    // minAmount: BigNumber;
+    // maxAmount: BigNumber;
+    // precision: number;
+}
 // tslint:disable-line:max-file-line-count

@@ -45,13 +45,13 @@ export class SRAHandlers {
     public async assetPairsAsync(req: express.Request, res: express.Response): Promise<void> {
         schemaUtils.validateSchema(req.query, schemas.assetPairsRequestOptsSchema);
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const assetDataA = req.query.assetDataA as string;
-        const assetDataB = req.query.assetDataB as string;
+        const tokenA = req.query.tokenA as string;
+        const tokenB = req.query.tokenB as string;
         const assetPairs = await this._orderBook.getAssetPairsAsync(
             page,
             perPage,
-            assetDataA && assetDataA.toLowerCase(),
-            assetDataB && assetDataB.toLowerCase(),
+            tokenA?.toLowerCase(),
+            tokenB?.toLowerCase(),
         );
         res.status(HttpStatus.OK).send(assetPairs);
     }

@@ -1,5 +1,4 @@
 import { AcceptedOrderResult, OrderEventEndState, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
-import { AssetPairsItem, OrderbookResponse, PaginatedCollection } from '@0x/types';
 import * as _ from 'lodash';
 import { Connection, In } from 'typeorm';
 
@@ -19,6 +18,7 @@ import {
     PinResult,
     SignedLimitOrder,
     SRAGetOrdersRequestOpts,
+    TokenPairsItem,
 } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
@@ -43,42 +43,47 @@ export class OrderBookService {
         }
     }
     public async getAssetPairsAsync(
-        _page: number,
-        _perPage: number,
-        _assetDataA?: string,
-        _assetDataB?: string,
-    ): Promise<PaginatedCollection<AssetPairsItem>> {
-        throw new Error('TODO IMPLEMENT');
-        // const signedOrderEntities = (await this._connection.manager.find(SignedOrderV4Entity)) as Required<
-        // SignedOrderV4Entity
-        // >[];
-        // const assetPairsItems: AssetPairsItem[] = signedOrderEntities
-        // .map(orderUtils.deserializeOrder)
-        // .map(orderUtils.signedOrderToAssetPair);
-        // let nonPaginatedFilteredAssetPairs: AssetPairsItem[];
-        // if (assetDataA === undefined && assetDataB === undefined) {
-        // nonPaginatedFilteredAssetPairs = assetPairsItems;
-        // } else if (assetDataA !== undefined && assetDataB !== undefined) {
-        // const containsAssetDataAAndAssetDataB = (assetPair: AssetPairsItem) =>
-        // (assetPair.assetDataA.assetData === assetDataA && assetPair.assetDataB.assetData === assetDataB) ||
-        // (assetPair.assetDataA.assetData === assetDataB && assetPair.assetDataB.assetData === assetDataA);
-        // nonPaginatedFilteredAssetPairs = assetPairsItems.filter(containsAssetDataAAndAssetDataB);
-        // } else {
-        // const assetData = assetDataA || assetDataB;
-        // const containsAssetData = (assetPair: AssetPairsItem) =>
-        // assetPair.assetDataA.assetData === assetData || assetPair.assetDataB.assetData === assetData;
-        // nonPaginatedFilteredAssetPairs = assetPairsItems.filter(containsAssetData);
-        // }
-        // const uniqueNonPaginatedFilteredAssetPairs = _.uniqBy(
-        // nonPaginatedFilteredAssetPairs,
-        // assetPair => `${assetPair.assetDataA.assetData}/${assetPair.assetDataB.assetData}`,
-        // );
-        // const paginatedFilteredAssetPairs = paginationUtils.paginate(
-        // uniqueNonPaginatedFilteredAssetPairs,
-        // page,
-        // perPage,
-        // );
-        // return paginatedFilteredAssetPairs;
+        page: number,
+        perPage: number,
+        tokenA?: string,
+        tokenB?: string,
+    ): Promise<PaginatedCollection<TokenPairsItem>> {
+        const signedOrderEntities = (await this._connection.manager.find(SignedOrderV4Entity)) as Required<
+            SignedOrderV4Entity
+        >[];
+        // TODO(kimpers) [V4] what do we return here?
+        const assetPairsItems: TokenPairsItem[] = signedOrderEntities
+            .map(orderUtils.deserializeOrder)
+            .map((signedOrder: SignedLimitOrder) => ({
+                tokenA: { tokenAddress: signedOrder.makerToken },
+                tokenB: { tokenAddress: signedOrder.takerToken },
+            }));
+        let nonPaginatedFilteredTokenPairs: TokenPairsItem[];
+        if (tokenA === undefined && tokenB === undefined) {
+            nonPaginatedFilteredTokenPairs = assetPairsItems;
+        } else if (tokenA !== undefined && tokenB !== undefined) {
+            nonPaginatedFilteredTokenPairs = assetPairsItems.filter(
+                (tokenPair: TokenPairsItem) =>
+                    (tokenPair.tokenA.tokenAddress === tokenA && tokenPair.tokenB.tokenAddress === tokenB) ||
+                    (tokenPair.tokenA.tokenAddress === tokenB && tokenPair.tokenB.tokenAddress === tokenA),
+            );
+        } else {
+            const token = tokenA || tokenB;
+            nonPaginatedFilteredTokenPairs = assetPairsItems.filter(
+                (tokenPair: TokenPairsItem) =>
+                    tokenPair.tokenA.tokenAddress === token || tokenPair.tokenB.tokenAddress === token,
+            );
+        }
+        const uniqueNonPaginatedFilteredTokenPairs = _.uniqBy(
+            nonPaginatedFilteredTokenPairs,
+            tokenPair => `${tokenPair.tokenA.tokenAddress}/${tokenPair.tokenB.tokenAddress}`,
+        );
+        const paginatedFilteredTokenPairs = paginationUtils.paginate(
+            uniqueNonPaginatedFilteredTokenPairs,
+            page,
+            perPage,
+        );
+        return paginatedFilteredTokenPairs;
     }
     // tslint:disable-next-line:prefer-function-over-method
     public async getOrderBookAsync(
@@ -123,7 +128,7 @@ export class OrderBookService {
         ordersFilterParams: SRAGetOrdersRequestOpts,
     ): Promise<PaginatedCollection<APIOrderWithMetaData>> {
         // Pre-filters
-        // TODO(kimpers): FIX FILTERS
+        // TODO(kimpers): [V4] FIX FILTERS
         const filterObjectWithValuesIfExist: Partial<SignedOrderV4Entity> = {
             verifyingContract: ordersFilterParams.verifyingContract,
             sender: ordersFilterParams.sender,
