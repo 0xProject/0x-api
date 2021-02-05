@@ -7,12 +7,7 @@ import {
 } from '@0x/asset-swapper';
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { LimitOrderFields, Signature } from '@0x/protocol-utils';
-import {
-    ExchangeProxyMetaTransaction,
-    OrdersChannelSubscriptionOpts,
-    UpdateOrdersChannelMessage,
-    ZeroExTransaction,
-} from '@0x/types';
+import { ExchangeProxyMetaTransaction, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
 import { MetaTransactionRateLimiter } from './utils/rate-limiters';
@@ -642,7 +637,7 @@ export interface SignedLimitOrder extends LimitOrderFields {
     signature: Signature;
 }
 
-// TODO(kimpers): Consolidate types in @0x/types
+// TODO(kimpers): [V4] Consolidate types in @0x/types
 export interface APIOrder {
     order: SignedLimitOrder;
     metaData: object;
@@ -657,5 +652,34 @@ export interface PaginatedCollection<T> {
     page: number;
     perPage: number;
     records: T[];
+}
+
+export interface UpdateOrdersChannelMessageWithChannel extends UpdateOrdersChannelMessage {
+    channel: MessageChannels;
+}
+
+export declare type OrdersChannelMessage = UpdateOrdersChannelMessage | UnknownOrdersChannelMessage;
+export declare enum OrdersChannelMessageTypes {
+    Update = 'update',
+    Unknown = 'unknown',
+}
+export interface UpdateOrdersChannelMessage {
+    type: OrdersChannelMessageTypes.Update;
+    requestId: string;
+    payload: APIOrder[];
+}
+export interface UnknownOrdersChannelMessage {
+    type: OrdersChannelMessageTypes.Unknown;
+    requestId: string;
+    payload: undefined;
+}
+
+/**
+ * makerToken: subscribes to new orders where the contract address for the maker token matches the value specified
+ * takerToken: subscribes to new orders where the contract address for the taker token matches the value specified
+ */
+export interface OrdersChannelSubscriptionOpts {
+    makerToken?: string;
+    takerToken?: string;
 }
 // tslint:disable-line:max-file-line-count

@@ -1,27 +1,23 @@
 import { schemas } from '@0x/json-schemas';
 import { assetDataUtils } from '@0x/order-utils';
-import {
-    AssetProxyId,
-    MultiAssetDataWithRecursiveDecoding,
-    // OrdersChannelMessageTypes,
-    OrdersChannelSubscriptionOpts,
-    SignedOrder,
-    WebsocketConnectionEventType,
-} from '@0x/types';
+import { MultiAssetDataWithRecursiveDecoding, WebsocketConnectionEventType } from '@0x/types';
 import * as http from 'http';
 import * as _ from 'lodash';
 import * as WebSocket from 'ws';
 
-// import { MESH_IGNORED_ADDRESSES } from '../config';
+import { MESH_IGNORED_ADDRESSES } from '../config';
 import { MalformedJSONError, NotImplementedError, WebsocketServiceError } from '../errors';
 import { logger } from '../logger';
 import { generateError } from '../middleware/error_handling';
 import {
     APIOrder,
-    // MessageChannels,
+    MessageChannels,
     MessageTypes,
     OrderChannelRequest,
-    // UpdateOrdersChannelMessageWithChannel,
+    OrdersChannelMessageTypes,
+    OrdersChannelSubscriptionOpts,
+    SignedLimitOrder,
+    UpdateOrdersChannelMessageWithChannel,
     WebsocketSRAOpts,
 } from '../types';
 import { MeshClient } from '../utils/mesh_client';
@@ -76,52 +72,24 @@ export class WebsocketService {
         }
         return { data, assetProxyId: decodedAssetData.assetProxyId };
     }
-    // TODO(kimpers): Fix Matching to support V4
+    // TODO(kimpers): [V4] What matching do we want here?
     // @ts-ignore
     private static _matchesOrdersChannelSubscription(
-        order: SignedOrder,
+        order: SignedLimitOrder,
         opts: OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS,
     ): boolean {
         if (opts === 'ALL_SUBSCRIPTION_OPTS') {
             return true;
         }
-        const { makerAssetData, takerAssetData } = order;
-        const makerAssetDataTakerAssetData = [makerAssetData, takerAssetData];
-        // Handle the specific, unambiguous asset datas
-        // traderAssetData?: string;
-        if (opts.traderAssetData && makerAssetDataTakerAssetData.includes(opts.traderAssetData)) {
-            return true;
-        }
-        // makerAssetData?: string;
-        // takerAssetData?: string;
+        const { makerToken, takerToken } = order;
+
         if (
-            opts.makerAssetData &&
-            opts.takerAssetData &&
-            makerAssetDataTakerAssetData.includes(opts.makerAssetData) &&
-            makerAssetDataTakerAssetData.includes(opts.takerAssetData)
-        ) {
-            return true;
-        }
-        // makerAssetAddress?: string;
-        // takerAssetAddress?: string;
-        const makerContractAndAssetData = WebsocketService._decodedContractAndAssetData(makerAssetData);
-        const takerContractAndAssetData = WebsocketService._decodedContractAndAssetData(takerAssetData);
-        if (
-            opts.makerAssetAddress &&
-            opts.takerAssetAddress &&
-            makerContractAndAssetData.assetProxyId !== AssetProxyId.MultiAsset &&
-            makerContractAndAssetData.assetProxyId !== AssetProxyId.StaticCall &&
-            takerContractAndAssetData.assetProxyId !== AssetProxyId.MultiAsset &&
-            takerContractAndAssetData.assetProxyId !== AssetProxyId.StaticCall &&
-            makerContractAndAssetData.data.includes(opts.makerAssetAddress) &&
-            takerContractAndAssetData.data.includes(opts.takerAssetAddress)
+            (opts.takerToken && takerToken.toLowerCase() === opts.takerToken.toLowerCase()) ||
+            (opts.makerToken && makerToken.toLowerCase() === opts.makerToken.toLowerCase())
         ) {
             return true;
         }
 
-        // TODO (dekz)handle MAP
-        // makerAssetProxyId?: string;
-        // takerAssetProxyId?: string;
         return false;
     }
     private static _handleError(_ws: WrappedWebSocket, err: Error): void {
@@ -162,43 +130,42 @@ export class WebsocketService {
             this._orderEventsSubscription.unsubscribe();
         }
     }
-    public orderUpdate(_apiOrders: APIOrder[]): void {
+    public orderUpdate(apiOrders: APIOrder[]): void {
         if (this._server.clients.size === 0) {
             return;
         }
-        throw new Error('FIX ME IMPLEMENT WEBSOCKET V4 updates');
-        // const response: Partial<UpdateOrdersChannelMessageWithChannel> = {
-        // type: OrdersChannelMessageTypes.Update,
-        // channel: MessageChannels.Orders,
-        // payload: apiOrders,
-        // };
-        // const allowedOrders = apiOrders.filter(
-        // apiOrder => !orderUtils.isIgnoredOrder(MESH_IGNORED_ADDRESSES, apiOrder),
-        // );
-        // for (const order of allowedOrders) {
-        //// Future optimisation is to invert this structure so the order isn't duplicated over many request ids
-        //// order->requestIds it is less likely to get multiple order updates and more likely
-        //// to have many subscribers and a single order
-        // const requestIdToOrders: { [requestId: string]: Set<APIOrder> } = {};
-        // for (const [requestId, subscriptionOpts] of this._requestIdToSubscriptionOpts) {
-        // if (WebsocketService._matchesOrdersChannelSubscription(order.order, subscriptionOpts)) {
-        // if (requestIdToOrders[requestId]) {
-        // const orderSet = requestIdToOrders[requestId];
-        // orderSet.add(order);
-        // } else {
-        // const orderSet = new Set<APIOrder>();
-        // orderSet.add(order);
-        // requestIdToOrders[requestId] = orderSet;
-        // }
-        // }
-        // }
-        // for (const [requestId, orders] of Object.entries(requestIdToOrders)) {
-        // const ws = this._requestIdToSocket.get(requestId);
-        // if (ws) {
-        // ws.send(JSON.stringify({ ...response, payload: Array.from(orders), requestId }));
-        // }
-        // }
-        // }
+        const response: Partial<UpdateOrdersChannelMessageWithChannel> = {
+            type: OrdersChannelMessageTypes.Update,
+            channel: MessageChannels.Orders,
+            payload: apiOrders,
+        };
+        const allowedOrders = apiOrders.filter(
+            apiOrder => !orderUtils.isIgnoredOrder(MESH_IGNORED_ADDRESSES, apiOrder),
+        );
+        for (const order of allowedOrders) {
+            // Future optimisation is to invert this structure so the order isn't duplicated over many request ids
+            // order->requestIds it is less likely to get multiple order updates and more likely
+            // to have many subscribers and a single order
+            const requestIdToOrders: { [requestId: string]: Set<APIOrder> } = {};
+            for (const [requestId, subscriptionOpts] of this._requestIdToSubscriptionOpts) {
+                if (WebsocketService._matchesOrdersChannelSubscription(order.order, subscriptionOpts)) {
+                    if (requestIdToOrders[requestId]) {
+                        const orderSet = requestIdToOrders[requestId];
+                        orderSet.add(order);
+                    } else {
+                        const orderSet = new Set<APIOrder>();
+                        orderSet.add(order);
+                        requestIdToOrders[requestId] = orderSet;
+                    }
+                }
+            }
+            for (const [requestId, orders] of Object.entries(requestIdToOrders)) {
+                const ws = this._requestIdToSocket.get(requestId);
+                if (ws) {
+                    ws.send(JSON.stringify({ ...response, payload: Array.from(orders), requestId }));
+                }
+            }
+        }
     }
     private _processConnection(ws: WrappedWebSocket, _req: http.IncomingMessage): void {
         ws.on('pong', this._pongHandler(ws).bind(this));
@@ -220,8 +187,11 @@ export class WebsocketService {
         switch (type) {
             case MessageTypes.Subscribe:
                 ws.requestIds.add(requestId);
+                // TODO(kimpers) [V4] fix typing issue here by consolidating @0x/types
                 const subscriptionOpts =
-                    payload === undefined || _.isEmpty(payload) ? 'ALL_SUBSCRIPTION_OPTS' : payload;
+                    payload === undefined || _.isEmpty(payload)
+                        ? 'ALL_SUBSCRIPTION_OPTS'
+                        : (payload as OrdersChannelSubscriptionOpts);
                 this._requestIdToSubscriptionOpts.set(requestId, subscriptionOpts);
                 this._requestIdToSocket.set(requestId, ws);
                 break;
