@@ -87,25 +87,30 @@ export class OrderWatcherService {
     constructor(connection: Connection, meshClient: MeshClient) {
         this._connection = connection;
         this._meshClient = meshClient;
-        this._meshClient.onOrderEvents().subscribe({
-            next: async orders => {
-                const apiOrders = meshUtils.orderInfosToApiOrders(orders);
-                const { added, removed, updated } = meshUtils.calculateOrderLifecycle(apiOrders);
-                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
-                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
-                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
-                await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.PersistentUpdated, [
-                    ...removed,
-                    ...updated,
-                ]);
-            },
-            error: err => {
-                const logError = new OrderWatcherSyncError(`Error with Mesh client connection: [${err.stack}]`);
-                logger.error(logError);
-            },
-        });
+        const subscribeToUpdates = () =>
+            this._meshClient.onOrderEvents().subscribe({
+                next: async orders => {
+                    const apiOrders = meshUtils.orderInfosToApiOrders(orders);
+                    const { added, removed, updated } = meshUtils.calculateOrderLifecycle(apiOrders);
+                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
+                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
+                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, added);
+                    await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.PersistentUpdated, [
+                        ...removed,
+                        ...updated,
+                    ]);
+                },
+                error: err => {
+                    const logError = new OrderWatcherSyncError(`Error with Mesh client connection: [${err.stack}]`);
+                    logger.error(logError);
+                },
+            });
+
+        subscribeToUpdates();
+
         this._meshClient.onReconnected(() => {
             logger.info('OrderWatcherService reconnected to Mesh. Re-syncing orders');
+            subscribeToUpdates();
             this.syncOrderbookAsync().catch(err => {
                 const logError = new OrderWatcherSyncError(`Error on reconnecting Mesh client: [${err.stack}]`);
                 logger.error(logError);

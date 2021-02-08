@@ -56,7 +56,7 @@ export class WebsocketService {
         string,
         OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
     > = new Map(); // requestId -> { base, quote }
-    private readonly _orderEventsSubscription?: ZenObservable.Subscription;
+    private _orderEventsSubscription?: ZenObservable.Subscription;
     private static _decodedContractAndAssetData(assetData: string): { assetProxyId: string; data: string[] } {
         let data: string[] = [assetData];
         const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(assetData);
@@ -136,11 +136,21 @@ export class WebsocketService {
         this._pongIntervalId = setInterval(this._cleanupConnections.bind(this), wsOpts.pongInterval);
         this._meshClient = meshClient;
 
-        this._orderEventsSubscription = this._meshClient.onOrderEvents().subscribe({
-            next: events => this.orderUpdate(meshUtils.orderInfosToApiOrders(events.map(e => e.order))),
-            error: err => {
-                logger.error(new WebsocketServiceError(err));
-            },
+        const subscribeToUpdates = () => {
+            this._orderEventsSubscription = this._meshClient.onOrderEvents().subscribe({
+                next: events => this.orderUpdate(meshUtils.orderInfosToApiOrders(events.map(e => e.order))),
+                error: err => {
+                    logger.error(new WebsocketServiceError(err));
+                },
+            });
+        };
+
+        subscribeToUpdates();
+
+        this._meshClient.onReconnected(() => {
+            logger.info('WebsocketService reconnected to Mesh.');
+
+            subscribeToUpdates();
         });
     }
 
