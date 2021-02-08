@@ -51,7 +51,7 @@ export class WebsocketService {
         string,
         OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
     > = new Map(); // requestId -> { base, quote }
-    private readonly _orderEventsSubscription?: ZenObservable.Subscription;
+    private _orderEventsSubscription?: ZenObservable.Subscription;
     // TODO(kimpers): [V4] Do we want any other matching than takerToken and makerToken?
     private static _matchesOrdersChannelSubscription(
         order: SignedLimitOrder,
@@ -85,15 +85,25 @@ export class WebsocketService {
         this._pongIntervalId = setInterval(this._cleanupConnections.bind(this), wsOpts.pongInterval);
         this._meshClient = meshClient;
 
-        this._orderEventsSubscription = this._meshClient.onOrderEvents().subscribe({
-            next: events =>
-                this.orderUpdate(
-                    // NOTE: We only care about V4 order updates
-                    events.filter(e => !!e.orderv4).map(e => meshUtils.orderEventToSRAOrder(e as OrderEventV4)),
-                ),
-            error: err => {
-                logger.error(new WebsocketServiceError(err));
-            },
+        const subscribeToUpdates = () => {
+            this._orderEventsSubscription = this._meshClient.onOrderEvents().subscribe({
+                next: events =>
+                    this.orderUpdate(
+                        // NOTE: We only care about V4 order updates
+                        events.filter(e => !!e.orderv4).map(e => meshUtils.orderEventToSRAOrder(e as OrderEventV4)),
+                    ),
+                error: err => {
+                    logger.error(new WebsocketServiceError(err));
+                },
+            });
+        };
+
+        subscribeToUpdates();
+
+        this._meshClient.onReconnected(() => {
+            logger.info('WebsocketService reconnected to Mesh.');
+
+            subscribeToUpdates();
         });
     }
 
