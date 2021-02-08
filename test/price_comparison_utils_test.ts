@@ -33,8 +33,8 @@ describe(SUITE_NAME, () => {
                 ChainId.Mainnet,
                 MarketOperation.Sell,
                 {
-                    buyToken: DAI.tokenAddress,
-                    sellToken: WETH.tokenAddress,
+                    buyTokenAddress: DAI.tokenAddress,
+                    sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
                     sellTokenToEthRate: ethToWethRate,
@@ -77,8 +77,8 @@ describe(SUITE_NAME, () => {
             const price = sellAmount.div(buyAmount).decimalPlaces(18);
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
-                buyToken: DAI.tokenAddress,
-                sellToken: WETH.tokenAddress,
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
                 buyAmount,
                 sellAmount,
                 sellTokenToEthRate: ethToWethRate,
@@ -123,8 +123,8 @@ describe(SUITE_NAME, () => {
                 ChainId.Mainnet,
                 MarketOperation.Sell,
                 {
-                    buyToken: DAI.tokenAddress,
-                    sellToken: WETH.tokenAddress,
+                    buyTokenAddress: DAI.tokenAddress,
+                    sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
                     sellTokenToEthRate: ethToWethRate,
@@ -173,8 +173,8 @@ describe(SUITE_NAME, () => {
             const price = sellAmount.div(buyAmount).decimalPlaces(18);
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
-                buyToken: DAI.tokenAddress,
-                sellToken: WETH.tokenAddress,
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
                 buyAmount,
                 sellAmount,
                 sellTokenToEthRate: ethToWethRate,
@@ -226,8 +226,8 @@ describe(SUITE_NAME, () => {
                 ChainId.Mainnet,
                 MarketOperation.Sell,
                 {
-                    buyToken: DAI.tokenAddress,
-                    sellToken: WETH.tokenAddress,
+                    buyTokenAddress: DAI.tokenAddress,
+                    sellTokenAddress: WETH.tokenAddress,
                     buyAmount: higherBuyAmount,
                     sellTokenToEthRate: ethToWethRate,
                     buyTokenToEthRate: ethToDaiRate,
@@ -269,8 +269,8 @@ describe(SUITE_NAME, () => {
             const lowerSellPrice = lowerSellAmount.div(buyAmount).decimalPlaces(18);
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
-                buyToken: DAI.tokenAddress,
-                sellToken: WETH.tokenAddress,
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
                 buyAmount,
                 sellAmount: lowerSellAmount,
                 sellTokenToEthRate: ethToWethRate,
@@ -319,8 +319,8 @@ describe(SUITE_NAME, () => {
                 ChainId.Mainnet,
                 MarketOperation.Sell,
                 {
-                    buyToken: WETH.tokenAddress,
-                    sellToken: USDC.tokenAddress,
+                    buyTokenAddress: WETH.tokenAddress,
+                    sellTokenAddress: USDC.tokenAddress,
                     buyAmount: wethAmount,
                     sellAmount: usdcAmount,
                     sellTokenToEthRate: ethToDaiRate,
@@ -362,8 +362,8 @@ describe(SUITE_NAME, () => {
                 .decimalPlaces(6);
 
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
-                buyToken: WETH.tokenAddress,
-                sellToken: USDC.tokenAddress,
+                buyTokenAddress: WETH.tokenAddress,
+                sellTokenAddress: USDC.tokenAddress,
                 buyAmount: wethAmount,
                 sellAmount: usdcAmount,
                 sellTokenToEthRate: ethToDaiRate,
@@ -403,8 +403,8 @@ describe(SUITE_NAME, () => {
                 ChainId.Mainnet,
                 MarketOperation.Sell,
                 {
-                    buyToken: DAI.tokenAddress,
-                    sellToken: USDC.tokenAddress,
+                    buyTokenAddress: DAI.tokenAddress,
+                    sellTokenAddress: USDC.tokenAddress,
                     buyAmount: daiAmount,
                     sellAmount: usdcAmount,
                     sellTokenToEthRate: ethToWethRate,
@@ -439,8 +439,8 @@ describe(SUITE_NAME, () => {
         it('returns the sample with lowest gas usage for the same output amounts when quoting buyAmount', () => {
             const price = sellAmount.div(buyAmount).decimalPlaces(18);
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
-                buyToken: DAI.tokenAddress,
-                sellToken: WETH.tokenAddress,
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
                 buyAmount,
                 sellAmount,
                 sellTokenToEthRate: ethToWethRate,
@@ -497,8 +497,8 @@ describe(SUITE_NAME, () => {
                 ChainId.Mainnet,
                 MarketOperation.Sell,
                 {
-                    buyToken: DAI.tokenAddress,
-                    sellToken: WETH.tokenAddress,
+                    buyTokenAddress: DAI.tokenAddress,
+                    sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
                     sellTokenToEthRate: ethToWethRate,
@@ -555,8 +555,8 @@ describe(SUITE_NAME, () => {
                 ChainId.Mainnet,
                 MarketOperation.Sell,
                 {
-                    buyToken: DAI.tokenAddress,
-                    sellToken: WETH.tokenAddress,
+                    buyTokenAddress: DAI.tokenAddress,
+                    sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
                     sellTokenToEthRate: ethToWethRate,
@@ -601,8 +601,8 @@ describe(SUITE_NAME, () => {
         it('returns the overall cheapest sample taking gas into account for buyAmount quotes', () => {
             const price = sellAmount.div(buyAmount).decimalPlaces(18);
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
-                buyToken: DAI.tokenAddress,
-                sellToken: WETH.tokenAddress,
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
                 buyAmount,
                 sellAmount,
                 sellTokenToEthRate: ethToWethRate,
@@ -652,8 +652,8 @@ describe(SUITE_NAME, () => {
                 ChainId.Mainnet,
                 MarketOperation.Sell,
                 {
-                    buyToken: DAI.tokenAddress,
-                    sellToken: WETH.tokenAddress,
+                    buyTokenAddress: DAI.tokenAddress,
+                    sellTokenAddress: WETH.tokenAddress,
                     buyAmount,
                     sellAmount,
                     sellTokenToEthRate: ethToWethRate,
@@ -701,8 +701,8 @@ describe(SUITE_NAME, () => {
                 .div(buyAmount)
                 .decimalPlaces(18, BigNumber.ROUND_CEIL);
             const comparisons = priceComparisonUtils.getPriceComparisonFromQuote(ChainId.Mainnet, MarketOperation.Buy, {
-                buyToken: DAI.tokenAddress,
-                sellToken: WETH.tokenAddress,
+                buyTokenAddress: DAI.tokenAddress,
+                sellTokenAddress: WETH.tokenAddress,
                 buyAmount,
                 sellAmount,
                 sellTokenToEthRate: ZERO,

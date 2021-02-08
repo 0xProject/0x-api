@@ -189,10 +189,10 @@ describe.skip(SUITE_NAME, () => {
                 it(`should return a valid quote with ${JSON.stringify(parameters)}`, async () => {
                     await quoteAndExpectAsync(app, parameters, {
                         buyAmount: new BigNumber(parameters.buyAmount),
-                        sellToken: parameters.sellToken.startsWith('0x')
+                        sellTokenAddress: parameters.sellToken.startsWith('0x')
                             ? parameters.sellToken
                             : SYMBOL_TO_ADDRESS[parameters.sellToken],
-                        buyToken: parameters.buyToken.startsWith('0x')
+                        buyTokenAddress: parameters.buyToken.startsWith('0x')
                             ? parameters.buyToken
                             : SYMBOL_TO_ADDRESS[parameters.buyToken],
                         allowanceTarget: isETHSymbolOrAddress(parameters.sellToken)
