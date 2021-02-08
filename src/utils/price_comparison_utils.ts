@@ -73,8 +73,8 @@ export const priceComparisonUtils = {
 };
 
 interface PartialQuote {
-    buyToken: string;
-    sellToken: string;
+    buyTokenAddress: string;
+    sellTokenAddress: string;
     buyAmount: BigNumber;
     sellAmount: BigNumber;
     sellTokenToEthRate: BigNumber;
@@ -90,8 +90,8 @@ function getPriceComparisonFromQuoteOrThrow(
     quote: PartialQuote,
 ): SourceComparison[] | undefined {
     // Set up variables for calculation
-    const buyToken = getTokenMetadataIfExists(quote.buyToken, chainId);
-    const sellToken = getTokenMetadataIfExists(quote.sellToken, chainId);
+    const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
+    const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
     const ethToken = getTokenMetadataIfExists('WETH', chainId)!;
     const ethUnitAmount = new BigNumber(10).pow(ethToken.decimals);
     if (!buyToken || !sellToken || !quote.buyAmount || !quote.sellAmount || !quote.quoteReport) {
