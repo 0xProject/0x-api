@@ -1,12 +1,11 @@
-import { ERC20BridgeSource, getSwapMinBuyAmount } from '@0x/asset-swapper';
+import { AffiliateFeeType, ERC20BridgeSource, getSwapMinBuyAmount } from '@0x/asset-swapper';
+import { POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS } from '@0x/asset-swapper/lib/src/constants';
 import { expect } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import 'mocha';
 
 import { AFFILIATE_FEE_TRANSFORMER_GAS, ZERO } from '../src/constants';
-import { POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS } from '@0x/asset-swapper/lib/src/constants';
-import { AffiliateFeeType } from '../src/types';
 import { serviceUtils } from '../src/utils/service_utils';
 
 import { AFFILIATE_DATA_SELECTOR } from './constants';

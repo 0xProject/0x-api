@@ -1,5 +1,5 @@
 import { assert } from '@0x/assert';
-import { ERC20BridgeSource, SwapQuoterError } from '@0x/asset-swapper';
+import { AffiliateFeeType, ERC20BridgeSource, SwapQuoterError } from '@0x/asset-swapper';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
@@ -26,7 +26,6 @@ import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas/schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import {
-    AffiliateFeeType,
     ChainId,
     ExchangeProxyMetaTransactionWithoutDomain,
     GetMetaTransactionPriceResponse,

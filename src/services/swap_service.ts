@@ -1,5 +1,6 @@
 import {
     AffiliateFeeAmount,
+    AffiliateFeeType,
     AssetSwapperContractAddresses,
     ERC20BridgeSource,
     ExtensionContractType,
@@ -49,7 +50,6 @@ import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
     AffiliateFee,
-    AffiliateFeeType,
     BucketedPriceDepth,
     CalaculateMarketDepthParams,
     CalculateSwapQuoteParams,

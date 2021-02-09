@@ -1,4 +1,5 @@
 import {
+    AffiliateFeeType,
     ContractAddresses,
     ERC20BridgeSource,
     QuoteReport,
@@ -422,12 +423,6 @@ export interface SourceComparison {
     price: BigNumber | null;
     gas: BigNumber | null;
     savingsInEth?: BigNumber;
-}
-
-export enum AffiliateFeeType {
-    None,
-    PercentageFee,
-    PositiveSlippageFee,
 }
 
 export interface AffiliateFee {

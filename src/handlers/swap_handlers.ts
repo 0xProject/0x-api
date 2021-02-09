@@ -1,5 +1,5 @@
 // tslint:disable:max-file-line-count
-import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { AffiliateFeeType, RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
@@ -27,7 +27,6 @@ import { schemas } from '../schemas/schemas';
 import { SwapService } from '../services/swap_service';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
-    AffiliateFeeType,
     CalculateSwapQuoteParams,
     GetSwapPriceResponse,
     GetSwapQuoteRequestParams,
