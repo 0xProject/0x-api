@@ -427,8 +427,8 @@ export interface GetSwapQuoteResponseLiquiditySource {
 }
 
 export interface BasePriceResponse extends QuoteBase {
-    sellToken: string;
-    buyToken: string;
+    sellTokenAddress: string;
+    buyTokenAddress: string;
     value: BigNumber;
     gas: BigNumber;
     priceComparisons?: SourceComparison[];
@@ -462,6 +462,7 @@ interface SwapQuoteParamsBase {
 export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, BasePriceResponse {
     guaranteedPrice: BigNumber;
     // orders: SignedOrder[];
+    orders?: any;
     from?: string;
     quoteReport?: QuoteReport;
 }
@@ -504,7 +505,8 @@ export interface Price {
 export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
     mtxHash: string;
     mtx: ExchangeProxyMetaTransaction;
-    // orders: SignedOrder[];
+    // orders: SignedOrder[]
+    orders?: any;
 }
 
 // GET /meta_transaction/price
@@ -541,8 +543,8 @@ export type ZeroExTransactionWithoutDomain = Omit<ZeroExTransaction, 'domain'>;
 export type ExchangeProxyMetaTransactionWithoutDomain = Omit<ExchangeProxyMetaTransaction, 'domain'>;
 
 export interface CalculateMetaTransactionQuoteResponse extends QuoteBase {
-    sellToken: string;
-    buyToken: string;
+    sellTokenAddress: string;
+    buyTokenAddress: string;
     taker: string;
     quoteReport?: QuoteReport;
     // orders: SignedOrder[];

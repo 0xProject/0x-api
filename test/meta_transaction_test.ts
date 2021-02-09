@@ -2,11 +2,10 @@ import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { constants, expect, signingUtils, transactionHashUtils } from '@0x/contracts-test-utils';
-import { BlockchainLifecycle, web3Factory, Web3ProviderEngine } from '@0x/dev-utils';
+import { BlockchainLifecycle, Web3ProviderEngine, Web3Wrapper } from '@0x/dev-utils';
 import { AddOrdersResults } from '@0x/mesh-graphql-client';
 import { SignatureType, SignedOrder, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
-import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
@@ -21,7 +20,9 @@ import { GetMetaTransactionQuoteResponse } from '../src/types';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import {
+    ETHEREUM_RPC_URL,
     ETH_TOKEN_ADDRESS,
+    getProvider,
     MATCHA_AFFILIATE_ADDRESS,
     MATCHA_AFFILIATE_ENCODED_PARTIAL_ORDER_DATA,
     WETH_ASSET_DATA,
@@ -37,7 +38,8 @@ import { liquiditySources0xOnly } from './utils/mocks';
 const SUITE_NAME = 'meta transactions tests';
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
-describe(SUITE_NAME, () => {
+// Include this test when SRA v4 is working. Currently we cannot access v4 Mesh liquidity.
+describe.skip(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
     let dependencies: AppDependencies;
@@ -57,19 +59,18 @@ describe(SUITE_NAME, () => {
     let zrx: DummyERC20TokenContract;
 
     before(async () => {
-        await setupDependenciesAsync(SUITE_NAME);
-
-        // connect to ganache and run contract migrations
-        const ganacheConfigs = {
-            shouldUseInProcessGanache: false,
-            shouldAllowUnlimitedContractSize: true,
-            rpcUrl: config.ETHEREUM_RPC_URL,
-        };
-        provider = web3Factory.getRpcProvider(ganacheConfigs);
-
+        const shouldStartMesh = true;
+        await setupDependenciesAsync(SUITE_NAME, shouldStartMesh);
+        provider = getProvider();
         // start the 0x-api app
-        dependencies = await getDefaultAppDependenciesAsync(provider, config.defaultHttpServiceConfig);
-        ({ app, server } = await getAppAsync({ ...dependencies }, config.defaultHttpServiceConfig));
+        dependencies = await getDefaultAppDependenciesAsync(provider, {
+            ...config.defaultHttpServiceConfig,
+            ethereumRpcUrl: ETHEREUM_RPC_URL,
+        });
+        ({ app, server } = await getAppAsync(
+            { ...dependencies },
+            { ...config.defaultHttpServiceConfig, ethereumRpcUrl: ETHEREUM_RPC_URL },
+        ));
 
         const web3Wrapper = new Web3Wrapper(provider);
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);

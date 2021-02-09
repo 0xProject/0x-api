@@ -127,14 +127,21 @@ export class SwapHandlers {
                     quoteReport: quote.quoteReport,
                     submissionBy: 'taker',
                     decodedUniqueId: quote.decodedUniqueId,
-                    buyTokenAddress: quote.buyToken,
-                    sellTokenAddress: quote.sellToken,
+                    buyTokenAddress: quote.buyTokenAddress,
+                    sellTokenAddress: quote.sellTokenAddress,
                     buyAmount: params.buyAmount,
                     sellAmount: params.sellAmount,
                 });
             }
         }
-        const response = _.omit(quote, 'quoteReport', 'decodedUniqueId');
+        const response = _.omit(
+            {
+                ...quote,
+                orders: quote.orders.map((o: any) => _.omit(o, 'fills')),
+            },
+            'quoteReport',
+            'decodedUniqueId',
+        );
         const { quoteReport } = quote;
         if (params.includePriceComparisons && quoteReport) {
             const side = params.sellAmount ? MarketOperation.Sell : MarketOperation.Buy;
@@ -169,9 +176,9 @@ export class SwapHandlers {
             'estimatedGas',
             'protocolFee',
             'minimumProtocolFee',
-            'buyToken',
+            'buyTokenAddress',
             'buyAmount',
-            'sellToken',
+            'sellTokenAddress',
             'sellAmount',
             'sources',
             'allowanceTarget',
@@ -185,7 +192,7 @@ export class SwapHandlers {
                 .getPriceComparisonFromQuote(CHAIN_ID, marketSide, quote)
                 ?.map(sc => priceComparisonUtils.renameNative(sc));
         }
-        res.status(HttpStatus.OK).send(quote);
+        res.status(HttpStatus.OK).send(response);
     }
 
     public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {

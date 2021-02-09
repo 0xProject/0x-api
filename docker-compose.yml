@@ -43,7 +43,7 @@ services:
             BLOCK_POLLING_INTERVAL: '2s'
             ETHEREUM_RPC_MAX_REQUESTS_PER_24_HR_UTC: '150000'
         volumes:
-            - ./0x_mesh:/usr/mesh/0x_mesh
+            - ./0x_mesh_test:/usr/mesh/0x_mesh
         ports:
             - '60557:60557'
             - '60558:60558'

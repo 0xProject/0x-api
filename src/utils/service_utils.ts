@@ -1,10 +1,4 @@
-import {
-    ERC20BridgeSource,
-    getSwapMinBuyAmount,
-    // SignedOrder,
-    SwapQuote,
-    SwapQuoteOrdersBreakdown,
-} from '@0x/asset-swapper';
+import { ERC20BridgeSource, SwapQuote, SwapQuoteOrdersBreakdown } from '@0x/asset-swapper';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
@@ -81,29 +75,6 @@ export const serviceUtils = {
         return { affiliatedData, decodedUniqueId: `${randomNumber}-${timestampInSeconds}` };
     },
 
-    // // tslint:disable-next-line:prefer-function-over-method
-    // cleanSignedOrderFields(orders: SignedOrder[]): SignedOrder[] {
-    //     return orders.map(o => ({
-    //         chainId: o.chainId,
-    //         exchangeAddress: o.exchangeAddress,
-    //         makerAddress: o.makerAddress,
-    //         takerAddress: o.takerAddress,
-    //         feeRecipientAddress: o.feeRecipientAddress,
-    //         senderAddress: o.senderAddress,
-    //         makerAssetAmount: o.makerAssetAmount,
-    //         takerAssetAmount: o.takerAssetAmount,
-    //         makerFee: o.makerFee,
-    //         takerFee: o.takerFee,
-    //         expirationTimeSeconds: o.expirationTimeSeconds,
-    //         salt: o.salt,
-    //         makerAssetData: o.makerAssetData,
-    //         takerAssetData: o.takerAssetData,
-    //         makerFeeAssetData: o.makerFeeAssetData,
-    //         takerFeeAssetData: o.takerFeeAssetData,
-    //         signature: o.signature,
-    //     }));
-    // },
-
     async fetchTokenDecimalsIfRequiredAsync(tokenAddress: string, web3Wrapper: Web3Wrapper): Promise<number> {
         // HACK(dekz): Our ERC20Wrapper does not have decimals as it is optional
         // so we must encode this ourselves
@@ -175,7 +146,7 @@ export const serviceUtils = {
         }, []);
     },
     getAffiliateFeeAmounts(quote: SwapQuote, fee: PercentageFee): AffiliateFeeAmounts {
-        const minBuyAmount = getSwapMinBuyAmount(quote);
+        const minBuyAmount = quote.worstCaseQuoteInfo.makerAmount;
         const buyTokenFeeAmount = minBuyAmount
             .times(fee.buyTokenPercentageFee)
             .dividedBy(fee.buyTokenPercentageFee + 1)

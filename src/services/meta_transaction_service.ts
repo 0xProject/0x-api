@@ -114,8 +114,8 @@ export class MetaTransactionService {
         const { sellTokenToEthRate, buyTokenToEthRate } = quote;
         const commonQuoteFields = {
             price: quote.price,
-            sellToken: params.sellTokenAddress,
-            buyToken: params.buyTokenAddress,
+            sellTokenAddress: params.sellTokenAddress,
+            buyTokenAddress: params.buyTokenAddress,
             buyAmount: quote.buyAmount!,
             sellAmount: quote.sellAmount!,
             // orders: quote.orders,
@@ -376,8 +376,8 @@ export class MetaTransactionService {
             quoteReport: quote.quoteReport,
             callData: quote.data,
             minimumProtocolFee: quote.protocolFee,
-            buyToken: params.buyTokenAddress,
-            sellToken: params.sellTokenAddress,
+            buyTokenAddress: params.buyTokenAddress,
+            sellTokenAddress: params.sellTokenAddress,
             taker: params.takerAddress,
         };
     }

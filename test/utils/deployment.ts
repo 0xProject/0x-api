@@ -36,7 +36,11 @@ const dockerComposeFilename = 'docker-compose-test.yml';
  *        helps to make the logs more intelligible.
  * @param logType Indicates where logs should be directed.
  */
-export async function setupDependenciesAsync(suiteName: string, logType?: LogType): Promise<void> {
+export async function setupDependenciesAsync(
+    suiteName: string,
+    shouldStartMesh: boolean = false,
+    logType?: LogType,
+): Promise<void> {
     await createFreshDockerComposeFileOnceAsync();
 
     // Tear down any existing dependencies or lingering data if a tear-down has
@@ -45,15 +49,11 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
         await teardownDependenciesAsync(suiteName, logType);
     }
 
+    const dockerUpArgs = ['-f', dockerComposeFilename, 'up', 'ganache', 'postgres'];
+    const dockerCmdArgs = shouldStartMesh ? dockerUpArgs.concat('mesh') : dockerUpArgs;
     // Spin up the 0x-api dependencies
-    const up = spawn('docker-compose', ['-f', dockerComposeFilename, 'up'], {
+    const up = spawn('docker-compose', dockerCmdArgs, {
         cwd: testRootDir,
-        env: {
-            ...process.env,
-            ETHEREUM_RPC_URL: 'http://ganache:8545',
-            ETHEREUM_CHAIN_ID: '1337', // mesh env var
-            CHAIN_ID: '1337', // 0x API env var
-        },
     });
     directLogs(up, suiteName, 'up', logType);
     didTearDown = false;
@@ -64,6 +64,8 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     await confirmPostgresConnectivityAsync();
     // Create a test db connection in this instance, and synchronize it
     await getTestDBConnectionAsync();
+    // // Make sure the db schema is up to date
+    // await runDbMigrationAsync(suiteName, logType);
 }
 
 /**
@@ -77,9 +79,13 @@ export async function teardownDependenciesAsync(suiteName: string, logType?: Log
     const down = spawn('docker-compose', ['-f', dockerComposeFilename, 'down'], {
         cwd: testRootDir,
     });
+
     directLogs(down, suiteName, 'down', logType);
-    const downTimeout = 20000;
-    await waitForCloseAsync(down, 'down', downTimeout);
+    const timeout = 20000;
+    await waitForCloseAsync(down, 'down', timeout);
+    const clean = spawn('rm', ['-rf', '0x_mesh_test', 'postgres_test'], { cwd: testRootDir });
+    directLogs(clean, suiteName, 'clean data', logType);
+    await waitForCloseAsync(clean, 'clean data', timeout);
     didTearDown = true;
 }
 
@@ -179,6 +185,15 @@ async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<v
         }
     }
 }
+
+// async function runDbMigrationAsync(suiteName: string, logType?: LogType): Promise<void> {
+//     const migrate = spawn('yarn', ['db:migrate'], {
+//         cwd: testRootDir,
+//     });
+//     directLogs(migrate, suiteName, 'migrate', logType);
+//     const timeout = 20000;
+//     await waitForCloseAsync(migrate, 'migrate', timeout);
+// }
 
 async function sleepAsync(timeSeconds: number): Promise<void> {
     return new Promise<void>(resolve => {

@@ -1,4 +1,4 @@
-import { ETH_TOKEN_ADDRESS } from '@0x/order-utils';
+import { ETH_TOKEN_ADDRESS } from '@0x/protocol-utils';
 
 import { NULL_ADDRESS } from './constants';
 import { ChainId } from './types';
