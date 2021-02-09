@@ -94,4 +94,6 @@ test/docker-compose*.yml
 
 TODO.txt
 
+0x_mesh_test/
+
 scripts
