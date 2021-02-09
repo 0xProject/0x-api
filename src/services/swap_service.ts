@@ -167,8 +167,6 @@ export class SwapService {
         // Only enable RFQT if there's an API key and either (a) it's a
         // forwarder transaction (isETHSell===true), (b) there's a taker
         // address present, or (c) it's an indicative quote.
-        //
-        // Note 0xAPI maps takerAddress query parameter to txOrigin as takerAddress is always Exchange Proxy or a VIP
         const shouldEnableRfqt =
             apiKey !== undefined && (isETHSell || takerAddress !== undefined || (rfqt && rfqt.isIndicative));
         if (shouldEnableRfqt) {
@@ -177,6 +175,7 @@ export class SwapService {
                 intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
                 apiKey: apiKey!,
                 makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
+                // Note 0xAPI maps takerAddress query parameter to txOrigin as takerAddress is always Exchange Proxy or a VIP
                 takerAddress: NULL_ADDRESS,
                 txOrigin: takerAddress!,
                 firmQuoteValidator: this._firmQuoteValidator,
@@ -206,6 +205,8 @@ export class SwapService {
             marketSide === MarketOperation.Sell
                 ? sellAmount
                 : buyAmount!.times(affiliateFee.buyTokenPercentageFee + 1).integerValue(BigNumber.ROUND_DOWN);
+
+        // Fetch the Swap quote
         const swapQuote = await this._swapQuoter.getSwapQuoteAsync(
             buyToken,
             sellToken,
@@ -227,6 +228,8 @@ export class SwapService {
             buyTokenFeeAmount,
             sellTokenFeeAmount,
         } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
+
+        // Grab the encoded version of the swap quote
         const { to, value, data, decodedUniqueId } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
             isETHSell,
@@ -242,7 +245,10 @@ export class SwapService {
             .plus(isETHSell ? WRAP_ETH_GAS : 0)
             .plus(isETHBuy ? UNWRAP_WETH_GAS : 0);
 
-        if (!skipValidation && takerAddress) {
+        // If the taker address is provided we can provide a more accurate gas estimate
+        // using eth_gasEstimate
+        // If an error occurs we attempt to provide a better message then "Transaction Reverted"
+        if (takerAddress && !skipValidation) {
             const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data,
