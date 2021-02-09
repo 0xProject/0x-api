@@ -50,9 +50,13 @@ describe(SUITE_NAME, () => {
         );
 
         await zrx.mint(new BigNumber(100)).awaitTransactionSuccessAsync({ from: makerAddress1 });
-        await zrx.approve(RFQ_ALLOWANCE_TARGET, new BigNumber(100)).awaitTransactionSuccessAsync({ from: makerAddress1 });
+        await zrx
+            .approve(RFQ_ALLOWANCE_TARGET, new BigNumber(100))
+            .awaitTransactionSuccessAsync({ from: makerAddress1 });
         await zrx.mint(new BigNumber(150)).awaitTransactionSuccessAsync({ from: makerAddress2 });
-        await zrx.approve(RFQ_ALLOWANCE_TARGET, new BigNumber(125)).awaitTransactionSuccessAsync({ from: makerAddress2 });
+        await zrx
+            .approve(RFQ_ALLOWANCE_TARGET, new BigNumber(125))
+            .awaitTransactionSuccessAsync({ from: makerAddress2 });
 
         balanceCheckerContract = await BalanceCheckerContract.deployFrom0xArtifactAsync(
             artifacts.BalanceChecker,
