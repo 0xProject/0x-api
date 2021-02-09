@@ -8,6 +8,7 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
 
+import { RFQ_ALLOWANCE_TARGET } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { MakerBalanceChainCacheEntity } from '../src/entities';
 import { cacheRfqBalancesAsync } from '../src/runners/rfq_maker_balance_cache_runner';
@@ -49,7 +50,13 @@ describe(SUITE_NAME, () => {
         );
 
         await zrx.mint(new BigNumber(100)).awaitTransactionSuccessAsync({ from: makerAddress1 });
+        await zrx
+            .approve(RFQ_ALLOWANCE_TARGET, new BigNumber(100))
+            .awaitTransactionSuccessAsync({ from: makerAddress1 });
         await zrx.mint(new BigNumber(150)).awaitTransactionSuccessAsync({ from: makerAddress2 });
+        await zrx
+            .approve(RFQ_ALLOWANCE_TARGET, new BigNumber(125))
+            .awaitTransactionSuccessAsync({ from: makerAddress2 });
 
         balanceCheckerContract = await BalanceCheckerContract.deployFrom0xArtifactAsync(
             artifacts.BalanceChecker,
@@ -105,7 +112,7 @@ describe(SUITE_NAME, () => {
                 .getOne();
 
             expect(maker1!.balance).to.be.deep.equal(new BigNumber(100));
-            expect(maker2!.balance).to.be.deep.equal(new BigNumber(150));
+            expect(maker2!.balance).to.be.deep.equal(new BigNumber(125));
         });
     });
 });
