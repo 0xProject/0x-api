@@ -73,10 +73,10 @@ async function runHttpServiceAsync(
         const metricsService = new MetricsService();
         const metricsRouter = createMetricsRouter(metricsService);
         prometheusApp.use(METRICS_PATH, metricsRouter);
-        const prometheusSever = prometheusApp.listen(config.prometheusPort, () => {
+        const prometheusServer = prometheusApp.listen(config.prometheusPort, () => {
             logger.info(`Metrics (HTTP) listening on port ${config.prometheusPort}`);
         });
-        prometheusSever.on('error', err => {
+        prometheusServer.on('error', err => {
             logger.error(err);
         });
     }
