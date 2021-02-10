@@ -1,4 +1,4 @@
-import { QuoteReport } from '@0x/asset-swapper';
+import { QuoteReport, Signature } from '@0x/asset-swapper';
 import { ContractAddresses } from '@0x/contract-addresses';
 import { ContractTxFunctionObj, ContractWrappers } from '@0x/contract-wrappers';
 import {
@@ -173,7 +173,7 @@ export class MetaTransactionService {
 
     public async validateTransactionIsFillableAsync(
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
-        signature: string,
+        signature: Signature,
     ): Promise<void> {
         const { executeCall, protocolFee, gasPrice } = this._getMetaTransactionExecutionDetails(mtx, signature);
 
@@ -230,7 +230,7 @@ export class MetaTransactionService {
 
     public async generatePartialExecuteTransactionEthereumTransactionAsync(
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
-        signature: string,
+        signature: Signature,
     ): Promise<PartialTxParams> {
         const { callTarget, gasPrice, protocolFee, executeCall } = this._getMetaTransactionExecutionDetails(
             mtx,
@@ -261,7 +261,7 @@ export class MetaTransactionService {
     public async submitTransactionAsync(
         mtxHash: string,
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
-        signature: string,
+        signature: Signature,
         apiKey: string,
         affiliateAddress?: string,
     ): Promise<PostTransactionResponse> {
@@ -414,7 +414,7 @@ export class MetaTransactionService {
 
     private _getMetaTransactionExecutionDetails(
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
-        signature: string,
+        signature: Signature,
     ): {
         callTarget: string;
         executeCall: ContractTxFunctionObj<string>;
