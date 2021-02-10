@@ -4,9 +4,9 @@ import {
     MockedRfqtQuoteResponse,
     RfqOrder,
     RfqOrderFields,
-    Signature,
     rfqtMocker,
     RfqtQuoteEndpoint,
+    Signature,
 } from '@0x/asset-swapper';
 import { quoteRequestorHttpClient } from '@0x/asset-swapper/lib/src/utils/quote_requestor';
 import { ContractAddresses } from '@0x/contract-addresses';
