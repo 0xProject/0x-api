@@ -4,9 +4,9 @@ import {
     MockedRfqtQuoteResponse,
     RfqOrder,
     RfqOrderFields,
-    RfqtQuoteEndpoint,
     Signature,
-    testHelpers,
+    rfqtMocker,
+    RfqtQuoteEndpoint,
 } from '@0x/asset-swapper';
 import { quoteRequestorHttpClient } from '@0x/asset-swapper/lib/src/utils/quote_requestor';
 import { ContractAddresses } from '@0x/contract-addresses';
@@ -140,7 +140,7 @@ describe(SUITE_NAME, () => {
                         .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
                         .sendTransactionAsync({ from: takerAddress });
 
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [
                             {
                                 ...DEFAULT_RFQT_RESPONSE_DATA,
@@ -175,7 +175,7 @@ describe(SUITE_NAME, () => {
                         .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
                         .sendTransactionAsync({ from: takerAddress });
 
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [
                             {
                                 ...DEFAULT_RFQT_RESPONSE_DATA,
@@ -217,7 +217,7 @@ describe(SUITE_NAME, () => {
                         .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
                         .sendTransactionAsync({ from: takerAddress });
 
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [
                             {
                                 ...DEFAULT_RFQT_RESPONSE_DATA,
@@ -249,7 +249,7 @@ describe(SUITE_NAME, () => {
                         .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
                         .sendTransactionAsync({ from: takerAddress });
 
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [
                             {
                                 ...DEFAULT_RFQT_RESPONSE_DATA,
@@ -308,7 +308,7 @@ describe(SUITE_NAME, () => {
                         .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
                         .sendTransactionAsync({ from: takerAddress });
 
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [
                             {
                                 ...DEFAULT_RFQT_RESPONSE_DATA,
@@ -343,7 +343,7 @@ describe(SUITE_NAME, () => {
                     // this RFQ-T mock should never actually get hit b/c of the bad api key
                     // but in the case in which the bad api key was _not_ blocked
                     // this would cause the API to respond with RFQ-T liquidity
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [
                             {
                                 ...DEFAULT_RFQT_RESPONSE_DATA,
@@ -371,7 +371,7 @@ describe(SUITE_NAME, () => {
                         .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
                         .sendTransactionAsync({ from: takerAddress });
 
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [
                             {
                                 ...DEFAULT_RFQT_RESPONSE_DATA,
@@ -395,7 +395,7 @@ describe(SUITE_NAME, () => {
                         ...DEFAULT_RFQT_RESPONSE_DATA,
                         responseData: rfqtIndicativeQuoteResponse,
                     };
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [mock as any],
                         RfqtQuoteEndpoint.Indicative,
                         async () => {
@@ -422,7 +422,7 @@ describe(SUITE_NAME, () => {
                         responseData: rfqtIndicativeQuoteResponse,
                     };
                     mock.requestParams!.txOrigin = NULL_ADDRESS;
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [mock as any],
                         RfqtQuoteEndpoint.Indicative,
                         async () => {
@@ -449,7 +449,7 @@ describe(SUITE_NAME, () => {
                         responseCode: 500,
                     };
                     mock.requestParams!.txOrigin = NULL_ADDRESS;
-                    return testHelpers.withMockedRfqtQuotes(
+                    return rfqtMocker.withMockedRfqtQuotes(
                         [mock as any],
                         RfqtQuoteEndpoint.Indicative,
                         async () => {
@@ -483,7 +483,7 @@ describe(SUITE_NAME, () => {
                     .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
 
-                return testHelpers.withMockedRfqtQuotes(
+                return rfqtMocker.withMockedRfqtQuotes(
                     [
                         {
                             ...DEFAULT_RFQT_RESPONSE_DATA,

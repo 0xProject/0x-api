@@ -2,7 +2,6 @@ import {
     AffiliateFee,
     AssetSwapperContractAddresses,
     ERC20BridgeSource,
-    ExtensionContractType,
     GetMarketOrdersRfqtOpts,
     Orderbook,
     RfqtFirmQuoteValidator,
@@ -583,7 +582,6 @@ export class SwapService {
         affiliateFee: AffiliateFee,
     ): Promise<SwapQuoteResponsePartialTransaction> {
         const opts: Partial<SwapQuoteGetOutputOpts> = {
-            useExtensionContract: ExtensionContractType.ExchangeProxy,
             extensionContractOpts: { isFromETH, isToETH, isMetaTransaction, shouldSellEntireBalance, affiliateFee },
         };
 
