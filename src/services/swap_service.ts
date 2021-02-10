@@ -16,7 +16,7 @@ import {
 import { ContractAddresses } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { ETH_TOKEN_ADDRESS } from '@0x/protocol-utils';
-import { MarketOperation } from '@0x/types';
+import { MarketOperation, PaginatedCollection } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError, RevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
 import { SupportedProvider } from 'ethereum-types';
@@ -48,13 +48,14 @@ import {
     CalaculateMarketDepthParams,
     GetSwapQuoteParams,
     GetSwapQuoteResponse,
-    GetTokenPricesResponse,
     PercentageFee,
+    Price,
     SwapQuoteResponsePartialTransaction,
     TokenMetadata,
     TokenMetadataOptionalSymbol,
 } from '../types';
 import { marketDepthUtils } from '../utils/market_depth_utils';
+import { paginationUtils } from '../utils/pagination_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
@@ -333,7 +334,12 @@ export class SwapService {
         return this._getSwapQuoteForWethAsync(params, true);
     }
 
-    public async getTokenPricesAsync(sellToken: TokenMetadata, unitAmount: BigNumber): Promise<GetTokenPricesResponse> {
+    public async getTokenPricesAsync(
+        sellToken: TokenMetadata,
+        unitAmount: BigNumber,
+        page: number,
+        perPage: number,
+    ): Promise<PaginatedCollection<Price>> {
         // Gets the price for buying 1 unit (not base unit as this is different between tokens with differing decimals)
         // returns price in sellToken units, e.g What is the price of 1 ZRX (in DAI)
         // Equivalent to performing multiple swap quotes selling sellToken and buying 1 whole buy token
@@ -341,8 +347,9 @@ export class SwapService {
         const queryTokenData = TokenMetadatasForChains.filter(m => m.symbol !== sellToken.symbol).filter(
             m => m.tokenAddresses[CHAIN_ID] !== NULL_ADDRESS,
         );
-        const chunkSize = 15;
-        const queryTokenChunks = _.chunk(queryTokenData, chunkSize);
+        const paginatedTokens = paginationUtils.paginate(queryTokenData, page, perPage);
+        const chunkSize = 20;
+        const queryTokenChunks = _.chunk(paginatedTokens.records, chunkSize);
         const allResults = (
             await Promise.all(
                 queryTokenChunks.map(async tokens => {
@@ -368,8 +375,9 @@ export class SwapService {
 
         const prices = allResults
             .map((quote, i) => {
-                const buyTokenDecimals = queryTokenData[i].decimals;
-                const sellTokenDecimals = sellToken.decimals;
+                const buyTokenDecimals = new BigNumber(quote.makerTokenDecimals).toNumber();
+                const sellTokenDecimals = new BigNumber(quote.takerTokenDecimals).toNumber();
+                const symbol = queryTokenData.find(data => data.tokenAddresses[CHAIN_ID] === quote.makerToken)?.symbol;
                 const { makerAmount, totalTakerAmount } = quote.bestCaseQuoteInfo;
                 const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyTokenDecimals);
                 const unitTakerAmount = Web3Wrapper.toUnitAmount(totalTakerAmount, sellTokenDecimals);
@@ -377,12 +385,18 @@ export class SwapService {
                     .dividedBy(unitMakerAmount)
                     .decimalPlaces(sellTokenDecimals, BigNumber.ROUND_CEIL);
                 return {
-                    symbol: queryTokenData[i].symbol,
+                    symbol,
                     price,
                 };
             })
-            .filter(p => p) as GetTokenPricesResponse;
-        return prices;
+            .filter(p => p) as Price[];
+
+        // Add ETH into the prices list as it is not a token
+        const wethData = prices.find((p: Price) => p.symbol === 'WETH');
+        if (wethData) {
+            prices.push({ ...wethData, symbol: 'ETH' });
+        }
+        return { ...paginatedTokens, records: prices };
     }
 
     public async calculateMarketDepthAsync(

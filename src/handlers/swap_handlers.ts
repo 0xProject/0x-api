@@ -27,6 +27,7 @@ import { schemas } from '../schemas/schemas';
 import { SwapService } from '../services/swap_service';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import { GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
+import { paginationUtils } from '../utils/pagination_utils';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { schemaUtils } from '../utils/schema_utils';
@@ -102,9 +103,10 @@ export class SwapHandlers {
                 },
             ]);
         }
+        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const unitAmount = new BigNumber(1);
-        const records = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount);
-        res.status(HttpStatus.OK).send({ records });
+        const tokenPrices = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount, page, perPage);
+        res.status(HttpStatus.OK).send(tokenPrices);
     }
 
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {

@@ -22,11 +22,12 @@ export class AssetSwapperOrderbook extends Orderbook {
         // const result = pruneFn ? orders.filter(pruneFn) : orders;
         // return result;
     }
-    public async getBatchOrdersAsync(): // makerTokens: string[],
-    // takerToken: string,
-    // pruneFn?: (o: SignedNativeOrder) => boolean,
-    Promise<SignedNativeOrder[][]> {
-        return [];
+    public async getBatchOrdersAsync(
+        makerTokens: string[],
+        _takerToken: string,
+        _pruneFn?: (o: SignedNativeOrder) => boolean,
+    ): Promise<SignedNativeOrder[][]> {
+        return Array(makerTokens.length).fill([]);
         // const apiOrders = await this.orderbookService.getBatchOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, makerTokens, [
         //     takerToken,
         // ]);

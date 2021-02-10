@@ -495,7 +495,6 @@ export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
 export interface GetSwapPriceResponse extends BasePriceResponse {}
 
 // GET /swap/prices
-export type GetTokenPricesResponse = Price[];
 export interface Price {
     symbol: string;
     price: BigNumber;
