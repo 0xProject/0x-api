@@ -1,12 +1,13 @@
 import {
     ContractAddresses,
     ERC20BridgeSource,
+    LimitOrderFields,
     QuoteReport,
     RfqtRequestOpts,
+    Signature,
     SupportedProvider,
 } from '@0x/asset-swapper';
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
-import { LimitOrderFields, Signature } from '@0x/protocol-utils';
 import { ExchangeProxyMetaTransaction, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
@@ -27,6 +28,12 @@ export {
     RollingLimiterIntervalUnit,
 } from './utils/rate-limiters/types';
 
+export enum ChainId {
+    Mainnet = 1,
+    Kovan = 42,
+    Ganache = 1337,
+}
+
 export enum OrderWatcherLifeCycleEvents {
     Added,
     Removed,
@@ -35,21 +42,23 @@ export enum OrderWatcherLifeCycleEvents {
 }
 
 export interface OrdersByLifecycleEvents {
-    added: APIOrderWithMetaData[];
-    removed: APIOrderWithMetaData[];
-    updated: APIOrderWithMetaData[];
+    added: SRAOrder[];
+    removed: SRAOrder[];
+    updated: SRAOrder[];
 }
 
-export interface APIOrderMetaData {
-    orderHash: string;
-    remainingFillableTakerAssetAmount: BigNumber;
-    state?: OrderEventEndState;
-    createdAt?: string;
+export interface PaginatedCollection<T> {
+    total: number;
+    page: number;
+    perPage: number;
+    records: T[];
 }
 
-export interface APIOrderWithMetaData extends APIOrder {
-    metaData: APIOrderMetaData;
+export interface SignedLimitOrder extends LimitOrderFields {
+    signature: Signature;
 }
+
+/** BEGIN SRA TYPES */
 
 export interface WebsocketSRAOpts {
     pongInterval: number;
@@ -73,6 +82,92 @@ export enum MessageChannels {
 export interface UpdateOrdersChannelMessageWithChannel extends UpdateOrdersChannelMessage {
     channel: MessageChannels;
 }
+
+export type OrdersChannelMessage = UpdateOrdersChannelMessage | UnknownOrdersChannelMessage;
+export enum OrdersChannelMessageTypes {
+    Update = 'update',
+    Unknown = 'unknown',
+}
+export interface UpdateOrdersChannelMessage {
+    type: OrdersChannelMessageTypes.Update;
+    requestId: string;
+    payload: SRAOrder[];
+}
+export interface UnknownOrdersChannelMessage {
+    type: OrdersChannelMessageTypes.Unknown;
+    requestId: string;
+    payload: undefined;
+}
+
+export enum WebsocketConnectionEventType {
+    Close = 'close',
+    Error = 'error',
+    Message = 'message',
+}
+
+export enum WebsocketClientEventType {
+    Connect = 'connect',
+    ConnectFailed = 'connectFailed',
+}
+
+/**
+ * makerToken: subscribes to new orders where the contract address for the maker token matches the value specified
+ * takerToken: subscribes to new orders where the contract address for the taker token matches the value specified
+ */
+export interface OrdersChannelSubscriptionOpts {
+    makerToken?: string;
+    takerToken?: string;
+}
+
+export interface SRAOrderMetaData {
+    orderHash: string;
+    remainingFillableTakerAssetAmount: BigNumber;
+    state?: OrderEventEndState;
+    createdAt?: string;
+}
+
+export interface SRAOrder {
+    order: SignedLimitOrder;
+    metaData: SRAOrderMetaData;
+}
+
+export type OrdersResponse = PaginatedCollection<SRAOrder>;
+
+export interface OrderbookRequest {
+    baseToken: string;
+    quoteToken: string;
+}
+
+export interface OrderbookResponse {
+    bids: PaginatedCollection<SRAOrder>;
+    asks: PaginatedCollection<SRAOrder>;
+}
+
+export interface OrderConfigRequestPayload {
+    maker: string;
+    taker: string;
+    makerAmount: BigNumber;
+    takerAmount: BigNumber;
+    makerToken: string;
+    takerToken: string;
+    verifyingContract: string;
+    expiry: BigNumber;
+}
+
+export interface OrderConfigResponse {
+    feeRecipient: string;
+    sender: string;
+    takerTokenFeeAmount: BigNumber;
+}
+
+export type FeeRecipientsResponse = PaginatedCollection<string>;
+
+export interface PagedRequestOpts {
+    page?: number;
+    perPage?: number;
+}
+
+/** END SRA TYPES */
 
 // Staking types
 export interface RawEpoch {
@@ -352,12 +447,6 @@ export interface ObjectMap<T> {
     [key: string]: T;
 }
 
-export enum ChainId {
-    Mainnet = 1,
-    Kovan = 42,
-    Ganache = 1337,
-}
-
 export interface TokenMetadata {
     symbol: string;
     decimals: number;
@@ -370,11 +459,8 @@ export interface AffiliateFeeAmounts {
     buyTokenFeeAmount: BigNumber;
 }
 
-/**
- * Begin request and response types related to quotes
- */
+/** Begin /swap and /meta_transaction types */
 
-// Shared common types
 interface QuoteBase {
     price: BigNumber;
     buyAmount: BigNumber;
@@ -530,9 +616,7 @@ export interface CalculateMetaTransactionQuoteParams extends SwapQuoteParamsBase
     isETHSell: boolean;
 }
 
-/**
- * End quote-related types
- */
+/** End /swap types */
 
 export interface PinResult {
     pin: SignedLimitOrder[];
@@ -620,84 +704,5 @@ export interface BucketedPriceDepth {
     price: BigNumber;
     bucket: number;
     bucketTotal: BigNumber;
-}
-export interface SRAGetOrdersRequestOpts {
-    makerToken?: string;
-    takerToken?: string;
-    verifyingContract?: string;
-    sender?: string;
-    takerTokenFeeAmount?: string;
-    maker?: string;
-    taker?: string;
-    feeRecipient?: string;
-    isUnfillable?: boolean; // default false
-}
-
-export interface SignedLimitOrder extends LimitOrderFields {
-    signature: Signature;
-}
-
-// TODO(kimpers): [V4] Consolidate types in @0x/types
-export interface APIOrder {
-    order: SignedLimitOrder;
-    metaData: object;
-}
-
-export interface OrderbookResponse {
-    bids: PaginatedCollection<APIOrder>;
-    asks: PaginatedCollection<APIOrder>;
-}
-export interface PaginatedCollection<T> {
-    total: number;
-    page: number;
-    perPage: number;
-    records: T[];
-}
-
-export interface UpdateOrdersChannelMessageWithChannel extends UpdateOrdersChannelMessage {
-    channel: MessageChannels;
-}
-
-export type OrdersChannelMessage = UpdateOrdersChannelMessage | UnknownOrdersChannelMessage;
-export enum OrdersChannelMessageTypes {
-    Update = 'update',
-    Unknown = 'unknown',
-}
-export interface UpdateOrdersChannelMessage {
-    type: OrdersChannelMessageTypes.Update;
-    requestId: string;
-    payload: APIOrder[];
-}
-export interface UnknownOrdersChannelMessage {
-    type: OrdersChannelMessageTypes.Unknown;
-    requestId: string;
-    payload: undefined;
-}
-
-/**
- * makerToken: subscribes to new orders where the contract address for the maker token matches the value specified
- * takerToken: subscribes to new orders where the contract address for the taker token matches the value specified
- */
-export interface OrdersChannelSubscriptionOpts {
-    makerToken?: string;
-    takerToken?: string;
-}
-
-// NOTE: For /sra/v4/asset_pairs
-export interface TokenPairsRequestOpts {
-    tokenA?: string;
-    tokenB?: string;
-}
-export type TokenPairsResponse = PaginatedCollection<TokenPairsItem>;
-export interface TokenPairsItem {
-    tokenA: Token;
-    tokenB: Token;
-}
-export interface Token {
-    tokenAddress: string;
-    // TODO(kimpers) [V4] what do we return here?
-    // minAmount: BigNumber;
-    // maxAmount: BigNumber;
-    // precision: number;
 }
 // tslint:disable-line:max-file-line-count

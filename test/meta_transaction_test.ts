@@ -16,7 +16,7 @@ import * as config from '../src/config';
 import { META_TRANSACTION_PATH, ONE_SECOND_MS, TEN_MINUTES_MS } from '../src/constants';
 import { GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 import { GetMetaTransactionQuoteResponse, SignedLimitOrder } from '../src/types';
-import type { AddOrdersResultsV4 } from '../src/utils/mesh_client'
+import { AddOrdersResultsV4 } from '../src/utils/mesh_client';
 import { meshUtils } from '../src/utils/mesh_utils';
 
 import {
@@ -624,7 +624,7 @@ describe.skip(SUITE_NAME, () => {
                 });
 
                 it.skip('submitting the quote is successful and money changes hands correctly', async () => {
-                    const makerAddress = validationResults.accepted[0].order.maker
+                    const makerAddress = validationResults.accepted[0].order.maker;
                     await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: buyAmount });
                     await weth
                         .approve(contractAddresses.erc20Proxy, new BigNumber(buyAmount))

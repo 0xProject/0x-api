@@ -3,7 +3,7 @@ import * as pino from 'pino';
 import { LOGGER_INCLUDE_TIMESTAMP, LOG_LEVEL, MAX_ORDER_EXPIRATION_BUFFER_SECONDS } from './config';
 import { ONE_SECOND_MS } from './constants';
 import { ExpiredOrderError } from './errors';
-import { APIOrder } from './types';
+import { SRAOrder } from './types';
 
 export const logger = pino({
     level: LOG_LEVEL,
@@ -15,7 +15,7 @@ export const logger = pino({
  * If the max age of expired orders exceeds the configured threshold, this function
  * logs an error capturing the details of the expired orders
  */
-export function alertOnExpiredOrders(expired: APIOrder[], details?: string): void {
+export function alertOnExpiredOrders(expired: SRAOrder[], details?: string): void {
     const maxExpirationTimeSeconds = Date.now() / ONE_SECOND_MS + MAX_ORDER_EXPIRATION_BUFFER_SECONDS;
     let idx = 0;
     if (

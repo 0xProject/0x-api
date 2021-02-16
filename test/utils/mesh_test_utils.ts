@@ -15,6 +15,10 @@ type Numberish = BigNumber | number | string;
 export const DEFAULT_MAKER_ASSET_AMOUNT = new BigNumber(1);
 export const MAKER_WETH_AMOUNT = new BigNumber('1000000000000000000');
 
+/**
+ * Creates random limit order
+ */
+// tslint:disable: custom-no-magic-numbers
 export function getRandomLimitOrder(fields: Partial<LimitOrderFields> = {}): LimitOrder {
     return new LimitOrder({
         makerToken: randomAddress(),
@@ -32,6 +36,7 @@ export function getRandomLimitOrder(fields: Partial<LimitOrderFields> = {}): Lim
         ...fields,
     });
 }
+// tslint:enable:custom-no-magic-numbers
 
 export class MeshTestUtils {
     protected _accounts!: string[];

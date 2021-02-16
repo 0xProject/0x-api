@@ -23,7 +23,6 @@ import {
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     NULL_ADDRESS,
-    NULL_BYTES,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     TX_BASE_GAS,
 } from './constants';
@@ -45,7 +44,6 @@ enum EnvVarType {
     UrlList,
     WhitelistAllTokens,
     Boolean,
-    FeeAssetData,
     NonEmptyString,
     APIKeys,
     PrivateKeys,
@@ -140,22 +138,11 @@ export const MESH_GET_ORDERS_DEFAULT_PAGE_SIZE = _.isEmpty(process.env.MESH_GET_
 export const FEE_RECIPIENT_ADDRESS = _.isEmpty(process.env.FEE_RECIPIENT_ADDRESS)
     ? NULL_ADDRESS
     : assertEnvVarType('FEE_RECIPIENT_ADDRESS', process.env.FEE_RECIPIENT_ADDRESS, EnvVarType.ETHAddressHex);
-// A flat fee that should be charged to the order maker
-export const MAKER_FEE_UNIT_AMOUNT = _.isEmpty(process.env.MAKER_FEE_UNIT_AMOUNT)
-    ? new BigNumber(0)
-    : assertEnvVarType('MAKER_FEE_UNIT_AMOUNT', process.env.MAKER_FEE_UNIT_AMOUNT, EnvVarType.UnitAmount);
+
 // A flat fee that should be charged to the order taker
 export const TAKER_FEE_UNIT_AMOUNT = _.isEmpty(process.env.TAKER_FEE_UNIT_AMOUNT)
     ? new BigNumber(0)
     : assertEnvVarType('TAKER_FEE_UNIT_AMOUNT', process.env.TAKER_FEE_UNIT_AMOUNT, EnvVarType.UnitAmount);
-// The maker fee token encoded as asset data
-export const MAKER_FEE_ASSET_DATA = _.isEmpty(process.env.MAKER_FEE_ASSET_DATA)
-    ? NULL_BYTES
-    : assertEnvVarType('MAKER_FEE_ASSET_DATA', process.env.MAKER_FEE_ASSET_DATA, EnvVarType.FeeAssetData);
-// The taker fee token encoded as asset data
-export const TAKER_FEE_ASSET_DATA = _.isEmpty(process.env.TAKER_FEE_ASSET_DATA)
-    ? NULL_BYTES
-    : assertEnvVarType('TAKER_FEE_ASSET_DATA', process.env.TAKER_FEE_ASSET_DATA, EnvVarType.FeeAssetData);
 
 // If there are any orders in the orderbook that are expired by more than x seconds, log an error
 export const MAX_ORDER_EXPIRATION_BUFFER_SECONDS: number = _.isEmpty(process.env.MAX_ORDER_EXPIRATION_BUFFER_SECONDS)
@@ -447,9 +434,6 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             return stringList;
         case EnvVarType.WhitelistAllTokens:
             return '*';
-        case EnvVarType.FeeAssetData:
-            assert.isString(name, value);
-            return value;
         case EnvVarType.NonEmptyString:
             assert.isString(name, value);
             if (value === '') {

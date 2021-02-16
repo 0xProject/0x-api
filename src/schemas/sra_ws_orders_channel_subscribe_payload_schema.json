@@ -1,0 +1,12 @@
+{
+    "id": "/sraOrdersChannelSubscribePayloadSchema",
+    "type": "object",
+    "properties": {
+        "makerToken": {
+            "$ref": "/addressSchema"
+        },
+        "takerToken": {
+            "$ref": "/addressSchema"
+        }
+    }
+}

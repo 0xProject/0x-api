@@ -45,6 +45,6 @@ export class AssetSwapperOrderbook extends Orderbook {
 }
 
 // // TODO
-// function apiOrderToOrderbookOrder(apiOrder: APIOrder): SignedNativeOrder {
+// function apiOrderToOrderbookOrder(apiOrder: SRAOrder): SignedNativeOrder {
 //     return (apiOrder as any) as SignedNativeOrder;
 // }

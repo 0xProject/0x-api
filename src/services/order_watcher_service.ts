@@ -5,14 +5,14 @@ import { DB_ORDERS_UPDATE_CHUNK_SIZE, MESH_IGNORED_ADDRESSES, SRA_ORDER_EXPIRATI
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { OrderWatcherSyncError } from '../errors';
 import { alertOnExpiredOrders, logger } from '../logger';
-import { APIOrderWithMetaData, OrderWatcherLifeCycleEvents, SignedLimitOrder } from '../types';
+import { OrderWatcherLifeCycleEvents, SignedLimitOrder, SRAOrder } from '../types';
 import { MeshClient } from '../utils/mesh_client';
 import { meshUtils, OrderEventV4 } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 
 interface ValidationResults {
-    accepted: APIOrderWithMetaData[];
-    rejected: APIOrderWithMetaData[];
+    accepted: SRAOrder[];
+    rejected: SRAOrder[];
 }
 export class OrderWatcherService {
     private readonly _meshClient: MeshClient;
@@ -90,7 +90,7 @@ export class OrderWatcherService {
                 // NOTE: We only care about V4 order updates
                 const apiOrders = orders
                     .filter(o => !!o.orderv4)
-                    .map(e => meshUtils.orderEventToAPIOrder(e as OrderEventV4));
+                    .map(e => meshUtils.orderEventToSRAOrder(e as OrderEventV4));
                 const { added, removed, updated } = meshUtils.calculateOrderLifecycle(apiOrders);
                 await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Removed, removed);
                 await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Updated, updated);
@@ -127,7 +127,7 @@ export class OrderWatcherService {
     }
     private async _onOrderLifeCycleEventAsync(
         lifecycleEvent: OrderWatcherLifeCycleEvents,
-        orders: APIOrderWithMetaData[],
+        orders: SRAOrder[],
     ): Promise<void> {
         if (orders.length <= 0) {
             return;

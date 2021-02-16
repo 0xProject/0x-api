@@ -18,7 +18,7 @@ import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, SRA_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
-import { APIOrderWithMetaData } from '../src/types';
+import { SRAOrder } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
 
 import { ETHEREUM_RPC_URL, getProvider } from './constants';
@@ -38,7 +38,7 @@ const EMPTY_PAGINATED_RESPONSE = {
 
 const TOMORROW = new BigNumber(Date.now() + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
 
-describe.skip(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
     let dependencies: AppDependencies;
@@ -58,10 +58,10 @@ describe.skip(SUITE_NAME, () => {
     async function addNewOrderAsync(
         params: Partial<Order>,
         remainingFillableAssetAmount?: BigNumber,
-    ): Promise<APIOrderWithMetaData> {
+    ): Promise<SRAOrder> {
         const validationResults = await meshUtils.addPartialOrdersAsync([
             {
-                expirationTimeSeconds: TOMORROW,
+                expiry: TOMORROW,
                 ...params,
             },
         ]);
@@ -69,7 +69,7 @@ describe.skip(SUITE_NAME, () => {
         expect(validationResults.rejected.length, 'mesh should not reject any orders').to.be.eq(0);
 
         const order = validationResults.accepted[0].order;
-        const apiOrder: APIOrderWithMetaData = {
+        const apiOrder: SRAOrder = {
             order: _.omit(order, ['fillableTakerAssetAmount', 'hash']),
             metaData: {
                 orderHash: order.hash,
@@ -186,10 +186,9 @@ describe.skip(SUITE_NAME, () => {
         });
         it('should return orders filtered by query params', async () => {
             const apiOrder = await addNewOrderAsync({});
-            // TODO(kimpers): [V4] FIX ROUTES
             const response = await httpGetAsync({
                 app,
-                route: `${SRA_PATH}/orders?makerAddress=${apiOrder.order.maker}`,
+                route: `${SRA_PATH}/orders?maker=${apiOrder.order.maker}`,
             });
             apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
 
@@ -205,8 +204,7 @@ describe.skip(SUITE_NAME, () => {
         });
         it('should return empty response when filtered by query params', async () => {
             const apiOrder = await addNewOrderAsync({});
-            // TODO(kimpers): [V4] FIX ROUTES
-            const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders?makerAddress=${NULL_ADDRESS}` });
+            const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders?maker=${NULL_ADDRESS}` });
 
             expect(response.type).to.eq(`application/json`);
             expect(response.status).to.eq(HttpStatus.OK);
@@ -216,10 +214,9 @@ describe.skip(SUITE_NAME, () => {
         });
         it('should normalize addresses to lowercase', async () => {
             const apiOrder = await addNewOrderAsync({});
-            // TODO(kimpers): [V4] FIX ROUTES
             const response = await httpGetAsync({
                 app,
-                route: `${SRA_PATH}/orders?makerAddress=${apiOrder.order.maker.toUpperCase()}`,
+                route: `${SRA_PATH}/orders?maker=${apiOrder.order.maker.toUpperCase()}`,
             });
             apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
 
@@ -266,7 +263,7 @@ describe.skip(SUITE_NAME, () => {
             expect(response.body.records).to.be.an('array');
         });
     });
-    describe('GET /orderbook', () => {
+    describe.skip('GET /orderbook', () => {
         it('should return orderbook for a given pair', async () => {
             const apiOrder = await addNewOrderAsync({});
             const response = await httpGetAsync({

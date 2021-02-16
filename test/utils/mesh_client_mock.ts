@@ -1,19 +1,13 @@
 // tslint:disable:custom-no-magic-numbers
 // tslint:disable:no-console
-import {
-    OrderEvent,
-    OrderEventEndState,
-    OrderWithMetadataV4,
-    Stats,
-} from '@0x/mesh-graphql-client';
-import { LimitOrder } from '@0x/protocol-utils'
+import { OrderEvent, OrderEventEndState, OrderWithMetadataV4, Stats } from '@0x/mesh-graphql-client';
+import { LimitOrder } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as Observable from 'zen-observable';
 
-import type { SignedLimitOrder } from '../../src/types'
-import type { AddOrdersResultsV4 } from '../../src/utils/mesh_client'
-
+import { SignedLimitOrder } from '../../src/types';
+import { AddOrdersResultsV4 } from '../../src/utils/mesh_client';
 
 export interface AddOrdersOpts {
     keepCancelled?: boolean;
@@ -23,12 +17,12 @@ export interface AddOrdersOpts {
 }
 
 const toOrderWithMetadata = (order: SignedLimitOrder): OrderWithMetadataV4 => {
-    const limitOrder = new LimitOrder(order)
+    const limitOrder = new LimitOrder(order);
     return {
         ...order,
         fillableTakerAssetAmount: new BigNumber(order.takerAmount),
         hash: limitOrder.getHash(),
-    }
+    };
 };
 
 export class MeshClient {

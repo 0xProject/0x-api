@@ -1,3 +1,4 @@
+import { LimitOrder } from '@0x/asset-swapper';
 import {
     AcceptedOrderResult,
     OrderEvent,
@@ -11,7 +12,7 @@ import * as _ from 'lodash';
 import { ZERO } from '../constants';
 import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
-import { APIOrderWithMetaData, OrdersByLifecycleEvents, SignedLimitOrder } from '../types';
+import { OrdersByLifecycleEvents, SignedLimitOrder, SRAOrder } from '../types';
 
 type AcceptedOrderWithEndState = AcceptedOrderResult<OrderWithMetadataV4> & { endState: OrderEventEndState };
 type OrderData =
@@ -36,7 +37,7 @@ export const meshUtils = {
 
         return cleanedOrder;
     },
-    orderEventToAPIOrder: (orderData: OrderEventV4): APIOrderWithMetaData => {
+    orderEventToSRAOrder: (orderData: OrderEventV4): SRAOrder => {
         const order = meshUtils.orderWithMetadataToSignedOrder(orderData.orderv4);
         const remainingFillableTakerAssetAmount = orderData.orderv4.fillableTakerAssetAmount;
         const orderHash = orderData.orderv4.hash;
@@ -51,10 +52,10 @@ export const meshUtils = {
             },
         };
     },
-    orderInfosToApiOrders: (orders: OrderData[]): APIOrderWithMetaData[] => {
-        return orders.map(e => meshUtils.orderInfoToAPIOrder(e));
+    orderInfosToApiOrders: (orders: OrderData[]): SRAOrder[] => {
+        return orders.map(e => meshUtils.orderInfoToSRAOrder(e));
     },
-    orderInfoToAPIOrder: (orderData: OrderData): APIOrderWithMetaData => {
+    orderInfoToSRAOrder: (orderData: OrderData): SRAOrder => {
         let order: SignedLimitOrder;
         let remainingFillableTakerAssetAmount = ZERO;
         let orderHash: string;
@@ -65,9 +66,7 @@ export const meshUtils = {
             orderHash = orderData.hash;
         } else if (isRejectedOrderResult(orderData)) {
             order = orderData.order;
-            // TODO(kimpers): sometimes this will not exist according to Mesh GQL spec. Is this a problem?
             orderHash = orderData.hash!;
-
             state = meshUtils.rejectedCodeToOrderState(orderData.code);
         } else {
             order = meshUtils.orderWithMetadataToSignedOrder(orderData.order);
@@ -77,6 +76,11 @@ export const meshUtils = {
             if (isAcceptedOrderWithEndState(orderData)) {
                 state = orderData.endState;
             }
+        }
+
+        // According to mesh graphql client spec, order hash can sometimes be empty
+        if (_.isEmpty(orderHash)) {
+            orderHash = new LimitOrder(order).getHash();
         }
 
         return {
@@ -99,6 +103,8 @@ export const meshUtils = {
             case RejectedOrderCode.OrderFullyFilled:
                 return OrderEventEndState.FullyFilled;
             default:
+                // TODO (xianny) must return something otherwise it defaults to `ADDED`
+                // return OrderEventEndState.Invalid;
                 return undefined;
         }
     },
@@ -124,10 +130,10 @@ export const meshUtils = {
                 return ValidationErrorCodes.InternalError;
         }
     },
-    calculateOrderLifecycle: (orders: APIOrderWithMetaData[]): OrdersByLifecycleEvents => {
-        const added: APIOrderWithMetaData[] = [];
-        const removed: APIOrderWithMetaData[] = [];
-        const updated: APIOrderWithMetaData[] = [];
+    calculateOrderLifecycle: (orders: SRAOrder[]): OrdersByLifecycleEvents => {
+        const added: SRAOrder[] = [];
+        const removed: SRAOrder[] = [];
+        const updated: SRAOrder[] = [];
         for (const order of orders) {
             switch (order.metaData.state as OrderEventEndState) {
                 case OrderEventEndState.Added: {

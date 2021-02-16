@@ -1,6 +1,3 @@
-import { schemas } from '@0x/json-schemas';
-import { assetDataUtils } from '@0x/order-utils';
-import { MultiAssetDataWithRecursiveDecoding, WebsocketConnectionEventType } from '@0x/types';
 import * as http from 'http';
 import * as _ from 'lodash';
 import * as WebSocket from 'ws';
@@ -9,15 +6,17 @@ import { MESH_IGNORED_ADDRESSES } from '../config';
 import { MalformedJSONError, NotImplementedError, WebsocketServiceError } from '../errors';
 import { logger } from '../logger';
 import { generateError } from '../middleware/error_handling';
+import { schemas } from '../schemas/schemas';
 import {
-    APIOrder,
     MessageChannels,
     MessageTypes,
     OrderChannelRequest,
     OrdersChannelMessageTypes,
     OrdersChannelSubscriptionOpts,
     SignedLimitOrder,
+    SRAOrder,
     UpdateOrdersChannelMessageWithChannel,
+    WebsocketConnectionEventType,
     WebsocketSRAOpts,
 } from '../types';
 import { MeshClient } from '../utils/mesh_client';
@@ -53,25 +52,6 @@ export class WebsocketService {
         OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
     > = new Map(); // requestId -> { base, quote }
     private readonly _orderEventsSubscription?: ZenObservable.Subscription;
-    private static _decodedContractAndAssetData(assetData: string): { assetProxyId: string; data: string[] } {
-        let data: string[] = [assetData];
-        const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(assetData);
-        if (orderUtils.isMultiAssetData(decodedAssetData)) {
-            for (const nested of decodedAssetData.nestedAssetData) {
-                data = [...data, ...WebsocketService._decodedContractAndAssetData(nested).data];
-            }
-        } else if (orderUtils.isStaticCallAssetData(decodedAssetData)) {
-            // do nothing
-        } else {
-            data = [
-                ...data,
-                // tslint:disable-next-line:no-unnecessary-type-assertion
-                (decodedAssetData as Exclude<typeof decodedAssetData, MultiAssetDataWithRecursiveDecoding>)
-                    .tokenAddress,
-            ];
-        }
-        return { data, assetProxyId: decodedAssetData.assetProxyId };
-    }
     // TODO(kimpers): [V4] What matching do we want here?
     // @ts-ignore
     private static _matchesOrdersChannelSubscription(
@@ -110,7 +90,7 @@ export class WebsocketService {
             next: events =>
                 this.orderUpdate(
                     // NOTE: We only care about V4 order updates
-                    events.filter(e => !!e.orderv4).map(e => meshUtils.orderEventToAPIOrder(e as OrderEventV4)),
+                    events.filter(e => !!e.orderv4).map(e => meshUtils.orderEventToSRAOrder(e as OrderEventV4)),
                 ),
             error: err => {
                 logger.error(new WebsocketServiceError(err));
@@ -130,7 +110,7 @@ export class WebsocketService {
             this._orderEventsSubscription.unsubscribe();
         }
     }
-    public orderUpdate(apiOrders: APIOrder[]): void {
+    public orderUpdate(apiOrders: SRAOrder[]): void {
         if (this._server.clients.size === 0) {
             return;
         }
@@ -146,14 +126,14 @@ export class WebsocketService {
             // Future optimisation is to invert this structure so the order isn't duplicated over many request ids
             // order->requestIds it is less likely to get multiple order updates and more likely
             // to have many subscribers and a single order
-            const requestIdToOrders: { [requestId: string]: Set<APIOrder> } = {};
+            const requestIdToOrders: { [requestId: string]: Set<SRAOrder> } = {};
             for (const [requestId, subscriptionOpts] of this._requestIdToSubscriptionOpts) {
                 if (WebsocketService._matchesOrdersChannelSubscription(order.order, subscriptionOpts)) {
                     if (requestIdToOrders[requestId]) {
                         const orderSet = requestIdToOrders[requestId];
                         orderSet.add(order);
                     } else {
-                        const orderSet = new Set<APIOrder>();
+                        const orderSet = new Set<SRAOrder>();
                         orderSet.add(order);
                         requestIdToOrders[requestId] = orderSet;
                     }
@@ -182,16 +162,13 @@ export class WebsocketService {
             throw new MalformedJSONError();
         }
 
-        schemaUtils.validateSchema(message, schemas.relayerApiOrdersChannelSubscribeSchema);
+        schemaUtils.validateSchema(message, schemas.sraOrdersChannelSubscribeSchema);
         const { requestId, payload, type } = message;
         switch (type) {
             case MessageTypes.Subscribe:
                 ws.requestIds.add(requestId);
-                // TODO(kimpers) [V4] fix typing issue here by consolidating @0x/types
                 const subscriptionOpts =
-                    payload === undefined || _.isEmpty(payload)
-                        ? 'ALL_SUBSCRIPTION_OPTS'
-                        : (payload as OrdersChannelSubscriptionOpts);
+                    payload === undefined || _.isEmpty(payload) ? 'ALL_SUBSCRIPTION_OPTS' : payload;
                 this._requestIdToSubscriptionOpts.set(requestId, subscriptionOpts);
                 this._requestIdToSocket.set(requestId, ws);
                 break;

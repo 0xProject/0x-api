@@ -43,4 +43,10 @@ export class MeshClient extends MeshGraphQLClient {
 
         return { ordersInfos: uniqOrders };
     }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async destroyAsync(): Promise<void> {
+        // We can add stuff here if we need to.
+        return;
+    }
 }

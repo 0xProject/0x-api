@@ -1,29 +1,14 @@
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { Signature, SignatureType } from '@0x/protocol-utils';
-import {
-    AssetData,
-    AssetProxyId,
-    ERC1155AssetData,
-    ERC20AssetData,
-    ERC20BridgeAssetData,
-    ERC721AssetData,
-    MultiAssetData,
-    OrderConfigRequest,
-    OrderConfigResponse,
-    StaticCallAssetData,
-} from '@0x/types';
 import { BigNumber } from '@0x/utils';
-import { Connection, In, Like } from 'typeorm';
+import { Connection } from 'typeorm';
 
 import {
     CHAIN_ID,
     FEE_RECIPIENT_ADDRESS,
-    MAKER_FEE_ASSET_DATA,
-    MAKER_FEE_UNIT_AMOUNT,
     PINNED_MM_ADDRESSES,
     PINNED_POOL_IDS,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
-    TAKER_FEE_ASSET_DATA,
     TAKER_FEE_UNIT_AMOUNT,
 } from '../config';
 import { NULL_ADDRESS, ONE_SECOND_MS, TEN_MINUTES_MS } from '../constants';
@@ -31,13 +16,13 @@ import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities'
 import { logger } from '../logger';
 import * as queries from '../queries/staking_queries';
 import {
-    APIOrder,
-    APIOrderMetaData,
-    APIOrderWithMetaData,
+    OrderConfigRequestPayload,
+    OrderConfigResponse,
     PinResult,
     RawPool,
     SignedLimitOrder,
-    SRAGetOrdersRequestOpts,
+    SRAOrder,
+    SRAOrderMetaData,
 } from '../types';
 
 import { createResultCache, ResultCache } from './result_cache';
@@ -52,7 +37,7 @@ const getPoolsAsync = async (connection: Connection) => {
 };
 
 export const orderUtils = {
-    isIgnoredOrder: (addressesToIgnore: string[], apiOrder: APIOrder): boolean => {
+    isIgnoredOrder: (addressesToIgnore: string[], apiOrder: SRAOrder): boolean => {
         return addressesToIgnore.some(addressToIgnore => {
             const { maker, makerToken, takerToken } = apiOrder.order;
 
@@ -61,35 +46,14 @@ export const orderUtils = {
             );
         });
     },
-    isMultiAssetData: (decodedAssetData: AssetData): decodedAssetData is MultiAssetData => {
-        return decodedAssetData.assetProxyId === AssetProxyId.MultiAsset;
-    },
-    isStaticCallAssetData: (decodedAssetData: AssetData): decodedAssetData is StaticCallAssetData => {
-        return decodedAssetData.assetProxyId === AssetProxyId.StaticCall;
-    },
-    isBridgeAssetData: (decodedAssetData: AssetData): decodedAssetData is ERC20BridgeAssetData => {
-        return decodedAssetData.assetProxyId === AssetProxyId.ERC20Bridge;
-    },
-    isTokenAssetData: (
-        decodedAssetData: AssetData,
-    ): decodedAssetData is ERC20AssetData | ERC1155AssetData | ERC721AssetData => {
-        switch (decodedAssetData.assetProxyId) {
-            case AssetProxyId.ERC1155:
-            case AssetProxyId.ERC721:
-            case AssetProxyId.ERC20:
-                return true;
-            default:
-                return false;
-        }
-    },
     isFreshOrder: (
-        apiOrder: APIOrder,
+        apiOrder: SRAOrder,
         expirationBufferSeconds: number = SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     ): boolean => {
         const dateNowSeconds = Date.now() / ONE_SECOND_MS;
         return apiOrder.order.expiry.toNumber() > dateNowSeconds + expirationBufferSeconds;
     },
-    groupByFreshness: <T extends APIOrder>(
+    groupByFreshness: <T extends SRAOrder>(
         apiOrders: T[],
         expirationBufferSeconds: number,
     ): { fresh: T[]; expired: T[] } => {
@@ -157,13 +121,13 @@ export const orderUtils = {
         };
         return signedOrder;
     },
-    deserializeOrderToAPIOrder: (
+    deserializeOrderToSRAOrder: (
         signedOrderEntity: Required<SignedOrderV4Entity> | Required<PersistentSignedOrderV4Entity>,
-    ): APIOrderWithMetaData => {
+    ): SRAOrder => {
         const order = orderUtils.deserializeOrder(signedOrderEntity);
         const state = (signedOrderEntity as PersistentSignedOrderV4Entity).orderState;
         const createdAt = (signedOrderEntity as PersistentSignedOrderV4Entity).createdAt;
-        const metaData: APIOrderMetaData = {
+        const metaData: SRAOrderMetaData = {
             orderHash: signedOrderEntity.hash,
             remainingFillableTakerAssetAmount: new BigNumber(signedOrderEntity.remainingFillableTakerAssetAmount),
             state,
@@ -178,7 +142,7 @@ export const orderUtils = {
         const { signatureType, r, s, v } = signature;
         return [signatureType, r, s, v].join(',');
     },
-    serializeOrder: (apiOrder: APIOrderWithMetaData): SignedOrderV4Entity => {
+    serializeOrder: (apiOrder: SRAOrder): SignedOrderV4Entity => {
         const signedOrder = apiOrder.order;
         const signedOrderEntity = new SignedOrderV4Entity({
             signature: orderUtils.serializeSignature(signedOrder.signature),
@@ -200,7 +164,25 @@ export const orderUtils = {
         });
         return signedOrderEntity;
     },
-    serializePersistentOrder: (apiOrder: APIOrderWithMetaData): PersistentSignedOrderV4Entity => {
+    // used for parsing query params
+    serializeUnsignedLimitOrder: (order: SignedLimitOrder): Partial<SignedOrderV4Entity> => {
+        return {
+            sender: order.sender,
+            maker: order.maker,
+            taker: order.taker,
+            makerAmount: order.makerAmount.toString(),
+            takerAmount: order.takerAmount.toString(),
+            makerToken: order.makerToken,
+            takerToken: order.takerToken,
+            takerTokenFeeAmount: order.takerTokenFeeAmount.toString(),
+            salt: order.salt.toString(),
+            verifyingContract: order.verifyingContract,
+            feeRecipient: order.feeRecipient,
+            pool: order.pool,
+            expiry: order.expiry.toString(),
+        };
+    },
+    serializePersistentOrder: (apiOrder: SRAOrder): PersistentSignedOrderV4Entity => {
         const signedOrder = apiOrder.order;
         const persistentOrder = new PersistentSignedOrderV4Entity({
             signature: orderUtils.serializeSignature(signedOrder.signature),
@@ -223,48 +205,13 @@ export const orderUtils = {
         });
         return persistentOrder;
     },
-    getOrderConfig: (_order: Partial<OrderConfigRequest>): OrderConfigResponse => {
-        const normalizedFeeRecipient = FEE_RECIPIENT_ADDRESS.toLowerCase();
+    getOrderConfig: (_order: Partial<OrderConfigRequestPayload>): OrderConfigResponse => {
         const orderConfigResponse: OrderConfigResponse = {
-            senderAddress: NULL_ADDRESS,
-            feeRecipientAddress: normalizedFeeRecipient,
-            makerFee: MAKER_FEE_UNIT_AMOUNT,
-            takerFee: TAKER_FEE_UNIT_AMOUNT,
-            makerFeeAssetData: MAKER_FEE_ASSET_DATA,
-            takerFeeAssetData: TAKER_FEE_ASSET_DATA,
+            sender: NULL_ADDRESS,
+            feeRecipient: FEE_RECIPIENT_ADDRESS.toLowerCase(),
+            takerTokenFeeAmount: TAKER_FEE_UNIT_AMOUNT,
         };
         return orderConfigResponse;
-    },
-    assetDataOrAssetProxyId: (assetData: string | string[] | undefined, assetProxyId: string | undefined) => {
-        if (!assetData && !assetProxyId) {
-            return undefined;
-        }
-        if (assetProxyId) {
-            return Like(`${assetProxyId}%`);
-        }
-        if (Array.isArray(assetData)) {
-            return In(assetData);
-        }
-        return assetData;
-    },
-    filterOrders: (apiOrders: APIOrderWithMetaData[], filters: SRAGetOrdersRequestOpts): APIOrderWithMetaData[] => {
-        // TODO(kimpers): [V4] Clean up filters and naming
-        const { sender, takerToken, makerToken } = filters;
-        const matchTraderAddress = (order: SignedLimitOrder, filterAddress?: string): boolean =>
-            filterAddress ? order.maker === filterAddress || order.taker === filterAddress : true;
-        const matchMakerTokenAddress = (order: SignedLimitOrder, filterAddress?: string): boolean =>
-            filterAddress ? order.makerToken === filterAddress : true;
-        const matchTakerTokenAddress = (order: SignedLimitOrder, filterAddress?: string): boolean =>
-            filterAddress ? order.takerToken === filterAddress : true;
-        const filteredOrders = apiOrders.filter(apiOrder => {
-            const o = apiOrder.order;
-            return (
-                matchTraderAddress(o, sender) &&
-                matchMakerTokenAddress(o, takerToken) &&
-                matchTakerTokenAddress(o, makerToken)
-            );
-        });
-        return filteredOrders;
     },
     // splitOrdersByPinning splits the orders into those we wish to pin in our Mesh node and
     // those we wish not to pin. We wish to pin the orders of MMers with a lot of ZRX at stake and

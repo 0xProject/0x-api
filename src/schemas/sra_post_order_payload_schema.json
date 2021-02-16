@@ -1,5 +1,5 @@
 {
-    "id": "/PostQuoteRequestSchema",
+    "id": "/sraPostOrderPayloadSchema",
     "properties": {
         "makerToken": {
             "$ref": "/addressSchema"

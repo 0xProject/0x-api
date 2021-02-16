@@ -1,11 +1,11 @@
-import { schemas } from '@0x/json-schemas';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
-import { FEE_RECIPIENT_ADDRESS, WHITELISTED_TOKENS } from '../config';
+import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
 import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
+import { SignedOrderV4Entity } from '../entities';
 import {
     GeneralErrorCodes,
     generalErrorCodeToReason,
@@ -13,12 +13,10 @@ import {
     ValidationError,
     ValidationErrorCodes,
 } from '../errors';
-import { schemas as apiSchemas } from '../schemas/schemas';
+import { schemas } from '../schemas/schemas';
 import { OrderBookService } from '../services/orderbook_service';
-import { SignedLimitOrder } from '../types';
-import { orderUtils } from '../utils/order_utils';
+import { OrderConfigResponse, SignedLimitOrder } from '../types';
 import { paginationUtils } from '../utils/pagination_utils';
-import { parseUtils } from '../utils/parse_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
 export class SRAHandlers {
@@ -35,26 +33,30 @@ export class SRAHandlers {
         res.status(HttpStatus.OK).send(paginatedFeeRecipients);
     }
     public static orderConfig(req: express.Request, res: express.Response): void {
-        schemaUtils.validateSchema(req.body, schemas.orderConfigRequestSchema);
-        const orderConfigResponse = orderUtils.getOrderConfig(req.body);
+        schemaUtils.validateSchema(req.body, schemas.sraOrderConfigPayloadSchema);
+        const orderConfigResponse: OrderConfigResponse = {
+            sender: NULL_ADDRESS,
+            feeRecipient: FEE_RECIPIENT_ADDRESS.toLowerCase(),
+            takerTokenFeeAmount: TAKER_FEE_UNIT_AMOUNT,
+        };
         res.status(HttpStatus.OK).send(orderConfigResponse);
     }
     constructor(orderBook: OrderBookService) {
         this._orderBook = orderBook;
     }
-    public async assetPairsAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.query, schemas.assetPairsRequestOptsSchema);
-        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const tokenA = req.query.tokenA as string;
-        const tokenB = req.query.tokenB as string;
-        const assetPairs = await this._orderBook.getAssetPairsAsync(
-            page,
-            perPage,
-            tokenA?.toLowerCase(),
-            tokenB?.toLowerCase(),
-        );
-        res.status(HttpStatus.OK).send(assetPairs);
-    }
+    // public async assetPairsAsync(req: express.Request, res: express.Response): Promise<void> {
+    //     schemaUtils.validateSchema(req.query, schemas.assetPairsRequestOptsSchema);
+    //     const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+    //     const tokenA = req.query.tokenA as string;
+    //     const tokenB = req.query.tokenB as string;
+    //     const assetPairs = await this._orderBook.getAssetPairsAsync(
+    //         page,
+    //         perPage,
+    //         tokenA?.toLowerCase(),
+    //         tokenB?.toLowerCase(),
+    //     );
+    //     res.status(HttpStatus.OK).send(assetPairs);
+    // }
     public async getOrderByHashAsync(req: express.Request, res: express.Response): Promise<void> {
         const orderIfExists = await this._orderBook.getOrderByHashIfExistsAsync(req.params.orderHash);
         if (orderIfExists === undefined) {
@@ -64,24 +66,23 @@ export class SRAHandlers {
         }
     }
     public async ordersAsync(req: express.Request, res: express.Response): Promise<void> {
-        // Parse the maker asset data, allowing for a comma separated list
-        const query = {
-            ...req.query,
-            makerAssetData: req.query.makerAssetData
-                ? parseUtils.parseAssetDatasStringFromQueryParam(req.query.makerAssetData as string)
-                : undefined,
-            takerAssetData: req.query.takerAssetData
-                ? parseUtils.parseAssetDatasStringFromQueryParam(req.query.takerAssetData as string)
-                : undefined,
-        } as any;
-        schemaUtils.validateSchema(query, apiSchemas.sraGetOrdersRequestSchema);
-        const isUnfillable = query.unfillable ? query.unfillable === 'true' : false;
+        schemaUtils.validateSchema(req.query, schemas.sraOrdersQuerySchema);
+        const orderFieldFilters = new SignedOrderV4Entity(req.query);
+        const additionalFilters = {
+            trader: req.query.trader ? req.query.trader.toString() : undefined,
+            isUnfillable: req.query.unfillable ? req.query.unfillable === 'true' : false,
+        };
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const paginatedOrders = await this._orderBook.getOrdersAsync(page, perPage, { ...query, isUnfillable });
+        const paginatedOrders = await this._orderBook.getOrdersAsync(
+            page,
+            perPage,
+            orderFieldFilters,
+            additionalFilters,
+        );
         res.status(HttpStatus.OK).send(paginatedOrders);
     }
     public async orderbookAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.query, schemas.orderBookRequestSchema);
+        schemaUtils.validateSchema(req.query, schemas.sraOrderbookQuerySchema);
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const baseToken = (req.query.baseToken as string).toLowerCase();
         const quoteToken = (req.query.quoteToken as string).toLowerCase();
@@ -89,7 +90,7 @@ export class SRAHandlers {
         res.status(HttpStatus.OK).send(orderbookResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, apiSchemas.sraPostOrderRequestSchema);
+        schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;
@@ -102,7 +103,7 @@ export class SRAHandlers {
         res.status(HttpStatus.OK).send();
     }
     public async postOrdersAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, schemas.signedOrdersSchema);
+        schemaUtils.validateSchema(req.body, schemas.sraPostOrdersPayloadSchema);
         const signedOrders = unmarshallOrders(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;
@@ -128,7 +129,7 @@ export class SRAHandlers {
             });
             return;
         }
-        schemaUtils.validateSchema(req.body, apiSchemas.sraPostOrderRequestSchema);
+        schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;

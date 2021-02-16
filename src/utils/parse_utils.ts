@@ -182,11 +182,4 @@ export const parseUtils = {
 
         return parsedConfig;
     },
-    parseAssetDatasStringFromQueryParam(field: string): string | string[] {
-        if (field.indexOf(',') !== -1) {
-            const fields = field.split(',');
-            return fields;
-        }
-        return field;
-    },
 };

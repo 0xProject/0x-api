@@ -9,10 +9,9 @@ import 'mocha';
 import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
-import { SignedOrderEntity } from '../src/entities';
-import { PersistentSignedOrderEntity } from '../src/entities/PersistentSignedOrderEntity';
+import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../src/entities';
 import { OrderBookService } from '../src/services/orderbook_service';
-import { APIOrderWithMetaData } from '../src/types';
+import { SRAOrder } from '../src/types';
 import { MeshClient } from '../src/utils/mesh_client';
 import { orderUtils } from '../src/utils/order_utils';
 
@@ -32,27 +31,29 @@ const EMPTY_PAGINATED_RESPONSE = {
 
 const TOMORROW = new BigNumber(Date.now() + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
 
-async function saveSignedOrderAsync(apiOrder: APIOrderWithMetaData): Promise<void> {
-    await (await getDBConnectionAsync()).manager.save(orderUtils.serializeOrder(apiOrder));
+async function saveSignedOrderAsync(apiOrder: SRAOrder): Promise<void> {
+    await (await getDBConnectionAsync()).getRepository(SignedOrderV4Entity).save(orderUtils.serializeOrder(apiOrder));
 }
 
-async function savePersistentOrderAsync(apiOrder: APIOrderWithMetaData): Promise<void> {
-    await (await getDBConnectionAsync()).manager.save(orderUtils.serializePersistentOrder(apiOrder));
+async function savePersistentOrderAsync(apiOrder: SRAOrder): Promise<void> {
+    await (await getDBConnectionAsync())
+        .getRepository(PersistentSignedOrderV4Entity)
+        .save(orderUtils.serializePersistentOrder(apiOrder));
 }
 
 async function deleteSignedOrderAsync(orderHash: string): Promise<void> {
-    await (await getDBConnectionAsync()).manager.delete(SignedOrderEntity, orderHash);
+    await (await getDBConnectionAsync()).manager.delete(SignedOrderV4Entity, orderHash);
 }
 
 async function deletePersistentOrderAsync(orderHash: string): Promise<void> {
-    await (await getDBConnectionAsync()).manager.delete(PersistentSignedOrderEntity, orderHash);
+    await (await getDBConnectionAsync()).manager.delete(PersistentSignedOrderV4Entity, orderHash);
 }
 
-async function newAPIOrderAsync(
+async function newSRAOrderAsync(
     privateKey: Buffer,
     params: Partial<LimitOrderFields>,
     remainingFillableAssetAmount?: BigNumber,
-): Promise<APIOrderWithMetaData> {
+): Promise<SRAOrder> {
     const limitOrder = getRandomLimitOrder({
         expiry: TOMORROW,
         ...params,
@@ -60,7 +61,7 @@ async function newAPIOrderAsync(
 
     const signature = limitOrder.getSignatureWithKey(privateKey.toString('utf-8'));
 
-    const apiOrder: APIOrderWithMetaData = {
+    const apiOrder: SRAOrder = {
         order: {
             ...limitOrder,
             signature,
@@ -73,7 +74,7 @@ async function newAPIOrderAsync(
     return apiOrder;
 }
 
-describe.skip(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let makerAddress: string;
 
     let blockchainLifecycle: BlockchainLifecycle;
@@ -104,14 +105,14 @@ describe.skip(SUITE_NAME, () => {
 
     describe('getOrdersAsync', () => {
         it('should return empty response when no orders', async () => {
-            const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {});
+            const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {}, {});
             expect(response).to.deep.equal(EMPTY_PAGINATED_RESPONSE);
         });
         it('should return orders in the SignedOrders cache', async () => {
-            const apiOrder = await newAPIOrderAsync(privateKey, {});
+            const apiOrder = await newSRAOrderAsync(privateKey, {});
             await saveSignedOrderAsync(apiOrder);
 
-            const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {});
+            const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {}, {});
             apiOrder.metaData.state = undefined; // state is not saved in SignedOrders table
             apiOrder.metaData.createdAt = response.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
             expect(response).to.deep.eq({
@@ -122,10 +123,10 @@ describe.skip(SUITE_NAME, () => {
             await deleteSignedOrderAsync(apiOrder.metaData.orderHash);
         });
         it('should de-duplicate orders present in both the SignedOrders and PersistentOrders cache', async () => {
-            const apiOrder = await newAPIOrderAsync(privateKey, {});
+            const apiOrder = await newSRAOrderAsync(privateKey, {});
             await saveSignedOrderAsync(apiOrder);
             await savePersistentOrderAsync(apiOrder);
-            const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {});
+            const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {}, {});
             apiOrder.metaData.state = undefined; // state is not saved in SignedOrders table
             apiOrder.metaData.createdAt = response.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
             expect(response).to.deep.eq({
@@ -137,13 +138,17 @@ describe.skip(SUITE_NAME, () => {
             await deletePersistentOrderAsync(apiOrder.metaData.orderHash);
         });
         it('should return persistent orders not in the SignedOrders cache', async () => {
-            const apiOrder = await newAPIOrderAsync(privateKey, {});
+            const apiOrder = await newSRAOrderAsync(privateKey, {});
             apiOrder.metaData.state = OrderEventEndState.Cancelled; // only unfillable orders are removed from SignedOrders but remain in PersistentOrders
             await savePersistentOrderAsync(apiOrder);
-            const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {
-                isUnfillable: true,
-                maker: apiOrder.order.maker,
-            });
+            const response = await orderBookService.getOrdersAsync(
+                DEFAULT_PAGE,
+                DEFAULT_PER_PAGE,
+                {
+                    maker: apiOrder.order.maker,
+                },
+                { isUnfillable: true },
+            );
             apiOrder.metaData.createdAt = response.records[0].metaData.createdAt; // createdAt is saved in the PersistentOrders table directly
             expect(response).to.deep.eq({
                 ...EMPTY_PAGINATED_RESPONSE,
@@ -167,26 +172,26 @@ describe.skip(SUITE_NAME, () => {
             await blockchainLifecycle.revertAsync();
         });
         it('should post orders to Mesh', async () => {
-            const apiOrder = await newAPIOrderAsync(privateKey, {});
+            const apiOrder = await newSRAOrderAsync(privateKey, {});
             await orderBookService.addOrdersAsync([apiOrder.order], false);
 
             const meshOrders = await meshUtils.getOrdersAsync();
             expect(meshOrders.ordersInfos.find(i => i.hash === apiOrder.metaData.orderHash)).to.not.be.undefined();
 
             // should not save to persistent orders table
-            const result = await (await getDBConnectionAsync()).manager.find(PersistentSignedOrderEntity, {
+            const result = await (await getDBConnectionAsync()).manager.find(PersistentSignedOrderV4Entity, {
                 hash: apiOrder.metaData.orderHash,
             });
             expect(result).to.deep.equal([]);
         });
         it('should post persistent orders', async () => {
-            const apiOrder = await newAPIOrderAsync(privateKey, {});
+            const apiOrder = await newSRAOrderAsync(privateKey, {});
             await orderBookService.addPersistentOrdersAsync([apiOrder.order], false);
 
             const meshOrders = await meshUtils.getOrdersAsync();
             expect(meshOrders.ordersInfos.find(i => i.hash === apiOrder.metaData.orderHash)).to.not.be.undefined();
 
-            const result = await (await getDBConnectionAsync()).manager.find(PersistentSignedOrderEntity, {
+            const result = await (await getDBConnectionAsync()).manager.find(PersistentSignedOrderV4Entity, {
                 hash: apiOrder.metaData.orderHash,
             });
             const expected = orderUtils.serializePersistentOrder(apiOrder);
