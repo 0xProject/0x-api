@@ -1,18 +1,19 @@
 // tslint:disable:custom-no-magic-numbers
 // tslint:disable:no-console
-import { orderHashUtils } from '@0x/contracts-test-utils';
 import {
     OrderEvent,
     OrderEventEndState,
-    OrderWithMetadata,
-    SignedOrder,
+    OrderWithMetadataV4,
     Stats,
 } from '@0x/mesh-graphql-client';
+import { LimitOrder } from '@0x/protocol-utils'
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as Observable from 'zen-observable';
 
-import type { AddOrdersResultsV4  }from '../../src/utils/mesh_client'
+import type { SignedLimitOrder } from '../../src/types'
+import type { AddOrdersResultsV4 } from '../../src/utils/mesh_client'
+
 
 export interface AddOrdersOpts {
     keepCancelled?: boolean;
@@ -21,14 +22,17 @@ export interface AddOrdersOpts {
     keepUnfunded?: boolean;
 }
 
-const toOrderWithMetadata = (order: SignedOrder): OrderWithMetadata => ({
-    ...order,
-    fillableTakerAssetAmount: new BigNumber(order.takerAssetAmount),
-    hash: orderHashUtils.getOrderHashHex(order),
-});
+const toOrderWithMetadata = (order: SignedLimitOrder): OrderWithMetadataV4 => {
+    const limitOrder = new LimitOrder(order)
+    return {
+        ...order,
+        fillableTakerAssetAmount: new BigNumber(order.takerAmount),
+        hash: limitOrder.getHash(),
+    }
+};
 
 export class MeshClient {
-    private _orders: OrderWithMetadata[] = [];
+    private _orders: OrderWithMetadataV4[] = [];
 
     private readonly _ordersObservable: Observable<OrderEvent[]> = new Observable<OrderEvent[]>(observer => {
         this._nextOrderEventsCB = observer.next.bind(observer);
@@ -39,7 +43,7 @@ export class MeshClient {
         this._orders = [];
     }
     // NOTE: Mock only method
-    public _getOrderState(): OrderWithMetadata[] {
+    public _getOrderState(): OrderWithMetadataV4[] {
         return this._orders;
     }
 
@@ -70,18 +74,18 @@ export class MeshClient {
         };
     }
 
-    public async getOrdersAsync(_perPage: number = 200): Promise<{ ordersInfos: OrderWithMetadata[] }> {
+    public async getOrdersAsync(_perPage: number = 200): Promise<{ ordersInfos: OrderWithMetadataV4[] }> {
         return {
             ordersInfos: this._orders,
         };
     }
 
     public async addOrdersV4Async(
-        orders: SignedOrder[],
+        orders: SignedLimitOrder[],
         _pinned: boolean = true,
         _opts?: AddOrdersOpts,
     ): Promise<AddOrdersResultsV4> {
-        const ordersWithMetadata: OrderWithMetadata[] = orders.map(toOrderWithMetadata);
+        const ordersWithMetadata: OrderWithMetadataV4[] = orders.map(toOrderWithMetadata);
         this._orders = [...this._orders, ...ordersWithMetadata];
 
         const addedOrdersResult = {
@@ -92,9 +96,9 @@ export class MeshClient {
             rejected: [],
         };
 
-        const orderEvents = ordersWithMetadata.map<OrderEvent>(order => ({
+        const orderEvents = ordersWithMetadata.map<OrderEvent>(orderv4 => ({
             timestampMs: new Date().getTime(),
-            order,
+            orderv4,
             endState: OrderEventEndState.Added,
             contractEvents: [],
         }));

@@ -73,7 +73,7 @@ describe.skip(SUITE_NAME, () => {
             order: _.omit(order, ['fillableTakerAssetAmount', 'hash']),
             metaData: {
                 orderHash: order.hash,
-                remainingFillableTakerAssetAmount: remainingFillableAssetAmount || order.takerAssetAmount,
+                remainingFillableTakerAssetAmount: remainingFillableAssetAmount || order.takerAmount,
             },
         };
 
@@ -186,9 +186,10 @@ describe.skip(SUITE_NAME, () => {
         });
         it('should return orders filtered by query params', async () => {
             const apiOrder = await addNewOrderAsync({});
+            // TODO(kimpers): [V4] FIX ROUTES
             const response = await httpGetAsync({
                 app,
-                route: `${SRA_PATH}/orders?makerAddress=${apiOrder.order.makerAddress}`,
+                route: `${SRA_PATH}/orders?makerAddress=${apiOrder.order.maker}`,
             });
             apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
 
@@ -204,6 +205,7 @@ describe.skip(SUITE_NAME, () => {
         });
         it('should return empty response when filtered by query params', async () => {
             const apiOrder = await addNewOrderAsync({});
+            // TODO(kimpers): [V4] FIX ROUTES
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders?makerAddress=${NULL_ADDRESS}` });
 
             expect(response.type).to.eq(`application/json`);
@@ -214,9 +216,10 @@ describe.skip(SUITE_NAME, () => {
         });
         it('should normalize addresses to lowercase', async () => {
             const apiOrder = await addNewOrderAsync({});
+            // TODO(kimpers): [V4] FIX ROUTES
             const response = await httpGetAsync({
                 app,
-                route: `${SRA_PATH}/orders?makerAddress=${apiOrder.order.makerAddress.toUpperCase()}`,
+                route: `${SRA_PATH}/orders?makerAddress=${apiOrder.order.maker.toUpperCase()}`,
             });
             apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
 
@@ -271,8 +274,9 @@ describe.skip(SUITE_NAME, () => {
                 route: constructRoute({
                     baseRoute: `${SRA_PATH}/orderbook`,
                     queryParams: {
-                        baseAssetData: apiOrder.order.makerAssetData,
-                        quoteAssetData: apiOrder.order.takerAssetData,
+                        // TODO(kimpers): [V4] fix this
+                        baseAssetData: apiOrder.order.makerToken,
+                        quoteAssetData: apiOrder.order.takerToken,
                     },
                 }),
             });
@@ -297,7 +301,8 @@ describe.skip(SUITE_NAME, () => {
                 app,
                 route: constructRoute({
                     baseRoute: `${SRA_PATH}/orderbook`,
-                    queryParams: { baseAssetData: apiOrder.order.makerAssetData, quoteAssetData: NULL_ADDRESS },
+                    // TODO(kimpers): [V4] fix this
+                    queryParams: { baseAssetData: apiOrder.order.makerToken, quoteAssetData: NULL_ADDRESS },
                 }),
             });
 
@@ -309,6 +314,7 @@ describe.skip(SUITE_NAME, () => {
             });
         });
         it('should return validation error if query params are missing', async () => {
+            // TODO(kimpers): [V4] FIX ROUTES
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orderbook?quoteAssetData=WETH` });
             const validationErrors = {
                 code: 100,

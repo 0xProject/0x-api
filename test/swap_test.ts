@@ -35,10 +35,7 @@ import {
     NULL_ADDRESS,
     SYMBOL_TO_ADDRESS,
     UNKNOWN_TOKEN_ADDRESS,
-    UNKNOWN_TOKEN_ASSET_DATA,
-    WETH_ASSET_DATA,
     WETH_TOKEN_ADDRESS,
-    ZRX_ASSET_DATA,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
 import { resetState } from './test_setup';
@@ -97,36 +94,36 @@ describe.skip(SUITE_NAME, () => {
         await meshUtils.setupUtilsAsync();
         await meshUtils.addPartialOrdersAsync([
             {
-                makerAssetData: ZRX_ASSET_DATA,
-                takerAssetData: WETH_ASSET_DATA,
-                makerAssetAmount: ONE_THOUSAND_IN_BASE,
-                takerAssetAmount: ONE_THOUSAND_IN_BASE,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: ONE_THOUSAND_IN_BASE,
+                takerAmount: ONE_THOUSAND_IN_BASE,
             },
             {
-                makerAssetData: ZRX_ASSET_DATA,
-                takerAssetData: WETH_ASSET_DATA,
-                makerAssetAmount: ONE_THOUSAND_IN_BASE,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: ONE_THOUSAND_IN_BASE,
                 // tslint:disable:custom-no-magic-numbers
-                takerAssetAmount: ONE_THOUSAND_IN_BASE.multipliedBy(2),
+                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(2),
             },
             {
-                makerAssetData: ZRX_ASSET_DATA,
-                takerAssetData: WETH_ASSET_DATA,
-                makerAssetAmount: MAX_MINT_AMOUNT,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: MAX_MINT_AMOUNT,
                 // tslint:disable:custom-no-magic-numbers
-                takerAssetAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
             },
             {
-                makerAssetData: WETH_ASSET_DATA,
-                takerAssetData: ZRX_ASSET_DATA,
-                makerAssetAmount: MAKER_WETH_AMOUNT,
-                takerAssetAmount: ONE_THOUSAND_IN_BASE,
+                makerToken: WETH_TOKEN_ADDRESS,
+                takerToken: ZRX_TOKEN_ADDRESS,
+                makerAmount: MAKER_WETH_AMOUNT,
+                takerAmount: ONE_THOUSAND_IN_BASE,
             },
             {
-                makerAssetData: ZRX_ASSET_DATA,
-                takerAssetData: UNKNOWN_TOKEN_ASSET_DATA,
-                makerAssetAmount: ONE_THOUSAND_IN_BASE,
-                takerAssetAmount: ONE_THOUSAND_IN_BASE,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: '0x0ae055097c6d159879521c384f1d2123d1f195e6', // Randomly chosen token XDAI Stake
+                makerAmount: ONE_THOUSAND_IN_BASE,
+                takerAmount: ONE_THOUSAND_IN_BASE,
             },
         ]);
         const wethToken = new WETH9Contract(CONTRACT_ADDRESSES.etherToken, provider);

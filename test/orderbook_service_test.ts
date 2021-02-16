@@ -1,9 +1,7 @@
-import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
-import { constants, expect, OrderFactory } from '@0x/contracts-test-utils';
+import { constants, expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine } from '@0x/dev-utils';
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
-import { assetDataUtils, Order, orderHashUtils } from '@0x/order-utils';
+import { LimitOrderFields } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import 'mocha';
@@ -21,7 +19,7 @@ import { orderUtils } from '../src/utils/order_utils';
 import { getProvider } from './constants';
 import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
+import { getRandomLimitOrder, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'OrderbookService';
 
@@ -51,38 +49,39 @@ async function deletePersistentOrderAsync(orderHash: string): Promise<void> {
 }
 
 async function newAPIOrderAsync(
-    orderFactory: OrderFactory,
-    params: Partial<Order>,
+    privateKey: Buffer,
+    params: Partial<LimitOrderFields>,
     remainingFillableAssetAmount?: BigNumber,
 ): Promise<APIOrderWithMetaData> {
-    const order = await orderFactory.newSignedOrderAsync({
-        expirationTimeSeconds: TOMORROW,
+    const limitOrder = getRandomLimitOrder({
+        expiry: TOMORROW,
         ...params,
     });
+
+    const signature = limitOrder.getSignatureWithKey(privateKey.toString('utf-8'));
+
     const apiOrder: APIOrderWithMetaData = {
-        order,
+        order: {
+            ...limitOrder,
+            signature,
+        },
         metaData: {
-            orderHash: orderHashUtils.getOrderHash(order),
-            remainingFillableTakerAssetAmount: remainingFillableAssetAmount || order.takerAssetAmount,
+            orderHash: limitOrder.getHash(),
+            remainingFillableTakerAssetAmount: remainingFillableAssetAmount || limitOrder.takerAmount,
         },
     };
     return apiOrder;
 }
 
 describe.skip(SUITE_NAME, () => {
-    let chainId: number;
-    let contractAddresses: ContractAddresses;
     let makerAddress: string;
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
 
-    let weth: WETH9Contract;
-    let zrx: DummyERC20TokenContract;
-
-    let orderFactory: OrderFactory;
     let meshClient: MeshClient;
     let orderBookService: OrderBookService;
+    let privateKey: Buffer;
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
@@ -95,28 +94,7 @@ describe.skip(SUITE_NAME, () => {
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
         [makerAddress] = accounts;
 
-        chainId = await web3Wrapper.getChainIdAsync();
-        contractAddresses = getContractAddressesForChainOrThrow(chainId);
-
-        weth = new WETH9Contract(contractAddresses.etherToken, provider);
-        zrx = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
-
-        const defaultOrderParams = {
-            ...constants.STATIC_ORDER_PARAMS,
-            makerAddress,
-            feeRecipientAddress: constants.NULL_ADDRESS,
-            makerAssetData: assetDataUtils.encodeERC20AssetData(zrx.address),
-            takerAssetData: assetDataUtils.encodeERC20AssetData(weth.address),
-            makerAssetAmount: DEFAULT_MAKER_ASSET_AMOUNT,
-            makerFeeAssetData: '0x',
-            takerFeeAssetData: '0x',
-            makerFee: constants.ZERO_AMOUNT,
-            takerFee: constants.ZERO_AMOUNT,
-            exchangeAddress: contractAddresses.exchange,
-            chainId,
-        };
-        const privateKey = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
-        orderFactory = new OrderFactory(privateKey, defaultOrderParams);
+        privateKey = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
         await blockchainLifecycle.startAsync();
     });
     after(async () => {
@@ -130,7 +108,7 @@ describe.skip(SUITE_NAME, () => {
             expect(response).to.deep.equal(EMPTY_PAGINATED_RESPONSE);
         });
         it('should return orders in the SignedOrders cache', async () => {
-            const apiOrder = await newAPIOrderAsync(orderFactory, {});
+            const apiOrder = await newAPIOrderAsync(privateKey, {});
             await saveSignedOrderAsync(apiOrder);
 
             const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {});
@@ -144,7 +122,7 @@ describe.skip(SUITE_NAME, () => {
             await deleteSignedOrderAsync(apiOrder.metaData.orderHash);
         });
         it('should de-duplicate orders present in both the SignedOrders and PersistentOrders cache', async () => {
-            const apiOrder = await newAPIOrderAsync(orderFactory, {});
+            const apiOrder = await newAPIOrderAsync(privateKey, {});
             await saveSignedOrderAsync(apiOrder);
             await savePersistentOrderAsync(apiOrder);
             const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {});
@@ -159,12 +137,12 @@ describe.skip(SUITE_NAME, () => {
             await deletePersistentOrderAsync(apiOrder.metaData.orderHash);
         });
         it('should return persistent orders not in the SignedOrders cache', async () => {
-            const apiOrder = await newAPIOrderAsync(orderFactory, {});
+            const apiOrder = await newAPIOrderAsync(privateKey, {});
             apiOrder.metaData.state = OrderEventEndState.Cancelled; // only unfillable orders are removed from SignedOrders but remain in PersistentOrders
             await savePersistentOrderAsync(apiOrder);
             const response = await orderBookService.getOrdersAsync(DEFAULT_PAGE, DEFAULT_PER_PAGE, {
                 isUnfillable: true,
-                makerAddress: apiOrder.order.makerAddress,
+                maker: apiOrder.order.maker,
             });
             apiOrder.metaData.createdAt = response.records[0].metaData.createdAt; // createdAt is saved in the PersistentOrders table directly
             expect(response).to.deep.eq({
@@ -189,7 +167,7 @@ describe.skip(SUITE_NAME, () => {
             await blockchainLifecycle.revertAsync();
         });
         it('should post orders to Mesh', async () => {
-            const apiOrder = await newAPIOrderAsync(orderFactory, {});
+            const apiOrder = await newAPIOrderAsync(privateKey, {});
             await orderBookService.addOrdersAsync([apiOrder.order], false);
 
             const meshOrders = await meshUtils.getOrdersAsync();
@@ -202,7 +180,7 @@ describe.skip(SUITE_NAME, () => {
             expect(result).to.deep.equal([]);
         });
         it('should post persistent orders', async () => {
-            const apiOrder = await newAPIOrderAsync(orderFactory, {});
+            const apiOrder = await newAPIOrderAsync(privateKey, {});
             await orderBookService.addPersistentOrdersAsync([apiOrder.order], false);
 
             const meshOrders = await meshUtils.getOrdersAsync();
