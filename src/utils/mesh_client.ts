@@ -1,7 +1,10 @@
-import { FilterKind, MeshGraphQLClient, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
+import { AddOrdersResults, FilterKind, MeshGraphQLClient, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
 import * as _ from 'lodash';
 
 import { MESH_GET_ORDERS_DEFAULT_PAGE_SIZE as DEFAULT_PAGE_SIZE } from '../config';
+import { SignedLimitOrder } from '../types';
+
+export type AddOrdersResultsV4 = AddOrdersResults<OrderWithMetadataV4, SignedLimitOrder>;
 
 export class MeshClient extends MeshGraphQLClient {
     constructor(public readonly webSocketUrl: string, public readonly httpUrl?: string) {

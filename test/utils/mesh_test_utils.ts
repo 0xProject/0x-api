@@ -1,14 +1,14 @@
 import { ContractAddresses } from '@0x/contract-addresses';
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { constants, OrderFactory } from '@0x/contracts-test-utils';
-import { AddOrdersResults, OrderWithMetadata } from '@0x/mesh-graphql-client';
+import { OrderWithMetadata } from '@0x/mesh-graphql-client';
 import { assetDataUtils } from '@0x/order-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { Order } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
-import { MeshClient } from '../../src/utils/mesh_client';
+import { AddOrdersResultsV4, MeshClient } from '../../src/utils/mesh_client';
 import { CHAIN_ID, CONTRACT_ADDRESSES, MAX_INT, MAX_MINT_AMOUNT } from '../constants';
 
 type Numberish = BigNumber | number | string;
@@ -29,7 +29,7 @@ export class MeshTestUtils {
     // TODO: This can be extended to allow more types of orders to be created. Some changes
     // that might be desirable are to allow different makers to be used, different assets to
     // be used, etc.
-    public async addOrdersWithPricesAsync(prices: Numberish[]): Promise<AddOrdersResults> {
+    public async addOrdersWithPricesAsync(prices: Numberish[]): Promise<AddOrdersResultsV4> {
         if (!prices.length) {
             throw new Error('[mesh-utils] Must provide at least one price to `addOrdersAsync`');
         }
@@ -43,15 +43,15 @@ export class MeshTestUtils {
                 }),
             );
         }
-        const validationResults = await this._meshClient.addOrdersAsync(orders);
+        const validationResults = await this._meshClient.addOrdersV4Async(orders);
         // NOTE(jalextowle): Wait for the 0x-api to catch up.
         await sleepAsync(2);
         return validationResults;
     }
 
-    public async addPartialOrdersAsync(orders: Partial<Order>[]): Promise<AddOrdersResults> {
+    public async addPartialOrdersAsync(orders: Partial<Order>[]): Promise<AddOrdersResultsV4> {
         const signedOrders = await Promise.all(orders.map(order => this._orderFactory.newSignedOrderAsync(order)));
-        const validationResults = await this._meshClient.addOrdersAsync(signedOrders);
+        const validationResults = await this._meshClient.addOrdersV4Async(signedOrders);
         await sleepAsync(2);
         return validationResults;
     }

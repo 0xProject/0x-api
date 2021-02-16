@@ -658,8 +658,8 @@ export interface UpdateOrdersChannelMessageWithChannel extends UpdateOrdersChann
     channel: MessageChannels;
 }
 
-export declare type OrdersChannelMessage = UpdateOrdersChannelMessage | UnknownOrdersChannelMessage;
-export declare enum OrdersChannelMessageTypes {
+export type OrdersChannelMessage = UpdateOrdersChannelMessage | UnknownOrdersChannelMessage;
+export enum OrdersChannelMessageTypes {
     Update = 'update',
     Unknown = 'unknown',
 }
@@ -688,7 +688,7 @@ export interface TokenPairsRequestOpts {
     tokenA?: string;
     tokenB?: string;
 }
-export declare type TokenPairsResponse = PaginatedCollection<TokenPairsItem>;
+export type TokenPairsResponse = PaginatedCollection<TokenPairsItem>;
 export interface TokenPairsItem {
     tokenA: Token;
     tokenB: Token;

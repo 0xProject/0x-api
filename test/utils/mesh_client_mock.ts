@@ -2,7 +2,6 @@
 // tslint:disable:no-console
 import { orderHashUtils } from '@0x/contracts-test-utils';
 import {
-    AddOrdersResults,
     OrderEvent,
     OrderEventEndState,
     OrderWithMetadata,
@@ -12,6 +11,8 @@ import {
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as Observable from 'zen-observable';
+
+import type { AddOrdersResultsV4  }from '../../src/utils/mesh_client'
 
 export interface AddOrdersOpts {
     keepCancelled?: boolean;
@@ -57,8 +58,11 @@ export class MeshClient {
             },
             numPeers: 123,
             numOrders: 12356,
+            numOrdersV4: 23456,
             numOrdersIncludingRemoved: 1234567,
+            numOrdersIncludingRemovedV4: 34567,
             numPinnedOrders: 123,
+            numPinnedOrdersV4: 234,
             maxExpirationTime: new BigNumber(new Date().getTime() + 1000 * 1000),
             startOfCurrentUTCDay: new Date(),
             ethRPCRequestsSentInCurrentUTCDay: 12,
@@ -72,11 +76,11 @@ export class MeshClient {
         };
     }
 
-    public async addOrdersAsync(
+    public async addOrdersV4Async(
         orders: SignedOrder[],
         _pinned: boolean = true,
         _opts?: AddOrdersOpts,
-    ): Promise<AddOrdersResults> {
+    ): Promise<AddOrdersResultsV4> {
         const ordersWithMetadata: OrderWithMetadata[] = orders.map(toOrderWithMetadata);
         this._orders = [...this._orders, ...ordersWithMetadata];
 
