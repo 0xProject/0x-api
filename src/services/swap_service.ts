@@ -245,7 +245,7 @@ export class SwapService {
         } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
 
         // Grab the encoded version of the swap quote
-        const { to, value, data, decodedUniqueId } = await this._getSwapQuotePartialTransactionAsync(
+        const { to, value, data, decodedUniqueId, gasOverhead } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
             isETHSell,
             isETHBuy,
@@ -269,13 +269,15 @@ export class SwapService {
         // using eth_gasEstimate
         // If an error occurs we attempt to provide a better message then "Transaction Reverted"
         if (takerAddress && !skipValidation) {
-            const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
+            let estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data,
                 from: takerAddress,
                 value,
                 gasPrice,
             });
+            // Add any underterministic gas overhead the encoded transaction has detected
+            estimateGasCallResult.plus(gasOverhead);
             // Take the max of the faux estimate or the real estimate
             conservativeBestCaseGasEstimate = BigNumber.max(
                 // Add a little buffer to eth_estimateGas as it is not always correct
@@ -604,7 +606,7 @@ export class SwapService {
         shouldSellEntireBalance: boolean,
         affiliateAddress: string | undefined,
         affiliateFee: AffiliateFeeAmount,
-    ): Promise<SwapQuoteResponsePartialTransaction> {
+    ): Promise<SwapQuoteResponsePartialTransaction & { gasOverhead: BigNumber }> {
         const opts: Partial<SwapQuoteGetOutputOpts> = {
             extensionContractOpts: { isFromETH, isToETH, isMetaTransaction, shouldSellEntireBalance, affiliateFee },
         };
@@ -613,6 +615,7 @@ export class SwapService {
             calldataHexString: data,
             ethAmount: value,
             toAddress: to,
+            gasOverhead,
         } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, opts);
 
         const { affiliatedData, decodedUniqueId } = serviceUtils.attributeCallData(data, affiliateAddress);
@@ -621,6 +624,7 @@ export class SwapService {
             value,
             data: affiliatedData,
             decodedUniqueId,
+            gasOverhead,
         };
     }
 
