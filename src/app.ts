@@ -4,7 +4,6 @@ require('./apm');
 import {
     artifacts,
     AssetSwapperContractAddresses,
-    BRIDGE_ADDRESSES_BY_CHAIN,
     ContractAddresses,
     ERC20BridgeSamplerContract,
     SupportedProvider,
@@ -103,14 +102,13 @@ export async function getContractAddressesForNetworkOrThrowAsync(
         return contractAddresses_;
     }
     let contractAddresses = getContractAddressesForChainOrThrow(chainId);
-    const bridgeAddresses = BRIDGE_ADDRESSES_BY_CHAIN[chainId];
     // In a testnet where the environment does not support overrides
     // so we deploy the latest sampler
     if (chainId === ChainId.Ganache) {
         const sampler = await deploySamplerContractAsync(provider, chainId);
-        contractAddresses = { ...contractAddresses, ...bridgeAddresses, erc20BridgeSampler: sampler.address };
+        contractAddresses = { ...contractAddresses, erc20BridgeSampler: sampler.address };
     }
-    contractAddresses_ = { ...contractAddresses, ...bridgeAddresses };
+    contractAddresses_ = { ...contractAddresses };
     return contractAddresses_;
 }
 
