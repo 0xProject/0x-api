@@ -85,8 +85,7 @@ describe(SUITE_NAME, () => {
     let privateKey: string;
 
     before(async () => {
-        const shouldStartMesh = true;
-        await setupDependenciesAsync(SUITE_NAME, shouldStartMesh);
+        await setupDependenciesAsync(SUITE_NAME);
 
         provider = getProvider();
         // start the 0x-api app

@@ -68,8 +68,7 @@ describe.skip(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
 
     before(async () => {
-        const shouldStartMesh = true;
-        await setupDependenciesAsync(SUITE_NAME, shouldStartMesh);
+        await setupDependenciesAsync(SUITE_NAME);
         provider = getProvider();
 
         // start the 0x-api app
