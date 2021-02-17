@@ -1,8 +1,5 @@
-import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
-import { constants, expect, OrderFactory } from '@0x/contracts-test-utils';
+import { constants, expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine } from '@0x/dev-utils';
-import { assetDataUtils, Order, orderHashUtils } from '@0x/order-utils';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Server } from 'http';
@@ -18,14 +15,21 @@ import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, SRA_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
-import { SRAOrder } from '../src/types';
+import { SignedLimitOrder, SRAOrder } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
 
-import { ETHEREUM_RPC_URL, getProvider } from './constants';
+import {
+    CHAIN_ID,
+    ETHEREUM_RPC_URL,
+    getProvider,
+    MAX_MINT_AMOUNT,
+    WETH_TOKEN_ADDRESS,
+    ZRX_TOKEN_ADDRESS,
+} from './constants';
 import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
-import { DEFAULT_MAKER_ASSET_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
+import { getRandomLimitOrder, getRandomSignedLimitOrder, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'Standard Relayer API (SRA) integration tests';
 
@@ -36,31 +40,29 @@ const EMPTY_PAGINATED_RESPONSE = {
     records: [],
 };
 
+const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
+
 const TOMORROW = new BigNumber(Date.now() + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
     let dependencies: AppDependencies;
-    let chainId: number;
-    let contractAddresses: ContractAddresses;
     let makerAddress: string;
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
 
-    let weth: WETH9Contract;
-    let zrx: DummyERC20TokenContract;
-
-    let orderFactory: OrderFactory;
     let meshUtils: MeshTestUtils;
 
     async function addNewOrderAsync(
-        params: Partial<Order>,
+        params: Partial<SignedLimitOrder>,
         remainingFillableAssetAmount?: BigNumber,
     ): Promise<SRAOrder> {
         const validationResults = await meshUtils.addPartialOrdersAsync([
             {
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
                 expiry: TOMORROW,
                 ...params,
             },
@@ -79,6 +81,8 @@ describe.only(SUITE_NAME, () => {
 
         return apiOrder;
     }
+
+    let privateKey: string;
 
     before(async () => {
         const shouldStartMesh = true;
@@ -101,28 +105,8 @@ describe.only(SUITE_NAME, () => {
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
         [makerAddress] = accounts;
 
-        chainId = await web3Wrapper.getChainIdAsync();
-        contractAddresses = getContractAddressesForChainOrThrow(chainId);
-
-        weth = new WETH9Contract(contractAddresses.etherToken, provider);
-        zrx = new DummyERC20TokenContract(contractAddresses.zrxToken, provider);
-
-        const defaultOrderParams = {
-            ...constants.STATIC_ORDER_PARAMS,
-            makerAddress,
-            feeRecipientAddress: constants.NULL_ADDRESS,
-            makerAssetData: assetDataUtils.encodeERC20AssetData(zrx.address),
-            takerAssetData: assetDataUtils.encodeERC20AssetData(weth.address),
-            makerAssetAmount: DEFAULT_MAKER_ASSET_AMOUNT,
-            makerFeeAssetData: '0x',
-            takerFeeAssetData: '0x',
-            makerFee: constants.ZERO_AMOUNT,
-            takerFee: constants.ZERO_AMOUNT,
-            exchangeAddress: contractAddresses.exchange,
-            chainId,
-        };
-        const privateKey = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
-        orderFactory = new OrderFactory(privateKey, defaultOrderParams);
+        const privateKeyBuf = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
+        privateKey = `0x${privateKeyBuf.toString('hex')}`;
     });
     after(async () => {
         await new Promise<void>((resolve, reject) => {
@@ -214,9 +198,11 @@ describe.only(SUITE_NAME, () => {
         });
         it('should normalize addresses to lowercase', async () => {
             const apiOrder = await addNewOrderAsync({});
+
+            const makerUpperCase = `0x${apiOrder.order.maker.replace('0x', '').toUpperCase()}`;
             const response = await httpGetAsync({
                 app,
-                route: `${SRA_PATH}/orders?maker=${apiOrder.order.maker.toUpperCase()}`,
+                route: `${SRA_PATH}/orders?maker=${makerUpperCase}`,
             });
             apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
 
@@ -251,18 +237,19 @@ describe.only(SUITE_NAME, () => {
         });
     });
 
-    describe('GET /asset_pairs', () => {
-        it('should respond to GET request', async () => {
-            const response = await httpGetAsync({ app, route: `${SRA_PATH}/asset_pairs` });
+    // TODO(kimpers): [V4] all asset_pairs references
+    // describe('GET /asset_pairs', () => {
+    // it('should respond to GET request', async () => {
+    // const response = await httpGetAsync({ app, route: `${SRA_PATH}/asset_pairs` });
 
-            expect(response.type).to.eq(`application/json`);
-            expect(response.status).to.eq(HttpStatus.OK);
-            expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-            expect(response.body.page).to.equal(DEFAULT_PAGE);
-            expect(response.body.total).to.be.an('number');
-            expect(response.body.records).to.be.an('array');
-        });
-    });
+    // expect(response.type).to.eq(`application/json`);
+    // expect(response.status).to.eq(HttpStatus.OK);
+    // expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
+    // expect(response.body.page).to.equal(DEFAULT_PAGE);
+    // expect(response.body.total).to.be.an('number');
+    // expect(response.body.records).to.be.an('array');
+    // });
+    // });
     describe.skip('GET /orderbook', () => {
         it('should return orderbook for a given pair', async () => {
             const apiOrder = await addNewOrderAsync({});
@@ -337,14 +324,14 @@ describe.only(SUITE_NAME, () => {
     });
     describe('POST /order_config', () => {
         it('should return 200 on success', async () => {
-            const order = await orderFactory.newSignedOrderAsync();
+            const order = getRandomSignedLimitOrder(privateKey, {
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+            });
             const expectedResponse = {
-                senderAddress: NULL_ADDRESS,
-                feeRecipientAddress: NULL_ADDRESS,
-                makerFee: '0',
-                takerFee: '0',
-                makerFeeAssetData: '0x',
-                takerFeeAssetData: '0x',
+                sender: NULL_ADDRESS,
+                feeRecipient: NULL_ADDRESS,
+                takerTokenFeeAmount: '0',
             };
 
             const response = await httpPostAsync({
@@ -361,20 +348,23 @@ describe.only(SUITE_NAME, () => {
             expect(response.body).to.deep.eq(expectedResponse);
         });
         it('should return informative error when missing fields', async () => {
-            const order = await orderFactory.newSignedOrderAsync();
+            const order = getRandomSignedLimitOrder(privateKey, {
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+            });
             const validationError: ErrorBody = {
                 code: GeneralErrorCodes.ValidationError,
                 reason: generalErrorCodeToReason[GeneralErrorCodes.ValidationError],
                 validationErrors: [
                     {
-                        field: 'takerAddress',
+                        field: 'taker',
                         code: ValidationErrorCodes.RequiredField,
-                        reason: 'requires property "takerAddress"',
+                        reason: 'requires property "taker"',
                     },
                     {
-                        field: 'expirationTimeSeconds',
+                        field: 'expiry',
                         code: ValidationErrorCodes.RequiredField,
-                        reason: 'requires property "expirationTimeSeconds"',
+                        reason: 'requires property "expiry"',
                     },
                 ],
             };
@@ -383,8 +373,8 @@ describe.only(SUITE_NAME, () => {
                 route: `${SRA_PATH}/order_config`,
                 body: {
                     ...order,
-                    takerAddress: undefined,
-                    expirationTimeSeconds: undefined,
+                    taker: undefined,
+                    expiry: undefined,
                 },
             });
             expect(response.type).to.eq(`application/json`);
@@ -394,10 +384,24 @@ describe.only(SUITE_NAME, () => {
     });
     describe('POST /order', () => {
         it('should return HTTP OK on success', async () => {
-            const order = await orderFactory.newSignedOrderAsync({
-                expirationTimeSeconds: TOMORROW,
+            const limitOrder = getRandomLimitOrder({
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: MAX_MINT_AMOUNT,
+                // tslint:disable:custom-no-magic-numbers
+                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+                chainId: CHAIN_ID,
+                expiry: TOMORROW,
             });
-            const orderHash = orderHashUtils.getOrderHash(order);
+
+            const signature = limitOrder.getSignatureWithKey(privateKey);
+
+            const orderHash = limitOrder.getHash();
+
+            const order = {
+                ...limitOrder,
+                signature,
+            };
 
             const response = await httpPostAsync({
                 app,

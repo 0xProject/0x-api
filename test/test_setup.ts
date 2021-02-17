@@ -13,7 +13,7 @@ const graphqlClientMockManager = ImportMock.mockClass(MeshGraphQLClientModule, '
 const meshClientMockManager = ImportMock.mockClass(MeshClientModule, 'MeshClient');
 meshClientMockManager.mock('getStatsAsync').callsFake(_meshClientMock.getStatsAsync.bind(_meshClientMock));
 meshClientMockManager.mock('getOrdersV4Async').callsFake(_meshClientMock.getOrdersAsync.bind(_meshClientMock));
-meshClientMockManager.mock('addOrdersAsync').callsFake(_meshClientMock.addOrdersV4Async.bind(_meshClientMock));
+meshClientMockManager.mock('addOrdersV4Async').callsFake(_meshClientMock.addOrdersV4Async.bind(_meshClientMock));
 meshClientMockManager.mock('onOrderEvents').callsFake(_meshClientMock.onOrderEvents.bind(_meshClientMock));
 
 export const resetState = async () => {

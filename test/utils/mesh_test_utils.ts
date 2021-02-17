@@ -7,8 +7,9 @@ import { Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, hexUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
+import { SignedLimitOrder } from '../../src/types';
 import { AddOrdersResultsV4, MeshClient } from '../../src/utils/mesh_client';
-import { CHAIN_ID, CONTRACT_ADDRESSES, MAX_INT, MAX_MINT_AMOUNT } from '../constants';
+import { CHAIN_ID, CONTRACT_ADDRESSES, MAX_INT, MAX_MINT_AMOUNT, NULL_ADDRESS } from '../constants';
 
 type Numberish = BigNumber | number | string;
 
@@ -28,13 +29,29 @@ export function getRandomLimitOrder(fields: Partial<LimitOrderFields> = {}): Lim
         takerTokenFeeAmount: getRandomInteger('0.01e18', '1e18'),
         maker: randomAddress(),
         taker: randomAddress(),
-        sender: randomAddress(),
+        sender: NULL_ADDRESS, // NOTE: Mesh currently only support NULL address sender
         feeRecipient: randomAddress(),
         pool: hexUtils.random(),
         expiry: new BigNumber(Math.floor(Date.now() / 1000 + 60)),
         salt: new BigNumber(hexUtils.random()),
         ...fields,
     });
+}
+
+/**
+ * Creates a random signed limit order
+ */
+export function getRandomSignedLimitOrder(
+    privateKey: string,
+    fields: Partial<LimitOrderFields> = {},
+): SignedLimitOrder {
+    const limitOrder = getRandomLimitOrder(fields);
+    const signature = limitOrder.getSignatureWithKey(privateKey);
+
+    return {
+        ...limitOrder,
+        signature,
+    };
 }
 // tslint:enable:custom-no-magic-numbers
 
@@ -57,18 +74,14 @@ export class MeshTestUtils {
         }
         const orders = [];
         for (const price of prices) {
-            const limitOrder = getRandomLimitOrder({
+            const limitOrder = getRandomSignedLimitOrder(this._privateKey, {
                 takerAmount: DEFAULT_MAKER_ASSET_AMOUNT.times(price),
                 chainId: CHAIN_ID,
                 // tslint:disable-next-line:custom-no-magic-numbers
                 expiry: new BigNumber(Date.now() + 24 * 3600),
             });
 
-            const signature = limitOrder.getSignatureWithKey(this._privateKey);
-            orders.push({
-                ...limitOrder,
-                signature,
-            });
+            orders.push(limitOrder);
         }
         const validationResults = await this._meshClient.addOrdersV4Async(orders);
         // NOTE(jalextowle): Wait for the 0x-api to catch up.
@@ -78,19 +91,12 @@ export class MeshTestUtils {
 
     public async addPartialOrdersAsync(orders: Partial<LimitOrder>[]): Promise<AddOrdersResultsV4> {
         const signedOrders = await Promise.all(
-            orders.map(order => {
-                const limitOrder = getRandomLimitOrder({
+            orders.map(order =>
+                getRandomSignedLimitOrder(this._privateKey, {
                     chainId: CHAIN_ID,
                     ...order,
-                });
-
-                const signature = limitOrder.getSignatureWithKey(this._privateKey);
-
-                return {
-                    ...limitOrder,
-                    signature,
-                };
-            }),
+                }),
+            ),
         );
         const validationResults = await this._meshClient.addOrdersV4Async(signedOrders);
         await sleepAsync(2);

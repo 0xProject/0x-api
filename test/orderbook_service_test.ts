@@ -75,7 +75,7 @@ async function newSRAOrderAsync(
     return apiOrder;
 }
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let makerAddress: string;
 
     let blockchainLifecycle: BlockchainLifecycle;
