@@ -1,10 +1,12 @@
-import { ERC20BridgeSource, SwapQuote, SwapQuoteOrdersBreakdown } from '@0x/asset-swapper';
+import { AffiliateFeeType, ERC20BridgeSource, SwapQuote, SwapQuoteOrdersBreakdown } from '@0x/asset-swapper';
+import { POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
+import { NULL_ADDRESS } from '../../../0x-monorepo/node_modules/@0x/order-utils/lib/src';
 
 import { FEE_RECIPIENT_ADDRESS } from '../config';
 import { AFFILIATE_FEE_TRANSFORMER_GAS, HEX_BASE, ONE_SECOND_MS, PERCENTAGE_SIG_DIGITS, ZERO } from '../constants';
-import { AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource, PercentageFee } from '../types';
+import { AffiliateFee, AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource } from '../types';
 
 import { numberUtils } from './number_utils';
 
@@ -90,7 +92,15 @@ export const serviceUtils = {
             return [...acc, obj];
         }, []);
     },
-    getAffiliateFeeAmounts(quote: SwapQuote, fee: PercentageFee): AffiliateFeeAmounts {
+    getAffiliateFeeAmounts(quote: SwapQuote, fee: AffiliateFee): AffiliateFeeAmounts {
+        if (fee.feeType === AffiliateFeeType.None || fee.recipient === NULL_ADDRESS) {
+            return {
+                sellTokenFeeAmount: ZERO,
+                buyTokenFeeAmount: ZERO,
+                gasCost: ZERO,
+            };
+        }
+
         const minBuyAmount = quote.worstCaseQuoteInfo.makerAmount;
         const buyTokenFeeAmount = minBuyAmount
             .times(fee.buyTokenPercentageFee)
@@ -99,7 +109,10 @@ export const serviceUtils = {
         return {
             sellTokenFeeAmount: ZERO,
             buyTokenFeeAmount,
-            gasCost: buyTokenFeeAmount.isZero() ? ZERO : AFFILIATE_FEE_TRANSFORMER_GAS,
+            gasCost:
+                fee.feeType === AffiliateFeeType.PercentageFee
+                    ? AFFILIATE_FEE_TRANSFORMER_GAS
+                    : POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS,
         };
     },
 };
