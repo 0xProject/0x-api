@@ -180,10 +180,10 @@ export class OrderBookService {
                 OrderEventEndState.StoppedWatching,
                 OrderEventEndState.Unfunded,
             ].map(x => x.toString());
-            const filtersWithoutDuplicateSignedOrders = {
-                ...filters,
+            const filtersWithoutDuplicateSignedOrders = filters.map(filter => ({
+                ...filter,
                 orderState: In(removedStates),
-            };
+            }));
             let persistentOrderEntities = [];
             [persistentOrdersCount, persistentOrderEntities] = await Promise.all([
                 this._connection.manager.count(PersistentSignedOrderV4Entity, {
