@@ -179,7 +179,7 @@ export class OrderBookService {
                 // OrderEventEndState.Invalid,
                 OrderEventEndState.StoppedWatching,
                 OrderEventEndState.Unfunded,
-            ].map(x => x.toString());
+            ];
             const filtersWithoutDuplicateSignedOrders = filters.map(filter => ({
                 ...filter,
                 orderState: In(removedStates),
