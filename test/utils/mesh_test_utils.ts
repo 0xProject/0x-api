@@ -8,7 +8,7 @@ import { BigNumber, hexUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { AddOrdersResultsV4, MeshClient } from '../../src/utils/mesh_client';
-import { CONTRACT_ADDRESSES, MAX_INT, MAX_MINT_AMOUNT } from '../constants';
+import { CHAIN_ID, CONTRACT_ADDRESSES, MAX_INT, MAX_MINT_AMOUNT } from '../constants';
 
 type Numberish = BigNumber | number | string;
 
@@ -46,7 +46,7 @@ export class MeshTestUtils {
     protected _zrxToken!: DummyERC20TokenContract;
     protected _wethToken!: WETH9Contract;
     protected _web3Wrapper: Web3Wrapper;
-    private _privateKey!: Buffer;
+    private _privateKey!: string;
 
     // TODO: This can be extended to allow more types of orders to be created. Some changes
     // that might be desirable are to allow different makers to be used, different assets to
@@ -59,11 +59,12 @@ export class MeshTestUtils {
         for (const price of prices) {
             const limitOrder = getRandomLimitOrder({
                 takerAmount: DEFAULT_MAKER_ASSET_AMOUNT.times(price),
+                chainId: CHAIN_ID,
                 // tslint:disable-next-line:custom-no-magic-numbers
                 expiry: new BigNumber(Date.now() + 24 * 3600),
             });
 
-            const signature = limitOrder.getSignatureWithKey(this._privateKey.toString('utf-8'));
+            const signature = limitOrder.getSignatureWithKey(this._privateKey);
             orders.push({
                 ...limitOrder,
                 signature,
@@ -78,9 +79,12 @@ export class MeshTestUtils {
     public async addPartialOrdersAsync(orders: Partial<LimitOrder>[]): Promise<AddOrdersResultsV4> {
         const signedOrders = await Promise.all(
             orders.map(order => {
-                const limitOrder = getRandomLimitOrder(order);
+                const limitOrder = getRandomLimitOrder({
+                    chainId: CHAIN_ID,
+                    ...order,
+                });
 
-                const signature = limitOrder.getSignatureWithKey(this._privateKey.toString('utf-8'));
+                const signature = limitOrder.getSignatureWithKey(this._privateKey);
 
                 return {
                     ...limitOrder,
@@ -105,7 +109,8 @@ export class MeshTestUtils {
 
         this._accounts = await this._web3Wrapper.getAvailableAddressesAsync();
         [this._makerAddress] = this._accounts;
-        this._privateKey = constants.TESTRPC_PRIVATE_KEYS[this._accounts.indexOf(this._makerAddress)];
+        const privateKeyBuf = constants.TESTRPC_PRIVATE_KEYS[this._accounts.indexOf(this._makerAddress)];
+        this._privateKey = `0x${privateKeyBuf.toString('hex')}`;
 
         // NOTE(jalextowle): The way that Mesh validation currently works allows us
         // to only set the maker balance a single time. If this changes in the future,

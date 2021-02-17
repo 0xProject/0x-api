@@ -15,7 +15,7 @@ import { SRAOrder } from '../src/types';
 import { MeshClient } from '../src/utils/mesh_client';
 import { orderUtils } from '../src/utils/order_utils';
 
-import { getProvider } from './constants';
+import { CHAIN_ID, getProvider } from './constants';
 import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { getRandomLimitOrder, MeshTestUtils } from './utils/mesh_test_utils';
@@ -50,16 +50,17 @@ async function deletePersistentOrderAsync(orderHash: string): Promise<void> {
 }
 
 async function newSRAOrderAsync(
-    privateKey: Buffer,
+    privateKey: string,
     params: Partial<LimitOrderFields>,
     remainingFillableAssetAmount?: BigNumber,
 ): Promise<SRAOrder> {
     const limitOrder = getRandomLimitOrder({
         expiry: TOMORROW,
+        chainId: CHAIN_ID,
         ...params,
     });
 
-    const signature = limitOrder.getSignatureWithKey(privateKey.toString('utf-8'));
+    const signature = limitOrder.getSignatureWithKey(privateKey);
 
     const apiOrder: SRAOrder = {
         order: {
@@ -82,7 +83,7 @@ describe.only(SUITE_NAME, () => {
 
     let meshClient: MeshClient;
     let orderBookService: OrderBookService;
-    let privateKey: Buffer;
+    let privateKey: string;
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
@@ -95,7 +96,8 @@ describe.only(SUITE_NAME, () => {
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
         [makerAddress] = accounts;
 
-        privateKey = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
+        const privateKeyBuf = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
+        privateKey = `0x${privateKeyBuf.toString('hex')}`;
         await blockchainLifecycle.startAsync();
     });
     after(async () => {
