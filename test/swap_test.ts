@@ -54,8 +54,7 @@ const DEFAULT_QUERY_PARAMS = {
 
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
-// Enable this test with SRA v4. Currently we cannot access V4 orders on Mesh.
-describe.skip(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
     let dependencies: AppDependencies;

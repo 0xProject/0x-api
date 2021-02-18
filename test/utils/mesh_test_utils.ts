@@ -1,4 +1,4 @@
-import { ContractAddresses } from '@0x/contract-addresses';
+import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { constants, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
 import { OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
@@ -7,9 +7,18 @@ import { Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber, hexUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
+import { ZERO } from '../../src/constants';
 import { SignedLimitOrder } from '../../src/types';
 import { AddOrdersResultsV4, MeshClient } from '../../src/utils/mesh_client';
-import { CHAIN_ID, CONTRACT_ADDRESSES, MAX_INT, MAX_MINT_AMOUNT, NULL_ADDRESS } from '../constants';
+import {
+    CHAIN_ID,
+    CONTRACT_ADDRESSES,
+    MAX_INT,
+    MAX_MINT_AMOUNT,
+    NULL_ADDRESS,
+    WETH_TOKEN_ADDRESS,
+    ZRX_TOKEN_ADDRESS,
+} from '../constants';
 
 type Numberish = BigNumber | number | string;
 
@@ -22,18 +31,20 @@ export const MAKER_WETH_AMOUNT = new BigNumber('1000000000000000000');
 // tslint:disable: custom-no-magic-numbers
 export function getRandomLimitOrder(fields: Partial<LimitOrderFields> = {}): LimitOrder {
     return new LimitOrder({
-        makerToken: randomAddress(),
-        takerToken: randomAddress(),
-        makerAmount: getRandomInteger('1e18', '100e18'),
-        takerAmount: getRandomInteger('1e6', '100e6'),
-        takerTokenFeeAmount: getRandomInteger('0.01e18', '1e18'),
+        // Default opts
+        makerToken: ZRX_TOKEN_ADDRESS,
+        takerToken: WETH_TOKEN_ADDRESS,
+        makerAmount: getRandomInteger('100e18', '1000e18'),
+        takerAmount: getRandomInteger('100e18', '1000e18'),
+        takerTokenFeeAmount: ZERO,
         maker: randomAddress(),
         taker: NULL_ADDRESS, // NOTE: Open limit orders should allow any taker address
         sender: NULL_ADDRESS, // NOTE: Mesh currently only support NULL address sender
-        feeRecipient: randomAddress(),
-        pool: hexUtils.random(),
-        expiry: new BigNumber(Math.floor(Date.now() / 1000 + 60)),
+        feeRecipient: NULL_ADDRESS,
+        expiry: new BigNumber(2524604400), // Close to infinite
         salt: new BigNumber(hexUtils.random()),
+        chainId: CHAIN_ID,
+        verifyingContract: getContractAddressesForChainOrThrow(CHAIN_ID).exchangeProxy,
         ...fields,
     });
 }
