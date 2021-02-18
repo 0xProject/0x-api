@@ -43,12 +43,6 @@ export class OrderWatcherService {
             rejected: results.map(r => r.rejected).flat(),
         }));
 
-        logger.info('OrderWatcherService sync', {
-            accepted: accepted.length,
-            rejected: rejected.length,
-            sent: signedOrders.length,
-        });
-
         // 4. Notify if any expired orders were accepted by Mesh
         const { expired } = orderUtils.groupByFreshness(accepted, SRA_ORDER_EXPIRATION_BUFFER_SECONDS);
         alertOnExpiredOrders(expired, `Erroneously accepted when posting to Mesh`);
@@ -66,6 +60,12 @@ export class OrderWatcherService {
         if (groupedOrders.fresh.length > 0) {
             await this._onOrderLifeCycleEventAsync(OrderWatcherLifeCycleEvents.Added, groupedOrders.fresh);
         }
+        logger.info('OrderWatcherService sync', {
+            accepted: accepted.length,
+            rejected: rejected.length,
+            sent: signedOrders.length,
+            new: groupedOrders.fresh.length,
+        });
 
         // 7. Update state of persistent orders
         const excludeHashes = signedOrderModels.map(o => o.hash);
