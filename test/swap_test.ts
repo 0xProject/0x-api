@@ -61,6 +61,7 @@ describe.only(SUITE_NAME, () => {
     let meshUtils: MeshTestUtils;
     let accounts: string[];
     let takerAddress: string;
+    let makerAdddress: string;
     const invalidTakerAddress: string = '0x0000000000000000000000000000000000000001';
 
     let blockchainLifecycle: BlockchainLifecycle;
@@ -84,7 +85,7 @@ describe.only(SUITE_NAME, () => {
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
 
         accounts = await web3Wrapper.getAvailableAddressesAsync();
-        [, /* makerAdddress, */ takerAddress] = accounts;
+        [, makerAdddress, takerAddress] = accounts;
 
         // Set up liquidity.
         await blockchainLifecycle.startAsync();
@@ -96,6 +97,7 @@ describe.only(SUITE_NAME, () => {
                 takerToken: WETH_TOKEN_ADDRESS,
                 makerAmount: ONE_THOUSAND_IN_BASE,
                 takerAmount: ONE_THOUSAND_IN_BASE,
+                maker: makerAdddress,
             },
             {
                 makerToken: ZRX_TOKEN_ADDRESS,
@@ -103,6 +105,7 @@ describe.only(SUITE_NAME, () => {
                 makerAmount: ONE_THOUSAND_IN_BASE,
                 // tslint:disable:custom-no-magic-numbers
                 takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(2),
+                maker: makerAdddress,
             },
             {
                 makerToken: ZRX_TOKEN_ADDRESS,
@@ -110,18 +113,21 @@ describe.only(SUITE_NAME, () => {
                 makerAmount: MAX_MINT_AMOUNT,
                 // tslint:disable:custom-no-magic-numbers
                 takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+                maker: makerAdddress,
             },
             {
                 makerToken: WETH_TOKEN_ADDRESS,
                 takerToken: ZRX_TOKEN_ADDRESS,
                 makerAmount: MAKER_WETH_AMOUNT,
                 takerAmount: ONE_THOUSAND_IN_BASE,
+                maker: makerAdddress,
             },
             {
                 makerToken: ZRX_TOKEN_ADDRESS,
                 takerToken: '0x0ae055097c6d159879521c384f1d2123d1f195e6', // Randomly chosen token XDAI Stake
                 makerAmount: ONE_THOUSAND_IN_BASE,
                 takerAmount: ONE_THOUSAND_IN_BASE,
+                maker: makerAdddress,
             },
         ]);
         const wethToken = new WETH9Contract(CONTRACT_ADDRESSES.etherToken, provider);
