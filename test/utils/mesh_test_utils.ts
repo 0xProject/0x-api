@@ -28,7 +28,7 @@ export function getRandomLimitOrder(fields: Partial<LimitOrderFields> = {}): Lim
         takerAmount: getRandomInteger('1e6', '100e6'),
         takerTokenFeeAmount: getRandomInteger('0.01e18', '1e18'),
         maker: randomAddress(),
-        taker: randomAddress(),
+        taker: NULL_ADDRESS, // NOTE: Open limit orders should allow any taker address
         sender: NULL_ADDRESS, // NOTE: Mesh currently only support NULL address sender
         feeRecipient: randomAddress(),
         pool: hexUtils.random(),
