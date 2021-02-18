@@ -12,7 +12,7 @@ delete require.cache[require.resolve('../src/app')];
 
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
-import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, SRA_PATH } from '../src/constants';
+import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, ONE_SECOND_MS, SRA_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
 import { SignedLimitOrder, SRAOrder } from '../src/types';
@@ -42,7 +42,8 @@ const EMPTY_PAGINATED_RESPONSE = {
 
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
-const TOMORROW = new BigNumber(Date.now() + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
+const NOW = Math.floor(Date.now() / ONE_SECOND_MS);
+const TOMORROW = new BigNumber(NOW + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
 
 describe(SUITE_NAME, () => {
     let app: Express.Application;
@@ -338,7 +339,7 @@ describe(SUITE_NAME, () => {
                 route: `${SRA_PATH}/order_config`,
                 body: {
                     ...order,
-                    expirationTimeSeconds: TOMORROW,
+                    expiry: TOMORROW,
                 },
             });
 

@@ -145,7 +145,7 @@ export class OrderBookService {
         }
 
         // Add an expiry time check to all filters
-        const minExpiryTime = Date.now() / ONE_SECOND_MS + SRA_ORDER_EXPIRATION_BUFFER_SECONDS;
+        const minExpiryTime = Math.floor(Date.now() / ONE_SECOND_MS) + SRA_ORDER_EXPIRATION_BUFFER_SECONDS;
         const filtersWithExpirationCheck = filters.map(filter => ({
             ...filter,
             expiry: MoreThanOrEqual(minExpiryTime),
