@@ -136,7 +136,7 @@ export class MeshTestUtils {
         await this._zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: this._makerAddress });
         // tslint:disable-next-line:await-promise
         await this._zrxToken
-            .approve(this._contractAddresses.erc20Proxy, MAX_INT)
+            .approve(this._contractAddresses.exchangeProxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });
         // tslint:disable-next-line:await-promise
         await this._wethToken
@@ -144,7 +144,7 @@ export class MeshTestUtils {
             .awaitTransactionSuccessAsync({ from: this._makerAddress, value: MAKER_WETH_AMOUNT });
         // tslint:disable-next-line:await-promise
         await this._wethToken
-            .approve(this._contractAddresses.erc20Proxy, MAX_INT)
+            .approve(this._contractAddresses.exchangeProxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: this._makerAddress });
 
         // NOTE(jalextowle): Mesh's blockwatcher must catch up to the most

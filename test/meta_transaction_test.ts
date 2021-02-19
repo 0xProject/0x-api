@@ -626,7 +626,7 @@ describe.skip(SUITE_NAME, () => {
                     const makerAddress = validationResults.accepted[0].order.maker;
                     await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: buyAmount });
                     await weth
-                        .approve(contractAddresses.erc20Proxy, new BigNumber(buyAmount))
+                        .approve(contractAddresses.exchangeProxy, new BigNumber(buyAmount))
                         .awaitTransactionSuccessAsync({ from: takerAddress });
 
                     const startMakerWethBalance = await weth.balanceOf(makerAddress).callAsync();
@@ -733,7 +733,7 @@ describe.skip(SUITE_NAME, () => {
                     const makerAddress = validationResults.accepted[0].order.maker;
                     await weth.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: largeBuyAmount });
                     await weth
-                        .approve(contractAddresses.erc20Proxy, new BigNumber(largeBuyAmount))
+                        .approve(contractAddresses.exchangeProxy, new BigNumber(largeBuyAmount))
                         .awaitTransactionSuccessAsync({ from: takerAddress });
 
                     const startMakerWethBalance = await weth.balanceOf(makerAddress).callAsync();

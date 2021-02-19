@@ -125,13 +125,13 @@ describe.only(SUITE_NAME, () => {
         await zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: takerAddress });
         await wethToken.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: MAKER_WETH_AMOUNT });
         await wethToken
-            .approve(CONTRACT_ADDRESSES.exchangeProxyAllowanceTarget, MAX_INT)
+            .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: takerAddress });
         await zrxToken
-            .approve(CONTRACT_ADDRESSES.exchangeProxyAllowanceTarget, MAX_INT)
+            .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: takerAddress });
         const orders = await meshUtils.getOrdersAsync();
-        console.log(`posted orders `, orders.ordersInfos.length)
+        console.log(`posted orders `, orders.ordersInfos.length);
         // start the 0x-api app
         dependencies = await getDefaultAppDependenciesAsync(provider, {
             ...config.defaultHttpServiceConfig,
@@ -162,7 +162,7 @@ describe.only(SUITE_NAME, () => {
         const ZRX_BUY_AMOUNT = ONE_THOUSAND_IN_BASE.div(10).toString();
         const parameterPermutations = [
             { buyToken: 'ZRX', sellToken: 'WETH', buyAmount: ZRX_BUY_AMOUNT },
-            { buyToken: 'WETH', sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT},
+            { buyToken: 'WETH', sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT },
             { buyToken: ZRX_TOKEN_ADDRESS, sellToken: 'WETH', buyAmount: ZRX_BUY_AMOUNT },
             { buyToken: ZRX_TOKEN_ADDRESS, sellToken: WETH_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
             { buyToken: 'ZRX', sellToken: UNKNOWN_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
@@ -174,7 +174,7 @@ describe.only(SUITE_NAME, () => {
         parameterPermutations.map(parameters => {
             it(`should return a valid quote with ${JSON.stringify(parameters)}`, async () => {
                 const orders = await dependencies.orderBookService.getOrdersAsync(1, 5, {}, {});
-                console.log(`found orders `, orders.records.length)
+                console.log(`found orders `, orders.records.length);
                 await quoteAndExpectAsync(app, parameters, {
                     buyAmount: new BigNumber(parameters.buyAmount),
                     sellTokenAddress: parameters.sellToken.startsWith('0x')
@@ -516,6 +516,6 @@ function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, quoteAssertions
         // Only have 0x liquidity for now.
         expect(quoteResponse.sources).to.be.eql(liquiditySources0xOnly);
     } catch (err) {
-        console.log(`should return a valid quote matching ${quoteAssertions}`)
+        console.log(`should return a valid quote matching ${quoteAssertions}`);
     }
 }
