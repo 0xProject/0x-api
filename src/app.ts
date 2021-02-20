@@ -98,6 +98,7 @@ export async function getContractAddressesForNetworkOrThrowAsync(
     provider: SupportedProvider,
     chainId: ChainId,
 ): Promise<AssetSwapperContractAddresses> {
+    // If global exists, use that
     if (contractAddresses_) {
         return contractAddresses_;
     }
@@ -108,7 +109,8 @@ export async function getContractAddressesForNetworkOrThrowAsync(
         const sampler = await deploySamplerContractAsync(provider, chainId);
         contractAddresses = { ...contractAddresses, erc20BridgeSampler: sampler.address };
     }
-    contractAddresses_ = { ...contractAddresses };
+    // Set the global cached contractAddresses_
+    contractAddresses_ = contractAddresses;
     return contractAddresses_;
 }
 
