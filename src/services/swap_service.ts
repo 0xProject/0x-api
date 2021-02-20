@@ -616,7 +616,7 @@ export class SwapService {
     private async _getAltMarketOfferingsAsync(): Promise<AltRfqtMakerAssetOfferings> {
         if (!this._altRfqMarketsCache) {
             this._altRfqMarketsCache = createResultCache<AltRfqtMakerAssetOfferings>(async () => {
-                if (ALT_RFQ_MM_ENDPOINT === undefined || ALT_RFQ_MM_API_KEY) {
+                if (ALT_RFQ_MM_ENDPOINT === undefined || ALT_RFQ_MM_API_KEY === undefined) {
                     return {};
                 }
                 const timeoutMs = 1000;
