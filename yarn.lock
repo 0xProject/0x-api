@@ -34,6 +34,18 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
+"@0x/assert@^3.0.21":
+  version "3.0.21"
+  resolved "https://registry.yarnpkg.com/@0x/assert/-/assert-3.0.21.tgz#b385868d1833625912fd9173a2477be5a4090aed"
+  integrity sha512-DDl8C6uYuy/Lw19HcOfDjgM2pwGafIUoePqKUwGeGRhMcARBWzr/KcBIKdBdQOVWg9CYKWFkiWyjTlAt8r6G3A==
+  dependencies:
+    "@0x/json-schemas" "^5.4.1"
+    "@0x/typescript-typings" "^5.1.6"
+    "@0x/utils" "^6.2.0"
+    "@types/node" "12.12.54"
+    lodash "^4.17.11"
+    valid-url "^1.0.9"
+
 "@0x/assert@^3.0.6", "@0x/assert@^3.0.9":
   version "3.0.13"
   resolved "https://registry.yarnpkg.com/@0x/assert/-/assert-3.0.13.tgz#6894b719301aa3e8096a58a19726b1454f3e0bae"
@@ -111,6 +123,24 @@
     js-sha3 "^0.7.0"
     uuid "^3.3.2"
 
+"@0x/base-contract@^6.2.18":
+  version "6.2.18"
+  resolved "https://registry.yarnpkg.com/@0x/base-contract/-/base-contract-6.2.18.tgz#d092de93d52d8cf8e5d4600d9ca852421322ab38"
+  integrity sha512-Fg7KjZQqCwDqsAdSXZQv2CXC7ujlLYFaq/sJIOM76vOkv9yyWpC8KAh5ZJ1r4bOLYCo6L8zICYD4QELBSKy5wQ==
+  dependencies:
+    "@0x/assert" "^3.0.21"
+    "@0x/json-schemas" "^5.4.1"
+    "@0x/utils" "^6.2.0"
+    "@0x/web3-wrapper" "^7.4.1"
+    "@types/node" "12.12.54"
+    ethereumjs-account "^3.0.0"
+    ethereumjs-blockstream "^7.0.0"
+    ethereumjs-util "^5.1.1"
+    ethereumjs-vm "^4.2.0"
+    ethers "~4.0.4"
+    js-sha3 "^0.7.0"
+    uuid "^3.3.2"
+
 "@0x/base-contract@^6.2.3":
   version "6.2.7"
   resolved "https://registry.yarnpkg.com/@0x/base-contract/-/base-contract-6.2.7.tgz#1d29b2f63f668d39715c1ff64fcf781c0471e209"
@@ -151,6 +181,11 @@
   version "5.0.1"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/6e999efc275de45fb4d5cfe8d611d1303093e7e9"
 
+"@0x/contract-addresses@^5.10.0":
+  version "5.10.0"
+  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-5.10.0.tgz#6eb84344f6428f1a91a89988521081f9bd4ed66c"
+  integrity sha512-GBSEaFpDBBhehcIPQUwU4TDFrecgcJeLuPQeuX7XIIcquO75rh1TkUu/7LjKSMrFBl8XfkTpei2o02O+/8trHg==
+
 "@0x/contract-addresses@^5.5.0", "@0x/contract-addresses@^5.6.0":
   version "5.6.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-5.6.0.tgz#17217f7278245deb20e8dd0d2beb3865ef42c3d7"
@@ -162,20 +197,6 @@
 "@0x/contract-addresses@^5.9.0":
   version "5.9.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-5.9.0.tgz#75acddea81b2c3400dc83ae07a300996989ba7cf"
-
-"@0x/contract-wrappers@^13.10.2":
-  version "13.10.2"
-  resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.10.2.tgz#34ed6a3e828fc0f35826b86412c3fb11c468a248"
-  dependencies:
-    "@0x/assert" "^3.0.19"
-    "@0x/base-contract" "^6.2.13"
-    "@0x/contract-addresses" "^5.5.0"
-    "@0x/json-schemas" "^5.3.4"
-    "@0x/types" "^3.3.1"
-    "@0x/utils" "^6.1.1"
-    "@0x/web3-wrapper" "^7.2.10"
-    ethereum-types "^3.4.0"
-    ethers "~4.0.4"
 
 "@0x/contract-wrappers@^13.11.0":
   version "13.11.0"
@@ -202,6 +223,21 @@
     "@0x/types" "^3.3.1"
     "@0x/utils" "^6.1.1"
     "@0x/web3-wrapper" "^7.3.0"
+    ethereum-types "^3.4.0"
+    ethers "~4.0.4"
+
+"@0x/contract-wrappers@^13.12.2":
+  version "13.12.3"
+  resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.12.3.tgz#1c5e4da48ee2a08bad62c72bf764382a2a2219d8"
+  integrity sha512-XOi7Ym4YVWw3B2cmZL5XoAi4DSetf8riZitR2vMn4eRsrHgKTNmNtinGN/3NUFCpYiVR2p0B/NUt5zQAI2AMsg==
+  dependencies:
+    "@0x/assert" "^3.0.21"
+    "@0x/base-contract" "^6.2.18"
+    "@0x/contract-addresses" "^5.10.0"
+    "@0x/json-schemas" "^5.4.1"
+    "@0x/types" "^3.3.1"
+    "@0x/utils" "^6.2.0"
+    "@0x/web3-wrapper" "^7.4.1"
     ethereum-types "^3.4.0"
     ethers "~4.0.4"
 
@@ -550,6 +586,16 @@
 "@0x/json-schemas@^5.3.1", "@0x/json-schemas@^5.3.3", "@0x/json-schemas@^5.3.4":
   version "5.3.4"
   resolved "https://registry.yarnpkg.com/@0x/json-schemas/-/json-schemas-5.3.4.tgz#1cd43f65436cd4aa959611c65ae7d29472f3ac3e"
+  dependencies:
+    "@0x/typescript-typings" "^5.1.6"
+    "@types/node" "12.12.54"
+    jsonschema "^1.2.0"
+    lodash.values "^4.3.0"
+
+"@0x/json-schemas@^5.4.1":
+  version "5.4.1"
+  resolved "https://registry.yarnpkg.com/@0x/json-schemas/-/json-schemas-5.4.1.tgz#488cae01fbb7f37fa9043e426f52ff32de69f6e0"
+  integrity sha512-zZ2CPrRf2RfqnMdHIVy7h3mv31sCrqav71E2CpgQt0nkgoepbsBJdIEpQfr4AYwF40EsZuSkGe5JoyP+RFyKZw==
   dependencies:
     "@0x/typescript-typings" "^5.1.6"
     "@types/node" "12.12.54"
@@ -1106,6 +1152,25 @@
     js-sha3 "^0.7.0"
     lodash "^4.17.11"
 
+"@0x/utils@^6.2.0":
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-6.2.0.tgz#07708d87691ac260163c01713ffac7a7f8e4c795"
+  integrity sha512-cVJYTHhXsaH8zgEpLxpuX9MnEEFsU8Kzpn9E6ACPlB1jsThOSTC0PPdlSkA6k7IrN5PHCaW879mkcBEcpFCWXQ==
+  dependencies:
+    "@0x/types" "^3.3.1"
+    "@0x/typescript-typings" "^5.1.6"
+    "@types/node" "12.12.54"
+    abortcontroller-polyfill "^1.1.9"
+    bignumber.js "~9.0.0"
+    chalk "^2.3.0"
+    detect-node "2.0.3"
+    ethereum-types "^3.4.0"
+    ethereumjs-util "^5.1.1"
+    ethers "~4.0.4"
+    isomorphic-fetch "2.2.1"
+    js-sha3 "^0.7.0"
+    lodash "^4.17.11"
+
 "@0x/web3-providers-fork@0.0.7":
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/@0x/web3-providers-fork/-/web3-providers-fork-0.0.7.tgz#9cf40ebb6a2aa230283c5accb195d92594bb0aa7"
@@ -1160,6 +1225,21 @@
     "@0x/utils" "^6.1.0"
     "@types/node" "12.12.54"
     ethereum-types "^3.3.3"
+    ethereumjs-util "^5.1.1"
+    ethers "~4.0.4"
+    lodash "^4.17.11"
+
+"@0x/web3-wrapper@^7.4.1":
+  version "7.4.1"
+  resolved "https://registry.yarnpkg.com/@0x/web3-wrapper/-/web3-wrapper-7.4.1.tgz#196ed73eef6989ff953d5b2d610352b47748f73e"
+  integrity sha512-RNr9j/FtPHuAn7BxoKq2UUb1OoOIhbqHxXRLpsBBM4CU78/WjNF7zd95WB4RRnhbEK9HkdhgKb1a/lclCp84cA==
+  dependencies:
+    "@0x/assert" "^3.0.21"
+    "@0x/json-schemas" "^5.4.1"
+    "@0x/typescript-typings" "^5.1.6"
+    "@0x/utils" "^6.2.0"
+    "@types/node" "12.12.54"
+    ethereum-types "^3.4.0"
     ethereumjs-util "^5.1.1"
     ethers "~4.0.4"
     lodash "^4.17.11"
