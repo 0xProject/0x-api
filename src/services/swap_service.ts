@@ -178,7 +178,9 @@ export class SwapService {
         const shouldEnableRfqt =
             apiKey !== undefined && (isETHSell || takerAddress !== undefined || (rfqt && rfqt.isIndicative));
         if (shouldEnableRfqt) {
-            const altRfqtAssetOfferings = await this._getAltMarketOfferingsAsync();
+            // tslint:disable-next-line:custom-no-magic-numbers
+            const altRfqtAssetOfferings = await this._getAltMarketOfferingsAsync(1500);
+
             _rfqt = {
                 ...rfqt,
                 intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
@@ -613,13 +615,12 @@ export class SwapService {
         };
     }
 
-    private async _getAltMarketOfferingsAsync(): Promise<AltRfqtMakerAssetOfferings> {
+    private async _getAltMarketOfferingsAsync(timeoutMs: number): Promise<AltRfqtMakerAssetOfferings> {
         if (!this._altRfqMarketsCache) {
             this._altRfqMarketsCache = createResultCache<AltRfqtMakerAssetOfferings>(async () => {
                 if (ALT_RFQ_MM_ENDPOINT === undefined || ALT_RFQ_MM_API_KEY === undefined) {
                     return {};
                 }
-                const timeoutMs = 1000;
                 try {
                     const response = await axios.get(`${ALT_RFQ_MM_ENDPOINT}/markets`, {
                         headers: { Authorization: `Bearer ${ALT_RFQ_MM_API_KEY}` },
@@ -631,10 +632,11 @@ export class SwapService {
                     logger.warn(`error fetching alt RFQ markets: ${err}`);
                     return {};
                 }
-                // cache every 4 hours
+                // refresh cache every 6 hours
                 // tslint:disable-next-line:custom-no-magic-numbers
-            }, ONE_MINUTE_MS * 240);
+            }, ONE_MINUTE_MS * 360);
         }
+
         return (await this._altRfqMarketsCache.getResultAsync()).result;
     }
 }

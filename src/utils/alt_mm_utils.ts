@@ -29,9 +29,9 @@ export function altMarketResponseToAltOfferings(
     const offerings: AltOffering[] = altRfqMarketsResponse.items.map(market => {
         return {
             id: market.id,
-            baseAsset: market.base.address,
+            baseAsset: market.base.address.toLowerCase(),
             baseAssetDecimals: market.base.decimals,
-            quoteAsset: market.quote.address,
+            quoteAsset: market.quote.address.toLowerCase(),
             quoteAssetDecimals: market.quote.decimals,
         };
     });
