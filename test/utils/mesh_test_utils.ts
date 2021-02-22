@@ -4,7 +4,7 @@ import { getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
 import { OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
 import { LimitOrder, LimitOrderFields, SignatureType } from '@0x/protocol-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
-import { BigNumber, hexUtils, providerUtils } from '@0x/utils';
+import { BigNumber, hexUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { ZERO } from '../../src/constants';
@@ -104,10 +104,8 @@ export class MeshTestUtils {
                 }),
             ),
         );
-        console.log(JSON.stringify(signedOrders, undefined, 2));
         const validationResults = await this._meshClient.addOrdersV4Async(signedOrders);
         await sleepAsync(2);
-        console.log(JSON.stringify(validationResults));
         return validationResults;
     }
 

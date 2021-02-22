@@ -57,7 +57,7 @@ describe(SUITE_NAME, () => {
     let meshUtils: MeshTestUtils;
 
     async function addNewOrderAsync(
-        params: Partial<SignedLimitOrder>,
+        params: Partial<SignedLimitOrder> & { maker: string },
         remainingFillableAssetAmount?: BigNumber,
     ): Promise<SRAOrder> {
         const validationResults = await meshUtils.addPartialOrdersAsync([
@@ -106,7 +106,7 @@ describe(SUITE_NAME, () => {
         [makerAddress] = accounts;
 
         const privateKeyBuf = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
-        privateKey = privateKeyBuf.toString('hex');
+        privateKey = `0x${privateKeyBuf.toString('hex')}`;
     });
     after(async () => {
         await new Promise<void>((resolve, reject) => {
@@ -154,7 +154,9 @@ describe(SUITE_NAME, () => {
             expect(response.body).to.deep.eq(EMPTY_PAGINATED_RESPONSE);
         });
         it('should return orders in the local cache', async () => {
-            const apiOrder = await addNewOrderAsync({});
+            const apiOrder = await addNewOrderAsync({
+                maker: makerAddress,
+            });
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders` });
             apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
 
@@ -169,7 +171,7 @@ describe(SUITE_NAME, () => {
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
         });
         it('should return orders filtered by query params', async () => {
-            const apiOrder = await addNewOrderAsync({});
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
             const response = await httpGetAsync({
                 app,
                 route: `${SRA_PATH}/orders?maker=${apiOrder.order.maker}`,
@@ -187,7 +189,7 @@ describe(SUITE_NAME, () => {
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
         });
         it('should return empty response when filtered by query params', async () => {
-            const apiOrder = await addNewOrderAsync({});
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders?maker=${NULL_ADDRESS}` });
 
             expect(response.type).to.eq(`application/json`);
@@ -197,7 +199,7 @@ describe(SUITE_NAME, () => {
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
         });
         it('should normalize addresses to lowercase', async () => {
-            const apiOrder = await addNewOrderAsync({});
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
 
             const makerUpperCase = `0x${apiOrder.order.maker.replace('0x', '').toUpperCase()}`;
             const response = await httpGetAsync({
@@ -219,7 +221,7 @@ describe(SUITE_NAME, () => {
     });
     describe('GET /order', () => {
         it('should return order by order hash', async () => {
-            const apiOrder = await addNewOrderAsync({});
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
             apiOrder.metaData.createdAt = response.body.metaData.createdAt; // createdAt is saved in the SignedOrders table directly
 
@@ -230,7 +232,7 @@ describe(SUITE_NAME, () => {
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
         });
         it('should return 404 if order is not found', async () => {
-            const apiOrder = await addNewOrderAsync({});
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
             await (await getDBConnectionAsync()).manager.remove(orderUtils.serializeOrder(apiOrder));
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
             expect(response.status).to.deep.eq(HttpStatus.NOT_FOUND);
@@ -250,17 +252,16 @@ describe(SUITE_NAME, () => {
     // expect(response.body.records).to.be.an('array');
     // });
     // });
-    describe.skip('GET /orderbook', () => {
+    describe('GET /orderbook', () => {
         it('should return orderbook for a given pair', async () => {
-            const apiOrder = await addNewOrderAsync({});
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
             const response = await httpGetAsync({
                 app,
                 route: constructRoute({
                     baseRoute: `${SRA_PATH}/orderbook`,
                     queryParams: {
-                        // TODO(kimpers): [V4] fix this
-                        baseAssetData: apiOrder.order.makerToken,
-                        quoteAssetData: apiOrder.order.takerToken,
+                        baseToken: apiOrder.order.makerToken,
+                        quoteToken: apiOrder.order.takerToken,
                     },
                 }),
             });
@@ -280,13 +281,12 @@ describe(SUITE_NAME, () => {
             expect(response.body).to.deep.eq(expectedResponse);
         });
         it('should return empty response if no matching orders', async () => {
-            const apiOrder = await addNewOrderAsync({});
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
             const response = await httpGetAsync({
                 app,
                 route: constructRoute({
                     baseRoute: `${SRA_PATH}/orderbook`,
-                    // TODO(kimpers): [V4] fix this
-                    queryParams: { baseAssetData: apiOrder.order.makerToken, quoteAssetData: NULL_ADDRESS },
+                    queryParams: { baseToken: apiOrder.order.makerToken, quoteToken: NULL_ADDRESS },
                 }),
             });
 
@@ -298,21 +298,20 @@ describe(SUITE_NAME, () => {
             });
         });
         it('should return validation error if query params are missing', async () => {
-            // TODO(kimpers): [V4] FIX ROUTES
-            const response = await httpGetAsync({ app, route: `${SRA_PATH}/orderbook?quoteAssetData=WETH` });
+            const response = await httpGetAsync({ app, route: `${SRA_PATH}/orderbook?quoteToken=WETH` });
             const validationErrors = {
                 code: 100,
                 reason: 'Validation Failed',
                 validationErrors: [
                     {
-                        field: 'instance.quoteAssetData', // FIXME (xianny): bug in jsonschemas module
+                        field: 'instance.quoteToken', // FIXME (xianny): bug in jsonschemas module
                         code: 1001,
-                        reason: 'does not match pattern "^0x(([0-9a-f][0-9a-f])+)?$"',
+                        reason: 'does not match pattern "^0x[0-9a-fA-F]{40}$"',
                     },
                     {
-                        field: 'baseAssetData',
+                        field: 'baseToken',
                         code: 1000,
-                        reason: 'requires property "baseAssetData"',
+                        reason: 'requires property "baseToken"',
                     },
                 ],
             };
@@ -325,6 +324,7 @@ describe(SUITE_NAME, () => {
     describe('POST /order_config', () => {
         it('should return 200 on success', async () => {
             const order = await meshUtils.getRandomSignedLimitOrderAsync({
+                maker: makerAddress,
                 makerToken: ZRX_TOKEN_ADDRESS,
                 takerToken: WETH_TOKEN_ADDRESS,
             });
@@ -349,6 +349,7 @@ describe(SUITE_NAME, () => {
         });
         it('should return informative error when missing fields', async () => {
             const order = await meshUtils.getRandomSignedLimitOrderAsync({
+                maker: makerAddress,
                 makerToken: ZRX_TOKEN_ADDRESS,
                 takerToken: WETH_TOKEN_ADDRESS,
             });
@@ -385,6 +386,7 @@ describe(SUITE_NAME, () => {
     describe('POST /order', () => {
         it('should return HTTP OK on success', async () => {
             const limitOrder = getRandomLimitOrder({
+                maker: makerAddress,
                 makerToken: ZRX_TOKEN_ADDRESS,
                 takerToken: WETH_TOKEN_ADDRESS,
                 makerAmount: MAX_MINT_AMOUNT,
