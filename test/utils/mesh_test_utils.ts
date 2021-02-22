@@ -107,6 +107,7 @@ export class MeshTestUtils {
         console.log(JSON.stringify(signedOrders, undefined, 2));
         const validationResults = await this._meshClient.addOrdersV4Async(signedOrders);
         await sleepAsync(2);
+        console.log(JSON.stringify(validationResults));
         return validationResults;
     }
 

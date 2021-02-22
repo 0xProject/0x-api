@@ -80,6 +80,27 @@ describe.only(SUITE_NAME, () => {
         await blockchainLifecycle.startAsync();
         meshUtils = new MeshTestUtils(provider);
         await meshUtils.setupUtilsAsync();
+        const wethToken = new WETH9Contract(CONTRACT_ADDRESSES.etherToken, provider);
+        const zrxToken = new DummyERC20TokenContract(CONTRACT_ADDRESSES.zrxToken, provider);
+        // EP setup so maker address can take
+        await zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: takerAddress });
+        await zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: makerAdddress });
+        await wethToken.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: MAKER_WETH_AMOUNT });
+        await wethToken.deposit().awaitTransactionSuccessAsync({ from: makerAdddress, value: MAKER_WETH_AMOUNT });
+        await wethToken
+            .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
+            .awaitTransactionSuccessAsync({ from: takerAddress });
+        await wethToken
+            .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
+            .awaitTransactionSuccessAsync({ from: makerAdddress });
+        await zrxToken
+            .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
+            .awaitTransactionSuccessAsync({ from: takerAddress });
+        await zrxToken
+            .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
+            .awaitTransactionSuccessAsync({ from: makerAdddress });
+
+        await new Promise(resolve => setTimeout(resolve, 10000));
         await meshUtils.addPartialOrdersAsync([
             {
                 makerToken: ZRX_TOKEN_ADDRESS,
@@ -111,25 +132,7 @@ describe.only(SUITE_NAME, () => {
                 takerAmount: ONE_THOUSAND_IN_BASE,
                 maker: makerAdddress,
             },
-            {
-                makerToken: ZRX_TOKEN_ADDRESS,
-                takerToken: '0x0ae055097c6d159879521c384f1d2123d1f195e6', // Randomly chosen token XDAI Stake
-                makerAmount: ONE_THOUSAND_IN_BASE,
-                takerAmount: ONE_THOUSAND_IN_BASE,
-                maker: makerAdddress,
-            },
         ]);
-        const wethToken = new WETH9Contract(CONTRACT_ADDRESSES.etherToken, provider);
-        const zrxToken = new DummyERC20TokenContract(CONTRACT_ADDRESSES.zrxToken, provider);
-        // EP setup so maker address can take
-        await zrxToken.mint(MAX_MINT_AMOUNT).awaitTransactionSuccessAsync({ from: takerAddress });
-        await wethToken.deposit().awaitTransactionSuccessAsync({ from: takerAddress, value: MAKER_WETH_AMOUNT });
-        await wethToken
-            .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
-            .awaitTransactionSuccessAsync({ from: takerAddress });
-        await zrxToken
-            .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
-            .awaitTransactionSuccessAsync({ from: takerAddress });
         const orders = await meshUtils.getOrdersAsync();
         console.log(`posted orders `, orders.ordersInfos.length);
         // start the 0x-api app
