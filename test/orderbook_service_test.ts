@@ -107,7 +107,7 @@ describe(SUITE_NAME, () => {
         [makerAddress] = accounts;
 
         const privateKeyBuf = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
-        privateKey = `0x${privateKeyBuf.toString('hex')}`;
+        privateKey = privateKeyBuf.toString('hex');
         await blockchainLifecycle.startAsync();
     });
     after(async () => {

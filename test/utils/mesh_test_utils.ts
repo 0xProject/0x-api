@@ -1,10 +1,10 @@
 import { ContractAddresses, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
-import { constants, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
+import { getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
 import { OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
-import { LimitOrder, LimitOrderFields } from '@0x/protocol-utils';
+import { LimitOrder, LimitOrderFields, SignatureType } from '@0x/protocol-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
-import { BigNumber, hexUtils } from '@0x/utils';
+import { BigNumber, hexUtils, providerUtils } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { ZERO } from '../../src/constants';
@@ -49,23 +49,6 @@ export function getRandomLimitOrder(fields: Partial<LimitOrderFields> = {}): Lim
     });
 }
 
-/**
- * Creates a random signed limit order
- */
-export function getRandomSignedLimitOrder(
-    privateKey: string,
-    fields: Partial<LimitOrderFields> = {},
-): SignedLimitOrder {
-    const limitOrder = getRandomLimitOrder(fields);
-    const signature = limitOrder.getSignatureWithKey(privateKey);
-
-    return {
-        ...limitOrder,
-        signature,
-    };
-}
-// tslint:enable:custom-no-magic-numbers
-
 export class MeshTestUtils {
     protected _accounts!: string[];
     protected _makerAddress!: string;
@@ -74,7 +57,19 @@ export class MeshTestUtils {
     protected _zrxToken!: DummyERC20TokenContract;
     protected _wethToken!: WETH9Contract;
     protected _web3Wrapper: Web3Wrapper;
-    private _privateKey!: string;
+
+    /**
+     * Creates a random signed limit order
+     */
+    public async getRandomSignedLimitOrderAsync(fields: Partial<LimitOrderFields> = {}): Promise<SignedLimitOrder> {
+        const limitOrder = getRandomLimitOrder(fields);
+        const signature = await limitOrder.getSignatureWithProviderAsync(this._provider, SignatureType.EIP712);
+
+        return {
+            ...limitOrder,
+            signature,
+        };
+    }
 
     // TODO: This can be extended to allow more types of orders to be created. Some changes
     // that might be desirable are to allow different makers to be used, different assets to
@@ -85,7 +80,7 @@ export class MeshTestUtils {
         }
         const orders = [];
         for (const price of prices) {
-            const limitOrder = getRandomSignedLimitOrder(this._privateKey, {
+            const limitOrder = await this.getRandomSignedLimitOrderAsync({
                 takerAmount: DEFAULT_MAKER_ASSET_AMOUNT.times(price),
                 chainId: CHAIN_ID,
                 // tslint:disable-next-line:custom-no-magic-numbers
@@ -103,12 +98,13 @@ export class MeshTestUtils {
     public async addPartialOrdersAsync(orders: Partial<LimitOrder>[]): Promise<AddOrdersResultsV4> {
         const signedOrders = await Promise.all(
             orders.map(order =>
-                getRandomSignedLimitOrder(this._privateKey, {
+                this.getRandomSignedLimitOrderAsync({
                     chainId: CHAIN_ID,
                     ...order,
                 }),
             ),
         );
+        console.log(JSON.stringify(signedOrders, undefined, 2));
         const validationResults = await this._meshClient.addOrdersV4Async(signedOrders);
         await sleepAsync(2);
         return validationResults;
@@ -126,8 +122,6 @@ export class MeshTestUtils {
 
         this._accounts = await this._web3Wrapper.getAvailableAddressesAsync();
         [this._makerAddress] = this._accounts;
-        const privateKeyBuf = constants.TESTRPC_PRIVATE_KEYS[this._accounts.indexOf(this._makerAddress)];
-        this._privateKey = `0x${privateKeyBuf.toString('hex')}`;
 
         // NOTE(jalextowle): The way that Mesh validation currently works allows us
         // to only set the maker balance a single time. If this changes in the future,

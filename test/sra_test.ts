@@ -29,7 +29,7 @@ import {
 import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
-import { getRandomLimitOrder, getRandomSignedLimitOrder, MeshTestUtils } from './utils/mesh_test_utils';
+import { getRandomLimitOrder, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'Standard Relayer API (SRA) integration tests';
 
@@ -106,7 +106,7 @@ describe(SUITE_NAME, () => {
         [makerAddress] = accounts;
 
         const privateKeyBuf = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
-        privateKey = `0x${privateKeyBuf.toString('hex')}`;
+        privateKey = privateKeyBuf.toString('hex');
     });
     after(async () => {
         await new Promise<void>((resolve, reject) => {
@@ -324,7 +324,7 @@ describe(SUITE_NAME, () => {
     });
     describe('POST /order_config', () => {
         it('should return 200 on success', async () => {
-            const order = getRandomSignedLimitOrder(privateKey, {
+            const order = await meshUtils.getRandomSignedLimitOrderAsync({
                 makerToken: ZRX_TOKEN_ADDRESS,
                 takerToken: WETH_TOKEN_ADDRESS,
             });
@@ -348,7 +348,7 @@ describe(SUITE_NAME, () => {
             expect(response.body).to.deep.eq(expectedResponse);
         });
         it('should return informative error when missing fields', async () => {
-            const order = getRandomSignedLimitOrder(privateKey, {
+            const order = await meshUtils.getRandomSignedLimitOrderAsync({
                 makerToken: ZRX_TOKEN_ADDRESS,
                 takerToken: WETH_TOKEN_ADDRESS,
             });
