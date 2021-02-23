@@ -103,9 +103,7 @@ export const meshUtils = {
             case RejectedOrderCode.OrderFullyFilled:
                 return OrderEventEndState.FullyFilled;
             default:
-                // TODO (xianny) must return something otherwise it defaults to `ADDED`
-                // return OrderEventEndState.Invalid;
-                return undefined;
+                return OrderEventEndState.Invalid;
         }
     },
     rejectedCodeToSRACode: (code: RejectedOrderCode): ValidationErrorCodes => {
