@@ -1,5 +1,7 @@
 import {
-    AffiliateFee,
+    AffiliateFeeAmount,
+    AffiliateFeeType,
+    AltRfqtMakerAssetOfferings,
     AssetSwapperContractAddresses,
     ERC20BridgeSource,
     GetMarketOrdersRfqtOpts,
@@ -18,10 +20,13 @@ import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
 import { MarketOperation, PaginatedCollection } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
+import axios from 'axios';
 import { SupportedProvider } from 'ethereum-types';
 import * as _ from 'lodash';
 
 import {
+    ALT_RFQ_MM_API_KEY,
+    ALT_RFQ_MM_ENDPOINT,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
     CHAIN_ID,
@@ -33,6 +38,7 @@ import {
     GAS_LIMIT_BUFFER_MULTIPLIER,
     NULL_ADDRESS,
     ONE,
+    ONE_MINUTE_MS,
     UNWRAP_QUOTE_GAS,
     UNWRAP_WETH_GAS,
     WRAP_ETH_GAS,
@@ -43,18 +49,20 @@ import { InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
+    AffiliateFee,
     BucketedPriceDepth,
     CalaculateMarketDepthParams,
     GetSwapQuoteParams,
     GetSwapQuoteResponse,
-    PercentageFee,
     Price,
     SwapQuoteResponsePartialTransaction,
     TokenMetadata,
     TokenMetadataOptionalSymbol,
 } from '../types';
+import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
 import { marketDepthUtils } from '../utils/market_depth_utils';
 import { paginationUtils } from '../utils/pagination_utils';
+import { createResultCache } from '../utils/result_cache';
 import { serviceUtils } from '../utils/service_utils';
 import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 
@@ -66,13 +74,14 @@ export class SwapService {
     private readonly _wethContract: WETH9Contract;
     private readonly _contractAddresses: ContractAddresses;
     private readonly _firmQuoteValidator: RfqtFirmQuoteValidator | undefined;
+    private _altRfqMarketsCache: any;
 
     private static _getSwapQuotePrice(
         buyAmount: BigNumber | undefined,
         buyTokenDecimals: number,
         sellTokenDecimals: number,
         swapQuote: SwapQuote,
-        affiliateFee: PercentageFee,
+        affiliateFee: AffiliateFee,
     ): { price: BigNumber; guaranteedPrice: BigNumber } {
         const { makerAmount, totalTakerAmount } = swapQuote.bestCaseQuoteInfo;
         const {
@@ -170,6 +179,9 @@ export class SwapService {
         const shouldEnableRfqt =
             apiKey !== undefined && (isETHSell || takerAddress !== undefined || (rfqt && rfqt.isIndicative));
         if (shouldEnableRfqt) {
+            // tslint:disable-next-line:custom-no-magic-numbers
+            const altRfqtAssetOfferings = await this._getAltMarketOfferingsAsync(1500);
+
             _rfqt = {
                 ...rfqt,
                 intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
@@ -179,6 +191,7 @@ export class SwapService {
                 takerAddress: NULL_ADDRESS,
                 txOrigin: takerAddress!,
                 firmQuoteValidator: this._firmQuoteValidator,
+                altRfqtAssetOfferings,
             };
         }
 
@@ -186,7 +199,9 @@ export class SwapService {
         const shouldGenerateQuoteReport = includePriceComparisons || (rfqt && rfqt.intentOnFilling);
 
         const swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts> =
-            isMetaTransaction || affiliateFee.buyTokenPercentageFee > 0 || affiliateFee.sellTokenPercentageFee > 0
+            isMetaTransaction ||
+            // Note: We allow VIP to continue ahead when positive slippage fee is enabled
+            affiliateFee.feeType === AffiliateFeeType.PercentageFee
                 ? ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP
                 : ASSET_SWAPPER_MARKET_ORDERS_OPTS;
 
@@ -230,14 +245,19 @@ export class SwapService {
         } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
 
         // Grab the encoded version of the swap quote
-        const { to, value, data, decodedUniqueId } = await this._getSwapQuotePartialTransactionAsync(
+        const { to, value, data, decodedUniqueId, gasOverhead } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
             isETHSell,
             isETHBuy,
             isMetaTransaction,
             shouldSellEntireBalance,
             affiliateAddress,
-            { recipient: affiliateFee.recipient, buyTokenFeeAmount, sellTokenFeeAmount },
+            {
+                recipient: affiliateFee.recipient,
+                feeType: affiliateFee.feeType,
+                buyTokenFeeAmount,
+                sellTokenFeeAmount,
+            },
         );
 
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas)
@@ -256,6 +276,8 @@ export class SwapService {
                 value,
                 gasPrice,
             });
+            // Add any underterministic gas overhead the encoded transaction has detected
+            estimateGasCallResult.plus(gasOverhead);
             // Take the max of the faux estimate or the real estimate
             conservativeBestCaseGasEstimate = BigNumber.max(
                 // Add a little buffer to eth_estimateGas as it is not always correct
@@ -286,7 +308,7 @@ export class SwapService {
         // No allowance target is needed if this is an ETH sell, so set to 0x000..
         const allowanceTarget = isETHSell ? NULL_ADDRESS : this._contractAddresses.exchangeProxy;
 
-        const { takerTokenToEthRate, makerTokenToEthRate } = swapQuote;
+        const { takerAmountPerEth: takerTokenToEthRate, makerAmountPerEth: makerTokenToEthRate } = swapQuote;
 
         // Convert into unit amounts
         const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
@@ -532,7 +554,8 @@ export class SwapService {
         const gas = await this._web3Wrapper.estimateGasAsync(txData).catch(_e => DEFAULT_VALIDATION_GAS_LIMIT);
         await this._throwIfCallIsRevertErrorAsync({
             ...txData,
-            gas: new BigNumber(gas).times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue(),
+            // gas: new BigNumber(gas).times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue(),
+            gas,
         });
         return new BigNumber(gas);
     }
@@ -582,8 +605,8 @@ export class SwapService {
         isMetaTransaction: boolean,
         shouldSellEntireBalance: boolean,
         affiliateAddress: string | undefined,
-        affiliateFee: AffiliateFee,
-    ): Promise<SwapQuoteResponsePartialTransaction> {
+        affiliateFee: AffiliateFeeAmount,
+    ): Promise<SwapQuoteResponsePartialTransaction & { gasOverhead: BigNumber }> {
         const opts: Partial<SwapQuoteGetOutputOpts> = {
             extensionContractOpts: { isFromETH, isToETH, isMetaTransaction, shouldSellEntireBalance, affiliateFee },
         };
@@ -592,6 +615,7 @@ export class SwapService {
             calldataHexString: data,
             ethAmount: value,
             toAddress: to,
+            gasOverhead,
         } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, opts);
 
         const { affiliatedData, decodedUniqueId } = serviceUtils.attributeCallData(data, affiliateAddress);
@@ -600,7 +624,33 @@ export class SwapService {
             value,
             data: affiliatedData,
             decodedUniqueId,
+            gasOverhead,
         };
+    }
+
+    private async _getAltMarketOfferingsAsync(timeoutMs: number): Promise<AltRfqtMakerAssetOfferings> {
+        if (!this._altRfqMarketsCache) {
+            this._altRfqMarketsCache = createResultCache<AltRfqtMakerAssetOfferings>(async () => {
+                if (ALT_RFQ_MM_ENDPOINT === undefined || ALT_RFQ_MM_API_KEY === undefined) {
+                    return {};
+                }
+                try {
+                    const response = await axios.get(`${ALT_RFQ_MM_ENDPOINT}/markets`, {
+                        headers: { Authorization: `Bearer ${ALT_RFQ_MM_API_KEY}` },
+                        timeout: timeoutMs,
+                    });
+
+                    return altMarketResponseToAltOfferings(response.data, ALT_RFQ_MM_ENDPOINT);
+                } catch (err) {
+                    logger.warn(`error fetching alt RFQ markets: ${err}`);
+                    return {};
+                }
+                // refresh cache every 6 hours
+                // tslint:disable-next-line:custom-no-magic-numbers
+            }, ONE_MINUTE_MS * 360);
+        }
+
+        return (await this._altRfqMarketsCache.getResultAsync()).result;
     }
 }
 
