@@ -1,5 +1,4 @@
 import { AffiliateFeeType, ERC20BridgeSource, SwapQuote, SwapQuoteOrdersBreakdown } from '@0x/asset-swapper';
-import { POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 
@@ -10,6 +9,7 @@ import {
     NULL_ADDRESS,
     ONE_SECOND_MS,
     PERCENTAGE_SIG_DIGITS,
+    POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS,
     ZERO,
 } from '../constants';
 import { AffiliateFee, AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource } from '../types';
@@ -99,7 +99,7 @@ export const serviceUtils = {
         }, []);
     },
     getAffiliateFeeAmounts(quote: SwapQuote, fee: AffiliateFee): AffiliateFeeAmounts {
-        if (fee.feeType === AffiliateFeeType.None || fee.recipient === NULL_ADDRESS) {
+        if (fee.feeType === AffiliateFeeType.None || fee.recipient === NULL_ADDRESS || fee.recipient === '') {
             return {
                 sellTokenFeeAmount: ZERO,
                 buyTokenFeeAmount: ZERO,

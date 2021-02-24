@@ -1,7 +1,7 @@
 import {
-    AltRfqtMakerAssetOfferings,
     AffiliateFeeAmount,
     AffiliateFeeType,
+    AltRfqtMakerAssetOfferings,
     AssetSwapperContractAddresses,
     ERC20BridgeSource,
     GetMarketOrdersRfqtOpts,
@@ -269,7 +269,7 @@ export class SwapService {
         // using eth_gasEstimate
         // If an error occurs we attempt to provide a better message then "Transaction Reverted"
         if (takerAddress && !skipValidation) {
-            let estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
+            const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data,
                 from: takerAddress,

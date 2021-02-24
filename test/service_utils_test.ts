@@ -1,5 +1,5 @@
 import { AffiliateFeeType, ERC20BridgeSource } from '@0x/asset-swapper';
-import { expect } from '@0x/contracts-test-utils';
+import { expect, randomAddress } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import 'mocha';
@@ -91,7 +91,7 @@ describe(SUITE_NAME, () => {
         it('returns the correct amounts if the fee is non-zero', () => {
             const affiliateFee = {
                 feeType: AffiliateFeeType.PercentageFee,
-                recipient: '',
+                recipient: randomAddress(),
                 buyTokenPercentageFee: 0.01,
                 sellTokenPercentageFee: 0,
             };
@@ -109,7 +109,7 @@ describe(SUITE_NAME, () => {
     it('returns the correct amounts if the positive slippage fee is non-zero', () => {
         const affiliateFee = {
             feeType: AffiliateFeeType.PositiveSlippageFee,
-            recipient: '',
+            recipient: randomAddress(),
             buyTokenPercentageFee: 0,
             sellTokenPercentageFee: 0,
         };

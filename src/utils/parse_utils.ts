@@ -1,8 +1,8 @@
 import { assert } from '@0x/assert';
 import { AffiliateFeeType, ERC20BridgeSource } from '@0x/asset-swapper';
 import express from 'express';
-import { NULL_ADDRESS } from '../constants';
 
+import { NULL_ADDRESS } from '../constants';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import {
     AffiliateFee,
