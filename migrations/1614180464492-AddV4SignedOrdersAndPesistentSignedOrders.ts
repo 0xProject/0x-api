@@ -1,22 +1,22 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddV4SignedOrdersAndPesistentSignedOrders1612538298649 implements MigrationInterface {
-    name = 'AddV4SignedOrdersAndPesistentSignedOrders1612538298649';
+export class AddV4SignedOrdersAndPesistentSignedOrders1614180464492 implements MigrationInterface {
+    name = 'AddV4SignedOrdersAndPesistentSignedOrders1614180464492';
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP INDEX "maker_address_idx"`);
-        await queryRunner.query(`DROP INDEX "taker_asset_data_idx"`);
-        await queryRunner.query(`DROP INDEX "maker_asset_data_idx"`);
         await queryRunner.query(`DROP INDEX "maker_taker_asset_data_idx"`);
-        await queryRunner.query(`DROP INDEX "persistent_signed_orders_maker_address"`);
-        await queryRunner.query(`DROP INDEX "persistent_signed_orders_maker_asset_data"`);
-        await queryRunner.query(`DROP INDEX "persistent_signed_orders_taker_asset_data"`);
+        await queryRunner.query(`DROP INDEX "maker_asset_data_idx"`);
+        await queryRunner.query(`DROP INDEX "taker_asset_data_idx"`);
+        await queryRunner.query(`DROP INDEX "maker_address_idx"`);
         await queryRunner.query(`DROP INDEX "persistent_signed_orders_fee_recipient_address"`);
+        await queryRunner.query(`DROP INDEX "persistent_signed_orders_taker_asset_data"`);
+        await queryRunner.query(`DROP INDEX "persistent_signed_orders_maker_asset_data"`);
+        await queryRunner.query(`DROP INDEX "persistent_signed_orders_maker_address"`);
         await queryRunner.query(
             `CREATE TABLE "signed_orders_v4" ("hash" character varying NOT NULL, "maker_token" character varying NOT NULL, "taker_token" character varying NOT NULL, "maker_amount" character varying NOT NULL, "taker_amount" character varying NOT NULL, "maker" character varying NOT NULL, "taker" character varying NOT NULL, "pool" character varying NOT NULL, "expiry" character varying NOT NULL, "salt" character varying NOT NULL, "verifying_contract" character varying NOT NULL, "taker_token_fee_amount" character varying NOT NULL, "sender" character varying NOT NULL, "fee_recipient" character varying NOT NULL, "signature" character varying NOT NULL, "remaining_fillable_taker_asset_amount" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT 'now()', CONSTRAINT "PK_714e263c3ab18702fd2b7dcc81d" PRIMARY KEY ("hash"))`,
         );
         await queryRunner.query(
-            `CREATE TYPE "persistent_signed_orders_v4_state_enum" AS ENUM('ADDED', 'FILLED', 'FULLY_FILLED', 'CANCELLED', 'EXPIRED', 'UNEXPIRED', 'UNFUNDED', 'FILLABILITY_INCREASED', 'STOPPED_WATCHING')`,
+            `CREATE TYPE "persistent_signed_orders_v4_state_enum" AS ENUM('ADDED', 'FILLED', 'FULLY_FILLED', 'CANCELLED', 'EXPIRED', 'INVALID', 'UNEXPIRED', 'UNFUNDED', 'FILLABILITY_INCREASED', 'STOPPED_WATCHING')`,
         );
         await queryRunner.query(
             `CREATE TABLE "persistent_signed_orders_v4" ("hash" character varying NOT NULL, "maker_token" character varying NOT NULL, "taker_token" character varying NOT NULL, "maker_amount" character varying NOT NULL, "taker_amount" character varying NOT NULL, "maker" character varying NOT NULL, "taker" character varying NOT NULL, "pool" character varying NOT NULL, "expiry" character varying NOT NULL, "salt" character varying NOT NULL, "verifying_contract" character varying NOT NULL, "taker_token_fee_amount" character varying NOT NULL, "sender" character varying NOT NULL, "fee_recipient" character varying NOT NULL, "signature" character varying NOT NULL, "remaining_fillable_taker_asset_amount" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT 'now()', "state" "persistent_signed_orders_v4_state_enum" NOT NULL DEFAULT 'ADDED', CONSTRAINT "PK_e4d7a1964eb56734463b19681fa" PRIMARY KEY ("hash"))`,
@@ -38,7 +38,7 @@ export class AddV4SignedOrdersAndPesistentSignedOrders1612538298649 implements M
             `ALTER TYPE "public"."persistent_signed_orders_state_enum" RENAME TO "persistent_signed_orders_state_enum_old"`,
         );
         await queryRunner.query(
-            `CREATE TYPE "persistent_signed_orders_state_enum" AS ENUM('ADDED', 'FILLED', 'FULLY_FILLED', 'CANCELLED', 'EXPIRED', 'UNEXPIRED', 'UNFUNDED', 'FILLABILITY_INCREASED', 'STOPPED_WATCHING')`,
+            `CREATE TYPE "persistent_signed_orders_state_enum" AS ENUM('ADDED', 'FILLED', 'FULLY_FILLED', 'CANCELLED', 'EXPIRED', 'INVALID', 'UNEXPIRED', 'UNFUNDED', 'FILLABILITY_INCREASED', 'STOPPED_WATCHING')`,
         );
         await queryRunner.query(`ALTER TABLE "persistent_signed_orders" ALTER COLUMN "state" DROP DEFAULT`);
         await queryRunner.query(
@@ -90,22 +90,22 @@ export class AddV4SignedOrdersAndPesistentSignedOrders1612538298649 implements M
         await queryRunner.query(`DROP TYPE "persistent_signed_orders_v4_state_enum"`);
         await queryRunner.query(`DROP TABLE "signed_orders_v4"`);
         await queryRunner.query(
-            `CREATE INDEX "persistent_signed_orders_fee_recipient_address" ON "persistent_signed_orders" ("fee_recipient_address") `,
-        );
-        await queryRunner.query(
-            `CREATE INDEX "persistent_signed_orders_taker_asset_data" ON "persistent_signed_orders" ("taker_asset_data") `,
+            `CREATE INDEX "persistent_signed_orders_maker_address" ON "persistent_signed_orders" ("maker_address") `,
         );
         await queryRunner.query(
             `CREATE INDEX "persistent_signed_orders_maker_asset_data" ON "persistent_signed_orders" ("maker_asset_data") `,
         );
         await queryRunner.query(
-            `CREATE INDEX "persistent_signed_orders_maker_address" ON "persistent_signed_orders" ("maker_address") `,
+            `CREATE INDEX "persistent_signed_orders_taker_asset_data" ON "persistent_signed_orders" ("taker_asset_data") `,
         );
+        await queryRunner.query(
+            `CREATE INDEX "persistent_signed_orders_fee_recipient_address" ON "persistent_signed_orders" ("fee_recipient_address") `,
+        );
+        await queryRunner.query(`CREATE INDEX "maker_address_idx" ON "signed_orders" ("maker_address") `);
+        await queryRunner.query(`CREATE INDEX "taker_asset_data_idx" ON "signed_orders" ("taker_asset_data") `);
+        await queryRunner.query(`CREATE INDEX "maker_asset_data_idx" ON "signed_orders" ("maker_asset_data") `);
         await queryRunner.query(
             `CREATE INDEX "maker_taker_asset_data_idx" ON "signed_orders" ("maker_asset_data", "taker_asset_data") `,
         );
-        await queryRunner.query(`CREATE INDEX "maker_asset_data_idx" ON "signed_orders" ("maker_asset_data") `);
-        await queryRunner.query(`CREATE INDEX "taker_asset_data_idx" ON "signed_orders" ("taker_asset_data") `);
-        await queryRunner.query(`CREATE INDEX "maker_address_idx" ON "signed_orders" ("maker_address") `);
     }
 }
