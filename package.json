@@ -43,6 +43,9 @@
         "lint": "tslint --project . --format stylish && yarn prettier:ci",
         "release": "curl -v -H \"Accept: application/vnd.github.everest-preview+json\" -H \"Authorization: token ${GITHUB_TOKEN}\" https://api.github.com/repos/0xProject/0x-api/dispatches -d '{ \"event_type\": \"semantic-release\" }'"
     },
+    "resolutions": {
+        "@0x/mesh-browser-lite": "10.1.0"
+    },
     "config": {
         "prettier_target": "{.,test/**,src/**,migrations}/*.{ts,tsx,json,md}"
     },
