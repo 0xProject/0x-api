@@ -52,7 +52,7 @@ export class WebsocketService {
         OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
     > = new Map(); // requestId -> { base, quote }
     private readonly _orderEventsSubscription?: ZenObservable.Subscription;
-    // TODO(kimpers): [V4] What matching do we want here?
+    // TODO(kimpers): [V4] Do we want any other matching than takerToken and makerToken?
     private static _matchesOrdersChannelSubscription(
         order: SignedLimitOrder,
         opts: OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS,

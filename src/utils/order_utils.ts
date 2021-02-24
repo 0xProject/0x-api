@@ -1,3 +1,4 @@
+import { assert } from '@0x/assert';
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { Signature, SignatureType } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
@@ -90,13 +91,19 @@ export const orderUtils = {
         return orderA.expiry.comparedTo(orderB.expiry);
     },
     deserializeSignature: (signatureStr: string): Signature => {
-        // TODO(kimpers): [V4] validation needed here
-        const [signatureType, r, s, v] = signatureStr.split(',');
+        const [signatureTypeStr, r, s, vStr] = signatureStr.split(',');
+        const signatureType = parseInt(signatureTypeStr, 10) as SignatureType;
+        const v = parseInt(vStr, 10);
+        assert.isNumber('signatureType', signatureType);
+        assert.isNumber('signatureV', v);
+        assert.isString('signatureR', r);
+        assert.isString('signatureS', s);
+
         return {
-            signatureType: parseInt(signatureType, 10) as SignatureType,
+            signatureType,
             r,
             s,
-            v: parseInt(v, 10),
+            v,
         };
     },
     deserializeOrder: (
