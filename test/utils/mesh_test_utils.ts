@@ -83,6 +83,7 @@ export class MeshTestUtils {
             const limitOrder = await this.getRandomSignedLimitOrderAsync({
                 takerAmount: DEFAULT_MAKER_ASSET_AMOUNT.times(price),
                 chainId: CHAIN_ID,
+                maker: this._makerAddress,
                 // tslint:disable-next-line:custom-no-magic-numbers
                 expiry: new BigNumber(Date.now() + 24 * 3600),
             });
@@ -100,6 +101,7 @@ export class MeshTestUtils {
             orders.map(order =>
                 this.getRandomSignedLimitOrderAsync({
                     chainId: CHAIN_ID,
+                    maker: this._makerAddress,
                     ...order,
                 }),
             ),

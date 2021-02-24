@@ -278,8 +278,7 @@ describe(SUITE_NAME, () => {
                 },
             );
         });
-        // TODO(kimpers): [V4] This throws WalletExecuteDelegateCallFailedError, why??
-        it.skip('should not throw a validation error if takerAddress can complete the quote', async () => {
+        it('should not throw a validation error if takerAddress can complete the quote', async () => {
             // The maker has an allowance
             await quoteAndExpectAsync(
                 app,
