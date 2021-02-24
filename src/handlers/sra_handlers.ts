@@ -44,19 +44,6 @@ export class SRAHandlers {
     constructor(orderBook: OrderBookService) {
         this._orderBook = orderBook;
     }
-    // public async assetPairsAsync(req: express.Request, res: express.Response): Promise<void> {
-    //     schemaUtils.validateSchema(req.query, schemas.assetPairsRequestOptsSchema);
-    //     const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-    //     const tokenA = req.query.tokenA as string;
-    //     const tokenB = req.query.tokenB as string;
-    //     const assetPairs = await this._orderBook.getAssetPairsAsync(
-    //         page,
-    //         perPage,
-    //         tokenA?.toLowerCase(),
-    //         tokenB?.toLowerCase(),
-    //     );
-    //     res.status(HttpStatus.OK).send(assetPairs);
-    // }
     public async getOrderByHashAsync(req: express.Request, res: express.Response): Promise<void> {
         const orderIfExists = await this._orderBook.getOrderByHashIfExistsAsync(req.params.orderHash);
         if (orderIfExists === undefined) {

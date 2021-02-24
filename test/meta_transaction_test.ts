@@ -377,7 +377,7 @@ describe.skip(SUITE_NAME, () => {
                 signer: takerAddress,
                 domain: { chainId, verifyingContract: contractAddresses.exchangeProxy },
             },
-            // TODO(kimpers) [V4] is this fine?
+            // TODO(kimpers) [V4] is stringify fine here?
             orders: testCase.expectedOrders.map(order => JSON.stringify(order)),
             buyAmount: testCase.expectedBuyAmount,
             sellAmount: calculateSellAmount(testCase.expectedBuyAmount, testCase.expectedPrice),

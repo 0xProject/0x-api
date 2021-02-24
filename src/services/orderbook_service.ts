@@ -35,49 +35,6 @@ export class OrderBookService {
             return orderUtils.deserializeOrderToSRAOrder(signedOrderEntity as Required<SignedOrderV4Entity>);
         }
     }
-    // public async getAssetPairsAsync(
-    //     page: number,
-    //     perPage: number,
-    //     tokenA?: string,
-    //     tokenB?: string,
-    // ): Promise<PaginatedCollection<TokenPairsItem>> {
-    //     const signedOrderEntities = (await this._connection.manager.find(SignedOrderV4Entity)) as Required<
-    //         SignedOrderV4Entity
-    //     >[];
-    //     // TODO(kimpers) [V4] what do we return here?
-    //     const assetPairsItems: TokenPairsItem[] = signedOrderEntities
-    //         .map(orderUtils.deserializeOrder)
-    //         .map((signedOrder: SignedLimitOrder) => ({
-    //             tokenA: { tokenAddress: signedOrder.makerToken },
-    //             tokenB: { tokenAddress: signedOrder.takerToken },
-    //         }));
-    //     let nonPaginatedFilteredTokenPairs: TokenPairsItem[];
-    //     if (tokenA === undefined && tokenB === undefined) {
-    //         nonPaginatedFilteredTokenPairs = assetPairsItems;
-    //     } else if (tokenA !== undefined && tokenB !== undefined) {
-    //         nonPaginatedFilteredTokenPairs = assetPairsItems.filter(
-    //             (tokenPair: TokenPairsItem) =>
-    //                 (tokenPair.tokenA.tokenAddress === tokenA && tokenPair.tokenB.tokenAddress === tokenB) ||
-    //                 (tokenPair.tokenA.tokenAddress === tokenB && tokenPair.tokenB.tokenAddress === tokenA),
-    //         );
-    //     } else {
-    //         const token = tokenA || tokenB;
-    //         nonPaginatedFilteredTokenPairs = assetPairsItems.filter(
-    //             (tokenPair: TokenPairsItem) =>
-    //                 tokenPair.tokenA.tokenAddress === token || tokenPair.tokenB.tokenAddress === token,
-    //         );
-    //     }
-    //     const uniqueNonPaginatedFilteredTokenPairs = _.uniqBy(
-    //         nonPaginatedFilteredTokenPairs,
-    //         tokenPair => `${tokenPair.tokenA.tokenAddress}/${tokenPair.tokenB.tokenAddress}`,
-    //     );
-    //     const paginatedFilteredTokenPairs = paginationUtils.paginate(
-    //         uniqueNonPaginatedFilteredTokenPairs,
-    //         page,
-    //         perPage,
-    //     );
-    //     return paginatedFilteredTokenPairs;
-    // }
     // tslint:disable-next-line:prefer-function-over-method
     public async getOrderBookAsync(
         page: number,
@@ -175,8 +132,7 @@ export class OrderBookService {
                 OrderEventEndState.Cancelled,
                 OrderEventEndState.Expired,
                 OrderEventEndState.FullyFilled,
-                // TODO [v4] we need to add this back
-                // OrderEventEndState.Invalid,
+                OrderEventEndState.Invalid,
                 OrderEventEndState.StoppedWatching,
                 OrderEventEndState.Unfunded,
             ];

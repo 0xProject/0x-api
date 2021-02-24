@@ -239,19 +239,6 @@ describe(SUITE_NAME, () => {
         });
     });
 
-    // TODO(kimpers): [V4] all asset_pairs references
-    // describe('GET /asset_pairs', () => {
-    // it('should respond to GET request', async () => {
-    // const response = await httpGetAsync({ app, route: `${SRA_PATH}/asset_pairs` });
-
-    // expect(response.type).to.eq(`application/json`);
-    // expect(response.status).to.eq(HttpStatus.OK);
-    // expect(response.body.perPage).to.equal(DEFAULT_PER_PAGE);
-    // expect(response.body.page).to.equal(DEFAULT_PAGE);
-    // expect(response.body.total).to.be.an('number');
-    // expect(response.body.records).to.be.an('array');
-    // });
-    // });
     describe('GET /orderbook', () => {
         it('should return orderbook for a given pair', async () => {
             const apiOrder = await addNewOrderAsync({ maker: makerAddress });
