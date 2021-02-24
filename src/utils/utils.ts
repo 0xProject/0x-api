@@ -112,6 +112,7 @@ export const utils = {
         let gas = 21000;
         for (const b of buf) {
             // 4 gas per 0 byte, 16 gas per non-zero
+            // tslint:disable-next-line
             gas += b === 0 ? 4 : 16;
         }
         return gas;
