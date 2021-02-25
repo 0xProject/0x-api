@@ -5,7 +5,18 @@
         "type": { "enum": ["subscribe"] },
         "channel": { "enum": ["orders"] },
         "requestId": { "type": "string" },
-        "payload": { "$ref": "/sraOrdersChannelSubscribePayloadSchema" }
+        "payload": {
+            "id": "/sraOrdersChannelSubscribePayloadSchema",
+            "type": "object",
+            "properties": {
+                "makerToken": {
+                    "$ref": "/addressSchema"
+                },
+                "takerToken": {
+                    "$ref": "/addressSchema"
+                }
+            }
+        }
     },
     "required": ["type", "channel", "requestId"]
 }
