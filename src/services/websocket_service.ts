@@ -52,7 +52,6 @@ export class WebsocketService {
         OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
     > = new Map(); // requestId -> { base, quote }
     private _orderEventsSubscription?: ZenObservable.Subscription;
-    // TODO(kimpers): [V4] Do we want any other matching than takerToken and makerToken?
     private static _matchesOrdersChannelSubscription(
         order: SignedLimitOrder,
         opts: OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS,
@@ -62,14 +61,15 @@ export class WebsocketService {
         }
         const { makerToken, takerToken } = order;
 
+        // If the user provided a makerToken or takerToken that does not match the order we skip
         if (
-            (opts.takerToken && takerToken.toLowerCase() === opts.takerToken.toLowerCase()) ||
-            (opts.makerToken && makerToken.toLowerCase() === opts.makerToken.toLowerCase())
+            (opts.takerToken && takerToken.toLowerCase() !== opts.takerToken.toLowerCase()) ||
+            (opts.makerToken && makerToken.toLowerCase() !== opts.makerToken.toLowerCase())
         ) {
-            return true;
+            return false;
         }
 
-        return false;
+        return true;
     }
     private static _handleError(_ws: WrappedWebSocket, err: Error): void {
         logger.error(new WebsocketServiceError(err));
