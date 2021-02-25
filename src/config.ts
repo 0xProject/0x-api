@@ -122,10 +122,10 @@ export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env
 
 // Mesh Endpoint
 export const MESH_WEBSOCKET_URI = _.isEmpty(process.env.MESH_WEBSOCKET_URI)
-    ? 'ws://localhost:60557'
+    ? undefined
     : assertEnvVarType('MESH_WEBSOCKET_URI', process.env.MESH_WEBSOCKET_URI, EnvVarType.Url);
 export const MESH_HTTP_URI = _.isEmpty(process.env.MESH_HTTP_URI)
-    ? 'http://localhost:60557'
+    ? undefined
     : assertEnvVarType('assertEnvVarType', process.env.MESH_HTTP_URI, EnvVarType.Url);
 
 export const MESH_GET_ORDERS_DEFAULT_PAGE_SIZE = _.isEmpty(process.env.MESH_GET_ORDERS_DEFAULT_PAGE_SIZE)
