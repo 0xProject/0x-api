@@ -94,7 +94,7 @@ export const CHAIN_ID: ChainId = _.isEmpty(process.env.CHAIN_ID)
 
 // Whitelisted token addresses. Set to a '*' instead of an array to allow all tokens.
 export const WHITELISTED_TOKENS: string[] | '*' = _.isEmpty(process.env.WHITELIST_ALL_TOKENS)
-    ? TokenMetadatasForChains.map((tm) => tm.tokenAddresses[CHAIN_ID])
+    ? TokenMetadatasForChains.map(tm => tm.tokenAddresses[CHAIN_ID])
     : assertEnvVarType('WHITELIST_ALL_TOKENS', process.env.WHITELIST_ALL_TOKENS, EnvVarType.WhitelistAllTokens);
 
 // Ignored addresses. These are ignored at the ingress (Mesh) level and are never stored.
@@ -327,10 +327,10 @@ const EXCLUDED_SOURCES = (() => {
             return [ERC20BridgeSource.MultiBridge];
         case ChainId.Kovan:
             return allERC20BridgeSources.filter(
-                (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
+                s => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
             );
         default:
-            return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
+            return allERC20BridgeSources.filter(s => s !== ERC20BridgeSource.Native);
     }
 })();
 
@@ -386,7 +386,7 @@ export const DEFAULT_INTERMEDIATE_TOKENS = [
     getTokenMetadataIfExists('USDC', CHAIN_ID)?.tokenAddress,
     getTokenMetadataIfExists('USDT', CHAIN_ID)?.tokenAddress,
     getTokenMetadataIfExists('WBTC', CHAIN_ID)?.tokenAddress,
-].filter((t) => t) as string[];
+].filter(t => t) as string[];
 
 let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqtOpts = {
     takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
@@ -472,7 +472,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             return returnValue;
         case EnvVarType.AddressList:
             assert.isString(name, value);
-            const addressList = (value as string).split(',').map((a) => a.toLowerCase());
+            const addressList = (value as string).split(',').map(a => a.toLowerCase());
             addressList.forEach((a, i) => assert.isETHAddressHex(`${name}[${i}]`, a));
             return addressList;
         case EnvVarType.StringList:
@@ -496,7 +496,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.APIKeys:
             assert.isString(name, value);
             const apiKeys = (value as string).split(',');
-            apiKeys.forEach((apiKey) => {
+            apiKeys.forEach(apiKey => {
                 const isValidUUID = validateUUID(apiKey);
                 if (!isValidUUID) {
                     throw new Error(`API Key ${apiKey} isn't UUID compliant`);
