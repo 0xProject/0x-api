@@ -46,9 +46,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@^6.1.0":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.1.0-a005c4b84":
   version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-6.1.0.tgz#fa3a0bf379abdfadc1adfaadd18a1699abcc1801"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/ae673465f04202f7ca3158d8f74a02b84d6c13f8"
   dependencies:
     "@0x/assert" "^3.0.21"
     "@0x/base-contract" "^6.2.18"
@@ -557,7 +557,7 @@
     "@0x/mesh-browser-lite" "^10.1.0"
     "@0x/types" "^3.2.0"
     "@0x/utils" "^5.4.0"
-    "@apollo/client" "^3.3.6"
+    "@apollo/client" "^3.2.3"
     "@types/ws" "^7.2.6"
     graphql "^15.3.0"
     react "*"
