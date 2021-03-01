@@ -5,7 +5,7 @@ import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import { defaultHttpServiceWithRateLimiterConfig } from '../config';
-import { META_TRANSACTION_PATH, METRICS_PATH, SRA_PATH, SRA_BASE_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
+import { META_TRANSACTION_PATH, METRICS_PATH, SRA_BASE_PATH, SRA_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
@@ -76,8 +76,9 @@ export async function runHttpServiceAsync(
     app.use(STAKING_PATH, createStakingRouter(dependencies.stakingDataService));
 
     // SRA http service
-    app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
-    app.use(SRA_BASE_PATH, createSRARouter(dependencies.orderBookService));
+    const sraRouter = createSRARouter(dependencies.orderBookService);
+    app.use(SRA_PATH, sraRouter);
+    app.use(SRA_BASE_PATH, sraRouter);
 
     // Meta transaction http service
     if (dependencies.metaTransactionService) {
