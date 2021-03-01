@@ -46,9 +46,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.1.0-a005c4b84":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.1.0-b9d0106da":
   version "6.1.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/ae673465f04202f7ca3158d8f74a02b84d6c13f8"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/0776ac7b94c6abe65b70f10bb8becda431792804"
   dependencies:
     "@0x/assert" "^3.0.21"
     "@0x/base-contract" "^6.2.18"
@@ -68,7 +68,7 @@
     "@ethersproject/address" "^5.0.1"
     "@ethersproject/contracts" "^5.0.1"
     "@ethersproject/providers" "^5.0.4"
-    axios "^0.19.2"
+    axios "^0.21.1"
     axios-mock-adapter "^1.18.1"
     cream-sor "^0.3.3"
     decimal.js "^10.2.0"
@@ -1146,16 +1146,17 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@apollo/client@^3.3.6":
-  version "3.3.7"
-  resolved "https://registry.yarnpkg.com/@apollo/client/-/client-3.3.7.tgz#f15bf961dc0c2bee37a47bf86b8881fdc6183810"
+"@apollo/client@^3.2.3":
+  version "3.3.11"
+  resolved "https://registry.yarnpkg.com/@apollo/client/-/client-3.3.11.tgz#125051405e83dc899d471d43b79fd6045d92a802"
+  integrity sha512-54+D5FB6RJlQ+g37f432gaexnyvDsG5X6L9VO5kqN54HJlbF8hCf/8CXtAQEHCWodAwZhy6kOLp2RM96829q3A==
   dependencies:
     "@graphql-typed-document-node/core" "^3.0.0"
     "@types/zen-observable" "^0.8.0"
     "@wry/context" "^0.5.2"
     "@wry/equality" "^0.3.0"
     fast-json-stable-stringify "^2.0.0"
-    graphql-tag "^2.11.0"
+    graphql-tag "^2.12.0"
     hoist-non-react-statics "^3.3.2"
     optimism "^0.14.0"
     prop-types "^15.7.2"
@@ -2191,12 +2192,6 @@ axios-mock-adapter@^1.18.1:
   dependencies:
     fast-deep-equal "^3.1.1"
     is-buffer "^2.0.3"
-
-axios@^0.19.2:
-  version "0.19.2"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-0.19.2.tgz#3ea36c5d8818d0d5f8a8a97a6d36b86cdc00cb27"
-  dependencies:
-    follow-redirects "1.5.10"
 
 axios@^0.21.1:
   version "0.21.1"
@@ -3651,12 +3646,6 @@ debug@3.2.6, debug@^3.1.0, debug@^3.2.6:
   dependencies:
     ms "^2.1.1"
 
-debug@=3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-3.1.0.tgz#5bb5a0672628b64149566ba16819e61518c67261"
-  dependencies:
-    ms "2.0.0"
-
 debug@^4.0.0, debug@^4.1.1:
   version "4.2.0"
   resolved "https://registry.yarnpkg.com/debug/-/debug-4.2.0.tgz#7f150f93920e94c58f5574c2fd01a3110effe7f1"
@@ -4908,12 +4897,6 @@ flow-stoplight@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/flow-stoplight/-/flow-stoplight-1.0.0.tgz#4a292c5bcff8b39fa6cc0cb1a853d86f27eeff7b"
 
-follow-redirects@1.5.10:
-  version "1.5.10"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.5.10.tgz#7b7a9f9aea2fdff36786a94ff643ed07f4ff5e2a"
-  dependencies:
-    debug "=3.1.0"
-
 follow-redirects@^1.10.0:
   version "1.13.1"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.13.1.tgz#5f69b813376cee4fd0474a3aba835df04ab763b7"
@@ -5297,9 +5280,12 @@ graceful-fs@^4.1.10, graceful-fs@^4.1.11, graceful-fs@^4.1.2, graceful-fs@^4.1.6
   version "4.2.4"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.4.tgz#2256bde14d3632958c465ebc96dc467ca07a29fb"
 
-graphql-tag@^2.11.0:
-  version "2.11.0"
-  resolved "https://registry.yarnpkg.com/graphql-tag/-/graphql-tag-2.11.0.tgz#1deb53a01c46a7eb401d6cb59dec86fa1cccbffd"
+graphql-tag@^2.12.0:
+  version "2.12.1"
+  resolved "https://registry.yarnpkg.com/graphql-tag/-/graphql-tag-2.12.1.tgz#b065ef885e4800e4afd0842811b718a205f4aa58"
+  integrity sha512-LPewEE1vzGkHnCO8zdOGogKsHHBdtpGyihow1UuMwp6RnZa0lAS7NcbvltLOuo4pi5diQCPASAXZkQq44ffixA==
+  dependencies:
+    tslib "^1.14.1"
 
 graphql@^15.3.0:
   version "15.4.0"
