@@ -62,7 +62,7 @@ const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC2
 const DEFAULT_SELL_AMOUNT = new BigNumber(100000000000000000);
 const DEFAULT_QUERY = `buyToken=ZRX&sellToken=WETH&excludedSources=${EXCLUDED_SOURCES.join(',')}&gasPrice=1`;
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     const contractAddresses: ContractAddresses = CONTRACT_ADDRESSES;
     let makerAddress: string;
     let takerAddress: string;
