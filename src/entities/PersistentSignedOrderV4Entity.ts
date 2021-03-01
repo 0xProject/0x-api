@@ -1,13 +1,12 @@
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
-import { SignedOrderV4Entity } from './SignedOrderV4Entity';
-
 // Adds a field `orderState` to SignedOrderEntity
 // Persists after cancellation, expiration, etc
 // We save these to support account history for Matcha front-end
 @Entity({ name: 'persistent_signed_orders_v4' })
-export class PersistentSignedOrderV4Entity extends SignedOrderV4Entity {
+@Index(['makerToken', 'takerToken'], { unique: false })
+export class PersistentSignedOrderV4Entity {
     @PrimaryColumn({ name: 'hash', type: 'varchar' })
     public hash?: string;
 
@@ -50,6 +49,7 @@ export class PersistentSignedOrderV4Entity extends SignedOrderV4Entity {
     @Column({ name: 'sender', type: 'varchar' })
     public sender?: string;
 
+    @Index()
     @Column({ name: 'fee_recipient', type: 'varchar' })
     public feeRecipient?: string;
 
@@ -62,7 +62,7 @@ export class PersistentSignedOrderV4Entity extends SignedOrderV4Entity {
     @Column({ name: 'state', type: 'enum', enum: OrderEventEndState, default: OrderEventEndState.Added })
     public orderState?: OrderEventEndState;
 
-    @Column({ name: 'created_at', type: 'timestamptz', default: 'now()' })
+    @Column({ name: 'created_at', type: 'timestamptz', default: () => 'now()' })
     public createdAt?: string;
 
     constructor(
@@ -86,7 +86,23 @@ export class PersistentSignedOrderV4Entity extends SignedOrderV4Entity {
             orderState?: OrderEventEndState;
         } = {},
     ) {
-        super(opts);
+        this.hash = opts.hash;
+        this.makerToken = opts.makerToken;
+        this.takerToken = opts.takerToken;
+        this.makerAmount = opts.makerAmount;
+        this.takerAmount = opts.takerAmount;
+        this.maker = opts.maker;
+        this.taker = opts.taker;
+        this.pool = opts.pool;
+        this.expiry = opts.expiry;
+        this.salt = opts.salt;
+        this.verifyingContract = opts.verifyingContract;
+        this.takerTokenFeeAmount = opts.takerTokenFeeAmount;
+        this.sender = opts.sender;
+        this.feeRecipient = opts.feeRecipient;
+        this.signature = opts.signature;
+        this.remainingFillableTakerAssetAmount = opts.remainingFillableTakerAssetAmount;
+        this.signature = opts.signature;
         this.orderState = opts.orderState || OrderEventEndState.Added;
     }
 }

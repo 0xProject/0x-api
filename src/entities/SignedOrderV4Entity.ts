@@ -1,13 +1,16 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: 'signed_orders_v4' })
+@Index(['makerToken', 'takerToken'], { unique: false })
 export class SignedOrderV4Entity {
     @PrimaryColumn({ name: 'hash', type: 'varchar' })
     public hash?: string;
 
+    @Index()
     @Column({ name: 'maker_token', type: 'varchar' })
     public makerToken?: string;
 
+    @Index()
     @Column({ name: 'taker_token', type: 'varchar' })
     public takerToken?: string;
 
@@ -17,6 +20,7 @@ export class SignedOrderV4Entity {
     @Column({ name: 'taker_amount', type: 'varchar' })
     public takerAmount?: string;
 
+    @Index()
     @Column({ name: 'maker', type: 'varchar' })
     public maker?: string;
 
@@ -41,6 +45,7 @@ export class SignedOrderV4Entity {
     @Column({ name: 'sender', type: 'varchar' })
     public sender?: string;
 
+    @Index()
     @Column({ name: 'fee_recipient', type: 'varchar' })
     public feeRecipient?: string;
 
@@ -50,7 +55,7 @@ export class SignedOrderV4Entity {
     @Column({ name: 'remaining_fillable_taker_asset_amount', type: 'varchar' })
     public remainingFillableTakerAssetAmount?: string;
 
-    @Column({ name: 'created_at', type: 'timestamptz', default: 'now()' })
+    @Column({ name: 'created_at', type: 'timestamptz', default: () => 'now()' })
     public createdAt?: string;
     constructor(
         opts: {
