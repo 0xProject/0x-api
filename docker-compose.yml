@@ -30,7 +30,7 @@ services:
             CHAIN_ID: '${CHAIN_ID}'
             POSTGRES_URI: 'postgres://api:api@postgres/api'
     mesh:
-        image: overmorrow/mesh:v4rc4
+        image: 0xorg/mesh:11.0.0
         depends_on:
             - ganache
         restart: on-failure
@@ -41,7 +41,7 @@ services:
             VERBOSITY: 4
             PRIVATE_KEY_PATH: ''
             ENABLE_GRAPHQL_SERVER: 'true'
-            ENABLE_GRAPHQL_PLAYGROUND: 'true' # TODO(kimpers): remove this?
+            ENABLE_GRAPHQL_PLAYGROUND: 'true'
             BLOCK_POLLING_INTERVAL: '2s'
             ETHEREUM_RPC_MAX_REQUESTS_PER_24_HR_UTC: '150000'
         volumes:
