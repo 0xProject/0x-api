@@ -135,7 +135,7 @@ describe.skip(SUITE_NAME, () => {
         context('with maker allowances set', async () => {
             beforeEach(async () => {
                 await zrxToken
-                    .approve(contractAddresses.erc20Proxy, MAX_UINT256)
+                    .approve(contractAddresses.exchangeProxy, MAX_UINT256)
                     .sendTransactionAsync({ from: makerAddress });
             });
 
@@ -146,7 +146,7 @@ describe.skip(SUITE_NAME, () => {
                         .deposit()
                         .sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                     await wethContract
-                        .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
+                        .approve(contractAddresses.exchangeProxy, DEFAULT_SELL_AMOUNT)
                         .sendTransactionAsync({ from: takerAddress });
 
                     return rfqtMocker.withMockedRfqtQuotes(
@@ -181,7 +181,7 @@ describe.skip(SUITE_NAME, () => {
                         .deposit()
                         .sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                     await wethContract
-                        .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
+                        .approve(contractAddresses.exchangeProxy, DEFAULT_SELL_AMOUNT)
                         .sendTransactionAsync({ from: takerAddress });
 
                     return rfqtMocker.withMockedRfqtQuotes(
@@ -223,7 +223,7 @@ describe.skip(SUITE_NAME, () => {
                         .deposit()
                         .sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                     await wethContract
-                        .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
+                        .approve(contractAddresses.exchangeProxy, DEFAULT_SELL_AMOUNT)
                         .sendTransactionAsync({ from: takerAddress });
 
                     return rfqtMocker.withMockedRfqtQuotes(
@@ -255,7 +255,7 @@ describe.skip(SUITE_NAME, () => {
                         .deposit()
                         .sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                     await wethContract
-                        .approve(contractAddresses.exchangeProxyAllowanceTarget, DEFAULT_SELL_AMOUNT)
+                        .approve(contractAddresses.exchangeProxy, DEFAULT_SELL_AMOUNT)
                         .sendTransactionAsync({ from: takerAddress });
 
                     return rfqtMocker.withMockedRfqtQuotes(
@@ -298,7 +298,7 @@ describe.skip(SUITE_NAME, () => {
                     const buyAmount = new BigNumber(100000000000000000);
 
                     await wethContract
-                        .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
+                        .approve(contractAddresses.exchangeProxy, new BigNumber(0))
                         .sendTransactionAsync({ from: takerAddress });
 
                     const appResponse = await request(app)
@@ -314,7 +314,7 @@ describe.skip(SUITE_NAME, () => {
                 });
                 it('should succeed when taker can not actually fill but we skip validation', async () => {
                     await wethContract
-                        .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
+                        .approve(contractAddresses.exchangeProxy, new BigNumber(0))
                         .sendTransactionAsync({ from: takerAddress });
 
                     return rfqtMocker.withMockedRfqtQuotes(
@@ -346,7 +346,7 @@ describe.skip(SUITE_NAME, () => {
                         .deposit()
                         .sendTransactionAsync({ value: DEFAULT_SELL_AMOUNT, from: takerAddress });
                     await wethContract
-                        .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
+                        .approve(contractAddresses.exchangeProxy, new BigNumber(0))
                         .sendTransactionAsync({ from: takerAddress });
 
                     // this RFQ-T mock should never actually get hit b/c of the bad api key
@@ -377,7 +377,7 @@ describe.skip(SUITE_NAME, () => {
                 });
                 it('should fail validation when taker can not actually fill', async () => {
                     await wethContract
-                        .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
+                        .approve(contractAddresses.exchangeProxy, new BigNumber(0))
                         .sendTransactionAsync({ from: takerAddress });
 
                     return rfqtMocker.withMockedRfqtQuotes(
@@ -483,13 +483,13 @@ describe.skip(SUITE_NAME, () => {
         context('without maker allowances set', async () => {
             beforeEach(async () => {
                 await zrxToken
-                    .approve(contractAddresses.erc20Proxy, new BigNumber(0))
+                    .approve(contractAddresses.exchangeProxy, new BigNumber(0))
                     .sendTransactionAsync({ from: makerAddress });
             });
 
             it('should not return order if maker allowances are not set', async () => {
                 await wethContract
-                    .approve(contractAddresses.exchangeProxyAllowanceTarget, new BigNumber(0))
+                    .approve(contractAddresses.exchangeProxy, new BigNumber(0))
                     .sendTransactionAsync({ from: takerAddress });
 
                 return rfqtMocker.withMockedRfqtQuotes(
