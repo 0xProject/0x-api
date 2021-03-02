@@ -127,12 +127,16 @@
         "tslint": "^6.1.3",
         "typescript": "^4.0.3"
     },
+    "resolutions": {
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v5.11.0-2593f68cd9",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.13.0-2593f68cd9"
+    },
     "dependencies": {
         "@0x/api-utils": "0xProject/gitpkg-registry#0x-api-utils-v0.0.1-362d82e",
         "@0x/assert": "^3.0.17",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v6.3.0-525bc8197",
-        "@0x/contract-addresses": "^5.11.0",
-        "@0x/contract-wrappers": "^13.13.0",
+        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v6.2.0-ae6407bff8",
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v5.11.0-2593f68cd9",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.13.0-2593f68cd9",
         "@0x/json-schemas": "^5.3.1",
         "@0x/mesh-graphql-client": "^11.0.1",
         "@0x/order-utils": "^10.4.15",
