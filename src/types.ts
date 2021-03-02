@@ -29,12 +29,6 @@ export {
     RollingLimiterIntervalUnit,
 } from './utils/rate-limiters/types';
 
-export enum ChainId {
-    Mainnet = 1,
-    Kovan = 42,
-    Ganache = 1337,
-}
-
 export enum OrderWatcherLifeCycleEvents {
     Added,
     Removed,
@@ -447,6 +441,17 @@ export interface DelegatorEvent {
 export interface ObjectMap<T> {
     [key: string]: T;
 }
+
+// tslint:disable:enum-naming
+export enum ChainId {
+    Mainnet = 1,
+    Ropsten = 3,
+    Rinkeby = 4,
+    Kovan = 42,
+    Ganache = 1337,
+    BSC = 56,
+}
+// tslint:enable:enum-naming
 
 export interface TokenMetadata {
     symbol: string;

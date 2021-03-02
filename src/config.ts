@@ -31,7 +31,6 @@ import {
 import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
-import { getTokenMetadataIfExists } from './utils/token_metadata_utils';
 
 enum EnvVarType {
     AddressList,
@@ -308,6 +307,8 @@ const EXCLUDED_SOURCES = (() => {
             return allERC20BridgeSources.filter(
                 s => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
             );
+        case ChainId.BSC:
+            return [ERC20BridgeSource.MultiBridge];
         default:
             return allERC20BridgeSources.filter(s => s !== ERC20BridgeSource.Native);
     }
@@ -318,6 +319,8 @@ const EXCLUDED_FEE_SOURCES = (() => {
         case ChainId.Mainnet:
             return [];
         case ChainId.Kovan:
+            return [ERC20BridgeSource.Uniswap];
+        case ChainId.BSC:
             return [ERC20BridgeSource.Uniswap];
         default:
             return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
@@ -359,14 +362,6 @@ export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     }
 })();
 
-export const DEFAULT_INTERMEDIATE_TOKENS = [
-    getTokenMetadataIfExists('WETH', CHAIN_ID)?.tokenAddress,
-    getTokenMetadataIfExists('DAI', CHAIN_ID)?.tokenAddress,
-    getTokenMetadataIfExists('USDC', CHAIN_ID)?.tokenAddress,
-    getTokenMetadataIfExists('USDT', CHAIN_ID)?.tokenAddress,
-    getTokenMetadataIfExists('WBTC', CHAIN_ID)?.tokenAddress,
-].filter(t => t) as string[];
-
 let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqtOpts = {
     takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
     makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
@@ -383,15 +378,13 @@ if (ALT_RFQ_MM_API_KEY && ALT_RFQ_MM_PROFILE) {
 }
 
 export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
-    chainId: CHAIN_ID,
+    chainId: CHAIN_ID as any,
     expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     rfqt: SWAP_QUOTER_RFQT_OPTS,
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
     samplerOverrides: SAMPLER_OVERRIDES,
-    tokenAdjacencyGraph:
-        // Override for testnets, use the default for Mainnet
-        CHAIN_ID === ChainId.Mainnet ? DEFAULT_TOKEN_ADJACENCY_GRAPH : { default: DEFAULT_INTERMEDIATE_TOKENS },
+    tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH,
     liquidityProviderRegistry: LIQUIDITY_PROVIDER_REGISTRY,
 };
 
