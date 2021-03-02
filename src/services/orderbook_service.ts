@@ -1,6 +1,6 @@
 import { AcceptedOrderResult, OrderEventEndState, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
 import * as _ from 'lodash';
-import { Connection, In, MoreThanOrEqual } from 'typeorm';
+import { Connection, Equal, FindOperator, In, MoreThanOrEqual } from 'typeorm';
 
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
@@ -103,10 +103,21 @@ export class OrderBookService {
 
         // Add an expiry time check to all filters
         const minExpiryTime = Math.floor(Date.now() / ONE_SECOND_MS) + SRA_ORDER_EXPIRATION_BUFFER_SECONDS;
-        const filtersWithExpirationCheck = filters.map(filter => ({
-            ...filter,
-            expiry: MoreThanOrEqual(minExpiryTime),
-        }));
+        const filtersWithExpirationCheck = filters.map(filter => {
+            // NOTE: we cannot mix raw properties and TypeORM filter operators, so we need to convert all filters into filter operators
+            const filterOperators = Object.entries(filter).reduce<{ [key: string]: FindOperator<string | undefined> }>(
+                (memo, [key, value]) => {
+                    memo[key] = Equal(value);
+                    return memo;
+                },
+                {},
+            );
+
+            return {
+                ...filterOperators,
+                expiry: MoreThanOrEqual(minExpiryTime),
+            };
+        });
 
         const [signedOrderCount, signedOrderEntities] = await Promise.all([
             this._connection.manager.count(SignedOrderV4Entity, {
