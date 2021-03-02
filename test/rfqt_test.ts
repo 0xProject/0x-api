@@ -39,9 +39,12 @@ import { ganacheZrxWethRfqOrderExchangeProxy, rfqtIndicativeQuoteResponse } from
 // Force reload of the app avoid variables being polluted between test suites
 delete require.cache[require.resolve('../src/app')];
 
+// tslint:disable-next-line: custom-no-magic-numbers
+const KEEP_ALIVE_TTL = 5 * 60 * 1000;
+
 const quoteRequestorHttpClient = Axios.create({
-    httpAgent: new HttpAgent({ keepAlive: true }),
-    httpsAgent: new HttpsAgent({ keepAlive: true }),
+    httpAgent: new HttpAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
+    httpsAgent: new HttpsAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
 });
 
 let app: Express.Application;
