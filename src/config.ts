@@ -345,11 +345,16 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     numSamples: 13,
     sampleDistributionBase: 1.05,
     exchangeProxyOverhead: (sourceFlags: number) => {
-        if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
+        // These sources have direct VIPs
+        const vips = [SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap];
+        // These sources have a LiquidityProvider Sandbox VIP. Adds a little overhead: 10k
+        const sandboxedVips = [SOURCE_FLAGS.Curve, SOURCE_FLAGS.LiquidityProvider];
+        if (vips.includes(sourceFlags)) {
             return TX_BASE_GAS;
-        } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
+        } else if (sandboxedVips.includes(sourceFlags)) {
             return TX_BASE_GAS.plus(10e3);
         } else {
+            // Everything else goes through the FlashWallet which adds a chunk of overhead
             return new BigNumber(150e3);
         }
     },
