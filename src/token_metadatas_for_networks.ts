@@ -1069,4 +1069,14 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
             [ChainId.Ganache]: NULL_ADDRESS,
         },
     },
+    {
+        symbol: 'RING',
+        name: 'Darwinia Network Native Token',
+        decimals: 18,
+        tokenAddresses: {
+            [ChainId.Mainnet]: '0x9469d013805bffb7d3debe5e7839237e535ec483',
+            [ChainId.Kovan]: NULL_ADDRESS,
+            [ChainId.Ganache]: NULL_ADDRESS,
+        },
+    },
 ];
