@@ -16,7 +16,6 @@ import { BlockchainLifecycle } from '@0x/dev-utils';
 import { Web3ProviderEngine } from '@0x/subproviders';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
-import Axios from 'axios';
 import { Agent as HttpAgent, Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import { Agent as HttpsAgent } from 'https';
@@ -24,6 +23,7 @@ import * as _ from 'lodash';
 import 'mocha';
 import * as request from 'supertest';
 
+import Axios from '../node_modules/@0x/asset-swapper/node_modules/axios';
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import {
     defaultHttpServiceWithRateLimiterConfig,
