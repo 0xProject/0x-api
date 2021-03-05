@@ -24,7 +24,6 @@ import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_run
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
-import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
 import {
@@ -48,7 +47,6 @@ import { MetaTransactionComposableLimiter } from './utils/rate-limiters/meta_tra
 export interface AppDependencies {
     contractAddresses: ContractAddresses;
     connection: Connection;
-    stakingDataService: StakingDataService;
     meshClient?: MeshClient;
     orderBookService: OrderBookService;
     swapService?: SwapService;
@@ -122,7 +120,6 @@ export async function getDefaultAppDependenciesAsync(
 ): Promise<AppDependencies> {
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
     const connection = await getDBConnectionAsync();
-    const stakingDataService = new StakingDataService(connection);
 
     let meshClient: MeshClient | undefined;
     if (config.meshWebsocketUri !== undefined && config.meshHttpUri !== undefined) {
@@ -170,7 +167,6 @@ export async function getDefaultAppDependenciesAsync(
     return {
         contractAddresses,
         connection,
-        stakingDataService,
         meshClient,
         orderBookService,
         swapService,

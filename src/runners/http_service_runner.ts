@@ -6,14 +6,13 @@ import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import { defaultHttpServiceWithRateLimiterConfig } from '../config';
-import { META_TRANSACTION_PATH, SRA_PATH, STAKING_PATH, SWAP_PATH } from '../constants';
+import { META_TRANSACTION_PATH, SRA_PATH, SWAP_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
 import { createMetaTransactionRouter } from '../routers/meta_transaction_router';
 import { createSRARouter } from '../routers/sra_router';
-import { createStakingRouter } from '../routers/staking_router';
 import { createSwapRouter } from '../routers/swap_router';
 import { WebsocketService } from '../services/websocket_service';
 import { HttpServiceConfig } from '../types';
@@ -71,9 +70,6 @@ export async function runHttpServiceAsync(
 
     // transform all values of `req.query.[xx]Address` to lowercase
     app.use(addressNormalizer);
-
-    // staking http service
-    app.use(STAKING_PATH, createStakingRouter(dependencies.stakingDataService));
 
     // SRA http service
     app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
