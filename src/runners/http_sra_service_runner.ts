@@ -1,6 +1,7 @@
 /**
  * This module can be used to run the SRA HTTP service standalone
  */
+import { createDefaultServer } from '@0x/api-utils';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
@@ -19,7 +20,7 @@ import { WebsocketService } from '../services/websocket_service';
 import { HttpServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
-import { createDefaultServer } from './utils';
+import { destroyCallback } from './utils';
 
 process.on('uncaughtException', err => {
     logger.error(err);
@@ -48,7 +49,7 @@ async function runHttpServiceAsync(
     const app = _app || express();
     app.use(addressNormalizer);
     app.use(cacheControl);
-    const server = createDefaultServer(dependencies, config, app);
+    const server = createDefaultServer(config, app, logger, destroyCallback(dependencies));
 
     app.get('/', rootHandler);
     // SRA http service

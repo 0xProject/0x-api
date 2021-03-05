@@ -1,3 +1,4 @@
+import { createDefaultServer } from '@0x/api-utils';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
@@ -19,7 +20,7 @@ import { WebsocketService } from '../services/websocket_service';
 import { HttpServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
-import { createDefaultServer } from './utils';
+import { destroyCallback } from './utils';
 
 /**
  * http_service_runner hosts endpoints for staking, sra, swap and meta-txns (minus the /submit endpoint)
@@ -62,7 +63,7 @@ export async function runHttpServiceAsync(
     _app?: core.Express,
 ): Promise<HttpServices> {
     const app = _app || express();
-    const server = createDefaultServer(dependencies, config, app);
+    const server = createDefaultServer(config, app, logger, destroyCallback(dependencies));
 
     app.get('/', rootHandler);
     server.on('error', err => {
