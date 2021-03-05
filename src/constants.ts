@@ -91,3 +91,6 @@ export const NUMBER_SOURCES_PER_LOG_LINE = 12;
 // RFQ Quote Validator expiration threshold
 export const RFQ_FIRM_QUOTE_CACHE_EXPIRY = ONE_MINUTE_MS * 2;
 export const RFQ_ALLOWANCE_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
+
+// General cache control
+export const DEFAULT_CACHE_AGE_SECONDS = 10;

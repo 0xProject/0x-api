@@ -2,9 +2,9 @@
 # yarn lockfile v1
 
 
-"@0x/api-utils@0xProject/gitpkg-registry#0x-api-utils-v0.0.1-b4921e8":
+"@0x/api-utils@0xProject/gitpkg-registry#0x-api-utils-v0.0.1-fc6beb9":
   version "0.0.1"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/82fd62504690b94f2a7b4aa9841d054001f8da90"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/3ef5ae7a6b0f21bcd9aad94e912910cf5a1c20ed"
   dependencies:
     body-parser "^1.19.0"
     cors "^2.8.5"
