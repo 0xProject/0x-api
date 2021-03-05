@@ -2,10 +2,13 @@
 # yarn lockfile v1
 
 
-"@0x/api-utils@0xProject/gitpkg-registry#0x-api-utils-v0.0.1-fc6beb9":
+"@0x/api-utils@0xProject/gitpkg-registry#0x-api-utils-v0.0.1-505c913":
   version "0.0.1"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/3ef5ae7a6b0f21bcd9aad94e912910cf5a1c20ed"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/3d5cbe57f47050875b5102cf9a029af6f632aaf3"
   dependencies:
+    "@0x/typescript-typings" "^5.1.6"
+    "@types/cors" "^2.8.10"
+    "@types/express" "^4.17.1"
     body-parser "^1.19.0"
     cors "^2.8.5"
     express "^4.17.1"
@@ -1659,6 +1662,11 @@
 "@types/cookiejar@*":
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/@types/cookiejar/-/cookiejar-2.1.2.tgz#66ad9331f63fe8a3d3d9d8c6e3906dd10f6446e8"
+
+"@types/cors@^2.8.10":
+  version "2.8.10"
+  resolved "https://registry.yarnpkg.com/@types/cors/-/cors-2.8.10.tgz#61cc8469849e5bcdd0c7044122265c39cec10cf4"
+  integrity sha512-C7srjHiVG3Ey1nR6d511dtDkCEjxuN9W1HWAEjGq8kpcwmNM6JJkpC0xvabM7BXTG2wDq8Eu33iH9aQKa7IvLQ==
 
 "@types/cors@^2.8.6":
   version "2.8.8"
