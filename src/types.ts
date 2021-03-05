@@ -1,3 +1,4 @@
+import { HttpServiceConfig as BaseHttpConfig } from '@0x/api-utils';
 import {
     AffiliateFeeType,
     ContractAddresses,
@@ -680,14 +681,8 @@ export interface TransactionWatcherSignerServiceConfig {
     rateLimiter?: MetaTransactionRateLimiter;
 }
 
-export interface HttpServiceConfig {
-    httpPort: number;
-    healthcheckHttpPort: number;
+export interface HttpServiceConfig extends BaseHttpConfig {
     ethereumRpcUrl: string;
-    httpKeepAliveTimeout: number;
-    httpHeadersTimeout: number;
-    enablePrometheusMetrics: boolean;
-    prometheusPort: number;
     meshWebsocketUri?: string;
     meshHttpUri?: string;
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;

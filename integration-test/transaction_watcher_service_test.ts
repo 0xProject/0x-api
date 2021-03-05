@@ -28,7 +28,6 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
 import { GeneralErrorCodes } from '../src/errors';
-import { MetricsService } from '../src/services/metrics_service';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
 import { StakingDataService } from '../src/services/staking_data_service';
@@ -114,7 +113,6 @@ describe('Transaction Watcher Service integration test', () => {
             defaultHttpServiceConfig.meshWebsocketUri!,
             defaultHttpServiceConfig.meshHttpUri,
         );
-        const metricsService = new MetricsService();
         metaTxnUser = new TestMetaTxnUser();
         ({ app } = await getAppAsync(
             {
@@ -127,9 +125,11 @@ describe('Transaction Watcher Service integration test', () => {
                 swapService,
                 meshClient,
                 websocketOpts,
-                metricsService,
             },
-            defaultHttpServiceWithRateLimiterConfig,
+            {
+                ...defaultHttpServiceWithRateLimiterConfig,
+                enablePrometheusMetrics: true,
+            },
         ));
     });
     it('sends a signed zeroex transaction correctly', async () => {

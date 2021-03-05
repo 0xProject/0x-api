@@ -22,7 +22,6 @@ import { logger } from './logger';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
-import { MetricsService } from './services/metrics_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
 import { StakingDataService } from './services/staking_data_service';
@@ -57,7 +56,6 @@ export interface AppDependencies {
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
     transactionWatcherService?: TransactionWatcherSignerService;
-    metricsService?: MetricsService;
     rateLimiter?: MetaTransactionRateLimiter;
 }
 
@@ -135,10 +133,6 @@ export async function getDefaultAppDependenciesAsync(
     } else {
         logger.warn(`Skipping Mesh client creation because no URI provided`);
     }
-    let metricsService: MetricsService | undefined;
-    if (config.enablePrometheusMetrics) {
-        metricsService = new MetricsService();
-    }
 
     let rateLimiter: MetaTransactionRateLimiter | undefined;
     if (config.metaTxnRateLimiters !== undefined) {
@@ -183,7 +177,6 @@ export async function getDefaultAppDependenciesAsync(
         metaTransactionService,
         provider,
         websocketOpts,
-        metricsService,
         rateLimiter,
     };
 }
