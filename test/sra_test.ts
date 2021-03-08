@@ -1,3 +1,4 @@
+import { generalErrorCodeToReason } from '@0x/api-utils';
 import { constants, expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine } from '@0x/dev-utils';
 import { BigNumber } from '@0x/utils';
@@ -14,7 +15,7 @@ import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '..
 import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, ONE_SECOND_MS, SRA_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
-import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '../src/errors';
+import { ErrorBody, GeneralErrorCodes, ValidationErrorCodes } from '../src/errors';
 import { SignedLimitOrder, SRAOrder } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
 

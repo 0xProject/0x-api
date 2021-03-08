@@ -6,13 +6,7 @@ import * as isValidUUID from 'uuid-validate';
 import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
 import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
 import { SignedOrderV4Entity } from '../entities';
-import {
-    GeneralErrorCodes,
-    generalErrorCodeToReason,
-    NotFoundError,
-    ValidationError,
-    ValidationErrorCodes,
-} from '../errors';
+import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas/schemas';
 import { OrderBookService } from '../services/orderbook_service';
 import { OrderConfigResponse, SignedLimitOrder } from '../types';
@@ -110,11 +104,7 @@ export class SRAHandlers {
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
         if (apiKey === undefined || !isValidUUID(apiKey) || !OrderBookService.isAllowedPersistentOrders(apiKey)) {
-            res.status(HttpStatus.BAD_REQUEST).send({
-                code: GeneralErrorCodes.InvalidAPIKey,
-                reason: generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey],
-            });
-            return;
+            throw new InvalidAPIKeyError();
         }
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         const signedOrder = unmarshallOrder(req.body);
