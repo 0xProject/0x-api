@@ -49,12 +49,13 @@
             "$ref": "/addressSchema"
         }
     },
-    "required": ["sellToken", "buyToken"],
     "oneOf": [
         {
+            "id": "sellAmount",
             "required": ["sellAmount"]
         },
         {
+            "id": "buyAmount",
             "required": ["buyAmount"]
         }
     ],
