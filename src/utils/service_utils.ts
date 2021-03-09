@@ -1,9 +1,14 @@
-import { AffiliateFeeType, ERC20BridgeSource, SwapQuote, SwapQuoteOrdersBreakdown } from '@0x/asset-swapper';
-import { SELL_SOURCE_FILTER } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
+import {
+    AffiliateFeeType,
+    ERC20BridgeSource,
+    SwapQuote,
+    SwapQuoteOrdersBreakdown,
+    SELL_SOURCE_FILTER_BY_CHAIN_ID,
+} from '@0x/asset-swapper';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 
-import { FEE_RECIPIENT_ADDRESS } from '../config';
+import { CHAIN_ID, FEE_RECIPIENT_ADDRESS } from '../config';
 import {
     AFFILIATE_FEE_TRANSFORMER_GAS,
     HEX_BASE,
@@ -78,7 +83,7 @@ export const serviceUtils = {
         const defaultSourceBreakdown: SwapQuoteOrdersBreakdown = Object.assign(
             {},
             // TODO Jacob SELL is a superset of BUY, but may not always be
-            ...Object.values(SELL_SOURCE_FILTER.sources).map(s => ({ [s]: ZERO })),
+            ...Object.values(SELL_SOURCE_FILTER_BY_CHAIN_ID[CHAIN_ID].sources).map(s => ({ [s]: ZERO })),
         );
 
         return Object.entries({ ...defaultSourceBreakdown, ...sourceBreakdown }).reduce<
