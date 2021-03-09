@@ -102,6 +102,16 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         tokenAddresses: valueByChainId(
             {
                 [ChainId.Mainnet]: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+            },
+            NULL_ADDRESS,
+        ),
+    },
+    {
+        decimals: 18,
+        symbol: 'BUSDT',
+        name: 'Binance Peg USD-T',
+        tokenAddresses: valueByChainId(
+            {
                 [ChainId.BSC]: '0x55d398326f99059ff775485246999027b3197955',
             },
             NULL_ADDRESS,

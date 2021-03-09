@@ -2,7 +2,7 @@
 import { assert } from '@0x/assert';
 import {
     BlockParamLiteral,
-    DEFAULT_TOKEN_ADJACENCY_GRAPH,
+    DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
     ERC20BridgeSource,
     LiquidityProviderRegistry,
     OrderPrunerPermittedFeeTypes,
@@ -433,13 +433,13 @@ if (ALT_RFQ_MM_API_KEY && ALT_RFQ_MM_PROFILE) {
 }
 
 export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
-    chainId: CHAIN_ID as any,
+    chainId: CHAIN_ID,
     expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     rfqt: SWAP_QUOTER_RFQT_OPTS,
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
     samplerOverrides: SAMPLER_OVERRIDES,
-    tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH,
+    tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID[CHAIN_ID],
     liquidityProviderRegistry: LIQUIDITY_PROVIDER_REGISTRY,
 };
 
