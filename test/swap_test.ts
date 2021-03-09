@@ -21,7 +21,7 @@ import { AFFILIATE_FEE_TRANSFORMER_GAS, GAS_LIMIT_BUFFER_MULTIPLIER, SWAP_PATH }
 import { ValidationErrorCodes, ValidationErrorItem, ValidationErrorReasons } from '../src/errors';
 import { logger } from '../src/logger';
 import { GetSwapQuoteResponse } from '../src/types';
-import { isETHSymbolOrAddress } from '../src/utils/token_metadata_utils';
+import { isNativeSymbolOrAddress } from '../src/utils/token_metadata_utils';
 
 import {
     CONTRACT_ADDRESSES,
@@ -181,7 +181,7 @@ describe(SUITE_NAME, () => {
                     buyTokenAddress: parameters.buyToken.startsWith('0x')
                         ? parameters.buyToken
                         : SYMBOL_TO_ADDRESS[parameters.buyToken],
-                    allowanceTarget: isETHSymbolOrAddress(parameters.sellToken)
+                    allowanceTarget: isNativeSymbolOrAddress(parameters.sellToken)
                         ? NULL_ADDRESS
                         : CONTRACT_ADDRESSES.exchangeProxy,
                 });

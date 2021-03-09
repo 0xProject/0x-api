@@ -39,7 +39,13 @@ export const TokenMetadatasForChains: TokenMetadataAndChainAddresses[] = [
         symbol: 'ETH',
         name: 'Ether',
         decimals: 18,
-        tokenAddresses: valueByChainId({}, ETH_TOKEN_ADDRESS),
+        tokenAddresses: valueByChainId({ [ChainId.BSC]: NULL_ADDRESS }, ETH_TOKEN_ADDRESS),
+    },
+    {
+        symbol: 'BNB',
+        name: 'BNB',
+        decimals: 18,
+        tokenAddresses: valueByChainId({ [ChainId.BSC]: ETH_TOKEN_ADDRESS }, NULL_ADDRESS),
     },
     {
         symbol: 'WETH',

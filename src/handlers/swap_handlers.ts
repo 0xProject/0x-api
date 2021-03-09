@@ -1,5 +1,6 @@
 // tslint:disable:max-file-line-count
 import { ERC20BridgeSource, RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
@@ -36,8 +37,8 @@ import {
     findTokenAddressOrThrow,
     findTokenAddressOrThrowApiError,
     getTokenMetadataIfExists,
-    isETHSymbolOrAddress,
-    isWETHSymbolOrAddress,
+    isNativeSymbolOrAddress,
+    isNativeWrappedSymbolOrAddress,
 } from '../utils/token_metadata_utils';
 
 import { quoteReportUtils } from './../utils/quote_report_utils';
@@ -199,10 +200,10 @@ export class SwapHandlers {
 
     public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {
         // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-        const buyTokenSymbolOrAddress = isETHSymbolOrAddress(req.query.buyToken as string)
+        const buyTokenSymbolOrAddress = isNativeSymbolOrAddress(req.query.buyToken as string)
             ? 'WETH'
             : (req.query.buyToken as string);
-        const sellTokenSymbolOrAddress = isETHSymbolOrAddress(req.query.sellToken as string)
+        const sellTokenSymbolOrAddress = isNativeSymbolOrAddress(req.query.sellToken as string)
             ? 'WETH'
             : (req.query.sellToken as string);
 
@@ -305,21 +306,21 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     // Parse tokens and eth wrap/unwraps
     const sellTokenRaw = req.query.sellToken as string;
     const buyTokenRaw = req.query.buyToken as string;
-    const isETHSell = isETHSymbolOrAddress(sellTokenRaw);
-    const isETHBuy = isETHSymbolOrAddress(buyTokenRaw);
-    // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
+    const isNativeSell = isNativeSymbolOrAddress(sellTokenRaw);
+    const isNativeBuy = isNativeSymbolOrAddress(buyTokenRaw);
+    // NOTE: Internally all Native token (like ETH) trades are for their wrapped equivalent (ie WETH), we just wrap/unwrap automatically
     const sellToken = findTokenAddressOrThrowApiError(
-        isETHSell ? 'WETH' : sellTokenRaw,
+        isNativeSell ? NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID] : sellTokenRaw,
         'sellToken',
         CHAIN_ID,
     ).toLowerCase();
     const buyToken = findTokenAddressOrThrowApiError(
-        isETHBuy ? 'WETH' : buyTokenRaw,
+        isNativeBuy ? NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID] : buyTokenRaw,
         'buyToken',
         CHAIN_ID,
     ).toLowerCase();
-    const isWrap = isETHSell && isWETHSymbolOrAddress(buyToken, CHAIN_ID);
-    const isUnwrap = isWETHSymbolOrAddress(sellToken, CHAIN_ID) && isETHBuy;
+    const isWrap = isNativeSell && isNativeWrappedSymbolOrAddress(buyToken, CHAIN_ID);
+    const isUnwrap = isNativeWrappedSymbolOrAddress(sellToken, CHAIN_ID) && isNativeBuy;
     // if token addresses are the same but a unwrap or wrap operation is requested, ignore error
     if (!isUnwrap && !isWrap && sellToken === buyToken) {
         throw new ValidationError(
@@ -432,8 +433,8 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         includePriceComparisons,
         shouldSellEntireBalance,
         isMetaTransaction: false,
-        isETHSell,
-        isETHBuy,
+        isETHSell: isNativeSell,
+        isETHBuy: isNativeBuy,
         isUnwrap,
         isWrap,
     };
