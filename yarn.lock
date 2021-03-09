@@ -68,9 +68,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.2.0-974642ae7":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.2.0-d6f63d96d":
   version "6.2.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/7f01e1e7c6e20d3ff7c193d0e59eee009ff194e8"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/dcf9fdc1f3a3eb625eb7bc03de75596532e7a4f1"
   dependencies:
     "@0x/assert" "^3.0.21"
     "@0x/base-contract" "^6.2.18"
@@ -526,10 +526,9 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/protocol-utils@^1.3.1":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-1.3.1.tgz#940c8820e370455574d5d182dc46daaf090454c9"
-  integrity sha512-yw0B5lnTU5TMNOxu4rSMrK6ex/GOYLez37aVx+zBtlgvs/gS0BSsE4NFDV8TQcBw9WiWKNblaUg/f+a/kha/1A==
+"@0x/protocol-utils@0xProject/gitpkg-registry#0x-protocol-utils-v1.3.0-d6f63d96d", "@0x/protocol-utils@^1.0.1", "@0x/protocol-utils@^1.1.4", "@0x/protocol-utils@^1.3.0":
+  version "1.3.0"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/79daded9b63278bb213971ef2bd3bef58d05d18e"
   dependencies:
     "@0x/assert" "^3.0.21"
     "@0x/contract-addresses" "^5.11.0"
