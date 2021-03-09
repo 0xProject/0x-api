@@ -1,9 +1,9 @@
 import {
     AffiliateFeeType,
     ERC20BridgeSource,
+    SELL_SOURCE_FILTER_BY_CHAIN_ID,
     SwapQuote,
     SwapQuoteOrdersBreakdown,
-    SELL_SOURCE_FILTER_BY_CHAIN_ID,
 } from '@0x/asset-swapper';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import * as _ from 'lodash';

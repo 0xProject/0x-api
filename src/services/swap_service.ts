@@ -248,6 +248,8 @@ export class SwapService {
                 ? sellAmount
                 : buyAmount!.times(affiliateFee.buyTokenPercentageFee + 1).integerValue(BigNumber.ROUND_DOWN);
 
+        console.log({ assetSwapperOpts, sellToken, buyToken });
+
         // Fetch the Swap quote
         const swapQuote = await this._swapQuoter.getSwapQuoteAsync(
             buyToken,
