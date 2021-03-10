@@ -17,6 +17,7 @@ import {
     SwapQuoteRequestOpts,
     SwapQuoterOpts,
 } from '@0x/asset-swapper';
+import { NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
 import { MarketOperation, PaginatedCollection } from '@0x/types';
@@ -377,11 +378,11 @@ export class SwapService {
     }
 
     public async getSwapQuoteForWrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
-        return this._getSwapQuoteForWethAsync(params, false);
+        return this._getSwapQuoteForNativeWrappedAsync(params, false);
     }
 
     public async getSwapQuoteForUnwrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
-        return this._getSwapQuoteForWethAsync(params, true);
+        return this._getSwapQuoteForNativeWrappedAsync(params, true);
     }
 
     public async getTokenPricesAsync(
@@ -528,7 +529,7 @@ export class SwapService {
         };
     }
 
-    private async _getSwapQuoteForWethAsync(
+    private async _getSwapQuoteForNativeWrappedAsync(
         params: GetSwapQuoteParams,
         isUnwrap: boolean,
     ): Promise<GetSwapQuoteResponse> {
@@ -557,7 +558,7 @@ export class SwapService {
         const apiSwapQuote: GetSwapQuoteResponse = {
             price: ONE,
             guaranteedPrice: ONE,
-            to: this._wethContract.address,
+            to: NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID],
             data: attributedCalldata.affiliatedData,
             decodedUniqueId: attributedCalldata.decodedUniqueId,
             value,
