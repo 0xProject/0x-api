@@ -308,7 +308,7 @@ const EXCLUDED_SOURCES = (() => {
                 s => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
             );
         case ChainId.BSC:
-            return [ERC20BridgeSource.MultiBridge];
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
             return allERC20BridgeSources.filter(s => s !== ERC20BridgeSource.Native);
     }
@@ -324,6 +324,24 @@ const EXCLUDED_FEE_SOURCES = (() => {
             return [ERC20BridgeSource.Uniswap];
         default:
             return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
+    }
+})();
+
+export const NATIVE_WRAPPED_TOKEN_SYMBOL = (() => {
+    switch (CHAIN_ID) {
+        case ChainId.BSC:
+            return 'WBNB';
+        default:
+            return 'WETH';
+    }
+})();
+
+export const NATIVE_TOKEN_SYMBOL = (() => {
+    switch (CHAIN_ID) {
+        case ChainId.BSC:
+            return 'BNB';
+        default:
+            return 'ETH';
     }
 })();
 

@@ -1,7 +1,7 @@
 import { ETH_TOKEN_ADDRESS } from '@0x/protocol-utils';
-import { CHAIN_ID } from '../config';
+import { NATIVE_TOKEN_SYMBOL, NATIVE_WRAPPED_TOKEN_SYMBOL } from '../config';
 
-import { ADDRESS_HEX_LENGTH, ETH_SYMBOL, WETH_SYMBOL } from '../constants';
+import { ADDRESS_HEX_LENGTH } from '../constants';
 import { ValidationError, ValidationErrorCodes } from '../errors';
 import { TokenMetadataAndChainAddresses, TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import { ChainId, TokenMetadata } from '../types';
@@ -38,14 +38,8 @@ export function getTokenMetadataIfExists(tokenAddressOrSymbol: string, chainId: 
  * @param tokenSymbolOrAddress the symbol of the token
  */
 export function isNativeSymbolOrAddress(tokenSymbolOrAddress: string): boolean {
-    if (CHAIN_ID === ChainId.BSC) {
-        return (
-            tokenSymbolOrAddress.toLowerCase() === 'BNB'.toLowerCase() ||
-            tokenSymbolOrAddress.toLowerCase() === ETH_TOKEN_ADDRESS.toLowerCase()
-        );
-    }
     return (
-        tokenSymbolOrAddress.toLowerCase() === ETH_SYMBOL.toLowerCase() ||
+        tokenSymbolOrAddress.toLowerCase() === NATIVE_TOKEN_SYMBOL.toLowerCase() ||
         tokenSymbolOrAddress.toLowerCase() === ETH_TOKEN_ADDRESS.toLowerCase()
     );
 }
@@ -58,10 +52,11 @@ export function isNativeSymbolOrAddress(tokenSymbolOrAddress: string): boolean {
  */
 export function isNativeWrappedSymbolOrAddress(tokenAddressOrSymbol: string, chainId: number): boolean {
     // force downcast to TokenMetadata the optional
-    const wethAddress = ((getTokenMetadataIfExists(WETH_SYMBOL, chainId) as any) as TokenMetadata).tokenAddress;
+    const wrappedAddress = ((getTokenMetadataIfExists(NATIVE_WRAPPED_TOKEN_SYMBOL, chainId) as any) as TokenMetadata)
+        .tokenAddress;
     return (
-        tokenAddressOrSymbol.toLowerCase() === WETH_SYMBOL.toLowerCase() ||
-        tokenAddressOrSymbol.toLowerCase() === wethAddress
+        tokenAddressOrSymbol.toLowerCase() === NATIVE_WRAPPED_TOKEN_SYMBOL.toLowerCase() ||
+        tokenAddressOrSymbol.toLowerCase() === wrappedAddress
     );
 }
 

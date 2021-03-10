@@ -334,6 +334,18 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         );
     }
 
+    if (sellToken === NULL_ADDRESS || buyToken === NULL_ADDRESS) {
+        throw new ValidationError(
+            ['buyToken', 'sellToken'].map(field => {
+                return {
+                    field,
+                    code: ValidationErrorCodes.FieldInvalid,
+                    reason: 'Invalid token combination',
+                };
+            }),
+        );
+    }
+
     // Parse number params
     const sellAmount = req.query.sellAmount === undefined ? undefined : new BigNumber(req.query.sellAmount as string);
     const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount as string);
