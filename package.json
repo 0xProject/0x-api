@@ -128,17 +128,17 @@
         "typescript": "^4.0.3"
     },
     "resolutions": {
-        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v5.11.0-258bfb777",
-        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.13.0-974642ae7",
-        "@0x/protocol-utils": "0xProject/gitpkg-registry#0x-protocol-utils-v1.3.0-258bfb777"
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v5.11.0-72a86302f",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.13.0-72a86302f",
+        "@0x/protocol-utils": "0xProject/gitpkg-registry#0x-protocol-utils-v1.3.0-72a86302f"
     },
     "dependencies": {
         "@0x/api-utils": "0xProject/gitpkg-registry#0x-api-utils-v0.0.1-362d82e",
         "@0x/assert": "^3.0.17",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v6.2.0-258bfb777",
-        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v5.11.0-258bfb777",
-        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.13.0-974642ae7",
-        "@0x/protocol-utils": "0xProject/gitpkg-registry#0x-protocol-utils-v1.3.0-258bfb777",
+        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v6.2.0-72a86302f",
+        "@0x/contract-addresses": "0xProject/gitpkg-registry#0x-contract-addresses-v5.11.0-72a86302f",
+        "@0x/contract-wrappers": "0xProject/gitpkg-registry#0x-contract-wrappers-v13.13.0-72a86302f",
+        "@0x/protocol-utils": "0xProject/gitpkg-registry#0x-protocol-utils-v1.3.0-72a86302f",
         "@0x/json-schemas": "^5.3.1",
         "@0x/mesh-graphql-client": "^11.0.1",
         "@0x/order-utils": "^10.4.15",
