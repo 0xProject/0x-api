@@ -367,6 +367,11 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
     if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
         // Uniswap VIP
         return TX_BASE_GAS;
+    } else if (
+        [SOURCE_FLAGS.SushiSwap, SOURCE_FLAGS.PancakeSwap, SOURCE_FLAGS.BakerySwap].includes(sourceFlags) &&
+        CHAIN_ID === ChainId.BSC
+    ) {
+        return TX_BASE_GAS;
     } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
         // PLP VIP
         return TX_BASE_GAS.plus(10e3);
