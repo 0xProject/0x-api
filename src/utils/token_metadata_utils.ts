@@ -1,6 +1,6 @@
 import { ETH_TOKEN_ADDRESS } from '@0x/protocol-utils';
-import { NATIVE_TOKEN_SYMBOL, NATIVE_WRAPPED_TOKEN_SYMBOL } from '../config';
 
+import { NATIVE_TOKEN_SYMBOL, NATIVE_WRAPPED_TOKEN_SYMBOL } from '../config';
 import { ADDRESS_HEX_LENGTH } from '../constants';
 import { ValidationError, ValidationErrorCodes } from '../errors';
 import { TokenMetadataAndChainAddresses, TokenMetadatasForChains } from '../token_metadatas_for_networks';
