@@ -353,10 +353,15 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     numSamples: 13,
     sampleDistributionBase: 1.05,
     exchangeProxyOverhead: (sourceFlags: number) => {
-        if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
+        if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags) && CHAIN_ID === ChainId.Mainnet) {
             return TX_BASE_GAS;
         } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
             return TX_BASE_GAS.plus(10e3);
+        } else if (
+            [SOURCE_FLAGS.SushiSwap, SOURCE_FLAGS.PancakeSwap, SOURCE_FLAGS.BakerySwap].includes(sourceFlags) &&
+            CHAIN_ID === ChainId.BSC
+        ) {
+            return TX_BASE_GAS;
         } else {
             return new BigNumber(150e3);
         }

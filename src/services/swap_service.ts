@@ -229,8 +229,6 @@ export class SwapService {
                 ? sellAmount
                 : buyAmount!.times(affiliateFee.buyTokenPercentageFee + 1).integerValue(BigNumber.ROUND_DOWN);
 
-        console.log({ assetSwapperOpts, sellToken, buyToken });
-
         // Fetch the Swap quote
         const swapQuote = await this._swapQuoter.getSwapQuoteAsync(
             buyToken,
@@ -279,7 +277,7 @@ export class SwapService {
         // using eth_gasEstimate
         // If an error occurs we attempt to provide a better message then "Transaction Reverted"
         if (takerAddress && !skipValidation) {
-            const estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
+            let estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                 to,
                 data,
                 from: takerAddress,
@@ -287,7 +285,7 @@ export class SwapService {
                 gasPrice,
             });
             // Add any underterministic gas overhead the encoded transaction has detected
-            estimateGasCallResult.plus(gasOverhead);
+            estimateGasCallResult = estimateGasCallResult.plus(gasOverhead);
             // Take the max of the faux estimate or the real estimate
             conservativeBestCaseGasEstimate = BigNumber.max(
                 // Add a little buffer to eth_estimateGas as it is not always correct
@@ -594,7 +592,6 @@ export class SwapService {
                         },
                     },
                 });
-
                 gasEstimate = callResult.gasUsed.plus(utils.calculateCallDataGas(data!));
             }
         } catch (e) {
@@ -612,7 +609,11 @@ export class SwapService {
                     throw new Error(e.message);
                 }
             } else {
-                revertError = decodeThrownErrorAsRevertError(e);
+                try {
+                    revertError = decodeThrownErrorAsRevertError(e);
+                } catch (e) {
+                    // Could not decode the revert error
+                }
             }
             if (revertError) {
                 throw revertError;
@@ -629,6 +630,11 @@ export class SwapService {
         }
         if (revertError) {
             throw revertError;
+        }
+        // If there's a revert and we still are unable to decode it, just throw it.
+        // This can happen in VIPs where there are no real revert reasons
+        if (callResult && !callResult.success) {
+            throw new Error(`Execution reverted ${callResult.resultData}`);
         }
         return gasEstimate;
     }
