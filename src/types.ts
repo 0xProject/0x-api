@@ -123,7 +123,7 @@ export interface OrdersChannelSubscriptionOpts {
 
 export interface SRAOrderMetaData {
     orderHash: string;
-    remainingFillableTakerAssetAmount: BigNumber;
+    remainingFillableTakerAmount: BigNumber;
     state?: OrderEventEndState;
     createdAt?: string;
 }
