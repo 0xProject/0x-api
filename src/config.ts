@@ -343,15 +343,15 @@ const EXCLUDED_FEE_SOURCES = (() => {
             return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
     }
 })();
-
-const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => new BigNumber(150e3);
+const FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD = new BigNumber(150e3);
+const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
 const EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX = (sourceFlags: number) => {
     if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
         return TX_BASE_GAS;
     } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
         return TX_BASE_GAS.plus(10e3);
     } else {
-        return new BigNumber(150e3);
+        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
     }
 };
 const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
@@ -367,15 +367,15 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
         return TX_BASE_GAS.plus(10e3);
     } else if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
         // Multiplex batch fill
-        return TX_BASE_GAS.plus(20e3);
+        return TX_BASE_GAS.plus(25e3);
     } else if (
         (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | sourceFlags) ===
         (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | SOURCE_FLAGS.MultiHop)
     ) {
         // Multiplex multi-hop fill
-        return TX_BASE_GAS.plus(20e3);
+        return TX_BASE_GAS.plus(25e3);
     } else {
-        return new BigNumber(150e3);
+        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
     }
 };
 
