@@ -22,7 +22,7 @@ export class RPCSubprovider extends Subprovider {
      * @param rpcUrl URL to the backing Ethereum node to which JSON RPC requests should be sent
      * @param requestTimeoutMs Amount of miliseconds to wait before timing out the JSON RPC request
      */
-    constructor(rpcUrl: string, requestTimeoutMs: number = 20000) {
+    constructor(rpcUrl: string, requestTimeoutMs: number = 5000) {
         super();
         assert.isString('rpcUrl', rpcUrl);
         assert.isNumber('requestTimeoutMs', requestTimeoutMs);
