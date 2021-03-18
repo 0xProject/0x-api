@@ -59,8 +59,8 @@ async function runHttpServiceAsync(
     app.use(addressNormalizer);
     app.use(cacheControl);
     const server = createDefaultServer(dependencies, config, app);
-    // 5s timeout
-    server.setTimeout(5000);
+    // 10s timeout
+    server.setTimeout(10000);
 
     app.get('/', rootHandler);
 
