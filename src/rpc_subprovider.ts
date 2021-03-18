@@ -10,17 +10,17 @@ import JsonRpcError = require('json-rpc-error');
  * It forwards on JSON RPC requests to the supplied `rpcUrl` endpoint
  */
 export class RPCSubprovider extends Subprovider {
-    private readonly _rpcUrl: string;
+    private readonly _rpcUrls: string[];
     private readonly _requestTimeoutMs: number;
     /**
      * @param rpcUrl URL to the backing Ethereum node to which JSON RPC requests should be sent
      * @param requestTimeoutMs Amount of miliseconds to wait before timing out the JSON RPC request
      */
-    constructor(rpcUrl: string, requestTimeoutMs: number = 5000) {
+    constructor(rpcUrl: string | string[], requestTimeoutMs: number = 5000) {
         super();
-        assert.isString('rpcUrl', rpcUrl);
+        this._rpcUrls = Array.isArray(rpcUrl) ? rpcUrl : [rpcUrl];
+        this._rpcUrls.forEach(url => assert.isString('rpcUrl', url));
         assert.isNumber('requestTimeoutMs', requestTimeoutMs);
-        this._rpcUrl = rpcUrl;
         this._requestTimeoutMs = requestTimeoutMs;
     }
     /**
@@ -42,9 +42,10 @@ export class RPCSubprovider extends Subprovider {
         });
 
         let response: Response;
+        const rpcUrl = this._rpcUrls[Math.floor(Math.random() * this._rpcUrls.length)];
         try {
             response = await fetchAsync(
-                this._rpcUrl,
+                rpcUrl,
                 {
                     method: 'POST',
                     headers,
