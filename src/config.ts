@@ -120,8 +120,8 @@ export const PINNED_MM_ADDRESSES: string[] = _.isEmpty(process.env.PINNED_MM_ADD
 
 export const DB_ORDERS_UPDATE_CHUNK_SIZE = 300;
 
-// Ethereum RPC Url
-export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.Url);
+// Ethereum RPC Url list
+export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.UrlList);
 
 // Mesh Endpoint
 export const MESH_WEBSOCKET_URI = _.isEmpty(process.env.MESH_WEBSOCKET_URI)
