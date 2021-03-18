@@ -47,6 +47,7 @@ export const ONE_GWEI = new BigNumber(1000000000);
 
 // API namespaces
 export const SRA_PATH = '/sra/v3';
+export const SRA_BASE_PATH = '/sra';
 export const STAKING_PATH = '/staking';
 export const SWAP_PATH = '/swap/v1';
 export const META_TRANSACTION_PATH = '/meta_transaction/v1';

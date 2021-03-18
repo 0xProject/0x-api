@@ -8,7 +8,7 @@ import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import { defaultHttpServiceWithRateLimiterConfig } from '../config';
-import { SRA_PATH } from '../constants';
+import { SRA_BASE_PATH, SRA_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
@@ -51,6 +51,7 @@ async function runHttpServiceAsync(
     app.get('/', rootHandler);
     // SRA http service
     app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
+    app.use(SRA_BASE_PATH, createSRARouter(dependencies.orderBookService));
     app.use(errorHandler);
 
     // websocket service
