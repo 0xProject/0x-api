@@ -110,8 +110,6 @@ async function runRfqBalanceCacheAsync(
         });
     }
 
-    // let requestErrors = 0;
-
     const workerId = _.uniqueId('rfqw_');
     let lastBlockSeen = -1;
     while (true) {
