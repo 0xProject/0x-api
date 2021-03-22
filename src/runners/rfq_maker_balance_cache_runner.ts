@@ -31,6 +31,9 @@ const MAX_ROWS_TO_UPDATE = 1000;
 
 const RANDOM_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
 
+const MAX_REQUEST_ERRORS = 10;
+const MAX_DB_WRITE_ERRORS = 10;
+
 // Metric collection related fields
 const LATEST_BLOCK_PROCESSED_GAUGE = new Gauge({
     name: 'rfqtw_latest_block_processed',
@@ -66,6 +69,9 @@ interface BalancesCallInput {
     tokens: string[];
 }
 
+let requestErrors = 0;
+let dbWriteErrors = 0;
+
 if (require.main === module) {
     (async () => {
         logger.info('running RFQ balance cache runner');
@@ -81,7 +87,7 @@ if (require.main === module) {
 
         await runRfqBalanceCacheAsync(web3Wrapper, connection, balanceCheckerContractInterface);
     })().catch(error => {
-        logger.error(error.stack);
+        logger.error(error);
         process.exit(1);
     });
 }
@@ -104,10 +110,26 @@ async function runRfqBalanceCacheAsync(
         });
     }
 
+    // let requestErrors = 0;
+
     const workerId = _.uniqueId('rfqw_');
     let lastBlockSeen = -1;
     while (true) {
-        const newBlock = await web3Wrapper.getBlockNumberAsync();
+        if (requestErrors >= MAX_REQUEST_ERRORS) {
+            throw new Error(`Too many bad Web3 requests (reached limit of ${MAX_REQUEST_ERRORS})`);
+        }
+        if (dbWriteErrors >= MAX_DB_WRITE_ERRORS) {
+            throw new Error(`Too many failures to write to DB (reached limit of ${MAX_DB_WRITE_ERRORS})`);
+        }
+        let newBlock: number;
+        try {
+            newBlock = await web3Wrapper.getBlockNumberAsync();
+        } catch (err) {
+            requestErrors += 1;
+            logger.error(err);
+            break;
+        }
+
         if (lastBlockSeen < newBlock) {
             lastBlockSeen = newBlock;
             LATEST_BLOCK_PROCESSED_GAUGE.labels(workerId).set(lastBlockSeen);
@@ -119,7 +141,12 @@ async function runRfqBalanceCacheAsync(
                 'Found new block',
             );
 
-            await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true, workerId);
+            try {
+                await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true, workerId);
+            } catch (err) {
+                logger.error(err);
+                break;
+            }
 
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
         } else {
@@ -141,7 +168,13 @@ export async function cacheRfqBalancesAsync(
     const balancesCallInput = splitValues(makerTokens);
 
     const updateTime = new Date();
-    const erc20Balances = await getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput, codeOverride);
+    let erc20Balances: string[];
+    try {
+        erc20Balances = await getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput, codeOverride);
+    } catch (err) {
+        requestErrors += 1;
+        throw new Error(`Couldn't fetch ERC20 Balances from Web3`);
+    }
 
     await updateErc20BalancesAsync(balancesCallInput, erc20Balances, connection, updateTime);
 }
@@ -244,5 +277,10 @@ async function updateErc20BalancesAsync(
         return dbEntity;
     });
 
-    await connection.getRepository(MakerBalanceChainCacheEntity).save(toSave, { chunk: MAX_ROWS_TO_UPDATE });
+    try {
+        await connection.getRepository(MakerBalanceChainCacheEntity).save(toSave, { chunk: MAX_ROWS_TO_UPDATE });
+    } catch (err) {
+        logger.error(err);
+        dbWriteErrors += 1;
+    }
 }
