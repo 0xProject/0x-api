@@ -125,7 +125,7 @@ async function runRfqBalanceCacheAsync(
         } catch (err) {
             requestErrors += 1;
             logger.error(err);
-            break;
+            continue;
         }
 
         if (lastBlockSeen < newBlock) {
@@ -143,7 +143,7 @@ async function runRfqBalanceCacheAsync(
                 await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true, workerId);
             } catch (err) {
                 logger.error(err);
-                break;
+                continue;
             }
 
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
