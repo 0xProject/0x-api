@@ -32,7 +32,6 @@ const MAX_ROWS_TO_UPDATE = 1000;
 const RANDOM_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
 
 const MAX_REQUEST_ERRORS = 10;
-const MAX_DB_WRITE_ERRORS = 10;
 const MAX_CACHE_RFQ_BALANCES_ERRORS = 10;
 
 // Metric collection related fields
@@ -68,11 +67,6 @@ process.on('unhandledRejection', err => {
 interface BalancesCallInput {
     addresses: string[];
     tokens: string[];
-}
-
-interface CacheRfqBalanceErrors {
-    requestError: 0 | 1;
-    dbWriteError: 0 | 1;
 }
 
 if (require.main === module) {
