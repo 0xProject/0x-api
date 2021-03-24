@@ -33,6 +33,7 @@ const RANDOM_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
 
 const MAX_REQUEST_ERRORS = 10;
 const MAX_DB_WRITE_ERRORS = 10;
+const MAX_CACHE_RFQ_BALANCES_ERRORS = 10;
 
 // Metric collection related fields
 const LATEST_BLOCK_PROCESSED_GAUGE = new Gauge({
@@ -69,8 +70,10 @@ interface BalancesCallInput {
     tokens: string[];
 }
 
-let requestErrors = 0;
-let dbWriteErrors = 0;
+interface CacheRfqBalanceErrors {
+    requestError: 0 | 1;
+    dbWriteError: 0 | 1;
+}
 
 if (require.main === module) {
     (async () => {
@@ -110,30 +113,33 @@ async function runRfqBalanceCacheAsync(
         });
     }
 
+    let blockRequestErrors = 0;
+    let cacheRfqBalanceErrors = 0;
+
     const workerId = _.uniqueId('rfqw_');
     let lastBlockSeen = -1;
     while (true) {
-        if (requestErrors >= MAX_REQUEST_ERRORS) {
-            throw new Error(`Too many bad Web3 requests (reached limit of ${MAX_REQUEST_ERRORS})`);
+        if (blockRequestErrors >= MAX_REQUEST_ERRORS) {
+            throw new Error(`too many bad Web3 requests to fetch blocks (reached limit of ${MAX_REQUEST_ERRORS})`);
         }
-        if (dbWriteErrors >= MAX_DB_WRITE_ERRORS) {
-            throw new Error(`Too many failures to write to DB (reached limit of ${MAX_DB_WRITE_ERRORS})`);
+        if (cacheRfqBalanceErrors >= MAX_CACHE_RFQ_BALANCES_ERRORS) {
+            throw new Error(
+                `too many errors from calling cacheRfqBalancesAsync (reached limit of ${MAX_CACHE_RFQ_BALANCES_ERRORS})`,
+            );
         }
         let newBlock: number;
         try {
             newBlock = await web3Wrapper.getBlockNumberAsync();
         } catch (err) {
-            requestErrors += 1;
+            blockRequestErrors += 1;
             logger.error(err);
             continue;
         }
 
         if (lastBlockSeen < newBlock) {
-            lastBlockSeen = newBlock;
-            LATEST_BLOCK_PROCESSED_GAUGE.labels(workerId).set(lastBlockSeen);
             logUtils.log(
                 {
-                    block: lastBlockSeen,
+                    block: newBlock,
                     workerId,
                 },
                 'Found new block',
@@ -143,8 +149,12 @@ async function runRfqBalanceCacheAsync(
                 await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true, workerId);
             } catch (err) {
                 logger.error(err);
+                cacheRfqBalanceErrors += 1;
                 continue;
             }
+
+            LATEST_BLOCK_PROCESSED_GAUGE.labels(workerId).set(newBlock);
+            lastBlockSeen = newBlock;
 
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
         } else {
@@ -167,12 +177,8 @@ export async function cacheRfqBalancesAsync(
 
     const updateTime = new Date();
     let erc20Balances: string[];
-    try {
-        erc20Balances = await getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput, codeOverride);
-    } catch (err) {
-        requestErrors += 1;
-        throw new Error(`Couldn't fetch ERC20 Balances from Web3`);
-    }
+
+    erc20Balances = await getErc20BalancesAsync(balanceCheckerContractInterface, balancesCallInput, codeOverride);
 
     await updateErc20BalancesAsync(balancesCallInput, erc20Balances, connection, updateTime);
 }
@@ -216,7 +222,7 @@ function splitValues(makerTokens: MakerBalanceChainCacheEntity[]): BalancesCallI
 /**
  * Returns the balaceChecker interface given a random address
  */
-export function getBalanceCheckerContractInterface(
+function getBalanceCheckerContractInterface(
     contractAddress: string,
     provider: SupportedProvider,
 ): BalanceCheckerContract {
@@ -275,10 +281,5 @@ async function updateErc20BalancesAsync(
         return dbEntity;
     });
 
-    try {
-        await connection.getRepository(MakerBalanceChainCacheEntity).save(toSave, { chunk: MAX_ROWS_TO_UPDATE });
-    } catch (err) {
-        logger.error(err);
-        dbWriteErrors += 1;
-    }
+    await connection.getRepository(MakerBalanceChainCacheEntity).save(toSave, { chunk: MAX_ROWS_TO_UPDATE });
 }
