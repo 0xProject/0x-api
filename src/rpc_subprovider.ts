@@ -1,16 +1,15 @@
 import { assert } from '@0x/assert';
 import { Callback, ErrorCallback, Subprovider } from '@0x/subproviders';
 import { StatusCodes } from '@0x/types';
-import { Response, Headers } from 'node-fetch';
 import { JSONRPCRequestPayload } from 'ethereum-types';
 import * as http from 'http';
 import * as https from 'https';
-import fetch from 'node-fetch';
 import JsonRpcError = require('json-rpc-error');
+import fetch, { Headers, Response } from 'node-fetch';
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
-const agent = (_parsedURL: any) => (_parsedURL.protocol == 'http:' ? httpAgent : httpsAgent);
+const agent = (_parsedURL: any) => (_parsedURL.protocol === 'http:' ? httpAgent : httpsAgent);
 
 /**
  * This class implements the [web3-provider-engine](https://github.com/MetaMask/provider-engine) subprovider interface.
