@@ -64,7 +64,30 @@ describe(SUITE_NAME, () => {
             const dbEntity = await txRepository.findOne();
 
             // the saved + read entity should match the original entity
-            expect(dbEntity).to.deep.eq(txEntityOpts);
+            expect(dbEntity).to.deep.eq(testTxEntity);
+        });
+        it('should be able to write a transaction entity with null lastLookConfig', async () => {
+            const txEntityOpts: TransactionEntityOpts = {
+                refHash: '0x00',
+                apiKey: 'averycoolkey',
+                txHash: '0x00',
+                takerAddress: '0x00',
+                status: 'submitted',
+                expectedMinedInSec: 60,
+                to: '0x00',
+                lastLookConfig: null,
+            };
+            const testTxEntity = TransactionEntity.make(txEntityOpts);
+
+            const txRepository = connection.getRepository(TransactionEntity);
+
+            await txRepository.save(testTxEntity);
+
+            // read the newly saved entity
+            const dbEntity = await txRepository.findOne();
+
+            // the saved + read entity should match the original entity
+            expect(dbEntity).to.deep.eq(testTxEntity);
         });
     });
 });

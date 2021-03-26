@@ -71,7 +71,7 @@ export class TransactionEntity {
     @Column({ name: 'expected_at', type: 'timestamptz' })
     public expectedAt: Date;
 
-    @Column({ name: 'last_look_config', type: 'jsonb' })
+    @Column({ name: 'last_look_config', type: 'jsonb', nullable: true })
     public lastLookConfig?: LastLookConfig | null;
 
     public static make(opts: TransactionEntityOpts): TransactionEntity {
