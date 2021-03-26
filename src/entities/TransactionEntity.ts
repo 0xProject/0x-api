@@ -4,7 +4,7 @@ import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } fro
 
 import { META_TXN_RELAY_EXPECTED_MINED_SEC } from '../config';
 import { ONE_SECOND_MS, ZERO } from '../constants';
-import { TransactionStates } from '../types';
+import { LastLookConfig, TransactionStates } from '../types';
 
 import { BigIntTransformer, BigNumberTransformer } from './transformers';
 import { TransactionEntityOpts } from './types';
@@ -71,6 +71,9 @@ export class TransactionEntity {
     @Column({ name: 'expected_at', type: 'timestamptz' })
     public expectedAt: Date;
 
+    @Column({ name: 'last_look_config', type: 'jsonb' })
+    public lastLookConfig?: LastLookConfig | null;
+
     public static make(opts: TransactionEntityOpts): TransactionEntity {
         assert.isHexString('refHash', opts.refHash);
         if (opts.txHash !== undefined) {
@@ -111,6 +114,7 @@ export class TransactionEntity {
             gas: null,
             gasUsed: null,
             txStatus: null,
+            lastLookConfig: null,
         },
     ) {
         this.refHash = opts.refHash;
@@ -131,5 +135,6 @@ export class TransactionEntity {
         this.txStatus = opts.txStatus;
         const now = new Date();
         this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * ONE_SECOND_MS);
+        this.lastLookConfig = opts.lastLookConfig;
     }
 }

@@ -1,5 +1,7 @@
 import { BigNumber } from '@0x/utils';
 
+import { LastLookConfig } from '../types';
+
 export interface TransactionEntityOpts {
     refHash: string;
     apiKey?: string;
@@ -18,4 +20,5 @@ export interface TransactionEntityOpts {
     blockNumber?: number;
     // Ethereum tx status, 1 == success, 0 == failure
     txStatus?: number | null;
+    lastLookConfig?: LastLookConfig | null;
 }

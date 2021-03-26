@@ -714,4 +714,19 @@ export interface BucketedPriceDepth {
     bucket: number;
     bucketTotal: BigNumber;
 }
+
+export interface LastLookConfig {
+    makerUri: string;
+    orderHash: string;
+    rfqOrderDetail: LastLookOrderDetail;
+}
+
+export interface LastLookOrderDetail {
+    makerAmount: string;
+    takerAmount: string;
+    makerToken: string;
+    takerToken: string;
+    txOrigin: string;
+}
+
 // tslint:disable-line:max-file-line-count
