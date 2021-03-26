@@ -2,7 +2,6 @@ import { expect } from '@0x/contracts-test-utils';
 import 'mocha';
 import { Connection } from 'typeorm';
 
-
 import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity, TransactionEntityOpts } from '../src/entities';
 import { LastLookConfig } from '../src/types';
@@ -15,7 +14,7 @@ delete require.cache[require.resolve('../src/app')];
 
 const SUITE_NAME = 'rfqm tests';
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let connection: Connection;
 
     before(async () => {
