@@ -26,9 +26,9 @@ import {
     WETH_TOKEN_ADDRESS,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
-import { meshClientMockManager, resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
+import { MeshClientMock } from './utils/mesh_client_mock';
 import { getRandomLimitOrder, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'Standard Relayer API (SRA) integration tests';
@@ -56,6 +56,7 @@ describe(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
 
     let meshUtils: MeshTestUtils;
+    let meshClientMock: MeshClientMock;
 
     async function addNewOrderAsync(
         params: Partial<SignedLimitOrder> & { maker: string },
@@ -108,6 +109,9 @@ describe(SUITE_NAME, () => {
 
         const privateKeyBuf = constants.TESTRPC_PRIVATE_KEYS[accounts.indexOf(makerAddress)];
         privateKey = `0x${privateKeyBuf.toString('hex')}`;
+
+        meshClientMock = new MeshClientMock();
+        meshClientMock.setupMock();
     });
     after(async () => {
         await new Promise<void>((resolve, reject) => {
@@ -118,18 +122,19 @@ describe(SUITE_NAME, () => {
                 resolve();
             });
         });
-        await resetState();
+        meshClientMock.teardownMock();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
     beforeEach(async () => {
-        await resetState();
         await blockchainLifecycle.startAsync();
         meshUtils = new MeshTestUtils(provider);
         await meshUtils.setupUtilsAsync();
     });
 
     afterEach(async () => {
+        await meshClientMock.resetStateAsync();
+        meshClientMock.resetHandlers();
         await blockchainLifecycle.revertAsync();
     });
 
@@ -457,7 +462,7 @@ describe(SUITE_NAME, () => {
                 signature,
             };
 
-            meshClientMockManager.mock('addOrdersV4Async').callsFake(orders => {
+            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake(orders => {
                 return { rejected: orders, accepted: [] };
             });
             const response = await httpPostAsync({
@@ -467,14 +472,6 @@ describe(SUITE_NAME, () => {
                     ...order,
                 },
             });
-            // Hack: reset mocked method
-            meshClientMockManager
-                .mock('addOrdersV4Async')
-                .callsFake(
-                    meshClientMockManager
-                        .getMockInstance()
-                        .addOrdersV4Async.bind(meshClientMockManager.getMockInstance()),
-                );
             expect(response.status).to.eq(HttpStatus.OK);
         });
         it('should not skip mesh validation normally', async () => {
@@ -495,7 +492,7 @@ describe(SUITE_NAME, () => {
                 signature,
             };
 
-            meshClientMockManager.mock('addOrdersV4Async').callsFake(orders => {
+            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake(orders => {
                 return { rejected: orders, accepted: [] };
             });
             const response = await httpPostAsync({
@@ -505,14 +502,6 @@ describe(SUITE_NAME, () => {
                     ...order,
                 },
             });
-            // Hack: reset mocked method
-            meshClientMockManager
-                .mock('addOrdersV4Async')
-                .callsFake(
-                    meshClientMockManager
-                        .getMockInstance()
-                        .addOrdersV4Async.bind(meshClientMockManager.getMockInstance()),
-                );
             expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
         });
     });

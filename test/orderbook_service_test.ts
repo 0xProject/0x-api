@@ -19,8 +19,8 @@ import { MeshClient } from '../src/utils/mesh_client';
 import { orderUtils } from '../src/utils/order_utils';
 
 import { CHAIN_ID, getProvider } from './constants';
-import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
+import { MeshClientMock } from './utils/mesh_client_mock';
 import { getRandomLimitOrder, MeshTestUtils } from './utils/mesh_test_utils';
 
 const SUITE_NAME = 'OrderbookService';
@@ -95,6 +95,9 @@ describe(SUITE_NAME, () => {
     let orderBookService: OrderBookService;
     let privateKey: string;
 
+    const meshClientMock = new MeshClientMock();
+    meshClientMock.setupMock();
+
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
@@ -111,7 +114,7 @@ describe(SUITE_NAME, () => {
         await blockchainLifecycle.startAsync();
     });
     after(async () => {
-        await resetState();
+        meshClientMock.teardownMock();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
@@ -232,7 +235,7 @@ describe(SUITE_NAME, () => {
     describe('addOrdersAsync, addPersistentOrdersAsync', () => {
         let meshUtils: MeshTestUtils;
         before(async () => {
-            await resetState();
+            await meshClientMock.resetStateAsync();
             meshUtils = new MeshTestUtils(provider);
             await meshUtils.setupUtilsAsync();
         });

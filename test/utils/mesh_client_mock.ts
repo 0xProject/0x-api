@@ -1,13 +1,63 @@
 // tslint:disable:custom-no-magic-numbers
 // tslint:disable:no-console
+// tslint:disable:max-classes-per-file
 import { OrderEvent, OrderEventEndState, OrderWithMetadataV4, Stats } from '@0x/mesh-graphql-client';
 import { LimitOrder } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
+import { ImportMock, MockManager } from 'ts-mock-imports';
 import * as Observable from 'zen-observable';
 
 import { SignedLimitOrder } from '../../src/types';
-import { AddOrdersResultsV4 } from '../../src/utils/mesh_client';
+import * as MeshClientModule from '../../src/utils/mesh_client';
+
+import { getTestDBConnectionAsync } from './db_connection';
+
+interface MeshHandlers {
+    getStatsAsync?: () => any;
+    getOrdersAsync?: () => any;
+    addOrdersV4Async?: () => any;
+    onOrderEvents?: () => any;
+}
+export class MeshClientMock {
+    public mockManager?: MockManager<MeshClientModule.MeshClient>;
+    public mockMeshClient: MockClient;
+
+    constructor() {
+        this.mockMeshClient = new MockClient();
+    }
+
+    public setupMock(handlers: MeshHandlers = {}): void {
+        const mockManager = ImportMock.mockClass(MeshClientModule, 'MeshClient');
+        mockManager
+            .mock('getStatsAsync')
+            .callsFake(handlers.getStatsAsync || this.mockMeshClient.getStatsAsync.bind(this.mockMeshClient));
+        mockManager
+            .mock('getOrdersV4Async')
+            .callsFake(handlers.getOrdersAsync || this.mockMeshClient.getOrdersAsync.bind(this.mockMeshClient));
+        mockManager
+            .mock('addOrdersV4Async')
+            .callsFake(handlers.addOrdersV4Async || this.mockMeshClient.addOrdersV4Async.bind(this.mockMeshClient));
+        mockManager
+            .mock('onOrderEvents')
+            .callsFake(handlers.onOrderEvents || this.mockMeshClient.onOrderEvents.bind(this.mockMeshClient));
+        this.mockManager = mockManager;
+    }
+
+    public resetHandlers(handlers: MeshHandlers = {}): void {
+        this.teardownMock();
+        this.setupMock(handlers);
+    }
+
+    public async resetStateAsync(): Promise<void> {
+        this.mockMeshClient._resetClient();
+        await getTestDBConnectionAsync();
+    }
+
+    public teardownMock(): void {
+        this.mockManager?.restore();
+    }
+}
 
 export interface AddOrdersOpts {
     keepCancelled?: boolean;
@@ -25,7 +75,7 @@ const toOrderWithMetadata = (order: SignedLimitOrder): OrderWithMetadataV4 => {
     };
 };
 
-export class MeshClient {
+export class MockClient {
     private _orders: OrderWithMetadataV4[] = [];
 
     private readonly _ordersObservable: Observable<OrderEvent[]> = new Observable<OrderEvent[]>(observer => {
@@ -78,7 +128,7 @@ export class MeshClient {
         orders: SignedLimitOrder[],
         _pinned: boolean = true,
         _opts?: AddOrdersOpts,
-    ): Promise<AddOrdersResultsV4> {
+    ): Promise<MeshClientModule.AddOrdersResultsV4> {
         const ordersWithMetadata: OrderWithMetadataV4[] = orders.map(toOrderWithMetadata);
         this._orders = [...this._orders, ...ordersWithMetadata];
 

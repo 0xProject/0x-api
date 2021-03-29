@@ -38,9 +38,9 @@ import {
     WETH_TOKEN_ADDRESS,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
-import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
+import { MeshClientMock } from './utils/mesh_client_mock';
 import { MAKER_WETH_AMOUNT, MeshTestUtils } from './utils/mesh_test_utils';
 import { liquiditySources0xOnly } from './utils/mocks';
 
@@ -67,6 +67,8 @@ describe(SUITE_NAME, () => {
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
 
+    let meshClientMock: MeshClientMock;
+
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         provider = getProvider();
@@ -78,6 +80,8 @@ describe(SUITE_NAME, () => {
 
         // Set up liquidity.
         await blockchainLifecycle.startAsync();
+        meshClientMock = new MeshClientMock();
+        meshClientMock.setupMock();
         meshUtils = new MeshTestUtils(provider);
         await meshUtils.setupUtilsAsync();
         const wethToken = new WETH9Contract(CONTRACT_ADDRESSES.etherToken, provider);
@@ -153,7 +157,7 @@ describe(SUITE_NAME, () => {
                 resolve();
             });
         });
-        await resetState();
+        meshClientMock.teardownMock();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
