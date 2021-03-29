@@ -439,7 +439,7 @@ describe(SUITE_NAME, () => {
             const meshOrders = await meshUtils.getOrdersAsync();
             expect(meshOrders.ordersInfos.find(info => info.hash === orderHash)).to.not.be.undefined();
         });
-        it.only('should skip mesh validation when ?skipValidation=true', async () => {
+        it('should skip mesh validation when ?skipValidation=true', async () => {
             const limitOrder = getRandomLimitOrder({
                 maker: makerAddress,
                 makerToken: ZRX_TOKEN_ADDRESS,
@@ -477,7 +477,7 @@ describe(SUITE_NAME, () => {
                 );
             expect(response.status).to.eq(HttpStatus.OK);
         });
-        it.only('should not skip mesh validation normally', async () => {
+        it('should not skip mesh validation normally', async () => {
             const limitOrder = getRandomLimitOrder({
                 maker: makerAddress,
                 makerToken: ZRX_TOKEN_ADDRESS,
