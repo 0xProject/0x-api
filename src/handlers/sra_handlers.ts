@@ -77,7 +77,7 @@ export class SRAHandlers {
         res.status(HttpStatus.OK).send(orderbookResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
-        const shouldSkipValidation = req.params.skipValidation === 'true';
+        const shouldSkipValidation = req.query.skipValidation === 'true';
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
@@ -96,7 +96,7 @@ export class SRAHandlers {
         }
     }
     public async postOrdersAsync(req: express.Request, res: express.Response): Promise<void> {
-        const shouldSkipValidation = req.params.skipValidation === 'true';
+        const shouldSkipValidation = req.query.skipValidation === 'true';
         schemaUtils.validateSchema(req.body, schemas.sraPostOrdersPayloadSchema);
         const signedOrders = unmarshallOrders(req.body);
         if (WHITELISTED_TOKENS !== '*') {
@@ -120,7 +120,7 @@ export class SRAHandlers {
     }
 
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
-        const shouldSkipValidation = req.params.skipValidation === 'true';
+        const shouldSkipValidation = req.query.skipValidation === 'true';
         const apiKey = req.header('0x-api-key');
         if (apiKey === undefined || !isValidUUID(apiKey) || !OrderBookService.isAllowedPersistentOrders(apiKey)) {
             res.status(HttpStatus.BAD_REQUEST).send({

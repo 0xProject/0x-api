@@ -439,7 +439,7 @@ describe(SUITE_NAME, () => {
             const meshOrders = await meshUtils.getOrdersAsync();
             expect(meshOrders.ordersInfos.find(info => info.hash === orderHash)).to.not.be.undefined();
         });
-        it.only('should skip validation when ?skipValidation=true', async () => {
+        it.only('should skip mesh validation when ?skipValidation=true', async () => {
             const limitOrder = getRandomLimitOrder({
                 maker: makerAddress,
                 makerToken: ZRX_TOKEN_ADDRESS,
@@ -457,8 +457,8 @@ describe(SUITE_NAME, () => {
                 signature,
             };
 
-            meshClientMockManager.mock('addOrdersV4Async').callsFake(() => {
-                throw new Error('Mesh error');
+            meshClientMockManager.mock('addOrdersV4Async').callsFake(orders => {
+                return { rejected: orders, accepted: [] };
             });
             const response = await httpPostAsync({
                 app,
@@ -467,7 +467,54 @@ describe(SUITE_NAME, () => {
                     ...order,
                 },
             });
+            // Hack: reset mocked method
+            meshClientMockManager
+                .mock('addOrdersV4Async')
+                .callsFake(
+                    meshClientMockManager
+                        .getMockInstance()
+                        .addOrdersV4Async.bind(meshClientMockManager.getMockInstance()),
+                );
             expect(response.status).to.eq(HttpStatus.OK);
+        });
+        it.only('should not skip mesh validation normally', async () => {
+            const limitOrder = getRandomLimitOrder({
+                maker: makerAddress,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: MAX_MINT_AMOUNT,
+                // tslint:disable:custom-no-magic-numbers
+                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+                chainId: CHAIN_ID,
+                expiry: TOMORROW,
+            });
+
+            const signature = limitOrder.getSignatureWithKey(privateKey);
+            const order = {
+                ...limitOrder,
+                signature,
+            };
+
+            meshClientMockManager.mock('addOrdersV4Async').callsFake(orders => {
+                return { rejected: orders, accepted: [] };
+            });
+            const response = await httpPostAsync({
+                app,
+                route: `${SRA_PATH}/order`,
+                body: {
+                    ...order,
+                },
+            });
+            // Hack: reset mocked method
+            meshClientMockManager
+                .mock('addOrdersV4Async')
+                .callsFake(
+                    meshClientMockManager
+                        .getMockInstance()
+                        .addOrdersV4Async.bind(meshClientMockManager.getMockInstance()),
+                );
+            expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
         });
     });
 });
+// tslint:disable:max-file-line-count
