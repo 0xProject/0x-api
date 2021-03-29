@@ -26,7 +26,7 @@ import {
     WETH_TOKEN_ADDRESS,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
-import { resetState } from './test_setup';
+import { meshClientMockManager, resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { getRandomLimitOrder, MeshTestUtils } from './utils/mesh_test_utils';
@@ -146,7 +146,7 @@ describe(SUITE_NAME, () => {
             });
         });
     });
-    describe('/orders', () => {
+    describe('GET /orders', () => {
         it('should return empty response when no orders', async () => {
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders` });
 
@@ -438,6 +438,36 @@ describe(SUITE_NAME, () => {
             expect(response.status).to.eq(HttpStatus.OK);
             const meshOrders = await meshUtils.getOrdersAsync();
             expect(meshOrders.ordersInfos.find(info => info.hash === orderHash)).to.not.be.undefined();
+        });
+        it.only('should skip validation when ?skipValidation=true', async () => {
+            const limitOrder = getRandomLimitOrder({
+                maker: makerAddress,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: MAX_MINT_AMOUNT,
+                // tslint:disable:custom-no-magic-numbers
+                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+                chainId: CHAIN_ID,
+                expiry: TOMORROW,
+            });
+
+            const signature = limitOrder.getSignatureWithKey(privateKey);
+            const order = {
+                ...limitOrder,
+                signature,
+            };
+
+            meshClientMockManager.mock('addOrdersV4Async').callsFake(() => {
+                throw new Error('Mesh error');
+            });
+            const response = await httpPostAsync({
+                app,
+                route: `${SRA_PATH}/order?skipValidation=true`,
+                body: {
+                    ...order,
+                },
+            });
+            expect(response.status).to.eq(HttpStatus.OK);
         });
     });
 });

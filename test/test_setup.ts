@@ -10,7 +10,7 @@ import { MeshClient as MeshClientMock } from './utils/mesh_client_mock';
 const _meshClientMock = new MeshClientMock();
 
 const graphqlClientMockManager = ImportMock.mockClass(MeshGraphQLClientModule, 'MeshGraphQLClient');
-const meshClientMockManager = ImportMock.mockClass(MeshClientModule, 'MeshClient');
+export const meshClientMockManager = ImportMock.mockClass(MeshClientModule, 'MeshClient');
 meshClientMockManager.mock('getStatsAsync').callsFake(_meshClientMock.getStatsAsync.bind(_meshClientMock));
 meshClientMockManager.mock('getOrdersV4Async').callsFake(_meshClientMock.getOrdersAsync.bind(_meshClientMock));
 meshClientMockManager.mock('addOrdersV4Async').callsFake(_meshClientMock.addOrdersV4Async.bind(_meshClientMock));
