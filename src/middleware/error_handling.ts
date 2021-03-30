@@ -19,7 +19,7 @@ class ErrorUtils extends BaseErrorUtils {
                 },
             };
         }
-        return BaseErrorUtils.generateError(err);
+        return this.generateError(err);
     }
     constructor() {
         super(logger);

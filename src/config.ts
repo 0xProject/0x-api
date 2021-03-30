@@ -6,12 +6,12 @@ import {
     ERC20BridgeSource,
     LiquidityProviderRegistry,
     OrderPrunerPermittedFeeTypes,
-    RfqtMakerAssetOfferings,
+    RfqMakerAssetOfferings,
     SamplerOverrides,
     SOURCE_FLAGS,
     SwapQuoteRequestOpts,
     SwapQuoterOpts,
-    SwapQuoterRfqtOpts,
+    SwapQuoterRfqOpts,
 } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
@@ -34,6 +34,8 @@ import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 import { getTokenMetadataIfExists } from './utils/token_metadata_utils';
+
+// tslint:disable:no-bitwise
 
 enum EnvVarType {
     AddressList,
@@ -212,10 +214,10 @@ export const RFQT_TX_ORIGIN_BLACKLIST: Set<string> = _.isEmpty(process.env.RFQT_
 export const ALT_RFQ_MM_ENDPOINT: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_ENDPOINT)
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_ENDPOINT', process.env.ALT_RFQ_MM_ENDPOINT, EnvVarType.Url);
-export const ALT_RFQ_MM_API_KEY: string | undefined = _.isEmpty(process.env.RFQT_API_KEY_WHITELIST_JSON)
+export const ALT_RFQ_MM_API_KEY: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_API_KEY)
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_API_KEY', process.env.ALT_RFQ_MM_API_KEY, EnvVarType.NonEmptyString);
-export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.RFQT_API_KEY_WHITELIST_JSON)
+export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_PROFILE)
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_PROFILE', process.env.ALT_RFQ_MM_PROFILE, EnvVarType.NonEmptyString);
 
@@ -223,7 +225,7 @@ export const PLP_API_KEY_WHITELIST: string[] = _.isEmpty(process.env.PLP_API_KEY
     ? []
     : assertEnvVarType('PLP_API_KEY_WHITELIST_JSON', process.env.PLP_API_KEY_WHITELIST_JSON, EnvVarType.JsonStringList);
 
-export const RFQT_MAKER_ASSET_OFFERINGS: RfqtMakerAssetOfferings = _.isEmpty(process.env.RFQT_MAKER_ASSET_OFFERINGS)
+export const RFQT_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(process.env.RFQT_MAKER_ASSET_OFFERINGS)
     ? {}
     : assertEnvVarType(
           'RFQT_MAKER_ASSET_OFFERINGS',
@@ -343,6 +345,41 @@ const EXCLUDED_FEE_SOURCES = (() => {
             return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
     }
 })();
+const FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD = new BigNumber(150e3);
+const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
+const EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX = (sourceFlags: number) => {
+    if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
+        return TX_BASE_GAS;
+    } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
+        return TX_BASE_GAS.plus(10e3);
+    } else {
+        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
+    }
+};
+const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
+    SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider | SOURCE_FLAGS.RfqOrder;
+const MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS =
+    SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider;
+const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
+    if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
+        // Uniswap VIP
+        return TX_BASE_GAS;
+    } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
+        // PLP VIP
+        return TX_BASE_GAS.plus(10e3);
+    } else if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
+        // Multiplex batch fill
+        return TX_BASE_GAS.plus(25e3);
+    } else if (
+        (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | sourceFlags) ===
+        (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | SOURCE_FLAGS.MultiHop)
+    ) {
+        // Multiplex multi-hop fill
+        return TX_BASE_GAS.plus(25e3);
+    } else {
+        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
+    }
+};
 
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
@@ -351,22 +388,19 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
     sampleDistributionBase: 1.05,
-    exchangeProxyOverhead: (sourceFlags: number) => {
-        if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
-            return TX_BASE_GAS;
-        } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
-            return TX_BASE_GAS.plus(10e3);
-        } else {
-            return new BigNumber(150e3);
-        }
-    },
+    exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
     runLimit: 2 ** 8,
     shouldGenerateQuoteReport: false,
 };
 
+export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_MULTIPLEX: Partial<SwapQuoteRequestOpts> = {
+    ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+    exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX,
+};
+
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP: Partial<SwapQuoteRequestOpts> = {
     ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-    exchangeProxyOverhead: () => new BigNumber(150e3),
+    exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_NO_VIP,
 };
 
 export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
@@ -387,7 +421,7 @@ export const DEFAULT_INTERMEDIATE_TOKENS = [
     getTokenMetadataIfExists('WBTC', CHAIN_ID)?.tokenAddress,
 ].filter(t => t) as string[];
 
-let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqtOpts = {
+let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqOpts = {
     takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
     makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
     txOriginBlacklist: RFQT_TX_ORIGIN_BLACKLIST,
@@ -506,7 +540,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             assert.isString(name, value);
             return JSON.parse(value);
         case EnvVarType.RfqtMakerAssetOfferings:
-            const offerings: RfqtMakerAssetOfferings = JSON.parse(value);
+            const offerings: RfqMakerAssetOfferings = JSON.parse(value);
             // tslint:disable-next-line:forin
             for (const makerEndpoint in offerings) {
                 assert.isWebUri('market maker endpoint', makerEndpoint);

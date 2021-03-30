@@ -1,14 +1,15 @@
 import {
     AffiliateFeeAmount,
     AffiliateFeeType,
-    AltRfqtMakerAssetOfferings,
+    AltRfqMakerAssetOfferings,
     artifacts,
     AssetSwapperContractAddresses,
+    ContractAddresses,
     ERC20BridgeSource,
     FakeTakerContract,
-    GetMarketOrdersRfqtOpts,
+    GetMarketOrdersRfqOpts,
     Orderbook,
-    RfqtFirmQuoteValidator,
+    RfqFirmQuoteValidator,
     SwapQuote,
     SwapQuoteConsumer,
     SwapQuoteGetOutputOpts,
@@ -16,7 +17,6 @@ import {
     SwapQuoteRequestOpts,
     SwapQuoterOpts,
 } from '@0x/asset-swapper';
-import { ContractAddresses } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
 import { MarketOperation, PaginatedCollection } from '@0x/types';
@@ -30,6 +30,7 @@ import {
     ALT_RFQ_MM_API_KEY,
     ALT_RFQ_MM_ENDPOINT,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+    ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_MULTIPLEX,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
     CHAIN_ID,
     RFQT_REQUEST_MAX_RESPONSE_MS,
@@ -81,7 +82,7 @@ export class SwapService {
     private readonly _web3Wrapper: Web3Wrapper;
     private readonly _wethContract: WETH9Contract;
     private readonly _contractAddresses: ContractAddresses;
-    private readonly _firmQuoteValidator: RfqtFirmQuoteValidator | undefined;
+    private readonly _firmQuoteValidator: RfqFirmQuoteValidator | undefined;
     private _altRfqMarketsCache: any;
 
     private static _getSwapQuotePrice(
@@ -134,7 +135,7 @@ export class SwapService {
         orderbook: Orderbook,
         provider: SupportedProvider,
         contractAddresses: AssetSwapperContractAddresses,
-        firmQuoteValidator?: RfqtFirmQuoteValidator | undefined,
+        firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
     ) {
         this._provider = provider;
         this._firmQuoteValidator = firmQuoteValidator;
@@ -192,7 +193,7 @@ export class SwapService {
             shouldSellEntireBalance,
         } = params;
 
-        let _rfqt: GetMarketOrdersRfqtOpts | undefined;
+        let _rfqt: GetMarketOrdersRfqOpts | undefined;
         // Only enable RFQT if there's an API key and either (a) it's a
         // forwarder transaction (isETHSell===true), (b) there's a taker
         // address present, or (c) it's an indicative quote.
@@ -200,7 +201,7 @@ export class SwapService {
             apiKey !== undefined && (isETHSell || takerAddress !== undefined || (rfqt && rfqt.isIndicative));
         if (shouldEnableRfqt) {
             // tslint:disable-next-line:custom-no-magic-numbers
-            const altRfqtAssetOfferings = await this._getAltMarketOfferingsAsync(1500);
+            const altRfqAssetOfferings = await this._getAltMarketOfferingsAsync(1500);
 
             _rfqt = {
                 ...rfqt,
@@ -211,19 +212,25 @@ export class SwapService {
                 takerAddress: NULL_ADDRESS,
                 txOrigin: takerAddress!,
                 firmQuoteValidator: this._firmQuoteValidator,
-                altRfqtAssetOfferings,
+                altRfqAssetOfferings,
             };
         }
 
         // only generate quote reports for rfqt firm quotes or when price comparison is requested
         const shouldGenerateQuoteReport = includePriceComparisons || (rfqt && rfqt.intentOnFilling);
 
-        const swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts> =
+        let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
+        if (
             isMetaTransaction ||
             // Note: We allow VIP to continue ahead when positive slippage fee is enabled
             affiliateFee.feeType === AffiliateFeeType.PercentageFee
-                ? ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP
-                : ASSET_SWAPPER_MARKET_ORDERS_OPTS;
+        ) {
+            swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP;
+        } else if (isETHBuy || isETHSell) {
+            swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_MULTIPLEX;
+        } else {
+            swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS;
+        }
 
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
             ...swapQuoteRequestOpts,
@@ -673,9 +680,9 @@ export class SwapService {
         };
     }
 
-    private async _getAltMarketOfferingsAsync(timeoutMs: number): Promise<AltRfqtMakerAssetOfferings> {
+    private async _getAltMarketOfferingsAsync(timeoutMs: number): Promise<AltRfqMakerAssetOfferings> {
         if (!this._altRfqMarketsCache) {
-            this._altRfqMarketsCache = createResultCache<AltRfqtMakerAssetOfferings>(async () => {
+            this._altRfqMarketsCache = createResultCache<AltRfqMakerAssetOfferings>(async () => {
                 if (ALT_RFQ_MM_ENDPOINT === undefined || ALT_RFQ_MM_API_KEY === undefined) {
                     return {};
                 }
