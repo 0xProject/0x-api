@@ -21,7 +21,7 @@ import { providerUtils } from '../utils/provider_utils';
 import { destroyCallback } from './utils';
 
 /**
- * http_service_runner hosts endpoints for staking, sra, swap and meta-txns (minus the /submit endpoint)
+ * http_service_runner hosts endpoints for sra, swap and meta-txns (minus the /submit endpoint)
  * and can be horizontally scaled as needed
  */
 

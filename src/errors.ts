@@ -5,6 +5,7 @@ import { ONE_SECOND_MS } from './constants';
 import { SignedLimitOrder } from './types';
 
 export {
+    BadRequestError,
     ErrorBody,
     GeneralErrorCodes,
     InternalServerError,

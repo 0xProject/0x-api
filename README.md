@@ -22,7 +22,7 @@
 
 ## Introduction
 
-The 0x API is a collection of services and endpoints that can be run together or separately. In aggregate, the APIs provide interfaces to 0x liquidity, 0x staking data and more.
+The 0x API is a collection of services and endpoints that can be run together or separately. In aggregate, the APIs provide interfaces to 0x liquidity.
 Everything can be run monolithically via `yarn start` and `docker-compose` up as described in [Getting Started](#getting-started).
 
 ## Services
@@ -126,7 +126,7 @@ yarn db:migrate
 
 #### Developing on Ganache
 
-Ganache is supported, but will not contain the same staking data and 0x Mesh liquidity that kovan or mainnet have for example. To use ganache, use the `.env` file below:
+Ganache is supported, but will not contain the same 0x Mesh liquidity that kovan or mainnet have for example. To use ganache, use the `.env` file below:
 
 ```
 CHAIN_ID=1337

@@ -21,7 +21,6 @@
         "dev": "nodemon -r dotenv/config src/index.ts | pino-pretty",
         "dev:service:http": "nodemon -r dotenv/config src/runners/http_service_runner.ts | pino-pretty",
         "dev:service:sra_http": "nodemon -r dotenv/config src/runners/http_sra_service_runner.ts | pino-pretty",
-        "dev:service:staking_http": "nodemon -r dotenv/config src/runners/http_staking_service_runner.ts | pino-pretty",
         "dev:service:swap_http": "nodemon -r dotenv/config src/runners/http_swap_service_runner.ts | pino-pretty",
         "dev:service:meta_transaction_http": "nodemon -r dotenv/config src/runners/http_meta_transaction_service_runner.ts | pino-pretty",
         "dev:service:order_watcher": "nodemon -r dotenv/config src/runners/order_watcher_service_runner.ts | pino-pretty",
@@ -33,7 +32,6 @@
         "start": "node -r dotenv/config lib/src/index.js",
         "start:service:http": "node -r dotenv/config lib/src/runners/http_service_runner.js",
         "start:service:sra_http": "node -r dotenv/config lib/src/runners/http_sra_service_runner.js",
-        "start:service:staking_http": "node -r dotenv/config lib/src/runners/http_staking_service_runner.js",
         "start:service:swap_http": "node -r dotenv/config lib/src/runners/http_swap_service_runner.js",
         "start:service:meta_transaction_http": "node -r dotenv/config lib/src/runners/http_meta_transaction_service_runner.js",
         "start:service:order_watcher": "node -r dotenv/config lib/src/runners/order_watcher_service_runner.js",
@@ -130,7 +128,7 @@
         "typescript": "^4.0.3"
     },
     "dependencies": {
-        "@0x/api-utils": "0xProject/gitpkg-registry#0x-api-utils-v0.0.1-34537ee",
+        "@0x/api-utils": "0xProject/gitpkg-registry#0x-api-utils-v0.0.1-362d82e",
         "@0x/assert": "^3.0.17",
         "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v6.3.0-24397c51a",
         "@0x/contract-addresses": "^5.11.0",

@@ -10,6 +10,7 @@ import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCode
 import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
 import { OrderConfigResponse, SignedLimitOrder } from '../types';
+import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
@@ -82,7 +83,7 @@ export class SRAHandlers {
         if (shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
-        const pinResult = await this._orderBook.splitOrdersByPinningAsync([signedOrder]);
+        const pinResult = await orderUtils.splitOrdersByPinningAsync([signedOrder]);
         const isPinned = pinResult.pin.length === 1;
         await this._orderBook.addOrderAsync(signedOrder, isPinned);
         if (!shouldSkipConfirmation) {
@@ -103,7 +104,7 @@ export class SRAHandlers {
         if (shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
-        const pinResult = await this._orderBook.splitOrdersByPinningAsync(signedOrders);
+        const pinResult = await orderUtils.splitOrdersByPinningAsync(signedOrders);
         await Promise.all([
             this._orderBook.addOrdersAsync(pinResult.pin, true),
             this._orderBook.addOrdersAsync(pinResult.doNotPin, false),

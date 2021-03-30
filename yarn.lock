@@ -2,9 +2,9 @@
 # yarn lockfile v1
 
 
-"@0x/api-utils@0xProject/gitpkg-registry#0x-api-utils-v0.0.1-34537ee":
+"@0x/api-utils@0xProject/gitpkg-registry#0x-api-utils-v0.0.1-362d82e":
   version "0.0.1"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/d8f21d2c3b05c3602e215275ae428b0f7e8f778f"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/7ced426daf41109330e48a5b325d2cd29aa4864c"
   dependencies:
     "@0x/json-schemas" "^5.4.1"
     "@0x/types" "^3.3.1"
