@@ -6,16 +6,11 @@ import * as isValidUUID from 'uuid-validate';
 import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
 import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
 import { SignedOrderV4Entity } from '../entities';
-import {
-    GeneralErrorCodes,
-    generalErrorCodeToReason,
-    NotFoundError,
-    ValidationError,
-    ValidationErrorCodes,
-} from '../errors';
+import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
 import { OrderConfigResponse, SignedLimitOrder } from '../types';
+import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
@@ -77,6 +72,7 @@ export class SRAHandlers {
         res.status(HttpStatus.OK).send(orderbookResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
+        const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
@@ -84,12 +80,18 @@ export class SRAHandlers {
             validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
             validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
         }
-        const pinResult = await this._orderBook.splitOrdersByPinningAsync([signedOrder]);
+        if (shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
+        const pinResult = await orderUtils.splitOrdersByPinningAsync([signedOrder]);
         const isPinned = pinResult.pin.length === 1;
         await this._orderBook.addOrderAsync(signedOrder, isPinned);
-        res.status(HttpStatus.OK).send();
+        if (!shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
     }
     public async postOrdersAsync(req: express.Request, res: express.Response): Promise<void> {
+        const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         schemaUtils.validateSchema(req.body, schemas.sraPostOrdersPayloadSchema);
         const signedOrders = unmarshallOrders(req.body);
         if (WHITELISTED_TOKENS !== '*') {
@@ -99,22 +101,24 @@ export class SRAHandlers {
                 validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
             }
         }
-        const pinResult = await this._orderBook.splitOrdersByPinningAsync(signedOrders);
+        if (shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
+        const pinResult = await orderUtils.splitOrdersByPinningAsync(signedOrders);
         await Promise.all([
             this._orderBook.addOrdersAsync(pinResult.pin, true),
             this._orderBook.addOrdersAsync(pinResult.doNotPin, false),
         ]);
-        res.status(HttpStatus.OK).send();
+        if (!shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
     }
 
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
+        const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         const apiKey = req.header('0x-api-key');
         if (apiKey === undefined || !isValidUUID(apiKey) || !OrderBookService.isAllowedPersistentOrders(apiKey)) {
-            res.status(HttpStatus.BAD_REQUEST).send({
-                code: GeneralErrorCodes.InvalidAPIKey,
-                reason: generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey],
-            });
-            return;
+            throw new InvalidAPIKeyError();
         }
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         const signedOrder = unmarshallOrder(req.body);
@@ -123,8 +127,13 @@ export class SRAHandlers {
             validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
             validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
         }
+        if (shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
         await this._orderBook.addPersistentOrdersAsync([signedOrder], false);
-        res.status(HttpStatus.OK).send();
+        if (!shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
     }
 }
 
