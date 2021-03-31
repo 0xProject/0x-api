@@ -379,6 +379,8 @@ export enum TransactionStates {
     Aborted = 'aborted',
     // transaction was in an unsubmitted state for too long.
     Cancelled = 'cancelled',
+    // transaction was rejected by an MM via LastLook
+    LastLookRejected = 'lastLookRejected',
 }
 
 export interface TransactionWatcherSignerStatus {

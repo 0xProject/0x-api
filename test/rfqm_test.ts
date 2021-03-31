@@ -6,7 +6,6 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity, TransactionEntityOpts } from '../src/entities';
 import { LastLookConfig } from '../src/types';
 
-import { resetState } from './test_setup';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 
 // Force reload of the app avoid variables being polluted between test suites
@@ -20,15 +19,20 @@ describe(SUITE_NAME, () => {
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         connection = await getDBConnectionAsync();
+        await connection.synchronize(true);
     });
 
     after(async () => {
-        await resetState();
+        // reset DB
+        connection = await getDBConnectionAsync();
+        await connection.synchronize(true);
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
     beforeEach(async () => {
-        await resetState();
+        // reset DB
+        connection = await getDBConnectionAsync();
+        await connection.synchronize(true);
     });
 
     describe('db tests', () => {
