@@ -439,7 +439,7 @@ export interface BucketedPriceDepth {
 }
 
 export interface LastLookConfig {
-    makerUri: string;
+    makerUrl: string;
     orderHash: string;
     rfqOrderDetail: LastLookOrderDetail;
 }

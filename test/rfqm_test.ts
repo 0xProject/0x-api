@@ -38,7 +38,7 @@ describe(SUITE_NAME, () => {
     describe('db tests', () => {
         it('should be able to save and read an entity with no data change', async () => {
             const lastLookConfig: LastLookConfig = {
-                makerUri: 'https://anrfqmm.com',
+                makerUrl: 'https://anrfqmm.com',
                 orderHash: '0x00',
                 rfqOrderDetail: {
                     makerAmount: '1234',
