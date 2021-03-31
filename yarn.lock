@@ -63,9 +63,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.3.0-525bc8197":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.3.0-203bccbc8":
   version "6.3.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/db5e622326b12369f17d68aa363d8e8d1bfa586d"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/6f9820f71afb1d9623f82446c2783107a3df68cf"
   dependencies:
     "@0x/assert" "^3.0.21"
     "@0x/base-contract" "^6.2.18"
@@ -76,7 +76,7 @@
     "@0x/dev-utils" "^4.2.1"
     "@0x/json-schemas" "^5.4.1"
     "@0x/protocol-utils" "^1.3.1"
-    "@0x/quote-server" "^4.0.1"
+    "@0x/quote-server" "^5.0.0"
     "@0x/types" "^3.3.1"
     "@0x/typescript-typings" "^5.1.6"
     "@0x/utils" "^6.2.0"
@@ -629,9 +629,10 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/quote-server@^4.0.1":
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/@0x/quote-server/-/quote-server-4.0.1.tgz#05947589bfa7905d274ac3c726cb9918b93b0f9e"
+"@0x/quote-server@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@0x/quote-server/-/quote-server-5.0.0.tgz#15554099bdfdf71e2910430860257d622f24f703"
+  integrity sha512-U14C60RVnILL8n5DwuInG98MnhXbBbiEi8M2ymFGnHO+AjucGfm28BM6/GD59ftiqZmFSkOvBRU94QJ3mSsCQw==
   dependencies:
     "@0x/json-schemas" "^5.0.7"
     "@0x/order-utils" "^10.2.4"
