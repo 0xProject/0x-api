@@ -5,7 +5,7 @@ on:
     workflow_dispatch:
 jobs:
     deploy:
-        # if: github.event.name == 'workflow_dispatch' || contains(github.event.comment.body, 'deploy')
+        if: github.event.name == 'workflow_dispatch' || contains(github.event.comment.body, 'deploy')
         runs-on: ubuntu-latest
         steps:
             - name: deploy from master to production
@@ -14,13 +14,9 @@ jobs:
             - name: deploy from branch to staging
               if: github.event.issue.pull_request && github.event.comment.body == 'deploy staging'
               run: echo "folder=staging" >> $GITHUB_ENV
-            - name: manual deploy from branch to staging
-              if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master'
-              run: echo "folder=staging" >> $GITHUB_ENV
             - name: deploy from branch to production
               if: github.event.issue.pull_request && github.event.comment.body == 'deploy production'
               run: echo "folder=prod" >> $GITHUB_ENV
-            - run: echo Deploying to ${{ env.folder }} from branch $GITHUB_REF at $GITHUB_SHA
             - name: trim branch name
               run: echo ${{ github.ref }} | sed 's/refs\/heads\///g' | xargs echo "trimmed_branch_name=$1" | sed 's/[[:space:]]//g' >> $GITHUB_ENV
             - name: Checkout 0x-main-infra
@@ -35,11 +31,11 @@ jobs:
               with:
                   token: ${{ secrets.PAT }}
                   author: ${{ github.event.sender.login }} <${{ github.event.sender.login }}@users.noreply.github.com>
-                  commit-message: '0x-api/${{ env.folder }}: Deploy ${{ github.sha }}'
+                  commit-message: '0x-api/${{ env.folder }}: Deploy ${{ env.trimmed_branch_name }}'
                   title: '[0xApi][${{ env.folder }}] Deploy ${{ env.trimmed_branch_name }}'
                   branch: '0xApi/${{ env.folder }}/${{ env.trimmed_branch_name }}'
                   body: |
-                      Automated deploy action
+                      ## Automated deploy action
                       Triggered by @${{ github.event.sender.login }}
                       PR: ${{ github.event.issue.url }}
                       SHA: https://github.com/${{ github.repository }}/tree/${{ github.sha }}
