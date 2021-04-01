@@ -439,7 +439,7 @@ export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     }
 })();
 
-let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqtOpts = {
+let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqOpts = {
     takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
     makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
     txOriginBlacklist: RFQT_TX_ORIGIN_BLACKLIST,
