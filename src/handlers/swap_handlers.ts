@@ -334,7 +334,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
 
     if (sellToken === NULL_ADDRESS || buyToken === NULL_ADDRESS) {
         throw new ValidationError(
-            ['buyToken', 'sellToken'].map(field => {
+            ['buyToken', 'sellToken'].map((field) => {
                 return {
                     field,
                     code: ValidationErrorCodes.FieldInvalid,
