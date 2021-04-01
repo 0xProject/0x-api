@@ -7,14 +7,17 @@ jobs:
     deploy:
         runs-on: ubuntu-latest
         steps:
+            - name: deploy from master to production
+              if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+              run: echo "folder=prod" >> $GITHUB_ENV
             - name: deploy from branch to staging
               if: github.event.issue.pull_request && github.event.comment.body == 'deploy staging'
               run: echo "folder=staging" >> $GITHUB_ENV
+            - name: manual deploy from branch to staging
+              if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master'
+              run: echo "folder=staging" >> $GITHUB_ENV
             - name: deploy from branch to production
               if: github.event.issue.pull_request && github.event.comment.body == 'deploy production'
-              run: echo "folder=prod" >> $GITHUB_ENV
-            - name: deploy from master to production
-              if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
               run: echo "folder=prod" >> $GITHUB_ENV
             - run: echo Deploying to ${{ env.folder }} from branch $GITHUB_REF at $GITHUB_SHA
             - name: Checkout 0x-main-infra
