@@ -8,11 +8,33 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
         runs-on: ubuntu-latest
         steps:
-            - run: echo "Deploying to production from master at $GITHUB_SHA"
+            # - run: echo "Deploying to production from master at $GITHUB_SHA"
+            # - uses: ./.github/actions/create-deployment-info
+            #   with:
+            #     env_folder: 'prod'
+            #     sha: ${{ github.sha }}
+            - run: echo "Deploying to staging from branch $GITHUB_REF at $GITHUB_SHA"
             - uses: ./.github/actions/create-deployment-info
               with:
-                env_folder: 'prod'
+                env_folder: 'staging'
                 sha: ${{ github.sha }}
+            - name: Create Pull Request
+              uses: peter-evans/create-pull-request@v3.5.0
+              with:
+                  token: ${{ secrets.PAT }}
+                  commit-message: '0x-api/staging: Deploy ${{ github.sha }}'
+                  title: '[0xApi][staging] Deploy ${{ github.ref }}'
+                  reviewers: ${{ github.event.sender }}
+                  labels: 0xApi, staging
+                  branch: '0xApi/staging/${{ github.ref }}'
+                  body: |
+                      PR: ${{ github.event.issue.url }}
+                      SHA: ${{ github.sha }}
+                      Comparison: https://github.com/${{ github.repository }}/compare/master...${{ github.ref}}
+            - name: Check outputs
+              run: |
+                  echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
+                  echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
     deploy_from_branch_to_staging:
         if: github.event.issue.pull_request && github.event.comment.body == 'deploy staging'
         runs-on: ubuntu-latest
