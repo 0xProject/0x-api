@@ -4,69 +4,37 @@ on:
         types: [created, edited]
     workflow_dispatch:
 jobs:
-    deploy_from_master:
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+    deploy:
         runs-on: ubuntu-latest
         steps:
-            # - run: echo "Deploying to production from master at $GITHUB_SHA"
-            # - uses: ./.github/actions/create-deployment-info
-            #   with:
-            #     env_folder: 'prod'
-            #     sha: ${{ github.sha }}
-            - run: echo "Deploying to staging from branch $GITHUB_REF at $GITHUB_SHA"
-            - uses: ./.github/actions/create-deployment-info
+            - name: deploy from branch to staging
+              if: github.event.issue.pull_request && github.event.comment.body == 'deploy staging'
+              run: echo "folder=staging" >> $GITHUB_ENV
+            - name: deploy from branch to production
+              if: github.event.issue.pull_request && github.event.comment.body == 'deploy production'
+              run: echo "folder=prod" >> $GITHUB_ENV
+            - name: deploy from master to production
+              if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+              run: echo "folder=prod" >> $GITHUB_ENV
+            - run: echo Deploying to ${{ env.folder }} from branch $GITHUB_REF at $GITHUB_SHA
+            - name: Checkout 0x-main-infra
+              uses: actions/checkout@v2
               with:
-                env_folder: 'staging'
-                sha: ${{ github.sha }}
+                  token: ${{ secrets.PAT }}
+                  repository: 0xProject/0x-main-infra
+            - name: Update API configs
+              run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ github.sha }}"/g' env/0x-api/${{ env.folder }}/common/*.yml env/0x-api/${{ env.folder }}/apis/*.yml
             - name: Create Pull Request
               uses: peter-evans/create-pull-request@v3.5.0
               with:
                   token: ${{ secrets.PAT }}
-                  commit-message: '0x-api/staging: Deploy ${{ github.sha }}'
-                  title: '[0xApi][staging] Deploy ${{ github.ref }}'
-                  reviewers: ${{ github.event.sender }}
-                  labels: 0xApi, staging
-                  branch: '0xApi/staging/${{ github.ref }}'
+                  commit-message: '0x-api/${{ env.folder }}: Deploy ${{ github.sha }}'
+                  title: '[0xApi][${{ env.folder }}] Deploy ${{ github.ref }}'
+                  branch: '0xApi/${{ env.folder }}/${{ github.ref }}'
                   body: |
                       PR: ${{ github.event.issue.url }}
-                      SHA: ${{ github.sha }}
+                      SHA: https://github.com/${{ github.repository }}/tree/${{ github.sha }}
                       Comparison: https://github.com/${{ github.repository }}/compare/master...${{ github.ref}}
             - name: Check outputs
               run: |
                   echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
-                  echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-    deploy_from_branch_to_staging:
-        if: github.event.issue.pull_request && github.event.comment.body == 'deploy staging'
-        runs-on: ubuntu-latest
-        steps:
-            - run: echo "Deploying to staging from branch $GITHUB_REF at $GITHUB_SHA"
-            - uses: ./.github/actions/create-deployment-info
-              with:
-                env_folder: 'staging'
-                sha: ${{ github.sha }}
-            - name: Create Pull Request
-              uses: peter-evans/create-pull-request@v3.5.0
-              with:
-                  token: ${{ secrets.PAT }}
-                  commit-message: '0x-api/staging: Deploy ${{ github.sha }}'
-                  title: '[0xApi][staging] Deploy ${{ github.ref }}'
-                  reviewers: ${{ github.event.sender }}
-                  labels: 0xApi, staging
-                  branch: '0xApi/staging/${{ github.ref }}'
-                  body: |
-                      PR: ${{ github.event.issue.url }}
-                      SHA: ${{ github.sha }}
-                      Comparison: https://github.com/${{ github.repository }}/compare/master...${{ github.ref}}
-            - name: Check outputs
-              run: |
-                  echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
-                  echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-    deploy_from_branch_to_prod:
-        if: github.event.issue.pull_request && github.event.comment.body == 'deploy production'
-        runs-on: ubuntu-latest
-        steps:
-            - run: echo "[WARNING] Deploying to PRODUCTION from branch $GITHUB_REF at $GITHUB_SHA. Please deploy production from master branch if possible."
-            - uses: ./.github/actions/open-deployment-pr
-              with:
-                env_folder: 'prod'
-                sha: ${{ github.sha }}
