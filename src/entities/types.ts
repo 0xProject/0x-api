@@ -21,4 +21,5 @@ export interface TransactionEntityOpts {
     // Ethereum tx status, 1 == success, 0 == failure
     txStatus?: number | null;
     lastLookConfig?: LastLookConfig | null;
+    orderHash?: string | null;
 }

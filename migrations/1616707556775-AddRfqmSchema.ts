@@ -2,12 +2,14 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 const upQuery = `
     ALTER TABLE transactions
-        ADD COLUMN last_look_config JSONB;
+        ADD COLUMN last_look_config JSONB,
+        ADD COLUMN order_hash VARCHAR;
 `;
 
 const downQuery = `
     ALTER TABLE transactions
-        DROP COLUMN last_look_config JSONB;
+        DROP COLUMN last_look_config,
+        DROP COLUMN order_hash;
 `;
 
 export class AddRfqmSchema1616707556775 implements MigrationInterface {

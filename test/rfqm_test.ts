@@ -57,6 +57,7 @@ describe(SUITE_NAME, () => {
                 expectedMinedInSec: 60,
                 to: '0x00',
                 lastLookConfig,
+                orderHash: '0x00',
             };
             const testTxEntity = TransactionEntity.make(txEntityOpts);
 
@@ -70,7 +71,7 @@ describe(SUITE_NAME, () => {
             // the saved + read entity should match the original entity
             expect(dbEntity).to.deep.eq(testTxEntity);
         });
-        it('should be able to write a transaction entity with null lastLookConfig', async () => {
+        it('should be able to write a transaction entity with null lastLookConfig and null orderHash', async () => {
             const txEntityOpts: TransactionEntityOpts = {
                 refHash: '0x00',
                 apiKey: 'averycoolkey',
@@ -80,6 +81,7 @@ describe(SUITE_NAME, () => {
                 expectedMinedInSec: 60,
                 to: '0x00',
                 lastLookConfig: null,
+                orderHash: null,
             };
             const testTxEntity = TransactionEntity.make(txEntityOpts);
 

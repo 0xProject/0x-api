@@ -74,6 +74,9 @@ export class TransactionEntity {
     @Column({ name: 'last_look_config', type: 'jsonb', nullable: true })
     public lastLookConfig?: LastLookConfig | null;
 
+    @Column({ name: 'order_hash', type: 'varchar', nullable: true })
+    public orderHash?: string | null;
+
     public static make(opts: TransactionEntityOpts): TransactionEntity {
         assert.isHexString('refHash', opts.refHash);
         if (opts.txHash !== undefined) {
@@ -115,6 +118,7 @@ export class TransactionEntity {
             gasUsed: null,
             txStatus: null,
             lastLookConfig: null,
+            orderHash: null,
         },
     ) {
         this.refHash = opts.refHash;
@@ -136,5 +140,6 @@ export class TransactionEntity {
         const now = new Date();
         this.expectedAt = new Date(now.getTime() + this.expectedMinedInSec * ONE_SECOND_MS);
         this.lastLookConfig = opts.lastLookConfig;
+        this.orderHash = opts.orderHash;
     }
 }
