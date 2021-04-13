@@ -1,38 +1,45 @@
-import { MarketOperation, QuoteRequestor, RfqFirmQuoteValidator, SwapQuote } from '@0x/asset-swapper';
-import { WETH9Contract } from '@0x/contract-wrappers';
-import { BigNumber } from '@0x/utils';
-import { Web3Wrapper } from '@0x/web3-wrapper';
+import { MarketOperation, QuoteRequestor } from '@0x/asset-swapper';
+import { RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { NULL_ADDRESS } from '../constants';
-import { AffiliateFee } from '../types';
+import {
+    FetchFirmQuoteParams,
+    FetchFirmQuoteResponse,
+    FetchIndicativeQuoteParams,
+    FetchIndicativeQuoteResponse,
+} from '../types';
 
-const ONE_SECOND_MS = 1000;
-// tslint:disable-next-line: custom-no-magic-numbers
-export const KEEP_ALIVE_TTL = 5 * 60 * ONE_SECOND_MS;
-
-export class SwapService {
-    private readonly _firmQuoteValidator: RfqFirmQuoteValidator | undefined;
-    private _altRfqMarketsCache: any;
-
+/**
+ * RfqmService is the coordination layer for HTTP based RFQM flows
+ */
+export class RfqmService {
     constructor(private readonly _quoteRequestor: QuoteRequestor) {}
 
-    public async fetchPricesAsync(
-        makerToken: string,
-        takerToken: string,
-        assetFillAmount: BigNumber,
-        marketOperation: MarketOperation,
-    ) {
+    /**
+     * Fetch the best indicative quote available
+     */
+    public async fetchIndicativeQuoteAsync(params: FetchIndicativeQuoteParams): Promise<FetchIndicativeQuoteResponse> {
+        const { sellAmount, buyAmount, sellToken, buyToken, apiKey } = params;
+
+        // Map params to the terminology of Quote Requestor
+        const isSelling = sellAmount !== undefined;
+        const marketOperation = isSelling ? MarketOperation.Sell : MarketOperation.Buy;
+        const assetFillAmount = isSelling ? sellAmount! : buyAmount!;
+        const makerToken = buyToken;
+        const takerToken = sellToken;
+
+        // Fetch quotes
         const opts = {
             takerAddress: NULL_ADDRESS,
-            txOrigin: 'TODO - worker registry',
-            apiKey: 'uuid',
-            intentOnFilling: false, // TODO - what is this?
+            txOrigin: NULL_ADDRESS, // TODO - set to worker registry
+            apiKey: apiKey,
+            intentOnFilling: false, // TODO - safe to hardcode?
             isIndicative: true,
-            makerEndpointMaxResponseTimeMs: 600, // TODO - get the real thing
+            makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
             nativeExclusivelyRFQ: true,
-            altRfqAssetOfferings: {}, // TODO - set this to the rfq asset offerings
+            altRfqAssetOfferings: {}, // TODO - set this to the alt rfq asset offerings
             isLastLook: true,
         };
-        return this._quoteRequestor.requestRfqmIndicativeQuotesAsync(
+        const indicativeQuotes = await this._quoteRequestor.requestRfqmIndicativeQuotesAsync(
             makerToken,
             takerToken,
             assetFillAmount,
@@ -40,26 +47,59 @@ export class SwapService {
             undefined,
             opts,
         );
+
+        // Filter only quotes that are 100% filled, and sort by best price
+        const sortedQuotes = indicativeQuotes
+            .filter((q) => q.makerAmount === assetFillAmount)
+            .sort((a, b) => {
+                const aPrice = a.makerAmount.div(a.takerAmount);
+                const bPrice = b.makerAmount.div(b.takerAmount);
+                return aPrice.minus(bPrice).toNumber();
+            });
+
+        // No quotes found
+        if (sortedQuotes.length === 0) {
+            return Promise.reject('Error no valid quotes');
+        }
+
+        // Prepare response
+        // TODO: handle decimals properly
+        return {
+            buyAmount: sortedQuotes[0].makerAmount,
+            buyTokenAddress: sortedQuotes[0].makerToken,
+            sellAmount: sortedQuotes[0].takerAmount,
+            sellTokenAddress: sortedQuotes[0].takerToken,
+            price: isSelling
+                ? sortedQuotes[0].makerAmount.div(sortedQuotes[0].takerAmount)
+                : sortedQuotes[0].takerAmount.div(sortedQuotes[0].makerAmount),
+        };
     }
 
-    public async fetchQuotesAsync(
-        makerToken: string,
-        takerToken: string,
-        assetFillAmount: BigNumber,
-        marketOperation: MarketOperation,
-    ) {
+    /**
+     * Fetch the best firm quote available, as a signable metatransaction
+     */
+    public async fetchFirmQuoteAsync(params: FetchFirmQuoteParams): Promise<FetchFirmQuoteResponse> {
+        const { sellAmount, buyAmount, sellToken, buyToken, apiKey } = params;
+
+        // Map params to the terminology of Quote Requestor
+        const marketOperation = sellAmount !== undefined ? MarketOperation.Sell : MarketOperation.Buy;
+        const assetFillAmount = sellAmount !== undefined ? sellAmount! : buyAmount!;
+        const makerToken = buyToken;
+        const takerToken = sellToken;
+
+        // Fetch quotes
         const opts = {
             takerAddress: NULL_ADDRESS,
-            txOrigin: 'TODO - worker registry',
-            apiKey: 'uuid',
-            intentOnFilling: false, // TODO - what is this?
+            txOrigin: NULL_ADDRESS, // TODO - set to worker registry
+            apiKey,
+            intentOnFilling: false, // TODO - safe to hardcode?
             isIndicative: false,
-            makerEndpointMaxResponseTimeMs: 600, // TODO - get the real thing
+            makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
             nativeExclusivelyRFQ: true,
-            altRfqAssetOfferings: {}, // TODO - set this to the rfq asset offerings
+            altRfqAssetOfferings: {}, // TODO - set this to the alt rfq asset offerings
             isLastLook: true,
         };
-        return this._quoteRequestor.requestRfqmFirmQuotesAsync(
+        const firmQuotes = await this._quoteRequestor.requestRfqmFirmQuotesAsync(
             makerToken,
             takerToken,
             assetFillAmount,
@@ -67,6 +107,17 @@ export class SwapService {
             undefined,
             opts,
         );
+
+        // Filter only quotes that are 100% filled, and sort by best price
+        const sortedQuotes = firmQuotes
+            .filter((q) => q.order.makerAmount === assetFillAmount)
+            .sort((a, b) => {
+                const aPrice = a.order.makerAmount.div(a.order.takerAmount);
+                const bPrice = b.order.makerAmount.div(b.order.takerAmount);
+                return aPrice.minus(bPrice).toNumber();
+            });
+
+        return sortedQuotes.length > 0 ? Promise.resolve({}) : Promise.reject('Error no valid quotes');
     }
 }
 

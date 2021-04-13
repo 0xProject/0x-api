@@ -359,6 +359,36 @@ export interface CalculateMetaTransactionQuoteParams extends SwapQuoteParamsBase
 
 /** End /swap types */
 
+/** Start /rfqm types */
+export interface FetchIndicativeQuoteParams {
+    apiKey: string;
+    buyAmount?: BigNumber;
+    buyToken: string;
+    sellAmount?: BigNumber;
+    sellToken: string;
+    takerAddress?: string;
+}
+
+export interface FetchIndicativeQuoteResponse {
+    buyAmount: BigNumber;
+    buyTokenAddress: string;
+    price: BigNumber;
+    sellAmount: BigNumber;
+    sellTokenAddress: string;
+}
+
+export interface FetchFirmQuoteParams {
+    apiKey: string;
+    buyAmount?: BigNumber;
+    buyToken: string;
+    sellAmount?: BigNumber;
+    sellToken: string;
+    takerAddress?: string;
+}
+export interface FetchFirmQuoteResponse {}
+
+/** End /rfqm types */
+
 export interface PinResult {
     pin: SignedLimitOrder[];
     doNotPin: SignedLimitOrder[];
