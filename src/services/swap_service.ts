@@ -654,9 +654,12 @@ export class SwapService {
         if (revertError) {
             throw revertError;
         }
+        if (CHAIN_ID === ChainId.Ganache) {
+            return gasEstimate;
+        }
         // If there's a revert and we still are unable to decode it, just throw it.
         // This can happen in VIPs where there are no real revert reasons
-        if (callResult && !callResult.success) {
+        if (!callResult.success) {
             throw new Error(`Execution reverted ${callResult.resultData}`);
         }
         return gasEstimate;

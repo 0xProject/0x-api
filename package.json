@@ -89,7 +89,7 @@
         "@0x/contracts-erc20": "^3.3.6",
         "@0x/contracts-test-utils": "^5.3.24",
         "@0x/dev-utils": "^4.2.2",
-        "@0x/migrations": "^7.0.1",
+        "@0x/migrations": "^8.0.1",
         "@0x/tslint-config": "^4.0.0",
         "@0x/typescript-typings": "^5.1.5",
         "@balancer-labs/sor": "^0.3.0",
