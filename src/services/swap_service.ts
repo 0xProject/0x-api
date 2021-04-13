@@ -52,7 +52,7 @@ import {
     WRAP_QUOTE_GAS,
     ZERO,
 } from '../constants';
-import { InsufficientFundsError } from '../errors';
+import { GasEstimationError, InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
 import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import {
@@ -591,13 +591,19 @@ export class SwapService {
         try {
             // NOTE: Ganache does not support overrides
             if (CHAIN_ID === ChainId.Ganache) {
-                const gas = await this._web3Wrapper
-                    .estimateGasAsync(txData)
-                    .catch((_e) => DEFAULT_VALIDATION_GAS_LIMIT);
+                // Default to true as ganache provides us less info and we cannot override
+                callResult.success = true;
+                const gas = await this._web3Wrapper.estimateGasAsync(txData).catch((_e) => {
+                    // If an estimate error happens on ganache we say it failed
+                    callResult.success = false;
+                    return DEFAULT_VALIDATION_GAS_LIMIT;
+                });
                 callResultGanacheRaw = await this._web3Wrapper.callAsync({
                     ...txData,
                     gas,
                 });
+                callResult.resultData = callResultGanacheRaw;
+                callResult.gasUsed = new BigNumber(gas);
                 gasEstimate = new BigNumber(gas);
             } else {
                 // Split out the `to` and `data` so it doesn't override
@@ -615,7 +621,6 @@ export class SwapService {
                         },
                     },
                 });
-                gasEstimate = callResult.gasUsed.plus(utils.calculateCallDataGas(data!));
             }
         } catch (e) {
             if (e.message && /insufficient funds/.test(e.message)) {
@@ -654,13 +659,12 @@ export class SwapService {
         if (revertError) {
             throw revertError;
         }
-        if (CHAIN_ID === ChainId.Ganache) {
-            return gasEstimate;
-        }
+        // Add in the overhead of call data
+        gasEstimate = callResult.gasUsed.plus(utils.calculateCallDataGas(txData.data!));
         // If there's a revert and we still are unable to decode it, just throw it.
         // This can happen in VIPs where there are no real revert reasons
         if (!callResult.success) {
-            throw new Error(`Execution reverted ${callResult.resultData}`);
+            throw new GasEstimationError();
         }
         return gasEstimate;
     }
