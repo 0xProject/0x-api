@@ -8,7 +8,13 @@ import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
 import { Counter } from 'prom-client';
 
-import { CHAIN_ID, PLP_API_KEY_WHITELIST, RFQT_API_KEY_WHITELIST, RFQT_REGISTRY_PASSWORDS } from '../config';
+import {
+    CHAIN_ID,
+    NATIVE_WRAPPED_TOKEN_SYMBOL,
+    PLP_API_KEY_WHITELIST,
+    RFQT_API_KEY_WHITELIST,
+    RFQT_REGISTRY_PASSWORDS,
+} from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
@@ -199,10 +205,10 @@ export class SwapHandlers {
     public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {
         // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
         const buyTokenSymbolOrAddress = isNativeSymbolOrAddress(req.query.buyToken as string)
-            ? 'WETH'
+            ? NATIVE_WRAPPED_TOKEN_SYMBOL
             : (req.query.buyToken as string);
         const sellTokenSymbolOrAddress = isNativeSymbolOrAddress(req.query.sellToken as string)
-            ? 'WETH'
+            ? NATIVE_WRAPPED_TOKEN_SYMBOL
             : (req.query.sellToken as string);
 
         if (buyTokenSymbolOrAddress === sellTokenSymbolOrAddress) {
