@@ -1,4 +1,5 @@
 import { MarketOperation, QuoteRequestor } from '@0x/asset-swapper';
+
 import { RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { NULL_ADDRESS } from '../constants';
 import {
@@ -31,7 +32,7 @@ export class RfqmService {
         const opts = {
             takerAddress: NULL_ADDRESS,
             txOrigin: NULL_ADDRESS, // TODO - set to worker registry
-            apiKey: apiKey,
+            apiKey,
             intentOnFilling: false, // TODO - safe to hardcode?
             isIndicative: true,
             makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
@@ -50,11 +51,11 @@ export class RfqmService {
 
         // Filter only quotes that are 100% filled, and sort by best price
         const sortedQuotes = indicativeQuotes
-            .filter((q) => q.makerAmount === assetFillAmount)
+            .filter((q) => q.takerAmount.eq(assetFillAmount))
             .sort((a, b) => {
                 const aPrice = a.makerAmount.div(a.takerAmount);
                 const bPrice = b.makerAmount.div(b.takerAmount);
-                return aPrice.minus(bPrice).toNumber();
+                return bPrice.minus(aPrice).toNumber();
             });
 
         // No quotes found
@@ -63,7 +64,7 @@ export class RfqmService {
         }
 
         // Prepare response
-        // TODO: handle decimals properly
+        // TODO: handle decimals properly in price
         return {
             buyAmount: sortedQuotes[0].makerAmount,
             buyTokenAddress: sortedQuotes[0].makerToken,
@@ -110,13 +111,14 @@ export class RfqmService {
 
         // Filter only quotes that are 100% filled, and sort by best price
         const sortedQuotes = firmQuotes
-            .filter((q) => q.order.makerAmount === assetFillAmount)
+            .filter((q) => q.order.takerAmount.eq(assetFillAmount))
             .sort((a, b) => {
                 const aPrice = a.order.makerAmount.div(a.order.takerAmount);
                 const bPrice = b.order.makerAmount.div(b.order.takerAmount);
-                return aPrice.minus(bPrice).toNumber();
+                return bPrice.minus(aPrice).toNumber();
             });
 
+        // TODO - transform the result into a metatransaction
         return sortedQuotes.length > 0 ? Promise.resolve({}) : Promise.reject('Error no valid quotes');
     }
 }
