@@ -8,7 +8,12 @@ export { isAPIError, isRevertError } from '@0x/api-utils';
 
 class ErrorUtils extends BaseErrorUtils {
     public generateError(err: Error): any {
-        if (isAPIError(err) && isAPIBadRequestError(err)) {
+        // handle error codes that are specific to 0x API
+        if (
+            isAPIError(err) &&
+            isAPIBadRequestError(err) &&
+            Object.values(APIErrorCodes).includes(err.generalErrorCode)
+        ) {
             const statusCode = err.statusCode;
             const code = err.generalErrorCode;
             return {
@@ -19,6 +24,7 @@ class ErrorUtils extends BaseErrorUtils {
                 },
             };
         }
+        // otherwise use general error handling
         return super.generateError(err);
     }
     constructor() {
