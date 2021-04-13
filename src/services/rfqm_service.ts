@@ -60,7 +60,7 @@ export class RfqmService {
 
         // No quotes found
         if (sortedQuotes.length === 0) {
-            return Promise.reject('Error no valid quotes');
+            return Promise.reject(new Error('No valid quotes'));
         }
 
         // Prepare response
@@ -119,7 +119,7 @@ export class RfqmService {
             });
 
         // TODO - transform the result into a metatransaction
-        return sortedQuotes.length > 0 ? Promise.resolve({}) : Promise.reject('Error no valid quotes');
+        return sortedQuotes.length > 0 ? Promise.resolve({}) : Promise.reject(new Error('No valid quotes'));
     }
 }
 
