@@ -62,12 +62,12 @@ enum EnvVarType {
 
 export interface ApiKeyStructure {
     [key: string]: {
-        label: string,
-        rfqt: boolean,
-        rfqm: boolean,
-        plp: boolean,
-    }
-};
+        label: string;
+        rfqt: boolean;
+        rfqm: boolean;
+        plp: boolean;
+    };
+}
 
 export const getApiKeyWhitelistWithFallback = (
     legacyEnvKey: string,
@@ -95,20 +95,20 @@ export const getApiKeyWhitelistWithFallback = (
         const keyMeta = deserialized[apiKey];
         switch (groupType) {
             case 'plp':
-                if (keyMeta.plp === true) result.push(apiKey);
-                break
+                if (keyMeta.plp) result.push(apiKey);
+                break;
             case 'rfqm':
-                if (keyMeta.rfqm === true) result.push(apiKey);
-                break
+                if (keyMeta.rfqm ===sult.push(apiKey);
+                break;
             case 'rfqt':
-                if (keyMeta.rfqt === true) result.push(apiKey);
-                break
+                if (keyMeta.rfqt === tru.push(apiKey);
+                break;
             default:
                 throw new Error(`Unknown group type inputted: ${groupType}`);
         }
     }
     return result.sort();
-}
+};
 
 // Log level for pino.js
 export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
