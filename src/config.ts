@@ -95,13 +95,13 @@ export const getApiKeyWhitelistWithFallback = (
         const keyMeta = deserialized[apiKey];
         switch (groupType) {
             case 'plp':
-                if (keyMeta.plp) result.push(apiKey);
+                if (keyMeta.plp) { result.push(apiKey); }
                 break;
             case 'rfqm':
-                if (keyMeta.rfqm) result.push(apiKey);
+                if (keyMeta.rfqm) { result.push(apiKey); }
                 break;
             case 'rfqt':
-                if (keyMeta.rfqt) result.push(apiKey);
+                if (keyMeta.rfqt) { result.push(apiKey); }
                 break;
             default:
                 throw new Error(`Unknown group type inputted: ${groupType}`);
