@@ -7,6 +7,7 @@ import * as sraPostOrdersPayloadSchema from './sra_post_orders_payload_schema.js
 import * as sraPostOrderPayloadSchema from './sra_post_order_payload_schema.json';
 import * as sraOrdersChannelSubscribeSchema from './sra_ws_orders_channel_subscribe_schema.json';
 import * as swapQuoteRequestSchema from './swap_quote_request_schema.json';
+import * as apiKeySchema from './api_key_schema.json';
 
 export const schemas = {
     sraOrderConfigPayloadSchema,
@@ -18,4 +19,5 @@ export const schemas = {
     swapQuoteRequestSchema,
     metaTransactionFillRequestSchema,
     metaTransactionQuoteRequestSchema,
+    apiKeySchema,
 };
