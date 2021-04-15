@@ -6,16 +6,19 @@ import {
     AssetSwapperContractAddresses,
     ContractAddresses,
     ERC20BridgeSamplerContract,
+    QuoteRequestor,
     SupportedProvider,
 } from '@0x/asset-swapper';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { Web3Wrapper } from '@0x/dev-utils';
+import Axios, { AxiosRequestConfig } from 'axios';
 import * as express from 'express';
-import { Server } from 'http';
+import { Agent as HttpAgent, Server } from 'http';
+import { Agent as HttpsAgent } from 'https';
 import { Connection } from 'typeorm';
 
-import { CHAIN_ID } from './config';
-import { RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
+import { CHAIN_ID, RFQT_MAKER_ASSET_OFFERINGS, RFQ_PROXY_ADDRESS, RFQ_PROXY_PORT, SWAP_QUOTER_OPTS } from './config';
+import { KEEP_ALIVE_TTL, RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
@@ -24,6 +27,7 @@ import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_run
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
+import { RfqmService } from './services/rfqm_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
 import {
@@ -55,6 +59,7 @@ export interface AppDependencies {
     websocketOpts: Partial<WebsocketSRAOpts>;
     transactionWatcherService?: TransactionWatcherSignerService;
     rateLimiter?: MetaTransactionRateLimiter;
+    rfqmService?: RfqmService;
 }
 
 async function deploySamplerContractAsync(
@@ -162,6 +167,28 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
+    const axiosRequestConfig: AxiosRequestConfig = {
+        httpAgent: new HttpAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
+        httpsAgent: new HttpsAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
+    };
+    if (RFQ_PROXY_ADDRESS !== undefined && RFQ_PROXY_PORT !== undefined) {
+        axiosRequestConfig.proxy = {
+            host: RFQ_PROXY_ADDRESS,
+            port: RFQ_PROXY_PORT,
+        };
+    }
+
+    const quoteRequestor = new QuoteRequestor(
+        RFQT_MAKER_ASSET_OFFERINGS,
+        {}, // TODO - this will be RFQM_MAKER_ASSET_OFFERINGS
+        Axios.create({ ...axiosRequestConfig }),
+        SWAP_QUOTER_OPTS.rfqt?.altRfqCreds,
+        logger.warn.bind(logger),
+        logger.info.bind(logger),
+        SWAP_QUOTER_OPTS.expiryBufferMs,
+    );
+    const rfqmService = new RfqmService(quoteRequestor);
+
     const websocketOpts = { path: SRA_PATH };
 
     return {
@@ -174,8 +201,10 @@ export async function getDefaultAppDependenciesAsync(
         provider,
         websocketOpts,
         rateLimiter,
+        rfqmService,
     };
 }
+
 /**
  * starts the app with dependencies injected. This entry-point is used when running a single instance 0x API
  * deployment and in tests. It is not used in production deployments where scaling is required.
