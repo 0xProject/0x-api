@@ -41,9 +41,8 @@ const BASE_RFQM_REQUEST_PARAMS = {
 };
 const API_KEY = 'koolApiKey';
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     const contractAddresses: ContractAddresses = CONTRACT_ADDRESSES;
-    let makerAddress: string;
     let takerAddress: string;
     let axiosClient: AxiosInstance;
     let app: Express.Application;
@@ -57,7 +56,7 @@ describe.only(SUITE_NAME, () => {
         const provider = getProvider();
         const web3Wrapper = new Web3Wrapper(provider);
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
-        [makerAddress, takerAddress] = accounts;
+        [, takerAddress] = accounts;
 
         // Build default dependencies
         const dependencyConfigs = config.defaultHttpServiceConfig;
