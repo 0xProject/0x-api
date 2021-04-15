@@ -49,9 +49,14 @@ export class RfqmService {
             opts,
         );
 
-        // Filter only quotes that are 100% filled, and sort by best price
+        // Filter out quotes that:
+        // - are for the wrong pair
+        // - cannot fill 100 % of the requested amount
+        //
+        // And sort by best price
         const sortedQuotes = indicativeQuotes
-            .filter((q) => q.takerAmount.eq(assetFillAmount))
+            .filter((q) => q.takerToken === takerToken && q.makerToken === makerToken)
+            .filter((q) => q.takerAmount.gte(assetFillAmount))
             .sort((a, b) => {
                 const aPrice = a.makerAmount.div(a.takerAmount);
                 const bPrice = b.makerAmount.div(b.takerAmount);
@@ -63,16 +68,18 @@ export class RfqmService {
             return Promise.reject(new Error('No valid quotes'));
         }
 
+        const bestQuote = sortedQuotes[0];
+
         // Prepare response
         // TODO: handle decimals properly in price
         return {
-            buyAmount: sortedQuotes[0].makerAmount,
-            buyTokenAddress: sortedQuotes[0].makerToken,
-            sellAmount: sortedQuotes[0].takerAmount,
-            sellTokenAddress: sortedQuotes[0].takerToken,
+            buyAmount: bestQuote.makerAmount,
+            buyTokenAddress: bestQuote.makerToken,
+            sellAmount: bestQuote.takerAmount,
+            sellTokenAddress: bestQuote.takerToken,
             price: isSelling
-                ? sortedQuotes[0].makerAmount.div(sortedQuotes[0].takerAmount)
-                : sortedQuotes[0].takerAmount.div(sortedQuotes[0].makerAmount),
+                ? bestQuote.makerAmount.div(bestQuote.takerAmount)
+                : bestQuote.takerAmount.div(bestQuote.makerAmount),
         };
     }
 
@@ -109,9 +116,14 @@ export class RfqmService {
             opts,
         );
 
-        // Filter only quotes that are 100% filled, and sort by best price
+        // Filter out quotes that:
+        // - are for the wrong pair
+        // - cannot fill 100 % of the requested amount
+        //
+        // And sort by best price
         const sortedQuotes = firmQuotes
-            .filter((q) => q.order.takerAmount.eq(assetFillAmount))
+            .filter((q) => q.order.takerToken === takerToken && q.order.makerToken === makerToken)
+            .filter((q) => q.order.takerAmount.gte(assetFillAmount))
             .sort((a, b) => {
                 const aPrice = a.order.makerAmount.div(a.order.takerAmount);
                 const bPrice = b.order.makerAmount.div(b.order.takerAmount);

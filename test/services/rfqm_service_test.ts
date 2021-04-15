@@ -127,7 +127,7 @@ describe('RfqmService', () => {
             ).to.be.rejectedWith(Error, 'No valid quotes');
         });
 
-        it('should only return an indicative quote that is 100% filled', async () => {
+        it('should return an indicative quote that can fill more than 100%', async () => {
             // Given
             const worsePricing = {
                 makerToken: 'DAI',
@@ -138,9 +138,9 @@ describe('RfqmService', () => {
             };
             const betterPricing = {
                 makerToken: 'DAI',
-                makerAmount: new BigNumber(111),
+                makerAmount: new BigNumber(222),
                 takerToken: 'USDC',
-                takerAmount: new BigNumber(100),
+                takerAmount: new BigNumber(200),
                 expiry: new BigNumber(1000000000000000),
             };
             const quoteRequestorMock = mock(QuoteRequestor);
@@ -167,8 +167,52 @@ describe('RfqmService', () => {
             });
 
             // Then
-            expect(res.sellAmount.toNumber()).to.equal(100);
+            expect(res.sellAmount.toNumber()).to.equal(200);
             expect(res.price.toNumber()).to.equal(1.11);
+        });
+
+        it('should ignore quotes that are for the wrong pair', async () => {
+            // Given
+            const worsePricing = {
+                makerToken: 'DAI',
+                makerAmount: new BigNumber(101),
+                takerToken: 'USDC',
+                takerAmount: new BigNumber(100),
+                expiry: new BigNumber(1000000000000000),
+            };
+            const wrongPair = {
+                makerToken: 'USDT',
+                makerAmount: new BigNumber(111),
+                takerToken: 'USDC',
+                takerAmount: new BigNumber(100),
+                expiry: new BigNumber(1000000000000000),
+            };
+            const quoteRequestorMock = mock(QuoteRequestor);
+            when(
+                quoteRequestorMock.requestRfqmIndicativeQuotesAsync(
+                    anything(),
+                    anything(),
+                    anything(),
+                    anything(),
+                    anything(),
+                    anything(),
+                ),
+            ).thenResolve([worsePricing, wrongPair]);
+
+            const quoteRequestorInstance = instance(quoteRequestorMock);
+            const service = new RfqmService(quoteRequestorInstance);
+
+            // When
+            const res = await service.fetchIndicativeQuoteAsync({
+                apiKey: 'some-api-key',
+                buyToken: 'DAI',
+                sellToken: 'USDC',
+                sellAmount: new BigNumber(100),
+            });
+
+            // Then
+            expect(res.sellAmount.toNumber()).to.equal(100);
+            expect(res.price.toNumber()).to.equal(1.01); // Worse pricing wins because better pricing is for wrong pair
         });
     });
 });
