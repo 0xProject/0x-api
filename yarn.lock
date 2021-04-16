@@ -74,9 +74,10 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.5.3-a019bb913":
+"@0x/asset-swapper@^6.5.3":
   version "6.5.3"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/f8ca40a47b83277e33da075c64700f07c90d6469"
+  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-6.5.3.tgz#7b10d36201824c971237f55721a26a3263140459"
+  integrity sha512-KFGosbZXoS0ZkN/I/hp02u2+QjG4vky8brKjFGSIwaO4lstLkFkqn1vG+CtMsH0LHIwT1XRac2bipZoXi2AQcw==
   dependencies:
     "@0x/assert" "^3.0.21"
     "@0x/base-contract" "^6.2.18"
@@ -510,12 +511,11 @@
   version "10.3.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/ab4e8e421f687764b96a64378b7cf398839dda0c"
   dependencies:
-    "@0x/assert" "^3.0.9"
-    "@0x/contract-addresses" "^4.11.0"
-    "@0x/contract-wrappers" "^13.8.0"
-    "@0x/json-schemas" "^5.1.0"
-    "@0x/utils" "^5.5.1"
-    "@0x/web3-wrapper" "^7.2.0"
+    "@0x/assert" "^3.0.8"
+    "@0x/contract-wrappers" "^13.7.0"
+    "@0x/json-schemas" "^5.0.8"
+    "@0x/utils" "^5.5.0"
+    "@0x/web3-wrapper" "^7.1.0"
     ethereumjs-util "^5.1.1"
     ethers "~4.0.4"
     lodash "^4.17.11"
