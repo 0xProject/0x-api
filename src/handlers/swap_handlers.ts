@@ -304,7 +304,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     let skipValidation: boolean;
     skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
     if (endpoint === 'quote' && apiKey !== undefined && apiKey === MATCHA_KEY) {
-        skipValidation = true;
+        skipValidation = false;
     }
     const includePriceComparisons = req.query.includePriceComparisons === 'true' ? true : false;
     // Whether the entire callers balance should be sold, used for contracts where the
