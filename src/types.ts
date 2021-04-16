@@ -384,6 +384,8 @@ export enum TransactionStates {
     Aborted = 'aborted',
     // transaction was in an unsubmitted state for too long.
     Cancelled = 'cancelled',
+    // transaction was rejected by an MM via LastLook
+    LastLookRejected = 'lastLookRejected',
 }
 
 export interface TransactionWatcherSignerStatus {
@@ -440,4 +442,19 @@ export interface BucketedPriceDepth {
     bucket: number;
     bucketTotal: BigNumber;
 }
+
+export interface LastLookConfig {
+    makerUrl: string;
+    orderHash: string;
+    rfqOrderDetail: LastLookOrderDetail;
+}
+
+export interface LastLookOrderDetail {
+    makerAmount: string;
+    takerAmount: string;
+    makerToken: string;
+    takerToken: string;
+    txOrigin: string;
+}
+
 // tslint:disable-line:max-file-line-count
