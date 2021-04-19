@@ -124,8 +124,8 @@ export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
                 .values(
                     makerAddressesToAddToCache.map((makerAddress) => {
                         return {
-                            makerAddress,
-                            tokenAddress: makerToken,
+                            makerAddress: makerAddress.toLowerCase(),
+                            tokenAddress: makerToken.toLowerCase(),
                             timeFirstSeen: 'NOW()',
                         };
                     }),
