@@ -49,6 +49,11 @@ const PG_LATENCY_READ = new Summary({
     help: 'Query latency',
     labelNames: ['workerId'],
 });
+const MAKER_TOKEN_NOT_UNIQUE = new Counter({
+    name: 'maker_token_not_unique',
+    help: 'Makers have not all returned the same token',
+    labelNames: ['workerId'],
+});
 
 export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
     private readonly _chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
@@ -76,6 +81,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
                     Array.from(uniqueMakerTokens),
                 )}. Rejecting the batch`,
             );
+            MAKER_TOKEN_NOT_UNIQUE.labels(this._workerId).inc();
             return quotes.map((_quote) => ZERO);
         }
         const makerToken: string = uniqueMakerTokens.values().next().value;
