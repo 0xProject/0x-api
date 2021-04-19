@@ -9,7 +9,7 @@ import { anything, instance, mock, when } from 'ts-mockito';
 
 import { RfqmService } from '../../src/services/rfqm_service';
 
-describe.only('RfqmService', () => {
+describe('RfqmService', () => {
     describe('fetchIndicativeQuoteAsync', () => {
         it('should fetch indicative quote', async () => {
             // Given
