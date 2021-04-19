@@ -9,7 +9,7 @@ import { anything, instance, mock, when } from 'ts-mockito';
 
 import { RfqmService } from '../../src/services/rfqm_service';
 
-describe('RfqmService', () => {
+describe.only('RfqmService', () => {
     describe('fetchIndicativeQuoteAsync', () => {
         it('should fetch indicative quote', async () => {
             // Given
@@ -41,7 +41,7 @@ describe('RfqmService', () => {
                 apiKey: 'some-api-key',
                 buyToken: 'DAI',
                 sellToken: 'USDC',
-                sellAmount: new BigNumber(100),
+                amount: new BigNumber(100),
             });
 
             // Then
@@ -84,7 +84,7 @@ describe('RfqmService', () => {
                 apiKey: 'some-api-key',
                 buyToken: 'DAI',
                 sellToken: 'USDC',
-                sellAmount: new BigNumber(100),
+                amount: new BigNumber(100),
             });
 
             // Then
@@ -122,7 +122,7 @@ describe('RfqmService', () => {
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
                     sellToken: 'USDC',
-                    sellAmount: new BigNumber(100),
+                    amount: new BigNumber(100),
                 }),
             ).to.be.rejectedWith(Error, 'No valid quotes');
         });
@@ -163,7 +163,7 @@ describe('RfqmService', () => {
                 apiKey: 'some-api-key',
                 buyToken: 'DAI',
                 sellToken: 'USDC',
-                sellAmount: new BigNumber(100),
+                amount: new BigNumber(100),
             });
 
             // Then
@@ -207,7 +207,7 @@ describe('RfqmService', () => {
                 apiKey: 'some-api-key',
                 buyToken: 'DAI',
                 sellToken: 'USDC',
-                sellAmount: new BigNumber(100),
+                amount: new BigNumber(100),
             });
 
             // Then
