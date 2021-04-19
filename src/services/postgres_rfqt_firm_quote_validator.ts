@@ -69,7 +69,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
         // TODO: Handle error on query
 
         // Ensure that all quotes have the same exact maker token.
-        const uniqueMakerTokens = new Set(quotes.map((quote) => quote.makerToken));
+        const uniqueMakerTokens = new Set(quotes.map((quote) => quote.makerToken.toLowerCase()));
         if (uniqueMakerTokens.size !== 1) {
             logger.error(
                 `Quotes array was empty or found multiple maker token addresses within one single RFQ batch: ${JSON.stringify(
@@ -83,7 +83,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
         // Fetch balances and create a lookup table. In order to fetch all the unique addresses we use a set, but then convert
         // the set to an array so that it can work with TypeORM.
         const makerLookup: { [key: string]: BigNumber } = {};
-        const makerAddresses = Array.from(new Set(quotes.map((quote) => quote.maker)));
+        const makerAddresses = Array.from(new Set(quotes.map((quote) => quote.maker.toLowerCase())));
         const timeStart = new Date().getTime();
         const cacheResults = await this._chainCacheRepository.find({
             where: [
