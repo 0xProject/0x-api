@@ -961,6 +961,25 @@
     js-sha3 "^0.7.0"
     lodash "^4.17.11"
 
+"@0x/utils@^6.3.0":
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-6.3.0.tgz#7c9183e6e725fa32fb81a7de0e371917cf64251a"
+  dependencies:
+    "@0x/types" "^3.3.2"
+    "@0x/typescript-typings" "^5.1.7"
+    "@types/mocha" "^5.2.7"
+    "@types/node" "12.12.54"
+    abortcontroller-polyfill "^1.1.9"
+    bignumber.js "~9.0.0"
+    chalk "^2.3.0"
+    detect-node "2.0.3"
+    ethereum-types "^3.4.1"
+    ethereumjs-util "^5.1.1"
+    ethers "~4.0.4"
+    isomorphic-fetch "2.2.1"
+    js-sha3 "^0.7.0"
+    lodash "^4.17.11"
+
 "@0x/web3-wrapper@^7.2.0":
   version "7.2.4"
   resolved "https://registry.yarnpkg.com/@0x/web3-wrapper/-/web3-wrapper-7.2.4.tgz#c66a506900c1144c465b971ae2cad3b580619f1f"
