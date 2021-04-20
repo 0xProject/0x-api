@@ -264,8 +264,8 @@ async function updateErc20BalancesAsync(
     const toSave = balancesCallInput.addresses.map((addr, i) => {
         const dbEntity = new MakerBalanceChainCacheEntity();
 
-        dbEntity.makerAddress = addr.toLowerCase();
-        dbEntity.tokenAddress = balancesCallInput.tokens[i].toLowerCase();
+        dbEntity.makerAddress = addr;
+        dbEntity.tokenAddress = balancesCallInput.tokens[i];
         dbEntity.balance = new BigNumber(balances[i]);
         dbEntity.timeOfSample = updateTime;
 
