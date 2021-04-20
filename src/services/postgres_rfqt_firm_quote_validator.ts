@@ -50,7 +50,7 @@ const PG_LATENCY_READ = new Summary({
     labelNames: ['workerId'],
 });
 const MAKER_TOKEN_NOT_UNIQUE = new Counter({
-    name: 'rejected_due_to_maker_token_not_unique',
+    name: 'rfqtv_rejected_maker_token_not_unique',
     help: 'RFQ batch was requested because not all orders return the same token',
     labelNames: ['workerId'],
 });
