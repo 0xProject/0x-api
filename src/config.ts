@@ -54,7 +54,7 @@ enum EnvVarType {
     NonEmptyString,
     APIKeys,
     PrivateKeys,
-    RfqtMakerAssetOfferings,
+    RfqMakerAssetOfferings,
     RateLimitConfig,
     LiquidityProviderRegistry,
     JsonStringList,
@@ -72,9 +72,8 @@ export interface ApiKeyStructure {
 export const getApiKeyWhitelistWithFallback = (
     legacyEnvKey: string,
     newEnvKey: string,
-    groupType: 'rfqt' | 'plp' | 'rfqm'
+    groupType: 'rfqt' | 'plp' | 'rfqm',
 ): string[] => {
-
     // Try the new path first
     if (_.isEmpty(process.env[newEnvKey])) {
         return _.isEmpty(process.env[legacyEnvKey])
@@ -95,13 +94,19 @@ export const getApiKeyWhitelistWithFallback = (
         const keyMeta = deserialized[apiKey];
         switch (groupType) {
             case 'plp':
-                if (keyMeta.plp) { result.push(apiKey); }
+                if (keyMeta.plp) {
+                    result.push(apiKey);
+                }
                 break;
             case 'rfqm':
-                if (keyMeta.rfqm) { result.push(apiKey); }
+                if (keyMeta.rfqm) {
+                    result.push(apiKey);
+                }
                 break;
             case 'rfqt':
-                if (keyMeta.rfqt) { result.push(apiKey); }
+                if (keyMeta.rfqt) {
+                    result.push(apiKey);
+                }
                 break;
             default:
                 throw new Error(`Unknown group type inputted: ${groupType}`);
@@ -110,9 +115,7 @@ export const getApiKeyWhitelistWithFallback = (
     return result.sort();
 };
 
-export const getApiKeyFromLabel = (
-    label: string,
-): string | undefined => {
+export const getApiKeyFromLabel = (label: string): string | undefined => {
     if (process.env.API_KEYS_ACL === undefined) {
         return undefined;
     }
@@ -269,7 +272,7 @@ export const RFQT_REGISTRY_PASSWORDS: string[] = _.isEmpty(process.env.RFQT_REGI
 export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistWithFallback(
     'RFQT_API_KEY_WHITELIST_JSON',
     'API_KEYS_ACL',
-    'rfqt'
+    'rfqt',
 );
 
 export const MATCHA_KEY: string | undefined = getApiKeyFromLabel('Matcha');
@@ -297,7 +300,7 @@ export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_
 export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistWithFallback(
     'PLP_API_KEY_WHITELIST_JSON',
     'API_KEYS_ACL',
-    'plp'
+    'plp',
 );
 
 export const RFQT_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(process.env.RFQT_MAKER_ASSET_OFFERINGS)
@@ -305,8 +308,12 @@ export const RFQT_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(proc
     : assertEnvVarType(
           'RFQT_MAKER_ASSET_OFFERINGS',
           process.env.RFQT_MAKER_ASSET_OFFERINGS,
-          EnvVarType.RfqtMakerAssetOfferings,
+          EnvVarType.RfqMakerAssetOfferings,
       );
+
+export const META_TX_WORKER_REGISTRY: string | undefined = _.isEmpty(process.env.META_TX_WORKER_REGISTRY)
+    ? undefined
+    : assertEnvVarType('META_TX_WORKER_REGISTRY', process.env.META_TX_WORKER_REGISTRY, EnvVarType.NonEmptyString);
 
 // tslint:disable-next-line:boolean-naming
 export const RFQT_REQUEST_MAX_RESPONSE_MS = 600;
@@ -631,7 +638,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.JsonStringList:
             assert.isString(name, value);
             return JSON.parse(value);
-        case EnvVarType.RfqtMakerAssetOfferings:
+        case EnvVarType.RfqMakerAssetOfferings:
             const offerings: RfqMakerAssetOfferings = JSON.parse(value);
             // tslint:disable-next-line:forin
             for (const makerEndpoint in offerings) {

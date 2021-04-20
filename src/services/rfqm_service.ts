@@ -1,12 +1,13 @@
-import { MarketOperation, QuoteRequestor } from '@0x/asset-swapper';
+import { AssetSwapperContractAddresses, MarketOperation, ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
 
-import { RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
-import { NULL_ADDRESS } from '../constants';
+import { META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
+import { NULL_ADDRESS, ONE_MINUTE_MS } from '../constants';
 
 export interface FetchIndicativeQuoteParams {
     apiKey: string;
-    amount: BigNumber; // in terms of the amount the taker is selling
+    buyAmount?: BigNumber;
+    sellAmount?: BigNumber;
     buyToken: string;
     sellToken: string;
     takerAddress?: string;
@@ -18,37 +19,58 @@ export interface FetchIndicativeQuoteResponse {
     price: BigNumber;
     sellAmount: BigNumber;
     sellTokenAddress: string;
+    gas: BigNumber;
+    allowanceTarget?: string;
 }
+
+export const EMPTY_QUOTE_RESPONSE = {
+    buyAmount: new BigNumber(0),
+    buyTokenAddress: '',
+    price: new BigNumber(0),
+    sellAmount: new BigNumber(0),
+    sellTokenAddress: '',
+    gas: new BigNumber(0),
+    allowanceTarget: NULL_ADDRESS,
+};
+
+const RFQM_DEFAULT_OPTS = {
+    takerAddress: NULL_ADDRESS,
+    txOrigin: META_TX_WORKER_REGISTRY || NULL_ADDRESS,
+    makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
+    nativeExclusivelyRFQ: true,
+    altRfqAssetOfferings: {},
+    isLastLook: true,
+};
 
 /**
  * RfqmService is the coordination layer for HTTP based RFQM flows
  */
 export class RfqmService {
-    constructor(private readonly _quoteRequestor: QuoteRequestor) {}
+    constructor(
+        private readonly _quoteRequestor: QuoteRequestor,
+        private readonly _protocolFeeUtils: ProtocolFeeUtils,
+        private readonly _contractAddresses: AssetSwapperContractAddresses,
+    ) {}
 
     /**
      * Fetch the best indicative quote available.
      */
     public async fetchIndicativeQuoteAsync(params: FetchIndicativeQuoteParams): Promise<FetchIndicativeQuoteResponse> {
-        const { amount, sellToken, buyToken, apiKey } = params;
+        const { sellAmount, buyAmount, sellToken, buyToken, apiKey } = params;
 
         // Map params to the terminology of Quote Requestor
-        const marketOperation = MarketOperation.Sell;
-        const assetFillAmount = amount;
+        const isSelling = sellAmount !== undefined;
+        const marketOperation = isSelling ? MarketOperation.Sell : MarketOperation.Buy;
+        const assetFillAmount = isSelling ? sellAmount! : buyAmount!;
         const makerToken = buyToken;
         const takerToken = sellToken;
 
         // Fetch quotes
         const opts = {
-            takerAddress: NULL_ADDRESS,
-            txOrigin: NULL_ADDRESS, // TODO - set to worker registry
+            ...RFQM_DEFAULT_OPTS,
             apiKey,
             intentOnFilling: false, // TODO - safe to hardcode?
             isIndicative: true,
-            makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
-            nativeExclusivelyRFQ: true,
-            altRfqAssetOfferings: {}, // TODO - set this to the alt rfq asset offerings
-            isLastLook: true,
         };
         const indicativeQuotes = await this._quoteRequestor.requestRfqmIndicativeQuotesAsync(
             makerToken,
@@ -62,12 +84,20 @@ export class RfqmService {
         // Filter out quotes that:
         // - are for the wrong pair
         // - cannot fill 100 % of the requested amount
+        // - expire in less than 3 minutes
         //
         // And sort by best price
+        const now = new BigNumber(Date.now());
         const sortedQuotes = indicativeQuotes
             .filter((q) => q.takerToken === takerToken && q.makerToken === makerToken)
-            .filter((q) => q.takerAmount.gte(assetFillAmount))
+            .filter((q) => {
+                const requestedAmount = isSelling ? q.takerAmount : q.makerAmount;
+                return requestedAmount.gte(assetFillAmount);
+            })
+            // tslint:disable-next-line: custom-no-magic-numbers
+            .filter((q) => q.expiry.gte(now.plus(ONE_MINUTE_MS * 3)))
             .sort((a, b) => {
+                // Want the most amount of maker tokens for each taker token
                 const aPrice = a.makerAmount.div(a.takerAmount);
                 const bPrice = b.makerAmount.div(b.takerAmount);
                 return bPrice.minus(aPrice).toNumber();
@@ -75,19 +105,24 @@ export class RfqmService {
 
         // No quotes found
         if (sortedQuotes.length === 0) {
-            return Promise.reject(new Error('No valid quotes'));
+            return Promise.resolve(EMPTY_QUOTE_RESPONSE);
         }
 
         const bestQuote = sortedQuotes[0];
 
+        // Prepare gas estimate
+        const gas = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+
         // Prepare response
         // TODO: handle decimals properly in price
         return {
+            price: bestQuote.makerAmount.div(bestQuote.takerAmount),
+            gas,
             buyAmount: bestQuote.makerAmount,
             buyTokenAddress: bestQuote.makerToken,
             sellAmount: bestQuote.takerAmount,
             sellTokenAddress: bestQuote.takerToken,
-            price: bestQuote.makerAmount.div(bestQuote.takerAmount),
+            allowanceTarget: this._contractAddresses.exchangeProxy,
         };
     }
 }

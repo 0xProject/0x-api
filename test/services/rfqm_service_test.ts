@@ -2,12 +2,13 @@
 // tslint:disable:no-empty
 // tslint:disable:max-file-line-count
 
-import { QuoteRequestor } from '@0x/asset-swapper';
+import { ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
+import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { expect } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
 import { anything, instance, mock, when } from 'ts-mockito';
 
-import { RfqmService } from '../../src/services/rfqm_service';
+import { EMPTY_QUOTE_RESPONSE, RfqmService } from '../../src/services/rfqm_service';
 
 describe('RfqmService', () => {
     describe('fetchIndicativeQuoteAsync', () => {
@@ -34,14 +35,16 @@ describe('RfqmService', () => {
             ]);
 
             const quoteRequestorInstance = instance(quoteRequestorMock);
-            const service = new RfqmService(quoteRequestorInstance);
+            const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
+            const contractAddresses = getContractAddressesForChainOrThrow(1);
+            const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
 
             // When
             const res = await service.fetchIndicativeQuoteAsync({
                 apiKey: 'some-api-key',
                 buyToken: 'DAI',
                 sellToken: 'USDC',
-                amount: new BigNumber(100),
+                sellAmount: new BigNumber(100),
             });
 
             // Then
@@ -77,14 +80,16 @@ describe('RfqmService', () => {
             ).thenResolve([partialFillQuote, fullQuote]);
 
             const quoteRequestorInstance = instance(quoteRequestorMock);
-            const service = new RfqmService(quoteRequestorInstance);
+            const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
+            const contractAddresses = getContractAddressesForChainOrThrow(1);
+            const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
 
             // When
             const res = await service.fetchIndicativeQuoteAsync({
                 apiKey: 'some-api-key',
                 buyToken: 'DAI',
                 sellToken: 'USDC',
-                amount: new BigNumber(100),
+                sellAmount: new BigNumber(100),
             });
 
             // Then
@@ -92,7 +97,7 @@ describe('RfqmService', () => {
             expect(res.price.toNumber()).to.equal(1.05);
         });
 
-        it('should throw an error if no quotes are valid', async () => {
+        it('should return the EMPTY_QUOTE_RESPONSE if no quotes are valid', async () => {
             // Given
             const partialFillQuote = {
                 makerToken: 'DAI',
@@ -114,17 +119,18 @@ describe('RfqmService', () => {
             ).thenResolve([partialFillQuote]);
 
             const quoteRequestorInstance = instance(quoteRequestorMock);
-            const service = new RfqmService(quoteRequestorInstance);
+            const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
+            const contractAddresses = getContractAddressesForChainOrThrow(1);
+            const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
 
             // Expect
-            expect(
-                service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
-                    buyToken: 'DAI',
-                    sellToken: 'USDC',
-                    amount: new BigNumber(100),
-                }),
-            ).to.be.rejectedWith(Error, 'No valid quotes');
+            const res = await service.fetchIndicativeQuoteAsync({
+                apiKey: 'some-api-key',
+                buyToken: 'DAI',
+                sellToken: 'USDC',
+                sellAmount: new BigNumber(100),
+            });
+            expect(res).to.eq(EMPTY_QUOTE_RESPONSE);
         });
 
         it('should return an indicative quote that can fill more than 100%', async () => {
@@ -156,14 +162,16 @@ describe('RfqmService', () => {
             ).thenResolve([worsePricing, betterPricing]);
 
             const quoteRequestorInstance = instance(quoteRequestorMock);
-            const service = new RfqmService(quoteRequestorInstance);
+            const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
+            const contractAddresses = getContractAddressesForChainOrThrow(1);
+            const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
 
             // When
             const res = await service.fetchIndicativeQuoteAsync({
                 apiKey: 'some-api-key',
                 buyToken: 'DAI',
                 sellToken: 'USDC',
-                amount: new BigNumber(100),
+                sellAmount: new BigNumber(100),
             });
 
             // Then
@@ -200,14 +208,16 @@ describe('RfqmService', () => {
             ).thenResolve([worsePricing, wrongPair]);
 
             const quoteRequestorInstance = instance(quoteRequestorMock);
-            const service = new RfqmService(quoteRequestorInstance);
+            const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
+            const contractAddresses = getContractAddressesForChainOrThrow(1);
+            const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
 
             // When
             const res = await service.fetchIndicativeQuoteAsync({
                 apiKey: 'some-api-key',
                 buyToken: 'DAI',
                 sellToken: 'USDC',
-                amount: new BigNumber(100),
+                sellAmount: new BigNumber(100),
             });
 
             // Then
