@@ -15,6 +15,7 @@ import {
     PLP_API_KEY_WHITELIST,
     RFQT_API_KEY_WHITELIST,
     RFQT_REGISTRY_PASSWORDS,
+    UNSUPPORTED_TOKEN_ADRESSES_SET,
 } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
@@ -350,6 +351,22 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
                     field,
                     code: ValidationErrorCodes.FieldInvalid,
                     reason: 'Invalid token combination',
+                };
+            }),
+        );
+    }
+
+    const unsupportedTokens = [
+        [buyToken, 'buyToken'],
+        [sellToken, 'sellToken'],
+    ].filter(([tokenAddress]) => UNSUPPORTED_TOKEN_ADRESSES_SET.has(tokenAddress.toLowerCase()));
+    if (unsupportedTokens.length > 0) {
+        throw new ValidationError(
+            unsupportedTokens.map(([, field]) => {
+                return {
+                    field,
+                    code: ValidationErrorCodes.TokenNotSupported,
+                    reason: 'Token is not supported',
                 };
             }),
         );
