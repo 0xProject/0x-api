@@ -6,6 +6,7 @@ import {
     AssetSwapperContractAddresses,
     ContractAddresses,
     ERC20BridgeSamplerContract,
+    ProtocolFeeUtils,
     QuoteRequestor,
     SupportedProvider,
 } from '@0x/asset-swapper';
@@ -17,8 +18,21 @@ import { Agent as HttpAgent, Server } from 'http';
 import { Agent as HttpsAgent } from 'https';
 import { Connection } from 'typeorm';
 
-import { CHAIN_ID, RFQT_MAKER_ASSET_OFFERINGS, RFQ_PROXY_ADDRESS, RFQ_PROXY_PORT, SWAP_QUOTER_OPTS } from './config';
-import { KEEP_ALIVE_TTL, RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
+import {
+    CHAIN_ID,
+    ETH_GAS_STATION_API_URL,
+    RFQM_MAKER_ASSET_OFFERINGS,
+    RFQT_MAKER_ASSET_OFFERINGS,
+    RFQ_PROXY_ADDRESS,
+    RFQ_PROXY_PORT,
+    SWAP_QUOTER_OPTS,
+} from './config';
+import {
+    KEEP_ALIVE_TTL,
+    PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
+    RFQ_FIRM_QUOTE_CACHE_EXPIRY,
+    SRA_PATH,
+} from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
@@ -38,6 +52,7 @@ import {
     WebsocketSRAOpts,
 } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
+import { ConfigManager } from './utils/config_manager';
 import { MeshClient } from './utils/mesh_client';
 import {
     AvailableRateLimiter,
@@ -60,6 +75,7 @@ export interface AppDependencies {
     transactionWatcherService?: TransactionWatcherSignerService;
     rateLimiter?: MetaTransactionRateLimiter;
     rfqmService?: RfqmService;
+    configManager?: ConfigManager;
 }
 
 async function deploySamplerContractAsync(
@@ -167,27 +183,23 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
-    const axiosRequestConfig: AxiosRequestConfig = {
-        httpAgent: new HttpAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
-        httpsAgent: new HttpsAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
-    };
-    if (RFQ_PROXY_ADDRESS !== undefined && RFQ_PROXY_PORT !== undefined) {
-        axiosRequestConfig.proxy = {
-            host: RFQ_PROXY_ADDRESS,
-            port: RFQ_PROXY_PORT,
-        };
-    }
-
     const quoteRequestor = new QuoteRequestor(
         RFQT_MAKER_ASSET_OFFERINGS,
-        {}, // TODO - this will be RFQM_MAKER_ASSET_OFFERINGS
-        Axios.create({ ...axiosRequestConfig }),
-        SWAP_QUOTER_OPTS.rfqt?.altRfqCreds,
+        RFQM_MAKER_ASSET_OFFERINGS,
+        Axios.create(getAxiosRequestConfig()),
+        undefined, // No Alt RFQM offerings at the moment
         logger.warn.bind(logger),
         logger.info.bind(logger),
         SWAP_QUOTER_OPTS.expiryBufferMs,
     );
-    const rfqmService = new RfqmService(quoteRequestor);
+
+    const protocolFeeUtils = ProtocolFeeUtils.getInstance(
+        PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
+        ETH_GAS_STATION_API_URL,
+    );
+    const rfqmService = new RfqmService(quoteRequestor, protocolFeeUtils, contractAddresses);
+
+    const configManager = new ConfigManager();
 
     const websocketOpts = { path: SRA_PATH };
 
@@ -202,6 +214,7 @@ export async function getDefaultAppDependenciesAsync(
         websocketOpts,
         rateLimiter,
         rfqmService,
+        configManager,
     };
 }
 
@@ -238,16 +251,31 @@ export async function getAppAsync(
     return { app, server };
 }
 
+const getAxiosRequestConfig = (): AxiosRequestConfig => {
+    const axiosRequestConfig: AxiosRequestConfig = {
+        httpAgent: new HttpAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
+        httpsAgent: new HttpsAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
+    };
+    if (RFQ_PROXY_ADDRESS !== undefined && RFQ_PROXY_PORT !== undefined) {
+        axiosRequestConfig.proxy = {
+            host: RFQ_PROXY_ADDRESS,
+            port: RFQ_PROXY_PORT,
+        };
+    }
+
+    return axiosRequestConfig;
+};
+
 function createMetaTransactionRateLimiterFromConfig(
     dbConnection: Connection,
     config: HttpServiceConfig,
 ): MetaTransactionRateLimiter {
     const rateLimiterConfigEntries = Object.entries(config.metaTxnRateLimiters!);
     const configuredRateLimiters = rateLimiterConfigEntries
-        .map(entries => {
+        .map((entries) => {
             const [dbField, rateLimiters] = entries;
 
-            return Object.entries(rateLimiters!).map(rateLimiterEntry => {
+            return Object.entries(rateLimiters!).map((rateLimiterEntry) => {
                 const [limiterType, value] = rateLimiterEntry;
                 switch (limiterType) {
                     case AvailableRateLimiter.Daily: {

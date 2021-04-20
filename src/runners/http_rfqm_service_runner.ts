@@ -1,7 +1,7 @@
 /**
  * This module can be used to run the RFQM HTTP service standalone
  */
-import { cacheControl, createDefaultServer } from '@0x/api-utils';
+import { createDefaultServer } from '@0x/api-utils';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
@@ -9,8 +9,7 @@ import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import { defaultHttpServiceWithRateLimiterConfig } from '../config';
-import { DEFAULT_CACHE_AGE_SECONDS, RFQM_PATH } from '../constants';
-import { rootHandler } from '../handlers/root_handler';
+import { RFQM_PATH } from '../constants';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
@@ -55,17 +54,15 @@ export async function runHttpRfqmServiceAsync(
 ): Promise<{ app: express.Application; server: Server }> {
     const app = _app || express();
     app.use(addressNormalizer);
-    app.use(cacheControl(DEFAULT_CACHE_AGE_SECONDS));
     const server = createDefaultServer(config, app, logger, destroyCallback(dependencies));
 
-    app.get('/', rootHandler);
-
-    if (dependencies.rfqmService) {
-        app.use(RFQM_PATH, createRfqmRouter(dependencies.rfqmService));
+    if (dependencies.rfqmService && dependencies.configManager) {
+        app.use(RFQM_PATH, createRfqmRouter(dependencies.rfqmService, dependencies.configManager));
     } else {
         logger.error(`Could not run rfqm service, exiting`);
         process.exit(1);
     }
+
     app.use(errorHandler);
 
     server.listen(config.httpPort);
