@@ -80,10 +80,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@^6.7.0":
-  version "6.7.0"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-6.7.0.tgz#c57747cd8fc2de853ddd75592b98ca0c4ba5bd2d"
-  integrity sha512-CJeQohcb493MgO39BpnXWMYnhnvA2r8Q711Nso6VHQDi/wKSAnn5UqJXyq7CxGzS2qyyagUBX3xeuNfM+EkxbQ==
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.6.0-f20674d0b":
+  version "6.6.0"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/19e20929716fc9bb9ae434ee63b0fd8b878051a6"
   dependencies:
     "@0x/assert" "^3.0.21"
     "@0x/base-contract" "^6.2.18"
