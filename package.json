@@ -133,6 +133,7 @@
         "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v6.3.0-525bc8197",
         "@0x/contract-addresses": "^5.11.0",
         "@0x/contract-wrappers": "^13.13.0",
+        "@0x/contracts-zero-ex": "^0.21.1",
         "@0x/json-schemas": "^5.3.1",
         "@0x/mesh-graphql-client": "^11.0.1",
         "@0x/order-utils": "^10.4.15",

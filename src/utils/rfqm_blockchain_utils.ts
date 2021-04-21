@@ -1,4 +1,4 @@
-import { IZeroExContract } from '@0x/contract-wrappers';
+import { IZeroExContract } from '@0x/contracts-zero-ex';
 import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 
@@ -12,11 +12,12 @@ const MAX_GAS_PRICE = new BigNumber(1e13);
 export class RfqBlockchainUtils {
     constructor(private readonly _exchangeProxy: IZeroExContract) {}
 
-    public generateMetatransaction(
+    public generateMetaTransaction(
         rfqOrder: RfqOrder,
         signature: Signature,
         taker: string,
         takerAmount: BigNumber,
+        chainId: number,
     ): MetaTransaction {
         // generate call data for fillRfqOrder
         const callData = this._exchangeProxy
@@ -35,6 +36,25 @@ export class RfqBlockchainUtils {
             value: new BigNumber(0),
             feeToken: rfqOrder.takerToken,
             feeAmount: new BigNumber(0),
+            chainId,
+            verifyingContract: this._exchangeProxy.address,
         });
+    }
+
+    public async isValidMetaTransactionAsync(
+        metaTx: MetaTransaction,
+        metaTxSig: Signature,
+        sender: string,
+    ): Promise<boolean> {
+        try {
+            await this._exchangeProxy.executeMetaTransaction(metaTx, metaTxSig).callAsync({ from: sender });
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    public generateMetaTxCallData(metaTx: MetaTransaction, metaTxSig: Signature): string {
+        return this._exchangeProxy.executeMetaTransaction(metaTx, metaTxSig).getABIEncodedTransactionData();
     }
 }
