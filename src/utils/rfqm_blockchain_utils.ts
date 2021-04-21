@@ -12,6 +12,7 @@ const MAX_GAS_PRICE = new BigNumber(1e13);
 export class RfqBlockchainUtils {
     constructor(private readonly _exchangeProxy: IZeroExContract) {}
 
+    // for use when 0x API operator submits an order on-chain on behalf of taker
     public generateMetaTransaction(
         rfqOrder: RfqOrder,
         signature: Signature,
