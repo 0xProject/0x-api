@@ -16,7 +16,13 @@ export class RfqmHandlers {
 
     public async getIndicativeQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const params = this._parseFetchIndicativeQuoteParams(req);
-        const indicativeQuote = await this._rfqmService.fetchIndicativeQuoteAsync(params);
+        let indicativeQuote;
+        try {
+            indicativeQuote = await this._rfqmService.fetchIndicativeQuoteAsync(params);
+        } catch (err) {
+            req.log.error(err, 'Encountered an error while fetching an rfqm indicative quote');
+            throw new NotFoundError('Unablie to retrieve a price');
+        }
 
         if (indicativeQuote === EMPTY_QUOTE_RESPONSE) {
             throw new NotFoundError('Unable to retrieve a price');
@@ -43,8 +49,8 @@ export class RfqmHandlers {
         // Parse tokens
         const sellTokenRaw = req.query.sellToken as string;
         const buyTokenRaw = req.query.buyToken as string;
-        validateNotETH(sellTokenRaw, 'sellToken');
-        validateNotETH(buyTokenRaw, 'buyToken');
+        validateNotNativeToken(sellTokenRaw, 'sellToken');
+        validateNotNativeToken(buyTokenRaw, 'buyToken');
 
         const sellToken = findTokenAddressOrThrowApiError(sellTokenRaw, 'sellToken', CHAIN_ID).toLowerCase();
         const buyToken = findTokenAddressOrThrowApiError(buyTokenRaw, 'buyToken', CHAIN_ID).toLowerCase();
@@ -65,7 +71,7 @@ export class RfqmHandlers {
     }
 }
 
-const validateNotETH = (token: string, field: string): boolean => {
+const validateNotNativeToken = (token: string, field: string): boolean => {
     if (token === NATIVE_TOKEN_SYMBOL) {
         throw new ValidationError([
             {
