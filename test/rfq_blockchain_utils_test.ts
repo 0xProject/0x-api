@@ -19,7 +19,7 @@ const GAS_PRICE = 1e9;
 const VALID_EXPIRY = new BigNumber(9000000000);
 const CHAIN_ID = 1337;
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
     let makerToken: DummyERC20TokenContract;
     let takerToken: DummyERC20TokenContract;
@@ -33,10 +33,10 @@ describe.only(SUITE_NAME, () => {
     let txOrigin: string;
     let zeroEx: IZeroExContract;
     let rfqOrder: RfqOrder;
-    let invalidRfqOrder: RfqOrder;
+    let unfillableRfqOrder: RfqOrder;
     let rfqBlockchainUtils: RfqBlockchainUtils;
     let orderSig: Signature;
-    let sigForInvalidOrder: Signature;
+    let sigForUnfillableOrder: Signature;
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
@@ -98,7 +98,7 @@ describe.only(SUITE_NAME, () => {
         });
         orderSig = await rfqOrder.getSignatureWithProviderAsync(provider);
 
-        invalidRfqOrder = new RfqOrder({
+        unfillableRfqOrder = new RfqOrder({
             makerToken: makerToken.address,
             takerToken: takerToken.address,
             makerAmount,
@@ -111,7 +111,7 @@ describe.only(SUITE_NAME, () => {
             verifyingContract: zeroEx.address,
             chainId: CHAIN_ID,
         });
-        sigForInvalidOrder = await invalidRfqOrder.getSignatureWithProviderAsync(provider);
+        sigForUnfillableOrder = await unfillableRfqOrder.getSignatureWithProviderAsync(provider);
 
         await makerToken.mint(makerAmount).awaitTransactionSuccessAsync({ from: maker });
         await makerToken
@@ -134,18 +134,29 @@ describe.only(SUITE_NAME, () => {
             const metaTx = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
             const metaTxSig = await metaTx.getSignatureWithProviderAsync(provider);
 
-            expect(await rfqBlockchainUtils.isValidMetaTransactionAsync(metaTx, metaTxSig, txOrigin)).to.eq(true);
+            expect(await rfqBlockchainUtils.validateMetaTransactionOrThrowAsync(metaTx, metaTxSig, txOrigin)).to.eq(true);
         });
-        it('returns false for a metatransaction with an invalid signature', async () => {
+        it('returns error for a metatransaction with an invalid signature', async () => {
             const metaTx = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
+            const invalidMetaTxSig = orderSig;
 
-            expect(await rfqBlockchainUtils.isValidMetaTransactionAsync(metaTx, orderSig, txOrigin)).to.eq(false);
+            try {
+                await rfqBlockchainUtils.validateMetaTransactionOrThrowAsync(metaTx, invalidMetaTxSig, txOrigin);
+                expect.fail(`validateMetaTransactionOrThrowAsync should throw an error when the signature is invalid`);
+            } catch (err) {
+                expect(String(err)).to.contain('SignatureValidationError');
+            }
         });
-        it('returns false for a metatransaction with an unfillable order', async () => {
-            const metaTx = rfqBlockchainUtils.generateMetaTransaction(invalidRfqOrder, sigForInvalidOrder, taker, invalidTakerAmount, CHAIN_ID);
+        it('returns error for a metatransaction with an unfillable order', async () => {
+            const metaTx = rfqBlockchainUtils.generateMetaTransaction(unfillableRfqOrder, sigForUnfillableOrder, taker, invalidTakerAmount, CHAIN_ID);
             const metaTxSig = await metaTx.getSignatureWithProviderAsync(provider);
 
-            expect(await rfqBlockchainUtils.isValidMetaTransactionAsync(metaTx, metaTxSig, txOrigin)).to.eq(false);
+            try {
+                await rfqBlockchainUtils.validateMetaTransactionOrThrowAsync(metaTx, metaTxSig, txOrigin);
+                expect.fail(`validateMetaTransactionOrThrowAsync should throw an error when the order is unfillable`);
+            } catch (err) {
+                expect(String(err)).to.contain('MetaTransactionCallFailedError');
+            }
         });
     });
 });

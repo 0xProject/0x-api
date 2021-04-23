@@ -42,7 +42,7 @@ export class RfqBlockchainUtils {
         });
     }
 
-    public async isValidMetaTransactionAsync(
+    public async validateMetaTransactionOrThrowAsync(
         metaTx: MetaTransaction,
         metaTxSig: Signature,
         sender: string,
@@ -50,12 +50,12 @@ export class RfqBlockchainUtils {
         try {
             await this._exchangeProxy.executeMetaTransaction(metaTx, metaTxSig).callAsync({ from: sender });
             return true;
-        } catch (error) {
-            return false;
+        } catch (err) {
+            throw new Error(err);
         }
     }
 
-    public generateMetaTxCallData(metaTx: MetaTransaction, metaTxSig: Signature): string {
+    public generateMetaTransactionCallData(metaTx: MetaTransaction, metaTxSig: Signature): string {
         return this._exchangeProxy.executeMetaTransaction(metaTx, metaTxSig).getABIEncodedTransactionData();
     }
 }
