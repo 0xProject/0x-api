@@ -2,7 +2,7 @@
 import { assert } from '@0x/assert';
 import {
     BlockParamLiteral,
-    DEFAULT_TOKEN_ADJACENCY_GRAPH,
+    DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
     ERC20BridgeSource,
     LiquidityProviderRegistry,
     OrderPrunerPermittedFeeTypes,
@@ -13,6 +13,7 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from '@0x/asset-swapper';
+import { TokenMetadatasForChains } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
@@ -30,10 +31,10 @@ import {
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     TX_BASE_GAS,
 } from './constants';
-import { TokenMetadatasForChains } from './token_metadatas_for_networks';
+import { schemas } from './schemas';
 import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
-import { getTokenMetadataIfExists } from './utils/token_metadata_utils';
+import { schemaUtils } from './utils/schema_utils';
 
 // tslint:disable:no-bitwise
 
@@ -58,6 +59,78 @@ enum EnvVarType {
     LiquidityProviderRegistry,
     JsonStringList,
 }
+
+export interface ApiKeyStructure {
+    [key: string]: {
+        label: string;
+        rfqt: boolean;
+        rfqm: boolean;
+        plp: boolean;
+    };
+}
+
+export const getApiKeyWhitelistWithFallback = (
+    legacyEnvKey: string,
+    newEnvKey: string,
+    groupType: 'rfqt' | 'plp' | 'rfqm'
+): string[] => {
+
+    // Try the new path first
+    if (_.isEmpty(process.env[newEnvKey])) {
+        return _.isEmpty(process.env[legacyEnvKey])
+            ? []
+            : assertEnvVarType(legacyEnvKey, process.env[legacyEnvKey], EnvVarType.JsonStringList);
+    }
+
+    let deserialized: ApiKeyStructure;
+    try {
+        deserialized = JSON.parse(process.env[newEnvKey]!);
+        schemaUtils.validateSchema(deserialized, schemas.apiKeySchema as any);
+    } catch (e) {
+        throw new Error(`Key ${newEnvKey} was defined but is not valid JSON`);
+    }
+
+    const result: string[] = [];
+    for (const apiKey of Object.keys(deserialized)) {
+        const keyMeta = deserialized[apiKey];
+        switch (groupType) {
+            case 'plp':
+                if (keyMeta.plp) { result.push(apiKey); }
+                break;
+            case 'rfqm':
+                if (keyMeta.rfqm) { result.push(apiKey); }
+                break;
+            case 'rfqt':
+                if (keyMeta.rfqt) { result.push(apiKey); }
+                break;
+            default:
+                throw new Error(`Unknown group type inputted: ${groupType}`);
+        }
+    }
+    return result.sort();
+};
+
+export const getApiKeyFromLabel = (
+    label: string,
+): string | undefined => {
+    if (process.env.API_KEYS_ACL === undefined) {
+        return undefined;
+    }
+    let deserialized: ApiKeyStructure;
+    try {
+        deserialized = JSON.parse(process.env.API_KEYS_ACL);
+        schemaUtils.validateSchema(deserialized, schemas.apiKeySchema as any);
+    } catch (e) {
+        throw new Error(`API_KEYS_ACL was defined but is not valid JSON`);
+    }
+
+    for (const apiKey of Object.keys(deserialized)) {
+        const keyMeta = deserialized[apiKey];
+        if (keyMeta.label === label) {
+            return apiKey;
+        }
+    }
+};
 
 // Log level for pino.js
 export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
@@ -96,7 +169,7 @@ export const CHAIN_ID: ChainId = _.isEmpty(process.env.CHAIN_ID)
 
 // Whitelisted token addresses. Set to a '*' instead of an array to allow all tokens.
 export const WHITELISTED_TOKENS: string[] | '*' = _.isEmpty(process.env.WHITELIST_ALL_TOKENS)
-    ? TokenMetadatasForChains.map(tm => tm.tokenAddresses[CHAIN_ID])
+    ? TokenMetadatasForChains.map((tm) => tm.tokenAddresses[CHAIN_ID])
     : assertEnvVarType('WHITELIST_ALL_TOKENS', process.env.WHITELIST_ALL_TOKENS, EnvVarType.WhitelistAllTokens);
 
 // Ignored addresses. These are ignored at the ingress (Mesh) level and are never stored.
@@ -121,8 +194,8 @@ export const PINNED_MM_ADDRESSES: string[] = _.isEmpty(process.env.PINNED_MM_ADD
 
 export const DB_ORDERS_UPDATE_CHUNK_SIZE = 300;
 
-// Ethereum RPC Url
-export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.Url);
+// Ethereum RPC Url list
+export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.UrlList);
 
 // Mesh Endpoint
 export const MESH_WEBSOCKET_URI = _.isEmpty(process.env.MESH_WEBSOCKET_URI)
@@ -193,13 +266,13 @@ export const RFQT_REGISTRY_PASSWORDS: string[] = _.isEmpty(process.env.RFQT_REGI
     ? []
     : assertEnvVarType('RFQT_REGISTRY_PASSWORDS', process.env.RFQT_REGISTRY_PASSWORDS, EnvVarType.JsonStringList);
 
-export const RFQT_API_KEY_WHITELIST: string[] = _.isEmpty(process.env.RFQT_API_KEY_WHITELIST_JSON)
-    ? []
-    : assertEnvVarType(
-          'RFQT_API_KEY_WHITELIST_JSON',
-          process.env.RFQT_API_KEY_WHITELIST_JSON,
-          EnvVarType.JsonStringList,
-      );
+export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistWithFallback(
+    'RFQT_API_KEY_WHITELIST_JSON',
+    'API_KEYS_ACL',
+    'rfqt'
+);
+
+export const MATCHA_KEY: string | undefined = getApiKeyFromLabel('Matcha');
 
 export const RFQT_TX_ORIGIN_BLACKLIST: Set<string> = _.isEmpty(process.env.RFQT_TX_ORIGIN_BLACKLIST)
     ? new Set()
@@ -221,9 +294,11 @@ export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_PROFILE', process.env.ALT_RFQ_MM_PROFILE, EnvVarType.NonEmptyString);
 
-export const PLP_API_KEY_WHITELIST: string[] = _.isEmpty(process.env.PLP_API_KEY_WHITELIST_JSON)
-    ? []
-    : assertEnvVarType('PLP_API_KEY_WHITELIST_JSON', process.env.PLP_API_KEY_WHITELIST_JSON, EnvVarType.JsonStringList);
+export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistWithFallback(
+    'PLP_API_KEY_WHITELIST_JSON',
+    'API_KEYS_ACL',
+    'plp'
+);
 
 export const RFQT_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(process.env.RFQT_MAKER_ASSET_OFFERINGS)
     ? {}
@@ -328,10 +403,12 @@ const EXCLUDED_SOURCES = (() => {
             return [ERC20BridgeSource.MultiBridge];
         case ChainId.Kovan:
             return allERC20BridgeSources.filter(
-                s => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
+                (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
             );
+        case ChainId.BSC:
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
-            return allERC20BridgeSources.filter(s => s !== ERC20BridgeSource.Native);
+            return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
     }
 })();
 
@@ -340,6 +417,8 @@ const EXCLUDED_FEE_SOURCES = (() => {
         case ChainId.Mainnet:
             return [];
         case ChainId.Kovan:
+            return [ERC20BridgeSource.Uniswap];
+        case ChainId.BSC:
             return [ERC20BridgeSource.Uniswap];
         default:
             return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
@@ -364,6 +443,11 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
     if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
         // Uniswap VIP
         return TX_BASE_GAS;
+    } else if (
+        [SOURCE_FLAGS.SushiSwap, SOURCE_FLAGS.PancakeSwap, SOURCE_FLAGS.BakerySwap].includes(sourceFlags) &&
+        CHAIN_ID === ChainId.BSC
+    ) {
+        return TX_BASE_GAS;
     } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
         // PLP VIP
         return TX_BASE_GAS.plus(10e3);
@@ -380,6 +464,15 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
         return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
     }
 };
+
+export const NATIVE_WRAPPED_TOKEN_SYMBOL = (() => {
+    switch (CHAIN_ID) {
+        case ChainId.BSC:
+            return 'WBNB';
+        default:
+            return 'WETH';
+    }
+})();
 
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
@@ -413,14 +506,6 @@ export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     }
 })();
 
-export const DEFAULT_INTERMEDIATE_TOKENS = [
-    getTokenMetadataIfExists('WETH', CHAIN_ID)?.tokenAddress,
-    getTokenMetadataIfExists('DAI', CHAIN_ID)?.tokenAddress,
-    getTokenMetadataIfExists('USDC', CHAIN_ID)?.tokenAddress,
-    getTokenMetadataIfExists('USDT', CHAIN_ID)?.tokenAddress,
-    getTokenMetadataIfExists('WBTC', CHAIN_ID)?.tokenAddress,
-].filter(t => t) as string[];
-
 let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqOpts = {
     takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
     makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
@@ -444,9 +529,7 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
     samplerOverrides: SAMPLER_OVERRIDES,
-    tokenAdjacencyGraph:
-        // Override for testnets, use the default for Mainnet
-        CHAIN_ID === ChainId.Mainnet ? DEFAULT_TOKEN_ADJACENCY_GRAPH : { default: DEFAULT_INTERMEDIATE_TOKENS },
+    tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID[CHAIN_ID],
     liquidityProviderRegistry: LIQUIDITY_PROVIDER_REGISTRY,
 };
 
@@ -508,7 +591,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             return returnValue;
         case EnvVarType.AddressList:
             assert.isString(name, value);
-            const addressList = (value as string).split(',').map(a => a.toLowerCase());
+            const addressList = (value as string).split(',').map((a) => a.toLowerCase());
             addressList.forEach((a, i) => assert.isETHAddressHex(`${name}[${i}]`, a));
             return addressList;
         case EnvVarType.StringList:
@@ -529,7 +612,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.APIKeys:
             assert.isString(name, value);
             const apiKeys = (value as string).split(',');
-            apiKeys.forEach(apiKey => {
+            apiKeys.forEach((apiKey) => {
                 const isValidUUID = validateUUID(apiKey);
                 if (!isValidUUID) {
                     throw new Error(`API Key ${apiKey} isn't UUID compliant`);
@@ -574,12 +657,13 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             for (const liquidityProvider in registry) {
                 assert.isETHAddressHex('liquidity provider address', liquidityProvider);
 
-                const { tokens, gasCost } = registry[liquidityProvider];
+                const { tokens } = registry[liquidityProvider];
                 assert.isArray(`token list for liquidity provider ${liquidityProvider}`, tokens);
                 tokens.forEach((token, i) => {
                     assert.isETHAddressHex(`address of token ${i} for liquidity provider ${liquidityProvider}`, token);
                 });
-                assert.isNumber(`gas cost for liquidity provider ${liquidityProvider}`, gasCost);
+                // TODO jacob validate gas cost callback in registry
+                // assert.isNumber(`gas cost for liquidity provider ${liquidityProvider}`, gasCost);
             }
             return registry;
 

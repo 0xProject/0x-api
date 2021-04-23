@@ -2,13 +2,15 @@ import { APIBaseError, BadRequestError, ErrorUtils as BaseErrorUtils, isAPIError
 import * as HttpStatus from 'http-status-codes';
 
 import { APIErrorCodes, apiErrorCodesToReasons } from '../errors';
-import { logger } from '../logger';
-
-export { isAPIError, isRevertError } from '@0x/api-utils';
 
 class ErrorUtils extends BaseErrorUtils {
-    public static generateError(err: Error): any {
-        if (isAPIError(err) && isAPIBadRequestError(err)) {
+    public generateError(err: Error): any {
+        // handle error codes that are specific to 0x API
+        if (
+            isAPIError(err) &&
+            isAPIBadRequestError(err) &&
+            Object.values(APIErrorCodes).includes(err.generalErrorCode)
+        ) {
             const statusCode = err.statusCode;
             const code = err.generalErrorCode;
             return {
@@ -19,10 +21,8 @@ class ErrorUtils extends BaseErrorUtils {
                 },
             };
         }
-        return this.generateError(err);
-    }
-    constructor() {
-        super(logger);
+        // otherwise use general error handling
+        return super.generateError(err);
     }
 }
 
@@ -30,6 +30,5 @@ function isAPIBadRequestError(error: APIBaseError): error is APIBaseError & BadR
     return error.statusCode === HttpStatus.BAD_REQUEST;
 }
 
-const utils = new ErrorUtils();
-export const errorHandler = utils.getErrorHandler();
-export const generateError = ErrorUtils.generateError.bind(ErrorUtils);
+export const errorUtils = new ErrorUtils();
+export const errorHandler = errorUtils.getErrorHandler();

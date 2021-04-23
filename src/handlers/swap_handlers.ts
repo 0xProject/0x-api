@@ -1,5 +1,14 @@
 // tslint:disable:max-file-line-count
+import { isAPIError, isRevertError } from '@0x/api-utils';
 import { ERC20BridgeSource, RfqRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
+import {
+    findTokenAddressOrThrow,
+    getTokenMetadataIfExists,
+    isNativeSymbolOrAddress,
+    isNativeWrappedSymbolOrAddress,
+    TokenMetadatasForChains,
+} from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
@@ -7,7 +16,14 @@ import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
 import { Counter } from 'prom-client';
 
-import { CHAIN_ID, PLP_API_KEY_WHITELIST, RFQT_API_KEY_WHITELIST, RFQT_REGISTRY_PASSWORDS } from '../config';
+import {
+    CHAIN_ID,
+    MATCHA_KEY,
+    NATIVE_WRAPPED_TOKEN_SYMBOL,
+    PLP_API_KEY_WHITELIST,
+    RFQT_API_KEY_WHITELIST,
+    RFQT_REGISTRY_PASSWORDS,
+} from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
@@ -21,26 +37,16 @@ import {
     ValidationErrorCodes,
     ValidationErrorReasons,
 } from '../errors';
-import { logger } from '../logger';
-import { isAPIError, isRevertError } from '../middleware/error_handling';
 import { schemas } from '../schemas';
 import { SwapService } from '../services/swap_service';
-import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
 import { GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
+import { findTokenAddressOrThrowApiError } from '../utils/address_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
+import { quoteReportUtils } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
-import {
-    findTokenAddressOrThrow,
-    findTokenAddressOrThrowApiError,
-    getTokenMetadataIfExists,
-    isETHSymbolOrAddress,
-    isWETHSymbolOrAddress,
-} from '../utils/token_metadata_utils';
-
-import { quoteReportUtils } from './../utils/quote_report_utils';
 
 const BEARER_REGEX = /^Bearer\s(.{36})$/;
 const REGISTRY_SET: Set<string> = new Set(RFQT_REGISTRY_PASSWORDS);
@@ -109,9 +115,9 @@ export class SwapHandlers {
 
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const params = parseSwapQuoteRequestParams(req, 'quote');
-        const quote = await this._getSwapQuoteAsync(params);
+        const quote = await this._getSwapQuoteAsync(params, req);
         if (params.rfqt !== undefined) {
-            logger.info({
+            req.log.info({
                 firmQuoteServed: {
                     taker: params.takerAddress,
                     apiKey: params.apiKey,
@@ -123,15 +129,19 @@ export class SwapHandlers {
                 },
             });
             if (quote.quoteReport && params.rfqt && params.rfqt.intentOnFilling) {
-                quoteReportUtils.logQuoteReport({
-                    quoteReport: quote.quoteReport,
-                    submissionBy: 'taker',
-                    decodedUniqueId: quote.decodedUniqueId,
-                    buyTokenAddress: quote.buyTokenAddress,
-                    sellTokenAddress: quote.sellTokenAddress,
-                    buyAmount: params.buyAmount,
-                    sellAmount: params.sellAmount,
-                });
+                quoteReportUtils.logQuoteReport(
+                    {
+                        quoteReport: quote.quoteReport,
+                        submissionBy: 'taker',
+                        decodedUniqueId: quote.decodedUniqueId,
+                        buyTokenAddress: quote.buyTokenAddress,
+                        sellTokenAddress: quote.sellTokenAddress,
+                        buyAmount: params.buyAmount,
+                        sellAmount: params.sellAmount,
+                        apiKey: params.apiKey,
+                    },
+                    req.log,
+                );
             }
         }
         const response = _.omit(
@@ -154,8 +164,8 @@ export class SwapHandlers {
     // tslint:disable-next-line:prefer-function-over-method
     public async getQuotePriceAsync(req: express.Request, res: express.Response): Promise<void> {
         const params = parseSwapQuoteRequestParams(req, 'price');
-        const quote = await this._getSwapQuoteAsync({ ...params, skipValidation: true });
-        logger.info({
+        const quote = await this._getSwapQuoteAsync({ ...params, skipValidation: true }, req);
+        req.log.info({
             indicativeQuoteServed: {
                 taker: params.takerAddress,
                 apiKey: params.apiKey,
@@ -197,11 +207,11 @@ export class SwapHandlers {
 
     public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {
         // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-        const buyTokenSymbolOrAddress = isETHSymbolOrAddress(req.query.buyToken as string)
-            ? 'WETH'
+        const buyTokenSymbolOrAddress = isNativeSymbolOrAddress(req.query.buyToken as string, CHAIN_ID)
+            ? NATIVE_WRAPPED_TOKEN_SYMBOL
             : (req.query.buyToken as string);
-        const sellTokenSymbolOrAddress = isETHSymbolOrAddress(req.query.sellToken as string)
-            ? 'WETH'
+        const sellTokenSymbolOrAddress = isNativeSymbolOrAddress(req.query.sellToken as string, CHAIN_ID)
+            ? NATIVE_WRAPPED_TOKEN_SYMBOL
             : (req.query.sellToken as string);
 
         if (buyTokenSymbolOrAddress === sellTokenSymbolOrAddress) {
@@ -234,7 +244,7 @@ export class SwapHandlers {
         res.status(HttpStatus.OK).send(response);
     }
 
-    private async _getSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
+    private async _getSwapQuoteAsync(params: GetSwapQuoteParams, req: express.Request): Promise<GetSwapQuoteResponse> {
         try {
             let swapQuote: GetSwapQuoteResponse;
             if (params.isUnwrap) {
@@ -277,7 +287,7 @@ export class SwapHandlers {
                     },
                 ]);
             }
-            logger.info('Uncaught error', e.message, e.stack);
+            req.log.info('Uncaught error', e.message, e.stack);
             throw new InternalServerError(e.message);
         }
     }
@@ -293,7 +303,11 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
 
     // Parse boolean params and defaults
     // tslint:disable:boolean-naming
-    const skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
+    let skipValidation: boolean;
+    skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
+    if (endpoint === 'quote' && apiKey !== undefined && apiKey === MATCHA_KEY) {
+        skipValidation = false;
+    }
     const includePriceComparisons = req.query.includePriceComparisons === 'true' ? true : false;
     // Whether the entire callers balance should be sold, used for contracts where the
     // amount available is non-deterministic
@@ -303,21 +317,21 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     // Parse tokens and eth wrap/unwraps
     const sellTokenRaw = req.query.sellToken as string;
     const buyTokenRaw = req.query.buyToken as string;
-    const isETHSell = isETHSymbolOrAddress(sellTokenRaw);
-    const isETHBuy = isETHSymbolOrAddress(buyTokenRaw);
-    // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
+    const isNativeSell = isNativeSymbolOrAddress(sellTokenRaw, CHAIN_ID);
+    const isNativeBuy = isNativeSymbolOrAddress(buyTokenRaw, CHAIN_ID);
+    // NOTE: Internally all Native token (like ETH) trades are for their wrapped equivalent (ie WETH), we just wrap/unwrap automatically
     const sellToken = findTokenAddressOrThrowApiError(
-        isETHSell ? 'WETH' : sellTokenRaw,
+        isNativeSell ? NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID] : sellTokenRaw,
         'sellToken',
         CHAIN_ID,
     ).toLowerCase();
     const buyToken = findTokenAddressOrThrowApiError(
-        isETHBuy ? 'WETH' : buyTokenRaw,
+        isNativeBuy ? NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID] : buyTokenRaw,
         'buyToken',
         CHAIN_ID,
     ).toLowerCase();
-    const isWrap = isETHSell && isWETHSymbolOrAddress(buyToken, CHAIN_ID);
-    const isUnwrap = isWETHSymbolOrAddress(sellToken, CHAIN_ID) && isETHBuy;
+    const isWrap = isNativeSell && isNativeWrappedSymbolOrAddress(buyToken, CHAIN_ID);
+    const isUnwrap = isNativeWrappedSymbolOrAddress(sellToken, CHAIN_ID) && isNativeBuy;
     // if token addresses are the same but a unwrap or wrap operation is requested, ignore error
     if (!isUnwrap && !isWrap && sellToken === buyToken) {
         throw new ValidationError(
@@ -326,6 +340,18 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
                     field,
                     code: ValidationErrorCodes.RequiredField,
                     reason: 'buyToken and sellToken must be different',
+                };
+            }),
+        );
+    }
+
+    if (sellToken === NULL_ADDRESS || buyToken === NULL_ADDRESS) {
+        throw new ValidationError(
+            ['buyToken', 'sellToken'].map((field) => {
+                return {
+                    field,
+                    code: ValidationErrorCodes.FieldInvalid,
+                    reason: 'Invalid token combination',
                 };
             }),
         );
@@ -383,7 +409,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     }
 
     // Log the request if it passes all validations
-    logger.info({
+    req.log.info({
         type: 'swapRequest',
         endpoint,
         updatedExcludedSources,
@@ -430,8 +456,8 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         includePriceComparisons,
         shouldSellEntireBalance,
         isMetaTransaction: false,
-        isETHSell,
-        isETHBuy,
+        isETHSell: isNativeSell,
+        isETHBuy: isNativeBuy,
         isUnwrap,
         isWrap,
     };

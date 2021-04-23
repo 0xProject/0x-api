@@ -5,6 +5,7 @@ import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { assertRoughlyEquals, expect, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine } from '@0x/dev-utils';
+import { isNativeSymbolOrAddress } from '@0x/token-metadata';
 import { ObjectMap } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
@@ -22,9 +23,9 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { ValidationErrorCodes, ValidationErrorItem, ValidationErrorReasons } from '../src/errors';
 import { logger } from '../src/logger';
 import { GetSwapQuoteResponse } from '../src/types';
-import { isETHSymbolOrAddress } from '../src/utils/token_metadata_utils';
 
 import {
+    CHAIN_ID,
     CONTRACT_ADDRESSES,
     ETHEREUM_RPC_URL,
     ETH_TOKEN_ADDRESS,
@@ -45,7 +46,7 @@ import { MeshClientMock } from './utils/mesh_client_mock';
 import { liquiditySources0xOnly } from './utils/mocks';
 
 const SUITE_NAME = 'Swap API';
-const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter(s => s !== ERC20BridgeSource.Native);
+const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter((s) => s !== ERC20BridgeSource.Native);
 const DEFAULT_QUERY_PARAMS = {
     buyToken: 'ZRX',
     sellToken: 'WETH',
@@ -174,7 +175,7 @@ describe(SUITE_NAME, () => {
             { buyToken: 'ZRX', sellToken: ETH_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
             { buyToken: ETH_TOKEN_ADDRESS, sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT },
         ];
-        parameterPermutations.map(parameters => {
+        parameterPermutations.map((parameters) => {
             it(`should return a valid quote with ${JSON.stringify(parameters)}`, async () => {
                 await quoteAndExpectAsync(app, parameters, {
                     buyAmount: new BigNumber(parameters.buyAmount),
@@ -184,7 +185,7 @@ describe(SUITE_NAME, () => {
                     buyTokenAddress: parameters.buyToken.startsWith('0x')
                         ? parameters.buyToken
                         : SYMBOL_TO_ADDRESS[parameters.buyToken],
-                    allowanceTarget: isETHSymbolOrAddress(parameters.sellToken)
+                    allowanceTarget: isNativeSymbolOrAddress(parameters.sellToken, CHAIN_ID)
                         ? NULL_ADDRESS
                         : CONTRACT_ADDRESSES.exchangeProxy,
                 });
@@ -306,9 +307,7 @@ describe(SUITE_NAME, () => {
                     buyToken: 'ZRX',
                     sellAmount: '10000',
                 },
-                {
-                    revertErrorReason: 'SpenderERC20TransferFromFailedError',
-                },
+                { generalUserError: true },
             );
         });
 
@@ -493,6 +492,7 @@ describe(SUITE_NAME, () => {
 interface QuoteAssertion extends GetSwapQuoteResponse {
     validationErrors: ValidationErrorItem[];
     revertErrorReason: string;
+    generalUserError: boolean;
 }
 
 async function quoteAndExpectAsync(
@@ -519,6 +519,10 @@ async function quoteAndExpectAsync(
         expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
         expect(response.body.code).to.eq(100);
         expect(response.body.validationErrors).to.be.eql(quoteAssertions.validationErrors);
+        return;
+    }
+    if (quoteAssertions.generalUserError) {
+        expect(response.status).to.be.eq(HttpStatus.BAD_REQUEST);
         return;
     }
     if (response.status !== HttpStatus.OK) {
