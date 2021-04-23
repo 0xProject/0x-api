@@ -106,7 +106,12 @@ export const serviceUtils = {
         }, []);
     },
     getAffiliateFeeAmounts(quote: SwapQuote, fee: AffiliateFee): AffiliateFeeAmounts {
-        if (fee.feeType === AffiliateFeeType.None || fee.recipient === NULL_ADDRESS || fee.recipient === '') {
+        if (
+            fee.feeType === AffiliateFeeType.None ||
+            fee.recipient === NULL_ADDRESS ||
+            fee.recipient === '' ||
+            (fee.feeType === AffiliateFeeType.PositiveSlippageFee && quote.orders.length === 1)
+        ) {
             return {
                 sellTokenFeeAmount: ZERO,
                 buyTokenFeeAmount: ZERO,
