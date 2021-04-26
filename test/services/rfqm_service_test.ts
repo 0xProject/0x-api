@@ -14,7 +14,7 @@ import { RfqmService } from '../../src/services/rfqm_service';
 
 const NEVER_EXPIRES = new BigNumber(9999999999999999);
 
-describe.only('RfqmService', () => {
+describe('RfqmService', () => {
     describe('fetchIndicativeQuoteAsync', () => {
         describe('sells', async () => {
             it('should fetch indicative quote', async () => {
