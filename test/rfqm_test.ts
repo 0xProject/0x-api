@@ -303,7 +303,7 @@ describe(SUITE_NAME, () => {
 
                     expect(appResponse.body.reason).to.equal('Validation Failed');
                     expect(appResponse.body.validationErrors[0].reason).to.equal(
-                        'Unwrapped ETH is not supported. Use WETH instead',
+                        'Unwrapped Native Asset is not supported. Use WETH instead',
                     );
                 },
                 axiosClient,

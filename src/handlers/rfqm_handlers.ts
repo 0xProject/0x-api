@@ -1,30 +1,52 @@
 // tslint:disable:max-file-line-count
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '@0x/api-utils';
+import { getTokenMetadataIfExists, isNativeSymbolOrAddress, TokenMetadata } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
+import { Counter } from 'prom-client';
 
-import { CHAIN_ID, NATIVE_TOKEN_SYMBOL, NATIVE_WRAPPED_TOKEN_SYMBOL } from '../config';
+import { CHAIN_ID, NATIVE_WRAPPED_TOKEN_SYMBOL } from '../config';
 import { schemas } from '../schemas';
-import { EMPTY_QUOTE_RESPONSE, FetchIndicativeQuoteParams, RfqmService } from '../services/rfqm_service';
+import { FetchIndicativeQuoteParams, RfqmService } from '../services/rfqm_service';
 import { ConfigManager } from '../utils/config_manager';
 import { schemaUtils } from '../utils/schema_utils';
-import { findTokenAddressOrThrowApiError } from '../utils/token_metadata_utils';
+
+const RFQM_INDICATIVE_QUOTE_REQUEST = new Counter({
+    name: 'rfqm_handler_indicative_quote_requested',
+    help: 'Request made to fetch rfqm indicative quote',
+    labelNames: ['apiKey'],
+});
+
+const RFQM_INDICATIVE_QUOTE_NOT_FOUND = new Counter({
+    name: 'rfqm_handler_indicative_quote_not_found',
+    help: 'Request to fetch rfqm indicative quote returned no quote',
+    labelNames: ['apiKey'],
+});
+
+const RFQM_INDICATIVE_QUOTE_ERROR = new Counter({
+    name: 'rfqm_handler_indicative_quote_error',
+    help: 'Request to fetch rfqm indicative quote resulted in error',
+    labelNames: ['apiKey'],
+});
 
 export class RfqmHandlers {
     constructor(private readonly _rfqmService: RfqmService, private readonly _configManager: ConfigManager) {}
 
     public async getIndicativeQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
+        RFQM_INDICATIVE_QUOTE_REQUEST.labels(req.header('0x-api-key') || 'N/A').inc();
         const params = this._parseFetchIndicativeQuoteParams(req);
         let indicativeQuote;
         try {
             indicativeQuote = await this._rfqmService.fetchIndicativeQuoteAsync(params);
         } catch (err) {
             req.log.error(err, 'Encountered an error while fetching an rfqm indicative quote');
-            throw new NotFoundError('Unablie to retrieve a price');
+            RFQM_INDICATIVE_QUOTE_ERROR.labels(req.header('0x-api-key') || 'N/A').inc();
+            throw new Error('Unexpected error encountered');
         }
 
-        if (indicativeQuote === EMPTY_QUOTE_RESPONSE) {
+        if (indicativeQuote === null) {
+            RFQM_INDICATIVE_QUOTE_NOT_FOUND.labels(req.header('0x-api-key') || 'N/A').inc();
             throw new NotFoundError('Unable to retrieve a price');
         }
 
@@ -49,38 +71,57 @@ export class RfqmHandlers {
         // Parse tokens
         const sellTokenRaw = req.query.sellToken as string;
         const buyTokenRaw = req.query.buyToken as string;
-        validateNotNativeToken(sellTokenRaw, 'sellToken');
-        validateNotNativeToken(buyTokenRaw, 'buyToken');
+        validateNotNativeTokenOrThrow(sellTokenRaw, 'sellToken');
+        validateNotNativeTokenOrThrow(buyTokenRaw, 'buyToken');
 
-        const sellToken = findTokenAddressOrThrowApiError(sellTokenRaw, 'sellToken', CHAIN_ID).toLowerCase();
-        const buyToken = findTokenAddressOrThrowApiError(buyTokenRaw, 'buyToken', CHAIN_ID).toLowerCase();
+        const { tokenAddress: sellToken, decimals: sellTokenDecimals } = getTokenMetadataOrThrow(
+            sellTokenRaw,
+            'sellToken',
+        );
+        const { tokenAddress: buyToken, decimals: buyTokenDecimals } = getTokenMetadataOrThrow(buyTokenRaw, 'buyToken');
 
         // Parse number params
-        const sellAmount =
-            req.query.sellAmount === undefined ? undefined : new BigNumber(req.query.sellAmount as string);
-        const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount as string);
+        const sellAmount = new BigNumber(req.query.sellAmount as string);
+        const buyAmount = new BigNumber(req.query.buyAmount as string);
 
         return {
             apiKey,
             buyAmount,
             buyToken,
+            buyTokenDecimals,
             sellAmount,
             sellToken,
+            sellTokenDecimals,
             takerAddress: takerAddress as string,
         };
     }
 }
 
-const validateNotNativeToken = (token: string, field: string): boolean => {
-    if (token === NATIVE_TOKEN_SYMBOL) {
+const validateNotNativeTokenOrThrow = (token: string, field: string): boolean => {
+    if (isNativeSymbolOrAddress(token, CHAIN_ID)) {
         throw new ValidationError([
             {
                 field,
                 code: ValidationErrorCodes.TokenNotSupported,
-                reason: `Unwrapped ${NATIVE_TOKEN_SYMBOL} is not supported. Use ${NATIVE_WRAPPED_TOKEN_SYMBOL} instead`,
+                reason: `Unwrapped Native Asset is not supported. Use ${NATIVE_WRAPPED_TOKEN_SYMBOL} instead`,
             },
         ]);
     }
 
     return true;
+};
+
+const getTokenMetadataOrThrow = (token: string, field: string): TokenMetadata => {
+    const metadata = getTokenMetadataIfExists(token, CHAIN_ID);
+    if (metadata === undefined) {
+        throw new ValidationError([
+            {
+                field,
+                code: ValidationErrorCodes.AddressNotSupported,
+                reason: `Token ${token} is currently unsupported`,
+            },
+        ]);
+    }
+
+    return metadata;
 };
