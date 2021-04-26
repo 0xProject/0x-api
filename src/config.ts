@@ -313,7 +313,7 @@ export const RFQT_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(proc
 
 export const META_TX_WORKER_REGISTRY: string | undefined = _.isEmpty(process.env.META_TX_WORKER_REGISTRY)
     ? undefined
-    : assertEnvVarType('META_TX_WORKER_REGISTRY', process.env.META_TX_WORKER_REGISTRY, EnvVarType.NonEmptyString);
+    : assertEnvVarType('META_TX_WORKER_REGISTRY', process.env.META_TX_WORKER_REGISTRY, EnvVarType.ETHAddressHex);
 
 // tslint:disable-next-line:boolean-naming
 export const RFQT_REQUEST_MAX_RESPONSE_MS = 600;

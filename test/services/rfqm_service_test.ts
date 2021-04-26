@@ -9,7 +9,7 @@ import { BigNumber } from '@0x/utils';
 import { anything, instance, mock, when } from 'ts-mockito';
 
 import { ONE_MINUTE_MS } from '../../src/constants';
-import { EMPTY_QUOTE_RESPONSE, RfqmService } from '../../src/services/rfqm_service';
+import { RfqmService } from '../../src/services/rfqm_service';
 
 describe.only('RfqmService', () => {
     describe('fetchIndicativeQuoteAsync', () => {
@@ -30,7 +30,7 @@ describe.only('RfqmService', () => {
                     {
                         makerToken: 'DAI',
                         makerAmount: new BigNumber(101),
-                        takerToken: 'USDC',
+                        takerToken: 'SUSD',
                         takerAmount: new BigNumber(100),
                         expiry: new BigNumber(1000000000000000),
                     },
@@ -45,11 +45,17 @@ describe.only('RfqmService', () => {
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
-                    sellToken: 'USDC',
+                    sellToken: 'SUSD',
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
                     sellAmount: new BigNumber(100),
                 });
 
                 // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
                 expect(res.sellAmount.toNumber()).to.be.at.least(100);
                 expect(res.price.toNumber()).to.equal(1.01);
             });
@@ -59,14 +65,14 @@ describe.only('RfqmService', () => {
                 const partialFillQuote = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(55),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(50),
                     expiry: new BigNumber(1000000000000000),
                 };
                 const fullQuote = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(105),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: new BigNumber(1000000000000000),
                 };
@@ -91,21 +97,27 @@ describe.only('RfqmService', () => {
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
-                    sellToken: 'USDC',
+                    sellToken: 'SUSD',
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
                     sellAmount: new BigNumber(100),
                 });
 
                 // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
                 expect(res.sellAmount.toNumber()).to.equal(100);
                 expect(res.price.toNumber()).to.equal(1.05);
             });
 
-            it('should return the EMPTY_QUOTE_RESPONSE if no quotes are valid', async () => {
+            it('should return null if no quotes are valid', async () => {
                 // Given
                 const partialFillQuote = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(55),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(50),
                     expiry: new BigNumber(1000000000000000),
                 };
@@ -130,10 +142,12 @@ describe.only('RfqmService', () => {
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
-                    sellToken: 'USDC',
+                    sellToken: 'SUSD',
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
                     sellAmount: new BigNumber(100),
                 });
-                expect(res).to.eq(EMPTY_QUOTE_RESPONSE);
+                expect(res).to.eq(null);
             });
 
             it('should return an indicative quote that can fill more than 100%', async () => {
@@ -141,14 +155,14 @@ describe.only('RfqmService', () => {
                 const worsePricing = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(101),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: new BigNumber(1000000000000000),
                 };
                 const betterPricing = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(222),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(200),
                     expiry: new BigNumber(1000000000000000),
                 };
@@ -173,11 +187,17 @@ describe.only('RfqmService', () => {
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
-                    sellToken: 'USDC',
+                    sellToken: 'SUSD',
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
                     sellAmount: new BigNumber(100),
                 });
 
                 // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
                 expect(res.sellAmount.toNumber()).to.equal(200);
                 expect(res.price.toNumber()).to.equal(1.11);
             });
@@ -187,14 +207,14 @@ describe.only('RfqmService', () => {
                 const worsePricing = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(101),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: new BigNumber(1000000000000000),
                 };
                 const wrongPair = {
-                    makerToken: 'USDT',
+                    makerToken: 'BUSD',
                     makerAmount: new BigNumber(111),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: new BigNumber(1000000000000000),
                 };
@@ -219,11 +239,17 @@ describe.only('RfqmService', () => {
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
-                    sellToken: 'USDC',
+                    sellToken: 'SUSD',
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
                     sellAmount: new BigNumber(100),
                 });
 
                 // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
                 expect(res.sellAmount.toNumber()).to.equal(100);
                 expect(res.price.toNumber()).to.equal(1.01); // Worse pricing wins because better pricing is for wrong pair
             });
@@ -234,14 +260,14 @@ describe.only('RfqmService', () => {
                 const expiresSoon = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(111),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: new BigNumber(inOneMinute),
                 };
                 const expiresNever = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(101),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: new BigNumber(1000000000000000),
                 };
@@ -266,11 +292,17 @@ describe.only('RfqmService', () => {
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
-                    sellToken: 'USDC',
+                    sellToken: 'SUSD',
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
                     sellAmount: new BigNumber(100),
                 });
 
                 // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
                 expect(res.sellAmount.toNumber()).to.equal(100);
                 expect(res.price.toNumber()).to.equal(1.01); // Worse pricing wins because better pricing expires too soon
             });
@@ -293,7 +325,7 @@ describe.only('RfqmService', () => {
                     {
                         makerToken: 'DAI',
                         makerAmount: new BigNumber(101),
-                        takerToken: 'USDC',
+                        takerToken: 'SUSD',
                         takerAmount: new BigNumber(100),
                         expiry: new BigNumber(1000000000000000),
                     },
@@ -308,11 +340,17 @@ describe.only('RfqmService', () => {
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
-                    sellToken: 'USDC',
+                    sellToken: 'SUSD',
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
                     buyAmount: new BigNumber(100),
                 });
 
                 // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
                 expect(res.buyAmount.toNumber()).to.be.at.least(100);
                 expect(res.price.toNumber()).to.equal(1.01);
             });
@@ -322,21 +360,21 @@ describe.only('RfqmService', () => {
                 const partialFillQuoteBadPricing = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(95),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: new BigNumber(1000000000000000),
                 };
                 const partialFillQuoteGoodPricing = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(95),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(50),
                     expiry: new BigNumber(1000000000000000),
                 };
                 const fullQuote = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(105),
-                    takerToken: 'USDC',
+                    takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: new BigNumber(1000000000000000),
                 };
@@ -361,11 +399,17 @@ describe.only('RfqmService', () => {
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
                     buyToken: 'DAI',
-                    sellToken: 'USDC',
+                    sellToken: 'SUSD',
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
                     buyAmount: new BigNumber(100),
                 });
 
                 // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
                 expect(res.buyAmount.toNumber()).to.be.at.least(100);
                 expect(res.price.toNumber()).to.equal(1.05);
             });

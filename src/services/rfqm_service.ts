@@ -1,37 +1,31 @@
+// tslint:disable:max-file-line-count
 import { AssetSwapperContractAddresses, MarketOperation, ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
+import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
-import { NULL_ADDRESS, ONE_MINUTE_MS } from '../constants';
+import { NULL_ADDRESS, RFQM_MINUMUM_EXPIRY_DURATION } from '../constants';
 
 export interface FetchIndicativeQuoteParams {
     apiKey: string;
     buyAmount?: BigNumber;
-    sellAmount?: BigNumber;
     buyToken: string;
+    buyTokenDecimals: number;
+    sellAmount?: BigNumber;
     sellToken: string;
+    sellTokenDecimals: number;
     takerAddress?: string;
 }
 
 export interface FetchIndicativeQuoteResponse {
+    allowanceTarget?: string;
     buyAmount: BigNumber;
     buyTokenAddress: string;
+    gas: BigNumber;
     price: BigNumber;
     sellAmount: BigNumber;
     sellTokenAddress: string;
-    gas: BigNumber;
-    allowanceTarget?: string;
 }
-
-export const EMPTY_QUOTE_RESPONSE = {
-    buyAmount: new BigNumber(0),
-    buyTokenAddress: '',
-    price: new BigNumber(0),
-    sellAmount: new BigNumber(0),
-    sellTokenAddress: '',
-    gas: new BigNumber(0),
-    allowanceTarget: NULL_ADDRESS,
-};
 
 const RFQM_DEFAULT_OPTS = {
     takerAddress: NULL_ADDRESS,
@@ -43,7 +37,7 @@ const RFQM_DEFAULT_OPTS = {
 };
 
 /**
- * RfqmService is the coordination layer for HTTP based RFQM flows
+ * RfqmService is the coordination layer for HTTP based RFQM flows.
  */
 export class RfqmService {
     constructor(
@@ -53,23 +47,35 @@ export class RfqmService {
     ) {}
 
     /**
-     * Fetch the best indicative quote available.
+     * Fetch the best indicative quote available. Returns null if no valid quotes found
      */
-    public async fetchIndicativeQuoteAsync(params: FetchIndicativeQuoteParams): Promise<FetchIndicativeQuoteResponse> {
-        const { sellAmount, buyAmount, sellToken, buyToken, apiKey } = params;
+    public async fetchIndicativeQuoteAsync(
+        params: FetchIndicativeQuoteParams,
+    ): Promise<FetchIndicativeQuoteResponse | null> {
+        // Extract params
+        const {
+            sellAmount,
+            buyAmount,
+            sellToken: takerToken,
+            buyToken: makerToken,
+            sellTokenDecimals: takerTokenDecimals,
+            buyTokenDecimals: makerTokenDecimals,
+            apiKey,
+        } = params;
 
-        // Map params to the terminology of Quote Requestor
+        // Quote Requestor specific params
         const isSelling = sellAmount !== undefined;
         const marketOperation = isSelling ? MarketOperation.Sell : MarketOperation.Buy;
         const assetFillAmount = isSelling ? sellAmount! : buyAmount!;
-        const makerToken = buyToken;
-        const takerToken = sellToken;
+
+        // Prepare gas estimate
+        const gas = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
         // Fetch quotes
         const opts = {
             ...RFQM_DEFAULT_OPTS,
             apiKey,
-            intentOnFilling: false, // TODO - safe to hardcode?
+            intentOnFilling: false,
             isIndicative: true,
         };
         const indicativeQuotes = await this._quoteRequestor.requestRfqmIndicativeQuotesAsync(
@@ -94,8 +100,7 @@ export class RfqmService {
                 const requestedAmount = isSelling ? q.takerAmount : q.makerAmount;
                 return requestedAmount.gte(assetFillAmount);
             })
-            // tslint:disable-next-line: custom-no-magic-numbers
-            .filter((q) => q.expiry.gte(now.plus(ONE_MINUTE_MS * 3)))
+            .filter((q) => q.expiry.gte(now.plus(RFQM_MINUMUM_EXPIRY_DURATION)))
             .sort((a, b) => {
                 // Want the most amount of maker tokens for each taker token
                 const aPrice = a.makerAmount.div(a.takerAmount);
@@ -105,18 +110,20 @@ export class RfqmService {
 
         // No quotes found
         if (sortedQuotes.length === 0) {
-            return Promise.resolve(EMPTY_QUOTE_RESPONSE);
+            return null;
         }
 
+        // Get the best quote
         const bestQuote = sortedQuotes[0];
 
-        // Prepare gas estimate
-        const gas = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+        // Prepare the price
+        const makerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.makerAmount, makerTokenDecimals);
+        const takerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.takerAmount, takerTokenDecimals);
+        const price = makerAmountInUnit.div(takerAmountInUnit);
 
         // Prepare response
-        // TODO: handle decimals properly in price
         return {
-            price: bestQuote.makerAmount.div(bestQuote.takerAmount),
+            price,
             gas,
             buyAmount: bestQuote.makerAmount,
             buyTokenAddress: bestQuote.makerToken,
@@ -126,5 +133,3 @@ export class RfqmService {
         };
     }
 }
-
-// tslint:disable:max-file-line-count
