@@ -460,7 +460,7 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
         return TX_BASE_GAS.plus(10e3);
     } else if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
         // Multiplex batch fill
-        return TX_BASE_GAS.plus(25e3);
+        return TX_BASE_GAS.plus(15e3);
     } else if (
         (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | sourceFlags) ===
         (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | SOURCE_FLAGS.MultiHop)
