@@ -3,6 +3,7 @@
 // tslint:disable:max-file-line-count
 
 import { ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
+import { ONE_SECOND_MS } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { expect } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
@@ -10,6 +11,8 @@ import { anything, instance, mock, when } from 'ts-mockito';
 
 import { ONE_MINUTE_MS } from '../../src/constants';
 import { RfqmService } from '../../src/services/rfqm_service';
+
+const NEVER_EXPIRES = new BigNumber(9999999999999999);
 
 describe.only('RfqmService', () => {
     describe('fetchIndicativeQuoteAsync', () => {
@@ -32,7 +35,7 @@ describe.only('RfqmService', () => {
                         makerAmount: new BigNumber(101),
                         takerToken: 'SUSD',
                         takerAmount: new BigNumber(100),
-                        expiry: new BigNumber(1000000000000000),
+                        expiry: NEVER_EXPIRES,
                     },
                 ]);
 
@@ -67,14 +70,14 @@ describe.only('RfqmService', () => {
                     makerAmount: new BigNumber(55),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(50),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const fullQuote = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(105),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(
@@ -119,7 +122,7 @@ describe.only('RfqmService', () => {
                     makerAmount: new BigNumber(55),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(50),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(
@@ -157,14 +160,14 @@ describe.only('RfqmService', () => {
                     makerAmount: new BigNumber(101),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const betterPricing = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(222),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(200),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(
@@ -209,14 +212,14 @@ describe.only('RfqmService', () => {
                     makerAmount: new BigNumber(101),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const wrongPair = {
                     makerToken: 'BUSD',
                     makerAmount: new BigNumber(111),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(
@@ -256,7 +259,7 @@ describe.only('RfqmService', () => {
 
             it('should ignore quotes that expire within 3 minutes', async () => {
                 // Given
-                const inOneMinute = Date.now() + ONE_MINUTE_MS;
+                const inOneMinute = (Date.now() + ONE_MINUTE_MS) / ONE_SECOND_MS;
                 const expiresSoon = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(111),
@@ -269,7 +272,7 @@ describe.only('RfqmService', () => {
                     makerAmount: new BigNumber(101),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(
@@ -327,7 +330,7 @@ describe.only('RfqmService', () => {
                         makerAmount: new BigNumber(101),
                         takerToken: 'SUSD',
                         takerAmount: new BigNumber(100),
-                        expiry: new BigNumber(1000000000000000),
+                        expiry: NEVER_EXPIRES,
                     },
                 ]);
 
@@ -362,21 +365,21 @@ describe.only('RfqmService', () => {
                     makerAmount: new BigNumber(95),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const partialFillQuoteGoodPricing = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(95),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(50),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const fullQuote = {
                     makerToken: 'DAI',
                     makerAmount: new BigNumber(105),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
-                    expiry: new BigNumber(1000000000000000),
+                    expiry: NEVER_EXPIRES,
                 };
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(

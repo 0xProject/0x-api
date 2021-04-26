@@ -4,7 +4,7 @@ import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
-import { NULL_ADDRESS, RFQM_MINUMUM_EXPIRY_DURATION } from '../constants';
+import { NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINUMUM_EXPIRY_DURATION_MS } from '../constants';
 
 export interface FetchIndicativeQuoteParams {
     apiKey: string;
@@ -94,13 +94,14 @@ export class RfqmService {
         //
         // And sort by best price
         const now = new BigNumber(Date.now());
+        const expirationCutoff = now.plus(RFQM_MINUMUM_EXPIRY_DURATION_MS).div(ONE_SECOND_MS);
         const sortedQuotes = indicativeQuotes
             .filter((q) => q.takerToken === takerToken && q.makerToken === makerToken)
             .filter((q) => {
                 const requestedAmount = isSelling ? q.takerAmount : q.makerAmount;
                 return requestedAmount.gte(assetFillAmount);
             })
-            .filter((q) => q.expiry.gte(now.plus(RFQM_MINUMUM_EXPIRY_DURATION)))
+            .filter((q) => q.expiry.gte(expirationCutoff))
             .sort((a, b) => {
                 // Want the most amount of maker tokens for each taker token
                 const aPrice = a.makerAmount.div(a.takerAmount);
