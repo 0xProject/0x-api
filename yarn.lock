@@ -91,9 +91,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.6.0-c07584b20":
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.6.0-4421595d5":
   version "6.6.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/f5a8259d5734ce6933e694bf8e42809ed28b7920"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/40f85789d4197763ccd8375545c45845bfb3588f"
   dependencies:
     "@0x/assert" "^3.0.21"
     "@0x/base-contract" "0xProject/gitpkg-registry#0x-base-contract-v6.3.1-b78b5e2d4"
@@ -122,7 +122,7 @@
     decimal.js "^10.2.0"
     ethereum-types "^3.5.0"
     ethereumjs-util "^5.1.1"
-    fast-abi "^0.0.1"
+    fast-abi "^0.0.2"
     heartbeats "^5.0.1"
     lodash "^4.17.11"
 
@@ -4921,9 +4921,9 @@ fake-merkle-patricia-tree@^1.0.1:
   dependencies:
     checkpoint-store "^1.1.0"
 
-fast-abi@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/fast-abi/-/fast-abi-0.0.1.tgz#c61292871800059eeaa649478fe51481262eaec3"
+fast-abi@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/fast-abi/-/fast-abi-0.0.2.tgz#da5f796fd7c7b0c966d916ee21daae3eca61c07c"
   dependencies:
     "@mapbox/node-pre-gyp" "^1.0.4"
     neon-cli "^0.8.0"
