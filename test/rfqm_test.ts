@@ -117,7 +117,7 @@ describe(SUITE_NAME, () => {
     });
 
     describe('rfqm/v1/price', async () => {
-        it('should return an indicative quote', async () => {
+        it('should return a 200 OK with an indicative quote', async () => {
             const sellAmount = 100000000000000000;
             const winningQuote = 200000000000000000;
             const losingQuote = 150000000000000000;
@@ -186,7 +186,7 @@ describe(SUITE_NAME, () => {
             );
         });
 
-        it('should return an Error if no valid quotes found', async () => {
+        it('should return a 404 NOT FOUND Error if no valid quotes found', async () => {
             const sellAmount = 100000000000000000;
             const quotedAmount = 200000000000000000;
             const params = new URLSearchParams({
@@ -253,7 +253,7 @@ describe(SUITE_NAME, () => {
             );
         });
 
-        it('should return an Error if API Key is not permitted access', async () => {
+        it('should return a 400 BAD REQUEST if API Key is not permitted access', async () => {
             const sellAmount = 100000000000000000;
             const params = new URLSearchParams({
                 buyToken: 'ZRX',
@@ -280,7 +280,7 @@ describe(SUITE_NAME, () => {
             );
         });
 
-        it('should return a Validation Error if sending ETH, not WETH', async () => {
+        it('should return a 400 BAD REQUEST Validation Error if sending ETH, not WETH', async () => {
             const sellAmount = 100000000000000000;
             const params = new URLSearchParams({
                 buyToken: 'ZRX',
@@ -305,6 +305,103 @@ describe(SUITE_NAME, () => {
                     expect(appResponse.body.validationErrors[0].reason).to.equal(
                         'Unwrapped Native Asset is not supported. Use WETH instead',
                     );
+                },
+                axiosClient,
+            );
+        });
+
+        it('should return a 400 BAD REQUEST Error if trading an unknown token', async () => {
+            const sellAmount = 100000000000000000;
+            const UNKNOWN_TOKEN = 'RACCOONS_FOREVER';
+            const params = new URLSearchParams({
+                buyToken: 'ZRX',
+                sellToken: UNKNOWN_TOKEN,
+                sellAmount: sellAmount.toString(),
+                takerAddress,
+                intentOnFilling: 'false',
+                skipValidation: 'true',
+            });
+
+            return rfqtMocker.withMockedRfqtQuotes(
+                [],
+                RfqtQuoteEndpoint.Indicative,
+                async () => {
+                    const appResponse = await request(app)
+                        .get(`${RFQM_PATH}/price?${params.toString()}`)
+                        .set('0x-api-key', API_KEY)
+                        .expect(HttpStatus.BAD_REQUEST)
+                        .expect('Content-Type', /json/);
+
+                    expect(appResponse.body.reason).to.equal('Validation Failed');
+                    expect(appResponse.body.validationErrors[0].reason).to.equal(
+                        `Token ${UNKNOWN_TOKEN} is currently unsupported`,
+                    );
+                },
+                axiosClient,
+            );
+        });
+
+        it('should return a 500 Internal Server Error if something crashes', async () => {
+            const sellAmount = 100000000000000000;
+            const params = new URLSearchParams({
+                buyToken: 'ZRX',
+                sellToken: 'WETH',
+                sellAmount: sellAmount.toString(),
+                takerAddress,
+                intentOnFilling: 'false',
+                skipValidation: 'true',
+            });
+
+            return rfqtMocker.withMockedRfqtQuotes(
+                [
+                    {
+                        // Bogus error from MM 1
+                        endpoint: MARKET_MAKER_1,
+                        requestApiKey: API_KEY,
+                        requestParams: {
+                            ...BASE_RFQM_REQUEST_PARAMS,
+                            sellAmountBaseUnits: sellAmount.toString(),
+                            buyTokenAddress: contractAddresses.zrxToken,
+                            sellTokenAddress: contractAddresses.etherToken,
+                        },
+                        responseCode: 500,
+                        responseData: {
+                            makerAmount: {},
+                            takerAmount: {},
+                            makerToken: {},
+                            takerToken: {},
+                            expiry: {},
+                        },
+                    },
+                    {
+                        // Bogus error from MM 2
+                        endpoint: MARKET_MAKER_2,
+                        requestApiKey: API_KEY,
+                        requestParams: {
+                            ...BASE_RFQM_REQUEST_PARAMS,
+                            sellAmountBaseUnits: sellAmount.toString(),
+                            buyTokenAddress: contractAddresses.zrxToken,
+                            sellTokenAddress: contractAddresses.etherToken,
+                        },
+                        responseCode: 500,
+                        responseData: {
+                            makerAmount: {},
+                            takerAmount: {},
+                            makerToken: {},
+                            takerToken: {},
+                            expiry: {},
+                        },
+                    },
+                ] as MockedRfqQuoteResponse[],
+                RfqtQuoteEndpoint.Indicative,
+                async () => {
+                    const appResponse = await request(app)
+                        .get(`${RFQM_PATH}/price?${params.toString()}`)
+                        .set('0x-api-key', API_KEY)
+                        .expect(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .expect('Content-Type', /json/);
+
+                    expect(appResponse.body.reason).to.equal('Unexpected error encountered');
                 },
                 axiosClient,
             );

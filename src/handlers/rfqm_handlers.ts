@@ -34,19 +34,20 @@ export class RfqmHandlers {
     constructor(private readonly _rfqmService: RfqmService, private readonly _configManager: ConfigManager) {}
 
     public async getIndicativeQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        RFQM_INDICATIVE_QUOTE_REQUEST.labels(req.header('0x-api-key') || 'N/A').inc();
+        const apiKeyLabel = req.header('0x-api-key') || 'N/A';
+        RFQM_INDICATIVE_QUOTE_REQUEST.labels(apiKeyLabel).inc();
         const params = this._parseFetchIndicativeQuoteParams(req);
         let indicativeQuote;
         try {
             indicativeQuote = await this._rfqmService.fetchIndicativeQuoteAsync(params);
         } catch (err) {
             req.log.error(err, 'Encountered an error while fetching an rfqm indicative quote');
-            RFQM_INDICATIVE_QUOTE_ERROR.labels(req.header('0x-api-key') || 'N/A').inc();
+            RFQM_INDICATIVE_QUOTE_ERROR.labels(apiKeyLabel).inc();
             throw new Error('Unexpected error encountered');
         }
 
         if (indicativeQuote === null) {
-            RFQM_INDICATIVE_QUOTE_NOT_FOUND.labels(req.header('0x-api-key') || 'N/A').inc();
+            RFQM_INDICATIVE_QUOTE_NOT_FOUND.labels(apiKeyLabel).inc();
             throw new NotFoundError('Unable to retrieve a price');
         }
 
