@@ -327,7 +327,7 @@ describe('RfqmService', () => {
                 ).thenResolve([
                     {
                         makerToken: 'DAI',
-                        makerAmount: new BigNumber(101),
+                        makerAmount: new BigNumber(125),
                         takerToken: 'SUSD',
                         takerAmount: new BigNumber(100),
                         expiry: NEVER_EXPIRES,
@@ -355,28 +355,28 @@ describe('RfqmService', () => {
                     return;
                 }
                 expect(res.buyAmount.toNumber()).to.be.at.least(100);
-                expect(res.price.toNumber()).to.equal(1.01);
+                expect(res.price.toNumber()).to.equal(0.8);
             });
 
             it('should only return an indicative quote that is 100% filled when buying', async () => {
                 // Given
                 const partialFillQuoteBadPricing = {
                     makerToken: 'DAI',
-                    makerAmount: new BigNumber(95),
+                    makerAmount: new BigNumber(80),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: NEVER_EXPIRES,
                 };
                 const partialFillQuoteGoodPricing = {
                     makerToken: 'DAI',
-                    makerAmount: new BigNumber(95),
+                    makerAmount: new BigNumber(80),
                     takerToken: 'SUSD',
-                    takerAmount: new BigNumber(50),
+                    takerAmount: new BigNumber(40),
                     expiry: NEVER_EXPIRES,
                 };
                 const fullQuote = {
                     makerToken: 'DAI',
-                    makerAmount: new BigNumber(105),
+                    makerAmount: new BigNumber(125),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: NEVER_EXPIRES,
@@ -414,7 +414,7 @@ describe('RfqmService', () => {
                     return;
                 }
                 expect(res.buyAmount.toNumber()).to.be.at.least(100);
-                expect(res.price.toNumber()).to.equal(1.05);
+                expect(res.price.toNumber()).to.equal(0.8);
             });
         });
     });

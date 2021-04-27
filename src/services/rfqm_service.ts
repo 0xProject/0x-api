@@ -120,7 +120,7 @@ export class RfqmService {
         // Prepare the price
         const makerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.makerAmount, makerTokenDecimals);
         const takerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.takerAmount, takerTokenDecimals);
-        const price = makerAmountInUnit.div(takerAmountInUnit);
+        const price = isSelling ? makerAmountInUnit.div(takerAmountInUnit) : takerAmountInUnit.div(makerAmountInUnit);
 
         // Prepare response
         return {
