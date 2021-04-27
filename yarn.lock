@@ -459,6 +459,7 @@
 "@0x/mesh-browser-lite@^11.0.1":
   version "11.0.1"
   resolved "https://registry.yarnpkg.com/@0x/mesh-browser-lite/-/mesh-browser-lite-11.0.1.tgz#9ef972911b5e35281cc21f79c0ff710be029e6d4"
+  integrity sha512-FBHzzPiOObsbt/L7wR35wU+3/NIufc1byNAv1/VNDsHI0R6WTfp196ozXc4hCfWXOcDc/C4Bl+j6Ao9OpEMXyw==
   dependencies:
     "@0x/order-utils" "^10.2.0"
     "@0x/utils" "^6.2.0"
@@ -466,9 +467,9 @@
     dexie "^3.0.1"
     ethereum-types "^3.0.0"
 
-"@0x/mesh-graphql-client@^11.0.1":
-  version "11.0.1"
-  resolved "https://registry.yarnpkg.com/@0x/mesh-graphql-client/-/mesh-graphql-client-11.0.1.tgz#31bb25f099e92f6d76ba529dd26908064449e66c"
+"@0x/mesh-graphql-client@0xProject/gitpkg-registry#0x-mesh-graphql-client-v11.1.2-dc24254c":
+  version "11.1.2"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/e9a8b29c23ccb91c0e58b4bae7facb159b362301"
   dependencies:
     "@0x/mesh-browser-lite" "^11.0.1"
     "@0x/protocol-utils" "^1.1.4"
