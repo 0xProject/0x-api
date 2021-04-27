@@ -69,6 +69,8 @@ describe(SUITE_NAME, () => {
 
     const meshClientMock = new MeshClientMock();
 
+    const unsupportedFakeTokenAddress = '0xdeadbeef00000000000000000000000000001337';
+
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         await meshClientMock.setupMockAsync();
@@ -248,6 +250,26 @@ describe(SUITE_NAME, () => {
                     ],
                 },
             );
+        });
+        it('should return a validationErrors unsupported tokens', async () => {
+            for (const type of ['sellToken', 'buyToken']) {
+                await quoteAndExpectAsync(
+                    app,
+                    {
+                        sellAmount: '1234',
+                        [type]: unsupportedFakeTokenAddress,
+                    },
+                    {
+                        validationErrors: [
+                            {
+                                code: ValidationErrorCodes.TokenNotSupported,
+                                field: type,
+                                reason: 'Token is not supported',
+                            },
+                        ],
+                    },
+                );
+            }
         });
         it('should respect includedSources', async () => {
             await quoteAndExpectAsync(

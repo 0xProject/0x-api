@@ -399,6 +399,16 @@ export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(70000);
 
 export const RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER = 1.2;
 
+export const UNSUPPORTED_TOKEN_ADRESSES_SET: Set<string> = _.isEmpty(process.env.UNSUPPORTED_TOKENS_LIST_JSON)
+    ? new Set([])
+    : new Set(
+          (assertEnvVarType(
+              'UNSUPPORTED_TOKENS_LIST_JSON',
+              process.env.UNSUPPORTED_TOKENS_LIST_JSON,
+              EnvVarType.JsonStringList,
+          ) as string[]).map((tokenAddress) => tokenAddress.toLowerCase()),
+      );
+
 const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {
@@ -624,7 +634,9 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             return apiKeys;
         case EnvVarType.JsonStringList:
             assert.isString(name, value);
-            return JSON.parse(value);
+            const parsedList = JSON.parse(value);
+            assert.isArray(name, parsedList);
+            return parsedList;
         case EnvVarType.RfqtMakerAssetOfferings:
             const offerings: RfqMakerAssetOfferings = JSON.parse(value);
             // tslint:disable-next-line:forin
