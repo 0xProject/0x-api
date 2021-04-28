@@ -13,6 +13,7 @@ import { ONE_MINUTE_MS } from '../../src/constants';
 import { RfqmService } from '../../src/services/rfqm_service';
 
 const NEVER_EXPIRES = new BigNumber(9999999999999999);
+const MOCK_WORKER_REGISTRY_ADDRESS = '0x1023331a469c6391730ff1E2749422CE8873EC38';
 
 describe('RfqmService', () => {
     describe('fetchIndicativeQuoteAsync', () => {
@@ -42,7 +43,12 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
-                const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
+                const service = new RfqmService(
+                    quoteRequestorInstance,
+                    protocolFeeUtilsMock,
+                    contractAddresses,
+                    MOCK_WORKER_REGISTRY_ADDRESS,
+                );
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -94,7 +100,12 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
-                const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
+                const service = new RfqmService(
+                    quoteRequestorInstance,
+                    protocolFeeUtilsMock,
+                    contractAddresses,
+                    MOCK_WORKER_REGISTRY_ADDRESS,
+                );
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -139,7 +150,12 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
-                const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
+                const service = new RfqmService(
+                    quoteRequestorInstance,
+                    protocolFeeUtilsMock,
+                    contractAddresses,
+                    MOCK_WORKER_REGISTRY_ADDRESS,
+                );
 
                 // Expect
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -184,7 +200,12 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
-                const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
+                const service = new RfqmService(
+                    quoteRequestorInstance,
+                    protocolFeeUtilsMock,
+                    contractAddresses,
+                    MOCK_WORKER_REGISTRY_ADDRESS,
+                );
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -236,7 +257,12 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
-                const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
+                const service = new RfqmService(
+                    quoteRequestorInstance,
+                    protocolFeeUtilsMock,
+                    contractAddresses,
+                    MOCK_WORKER_REGISTRY_ADDRESS,
+                );
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -265,7 +291,7 @@ describe('RfqmService', () => {
                     makerAmount: new BigNumber(111),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
-                    expiry: new BigNumber(inOneMinute).div(1000), // div by 1000 to get a UNIX timestamp
+                    expiry: new BigNumber(inOneMinute),
                 };
                 const expiresNever = {
                     makerToken: 'DAI',
@@ -289,7 +315,12 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
-                const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
+                const service = new RfqmService(
+                    quoteRequestorInstance,
+                    protocolFeeUtilsMock,
+                    contractAddresses,
+                    MOCK_WORKER_REGISTRY_ADDRESS,
+                );
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -327,7 +358,7 @@ describe('RfqmService', () => {
                 ).thenResolve([
                     {
                         makerToken: 'DAI',
-                        makerAmount: new BigNumber(101),
+                        makerAmount: new BigNumber(125),
                         takerToken: 'SUSD',
                         takerAmount: new BigNumber(100),
                         expiry: NEVER_EXPIRES,
@@ -337,7 +368,12 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
-                const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
+                const service = new RfqmService(
+                    quoteRequestorInstance,
+                    protocolFeeUtilsMock,
+                    contractAddresses,
+                    MOCK_WORKER_REGISTRY_ADDRESS,
+                );
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -355,28 +391,28 @@ describe('RfqmService', () => {
                     return;
                 }
                 expect(res.buyAmount.toNumber()).to.be.at.least(100);
-                expect(res.price.toNumber()).to.equal(1.01);
+                expect(res.price.toNumber()).to.equal(0.8);
             });
 
             it('should only return an indicative quote that is 100% filled when buying', async () => {
                 // Given
                 const partialFillQuoteBadPricing = {
                     makerToken: 'DAI',
-                    makerAmount: new BigNumber(95),
+                    makerAmount: new BigNumber(80),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: NEVER_EXPIRES,
                 };
                 const partialFillQuoteGoodPricing = {
                     makerToken: 'DAI',
-                    makerAmount: new BigNumber(95),
+                    makerAmount: new BigNumber(80),
                     takerToken: 'SUSD',
-                    takerAmount: new BigNumber(50),
+                    takerAmount: new BigNumber(40),
                     expiry: NEVER_EXPIRES,
                 };
                 const fullQuote = {
                     makerToken: 'DAI',
-                    makerAmount: new BigNumber(105),
+                    makerAmount: new BigNumber(125),
                     takerToken: 'SUSD',
                     takerAmount: new BigNumber(100),
                     expiry: NEVER_EXPIRES,
@@ -396,7 +432,12 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
-                const service = new RfqmService(quoteRequestorInstance, protocolFeeUtilsMock, contractAddresses);
+                const service = new RfqmService(
+                    quoteRequestorInstance,
+                    protocolFeeUtilsMock,
+                    contractAddresses,
+                    MOCK_WORKER_REGISTRY_ADDRESS,
+                );
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -414,7 +455,7 @@ describe('RfqmService', () => {
                     return;
                 }
                 expect(res.buyAmount.toNumber()).to.be.at.least(100);
-                expect(res.price.toNumber()).to.equal(1.05);
+                expect(res.price.toNumber()).to.equal(0.8);
             });
         });
     });

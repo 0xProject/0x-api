@@ -44,7 +44,12 @@ export class RfqmService {
         private readonly _quoteRequestor: QuoteRequestor,
         private readonly _protocolFeeUtils: ProtocolFeeUtils,
         private readonly _contractAddresses: AssetSwapperContractAddresses,
-    ) {}
+        private readonly _registryAddress: string,
+    ) {
+        if (_registryAddress === NULL_ADDRESS) {
+            throw new Error('Must set the worker registry to valid address');
+        }
+    }
 
     /**
      * Fetch the best indicative quote available. Returns null if no valid quotes found
@@ -74,6 +79,7 @@ export class RfqmService {
         // Fetch quotes
         const opts = {
             ...RFQM_DEFAULT_OPTS,
+            txOrigin: this._registryAddress,
             apiKey,
             intentOnFilling: false,
             isIndicative: true,
@@ -120,7 +126,7 @@ export class RfqmService {
         // Prepare the price
         const makerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.makerAmount, makerTokenDecimals);
         const takerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.takerAmount, takerTokenDecimals);
-        const price = makerAmountInUnit.div(takerAmountInUnit);
+        const price = isSelling ? makerAmountInUnit.div(takerAmountInUnit) : takerAmountInUnit.div(makerAmountInUnit);
 
         // Prepare response
         return {
