@@ -17,7 +17,6 @@ import 'mocha';
 import * as request from 'supertest';
 import { instance, mock, when } from 'ts-mockito';
 
-import { getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
 import { PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS, RFQM_PATH } from '../src/constants';
 import { runHttpRfqmServiceAsync } from '../src/runners/http_rfqm_service_runner';
@@ -31,18 +30,19 @@ import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deplo
 delete require.cache[require.resolve('../src/app')];
 
 const SUITE_NAME = 'RFQM Integration Tests';
+const MOCK_WORKER_REGISTRY_ADDRESS = '0x1023331a469c6391730ff1E2749422CE8873EC38';
+const API_KEY = 'koolApiKey';
 
 // RFQM Market Maker request specific constants
 const MARKET_MAKER_1 = 'https://mock-rfqt1.club';
 const MARKET_MAKER_2 = 'https://mock-rfqt2.club';
 const BASE_RFQM_REQUEST_PARAMS = {
-    txOrigin: config.META_TX_WORKER_REGISTRY || NULL_ADDRESS,
+    txOrigin: MOCK_WORKER_REGISTRY_ADDRESS,
     takerAddress: NULL_ADDRESS,
     protocolVersion: '4',
     comparisonPrice: undefined,
     isLastLook: 'true',
 };
-const API_KEY = 'koolApiKey';
 
 describe(SUITE_NAME, () => {
     const contractAddresses: ContractAddresses = CONTRACT_ADDRESSES;
@@ -61,13 +61,7 @@ describe(SUITE_NAME, () => {
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
         [, takerAddress] = accounts;
 
-        // Build default dependencies
-        const dependencyConfigs = config.defaultHttpServiceConfig;
-        delete dependencyConfigs.meshHttpUri;
-        delete dependencyConfigs.meshWebsocketUri;
-        delete dependencyConfigs.metaTxnRateLimiters;
-        const defaultDeps = await getDefaultAppDependenciesAsync(provider, dependencyConfigs);
-
+        // Build dependencies
         // Get the ProtocolFeeUtils singleton
         const protocolFeeUtils = ProtocolFeeUtils.getInstance(
             PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
@@ -90,16 +84,15 @@ describe(SUITE_NAME, () => {
 
         // Build QuoteRequestor, note that Axios client it accessible outside of this scope
         const quoteRequestor = new QuoteRequestor({}, mockAssetOfferings, axiosClient);
-
-        // Override the "default" rfqmService and configManager with our special ones
-        const dependencies = {
-            ...defaultDeps,
-            rfqmService: new RfqmService(quoteRequestor, protocolFeeUtils, defaultDeps.contractAddresses),
-            configManager,
-        };
+        const rfqmService = new RfqmService(
+            quoteRequestor,
+            protocolFeeUtils,
+            contractAddresses,
+            MOCK_WORKER_REGISTRY_ADDRESS,
+        );
 
         // Start the server
-        const res = await runHttpRfqmServiceAsync(dependencies, config.defaultHttpServiceConfig);
+        const res = await runHttpRfqmServiceAsync(rfqmService, configManager, config.defaultHttpServiceConfig);
         app = res.app;
         server = res.server;
     });
@@ -199,7 +192,7 @@ describe(SUITE_NAME, () => {
                 skipValidation: 'true',
             });
 
-            const expectedPrice = '2'; // TODO fix this after merge
+            const expectedPrice = '0.5';
             return rfqtMocker.withMockedRfqtQuotes(
                 [
                     {

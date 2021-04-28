@@ -36,7 +36,11 @@ export class RfqmHandlers {
     public async getIndicativeQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKeyLabel = req.header('0x-api-key') || 'N/A';
         RFQM_INDICATIVE_QUOTE_REQUEST.labels(apiKeyLabel).inc();
+
+        // Parse request
         const params = this._parseFetchIndicativeQuoteParams(req);
+
+        // Try to get indicative quote
         let indicativeQuote;
         try {
             indicativeQuote = await this._rfqmService.fetchIndicativeQuoteAsync(params);
@@ -46,11 +50,13 @@ export class RfqmHandlers {
             throw new Error('Unexpected error encountered');
         }
 
+        // Handle no quote returned
         if (indicativeQuote === null) {
             RFQM_INDICATIVE_QUOTE_NOT_FOUND.labels(apiKeyLabel).inc();
             throw new NotFoundError('Unable to retrieve a price');
         }
 
+        // Result
         res.status(HttpStatus.OK).send(indicativeQuote);
     }
 
