@@ -9,7 +9,7 @@ import 'mocha';
 
 import { PROTOCOL_FEE_MULTIPLIER } from '../src/config';
 import { ChainId } from '../src/types';
-import { RfqBlockchainUtils } from '../src/utils/rfqm_blockchain_utils';
+import { RfqBlockchainUtils } from '../src/utils/rfq_blockchain_utils';
 
 import { getProvider } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
