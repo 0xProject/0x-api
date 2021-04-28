@@ -6,35 +6,16 @@ import {
     AssetSwapperContractAddresses,
     ContractAddresses,
     ERC20BridgeSamplerContract,
-    ProtocolFeeUtils,
-    QuoteRequestor,
     SupportedProvider,
 } from '@0x/asset-swapper';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { Web3Wrapper } from '@0x/dev-utils';
-import { NULL_ADDRESS } from '@0x/utils';
-import Axios, { AxiosRequestConfig } from 'axios';
 import * as express from 'express';
-import { Agent as HttpAgent, Server } from 'http';
-import { Agent as HttpsAgent } from 'https';
+import { Server } from 'http';
 import { Connection } from 'typeorm';
 
-import {
-    CHAIN_ID,
-    ETH_GAS_STATION_API_URL,
-    META_TX_WORKER_REGISTRY,
-    RFQM_MAKER_ASSET_OFFERINGS,
-    RFQT_MAKER_ASSET_OFFERINGS,
-    RFQ_PROXY_ADDRESS,
-    RFQ_PROXY_PORT,
-    SWAP_QUOTER_OPTS,
-} from './config';
-import {
-    KEEP_ALIVE_TTL,
-    PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
-    RFQ_FIRM_QUOTE_CACHE_EXPIRY,
-    SRA_PATH,
-} from './constants';
+import { CHAIN_ID } from './config';
+import { RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
@@ -43,7 +24,6 @@ import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_run
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
-import { RfqmService } from './services/rfqm_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
 import {
@@ -54,7 +34,6 @@ import {
     WebsocketSRAOpts,
 } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
-import { ConfigManager } from './utils/config_manager';
 import { MeshClient } from './utils/mesh_client';
 import {
     AvailableRateLimiter,
@@ -76,8 +55,6 @@ export interface AppDependencies {
     websocketOpts: Partial<WebsocketSRAOpts>;
     transactionWatcherService?: TransactionWatcherSignerService;
     rateLimiter?: MetaTransactionRateLimiter;
-    rfqmService?: RfqmService;
-    configManager?: ConfigManager;
 }
 
 async function deploySamplerContractAsync(
@@ -185,25 +162,6 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
-    const quoteRequestor = new QuoteRequestor(
-        RFQT_MAKER_ASSET_OFFERINGS,
-        RFQM_MAKER_ASSET_OFFERINGS,
-        Axios.create(getAxiosRequestConfig()),
-        undefined, // No Alt RFQM offerings at the moment
-        logger.warn.bind(logger),
-        logger.info.bind(logger),
-        SWAP_QUOTER_OPTS.expiryBufferMs,
-    );
-
-    const protocolFeeUtils = ProtocolFeeUtils.getInstance(
-        PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
-        ETH_GAS_STATION_API_URL,
-    );
-    const metaTxWorkerRegistry = META_TX_WORKER_REGISTRY || NULL_ADDRESS;
-    const rfqmService = new RfqmService(quoteRequestor, protocolFeeUtils, contractAddresses, metaTxWorkerRegistry);
-
-    const configManager = new ConfigManager();
-
     const websocketOpts = { path: SRA_PATH };
 
     return {
@@ -216,8 +174,6 @@ export async function getDefaultAppDependenciesAsync(
         provider,
         websocketOpts,
         rateLimiter,
-        rfqmService,
-        configManager,
     };
 }
 
@@ -253,21 +209,6 @@ export async function getAppAsync(
 
     return { app, server };
 }
-
-const getAxiosRequestConfig = (): AxiosRequestConfig => {
-    const axiosRequestConfig: AxiosRequestConfig = {
-        httpAgent: new HttpAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
-        httpsAgent: new HttpsAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
-    };
-    if (RFQ_PROXY_ADDRESS !== undefined && RFQ_PROXY_PORT !== undefined) {
-        axiosRequestConfig.proxy = {
-            host: RFQ_PROXY_ADDRESS,
-            port: RFQ_PROXY_PORT,
-        };
-    }
-
-    return axiosRequestConfig;
-};
 
 function createMetaTransactionRateLimiterFromConfig(
     dbConnection: Connection,
