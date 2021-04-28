@@ -12,6 +12,7 @@ import {
 } from '@0x/asset-swapper';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { Web3Wrapper } from '@0x/dev-utils';
+import { NULL_ADDRESS } from '@0x/utils';
 import Axios, { AxiosRequestConfig } from 'axios';
 import * as express from 'express';
 import { Agent as HttpAgent, Server } from 'http';
@@ -21,6 +22,7 @@ import { Connection } from 'typeorm';
 import {
     CHAIN_ID,
     ETH_GAS_STATION_API_URL,
+    META_TX_WORKER_REGISTRY,
     RFQM_MAKER_ASSET_OFFERINGS,
     RFQT_MAKER_ASSET_OFFERINGS,
     RFQ_PROXY_ADDRESS,
@@ -197,7 +199,8 @@ export async function getDefaultAppDependenciesAsync(
         PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
         ETH_GAS_STATION_API_URL,
     );
-    const rfqmService = new RfqmService(quoteRequestor, protocolFeeUtils, contractAddresses);
+    const metaTxWorkerRegistry = META_TX_WORKER_REGISTRY || NULL_ADDRESS;
+    const rfqmService = new RfqmService(quoteRequestor, protocolFeeUtils, contractAddresses, metaTxWorkerRegistry);
 
     const configManager = new ConfigManager();
 
