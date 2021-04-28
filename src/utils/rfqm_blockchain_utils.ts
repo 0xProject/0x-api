@@ -1,8 +1,10 @@
 import { IZeroExContract } from '@0x/contracts-zero-ex';
+import { CallData } from '@0x/dev-utils';
 import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 
-import { NULL_ADDRESS } from '../constants';
+import { NULL_ADDRESS, ZERO } from '../constants';
+import { ChainId } from '../types';
 
 // allow a wide range for gas price for flexibility
 const MIN_GAS_PRICE = new BigNumber(0);
@@ -18,7 +20,7 @@ export class RfqBlockchainUtils {
         signature: Signature,
         taker: string,
         takerAmount: BigNumber,
-        chainId: number,
+        chainId: ChainId,
     ): MetaTransaction {
         // generate call data for fillRfqOrder
         const callData = this._exchangeProxy
@@ -33,10 +35,9 @@ export class RfqBlockchainUtils {
             expirationTimeSeconds: rfqOrder.expiry,
             salt: new BigNumber(Date.now()),
             callData,
-            // may need this to be variable to handle ETH -> ERC20
-            value: new BigNumber(0),
-            feeToken: rfqOrder.takerToken,
-            feeAmount: new BigNumber(0),
+            value: ZERO,
+            feeToken: NULL_ADDRESS,
+            feeAmount: ZERO,
             chainId,
             verifyingContract: this._exchangeProxy.address,
         });
@@ -46,10 +47,14 @@ export class RfqBlockchainUtils {
         metaTx: MetaTransaction,
         metaTxSig: Signature,
         sender: string,
-    ): Promise<boolean> {
+        txOptions?: Partial<CallData>,
+    ): Promise<[BigNumber, BigNumber]> {
         try {
-            await this._exchangeProxy.executeMetaTransaction(metaTx, metaTxSig).callAsync({ from: sender });
-            return true;
+            const results = await this._exchangeProxy
+                .executeMetaTransaction(metaTx, metaTxSig)
+                .callAsync({ from: sender, ...txOptions });
+            // returns [takerTokenFilledAmount, makerTokenFilledAmount]
+            return this._exchangeProxy.getABIDecodedReturnData('fillRfqOrder', results);
         } catch (err) {
             throw new Error(err);
         }

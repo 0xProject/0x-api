@@ -8,6 +8,7 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import 'mocha';
 
 import { PROTOCOL_FEE_MULTIPLIER } from '../src/config';
+import { ChainId } from '../src/types';
 import { RfqBlockchainUtils } from '../src/utils/rfqm_blockchain_utils';
 
 import { getProvider } from './constants';
@@ -17,7 +18,7 @@ const SUITE_NAME = 'RFQ Blockchain Utils Test';
 
 const GAS_PRICE = 1e9;
 const VALID_EXPIRY = new BigNumber(9000000000);
-const CHAIN_ID = 1337;
+const CHAIN_ID = ChainId.Ganache;
 
 describe(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
@@ -134,7 +135,7 @@ describe(SUITE_NAME, () => {
             const metaTx = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
             const metaTxSig = await metaTx.getSignatureWithProviderAsync(provider);
 
-            expect(await rfqBlockchainUtils.validateMetaTransactionOrThrowAsync(metaTx, metaTxSig, txOrigin)).to.eq(true);
+            expect(await rfqBlockchainUtils.validateMetaTransactionOrThrowAsync(metaTx, metaTxSig, txOrigin)).to.deep.eq([takerAmount, makerAmount]);
         });
         it('returns error for a metatransaction with an invalid signature', async () => {
             const metaTx = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
