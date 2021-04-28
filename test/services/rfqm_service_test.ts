@@ -15,7 +15,7 @@ import { RfqmService } from '../../src/services/rfqm_service';
 const NEVER_EXPIRES = new BigNumber(9999999999999999);
 const MOCK_WORKER_REGISTRY_ADDRESS = '0x1023331a469c6391730ff1E2749422CE8873EC38';
 
-describe.only('RfqmService', () => {
+describe('RfqmService', () => {
     describe('fetchIndicativeQuoteAsync', () => {
         describe('sells', async () => {
             it('should fetch indicative quote', async () => {
