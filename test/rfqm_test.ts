@@ -36,7 +36,7 @@ const SUITE_NAME = 'RFQM Integration Tests';
 const MARKET_MAKER_1 = 'https://mock-rfqt1.club';
 const MARKET_MAKER_2 = 'https://mock-rfqt2.club';
 const BASE_RFQM_REQUEST_PARAMS = {
-    txOrigin: NULL_ADDRESS,
+    txOrigin: config.META_TX_WORKER_REGISTRY || NULL_ADDRESS,
     takerAddress: NULL_ADDRESS,
     protocolVersion: '4',
     comparisonPrice: undefined,
@@ -117,7 +117,7 @@ describe(SUITE_NAME, () => {
     });
 
     describe('rfqm/v1/price', async () => {
-        it('should return a 200 OK with an indicative quote', async () => {
+        it('should return a 200 OK with an indicative quote for sells', async () => {
             const sellAmount = 100000000000000000;
             const winningQuote = 200000000000000000;
             const losingQuote = 150000000000000000;
@@ -166,6 +166,75 @@ describe(SUITE_NAME, () => {
                         responseData: {
                             makerAmount: winningQuote.toString(),
                             takerAmount: sellAmount.toString(),
+                            makerToken: contractAddresses.zrxToken,
+                            takerToken: contractAddresses.etherToken,
+                            expiry: '1903620548', // in the year 2030
+                        },
+                    },
+                ] as MockedRfqQuoteResponse[],
+                RfqtQuoteEndpoint.Indicative,
+                async () => {
+                    const appResponse = await request(app)
+                        .get(`${RFQM_PATH}/price?${params.toString()}`)
+                        .set('0x-api-key', API_KEY)
+                        .expect(HttpStatus.OK)
+                        .expect('Content-Type', /json/);
+
+                    expect(appResponse.body.price).to.equal(expectedPrice);
+                },
+                axiosClient,
+            );
+        });
+
+        it('should return a 200 OK with an indicative quote for buys', async () => {
+            const buyAmount = 200000000000000000;
+            const winningQuote = 100000000000000000;
+            const losingQuote = 150000000000000000;
+            const params = new URLSearchParams({
+                buyToken: 'ZRX',
+                sellToken: 'WETH',
+                buyAmount: buyAmount.toString(),
+                takerAddress,
+                intentOnFilling: 'false',
+                skipValidation: 'true',
+            });
+
+            const expectedPrice = '2'; // TODO fix this after merge
+            return rfqtMocker.withMockedRfqtQuotes(
+                [
+                    {
+                        // Quote from MM 1
+                        endpoint: MARKET_MAKER_1,
+                        requestApiKey: API_KEY,
+                        requestParams: {
+                            ...BASE_RFQM_REQUEST_PARAMS,
+                            buyAmountBaseUnits: buyAmount.toString(),
+                            buyTokenAddress: contractAddresses.zrxToken,
+                            sellTokenAddress: contractAddresses.etherToken,
+                        },
+                        responseCode: 200,
+                        responseData: {
+                            makerAmount: buyAmount.toString(),
+                            takerAmount: losingQuote.toString(),
+                            makerToken: contractAddresses.zrxToken,
+                            takerToken: contractAddresses.etherToken,
+                            expiry: '1903620548', // in the year 2030
+                        },
+                    },
+                    {
+                        // Quote from MM 2
+                        endpoint: MARKET_MAKER_2,
+                        requestApiKey: API_KEY,
+                        requestParams: {
+                            ...BASE_RFQM_REQUEST_PARAMS,
+                            buyAmountBaseUnits: buyAmount.toString(),
+                            buyTokenAddress: contractAddresses.zrxToken,
+                            sellTokenAddress: contractAddresses.etherToken,
+                        },
+                        responseCode: 200,
+                        responseData: {
+                            makerAmount: buyAmount.toString(),
+                            takerAmount: winningQuote.toString(),
                             makerToken: contractAddresses.zrxToken,
                             takerToken: contractAddresses.etherToken,
                             expiry: '1903620548', // in the year 2030

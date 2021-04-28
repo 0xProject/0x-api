@@ -82,8 +82,8 @@ export class RfqmHandlers {
         const { tokenAddress: buyToken, decimals: buyTokenDecimals } = getTokenMetadataOrThrow(buyTokenRaw, 'buyToken');
 
         // Parse number params
-        const sellAmount = new BigNumber(req.query.sellAmount as string);
-        const buyAmount = new BigNumber(req.query.buyAmount as string);
+        const sellAmount = req.query.sellAmount ? new BigNumber(req.query.sellAmount as string) : undefined;
+        const buyAmount = req.query.buyAmount ? new BigNumber(req.query.buyAmount as string) : undefined;
 
         return {
             apiKey,
