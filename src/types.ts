@@ -4,6 +4,7 @@ import {
     ContractAddresses,
     ERC20BridgeSource,
     LimitOrderFields,
+    PriceComparisonsReport,
     QuoteReport,
     RfqRequestOpts,
     Signature,
@@ -262,6 +263,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     orders?: any;
     from?: string;
     quoteReport?: QuoteReport;
+    priceComparisonsReport?: PriceComparisonsReport;
 }
 
 export interface SwapQuoteResponsePartialTransaction {
