@@ -19,7 +19,7 @@ import * as request from 'supertest';
 import { instance, mock, when } from 'ts-mockito';
 
 import * as config from '../src/config';
-import { PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS, RFQM_PATH } from '../src/constants';
+import { RFQM_PATH } from '../src/constants';
 import { runHttpRfqmServiceAsync } from '../src/runners/http_rfqm_service_runner';
 import { RfqmService } from '../src/services/rfqm_service';
 import { ConfigManager } from '../src/utils/config_manager';
