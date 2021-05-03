@@ -1,5 +1,6 @@
 // tslint:disable:max-file-line-count
 import {
+    BigNumber,
     MockedRfqQuoteResponse,
     ProtocolFeeUtils,
     QuoteRequestor,
@@ -62,11 +63,10 @@ describe(SUITE_NAME, () => {
         [, takerAddress] = accounts;
 
         // Build dependencies
-        // Get the ProtocolFeeUtils singleton
-        const protocolFeeUtils = ProtocolFeeUtils.getInstance(
-            PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
-            config.ETH_GAS_STATION_API_URL,
-        );
+        // Create the mock ProtocolFeeUtils
+        const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
+        when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(new BigNumber(100));
+        const protocolFeeUtils = instance(protocolFeeUtilsMock);
 
         // Create the mock ConfigManager
         const configManagerMock = mock(ConfigManager);
