@@ -13,6 +13,7 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from '@0x/asset-swapper';
+import { TokenMetadatasForChains } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
@@ -31,7 +32,6 @@ import {
     TX_BASE_GAS,
 } from './constants';
 import { schemas } from './schemas';
-import { TokenMetadatasForChains } from './token_metadatas_for_networks';
 import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 import { schemaUtils } from './utils/schema_utils';
@@ -54,7 +54,7 @@ enum EnvVarType {
     NonEmptyString,
     APIKeys,
     PrivateKeys,
-    RfqtMakerAssetOfferings,
+    RfqMakerAssetOfferings,
     RateLimitConfig,
     LiquidityProviderRegistry,
     JsonStringList,
@@ -72,9 +72,8 @@ export interface ApiKeyStructure {
 export const getApiKeyWhitelistWithFallback = (
     legacyEnvKey: string,
     newEnvKey: string,
-    groupType: 'rfqt' | 'plp' | 'rfqm'
+    groupType: 'rfqt' | 'plp' | 'rfqm',
 ): string[] => {
-
     // Try the new path first
     if (_.isEmpty(process.env[newEnvKey])) {
         return _.isEmpty(process.env[legacyEnvKey])
@@ -95,19 +94,45 @@ export const getApiKeyWhitelistWithFallback = (
         const keyMeta = deserialized[apiKey];
         switch (groupType) {
             case 'plp':
-                if (keyMeta.plp) { result.push(apiKey); }
+                if (keyMeta.plp) {
+                    result.push(apiKey);
+                }
                 break;
             case 'rfqm':
-                if (keyMeta.rfqm) { result.push(apiKey); }
+                if (keyMeta.rfqm) {
+                    result.push(apiKey);
+                }
                 break;
             case 'rfqt':
-                if (keyMeta.rfqt) { result.push(apiKey); }
+                if (keyMeta.rfqt) {
+                    result.push(apiKey);
+                }
                 break;
             default:
                 throw new Error(`Unknown group type inputted: ${groupType}`);
         }
     }
     return result.sort();
+};
+
+export const getApiKeyFromLabel = (label: string): string | undefined => {
+    if (process.env.API_KEYS_ACL === undefined) {
+        return undefined;
+    }
+    let deserialized: ApiKeyStructure;
+    try {
+        deserialized = JSON.parse(process.env.API_KEYS_ACL);
+        schemaUtils.validateSchema(deserialized, schemas.apiKeySchema as any);
+    } catch (e) {
+        throw new Error(`API_KEYS_ACL was defined but is not valid JSON`);
+    }
+
+    for (const apiKey of Object.keys(deserialized)) {
+        const keyMeta = deserialized[apiKey];
+        if (keyMeta.label === label) {
+            return apiKey;
+        }
+    }
 };
 
 // Log level for pino.js
@@ -247,8 +272,10 @@ export const RFQT_REGISTRY_PASSWORDS: string[] = _.isEmpty(process.env.RFQT_REGI
 export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistWithFallback(
     'RFQT_API_KEY_WHITELIST_JSON',
     'API_KEYS_ACL',
-    'rfqt'
+    'rfqt',
 );
+
+export const MATCHA_KEY: string | undefined = getApiKeyFromLabel('Matcha');
 
 export const RFQT_TX_ORIGIN_BLACKLIST: Set<string> = _.isEmpty(process.env.RFQT_TX_ORIGIN_BLACKLIST)
     ? new Set()
@@ -273,7 +300,7 @@ export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_
 export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistWithFallback(
     'PLP_API_KEY_WHITELIST_JSON',
     'API_KEYS_ACL',
-    'plp'
+    'plp',
 );
 
 export const RFQT_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(process.env.RFQT_MAKER_ASSET_OFFERINGS)
@@ -281,8 +308,12 @@ export const RFQT_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(proc
     : assertEnvVarType(
           'RFQT_MAKER_ASSET_OFFERINGS',
           process.env.RFQT_MAKER_ASSET_OFFERINGS,
-          EnvVarType.RfqtMakerAssetOfferings,
+          EnvVarType.RfqMakerAssetOfferings,
       );
+
+export const META_TX_WORKER_REGISTRY: string | undefined = _.isEmpty(process.env.META_TX_WORKER_REGISTRY)
+    ? undefined
+    : assertEnvVarType('META_TX_WORKER_REGISTRY', process.env.META_TX_WORKER_REGISTRY, EnvVarType.ETHAddressHex);
 
 // tslint:disable-next-line:boolean-naming
 export const RFQT_REQUEST_MAX_RESPONSE_MS = 600;
@@ -435,7 +466,7 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
         return TX_BASE_GAS.plus(10e3);
     } else if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
         // Multiplex batch fill
-        return TX_BASE_GAS.plus(25e3);
+        return TX_BASE_GAS.plus(15e3);
     } else if (
         (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | sourceFlags) ===
         (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | SOURCE_FLAGS.MultiHop)
@@ -453,15 +484,6 @@ export const NATIVE_WRAPPED_TOKEN_SYMBOL = (() => {
             return 'WBNB';
         default:
             return 'WETH';
-    }
-})();
-
-export const NATIVE_TOKEN_SYMBOL = (() => {
-    switch (CHAIN_ID) {
-        case ChainId.BSC:
-            return 'BNB';
-        default:
-            return 'ETH';
     }
 })();
 
@@ -613,7 +635,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.JsonStringList:
             assert.isString(name, value);
             return JSON.parse(value);
-        case EnvVarType.RfqtMakerAssetOfferings:
+        case EnvVarType.RfqMakerAssetOfferings:
             const offerings: RfqMakerAssetOfferings = JSON.parse(value);
             // tslint:disable-next-line:forin
             for (const makerEndpoint in offerings) {
