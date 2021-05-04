@@ -470,7 +470,7 @@ describe(SUITE_NAME, () => {
                         .expect(HttpStatus.INTERNAL_SERVER_ERROR)
                         .expect('Content-Type', /json/);
 
-                    expect(appResponse.body.reason).to.equal('Unexpected error encountered');
+                    expect(appResponse.body.reason).to.equal('Server Error');
                 },
                 axiosClient,
             );
