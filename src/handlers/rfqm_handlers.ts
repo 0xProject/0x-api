@@ -1,5 +1,11 @@
 // tslint:disable:max-file-line-count
-import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '@0x/api-utils';
+import {
+    InternalServerError,
+    InvalidAPIKeyError,
+    NotFoundError,
+    ValidationError,
+    ValidationErrorCodes,
+} from '@0x/api-utils';
 import { getTokenMetadataIfExists, isNativeSymbolOrAddress, TokenMetadata } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
@@ -47,7 +53,7 @@ export class RfqmHandlers {
         } catch (err) {
             req.log.error(err, 'Encountered an error while fetching an rfqm indicative quote');
             RFQM_INDICATIVE_QUOTE_ERROR.labels(apiKeyLabel).inc();
-            throw new Error('Unexpected error encountered');
+            throw new InternalServerError('Unexpected error encountered');
         }
 
         // Handle no quote returned
