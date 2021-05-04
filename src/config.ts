@@ -438,7 +438,7 @@ const EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX = (sourceFlags: number) => {
         return TX_BASE_GAS;
     } else if (SOURCE_FLAGS.Curve === sourceFlags) {
         // Curve pseudo-VIP
-        return TX_BASE_GAS.plus(30e3);
+        return TX_BASE_GAS.plus(40e3);
     } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
         return TX_BASE_GAS.plus(10e3);
     } else {
@@ -460,7 +460,7 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
         return TX_BASE_GAS;
     } else if (SOURCE_FLAGS.Curve === sourceFlags) {
         // Curve pseudo-VIP
-        return TX_BASE_GAS.plus(30e3);
+        return TX_BASE_GAS.plus(40e3);
     } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
         // PLP VIP
         return TX_BASE_GAS.plus(10e3);
