@@ -7,14 +7,14 @@ import {
     ValidationErrorCodes,
 } from '@0x/api-utils';
 import { getTokenMetadataIfExists, isNativeSymbolOrAddress, TokenMetadata } from '@0x/token-metadata';
-import { BigNumber } from '@0x/utils';
+import { addressUtils, BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import { Counter } from 'prom-client';
 
 import { CHAIN_ID, NATIVE_WRAPPED_TOKEN_SYMBOL } from '../config';
 import { schemas } from '../schemas';
-import { FetchIndicativeQuoteParams, RfqmService } from '../services/rfqm_service';
+import { FetchFirmQuoteParams, FetchIndicativeQuoteParams, RfqmService } from '../services/rfqm_service';
 import { ConfigManager } from '../utils/config_manager';
 import { schemaUtils } from '../utils/schema_utils';
 
@@ -33,6 +33,24 @@ const RFQM_INDICATIVE_QUOTE_NOT_FOUND = new Counter({
 const RFQM_INDICATIVE_QUOTE_ERROR = new Counter({
     name: 'rfqm_handler_indicative_quote_error',
     help: 'Request to fetch rfqm indicative quote resulted in error',
+    labelNames: ['apiKey'],
+});
+
+const RFQM_FIRM_QUOTE_REQUEST = new Counter({
+    name: 'rfqm_handler_firm_quote_requested',
+    help: 'Request made to fetch rfqm firm quote',
+    labelNames: ['apiKey'],
+});
+
+const RFQM_FIRM_QUOTE_NOT_FOUND = new Counter({
+    name: 'rfqm_handler_firm_quote_not_found',
+    help: 'Request to fetch rfqm firm quote returned no quote',
+    labelNames: ['apiKey'],
+});
+
+const RFQM_FIRM_QUOTE_ERROR = new Counter({
+    name: 'rfqm_handler_firm_quote_error',
+    help: 'Request to fetch rfqm firm quote resulted in error',
     labelNames: ['apiKey'],
 });
 
@@ -64,6 +82,60 @@ export class RfqmHandlers {
 
         // Result
         res.status(HttpStatus.OK).send(indicativeQuote);
+    }
+
+    public async getFirmQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
+        const apiKeyLabel = req.header('0x-api-key') || 'N/A';
+        RFQM_FIRM_QUOTE_REQUEST.labels(apiKeyLabel).inc();
+
+        // Parse request
+        const params = this._parseFetchFirmQuoteParams(req);
+
+        // Try to get indicative quote
+        let firmQuote;
+        try {
+            firmQuote = await this._rfqmService.fetchFirmQuoteAsync(params);
+        } catch (err) {
+            req.log.error(err, 'Encountered an error while fetching an rfqm firm quote');
+            RFQM_FIRM_QUOTE_ERROR.labels(apiKeyLabel).inc();
+            throw new InternalServerError('Unexpected error encountered');
+        }
+
+        // Handle no quote returned
+        if (firmQuote === null) {
+            RFQM_FIRM_QUOTE_NOT_FOUND.labels(apiKeyLabel).inc();
+            throw new NotFoundError('Unable to retrieve a quote');
+        }
+
+        // Result
+        res.status(HttpStatus.OK).send(firmQuote);
+    }
+
+    private _parseFetchFirmQuoteParams(req: express.Request): FetchFirmQuoteParams {
+        // Same as indicative except requires takerAddress
+        const indicativeQuoteRequest = this._parseFetchIndicativeQuoteParams(req);
+        const takerAddress = indicativeQuoteRequest.takerAddress || '';
+        if (takerAddress === '') {
+            throw new ValidationError([
+                {
+                    field: 'takerAddress',
+                    code: ValidationErrorCodes.RequiredField,
+                    reason: `The field takerAddress is missing`,
+                },
+            ]);
+        } else if (!addressUtils.isAddress(takerAddress)) {
+            throw new ValidationError([
+                {
+                    field: 'takerAddress',
+                    code: ValidationErrorCodes.InvalidAddress,
+                    reason: `Must provide a valid takerAddress`,
+                },
+            ]);
+        }
+        return {
+            ...indicativeQuoteRequest,
+            takerAddress,
+        };
     }
 
     private _parseFetchIndicativeQuoteParams(req: express.Request): FetchIndicativeQuoteParams {
