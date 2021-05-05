@@ -41,7 +41,7 @@ export function getBestQuote<T extends V4RFQIndicativeQuote | SignedNativeOrder>
     }
 
     // Get the best quote
-    return sortedQuotes[0] as T;
+    return sortedQuotes[0];
 }
 
 /// Private getter functions
