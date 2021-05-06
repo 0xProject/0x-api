@@ -46,44 +46,44 @@ export function getBestQuote<T extends V4RFQIndicativeQuote | SignedNativeOrder>
 
 /// Private getter functions
 
-const getTakerToken = (q: V4RFQIndicativeQuote | SignedNativeOrder): string => {
-    if (isSignedNativeOrder(q)) {
-        return q.order.takerToken;
+const getTakerToken = (quote: V4RFQIndicativeQuote | SignedNativeOrder): string => {
+    if (isSignedNativeOrder(quote)) {
+        return quote.order.takerToken;
     }
 
-    return q.takerToken;
+    return quote.takerToken;
 };
 
-const getMakerToken = (q: V4RFQIndicativeQuote | SignedNativeOrder): string => {
-    if (isSignedNativeOrder(q)) {
-        return q.order.makerToken;
+const getMakerToken = (quote: V4RFQIndicativeQuote | SignedNativeOrder): string => {
+    if (isSignedNativeOrder(quote)) {
+        return quote.order.makerToken;
     }
 
-    return q.makerToken;
+    return quote.makerToken;
 };
 
-const getTakerAmount = (q: V4RFQIndicativeQuote | SignedNativeOrder): BigNumber => {
-    if (isSignedNativeOrder(q)) {
-        return q.order.takerAmount;
+const getTakerAmount = (quote: V4RFQIndicativeQuote | SignedNativeOrder): BigNumber => {
+    if (isSignedNativeOrder(quote)) {
+        return quote.order.takerAmount;
     }
 
-    return q.takerAmount;
+    return quote.takerAmount;
 };
 
-const getMakerAmount = (q: V4RFQIndicativeQuote | SignedNativeOrder): BigNumber => {
-    if (isSignedNativeOrder(q)) {
-        return q.order.makerAmount;
+const getMakerAmount = (quote: V4RFQIndicativeQuote | SignedNativeOrder): BigNumber => {
+    if (isSignedNativeOrder(quote)) {
+        return quote.order.makerAmount;
     }
 
-    return q.makerAmount;
+    return quote.makerAmount;
 };
 
-const getExpiry = (q: V4RFQIndicativeQuote | SignedNativeOrder): BigNumber => {
-    if (isSignedNativeOrder(q)) {
-        return q.order.expiry;
+const getExpiry = (quote: V4RFQIndicativeQuote | SignedNativeOrder): BigNumber => {
+    if (isSignedNativeOrder(quote)) {
+        return quote.order.expiry;
     }
 
-    return q.expiry;
+    return quote.expiry;
 };
 
 const isSignedNativeOrder = (quote: V4RFQIndicativeQuote | SignedNativeOrder): quote is SignedNativeOrder => {
