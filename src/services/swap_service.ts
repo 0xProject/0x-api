@@ -225,7 +225,7 @@ export class SwapService {
             };
         }
 
-        // only generate quote reports for rfqt firm quotes or when price comparison is requested
+        // only generate quote reports for rfqt firm quotes
         const shouldGenerateQuoteReport = rfqt && rfqt.intentOnFilling;
 
         let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
