@@ -44,6 +44,7 @@ const NULL_SOURCE_COMPARISONS = Object.values(ERC20BridgeSource).reduce<SourceCo
         name: liquiditySource,
         price: null,
         gas: null,
+        savingsInEth: null,
     });
 
     return memo;

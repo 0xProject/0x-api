@@ -235,7 +235,7 @@ export interface SourceComparison {
     name: ERC20BridgeSource | '0x';
     price: BigNumber | null;
     gas: BigNumber | null;
-    savingsInEth?: BigNumber;
+    savingsInEth: BigNumber | null;
 }
 
 export interface AffiliateFee {

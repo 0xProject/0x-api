@@ -73,6 +73,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Kyber,
                     price: null,
                     gas: null,
+                    savingsInEth: null,
                 },
             ]);
         });
@@ -110,6 +111,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.Balancer,
                     price: null,
                     gas: null,
+                    savingsInEth: null,
                 },
             ]);
         });
@@ -157,6 +159,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.MStable,
                     price: null,
                     gas: null,
+                    savingsInEth: null,
                 },
             ]);
         });
@@ -200,6 +203,7 @@ describe(SUITE_NAME, () => {
                     name: ERC20BridgeSource.MStable,
                     price: null,
                     gas: null,
+                    savingsInEth: null,
                 },
             ]);
         });
