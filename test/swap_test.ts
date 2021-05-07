@@ -1,6 +1,7 @@
 // tslint:disable:max-file-line-count
 
-import { ERC20BridgeSource } from '@0x/asset-swapper';
+import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ERC20BridgeSource } from '@0x/asset-swapper';
+import { ChainId } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { assertRoughlyEquals, expect, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
@@ -46,7 +47,9 @@ import { MeshClientMock } from './utils/mesh_client_mock';
 import { liquiditySources0xOnly } from './utils/mocks';
 
 const SUITE_NAME = 'Swap API';
-const EXCLUDED_SOURCES = Object.values(ERC20BridgeSource).filter((s) => s !== ERC20BridgeSource.Native);
+const EXCLUDED_SOURCES = BUY_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources.filter(
+    (s) => s !== ERC20BridgeSource.Native,
+);
 const DEFAULT_QUERY_PARAMS = {
     buyToken: 'ZRX',
     sellToken: 'WETH',
