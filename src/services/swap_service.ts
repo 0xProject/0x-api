@@ -4,6 +4,7 @@ import {
     AltRfqMakerAssetOfferings,
     artifacts,
     AssetSwapperContractAddresses,
+    BlockParamLiteral,
     ContractAddresses,
     ERC20BridgeSource,
     FakeTakerContract,
@@ -159,6 +160,14 @@ export class SwapService {
             },
             contractAddresses,
         };
+        if (CHAIN_ID === ChainId.Ganache) {
+            swapQuoterOpts.samplerOverrides = {
+                block: BlockParamLiteral.Latest,
+                overrides: {},
+                to: contractAddresses.erc20BridgeSampler,
+                ...(swapQuoterOpts.samplerOverrides || {}),
+            };
+        }
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
         this._swapQuoteConsumer = new SwapQuoteConsumer(swapQuoterOpts);
         this._web3Wrapper = new Web3Wrapper(this._provider);
@@ -216,8 +225,8 @@ export class SwapService {
             };
         }
 
-        // only generate quote reports for rfqt firm quotes or when price comparison is requested
-        const shouldGenerateQuoteReport = includePriceComparisons || (rfqt && rfqt.intentOnFilling);
+        // only generate quote reports for rfqt firm quotes
+        const shouldGenerateQuoteReport = rfqt && rfqt.intentOnFilling;
 
         let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
         if (
@@ -241,6 +250,7 @@ export class SwapService {
             includedSources,
             rfqt: _rfqt,
             shouldGenerateQuoteReport,
+            shouldIncludePriceComparisonsReport: !!includePriceComparisons,
         };
 
         const marketSide = sellAmount !== undefined ? MarketOperation.Sell : MarketOperation.Buy;
@@ -264,7 +274,7 @@ export class SwapService {
             protocolFeeInWeiAmount: bestCaseProtocolFee,
         } = swapQuote.bestCaseQuoteInfo;
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = swapQuote.worstCaseQuoteInfo;
-        const { gasPrice, sourceBreakdown, quoteReport } = swapQuote;
+        const { gasPrice, sourceBreakdown, quoteReport, priceComparisonsReport } = swapQuote;
 
         const {
             gasCost: affiliateFeeGasCost,
@@ -371,6 +381,7 @@ export class SwapService {
             sellTokenToEthRate,
             buyTokenToEthRate,
             quoteReport,
+            priceComparisonsReport,
         };
         return apiSwapQuote;
     }
