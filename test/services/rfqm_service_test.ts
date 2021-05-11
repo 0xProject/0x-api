@@ -478,7 +478,7 @@ describe('RfqmService', () => {
         });
     });
 
-    describe.only('fetchFirmQuoteAsync', () => {
+    describe('fetchFirmQuoteAsync', () => {
         const takerAddress = '0xf003A9418DE2620f935181259C0Fa1595E871234';
         const EMPTY_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
         const INVALID_SIGNATURE = {
