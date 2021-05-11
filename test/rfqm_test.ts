@@ -664,5 +664,32 @@ describe(SUITE_NAME, () => {
                 axiosClient,
             );
         });
+
+        it('should return a 400 BAD REQUEST if api key is missing', async () => {
+            const sellAmount = 100000000000000000;
+            const params = new URLSearchParams({
+                buyToken: 'ZRX',
+                sellToken: 'WETH',
+                sellAmount: sellAmount.toString(),
+                gasPrice: '100',
+                takerAddress,
+                intentOnFilling: 'false',
+                skipValidation: 'true',
+            });
+
+            return rfqtMocker.withMockedRfqtQuotes(
+                [] as MockedRfqQuoteResponse[],
+                RfqtQuoteEndpoint.Firm,
+                async () => {
+                    const appResponse = await request(app)
+                        .get(`${RFQM_PATH}/quote?${params.toString()}`)
+                        .expect(HttpStatus.BAD_REQUEST)
+                        .expect('Content-Type', /json/);
+
+                    expect(appResponse.body.reason).to.equal('Invalid API key');
+                },
+                axiosClient,
+            );
+        });
     });
 });
