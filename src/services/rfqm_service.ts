@@ -5,7 +5,7 @@ import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
-import { NULL_ADDRESS, RFQM_MINUMUM_EXPIRY_DURATION_MS } from '../constants';
+import { NULL_ADDRESS, RFQM_MINIMUM_EXPIRY_DURATION_MS } from '../constants';
 import { getBestQuote } from '../utils/quote_comparison_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
@@ -132,7 +132,7 @@ export class RfqmService {
             takerToken,
             makerToken,
             assetFillAmount,
-            RFQM_MINUMUM_EXPIRY_DURATION_MS,
+            RFQM_MINIMUM_EXPIRY_DURATION_MS,
         );
 
         // No quotes found
@@ -210,7 +210,7 @@ export class RfqmService {
             takerToken,
             makerToken,
             assetFillAmount,
-            RFQM_MINUMUM_EXPIRY_DURATION_MS,
+            RFQM_MINIMUM_EXPIRY_DURATION_MS,
         );
 
         // No quote found
