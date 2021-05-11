@@ -169,14 +169,12 @@ export class RfqmHandlers {
         const sellAmount =
             req.query.sellAmount === undefined ? undefined : new BigNumber(req.query.sellAmount as string);
         const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount as string);
-        const gasPrice = req.query.gasPrice === undefined ? undefined : new BigNumber(req.query.gasPrice as string);
 
         return {
             apiKey,
             buyAmount,
             buyToken,
             buyTokenDecimals,
-            gasPrice,
             sellAmount,
             sellToken,
             sellTokenDecimals,

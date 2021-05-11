@@ -14,7 +14,6 @@ export interface FetchIndicativeQuoteParams {
     buyAmount?: BigNumber;
     buyToken: string;
     buyTokenDecimals: number;
-    gasPrice?: BigNumber;
     sellAmount?: BigNumber;
     sellToken: string;
     sellTokenDecimals: number;
@@ -35,7 +34,6 @@ export interface FetchFirmQuoteParams {
     buyAmount?: BigNumber;
     buyToken: string;
     buyTokenDecimals: number;
-    gasPrice?: BigNumber;
     sellAmount?: BigNumber;
     sellToken: string;
     sellTokenDecimals: number;
@@ -93,7 +91,6 @@ export class RfqmService {
             buyToken: makerToken,
             sellTokenDecimals: takerTokenDecimals,
             buyTokenDecimals: makerTokenDecimals,
-            gasPrice: inputGasPrice,
             apiKey,
         } = params;
 
@@ -103,10 +100,7 @@ export class RfqmService {
         const assetFillAmount = isSelling ? sellAmount! : buyAmount!;
 
         // Prepare gas estimate
-        const gas: BigNumber =
-            inputGasPrice !== undefined
-                ? inputGasPrice
-                : await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+        const gas: BigNumber = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
         // Fetch quotes
         const opts = {
@@ -169,7 +163,6 @@ export class RfqmService {
             buyToken: makerToken,
             sellTokenDecimals: takerTokenDecimals,
             buyTokenDecimals: makerTokenDecimals,
-            gasPrice: inputGasPrice,
             apiKey,
             takerAddress,
         } = params;
@@ -180,10 +173,7 @@ export class RfqmService {
         const assetFillAmount = isSelling ? sellAmount! : buyAmount!;
 
         // Prepare gas estimate
-        const gas: BigNumber =
-            inputGasPrice !== undefined
-                ? inputGasPrice
-                : await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+        const gas: BigNumber = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
         // Fetch quotes
         const opts = {
