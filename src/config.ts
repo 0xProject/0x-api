@@ -446,6 +446,9 @@ const EXCLUDED_SOURCES = (() => {
             return allERC20BridgeSources.filter((s) => !supportedRopstenSources.has(s));
         case ChainId.BSC:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
+        // TODO(kimpers): All supported Polygon sources
+        case ChainId.Polygon:
+            return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.SushiSwap);
         default:
             return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
     }
@@ -461,6 +464,8 @@ const EXCLUDED_FEE_SOURCES = (() => {
             return [];
         case ChainId.BSC:
             return [ERC20BridgeSource.Uniswap];
+        case ChainId.Polygon:
+            return [];
         default:
             return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
     }
@@ -542,6 +547,8 @@ export const NATIVE_WRAPPED_TOKEN_SYMBOL = (() => {
     switch (CHAIN_ID) {
         case ChainId.BSC:
             return 'WBNB';
+        case ChainId.Polygon:
+            return 'WMATIC';
         default:
             return 'WETH';
     }
