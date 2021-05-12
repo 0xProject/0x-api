@@ -557,6 +557,7 @@ describe('RfqmService', () => {
                 expect(res.sellAmount.toNumber()).to.be.at.least(100);
                 expect(res.price.toNumber()).to.equal(1.01);
                 expect(res.metaTransactionHash).to.match(/^0x[0-9a-fA-F]+/);
+                expect(res.orderHash).to.match(/^0x[0-9a-fA-F]+/);
             });
         });
 
@@ -625,9 +626,11 @@ describe('RfqmService', () => {
                     expect.fail('res is null, but not expected to be null');
                     return;
                 }
+
                 expect(res.buyAmount.toNumber()).to.be.at.least(100);
                 expect(res.price.toNumber()).to.equal(0.8);
                 expect(res.metaTransactionHash).to.match(/^0x[0-9a-fA-F]+/);
+                expect(res.orderHash).to.match(/^0x[0-9a-fA-F]+/);
             });
         });
     });

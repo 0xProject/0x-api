@@ -567,6 +567,7 @@ describe(SUITE_NAME, () => {
 
                     expect(appResponse.body.price).to.equal(expectedPrice);
                     expect(appResponse.body.metaTransactionHash).to.match(/^0x[0-9a-fA-F]+/);
+                    expect(appResponse.body.orderHash).to.match(/^0x[0-9a-fA-F]+/);
                 },
                 axiosClient,
             );
