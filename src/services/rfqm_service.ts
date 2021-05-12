@@ -95,7 +95,7 @@ export class RfqmService {
             fee: {
                 amount: ZERO,
                 token: ETH_TOKEN_ADDRESS,
-                type: 'fixed'
+                type: 'fixed',
             },
         };
         const indicativeQuotes = await this._quoteRequestor.requestRfqmIndicativeQuotesAsync(
