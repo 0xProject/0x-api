@@ -40,7 +40,7 @@ export interface FetchFirmQuoteParams {
     takerAddress: string;
 }
 
-export interface FetchFirmQuoteResponse {
+export interface BaseRfqmQuoteResponse {
     allowanceTarget?: string;
     buyAmount: BigNumber;
     buyTokenAddress: string;
@@ -48,9 +48,16 @@ export interface FetchFirmQuoteResponse {
     price: BigNumber;
     sellAmount: BigNumber;
     sellTokenAddress: string;
+}
+
+export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse {
+    type: 'metatransaction';
     metaTransaction: MetaTransaction;
     metaTransactionHash: string;
+    orderHash: string;
 }
+
+export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
 
 const RFQM_DEFAULT_OPTS = {
     takerAddress: NULL_ADDRESS,
@@ -208,8 +215,11 @@ export class RfqmService {
             return null;
         }
 
+        // Get the Order and its hash
+        const rfqOrder = new RfqOrder(bestQuote.order);
+        const orderHash = rfqOrder.getHash();
+
         // Generate the Meta Transaction and its hash
-        const rfqOrder = bestQuote.order as RfqOrder;
         const metaTransaction = this._blockchainUtils.generateMetaTransaction(
             rfqOrder,
             bestQuote.signature,
@@ -228,6 +238,7 @@ export class RfqmService {
 
         // Prepare response
         return {
+            type: 'metatransaction',
             price,
             gas,
             buyAmount: bestQuote.order.makerAmount,
@@ -237,6 +248,7 @@ export class RfqmService {
             allowanceTarget: this._contractAddresses.exchangeProxy,
             metaTransaction,
             metaTransactionHash,
+            orderHash,
         };
     }
 }
