@@ -50,7 +50,7 @@ const BASE_RFQM_REQUEST_PARAMS = {
 const MOCK_META_TX = new MetaTransaction();
 const VALID_SIGNATURE = { v: 28, r: '0x', s: '0x', signatureType: SignatureType.EthSign };
 
-describe(SUITE_NAME, () => {
+describe.skip(SUITE_NAME, () => {
     const contractAddresses: ContractAddresses = CONTRACT_ADDRESSES;
     let takerAddress: string;
     let makerAddress: string;
