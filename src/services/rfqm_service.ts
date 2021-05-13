@@ -190,13 +190,19 @@ export class RfqmService {
         const gas: BigNumber = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
         // Fetch quotes
-        const opts = {
+        const opts: RfqmRequestOptions = {
             ...RFQM_DEFAULT_OPTS,
             takerAddress,
             txOrigin: this._registryAddress,
             apiKey,
             intentOnFilling: true,
             isIndicative: false,
+            isLastLook: true,
+            fee: {
+                amount: ZERO,
+                token: ETH_TOKEN_ADDRESS,
+                type: 'fixed',
+            },
         };
         const firmQuotes = await this._quoteRequestor.requestRfqmFirmQuotesAsync(
             makerToken,
