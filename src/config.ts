@@ -13,7 +13,7 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from '@0x/asset-swapper';
-import { TokenMetadatasForChains } from '@0x/token-metadata';
+import { nativeWrappedTokenSymbol, TokenMetadatasForChains } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
@@ -543,16 +543,7 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
     }
 };
 
-export const NATIVE_WRAPPED_TOKEN_SYMBOL = (() => {
-    switch (CHAIN_ID) {
-        case ChainId.BSC:
-            return 'WBNB';
-        case ChainId.Polygon:
-            return 'WMATIC';
-        default:
-            return 'WETH';
-    }
-})();
+export const NATIVE_WRAPPED_TOKEN_SYMBOL = nativeWrappedTokenSymbol(CHAIN_ID);
 
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
