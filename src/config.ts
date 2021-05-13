@@ -446,9 +446,8 @@ const EXCLUDED_SOURCES = (() => {
             return allERC20BridgeSources.filter((s) => !supportedRopstenSources.has(s));
         case ChainId.BSC:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
-        // TODO(kimpers): All supported Polygon sources
         case ChainId.Polygon:
-            return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.SushiSwap);
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
             return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
     }
