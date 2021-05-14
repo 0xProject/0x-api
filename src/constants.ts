@@ -46,11 +46,15 @@ export const AFFILIATE_FEE_TRANSFORMER_GAS = new BigNumber(15000);
 export const POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS = new BigNumber(30000);
 export const ONE_GWEI = new BigNumber(1000000000);
 
+// RFQM Service
+export const KEEP_ALIVE_TTL = ONE_MINUTE_MS * 5;
+
 // API namespaces
 export const SRA_PATH = '/sra/v4';
 export const SWAP_PATH = '/swap/v1';
 export const META_TRANSACTION_PATH = '/meta_transaction/v1';
 export const METRICS_PATH = '/metrics';
+export const RFQM_PATH = '/rfqm/v1';
 export const API_KEY_HEADER = '0x-api-key';
 export const HEALTHCHECK_PATH = '/healthz';
 
@@ -90,6 +94,7 @@ export const NUMBER_SOURCES_PER_LOG_LINE = 12;
 // RFQ Quote Validator expiration threshold
 export const RFQ_FIRM_QUOTE_CACHE_EXPIRY = ONE_MINUTE_MS * 2;
 export const RFQ_ALLOWANCE_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
+export const RFQM_MINIMUM_EXPIRY_DURATION_MS = ONE_MINUTE_MS * 3;
 
 // General cache control
 export const DEFAULT_CACHE_AGE_SECONDS = 10;

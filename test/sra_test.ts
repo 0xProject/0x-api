@@ -209,7 +209,7 @@ describe(SUITE_NAME, () => {
             expect(body.total).to.eq(2);
             expect(sortByHash(cleanRecords)).to.deep.eq(sortByHash(JSON.parse(JSON.stringify(matchingOrders))));
             const orders = [...matchingOrders, nonMatchingOrder];
-            await dependencies.connection.manager.remove(orders.map(apiOrder => orderUtils.serializeOrder(apiOrder)));
+            await dependencies.connection.manager.remove(orders.map((apiOrder) => orderUtils.serializeOrder(apiOrder)));
         });
         it('should return empty response when filtered by query params', async () => {
             const apiOrder = await addNewOrderAsync({ maker: makerAddress });
@@ -418,7 +418,7 @@ describe(SUITE_NAME, () => {
             });
             expect(response.status).to.eq(HttpStatus.OK);
             const meshOrders = await meshClientMock.mockMeshClient.getOrdersAsync();
-            expect(meshOrders.ordersInfos.find(info => info.hash === orderHash)).to.not.be.undefined();
+            expect(meshOrders.ordersInfos.find((info) => info.hash === orderHash)).to.not.be.undefined();
         });
         it('should respond before mesh order confirmation when ?skipConfirmation=true', async () => {
             const order = await getRandomSignedLimitOrderAsync(provider, {
@@ -431,7 +431,7 @@ describe(SUITE_NAME, () => {
                 chainId: CHAIN_ID,
                 expiry: TOMORROW,
             });
-            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake(orders => {
+            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
                 return { rejected: orders, accepted: [] };
             });
             const response = await httpPostAsync({
@@ -454,7 +454,7 @@ describe(SUITE_NAME, () => {
                 chainId: CHAIN_ID,
                 expiry: TOMORROW,
             });
-            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake(orders => {
+            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
                 return { rejected: orders, accepted: [] };
             });
             const response = await httpPostAsync({
