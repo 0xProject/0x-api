@@ -517,6 +517,7 @@ describe('RfqmService', () => {
         describe('sells', () => {
             it('should fetch a firm quote', async () => {
                 // Given
+                const makerUri = 'https://rfqm.somemaker.xyz';
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(
                     quoteRequestorMock.requestRfqmFirmQuotesAsync(
@@ -540,6 +541,7 @@ describe('RfqmService', () => {
                         signature: INVALID_SIGNATURE,
                     },
                 ]);
+                when(quoteRequestorMock.getMakerUriForSignature(anything())).thenReturn(makerUri);
 
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
@@ -601,6 +603,7 @@ describe('RfqmService', () => {
         describe('buys', () => {
             it('should fetch a firm quote', async () => {
                 // Given
+                const makerUri = 'https://rfqm.somemaker.xyz';
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(
                     quoteRequestorMock.requestRfqmFirmQuotesAsync(
@@ -624,6 +627,7 @@ describe('RfqmService', () => {
                         signature: INVALID_SIGNATURE,
                     },
                 ]);
+                when(quoteRequestorMock.getMakerUriForSignature(anything())).thenReturn(makerUri);
 
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);

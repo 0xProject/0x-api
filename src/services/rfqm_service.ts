@@ -238,6 +238,12 @@ export class RfqmService {
             return null;
         }
 
+        // Get the makerUri
+        const makerUri = this._quoteRequestor.getMakerUriForSignature(bestQuote.signature);
+        if (makerUri === undefined) {
+            throw new Error(`makerUri unknown for maker address ${bestQuote.order.maker}`);
+        }
+
         // Get the Order and its hash
         const rfqOrder = new RfqOrder(bestQuote.order);
         const orderHash = rfqOrder.getHash();
@@ -252,7 +258,7 @@ export class RfqmService {
         );
         const metaTransactionHash = metaTransaction.getHash();
 
-        // TODO: Save the makerUri and integratorId
+        // TODO: Save the integratorId
         // Save the RfqmQuote
         await this._connection.getRepository(RfqmQuoteEntity).insert(
             new RfqmQuoteEntity({
@@ -261,6 +267,7 @@ export class RfqmService {
                 chainId: CHAIN_ID.toString(),
                 fee,
                 order: rfqOrder,
+                makerUri,
             }),
         );
 

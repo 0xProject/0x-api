@@ -13,7 +13,7 @@ export class CreateRfqmQuoteTable1620879168566 implements MigrationInterface {
                     { name: 'created_at', type: 'timestamptz', default: 'NOW()' },
                     { name: 'chain_id', type: 'varchar' },
                     { name: 'integrator_id', type: 'varchar', isNullable: true },
-                    { name: 'maker_uri', type: 'varchar', isNullable: true },
+                    { name: 'maker_uri', type: 'varchar' },
                     { name: 'fee', type: 'jsonb', isNullable: true },
                     { name: 'order', type: 'jsonb', isNullable: true },
                 ],

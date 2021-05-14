@@ -9,7 +9,7 @@ export class RfqmQuoteEntity {
     public orderHash?: string;
 
     @Column({ name: 'metatransaction_hash', type: 'varchar', nullable: true, unique: true })
-    public metaTransactionHash?: string;
+    public metaTransactionHash: string | null;
 
     @Index()
     @Column({ name: 'created_at', type: 'timestamptz', default: () => 'now()' })
@@ -19,16 +19,16 @@ export class RfqmQuoteEntity {
     public chainId?: string;
 
     @Column({ name: 'integrator_id', type: 'varchar', nullable: true })
-    public integratorId?: string;
+    public integratorId: string | null;
 
-    @Column({ name: 'fee', type: 'jsonb', nullable: true })
-    public fee?: RfqmFee;
-
-    @Column({ name: 'maker_uri', type: 'varchar', nullable: true })
+    @Column({ name: 'maker_uri', type: 'varchar' })
     public makerUri?: string;
 
+    @Column({ name: 'fee', type: 'jsonb', nullable: true })
+    public fee: RfqmFee | null;
+
     @Column({ name: 'order', type: 'jsonb', nullable: true })
-    public order?: RfqOrder;
+    public order: RfqOrder | null;
 
     constructor(
         opts: {
@@ -42,11 +42,11 @@ export class RfqmQuoteEntity {
         } = {},
     ) {
         this.orderHash = opts.orderHash;
-        this.metaTransactionHash = opts.metaTransactionHash;
+        this.metaTransactionHash = opts.metaTransactionHash || null;
         this.chainId = opts.chainId;
-        this.integratorId = opts.integratorId;
+        this.integratorId = opts.integratorId || null;
         this.makerUri = opts.makerUri;
-        this.fee = opts.fee;
-        this.order = opts.order;
+        this.fee = opts.fee || null;
+        this.order = opts.order || null;
     }
 }

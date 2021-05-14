@@ -19,10 +19,12 @@ import * as HttpStatus from 'http-status-codes';
 import 'mocha';
 import * as request from 'supertest';
 import { anything, instance, mock, when } from 'ts-mockito';
+import { Connection } from 'typeorm';
 
 import * as config from '../src/config';
 import { RFQM_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
+import { RfqmQuoteEntity } from '../src/entities';
 import { runHttpRfqmServiceAsync } from '../src/runners/http_rfqm_service_runner';
 import { RfqmService } from '../src/services/rfqm_service';
 import { ConfigManager } from '../src/utils/config_manager';
@@ -61,6 +63,7 @@ describe(SUITE_NAME, () => {
     let axiosClient: AxiosInstance;
     let app: Express.Application;
     let server: Server;
+    let connection: Connection;
 
     before(async () => {
         // docker-compose up
@@ -102,7 +105,7 @@ describe(SUITE_NAME, () => {
         ).thenReturn(MOCK_META_TX);
         const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
 
-        const connection = await getDBConnectionAsync();
+        connection = await getDBConnectionAsync();
         await connection.synchronize(true);
 
         const rfqmService = new RfqmService(
@@ -115,7 +118,12 @@ describe(SUITE_NAME, () => {
         );
 
         // Start the server
-        const res = await runHttpRfqmServiceAsync(rfqmService, configManager, config.defaultHttpServiceConfig);
+        const res = await runHttpRfqmServiceAsync(
+            rfqmService,
+            configManager,
+            config.defaultHttpServiceConfig,
+            connection,
+        );
         app = res.app;
         server = res.server;
     });
@@ -510,7 +518,6 @@ describe(SUITE_NAME, () => {
                 verifyingContract: '0xd209925defc99488e3afff1174e48b4fa628302a',
                 txOrigin: MOCK_WORKER_REGISTRY_ADDRESS,
                 expiry: new BigNumber('1903620548'),
-                signature: VALID_SIGNATURE,
             };
 
             const params = new URLSearchParams({
@@ -542,6 +549,9 @@ describe(SUITE_NAME, () => {
                                 ...BASE_SIGNED_ORDER,
                                 makerAmount: winningQuote,
                                 takerAmount: sellAmount,
+                                signature: {
+                                    ...VALID_SIGNATURE,
+                                },
                             },
                         },
                     },
@@ -562,6 +572,11 @@ describe(SUITE_NAME, () => {
                                 ...BASE_SIGNED_ORDER,
                                 makerAmount: losingQuote,
                                 takerAmount: sellAmount,
+                                signature: {
+                                    ...VALID_SIGNATURE,
+                                    r: '0xb1',
+                                    s: '0xb2',
+                                },
                             },
                         },
                     },
@@ -577,6 +592,13 @@ describe(SUITE_NAME, () => {
                     expect(appResponse.body.price).to.equal(expectedPrice);
                     expect(appResponse.body.metaTransactionHash).to.match(/^0x[0-9a-fA-F]+/);
                     expect(appResponse.body.orderHash).to.match(/^0x[0-9a-fA-F]+/);
+
+                    const repositoryResponse = await connection.getRepository(RfqmQuoteEntity).findOne({
+                        orderHash: appResponse.body.orderHash,
+                    });
+                    expect(repositoryResponse).to.not.be.null();
+                    expect(repositoryResponse?.orderHash).to.equal(appResponse.body.orderHash);
+                    expect(repositoryResponse?.makerUri).to.equal(MARKET_MAKER_1);
                 },
                 axiosClient,
             );
@@ -597,7 +619,6 @@ describe(SUITE_NAME, () => {
                 verifyingContract: '0xd209925defc99488e3afff1174e48b4fa628302a',
                 txOrigin: MOCK_WORKER_REGISTRY_ADDRESS,
                 expiry: new BigNumber('1903620548'),
-                signature: VALID_SIGNATURE,
             };
 
             const params = new URLSearchParams({
@@ -628,6 +649,9 @@ describe(SUITE_NAME, () => {
                                 ...BASE_SIGNED_ORDER,
                                 makerAmount: insufficientSellAmount,
                                 takerAmount: insufficientSellAmount,
+                                signature: {
+                                    ...VALID_SIGNATURE,
+                                },
                             },
                         },
                     },
@@ -648,6 +672,11 @@ describe(SUITE_NAME, () => {
                                 ...BASE_SIGNED_ORDER,
                                 makerAmount: insufficientSellAmount,
                                 takerAmount: insufficientSellAmount,
+                                signature: {
+                                    ...VALID_SIGNATURE,
+                                    r: '0xb1',
+                                    s: '0xb2',
+                                },
                             },
                         },
                     },
