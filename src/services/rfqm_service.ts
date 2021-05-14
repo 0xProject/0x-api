@@ -86,7 +86,7 @@ export class RfqmService {
         private readonly _protocolFeeUtils: ProtocolFeeUtils,
         private readonly _contractAddresses: AssetSwapperContractAddresses,
         private readonly _registryAddress: string,
-        private readonly _blockchainUtils: RfqBlockchainUtils, // private readonly _connection: Connection,
+        private readonly _blockchainUtils: RfqBlockchainUtils,
         private readonly _connection: Connection,
     ) {
         if (_registryAddress === NULL_ADDRESS) {
