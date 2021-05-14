@@ -25,6 +25,7 @@ import {
     SWAP_QUOTER_OPTS,
 } from '../config';
 import { KEEP_ALIVE_TTL, PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS, RFQM_PATH } from '../constants';
+import { getDBConnectionAsync } from '../db_connection';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
@@ -74,12 +75,15 @@ if (require.main === module) {
         const metaTxWorkerRegistry = META_TX_WORKER_REGISTRY || NULL_ADDRESS;
         const exchangeProxy = new IZeroExContract(contractAddresses.exchangeProxy, provider);
         const rfqBlockchainUtils = new RfqBlockchainUtils(exchangeProxy);
+
+        const connection = await getDBConnectionAsync();
         const rfqmService = new RfqmService(
             quoteRequestor,
             protocolFeeUtils,
             contractAddresses,
             metaTxWorkerRegistry,
             rfqBlockchainUtils,
+            connection,
         );
 
         const configManager = new ConfigManager();
