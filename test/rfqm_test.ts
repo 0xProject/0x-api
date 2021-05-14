@@ -129,6 +129,7 @@ describe(SUITE_NAME, () => {
     });
 
     after(async () => {
+        await connection.query('TRUNCATE TABLE rfqm_quotes CASCADE;');
         await new Promise<void>((resolve, reject) => {
             server.close((err?: Error) => {
                 if (err) {
