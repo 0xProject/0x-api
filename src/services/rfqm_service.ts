@@ -2,8 +2,10 @@
 import { AssetSwapperContractAddresses, MarketOperation, ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
 import { RfqmRequestOptions } from '@0x/asset-swapper/lib/src/types';
 import { MetaTransaction, RfqOrder } from '@0x/protocol-utils';
+import { Fee } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import { Counter } from 'prom-client';
 import { Connection } from 'typeorm';
 
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
@@ -62,11 +64,11 @@ export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse 
 
 export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
 
-export interface RfqmFee {
-    token: string;
-    amount: BigNumber;
-    type: 'fixed' | 'bps';
-}
+const RFQM_QUOTE_INSERTED = new Counter({
+    name: 'rfqm_quote_inserted',
+    help: 'An RfqmQuote was inserted in the DB',
+    labelNames: ['apiKey', 'makerUri'],
+});
 
 const RFQM_DEFAULT_OPTS = {
     takerAddress: NULL_ADDRESS,
@@ -197,7 +199,7 @@ export class RfqmService {
 
         // Prepare gas estimate and fee
         const gas: BigNumber = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
-        const fee: RfqmFee = {
+        const fee: Fee = {
             amount: ZERO,
             token: this._contractAddresses.etherToken,
             type: 'fixed',
@@ -264,12 +266,13 @@ export class RfqmService {
             new RfqmQuoteEntity({
                 orderHash,
                 metaTransactionHash,
-                chainId: CHAIN_ID.toString(),
+                chainId: CHAIN_ID,
                 fee,
                 order: rfqOrder,
                 makerUri,
             }),
         );
+        RFQM_QUOTE_INSERTED.labels(apiKey, makerUri).inc();
 
         // Prepare the price
         const makerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.order.makerAmount, makerTokenDecimals);

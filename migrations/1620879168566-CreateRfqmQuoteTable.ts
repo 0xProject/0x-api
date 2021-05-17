@@ -11,7 +11,7 @@ export class CreateRfqmQuoteTable1620879168566 implements MigrationInterface {
                     { name: 'order_hash', type: 'varchar', isPrimary: true },
                     { name: 'metatransaction_hash', type: 'varchar', isUnique: true, isNullable: true },
                     { name: 'created_at', type: 'timestamptz', default: 'NOW()' },
-                    { name: 'chain_id', type: 'varchar' },
+                    { name: 'chain_id', type: 'integer' },
                     { name: 'integrator_id', type: 'varchar', isNullable: true },
                     { name: 'maker_uri', type: 'varchar' },
                     { name: 'fee', type: 'jsonb', isNullable: true },
