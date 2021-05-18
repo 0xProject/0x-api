@@ -12,7 +12,6 @@ import * as core from 'express-serve-static-core';
 import { Agent as HttpAgent, Server } from 'http';
 import { Agent as HttpsAgent } from 'https';
 import { Connection } from 'typeorm';
-import AWS from 'aws-sdk';
 
 import { getContractAddressesForNetworkOrThrowAsync } from '../app';
 import {
