@@ -47,7 +47,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
@@ -111,7 +111,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
@@ -168,7 +168,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
@@ -225,7 +225,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
@@ -289,7 +289,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
@@ -354,7 +354,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
@@ -414,7 +414,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
@@ -485,7 +485,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
@@ -563,7 +563,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 when(
@@ -651,7 +651,7 @@ describe('RfqmService', () => {
                 const quoteRequestorInstance = instance(quoteRequestorMock);
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
-                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock)
+                const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 when(
