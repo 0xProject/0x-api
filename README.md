@@ -183,7 +183,7 @@ This project uses [TypeORM](https://github.com/typeorm/typeorm). It makes it eas
 To add a migration, you may use the following command:
 
 ```
-yarn db:migration:generate -n myMigration
+yarn db:migration:create -n myMigration
 ```
 
 ## Legal Disclaimer
