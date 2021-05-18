@@ -327,6 +327,23 @@ export const META_TX_WORKER_REGISTRY: string | undefined = _.isEmpty(process.env
     ? undefined
     : assertEnvVarType('META_TX_WORKER_REGISTRY', process.env.META_TX_WORKER_REGISTRY, EnvVarType.ETHAddressHex);
 
+export const RFQM_META_TX_SQS_URL: string | undefined = _.isEmpty(process.env.RFQM_META_TX_SQS_URL)
+    ? undefined
+    : assertEnvVarType('RFQM_META_TX_SQS_URL', process.env.RFQM_META_TX_SQS_URL, EnvVarType.Url);
+
+// AWS Configs
+export const AWS_REGION: string | undefined = _.isEmpty(process.env.AWS_REGION)
+    ? undefined
+    : assertEnvVarType('AWS_REGION', process.env.AWS_REGION, EnvVarType.NonEmptyString);
+
+export const AWS_ACCESS_KEY: string | undefined = _.isEmpty(process.env.AWS_ACCESS_KEY)
+    ? undefined
+    : assertEnvVarType('AWS_ACCESS_KEY', process.env.AWS_ACCESS_KEY, EnvVarType.NonEmptyString);
+
+export const AWS_SECRET_ACCESS_KEY: string | undefined = _.isEmpty(process.env.AWS_SECRET_ACCESS_KEY)
+    ? undefined
+    : assertEnvVarType('AWS_SECRET_ACCESS_KEY', process.env.AWS_SECRET_ACCESS_KEY, EnvVarType.NonEmptyString);
+
 // tslint:disable-next-line:boolean-naming
 export const RFQT_REQUEST_MAX_RESPONSE_MS = 600;
 
