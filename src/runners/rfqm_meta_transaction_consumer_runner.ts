@@ -2,7 +2,9 @@
  * Runs the RFQM MetaTransaction Consumer
  */
 import { createMetricsRouter, MetricsService } from '@0x/api-utils';
+import { BlockParamLiteral, Web3Wrapper } from '@0x/web3-wrapper';
 import * as AWS from 'aws-sdk';
+import BigNumber from 'bignumber.js';
 import express from 'express';
 import { Counter } from 'prom-client';
 import { Consumer } from 'sqs-consumer';
@@ -15,7 +17,7 @@ import {
     PROMETHEUS_PORT,
     RFQM_META_TX_SQS_URL,
 } from '../config';
-import { METRICS_PATH } from '../constants';
+import { METRICS_PATH, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import { RfqmConsumers } from '../consumers/rfqm_consumers';
 import { logger } from '../logger';
 
@@ -63,6 +65,34 @@ if (require.main === module) {
         const rfqmConsumers = new RfqmConsumers();
         await runRfqmMetaTransactionConsumerAsync(rfqmConsumers);
     })().catch((error) => logger.error(error.stack));
+}
+
+export function workerHasEnoughBalance(
+    accountBalance: BigNumber,
+    gasPriceBaseUnits: BigNumber,
+): boolean {
+    const minimumCostToTrade = gasPriceBaseUnits.times(RFQM_TX_GAS_ESTIMATE).times(3);
+    console.log(`${accountBalance.toString()} - ${gasPriceBaseUnits.toString()} = ${minimumCostToTrade.toString()}`)
+    return accountBalance.gte(minimumCostToTrade);
+}
+
+async function workerHasNoPendingTransactionsAsync(accountAddress: string, wrapper: Web3Wrapper): Promise<boolean> {
+    const lastNonceOnChain = await wrapper.getAccountNonceAsync(accountAddress);
+    const lastNoncePending = await wrapper.getAccountNonceAsync(accountAddress, BlockParamLiteral.Pending);
+    return lastNonceOnChain.toString() === lastNoncePending.toString();
+}
+
+export async function isWorkerReadyAndAbleAsync(
+    wrapper: Web3Wrapper,
+    accountAddress: string,
+    gasPriceBaseUnits: BigNumber,
+): Promise<boolean> {
+    // Check worker has enough ETH to support 3 trades (small buffer)
+    const accountBalance = await wrapper.getBalanceInWeiAsync(accountAddress);
+    if (!workerHasEnoughBalance(accountBalance, gasPriceBaseUnits)) {
+        return false;
+    }
+    return workerHasNoPendingTransactionsAsync(accountAddress, wrapper);
 }
 
 /**
