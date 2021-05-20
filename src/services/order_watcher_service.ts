@@ -22,9 +22,9 @@ export class OrderWatcherService {
         logger.info('OrderWatcherService syncing orderbook with Mesh');
 
         // 1. Get orders from local cache
-        const signedOrderModels = (await this._connection.manager.find(SignedOrderV4Entity)) as Required<
-            SignedOrderV4Entity
-        >[];
+        const signedOrderModels = (await this._connection.manager.find(
+            SignedOrderV4Entity,
+        )) as Required<SignedOrderV4Entity>[];
         const signedOrders = signedOrderModels.map(orderUtils.deserializeOrder);
 
         // 2. Get orders from Mesh
