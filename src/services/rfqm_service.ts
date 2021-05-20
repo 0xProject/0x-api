@@ -12,6 +12,7 @@ import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from 
 import { NULL_ADDRESS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import { RfqmJobEntity, RfqmQuoteEntity } from '../entities';
 import { getBestQuote } from '../utils/quote_comparison_utils';
+import { StoredOrder, v4RfqOrderToStoredOrder } from '../utils/rfqm_order_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 export interface RfqmJobOpts {
@@ -26,8 +27,8 @@ export interface RfqmJobOpts {
     status?: RfqmJobStatus;
     statusReason?: string | null;
     calldata?: string;
-    fee?: Fee | null;
-    order?: RfqOrder | null;
+    fee?: StoredFee | null;
+    order?: StoredOrder | null;
     metadata?: object;
 }
 
@@ -38,6 +39,28 @@ export enum RfqmJobStatus {
     Successful = 'successful',
     Failed = 'failed',
 }
+
+export interface StoredFee {
+    token: string;
+    amount: string;
+    type: 'fixed' | 'bps';
+}
+
+export const storedFeeToFee = (fee: StoredFee): Fee => {
+    return {
+        token: fee.token,
+        amount: new BigNumber(fee.amount),
+        type: fee.type,
+    };
+};
+
+export const feeToStoredFee = (fee: Fee): StoredFee => {
+    return {
+        token: fee.token,
+        amount: fee.amount.toString(),
+        type: fee.type,
+    };
+};
 
 export interface StringMetaTransactionFields {
     signer: string;
@@ -337,8 +360,8 @@ export class RfqmService {
                 orderHash,
                 metaTransactionHash,
                 chainId: CHAIN_ID,
-                fee,
-                order: rfqOrder,
+                fee: feeToStoredFee(fee),
+                order: v4RfqOrderToStoredOrder(rfqOrder),
                 makerUri,
             }),
         );
@@ -383,11 +406,13 @@ export class RfqmService {
         await this._connection.getRepository(RfqmJobEntity).insert(new RfqmJobEntity(rfqmJobOpts));
     }
 
-    public async enqueueJobAsync(orderHash: string, groupId: string): Promise<void> {
+    public async enqueueJobAsync(orderHash: string): Promise<void> {
         await this._sqsProducer.send({
-            groupId,
+            // wait, it's all order hash?
+            // always has been.
+            groupId: orderHash,
             id: orderHash,
-            body: orderHash,
+            body: { orderHash },
             deduplicationId: orderHash,
         });
     }

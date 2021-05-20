@@ -14,7 +14,6 @@ import * as HttpStatus from 'http-status-codes';
 import { Counter } from 'prom-client';
 
 import { CHAIN_ID, NATIVE_WRAPPED_TOKEN_SYMBOL, ORIGIN_REGISTRY_ADDRESS } from '../config';
-import { RFQM_SQS_GROUP_ID } from '../constants';
 import { schemas } from '../schemas';
 import {
     FetchFirmQuoteParams,
@@ -70,6 +69,16 @@ const RFQM_FIRM_QUOTE_ERROR = new Counter({
 const RFQM_SIGNED_QUOTE_SUBMITTED = new Counter({
     name: 'rfqm_handler_signed_quote_submitted',
     help: 'Request received to submit a signed rfqm quote',
+});
+
+const RFQM_SIGNED_QUOTE_NOT_FOUND = new Counter({
+    name: 'rfqm_handler_signed_quote_not_found',
+    help: 'A submitted quote did not match any stored quotes',
+});
+
+const RFQM_SIGNED_QUOTE_FAILED_VALIDATION = new Counter({
+    name: 'rfqm_handler_signed_quote_failed_validation',
+    help: 'A signed quote failed validation before being queued',
 });
 
 export class RfqmHandlers {
@@ -139,6 +148,7 @@ export class RfqmHandlers {
             // check that the firm quote is recognized as a previously returned quote
             const quote = await this._rfqmService.findQuoteByMetaTransactionHashAsync(metaTransactionHash);
             if (quote === undefined) {
+                RFQM_SIGNED_QUOTE_NOT_FOUND.inc();
                 throw new NotFoundError(`metaTransaction quote not found`);
             }
 
@@ -150,6 +160,7 @@ export class RfqmHandlers {
                     ORIGIN_REGISTRY_ADDRESS,
                 );
             } catch (err) {
+                RFQM_SIGNED_QUOTE_FAILED_VALIDATION.inc();
                 throw new InternalServerError(`metaTransaction is not fillable: ${err}`);
             }
 
@@ -176,7 +187,7 @@ export class RfqmHandlers {
 
             // make sure job data is persisted to Postgres before queueing task
             await this._rfqmService.writeRfqmJobToDbAsync(rfqmJobOpts);
-            await this._rfqmService.enqueueJobAsync(quote.orderHash!, RFQM_SQS_GROUP_ID);
+            await this._rfqmService.enqueueJobAsync(quote.orderHash!);
 
             const response: MetaTransactionSubmitRfqmSignedQuoteResponse = {
                 type: RfqmTypes.MetaTransaction,

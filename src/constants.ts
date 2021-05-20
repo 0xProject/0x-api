@@ -99,5 +99,3 @@ export const RFQM_TX_GAS_ESTIMATE = 165e3;
 
 // General cache control
 export const DEFAULT_CACHE_AGE_SECONDS = 10;
-
-export const RFQM_SQS_GROUP_ID = '1';

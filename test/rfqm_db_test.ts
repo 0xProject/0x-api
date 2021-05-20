@@ -7,7 +7,8 @@ import { Connection } from 'typeorm';
 
 import { getDBConnectionAsync } from '../src/db_connection';
 import { RfqmJobEntity, RfqmQuoteEntity } from '../src/entities';
-import { RfqmJobOpts, RfqmJobStatus } from '../src/services/rfqm_service';
+import { feeToStoredFee, RfqmJobOpts, RfqmJobStatus } from '../src/services/rfqm_service';
+import { v4RfqOrderToStoredOrder } from '../src/utils/rfqm_order_utils';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 
@@ -16,7 +17,7 @@ delete require.cache[require.resolve('../src/app')];
 
 const SUITE_NAME = 'rfqm db test';
 
-describe(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let connection: Connection;
 
     const createdAt = new Date();
@@ -24,6 +25,7 @@ describe(SUITE_NAME, () => {
     const expiry = new BigNumber(9000);
     const chainId = 1;
     const makerUri = 'https://marketmaking.over9000.io';
+    const integratorId = 'an integrator';
 
     const metaTransactionHash = '0x5678';
     const calldata = '0xfillinganorder';
@@ -68,15 +70,16 @@ describe(SUITE_NAME, () => {
     });
 
     describe('rfqm db tests', () => {
-        it('should be able to save and read an rfqm job entity w/ no change', async () => {
+        it('should be able to save and read an rfqm quote entity w/ no change in information', async () => {
             const testRfqmQuoteEntity = new RfqmQuoteEntity({
                 orderHash,
                 metaTransactionHash,
                 createdAt,
+                integratorId,
                 chainId,
                 makerUri,
-                fee,
-                order,
+                fee: feeToStoredFee(fee),
+                order: v4RfqOrderToStoredOrder(order),
             });
 
             const quoteRepository = connection.getRepository(RfqmQuoteEntity);
@@ -84,28 +87,22 @@ describe(SUITE_NAME, () => {
             const dbEntity = await quoteRepository.findOne();
 
             // the saved + read entity should match the original entity in information
-            expect(dbEntity!.chainId).to.deep.eq(testRfqmQuoteEntity.chainId);
-            expect(dbEntity!.makerUri).to.deep.eq(testRfqmQuoteEntity.makerUri);
-            expect(dbEntity!.createdAt).to.deep.eq(testRfqmQuoteEntity.createdAt);
-            expect(dbEntity!.orderHash).to.deep.eq(testRfqmQuoteEntity.orderHash);
-            expect(dbEntity!.metaTransactionHash).to.deep.eq(testRfqmQuoteEntity.metaTransactionHash);
-            expect(dbEntity!.integratorId).to.deep.eq(null);
-            expect(new RfqOrder(dbEntity!.order!).getHash()).to.deep.eq(orderHash);
+            expect(dbEntity).to.deep.eq(testRfqmQuoteEntity);
         });
-        it('should be able to save and read an rfqm job entity w/ no change', async () => {
+        it('should be able to save and read an rfqm job entity w/ no change in information', async () => {
             const rfqmJobOpts: RfqmJobOpts = {
                 orderHash,
                 metaTransactionHash,
                 createdAt,
                 expiry,
                 chainId,
-                integratorId: null,
+                integratorId,
                 makerUri,
                 status: RfqmJobStatus.InQueue,
                 statusReason: null,
                 calldata,
-                fee,
-                order,
+                fee: feeToStoredFee(fee),
+                order: v4RfqOrderToStoredOrder(order),
             };
             const testRfqmJobEntity = new RfqmJobEntity(rfqmJobOpts);
 
@@ -114,17 +111,7 @@ describe(SUITE_NAME, () => {
             const dbEntity = await jobRepository.findOne();
 
             // the saved + read entity should match the original entity in information
-            expect(dbEntity!.orderHash).to.deep.eq(testRfqmJobEntity.orderHash);
-            expect(dbEntity!.metaTransactionHash).to.deep.eq(testRfqmJobEntity.metaTransactionHash);
-            expect(dbEntity!.createdAt).to.deep.eq(testRfqmJobEntity.createdAt);
-            expect(dbEntity!.chainId).to.deep.eq(testRfqmJobEntity.chainId);
-            expect(dbEntity!.makerUri).to.deep.eq(testRfqmJobEntity.makerUri);
-            expect(dbEntity!.expiry).to.deep.eq(testRfqmJobEntity.expiry);
-            expect(dbEntity!.integratorId).to.deep.eq(null);
-            expect(dbEntity!.status).to.deep.eq(testRfqmJobEntity.status);
-            expect(dbEntity!.statusReason).to.deep.eq(null);
-            expect(dbEntity!.calldata).to.deep.eq(testRfqmJobEntity.calldata);
-            expect(new RfqOrder(dbEntity!.order!).getHash()).to.deep.eq(orderHash);
+            expect(dbEntity).to.deep.eq(testRfqmJobEntity);
         });
     });
 });
