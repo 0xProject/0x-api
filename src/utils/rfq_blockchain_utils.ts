@@ -24,7 +24,7 @@ export class RfqBlockchainUtils {
     ): MetaTransaction {
         // generate call data for fillRfqOrder
         const callData = this._exchangeProxy
-            .fillOrKillRfqOrder(rfqOrder, signature, takerAmount)
+            .fillRfqOrder(rfqOrder, signature, takerAmount)
             .getABIEncodedTransactionData();
 
         return new MetaTransaction({
