@@ -192,7 +192,9 @@ export class RfqmHandlers {
                 await this._rfqmService.writeRfqmJobToDbAsync(rfqmJobOpts);
                 await this._rfqmService.enqueueJobAsync(quote.orderHash!);
             } catch (err) {
-                throw new InternalServerError(`failed to queue the quote for submission, it may have already been submitted`);
+                throw new InternalServerError(
+                    `failed to queue the quote for submission, it may have already been submitted`,
+                );
             }
 
             const response: MetaTransactionSubmitRfqmSignedQuoteResponse = {
