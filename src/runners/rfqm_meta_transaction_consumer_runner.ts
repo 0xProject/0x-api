@@ -2,19 +2,11 @@
  * Runs the RFQM MetaTransaction Consumer
  */
 import { createMetricsRouter, MetricsService } from '@0x/api-utils';
-import * as AWS from 'aws-sdk';
 import express from 'express';
 import { Counter } from 'prom-client';
 import { Consumer } from 'sqs-consumer';
 
-import {
-    AWS_ACCESS_KEY,
-    AWS_REGION,
-    AWS_SECRET_ACCESS_KEY,
-    ENABLE_PROMETHEUS_METRICS,
-    PROMETHEUS_PORT,
-    RFQM_META_TX_SQS_URL,
-} from '../config';
+import { ENABLE_PROMETHEUS_METRICS, PROMETHEUS_PORT, RFQM_META_TX_SQS_URL } from '../config';
 import { METRICS_PATH } from '../constants';
 import { RfqmConsumers } from '../consumers/rfqm_consumers';
 import { logger } from '../logger';
@@ -47,15 +39,6 @@ process.on('unhandledRejection', (err) => {
 
 if (require.main === module) {
     (async () => {
-        // Override AWS configs if provided
-        if (AWS_ACCESS_KEY !== undefined && AWS_SECRET_ACCESS_KEY !== undefined) {
-            AWS.config.update({
-                region: AWS_REGION,
-                accessKeyId: AWS_ACCESS_KEY,
-                secretAccessKey: AWS_SECRET_ACCESS_KEY,
-            });
-        }
-
         // Start the Metrics Server
         startMetricsServer();
 
