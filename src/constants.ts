@@ -98,3 +98,5 @@ export const RFQM_MINIMUM_EXPIRY_DURATION_MS = ONE_MINUTE_MS * 3;
 
 // General cache control
 export const DEFAULT_CACHE_AGE_SECONDS = 10;
+
+export const RFQM_SQS_GROUP_ID = '1';

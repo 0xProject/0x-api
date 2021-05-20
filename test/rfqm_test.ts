@@ -17,6 +17,7 @@ import Axios, { AxiosInstance } from 'axios';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
+import { Producer } from 'sqs-producer';
 import * as request from 'supertest';
 import { anything, instance, mock, when } from 'ts-mockito';
 import { Connection } from 'typeorm';
@@ -56,6 +57,11 @@ const BASE_RFQM_REQUEST_PARAMS = {
 };
 const MOCK_META_TX = new MetaTransaction();
 const VALID_SIGNATURE = { v: 28, r: '0x', s: '0x', signatureType: SignatureType.EthSign };
+
+const SQS_PRODUCER = Producer.create({
+    queueUrl: 'https://sqs.eu-west-1.amazonaws.com/account-id/queue-name',
+    region: 'eu-west-1'
+  });
 
 describe(SUITE_NAME, () => {
     let takerAddress: string;
@@ -115,6 +121,7 @@ describe(SUITE_NAME, () => {
             MOCK_WORKER_REGISTRY_ADDRESS,
             rfqBlockchainUtils,
             connection,
+            SQS_PRODUCER,
         );
 
         // Start the server

@@ -1,7 +1,7 @@
 // tslint:disable:max-file-line-count
 import { AssetSwapperContractAddresses, MarketOperation, ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
 import { RfqmRequestOptions } from '@0x/asset-swapper/lib/src/types';
-import { MetaTransaction, RfqOrder } from '@0x/protocol-utils';
+import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
 import { Fee } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
@@ -10,9 +10,60 @@ import { Connection } from 'typeorm';
 
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { NULL_ADDRESS, RFQM_MINIMUM_EXPIRY_DURATION_MS, ZERO } from '../constants';
-import { RfqmQuoteEntity } from '../entities';
+import { RfqmJobEntity, RfqmQuoteEntity } from '../entities';
 import { getBestQuote } from '../utils/quote_comparison_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
+
+export interface RfqmJobOpts {
+    orderHash: string;
+    metaTransactionHash?: string;
+    createdAt: Date;
+    updatedAt?: Date;
+    expiry: BigNumber;
+    chainId: number;
+    integratorId: string | null;
+    makerUri: string;
+    status: RfqmJobStatus;
+    statusReason: string | null;
+    calldata: string;
+    fee: Fee | null;
+    order: RfqOrder | null;
+    metadata?: object;
+}
+
+export enum RfqmJobStatus {
+    InQueue = 'inQueue',
+    AwaitingLastLookConfirmation = 'awaitingLastLookConfirmation',
+    Submitted = 'submitted',
+    Successful = 'successful',
+    Failed = 'failed',
+}
+
+export interface StringMetaTransactionFields {
+    signer: string;
+    sender: string;
+    minGasPrice: string;
+    maxGasPrice: string;
+    expirationTimeSeconds: string;
+    salt: string;
+    callData: string;
+    value: string;
+    feeToken: string;
+    feeAmount: string;
+    chainId: string;
+    verifyingContract: string;
+}
+
+export interface StringSignatureFields {
+    signatureType: string;
+    v: string;
+    r: string;
+    s: string;
+}
+
+export enum RfqmTypes {
+    MetaTransaction = 'metatransaction',
+}
 
 export interface FetchIndicativeQuoteParams {
     apiKey: string;
@@ -34,6 +85,7 @@ export interface FetchIndicativeQuoteResponse {
     sellAmount: BigNumber;
     sellTokenAddress: string;
 }
+
 export interface FetchFirmQuoteParams {
     apiKey: string;
     buyAmount?: BigNumber;
@@ -55,14 +107,28 @@ export interface BaseRfqmQuoteResponse {
     sellTokenAddress: string;
 }
 
+export interface MetaTransactionSubmitRfqmSignedQuoteParams {
+    type: RfqmTypes.MetaTransaction;
+    metaTransaction: MetaTransaction;
+    signature: Signature;
+}
+
+export interface MetaTransactionSubmitRfqmSignedQuoteResponse {
+    type: RfqmTypes.MetaTransaction;
+    metaTransactionHash: string;
+    orderHash: string;
+}
+
 export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse {
-    type: 'metatransaction';
+    type: RfqmTypes.MetaTransaction;
     metaTransaction: MetaTransaction;
     metaTransactionHash: string;
     orderHash: string;
 }
 
 export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
+export type SubmitRfqmSignedQuoteParams = MetaTransactionSubmitRfqmSignedQuoteParams;
+export type SubmitRfqmSignedQuoteResponse = MetaTransactionSubmitRfqmSignedQuoteResponse;
 
 const RFQM_QUOTE_INSERTED = new Counter({
     name: 'rfqm_quote_inserted',
@@ -88,8 +154,10 @@ export class RfqmService {
         private readonly _protocolFeeUtils: ProtocolFeeUtils,
         private readonly _contractAddresses: AssetSwapperContractAddresses,
         private readonly _registryAddress: string,
-        private readonly _blockchainUtils: RfqBlockchainUtils,
+        public readonly _blockchainUtils: RfqBlockchainUtils,
         private readonly _connection: Connection,
+        // object should be instantiated from sqs-producer .create()
+        private readonly _sqsProducer: any,
     ) {
         if (_registryAddress === NULL_ADDRESS) {
             throw new Error('Must set the worker registry to valid address');
@@ -281,7 +349,7 @@ export class RfqmService {
 
         // Prepare response
         return {
-            type: 'metatransaction',
+            type: RfqmTypes.MetaTransaction,
             price,
             gas,
             buyAmount: bestQuote.order.makerAmount,
@@ -293,5 +361,32 @@ export class RfqmService {
             metaTransactionHash,
             orderHash,
         };
+    }
+
+    public async findQuoteByOrderHashAsync(orderHash: string): Promise<RfqmQuoteEntity | undefined> {
+        return this._connection.getRepository(RfqmQuoteEntity).findOne({
+            where: { orderHash },
+        });
+    }
+
+    public async findQuoteByMetaTransactionHashAsync(
+        metaTransactionHash: string,
+    ): Promise<RfqmQuoteEntity | undefined> {
+        return this._connection.getRepository(RfqmQuoteEntity).findOne({
+            where: { metaTransactionHash },
+        });
+    }
+
+    public async writeRfqmJobToDbAsync(rfqmJobOpts: RfqmJobOpts): Promise<void> {
+        this._connection.getRepository(RfqmJobEntity).insert(new RfqmJobEntity(rfqmJobOpts));
+    }
+
+    public async enqueueJobAsync(orderHash: string, groupId: string): Promise<void> {
+        await this._sqsProducer.send({
+            groupId,
+            id: orderHash,
+            body: orderHash,
+            deduplicationId: orderHash,
+        });
     }
 }

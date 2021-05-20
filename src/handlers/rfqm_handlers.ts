@@ -6,15 +6,28 @@ import {
     ValidationError,
     ValidationErrorCodes,
 } from '@0x/api-utils';
+import { MetaTransaction, MetaTransactionFields, Signature } from '@0x/protocol-utils';
 import { getTokenMetadataIfExists, isNativeSymbolOrAddress, TokenMetadata } from '@0x/token-metadata';
 import { addressUtils, BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import { Counter } from 'prom-client';
 
-import { CHAIN_ID, NATIVE_WRAPPED_TOKEN_SYMBOL } from '../config';
+import { CHAIN_ID, NATIVE_WRAPPED_TOKEN_SYMBOL, ORIGIN_REGISTRY_ADDRESS } from '../config';
+import { RFQM_SQS_GROUP_ID } from '../constants';
 import { schemas } from '../schemas';
-import { FetchFirmQuoteParams, FetchIndicativeQuoteParams, RfqmService } from '../services/rfqm_service';
+import {
+    FetchFirmQuoteParams,
+    FetchIndicativeQuoteParams,
+    MetaTransactionSubmitRfqmSignedQuoteResponse,
+    RfqmJobOpts,
+    RfqmJobStatus,
+    RfqmService,
+    RfqmTypes,
+    StringMetaTransactionFields,
+    StringSignatureFields,
+    SubmitRfqmSignedQuoteParams,
+} from '../services/rfqm_service';
 import { ConfigManager } from '../utils/config_manager';
 import { schemaUtils } from '../utils/schema_utils';
 
@@ -54,6 +67,11 @@ const RFQM_FIRM_QUOTE_ERROR = new Counter({
     labelNames: ['apiKey'],
 });
 
+const RFQM_SIGNED_QUOTE_SUBMITTED = new Counter({
+    name: 'rfqm_handler_signed_quote_submitted',
+    help: 'Request received to submit a signed rfqm quote',
+});
+
 export class RfqmHandlers {
     constructor(private readonly _rfqmService: RfqmService, private readonly _configManager: ConfigManager) {}
 
@@ -91,7 +109,7 @@ export class RfqmHandlers {
         // Parse request
         const params = this._parseFetchFirmQuoteParams(req);
 
-        // Try to get indicative quote
+        // Try to get firm quote
         let firmQuote;
         try {
             firmQuote = await this._rfqmService.fetchFirmQuoteAsync(params);
@@ -109,6 +127,66 @@ export class RfqmHandlers {
 
         // Result
         res.status(HttpStatus.OK).send(firmQuote);
+    }
+
+    public async submitSignedQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
+        RFQM_SIGNED_QUOTE_SUBMITTED.inc();
+        const params = parseSubmitSignedQuoteParams(req);
+
+        if (params.type === RfqmTypes.MetaTransaction) {
+            const metaTransactionHash = params.metaTransaction.getHash();
+
+            // check that the firm quote is recognized as a previously returned quote
+            const quote = await this._rfqmService.findQuoteByMetaTransactionHashAsync(metaTransactionHash);
+            if (quote === undefined) {
+                throw new NotFoundError(`metaTransaction quote not found`);
+            }
+
+            // validate that the firm quote is fillable using the origin registry address (this address is assumed to hold ETH)
+            try {
+                await this._rfqmService._blockchainUtils.validateMetaTransactionOrThrowAsync(
+                    params.metaTransaction,
+                    params.signature,
+                    ORIGIN_REGISTRY_ADDRESS,
+                );
+            } catch (err) {
+                throw new InternalServerError(`metaTransaction is not fillable: ${err}`);
+            }
+
+            const rfqmJobOpts: RfqmJobOpts = {
+                orderHash: quote.orderHash,
+                metaTransactionHash,
+                createdAt: new Date(),
+                expiry: params.metaTransaction.expirationTimeSeconds,
+                chainId: CHAIN_ID,
+                integratorId: quote.integratorId ? quote.integratorId : null,
+                makerUri: quote.makerUri,
+                status: RfqmJobStatus.InQueue,
+                statusReason: null,
+                calldata: await this._rfqmService._blockchainUtils.generateMetaTransactionCallData(
+                    params.metaTransaction,
+                    params.signature,
+                ),
+                fee: quote.fee,
+                order: quote.order,
+                metadata: {
+                    metaTransaction: params.metaTransaction,
+                },
+            };
+
+            await this._rfqmService.writeRfqmJobToDbAsync(rfqmJobOpts);
+            await this._rfqmService.enqueueJobAsync(quote.orderHash, RFQM_SQS_GROUP_ID);
+
+            const response: MetaTransactionSubmitRfqmSignedQuoteResponse = {
+                type: RfqmTypes.MetaTransaction,
+                metaTransactionHash,
+                orderHash: quote.orderHash,
+            };
+
+            res.status(HttpStatus.CREATED).send(response);
+        } else {
+            throw new InternalServerError('rfqm type not supported');
+        }
     }
 
     private _parseFetchFirmQuoteParams(req: express.Request): FetchFirmQuoteParams {
@@ -183,6 +261,25 @@ export class RfqmHandlers {
     }
 }
 
+const parseSubmitSignedQuoteParams = (req: express.Request): SubmitRfqmSignedQuoteParams => {
+    const type = req.query.type as RfqmTypes;
+
+    if (type === RfqmTypes.MetaTransaction) {
+        const metaTransaction = new MetaTransaction(
+            stringsToMetaTransactionFields((req.query.metaTransactionas as unknown) as StringMetaTransactionFields),
+        );
+        const signature = stringsToSignature((req.query.signature as unknown) as StringSignatureFields);
+
+        return {
+            type,
+            metaTransaction,
+            signature,
+        };
+    } else {
+        throw new Error('Unsupported submission type for /submit');
+    }
+};
+
 const validateNotNativeTokenOrThrow = (token: string, field: string): boolean => {
     if (isNativeSymbolOrAddress(token, CHAIN_ID)) {
         throw new ValidationError([
@@ -210,4 +307,30 @@ const getTokenMetadataOrThrow = (token: string, field: string): TokenMetadata =>
     }
 
     return metadata;
+};
+
+const stringsToMetaTransactionFields = (strings: StringMetaTransactionFields): MetaTransactionFields => {
+    return {
+        signer: strings.signer,
+        sender: strings.sender,
+        minGasPrice: new BigNumber(strings.minGasPrice),
+        maxGasPrice: new BigNumber(strings.maxGasPrice),
+        expirationTimeSeconds: new BigNumber(strings.expirationTimeSeconds),
+        salt: new BigNumber(strings.salt),
+        callData: strings.callData,
+        value: new BigNumber(strings.value),
+        feeToken: strings.feeToken,
+        feeAmount: new BigNumber(strings.feeAmount),
+        chainId: Number(strings.chainId),
+        verifyingContract: strings.verifyingContract,
+    };
+};
+
+const stringsToSignature = (strings: StringSignatureFields): Signature => {
+    return {
+        signatureType: Number(strings.signatureType),
+        v: Number(strings.v),
+        r: strings.r,
+        s: strings.s,
+    };
 };

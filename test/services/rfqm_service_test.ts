@@ -8,6 +8,7 @@ import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { expect } from '@0x/contracts-test-utils';
 import { MetaTransaction, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
+import { Producer } from 'sqs-producer';
 import { anything, instance, mock, when } from 'ts-mockito';
 import { Connection, InsertResult, Repository } from 'typeorm';
 
@@ -48,6 +49,7 @@ describe('RfqmService', () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -56,6 +58,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtilsMock,
                     connectionMock,
+                    sqsMock,
                 );
 
                 // When
@@ -110,6 +113,7 @@ describe('RfqmService', () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -118,6 +122,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtilsMock,
                     connectionMock,
+                    sqsMock,
                 );
 
                 // When
@@ -165,6 +170,7 @@ describe('RfqmService', () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -173,6 +179,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtilsMock,
                     connectionMock,
+                    sqsMock,
                 );
 
                 // Expect
@@ -220,6 +227,7 @@ describe('RfqmService', () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -228,6 +236,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtilsMock,
                     connectionMock,
+                    sqsMock,
                 );
 
                 // When
@@ -282,6 +291,7 @@ describe('RfqmService', () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -290,6 +300,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtilsMock,
                     connectionMock,
+                    sqsMock,
                 );
 
                 // When
@@ -345,6 +356,7 @@ describe('RfqmService', () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -353,6 +365,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtilsMock,
                     connectionMock,
+                    sqsMock,
                 );
 
                 // When
@@ -403,6 +416,7 @@ describe('RfqmService', () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -411,6 +425,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtilsMock,
                     connectionMock,
+                    sqsMock,
                 );
 
                 // When
@@ -472,6 +487,7 @@ describe('RfqmService', () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -480,6 +496,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtilsMock,
                     connectionMock,
+                    sqsMock,
                 );
 
                 // When
@@ -567,6 +584,7 @@ describe('RfqmService', () => {
                 const connectionMock = mock(Connection);
                 when(connectionMock.getRepository(anything())).thenReturn(repositoryInstance);
                 const connectionInstance = instance(connectionMock);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -575,6 +593,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtils,
                     connectionInstance,
+                    sqsMock,
                 );
 
                 // When
@@ -653,6 +672,7 @@ describe('RfqmService', () => {
                 const connectionMock = mock(Connection);
                 when(connectionMock.getRepository(anything())).thenReturn(repositoryInstance);
                 const connectionInstance = instance(connectionMock);
+                const sqsMock = mock(Producer);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -661,6 +681,7 @@ describe('RfqmService', () => {
                     MOCK_WORKER_REGISTRY_ADDRESS,
                     rfqBlockchainUtils,
                     connectionInstance,
+                    sqsMock,
                 );
 
                 // When
