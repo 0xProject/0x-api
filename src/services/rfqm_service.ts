@@ -15,19 +15,19 @@ import { getBestQuote } from '../utils/quote_comparison_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 export interface RfqmJobOpts {
-    orderHash: string;
+    orderHash?: string;
     metaTransactionHash?: string;
-    createdAt: Date;
+    createdAt?: Date;
     updatedAt?: Date;
-    expiry: BigNumber;
-    chainId: number;
-    integratorId: string | null;
-    makerUri: string;
-    status: RfqmJobStatus;
-    statusReason: string | null;
-    calldata: string;
-    fee: Fee | null;
-    order: RfqOrder | null;
+    expiry?: BigNumber;
+    chainId?: number;
+    integratorId?: string | null;
+    makerUri?: string;
+    status?: RfqmJobStatus;
+    statusReason?: string | null;
+    calldata?: string;
+    fee?: Fee | null;
+    order?: RfqOrder | null;
     metadata?: object;
 }
 

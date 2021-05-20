@@ -154,7 +154,7 @@ export class RfqmHandlers {
             }
 
             const rfqmJobOpts: RfqmJobOpts = {
-                orderHash: quote.orderHash,
+                orderHash: quote.orderHash!,
                 metaTransactionHash,
                 createdAt: new Date(),
                 expiry: params.metaTransaction.expirationTimeSeconds,
@@ -174,13 +174,14 @@ export class RfqmHandlers {
                 },
             };
 
+            // make sure job data is persisted to Postgres before queueing task
             await this._rfqmService.writeRfqmJobToDbAsync(rfqmJobOpts);
-            await this._rfqmService.enqueueJobAsync(quote.orderHash, RFQM_SQS_GROUP_ID);
+            await this._rfqmService.enqueueJobAsync(quote.orderHash!, RFQM_SQS_GROUP_ID);
 
             const response: MetaTransactionSubmitRfqmSignedQuoteResponse = {
                 type: RfqmTypes.MetaTransaction,
                 metaTransactionHash,
-                orderHash: quote.orderHash,
+                orderHash: quote.orderHash!,
             };
 
             res.status(HttpStatus.CREATED).send(response);

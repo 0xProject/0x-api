@@ -21,15 +21,18 @@ const rfqmJobsTable = new Table({
 });
 
 const createdAtIndex = new TableIndex({ name: `rfqm_jobs_created_at_index`, columnNames: ['created_at'] });
+const statusIndex = new TableIndex({ name: `rfqm_jobs_status_index`, columnNames: ['status'] });
 
 export class CreateRfqmJobsTable1621447377869 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(rfqmJobsTable);
         await queryRunner.createIndex('rfqm_jobs', createdAtIndex);
+        await queryRunner.createIndex('rfqm_jobs', statusIndex);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.dropIndex('rfqm_jobs', createdAtIndex);
+        await queryRunner.dropIndex('rfqm_jobs', statusIndex);
         await queryRunner.dropTable(rfqmJobsTable);
     }
 }
