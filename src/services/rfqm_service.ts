@@ -378,7 +378,7 @@ export class RfqmService {
     }
 
     public async writeRfqmJobToDbAsync(rfqmJobOpts: RfqmJobOpts): Promise<void> {
-        this._connection.getRepository(RfqmJobEntity).insert(new RfqmJobEntity(rfqmJobOpts));
+        await this._connection.getRepository(RfqmJobEntity).insert(new RfqmJobEntity(rfqmJobOpts));
     }
 
     public async enqueueJobAsync(orderHash: string, groupId: string): Promise<void> {

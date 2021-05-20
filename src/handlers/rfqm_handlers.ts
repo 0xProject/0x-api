@@ -163,7 +163,7 @@ export class RfqmHandlers {
                 makerUri: quote.makerUri,
                 status: RfqmJobStatus.InQueue,
                 statusReason: null,
-                calldata: await this._rfqmService._blockchainUtils.generateMetaTransactionCallData(
+                calldata: this._rfqmService._blockchainUtils.generateMetaTransactionCallData(
                     params.metaTransaction,
                     params.signature,
                 ),
