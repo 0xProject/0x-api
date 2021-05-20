@@ -185,9 +185,15 @@ export class RfqmHandlers {
                 },
             };
 
-            // make sure job data is persisted to Postgres before queueing task
-            await this._rfqmService.writeRfqmJobToDbAsync(rfqmJobOpts);
-            await this._rfqmService.enqueueJobAsync(quote.orderHash!);
+            // this insert will fail if a job has already been created, ensuring
+            // that a signed quote cannot be queued twice
+            try {
+                // make sure job data is persisted to Postgres before queueing task
+                await this._rfqmService.writeRfqmJobToDbAsync(rfqmJobOpts);
+                await this._rfqmService.enqueueJobAsync(quote.orderHash!);
+            } catch (err) {
+                throw new InternalServerError(`failed to queue the quote for submission, it may have already been submitted`);
+            }
 
             const response: MetaTransactionSubmitRfqmSignedQuoteResponse = {
                 type: RfqmTypes.MetaTransaction,
