@@ -17,7 +17,7 @@ delete require.cache[require.resolve('../src/app')];
 
 const SUITE_NAME = 'rfqm db test';
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let connection: Connection;
 
     const createdAt = new Date();
