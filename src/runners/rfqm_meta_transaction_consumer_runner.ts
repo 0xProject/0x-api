@@ -67,19 +67,32 @@ if (require.main === module) {
     })().catch((error) => logger.error(error.stack));
 }
 
-export function workerHasEnoughBalance(
-    accountBalance: BigNumber,
-    gasPriceBaseUnits: BigNumber,
-): boolean {
+export function workerHasEnoughBalance(accountAddress: string, accountBalance: BigNumber, gasPriceBaseUnits: BigNumber): boolean {
     const minimumCostToTrade = gasPriceBaseUnits.times(RFQM_TX_GAS_ESTIMATE).times(3);
-    console.log(`${accountBalance.toString()} - ${gasPriceBaseUnits.toString()} = ${minimumCostToTrade.toString()}`)
-    return accountBalance.gte(minimumCostToTrade);
+    const hasEnoughBalance = accountBalance.gte(minimumCostToTrade);
+    if (!hasEnoughBalance) {
+        logger.error({
+            accountAddress,
+            accountBalance: accountBalance.toString(),
+            minimumCostToTrade: minimumCostToTrade.toString(),
+            gasPriceBaseUnits: gasPriceBaseUnits.toString(),
+        }, "Worker does not have enough balance to trade.");
+    }
+    return hasEnoughBalance;
 }
 
 async function workerHasNoPendingTransactionsAsync(accountAddress: string, wrapper: Web3Wrapper): Promise<boolean> {
     const lastNonceOnChain = await wrapper.getAccountNonceAsync(accountAddress);
     const lastNoncePending = await wrapper.getAccountNonceAsync(accountAddress, BlockParamLiteral.Pending);
-    return lastNonceOnChain.toString() === lastNoncePending.toString();
+    const hasNoPendingTransactions = lastNonceOnChain.toString() === lastNoncePending.toString();
+    if (!hasNoPendingTransactions) {
+        logger.error({
+            accountAddress,
+            lastNonceOnChain: lastNonceOnChain.toString(),
+            lastNoncePending: lastNoncePending.toString(),
+        }, "Worker has pending transactions and cannot trade.");
+    }
+    return hasNoPendingTransactions;
 }
 
 export async function isWorkerReadyAndAbleAsync(
@@ -89,7 +102,7 @@ export async function isWorkerReadyAndAbleAsync(
 ): Promise<boolean> {
     // Check worker has enough ETH to support 3 trades (small buffer)
     const accountBalance = await wrapper.getBalanceInWeiAsync(accountAddress);
-    if (!workerHasEnoughBalance(accountBalance, gasPriceBaseUnits)) {
+    if (!workerHasEnoughBalance(accountAddress, accountBalance, gasPriceBaseUnits)) {
         return false;
     }
     return workerHasNoPendingTransactionsAsync(accountAddress, wrapper);
