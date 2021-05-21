@@ -49,13 +49,13 @@ export interface V4StringRfqOrderFields {
     verifyingContract: string;
 }
 
-export interface StoredOrder {
-    type: RfqmOrderTypes;
-    order: RfqmOrderStringFields;
+export interface V4RfqStoredOrder {
+    type: RfqmOrderTypes.V4Rfq;
+    order: V4StringRfqOrderFields;
 }
 
-export type RfqmOrderStringFields = V4StringRfqOrderFields;
 export type RfqmOrder = RfqOrder;
+export type StoredOrder = V4RfqStoredOrder;
 
 /**
  * convert a stored order into the appropriate order class
