@@ -2,9 +2,9 @@
  * Runs the RFQM MetaTransaction Consumer
  */
 import { createMetricsRouter, MetricsService } from '@0x/api-utils';
+import { BigNumber } from '@0x/asset-swapper';
 import { BlockParamLiteral, Web3Wrapper } from '@0x/web3-wrapper';
 import * as AWS from 'aws-sdk';
-import BigNumber from 'bignumber.js';
 import express from 'express';
 import { Counter } from 'prom-client';
 import { Consumer } from 'sqs-consumer';
@@ -26,6 +26,7 @@ const RFQM_JOB_DEQUEUED = new Counter({
     help: 'An Rfqm Job was pulled from the queue',
 });
 
+const MIN_NUM_TRADES_FOR_HEALTHCHECK = 3;
 const RFQM_JOB_SUCCEEDED = new Counter({
     name: 'rfqm_job_succeeded',
     help: 'An Rfqm Job succeeded',
@@ -67,8 +68,15 @@ if (require.main === module) {
     })().catch((error) => logger.error(error.stack));
 }
 
+/**
+ * Returns true if the worker has a sufficient balance to trade
+ * @param accountAddress the EOA address
+ * @param accountBalance the EOA address balance
+ * @param gasPriceBaseUnits fast gas price (wei)
+ * @returns true if the worker has sufficient balance
+ */
 export function workerHasEnoughBalance(accountAddress: string, accountBalance: BigNumber, gasPriceBaseUnits: BigNumber): boolean {
-    const minimumCostToTrade = gasPriceBaseUnits.times(RFQM_TX_GAS_ESTIMATE).times(3);
+    const minimumCostToTrade = gasPriceBaseUnits.times(RFQM_TX_GAS_ESTIMATE).times(MIN_NUM_TRADES_FOR_HEALTHCHECK);
     const hasEnoughBalance = accountBalance.gte(minimumCostToTrade);
     if (!hasEnoughBalance) {
         logger.error({
@@ -76,7 +84,7 @@ export function workerHasEnoughBalance(accountAddress: string, accountBalance: B
             accountBalance: accountBalance.toString(),
             minimumCostToTrade: minimumCostToTrade.toString(),
             gasPriceBaseUnits: gasPriceBaseUnits.toString(),
-        }, "Worker does not have enough balance to trade.");
+        }, 'Worker does not have enough balance to trade.');
     }
     return hasEnoughBalance;
 }
@@ -90,7 +98,7 @@ async function workerHasNoPendingTransactionsAsync(accountAddress: string, wrapp
             accountAddress,
             lastNonceOnChain: lastNonceOnChain.toString(),
             lastNoncePending: lastNoncePending.toString(),
-        }, "Worker has pending transactions and cannot trade.");
+        }, 'Worker has pending transactions and cannot trade.');
     }
     return hasNoPendingTransactions;
 }

@@ -5,8 +5,8 @@
 import { expect } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
-import { NULL_ADDRESS } from '../../src/constants';
 
+import { NULL_ADDRESS } from '../../src/constants';
 import { workerHasEnoughBalance } from '../../src/runners/rfqm_meta_transaction_consumer_runner';
 
 describe('RFQM Utils', () => {
