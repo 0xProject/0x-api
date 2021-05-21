@@ -10,79 +10,10 @@ import { Connection } from 'typeorm';
 
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { NULL_ADDRESS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
-import { RfqmJobEntity, RfqmQuoteEntity } from '../entities';
+import { RfqmQuoteEntity } from '../entities';
 import { getBestQuote } from '../utils/quote_comparison_utils';
-import { StoredOrder, v4RfqOrderToStoredOrder } from '../utils/rfqm_order_utils';
+import { feeToStoredFee, RfqmDbUtils, v4RfqOrderToStoredOrder } from '../utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
-
-export interface RfqmJobOpts {
-    orderHash?: string;
-    metaTransactionHash?: string;
-    createdAt?: Date;
-    updatedAt?: Date;
-    expiry?: BigNumber;
-    chainId?: number;
-    integratorId?: string | null;
-    makerUri?: string;
-    status?: RfqmJobStatus;
-    statusReason?: string | null;
-    calldata?: string;
-    fee?: StoredFee | null;
-    order?: StoredOrder | null;
-    metadata?: object;
-}
-
-export enum RfqmJobStatus {
-    InQueue = 'inQueue',
-    AwaitingLastLookConfirmation = 'awaitingLastLookConfirmation',
-    Submitted = 'submitted',
-    Successful = 'successful',
-    Failed = 'failed',
-}
-
-export interface StoredFee {
-    token: string;
-    amount: string;
-    type: 'fixed' | 'bps';
-}
-
-export const storedFeeToFee = (fee: StoredFee): Fee => {
-    return {
-        token: fee.token,
-        amount: new BigNumber(fee.amount),
-        type: fee.type,
-    };
-};
-
-export const feeToStoredFee = (fee: Fee): StoredFee => {
-    return {
-        token: fee.token,
-        amount: fee.amount.toString(),
-        type: fee.type,
-    };
-};
-
-export interface StringMetaTransactionFields {
-    signer: string;
-    sender: string;
-    minGasPrice: string;
-    maxGasPrice: string;
-    expirationTimeSeconds: string;
-    salt: string;
-    callData: string;
-    value: string;
-    feeToken: string;
-    feeAmount: string;
-    chainId: string;
-    verifyingContract: string;
-}
-
-export interface StringSignatureFields {
-    signatureType: string;
-    v: string;
-    r: string;
-    s: string;
-}
 
 export enum RfqmTypes {
     MetaTransaction = 'metatransaction',
@@ -172,6 +103,7 @@ const RFQM_DEFAULT_OPTS = {
  * RfqmService is the coordination layer for HTTP based RFQM flows.
  */
 export class RfqmService {
+    public dbUtils = new RfqmDbUtils(this._connection);
     constructor(
         private readonly _quoteRequestor: QuoteRequestor,
         private readonly _protocolFeeUtils: ProtocolFeeUtils,
@@ -386,24 +318,6 @@ export class RfqmService {
             metaTransactionHash,
             orderHash,
         };
-    }
-
-    public async findQuoteByOrderHashAsync(orderHash: string): Promise<RfqmQuoteEntity | undefined> {
-        return this._connection.getRepository(RfqmQuoteEntity).findOne({
-            where: { orderHash },
-        });
-    }
-
-    public async findQuoteByMetaTransactionHashAsync(
-        metaTransactionHash: string,
-    ): Promise<RfqmQuoteEntity | undefined> {
-        return this._connection.getRepository(RfqmQuoteEntity).findOne({
-            where: { metaTransactionHash },
-        });
-    }
-
-    public async writeRfqmJobToDbAsync(rfqmJobOpts: RfqmJobOpts): Promise<void> {
-        await this._connection.getRepository(RfqmJobEntity).insert(new RfqmJobEntity(rfqmJobOpts));
     }
 
     public async enqueueJobAsync(orderHash: string): Promise<void> {

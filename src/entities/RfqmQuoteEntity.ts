@@ -1,7 +1,6 @@
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
-import { StoredFee } from '../services/rfqm_service';
-import { StoredOrder } from '../utils/rfqm_order_utils';
+import { StoredFee, StoredOrder } from '../utils/rfqm_db_utils';
 
 @Entity({ name: 'rfqm_quotes' })
 export class RfqmQuoteEntity {

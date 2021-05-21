@@ -1,8 +1,7 @@
 import { BigNumber } from '@0x/asset-swapper';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
-import { RfqmJobOpts, RfqmJobStatus, StoredFee } from '../services/rfqm_service';
-import { StoredOrder } from '../utils/rfqm_order_utils';
+import { RfqmJobOpts, RfqmJobStatus, StoredFee, StoredOrder } from '../utils/rfqm_db_utils';
 
 import { BigNumberTransformer } from './transformers';
 

@@ -7,8 +7,12 @@ import { Connection } from 'typeorm';
 
 import { getDBConnectionAsync } from '../src/db_connection';
 import { RfqmJobEntity, RfqmQuoteEntity } from '../src/entities';
-import { feeToStoredFee, RfqmJobOpts, RfqmJobStatus } from '../src/services/rfqm_service';
-import { v4RfqOrderToStoredOrder } from '../src/utils/rfqm_order_utils';
+import {
+    feeToStoredFee,
+    RfqmJobOpts,
+    RfqmJobStatus,
+    v4RfqOrderToStoredOrder,
+} from '../src/utils/rfqm_db_utils';
 
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 

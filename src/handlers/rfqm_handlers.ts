@@ -6,7 +6,7 @@ import {
     ValidationError,
     ValidationErrorCodes,
 } from '@0x/api-utils';
-import { MetaTransaction, MetaTransactionFields, Signature } from '@0x/protocol-utils';
+import { MetaTransaction } from '@0x/protocol-utils';
 import { getTokenMetadataIfExists, isNativeSymbolOrAddress, TokenMetadata } from '@0x/token-metadata';
 import { addressUtils, BigNumber } from '@0x/utils';
 import * as express from 'express';
@@ -19,15 +19,18 @@ import {
     FetchFirmQuoteParams,
     FetchIndicativeQuoteParams,
     MetaTransactionSubmitRfqmSignedQuoteResponse,
-    RfqmJobOpts,
-    RfqmJobStatus,
     RfqmService,
     RfqmTypes,
-    StringMetaTransactionFields,
-    StringSignatureFields,
     SubmitRfqmSignedQuoteParams,
 } from '../services/rfqm_service';
 import { ConfigManager } from '../utils/config_manager';
+import { RfqmJobOpts, RfqmJobStatus } from '../utils/rfqm_db_utils';
+import {
+    StringMetaTransactionFields,
+    StringSignatureFields,
+    stringsToMetaTransactionFields,
+    stringsToSignature,
+} from '../utils/rfqm_request_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
 const RFQM_INDICATIVE_QUOTE_REQUEST = new Counter({
@@ -146,7 +149,7 @@ export class RfqmHandlers {
             const metaTransactionHash = params.metaTransaction.getHash();
 
             // check that the firm quote is recognized as a previously returned quote
-            const quote = await this._rfqmService.findQuoteByMetaTransactionHashAsync(metaTransactionHash);
+            const quote = await this._rfqmService.dbUtils.findQuoteByMetaTransactionHashAsync(metaTransactionHash);
             if (quote === undefined) {
                 RFQM_SIGNED_QUOTE_NOT_FOUND.inc();
                 throw new NotFoundError(`metaTransaction quote not found`);
@@ -189,7 +192,7 @@ export class RfqmHandlers {
             // that a signed quote cannot be queued twice
             try {
                 // make sure job data is persisted to Postgres before queueing task
-                await this._rfqmService.writeRfqmJobToDbAsync(rfqmJobOpts);
+                await this._rfqmService.dbUtils.writeRfqmJobToDbAsync(rfqmJobOpts);
                 await this._rfqmService.enqueueJobAsync(quote.orderHash!);
             } catch (err) {
                 throw new InternalServerError(
@@ -327,30 +330,4 @@ const getTokenMetadataOrThrow = (token: string, field: string): TokenMetadata =>
     }
 
     return metadata;
-};
-
-const stringsToMetaTransactionFields = (strings: StringMetaTransactionFields): MetaTransactionFields => {
-    return {
-        signer: strings.signer,
-        sender: strings.sender,
-        minGasPrice: new BigNumber(strings.minGasPrice),
-        maxGasPrice: new BigNumber(strings.maxGasPrice),
-        expirationTimeSeconds: new BigNumber(strings.expirationTimeSeconds),
-        salt: new BigNumber(strings.salt),
-        callData: strings.callData,
-        value: new BigNumber(strings.value),
-        feeToken: strings.feeToken,
-        feeAmount: new BigNumber(strings.feeAmount),
-        chainId: Number(strings.chainId),
-        verifyingContract: strings.verifyingContract,
-    };
-};
-
-const stringsToSignature = (strings: StringSignatureFields): Signature => {
-    return {
-        signatureType: Number(strings.signatureType),
-        v: Number(strings.v),
-        r: strings.r,
-        s: strings.s,
-    };
 };
