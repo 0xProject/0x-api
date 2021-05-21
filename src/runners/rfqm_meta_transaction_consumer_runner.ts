@@ -95,6 +95,14 @@ async function workerHasNoPendingTransactionsAsync(accountAddress: string, wrapp
     return hasNoPendingTransactions;
 }
 
+/**
+ * Returns true if a metatransaction worker is able to pick up new work. The function will also
+ * emit logs if it was to find issues.
+ * @param wrapper the Web3Wrapper instance
+ * @param accountAddress the EOA address of the worker
+ * @param gasPriceBaseUnits the current gas price
+ * @returns true if the metatransaction worker can pick up work.
+ */
 export async function isWorkerReadyAndAbleAsync(
     wrapper: Web3Wrapper,
     accountAddress: string,
