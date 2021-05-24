@@ -9031,13 +9031,6 @@ sql-summary@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/sql-summary/-/sql-summary-1.0.1.tgz#a2dddb5435bae294eb11424a7330dc5bafe09c2b"
 
-sqs-consumer@^5.5.0:
-  version "5.5.0"
-  resolved "https://registry.yarnpkg.com/sqs-consumer/-/sqs-consumer-5.5.0.tgz#9d019e25f4c3217c684e14595d0b08e4957e9fdb"
-  integrity sha512-vzKzOZlZtZarOWbg/nbEoMyNu64XnQ4QB3e74nMBNaIuM/RhelUGNGrvrB83IW6a7/DxKDulM46h2TeQP3/1nA==
-  dependencies:
-    debug "^4.1.1"
-
 sshpk@^1.7.0:
   version "1.16.1"
   resolved "https://registry.yarnpkg.com/sshpk/-/sshpk-1.16.1.tgz#fb661c0bef29b39db40769ee39fa70093d6f6877"

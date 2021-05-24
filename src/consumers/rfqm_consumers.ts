@@ -8,7 +8,7 @@ export class RfqmConsumers {
     // tslint:disable: no-empty
     // tslint:disable: prefer-function-over-method
     public async processJobAsync(orderHash: string): Promise<void> {
-        logger.info(`DONE  ${orderHash}`);
+        logger.info('finished processing job', { orderHash });
         return Promise.reject('failing');
     }
 }

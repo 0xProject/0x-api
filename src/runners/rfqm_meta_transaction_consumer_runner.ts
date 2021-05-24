@@ -2,14 +2,15 @@
  * Runs the RFQM MetaTransaction Consumer
  */
 import { createMetricsRouter, MetricsService } from '@0x/api-utils';
+import { SQS } from 'aws-sdk';
 import express from 'express';
 import { Counter } from 'prom-client';
-import { Consumer } from 'sqs-consumer';
 
 import { ENABLE_PROMETHEUS_METRICS, PROMETHEUS_PORT, RFQM_META_TX_SQS_URL } from '../config';
 import { METRICS_PATH } from '../constants';
 import { RfqmConsumers } from '../consumers/rfqm_consumers';
 import { logger } from '../logger';
+import { SqsConsumer } from '../utils/sqs_consumer';
 
 const RFQM_JOB_DEQUEUED = new Counter({
     name: 'rfqm_job_dequeued',
@@ -19,11 +20,6 @@ const RFQM_JOB_DEQUEUED = new Counter({
 const RFQM_JOB_SUCCEEDED = new Counter({
     name: 'rfqm_job_succeeded',
     help: 'An Rfqm Job succeeded',
-});
-
-const RFQM_JOB_FAILED = new Counter({
-    name: 'rfqm_job_failed',
-    help: 'An Rfqm Job failed',
 });
 
 process.on('uncaughtException', (err) => {
@@ -42,8 +38,10 @@ if (require.main === module) {
         // Start the Metrics Server
         startMetricsServer();
 
-        // Start the Rfqm Consumer
+        // Build dependencies
         const rfqmConsumers = new RfqmConsumers();
+
+        // Run the consumer
         await runRfqmMetaTransactionConsumerAsync(rfqmConsumers);
     })().catch((error) => logger.error(error.stack));
 }
@@ -51,39 +49,24 @@ if (require.main === module) {
 /**
  * Runs the Rfqm Consumer
  */
-export async function runRfqmMetaTransactionConsumerAsync(rfqmConsumers: RfqmConsumers): Promise<Consumer> {
-    const app = Consumer.create({
-        queueUrl: RFQM_META_TX_SQS_URL,
-        handleMessage: async (msg) => {
-            const payload = msg.Body;
-            if (payload === undefined) {
-                return;
-            }
-
-            return rfqmConsumers.processJobAsync(payload);
+export async function runRfqmMetaTransactionConsumerAsync(rfqmConsumers: RfqmConsumers): Promise<SqsConsumer> {
+    const consumer = new SqsConsumer({
+        sqs: new SQS({ apiVersion: '2012-11-05' }),
+        queueUrl: RFQM_META_TX_SQS_URL!,
+        handleMessage: async (message) => {
+            RFQM_JOB_DEQUEUED.inc();
+            const orderHash = message.Body!;
+            return rfqmConsumers.processJobAsync(orderHash);
+        },
+        afterHandle: async () => {
+            RFQM_JOB_SUCCEEDED.inc();
         },
     });
 
-    app.on('message_received', (msg) => {
-        RFQM_JOB_DEQUEUED.inc();
-    });
-
-    app.on('message_processed', (msg) => {
-        RFQM_JOB_SUCCEEDED.inc();
-    });
-
-    app.on('processing_error', (err) => {
-        RFQM_JOB_FAILED.inc();
-        logger.error('a job was unable to be processed', err);
-    });
-
-    app.on('error', (err) => {
-        logger.error('a system error occurred', err);
-    });
-
-    app.start();
+    // Start the consumer
+    consumer.consumeAsync().catch((e) => logger.error(e));
     logger.info('Rfqm Consumer running');
-    return app;
+    return consumer;
 }
 
 function startMetricsServer(): void {
