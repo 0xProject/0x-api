@@ -11,6 +11,7 @@ import { Connection } from 'typeorm';
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { NULL_ADDRESS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import { RfqmQuoteEntity } from '../entities';
+import { logger } from '../logger';
 import { getBestQuote } from '../utils/quote_comparison_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
@@ -295,5 +296,14 @@ export class RfqmService {
             metaTransactionHash,
             orderHash,
         };
+    }
+
+    /**
+     * Process an orderHash as an RfqmJob. Throws an error if job must be retried
+     */
+    // tslint:disable: prefer-function-over-method
+    public async processRfqmJobAsync(orderHash: string): Promise<void> {
+        logger.info('finished processing job', { orderHash });
+        return Promise.reject('failing');
     }
 }

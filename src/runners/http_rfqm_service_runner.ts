@@ -96,7 +96,7 @@ if (require.main === module) {
 /**
  * Creates the Axios Request Config
  */
-function getAxiosRequestConfig(): AxiosRequestConfig {
+export function getAxiosRequestConfig(): AxiosRequestConfig {
     const axiosRequestConfig: AxiosRequestConfig = {
         httpAgent: new HttpAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
         httpsAgent: new HttpsAgent({ keepAlive: true, timeout: KEEP_ALIVE_TTL }),
