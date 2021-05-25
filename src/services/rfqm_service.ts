@@ -6,13 +6,21 @@ import { Fee } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Counter } from 'prom-client';
+import { Producer } from 'sqs-producer';
 import { Connection } from 'typeorm';
 
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
-import { NULL_ADDRESS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
+import { NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import { RfqmQuoteEntity } from '../entities';
+import { InternalServerError, NotFoundError } from '../errors';
 import { getBestQuote } from '../utils/quote_comparison_utils';
-import { feeToStoredFee, RfqmDbUtils, v4RfqOrderToStoredOrder } from '../utils/rfqm_db_utils';
+import {
+    feeToStoredFee,
+    RfqmDbUtils,
+    RfqmJobOpts,
+    RfqmJobStatus,
+    v4RfqOrderToStoredOrder,
+} from '../utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 export enum RfqmTypes {
@@ -99,6 +107,19 @@ const RFQM_DEFAULT_OPTS = {
     isLastLook: true,
 };
 
+const RFQM_SIGNED_QUOTE_NOT_FOUND = new Counter({
+    name: 'rfqm_signed_quote_not_found',
+    help: 'A submitted quote did not match any stored quotes',
+});
+const RFQM_SIGNED_QUOTE_FAILED_ETHCALL_VALIDATION = new Counter({
+    name: 'rfqm_signed_quote_failed_ethcall_validation',
+    help: 'A signed quote failed eth_call validation before being queued',
+});
+const RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON = new Counter({
+    name: 'rfqm_signed_quote_expiry_too_soon',
+    help: 'A signed quote was not queued because it would expire too soon',
+});
+
 /**
  * RfqmService is the coordination layer for HTTP based RFQM flows.
  */
@@ -109,10 +130,9 @@ export class RfqmService {
         private readonly _protocolFeeUtils: ProtocolFeeUtils,
         private readonly _contractAddresses: AssetSwapperContractAddresses,
         private readonly _registryAddress: string,
-        public readonly _blockchainUtils: RfqBlockchainUtils,
+        private readonly _blockchainUtils: RfqBlockchainUtils,
         private readonly _connection: Connection,
-        // object should be instantiated from sqs-producer .create()
-        private readonly _sqsProducer: any,
+        private readonly _sqsProducer: Producer,
     ) {
         if (_registryAddress === NULL_ADDRESS) {
             throw new Error('Must set the worker registry to valid address');
@@ -320,13 +340,85 @@ export class RfqmService {
         };
     }
 
+    public async submitMetaTransactionSignedQuoteAsync(
+        params: MetaTransactionSubmitRfqmSignedQuoteParams,
+    ): Promise<MetaTransactionSubmitRfqmSignedQuoteResponse> {
+        const metaTransactionHash = params.metaTransaction.getHash();
+
+        // check that the firm quote is recognized as a previously returned quote
+        const quote = await this.dbUtils.findQuoteByMetaTransactionHashAsync(metaTransactionHash);
+        if (quote === undefined) {
+            RFQM_SIGNED_QUOTE_NOT_FOUND.inc();
+            throw new NotFoundError('quote not found');
+        }
+
+        // validate that the expiration window is long enough to fill quote
+        const currentTimeMs = new Date().getTime();
+        if (
+            !params.metaTransaction.expirationTimeSeconds
+                .times(ONE_SECOND_MS)
+                .isGreaterThan(currentTimeMs - RFQM_MINIMUM_EXPIRY_DURATION_MS)
+        ) {
+            RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON.inc();
+            throw new InternalServerError(`metaTransaction will expire too soon`);
+        }
+
+        // validate that the firm quote is fillable using the origin registry address (this address is assumed to hold ETH)
+        try {
+            await this._blockchainUtils.validateMetaTransactionOrThrowAsync(
+                params.metaTransaction,
+                params.signature,
+                META_TX_WORKER_REGISTRY!,
+            );
+        } catch (err) {
+            RFQM_SIGNED_QUOTE_FAILED_ETHCALL_VALIDATION.inc();
+            throw new InternalServerError(`metaTransaction is not fillable: ${err}`);
+        }
+
+        const rfqmJobOpts: RfqmJobOpts = {
+            orderHash: quote.orderHash!,
+            metaTransactionHash,
+            createdAt: new Date(),
+            expiry: params.metaTransaction.expirationTimeSeconds,
+            chainId: CHAIN_ID,
+            integratorId: quote.integratorId ? quote.integratorId : null,
+            makerUri: quote.makerUri,
+            status: RfqmJobStatus.InQueue,
+            statusReason: null,
+            calldata: this._blockchainUtils.generateMetaTransactionCallData(params.metaTransaction, params.signature),
+            fee: quote.fee,
+            order: quote.order,
+            metadata: {
+                metaTransaction: params.metaTransaction,
+            },
+        };
+
+        // this insert will fail if a job has already been created, ensuring
+        // that a signed quote cannot be queued twice
+        try {
+            // make sure job data is persisted to Postgres before queueing task
+            await this.dbUtils.writeRfqmJobToDbAsync(rfqmJobOpts);
+            await this.enqueueJobAsync(quote.orderHash!);
+        } catch (err) {
+            throw new InternalServerError(
+                `failed to queue the quote for submission, it may have already been submitted`,
+            );
+        }
+
+        return {
+            type: RfqmTypes.MetaTransaction,
+            metaTransactionHash,
+            orderHash: quote.orderHash!,
+        };
+    }
+
     public async enqueueJobAsync(orderHash: string): Promise<void> {
         await this._sqsProducer.send({
             // wait, it's all order hash?
             // always has been.
             groupId: orderHash,
             id: orderHash,
-            body: { orderHash },
+            body: JSON.stringify({ orderHash }),
             deduplicationId: orderHash,
         });
     }

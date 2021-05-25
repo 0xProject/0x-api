@@ -2,7 +2,9 @@
 import {
     InternalServerError,
     InvalidAPIKeyError,
+    isAPIError,
     NotFoundError,
+    NotImplementedError,
     ValidationError,
     ValidationErrorCodes,
 } from '@0x/api-utils';
@@ -13,18 +15,16 @@ import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import { Counter } from 'prom-client';
 
-import { CHAIN_ID, NATIVE_WRAPPED_TOKEN_SYMBOL, ORIGIN_REGISTRY_ADDRESS } from '../config';
+import { CHAIN_ID, NATIVE_WRAPPED_TOKEN_SYMBOL } from '../config';
 import { schemas } from '../schemas';
 import {
     FetchFirmQuoteParams,
     FetchIndicativeQuoteParams,
-    MetaTransactionSubmitRfqmSignedQuoteResponse,
     RfqmService,
     RfqmTypes,
     SubmitRfqmSignedQuoteParams,
 } from '../services/rfqm_service';
 import { ConfigManager } from '../utils/config_manager';
-import { RfqmJobOpts, RfqmJobStatus } from '../utils/rfqm_db_utils';
 import {
     StringMetaTransactionFields,
     StringSignatureFields,
@@ -72,16 +72,7 @@ const RFQM_FIRM_QUOTE_ERROR = new Counter({
 const RFQM_SIGNED_QUOTE_SUBMITTED = new Counter({
     name: 'rfqm_handler_signed_quote_submitted',
     help: 'Request received to submit a signed rfqm quote',
-});
-
-const RFQM_SIGNED_QUOTE_NOT_FOUND = new Counter({
-    name: 'rfqm_handler_signed_quote_not_found',
-    help: 'A submitted quote did not match any stored quotes',
-});
-
-const RFQM_SIGNED_QUOTE_FAILED_VALIDATION = new Counter({
-    name: 'rfqm_handler_signed_quote_failed_validation',
-    help: 'A signed quote failed validation before being queued',
+    labelNames: ['apiKey'],
 });
 
 export class RfqmHandlers {
@@ -142,73 +133,24 @@ export class RfqmHandlers {
     }
 
     public async submitSignedQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        RFQM_SIGNED_QUOTE_SUBMITTED.inc();
-        const params = parseSubmitSignedQuoteParams(req);
+        const apiKeyLabel = req.header('0x-api-key') || 'N/A';
+        RFQM_SIGNED_QUOTE_SUBMITTED.labels(apiKeyLabel).inc();
+        const params = this._parseSubmitSignedQuoteParams(req);
 
         if (params.type === RfqmTypes.MetaTransaction) {
-            const metaTransactionHash = params.metaTransaction.getHash();
-
-            // check that the firm quote is recognized as a previously returned quote
-            const quote = await this._rfqmService.dbUtils.findQuoteByMetaTransactionHashAsync(metaTransactionHash);
-            if (quote === undefined) {
-                RFQM_SIGNED_QUOTE_NOT_FOUND.inc();
-                throw new NotFoundError(`metaTransaction quote not found`);
-            }
-
-            // validate that the firm quote is fillable using the origin registry address (this address is assumed to hold ETH)
             try {
-                await this._rfqmService._blockchainUtils.validateMetaTransactionOrThrowAsync(
-                    params.metaTransaction,
-                    params.signature,
-                    ORIGIN_REGISTRY_ADDRESS,
-                );
+                const response = await this._rfqmService.submitMetaTransactionSignedQuoteAsync(params);
+                res.status(HttpStatus.CREATED).send(response);
             } catch (err) {
-                RFQM_SIGNED_QUOTE_FAILED_VALIDATION.inc();
-                throw new InternalServerError(`metaTransaction is not fillable: ${err}`);
+                req.log.error(err, 'Encountered an error while queuing a signed quote');
+                if (isAPIError(err)) {
+                    throw err;
+                } else {
+                    throw new InternalServerError(`An unexpected error occurred`);
+                }
             }
-
-            const rfqmJobOpts: RfqmJobOpts = {
-                orderHash: quote.orderHash!,
-                metaTransactionHash,
-                createdAt: new Date(),
-                expiry: params.metaTransaction.expirationTimeSeconds,
-                chainId: CHAIN_ID,
-                integratorId: quote.integratorId ? quote.integratorId : null,
-                makerUri: quote.makerUri,
-                status: RfqmJobStatus.InQueue,
-                statusReason: null,
-                calldata: this._rfqmService._blockchainUtils.generateMetaTransactionCallData(
-                    params.metaTransaction,
-                    params.signature,
-                ),
-                fee: quote.fee,
-                order: quote.order,
-                metadata: {
-                    metaTransaction: params.metaTransaction,
-                },
-            };
-
-            // this insert will fail if a job has already been created, ensuring
-            // that a signed quote cannot be queued twice
-            try {
-                // make sure job data is persisted to Postgres before queueing task
-                await this._rfqmService.dbUtils.writeRfqmJobToDbAsync(rfqmJobOpts);
-                await this._rfqmService.enqueueJobAsync(quote.orderHash!);
-            } catch (err) {
-                throw new InternalServerError(
-                    `failed to queue the quote for submission, it may have already been submitted`,
-                );
-            }
-
-            const response: MetaTransactionSubmitRfqmSignedQuoteResponse = {
-                type: RfqmTypes.MetaTransaction,
-                metaTransactionHash,
-                orderHash: quote.orderHash!,
-            };
-
-            res.status(HttpStatus.CREATED).send(response);
         } else {
-            throw new InternalServerError('rfqm type not supported');
+            throw new NotImplementedError('rfqm type not supported');
         }
     }
 
@@ -239,17 +181,20 @@ export class RfqmHandlers {
         };
     }
 
-    private _parseFetchIndicativeQuoteParams(req: express.Request): FetchIndicativeQuoteParams {
-        // HACK - reusing the validation for Swap Quote as the interface here is a subset
-        schemaUtils.validateSchema(req.query, schemas.swapQuoteRequestSchema as any);
-        const apiKey = req.header('0x-api-key');
+    private _validateAndReturnApiKey(apiKey: string | undefined): string {
         if (apiKey === undefined) {
             throw new InvalidAPIKeyError('Must access with an API key');
         }
-
         if (!this._configManager.getRfqmApiKeyWhitelist().has(apiKey)) {
             throw new InvalidAPIKeyError('API key not authorized for RFQM access');
         }
+        return apiKey;
+    }
+
+    private _parseFetchIndicativeQuoteParams(req: express.Request): FetchIndicativeQuoteParams {
+        // HACK - reusing the validation for Swap Quote as the interface here is a subset
+        schemaUtils.validateSchema(req.query, schemas.swapQuoteRequestSchema as any);
+        const apiKey = this._validateAndReturnApiKey(req.header('0x-api-key'));
 
         // Parse string params
         const { takerAddress } = req.query;
@@ -282,26 +227,33 @@ export class RfqmHandlers {
             takerAddress: takerAddress as string,
         };
     }
-}
 
-const parseSubmitSignedQuoteParams = (req: express.Request): SubmitRfqmSignedQuoteParams => {
-    const type = req.query.type as RfqmTypes;
+    private _parseSubmitSignedQuoteParams(req: express.Request): SubmitRfqmSignedQuoteParams {
+        const type = req.body.type as RfqmTypes;
+        this._validateAndReturnApiKey(req.header('0x-api-key'));
 
-    if (type === RfqmTypes.MetaTransaction) {
-        const metaTransaction = new MetaTransaction(
-            stringsToMetaTransactionFields((req.query.metaTransactionas as unknown) as StringMetaTransactionFields),
-        );
-        const signature = stringsToSignature((req.query.signature as unknown) as StringSignatureFields);
+        if (type === RfqmTypes.MetaTransaction) {
+            const metaTransaction = new MetaTransaction(
+                stringsToMetaTransactionFields((req.body.metaTransaction as unknown) as StringMetaTransactionFields),
+            );
+            const signature = stringsToSignature((req.body.signature as unknown) as StringSignatureFields);
 
-        return {
-            type,
-            metaTransaction,
-            signature,
-        };
-    } else {
-        throw new Error('Unsupported submission type for /submit');
+            return {
+                type,
+                metaTransaction,
+                signature,
+            };
+        } else {
+            throw new ValidationError([
+                {
+                    field: 'type',
+                    code: ValidationErrorCodes.FieldInvalid,
+                    reason: `${type} is an invalid value for 'type'`,
+                },
+            ]);
+        }
     }
-};
+}
 
 const validateNotNativeTokenOrThrow = (token: string, field: string): boolean => {
     if (isNativeSymbolOrAddress(token, CHAIN_ID)) {

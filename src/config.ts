@@ -406,9 +406,6 @@ export const RFQ_PROXY_PORT: number | undefined = _.isEmpty(process.env.RFQ_PROX
     ? undefined
     : assertEnvVarType('RFQ_PROXY_PORT', process.env.RFQ_PROXY_PORT, EnvVarType.Port);
 
-export const ORIGIN_REGISTRY_ADDRESS: string = _.isEmpty(process.env.ORIGIN_REGISTRY_ADDRESS)
-    ? ''
-    : assertEnvVarType('ORIGIN_REGISTRY_ADDRESS', process.env.ORIGIN_REGISTRY_ADDRESS, EnvVarType.ETHAddressHex);
 export const SQS_QUEUE_URL: string = _.isEmpty(process.env.SQS_QUEUE_URL)
     ? ''
     : assertEnvVarType('SQS_QUEUE_URL', process.env.SQS_QUEUE_URL, EnvVarType.Url);
