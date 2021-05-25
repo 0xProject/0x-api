@@ -12,7 +12,7 @@ import { Connection } from 'typeorm';
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import { RfqmQuoteEntity } from '../entities';
-import { InternalServerError, NotFoundError } from '../errors';
+import { InternalServerError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { getBestQuote } from '../utils/quote_comparison_utils';
 import {
     feeToStoredFee,
@@ -357,10 +357,16 @@ export class RfqmService {
         if (
             !params.metaTransaction.expirationTimeSeconds
                 .times(ONE_SECOND_MS)
-                .isGreaterThan(currentTimeMs - RFQM_MINIMUM_EXPIRY_DURATION_MS)
+                .isGreaterThan(currentTimeMs + RFQM_MINIMUM_EXPIRY_DURATION_MS)
         ) {
             RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON.inc();
-            throw new InternalServerError(`metaTransaction will expire too soon`);
+            throw new ValidationError([
+                {
+                    field: 'expirationTimeSeconds',
+                    code: ValidationErrorCodes.FieldInvalid,
+                    reason: `metatransaction will expire too soon`,
+                },
+            ]);
         }
 
         // validate that the firm quote is fillable using the origin registry address (this address is assumed to hold ETH)
@@ -372,7 +378,13 @@ export class RfqmService {
             );
         } catch (err) {
             RFQM_SIGNED_QUOTE_FAILED_ETHCALL_VALIDATION.inc();
-            throw new InternalServerError(`metaTransaction is not fillable: ${err}`);
+            throw new ValidationError([
+                {
+                    field: 'n/a',
+                    code: ValidationErrorCodes.InvalidOrder,
+                    reason: `metatransaction is not fillable`,
+                },
+            ]);
         }
 
         const rfqmJobOpts: RfqmJobOpts = {
@@ -398,7 +410,7 @@ export class RfqmService {
         try {
             // make sure job data is persisted to Postgres before queueing task
             await this.dbUtils.writeRfqmJobToDbAsync(rfqmJobOpts);
-            await this.enqueueJobAsync(quote.orderHash!);
+            await this._enqueueJobAsync(quote.orderHash!);
         } catch (err) {
             throw new InternalServerError(
                 `failed to queue the quote for submission, it may have already been submitted`,
@@ -412,7 +424,7 @@ export class RfqmService {
         };
     }
 
-    public async enqueueJobAsync(orderHash: string): Promise<void> {
+    private async _enqueueJobAsync(orderHash: string): Promise<void> {
         await this._sqsProducer.send({
             // wait, it's all order hash?
             // always has been.

@@ -129,15 +129,12 @@ describe(SUITE_NAME, () => {
             MD5OfMessageBody: 'MD5OfMessageBody',
             MessageId: 'MessageId',
         }];
-        const sqsEntryPromise = new Promise<SqsResponse[]>((resolve) => {
-            resolve(sqsResponse);
-        });
 
         // Create the mock sqsProducer
         const sqsProducerMock = mock(Producer);
         when(
             sqsProducerMock.send(anything())
-        ).thenReturn(sqsEntryPromise);
+        ).thenResolve(sqsResponse);
         const sqsProducer = instance(sqsProducerMock);
 
         connection = await getDBConnectionAsync();
@@ -893,7 +890,7 @@ describe(SUITE_NAME, () => {
                 .expect(HttpStatus.INTERNAL_SERVER_ERROR)
                 .expect('Content-Type', /json/);
         });
-        it('should fail with status code 500 if a is too close to expiration', async () => {
+        it('should fail with 400 BAD REQUEST if meta tx is too close to expiration', async () => {
             const mockMetaTx = createMockMetaTx({expirationTimeSeconds: new BigNumber(1)});
             const order = storedOrderToRfqmOrder(mockStoredOrder);
             const mockQuote = new RfqmQuoteEntity({
@@ -906,12 +903,17 @@ describe(SUITE_NAME, () => {
             });
             await connection.getRepository(RfqmQuoteEntity).insert(mockQuote);
 
-            await request(app)
+            const appResponse = await request(app)
                 .post(`${RFQM_PATH}/submit`)
                 .send({ type: RfqmTypes.MetaTransaction, metaTransaction: mockMetaTx, signature: VALID_SIGNATURE})
                 .set('0x-api-key', API_KEY)
                 .expect(HttpStatus.INTERNAL_SERVER_ERROR)
                 .expect('Content-Type', /json/);
+
+            expect(appResponse.body.reason).to.equal('Validation Failed');
+            expect(appResponse.body.validationErrors[0].reason).to.equal(
+                `metatransaction will expire too soon`,
+            );
         });
     });
 });

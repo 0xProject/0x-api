@@ -24,7 +24,7 @@ export interface RfqmJobOpts {
 
 export enum RfqmJobStatus {
     InQueue = 'inQueue',
-    AwaitingLastLookConfirmation = 'awaitingLastLookConfirmation',
+    Processing = 'processing',
     Submitted = 'submitted',
     Successful = 'successful',
     Failed = 'failed',
