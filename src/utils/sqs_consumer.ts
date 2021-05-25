@@ -32,11 +32,11 @@ export class SqsConsumer {
     public async consumeAsync(): Promise<void> {
         this._isConsuming = true;
         while (this._isConsuming) {
-            await this._consumeOnceAsync();
+            await this.consumeOnceAsync();
         }
     }
 
-    private async _consumeOnceAsync(): Promise<void> {
+    public async consumeOnceAsync(): Promise<void> {
         // Run the before hook
         if (this._beforeHandle) {
             let beforeCheck;
