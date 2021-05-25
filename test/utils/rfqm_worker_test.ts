@@ -7,9 +7,9 @@ import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 
 import { NULL_ADDRESS } from '../../src/constants';
-import { workerHasEnoughBalance } from '../../src/runners/rfqm_meta_transaction_consumer_runner';
+import { workerHasEnoughBalance } from '../../src/utils/rfqm_worker_balance_utils';
 
-describe('RFQM Utils', () => {
+describe('RFQM Worker balance utils', () => {
     describe('workerHasEnoughBalance', () => {
         const tests: [BigNumber, BigNumber, boolean][] = [
             [Web3Wrapper.toBaseUnitAmount(0.5, 18), Web3Wrapper.toBaseUnitAmount(120, 9), true],
