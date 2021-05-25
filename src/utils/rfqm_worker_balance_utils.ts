@@ -1,8 +1,9 @@
-import { BigNumber } from "@0x/asset-swapper";
-import { Web3Wrapper } from "@0x/web3-wrapper";
-import { BlockParamLiteral } from "ethereum-types";
-import { RFQM_TX_GAS_ESTIMATE } from "../constants";
-import { logger } from "../logger";
+import { BigNumber } from '@0x/asset-swapper';
+import { Web3Wrapper } from '@0x/web3-wrapper';
+import { BlockParamLiteral } from 'ethereum-types';
+
+import { RFQM_TX_GAS_ESTIMATE } from '../constants';
+import { logger } from '../logger';
 
 const MIN_NUM_TRADES_FOR_HEALTHCHECK = 3;
 
