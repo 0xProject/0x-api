@@ -907,7 +907,7 @@ describe(SUITE_NAME, () => {
                 .post(`${RFQM_PATH}/submit`)
                 .send({ type: RfqmTypes.MetaTransaction, metaTransaction: mockMetaTx, signature: VALID_SIGNATURE})
                 .set('0x-api-key', API_KEY)
-                .expect(HttpStatus.INTERNAL_SERVER_ERROR)
+                .expect(HttpStatus.BAD_REQUEST)
                 .expect('Content-Type', /json/);
 
             expect(appResponse.body.reason).to.equal('Validation Failed');
