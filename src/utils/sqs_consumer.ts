@@ -1,5 +1,6 @@
 import { SQS } from 'aws-sdk';
 
+import { ONE_SECOND_MS } from '../constants';
 import { logger } from '../logger';
 
 import { SqsClient } from './sqs_client';
@@ -67,6 +68,7 @@ export class SqsConsumer {
             logger.error({ err, message }, 'Encountered error while handling message');
             // Retry message
             await this._sqsClient.changeMessageVisibilityAsync(message.ReceiptHandle!, 0);
+            await sleepAsync(ONE_SECOND_MS);
             return;
         }
 
@@ -78,4 +80,10 @@ export class SqsConsumer {
             await this._afterHandle();
         }
     }
+}
+
+async function sleepAsync(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 }
