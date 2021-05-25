@@ -21,7 +21,6 @@ import {
     ETH_GAS_STATION_API_URL,
     META_TX_WORKER_REGISTRY,
     RFQM_MAKER_ASSET_OFFERINGS,
-    RFQM_META_TX_SQS_REGION,
     RFQM_META_TX_SQS_URL,
     RFQ_PROXY_ADDRESS,
     RFQ_PROXY_PORT,
@@ -94,8 +93,7 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
     const rfqBlockchainUtils = new RfqBlockchainUtils(exchangeProxy);
 
     const sqsProducer = Producer.create({
-        queueUrl: RFQM_META_TX_SQS_REGION,
-        region: RFQM_META_TX_SQS_URL,
+        queueUrl: RFQM_META_TX_SQS_URL,
     });
 
     return new RfqmService(

@@ -46,15 +46,16 @@ if (require.main === module) {
         const connection = await getDBConnectionAsync();
         const rfqmService = await buildRfqmServiceAsync(connection);
 
-        // Run the consumer
-        await runRfqmMetaTransactionConsumerAsync(rfqmService);
+        // Run the worker
+        await runRfqmWorkerAsync(rfqmService);
     })().catch((error) => logger.error(error.stack));
 }
 
 /**
  * Runs the Rfqm Consumer
  */
-export async function runRfqmMetaTransactionConsumerAsync(rfqmService: RfqmService): Promise<SqsConsumer> {
+export async function runRfqmWorkerAsync(rfqmService: RfqmService): Promise<SqsConsumer> {
+    // Build the Sqs consumer
     const sqsClient = new SqsClient({
         sqs: new SQS({ apiVersion: '2012-11-05' }),
         queueUrl: RFQM_META_TX_SQS_URL!,
@@ -71,7 +72,7 @@ export async function runRfqmMetaTransactionConsumerAsync(rfqmService: RfqmServi
         },
     });
 
-    // Start the consumer
+    // Start the consumer - aka the worker
     consumer.consumeAsync().catch((e) => logger.error(e));
     logger.info('Rfqm Consumer running');
     return consumer;

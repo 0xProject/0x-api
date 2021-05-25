@@ -430,7 +430,7 @@ export class RfqmService {
      */
     // tslint:disable: prefer-function-over-method
     public async processRfqmJobAsync(orderHash: string): Promise<void> {
-        logger.info('finished processing job', { orderHash });
+        logger.info({ orderHash }, 'finished processing job');
         return Promise.reject('failing');
     }
 
