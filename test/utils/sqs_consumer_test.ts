@@ -3,19 +3,17 @@
 // tslint:disable:max-file-line-count
 
 import { expect } from '@0x/contracts-test-utils';
-import { SQS } from 'aws-sdk';
-import { mock } from 'ts-mockito';
+import { anyString, instance, mock, verify, when } from 'ts-mockito';
 
+import { SqsClient } from '../../src/utils/sqs_client';
 import { SqsConsumer } from '../../src/utils/sqs_consumer';
-
-const queueUrl = 'https://some-url.com/queue';
 
 describe('SqsConsumer', () => {
     describe('consumeOnceAsync', () => {
         describe('beforeHandle', () => {
             it('should not call handleMessage if beforeHandle returns false', async () => {
                 // Given
-                const sqsMock = mock(SQS);
+                const sqsClientMock = mock(SqsClient);
                 let isHandleCalled = false;
                 const beforeHandle = async () => false;
                 const handleMessage = async () => {
@@ -23,8 +21,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
-                    sqs: sqsMock,
-                    queueUrl,
+                    sqsClient: sqsClientMock,
                     handleMessage,
                     beforeHandle,
                 });
@@ -38,7 +35,7 @@ describe('SqsConsumer', () => {
 
             it('should not call handleMessage if beforeHandle throws an error', async () => {
                 // Given
-                const sqsMock = mock(SQS);
+                const sqsClientMock = mock(SqsClient);
                 let isHandleCalled = false;
                 const beforeHandle = async () => Promise.reject('error!');
                 const handleMessage = async () => {
@@ -46,8 +43,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
-                    sqs: sqsMock,
-                    queueUrl,
+                    sqsClient: sqsClientMock,
                     handleMessage,
                     beforeHandle,
                 });
@@ -57,6 +53,162 @@ describe('SqsConsumer', () => {
 
                 // Then
                 expect(isHandleCalled).to.eq(false);
+            });
+
+            it('should call handleMessage if no beforeHandle', async () => {
+                // Given
+                const sqsClientMock = mock(SqsClient);
+                when(sqsClientMock.receiveMessageAsync()).thenResolve({
+                    Body: '0xdeadbeef',
+                });
+                const sqsClientInstance = instance(sqsClientMock);
+                let isHandleCalled = false;
+                const handleMessage = async () => {
+                    isHandleCalled = true;
+                };
+
+                const consumer = new SqsConsumer({
+                    sqsClient: sqsClientInstance,
+                    handleMessage,
+                });
+
+                // When
+                await consumer.consumeOnceAsync();
+
+                // Then
+                expect(isHandleCalled).to.eq(true);
+            });
+
+            it('should call handleMessage if beforeHandle returns true', async () => {
+                // Given
+                const sqsClientMock = mock(SqsClient);
+                when(sqsClientMock.receiveMessageAsync()).thenResolve({
+                    Body: '0xdeadbeef',
+                });
+                const sqsClientInstance = instance(sqsClientMock);
+                const beforeHandle = async () => true;
+                let isHandleCalled = false;
+                const handleMessage = async () => {
+                    isHandleCalled = true;
+                };
+
+                const consumer = new SqsConsumer({
+                    sqsClient: sqsClientInstance,
+                    beforeHandle,
+                    handleMessage,
+                });
+
+                // When
+                await consumer.consumeOnceAsync();
+
+                // Then
+                expect(isHandleCalled).to.eq(true);
+            });
+        });
+
+        describe('handleMessage', () => {
+            it('should not be called if no message is recieved', async () => {
+                // Given
+                const sqsClientMock = mock(SqsClient);
+                when(sqsClientMock.receiveMessageAsync()).thenResolve(null);
+                const sqsClientInstance = instance(sqsClientMock);
+
+                let isHandleCalled = false;
+                const handleMessage = async () => {
+                    isHandleCalled = true;
+                };
+
+                const consumer = new SqsConsumer({
+                    sqsClient: sqsClientInstance,
+                    handleMessage,
+                });
+
+                // When
+                await consumer.consumeOnceAsync();
+
+                // Then
+                expect(isHandleCalled).to.eq(false);
+            });
+
+            it('should call changeMessageVisibility if an error is encountered (triggering a retry)', async () => {
+                // Given
+                const sqsClientMock = mock(SqsClient);
+                when(sqsClientMock.receiveMessageAsync()).thenResolve({
+                    Body: '0xdeadbeef',
+                    ReceiptHandle: '1',
+                });
+                const sqsClientInstance = instance(sqsClientMock);
+
+                const handleMessage = async () => {
+                    throw new Error('error');
+                };
+
+                const consumer = new SqsConsumer({
+                    sqsClient: sqsClientInstance,
+                    handleMessage,
+                });
+
+                // When
+                await consumer.consumeOnceAsync();
+
+                // Then
+                verify(sqsClientMock.changeMessageVisibilityAsync(anyString(), 0)).once();
+            });
+
+            it('should call deleteMessageAsync if message is successfully handled', async () => {
+                // Given
+                const sqsClientMock = mock(SqsClient);
+                when(sqsClientMock.receiveMessageAsync()).thenResolve({
+                    Body: '0xdeadbeef',
+                    ReceiptHandle: '1',
+                });
+                const sqsClientInstance = instance(sqsClientMock);
+
+                let isHandleCalled = false;
+                const handleMessage = async () => {
+                    isHandleCalled = true;
+                };
+
+                const consumer = new SqsConsumer({
+                    sqsClient: sqsClientInstance,
+                    handleMessage,
+                });
+
+                // When
+                await consumer.consumeOnceAsync();
+
+                // Then
+                expect(isHandleCalled).to.eq(true);
+                verify(sqsClientMock.deleteMessageAsync(anyString())).once();
+            });
+        });
+
+        describe('afterHandle', () => {
+            it('should be called once everything is successful', async () => {
+                // Given
+                const sqsClientMock = mock(SqsClient);
+                when(sqsClientMock.receiveMessageAsync()).thenResolve({
+                    Body: '0xdeadbeef',
+                    ReceiptHandle: '1',
+                });
+
+                const sqsClientInstance = instance(sqsClientMock);
+                let isAfterCalled = false;
+                const afterHandle = async () => {
+                    isAfterCalled = true;
+                };
+
+                const consumer = new SqsConsumer({
+                    sqsClient: sqsClientInstance,
+                    handleMessage: async () => {},
+                    afterHandle,
+                });
+
+                // When
+                await consumer.consumeOnceAsync();
+
+                // Then
+                expect(isAfterCalled).to.eq(true);
             });
         });
     });

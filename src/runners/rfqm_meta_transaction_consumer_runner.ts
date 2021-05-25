@@ -11,6 +11,7 @@ import { METRICS_PATH } from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
 import { logger } from '../logger';
 import { RfqmService } from '../services/rfqm_service';
+import { SqsClient } from '../utils/sqs_client';
 import { SqsConsumer } from '../utils/sqs_consumer';
 
 import { buildRfqmServiceAsync } from './http_rfqm_service_runner';
@@ -54,9 +55,12 @@ if (require.main === module) {
  * Runs the Rfqm Consumer
  */
 export async function runRfqmMetaTransactionConsumerAsync(rfqmService: RfqmService): Promise<SqsConsumer> {
-    const consumer = new SqsConsumer({
+    const sqsClient = new SqsClient({
         sqs: new SQS({ apiVersion: '2012-11-05' }),
         queueUrl: RFQM_META_TX_SQS_URL!,
+    });
+    const consumer = new SqsConsumer({
+        sqsClient,
         handleMessage: async (message) => {
             RFQM_JOB_DEQUEUED.inc();
             const orderHash = message.Body!;

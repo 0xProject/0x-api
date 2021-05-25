@@ -2,23 +2,22 @@ import { SQS } from 'aws-sdk';
 
 import { logger } from '../logger';
 
+import { SqsClient } from './sqs_client';
+
 export class SqsConsumer {
-    private readonly _sqs: SQS;
-    private readonly _queueUrl: string;
+    private readonly _sqsClient: SqsClient;
     private readonly _beforeHandle?: () => Promise<boolean>;
     private readonly _handleMessage: (message: SQS.Types.Message) => Promise<any>;
     private readonly _afterHandle?: () => Promise<void>;
     private _isConsuming: boolean;
 
     constructor(params: {
-        sqs: SQS;
-        queueUrl: string;
+        sqsClient: SqsClient;
         beforeHandle?: () => Promise<boolean>;
         handleMessage: (message: SQS.Types.Message) => Promise<any>;
         afterHandle?: () => Promise<void>;
     }) {
-        this._sqs = params.sqs;
-        this._queueUrl = params.queueUrl;
+        this._sqsClient = params.sqsClient;
         this._beforeHandle = params.beforeHandle;
         this._handleMessage = params.handleMessage;
         this._afterHandle = params.afterHandle;
@@ -54,21 +53,12 @@ export class SqsConsumer {
         }
 
         // Receive message
-        const response = await this._sqs
-            .receiveMessage({
-                MaxNumberOfMessages: 1,
-                WaitTimeSeconds: 20, // long polling
-                QueueUrl: this._queueUrl,
-            })
-            .promise();
+        const message = await this._sqsClient.receiveMessageAsync();
 
         // No message
-        if (response === undefined || response.Messages?.length !== 1) {
+        if (message === null) {
             return;
         }
-
-        // Get message
-        const message = response.Messages[0];
 
         // Handle message
         try {
@@ -76,23 +66,12 @@ export class SqsConsumer {
         } catch (err) {
             logger.error({ err, message }, 'Encountered error while handling message');
             // Retry message
-            await this._sqs
-                .changeMessageVisibility({
-                    QueueUrl: this._queueUrl,
-                    ReceiptHandle: message.ReceiptHandle!,
-                    VisibilityTimeout: 0,
-                })
-                .promise();
+            await this._sqsClient.changeMessageVisibilityAsync(message.ReceiptHandle!, 0);
             return;
         }
 
         // Delete message
-        await this._sqs
-            .deleteMessage({
-                QueueUrl: this._queueUrl,
-                ReceiptHandle: message.ReceiptHandle!,
-            })
-            .promise();
+        await this._sqsClient.deleteMessageAsync(message.ReceiptHandle!);
 
         // Run the after hook
         if (this._afterHandle) {
