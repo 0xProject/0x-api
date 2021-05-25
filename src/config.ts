@@ -13,7 +13,7 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from '@0x/asset-swapper';
-import { TokenMetadatasForChains } from '@0x/token-metadata';
+import { nativeWrappedTokenSymbol, TokenMetadatasForChains } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
@@ -442,6 +442,8 @@ const EXCLUDED_SOURCES = (() => {
             return allERC20BridgeSources.filter((s) => !supportedRopstenSources.has(s));
         case ChainId.BSC:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
+        case ChainId.Polygon:
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
             return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
     }
@@ -457,6 +459,8 @@ const EXCLUDED_FEE_SOURCES = (() => {
             return [];
         case ChainId.BSC:
             return [ERC20BridgeSource.Uniswap];
+        case ChainId.Polygon:
+            return [];
         default:
             return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
     }
@@ -534,14 +538,7 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
     }
 };
 
-export const NATIVE_WRAPPED_TOKEN_SYMBOL = (() => {
-    switch (CHAIN_ID) {
-        case ChainId.BSC:
-            return 'WBNB';
-        default:
-            return 'WETH';
-    }
-})();
+export const NATIVE_WRAPPED_TOKEN_SYMBOL = nativeWrappedTokenSymbol(CHAIN_ID);
 
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
