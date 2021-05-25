@@ -2,36 +2,18 @@
  * Runs the RFQM MetaTransaction Consumer
  */
 import { createMetricsRouter, MetricsService } from '@0x/api-utils';
-import { ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
-import { IZeroExContract } from '@0x/contracts-zero-ex';
-import { NULL_ADDRESS } from '@0x/utils';
 import { SQS } from 'aws-sdk';
-import Axios from 'axios';
 import express from 'express';
 import { Counter } from 'prom-client';
 
-import { getContractAddressesForNetworkOrThrowAsync } from '../app';
-import {
-    CHAIN_ID,
-    defaultHttpServiceWithRateLimiterConfig,
-    ENABLE_PROMETHEUS_METRICS,
-    ETH_GAS_STATION_API_URL,
-    META_TX_WORKER_REGISTRY,
-    PROMETHEUS_PORT,
-    RFQM_MAKER_ASSET_OFFERINGS,
-    RFQM_META_TX_SQS_URL,
-    RFQT_MAKER_ASSET_OFFERINGS,
-    SWAP_QUOTER_OPTS,
-} from '../config';
-import { METRICS_PATH, PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS } from '../constants';
+import { ENABLE_PROMETHEUS_METRICS, PROMETHEUS_PORT, RFQM_META_TX_SQS_URL } from '../config';
+import { METRICS_PATH } from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
 import { logger } from '../logger';
 import { RfqmService } from '../services/rfqm_service';
-import { providerUtils } from '../utils/provider_utils';
-import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 import { SqsConsumer } from '../utils/sqs_consumer';
 
-import { getAxiosRequestConfig } from './http_rfqm_service_runner';
+import { buildRfqmServiceAsync } from './http_rfqm_service_runner';
 
 const RFQM_JOB_DEQUEUED = new Counter({
     name: 'rfqm_job_dequeued',
@@ -60,33 +42,8 @@ if (require.main === module) {
         startMetricsServer();
 
         // Build dependencies
-        const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
-        const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
-        const quoteRequestor = new QuoteRequestor(
-            RFQT_MAKER_ASSET_OFFERINGS,
-            RFQM_MAKER_ASSET_OFFERINGS,
-            Axios.create(getAxiosRequestConfig()),
-            undefined, // No Alt RFQM offerings at the moment
-            logger.warn.bind(logger),
-            logger.info.bind(logger),
-            SWAP_QUOTER_OPTS.expiryBufferMs,
-        );
-        const protocolFeeUtils = ProtocolFeeUtils.getInstance(
-            PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
-            ETH_GAS_STATION_API_URL,
-        );
-        const metaTxWorkerRegistry = META_TX_WORKER_REGISTRY || NULL_ADDRESS;
-        const exchangeProxy = new IZeroExContract(contractAddresses.exchangeProxy, provider);
-        const rfqBlockchainUtils = new RfqBlockchainUtils(exchangeProxy);
         const connection = await getDBConnectionAsync();
-        const rfqmService = new RfqmService(
-            quoteRequestor,
-            protocolFeeUtils,
-            contractAddresses,
-            metaTxWorkerRegistry,
-            rfqBlockchainUtils,
-            connection,
-        );
+        const rfqmService = await buildRfqmServiceAsync(connection);
 
         // Run the consumer
         await runRfqmMetaTransactionConsumerAsync(rfqmService);

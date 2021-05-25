@@ -57,7 +57,7 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/assert@^3.0.27", "@0x/assert@^3.0.8":
+"@0x/assert@^3.0.27", "@0x/assert@^3.0.9":
   version "3.0.27"
   resolved "https://registry.yarnpkg.com/@0x/assert/-/assert-3.0.27.tgz#a4e54e5c1703c276689a21c935ecd24b2be292b9"
   dependencies:
@@ -140,6 +140,11 @@
     js-sha3 "^0.7.0"
     uuid "^3.3.2"
 
+"@0x/contract-addresses@^4.11.0":
+  version "4.12.0"
+  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-4.12.0.tgz#2adb0bcde763ad13437f782adf25c403107ff428"
+  integrity sha512-0tHRgb03pbnaCgU2gpzLhedjsxe03CHj5cV/u50NTfKR2AkNxJbkvu+Pi11Qs73pw/G2jBmXik3J/SdkQe1NQA==
+
 "@0x/contract-addresses@^5.11.0":
   version "5.11.0"
   resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/e979686511803498ec5c12288434cc7ab9410dc0"
@@ -151,6 +156,11 @@
 "@0x/contract-addresses@^6.1.0":
   version "6.1.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.1.0.tgz#2f7fd90f46ac03067da792f8f8a172ecd8b05c36"
+
+"@0x/contract-addresses@^6.3.0":
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.3.0.tgz#41a8e6691eaf6c4a25b62a69f7d9de7661f80e9f"
+  integrity sha512-mZW66XavXbr9LsaMJy1bsCwsNWsnqOkCtCpxBYqtCScxRVa8h3QWSO8U0+EjFwMxkJDWSxBhg+SQK7Y4jPwU4Q==
 
 "@0x/contract-wrappers@^13.13.0":
   version "13.13.0"
@@ -180,13 +190,28 @@
     ethereum-types "^3.4.0"
     ethers "~4.0.4"
 
-"@0x/contract-wrappers@^13.16.1", "@0x/contract-wrappers@^13.7.0":
+"@0x/contract-wrappers@^13.16.1":
   version "13.16.1"
   resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.16.1.tgz#5671ac37a90dc354d44f461eb71b51b6a6f41b2f"
   dependencies:
     "@0x/assert" "^3.0.27"
     "@0x/base-contract" "^6.4.0"
     "@0x/contract-addresses" "^6.1.0"
+    "@0x/json-schemas" "^6.1.3"
+    "@0x/types" "^3.3.3"
+    "@0x/utils" "^6.4.3"
+    "@0x/web3-wrapper" "^7.5.3"
+    ethereum-types "^3.5.0"
+    ethers "~4.0.4"
+
+"@0x/contract-wrappers@^13.8.0":
+  version "13.16.3"
+  resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.16.3.tgz#4c297b0e2a2bc0f0f0cee076996d28f413d3499a"
+  integrity sha512-aewIb0u9zhjggJ0H/GnBclM79xELPUJVCKbCUVujWmTHjmCchL7sIprBJ4dzBtEikoT+UGzGOWkNlcIQR1xZ0g==
+  dependencies:
+    "@0x/assert" "^3.0.27"
+    "@0x/base-contract" "^6.4.0"
+    "@0x/contract-addresses" "^6.3.0"
     "@0x/json-schemas" "^6.1.3"
     "@0x/types" "^3.3.3"
     "@0x/utils" "^6.4.3"
@@ -457,7 +482,7 @@
     lodash "^4.17.11"
     web3-provider-engine "14.0.6"
 
-"@0x/json-schemas@^5.0.8", "@0x/json-schemas@^5.3.1", "@0x/json-schemas@^5.4.1":
+"@0x/json-schemas@^5.1.0", "@0x/json-schemas@^5.3.1", "@0x/json-schemas@^5.4.1":
   version "5.4.1"
   resolved "https://registry.yarnpkg.com/@0x/json-schemas/-/json-schemas-5.4.1.tgz#488cae01fbb7f37fa9043e426f52ff32de69f6e0"
   dependencies:
@@ -948,7 +973,7 @@
     js-sha3 "^0.7.0"
     lodash "^4.17.11"
 
-"@0x/utils@^5.5.0":
+"@0x/utils@^5.5.1":
   version "5.6.4"
   resolved "https://registry.yarnpkg.com/@0x/utils/-/utils-5.6.4.tgz#0158ec3243bbee444d90afbd79981321d19ccdfd"
   integrity sha512-VBstWULWGxRbTIMN0QdOthdmZ109LPzPTR3GwbI4svZBizkype/lhRlyCd/B3+qpbpyREAfC8Jn1lUUbk4cwpQ==
@@ -1060,7 +1085,7 @@
     js-sha3 "^0.7.0"
     lodash "^4.17.11"
 
-"@0x/web3-wrapper@^7.1.0", "@0x/web3-wrapper@^7.5.3":
+"@0x/web3-wrapper@^7.2.0", "@0x/web3-wrapper@^7.5.3":
   version "7.5.3"
   resolved "https://registry.yarnpkg.com/@0x/web3-wrapper/-/web3-wrapper-7.5.3.tgz#f36c3a2e5ffcbca2b3deef1a15e7485eb91dba7e"
   dependencies:
@@ -2235,6 +2260,21 @@ atomic-sleep@^1.0.0:
 await-event@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/await-event/-/await-event-2.1.0.tgz#78e9f92684bae4022f9fa0b5f314a11550f9aa76"
+
+aws-sdk@^2.673.0:
+  version "2.913.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.913.0.tgz#633623dce1cf219ee333a0c1a0040988f67e0e5c"
+  integrity sha512-FF6J79wONw04ZDDjH7B/1wc4uyayWl62NUlkmc/81juHtUpn3cDUu4bPaNSbcaLSgWK7pYVsTN1/kKs6d+/yJA==
+  dependencies:
+    buffer "4.9.2"
+    events "1.1.1"
+    ieee754 "1.1.13"
+    jmespath "0.15.0"
+    querystring "0.2.0"
+    sax "1.2.1"
+    url "0.10.3"
+    uuid "3.3.2"
+    xml2js "0.4.19"
 
 aws-sdk@^2.908.0:
   version "2.908.0"
