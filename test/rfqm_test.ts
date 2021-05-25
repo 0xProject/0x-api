@@ -104,9 +104,6 @@ describe(SUITE_NAME, () => {
 
         // Create the mock rfqBlockchainUtils
         const validationResponse: [BigNumber, BigNumber] = [new BigNumber(1), new BigNumber(1)];
-        const validateMetaTransactionPromise = new Promise<[BigNumber, BigNumber]>((resolve) => {
-            resolve(validationResponse);
-        });
         const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
         when(
             rfqBlockchainUtilsMock.generateMetaTransaction(anything(), anything(), anything(), anything(), anything()),
@@ -116,7 +113,7 @@ describe(SUITE_NAME, () => {
         ).thenReturn(MOCK_META_TX_CALL_DATA);
         when(
             rfqBlockchainUtilsMock.validateMetaTransactionOrThrowAsync(anything(), anything(), anything(), anything()),
-        ).thenReturn(validateMetaTransactionPromise);
+        ).thenResolve(validationResponse);
         const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
 
         interface SqsResponse {
