@@ -1,22 +1,25 @@
 import { SQS } from 'aws-sdk';
+import delay from 'delay';
 
 import { ONE_SECOND_MS } from '../constants';
 import { logger } from '../logger';
 
 import { SqsClient } from './sqs_client';
 
+export type MessageHandler = (message: SQS.Types.Message) => Promise<any>;
+
 export class SqsConsumer {
     private readonly _sqsClient: SqsClient;
     private readonly _beforeHandle?: () => Promise<boolean>;
-    private readonly _handleMessage: (message: SQS.Types.Message) => Promise<any>;
-    private readonly _afterHandle?: () => Promise<void>;
+    private readonly _handleMessage: MessageHandler;
+    private readonly _afterHandle?: MessageHandler;
     private _isConsuming: boolean;
 
     constructor(params: {
         sqsClient: SqsClient;
         beforeHandle?: () => Promise<boolean>;
-        handleMessage: (message: SQS.Types.Message) => Promise<any>;
-        afterHandle?: () => Promise<void>;
+        handleMessage: MessageHandler;
+        afterHandle?: MessageHandler;
     }) {
         this._sqsClient = params.sqsClient;
         this._beforeHandle = params.beforeHandle;
@@ -30,6 +33,10 @@ export class SqsConsumer {
     }
 
     public async consumeAsync(): Promise<void> {
+        if (this._isConsuming) {
+            return;
+        }
+
         this._isConsuming = true;
         while (this._isConsuming) {
             await this.consumeOnceAsync();
@@ -49,6 +56,7 @@ export class SqsConsumer {
 
             if (!beforeCheck) {
                 logger.warn('before validation failed');
+                await delay(ONE_SECOND_MS);
                 return;
             }
         }
@@ -68,7 +76,7 @@ export class SqsConsumer {
             logger.error({ err, message }, 'Encountered error while handling message');
             // Retry message
             await this._sqsClient.changeMessageVisibilityAsync(message.ReceiptHandle!, 0);
-            await sleepAsync(ONE_SECOND_MS);
+            await delay(ONE_SECOND_MS);
             return;
         }
 
@@ -77,13 +85,7 @@ export class SqsConsumer {
 
         // Run the after hook
         if (this._afterHandle) {
-            await this._afterHandle();
+            await this._afterHandle(message);
         }
     }
-}
-
-async function sleepAsync(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
 }

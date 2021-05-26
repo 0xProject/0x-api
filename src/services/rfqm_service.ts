@@ -431,7 +431,8 @@ export class RfqmService {
     // tslint:disable: prefer-function-over-method
     public async processRfqmJobAsync(orderHash: string): Promise<void> {
         logger.info({ orderHash }, 'finished processing job');
-        return Promise.reject('failing');
+        // tslint:disable-next-line: custom-no-magic-numbers
+        return Math.random() > 0.5 ? Promise.reject('failing') : Promise.resolve();
     }
 
     private async _enqueueJobAsync(orderHash: string): Promise<void> {

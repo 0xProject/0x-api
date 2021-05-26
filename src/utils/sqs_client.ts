@@ -1,26 +1,23 @@
 import { SQS } from 'aws-sdk';
 
+import { LONG_POLLING_WAIT_TIME_SECONDS, SINGLE_MESSAGE } from '../constants';
+
 /**
  * SqsClient wraps SQS, making it far easier to unit test SQS and ignore SQS details
  */
 export class SqsClient {
-    private readonly _sqs: SQS;
-    private readonly _queueUrl: string;
-    constructor(params: { sqs: SQS; queueUrl: string }) {
-        this._sqs = params.sqs;
-        this._queueUrl = params.queueUrl;
-    }
+    constructor(private readonly _sqs: SQS, private readonly _queueUrl: string) {}
 
     public async receiveMessageAsync(): Promise<SQS.Message | null> {
         const response = await this._sqs
             .receiveMessage({
-                MaxNumberOfMessages: 1,
-                WaitTimeSeconds: 20, // long polling
+                MaxNumberOfMessages: SINGLE_MESSAGE,
+                WaitTimeSeconds: LONG_POLLING_WAIT_TIME_SECONDS,
                 QueueUrl: this._queueUrl,
             })
             .promise();
 
-        if (response === undefined || response.Messages?.length !== 1) {
+        if (response?.Messages?.length !== 1) {
             return null;
         }
         return response.Messages[0];

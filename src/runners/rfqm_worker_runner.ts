@@ -56,10 +56,7 @@ if (require.main === module) {
  */
 export async function runRfqmWorkerAsync(rfqmService: RfqmService): Promise<SqsConsumer> {
     // Build the Sqs consumer
-    const sqsClient = new SqsClient({
-        sqs: new SQS({ apiVersion: '2012-11-05' }),
-        queueUrl: RFQM_META_TX_SQS_URL!,
-    });
+    const sqsClient = new SqsClient(new SQS({ apiVersion: '2012-11-05' }), RFQM_META_TX_SQS_URL!);
     const consumer = new SqsConsumer({
         sqsClient,
         handleMessage: async (message) => {
@@ -67,7 +64,9 @@ export async function runRfqmWorkerAsync(rfqmService: RfqmService): Promise<SqsC
             const orderHash = message.Body!;
             return rfqmService.processRfqmJobAsync(orderHash);
         },
-        afterHandle: async () => {
+        afterHandle: async (message) => {
+            const orderHash = message.Body!;
+            logger.info({ orderHash }, 'job successfully ran');
             RFQM_JOB_SUCCEEDED.inc();
         },
     });
