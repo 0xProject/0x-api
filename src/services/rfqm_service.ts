@@ -134,11 +134,7 @@ export class RfqmService {
         private readonly _blockchainUtils: RfqBlockchainUtils,
         private readonly _connection: Connection,
         private readonly _sqsProducer: Producer,
-    ) {
-        if (_registryAddress === NULL_ADDRESS) {
-            throw new Error('Must set the worker registry to valid address');
-        }
-    }
+    ) {}
 
     /**
      * Fetch the best indicative quote available. Returns null if no valid quotes found

@@ -4,7 +4,6 @@
 import { createDefaultServer } from '@0x/api-utils';
 import { ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
 import { IZeroExContract } from '@0x/contracts-zero-ex';
-import { NULL_ADDRESS } from '@0x/utils';
 import Axios, { AxiosRequestConfig } from 'axios';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
@@ -88,7 +87,10 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
         PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
         ETH_GAS_STATION_API_URL,
     );
-    const metaTxWorkerRegistry = META_TX_WORKER_REGISTRY || NULL_ADDRESS;
+    if (META_TX_WORKER_REGISTRY === undefined) {
+        throw new Error('META_TX_WORKER_REGISTRY must be set!');
+    }
+
     const exchangeProxy = new IZeroExContract(contractAddresses.exchangeProxy, provider);
     const rfqBlockchainUtils = new RfqBlockchainUtils(exchangeProxy);
 
@@ -100,7 +102,7 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
         quoteRequestor,
         protocolFeeUtils,
         contractAddresses,
-        metaTxWorkerRegistry,
+        META_TX_WORKER_REGISTRY!,
         rfqBlockchainUtils,
         connection,
         sqsProducer,
