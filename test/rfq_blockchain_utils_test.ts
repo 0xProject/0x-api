@@ -20,7 +20,7 @@ const GAS_PRICE = 1e9;
 const VALID_EXPIRY = new BigNumber(9000000000);
 const CHAIN_ID = ChainId.Ganache;
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
     let makerToken: DummyERC20TokenContract;
     let takerToken: DummyERC20TokenContract;
