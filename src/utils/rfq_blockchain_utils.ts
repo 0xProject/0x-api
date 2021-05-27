@@ -76,6 +76,12 @@ export class RfqBlockchainUtils {
         return this._exchangeProxy.executeMetaTransaction(metaTx, metaTxSig).getABIEncodedTransactionData();
     }
 
+    public getAddressFromIndexAndPhrase(mnemonic: string, index: number): string {
+        const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
+
+        return hdNode.address;
+    }
+
     public getPrivateKeyFromIndexAndPhrase(mnemonic: string, index: number): string {
         const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
 
