@@ -9,6 +9,7 @@ import { SqsClient } from './sqs_client';
 export type MessageHandler = (message: SQS.Types.Message) => Promise<any>;
 
 export class SqsConsumer {
+    private readonly _id: string;
     private readonly _sqsClient: SqsClient;
     private readonly _beforeHandle?: () => Promise<boolean>;
     private readonly _handleMessage: MessageHandler;
@@ -16,11 +17,13 @@ export class SqsConsumer {
     private _isConsuming: boolean;
 
     constructor(params: {
+        id: string;
         sqsClient: SqsClient;
         beforeHandle?: () => Promise<boolean>;
         handleMessage: MessageHandler;
         afterHandle?: MessageHandler;
     }) {
+        this._id = params.id;
         this._sqsClient = params.sqsClient;
         this._beforeHandle = params.beforeHandle;
         this._handleMessage = params.handleMessage;
@@ -50,12 +53,23 @@ export class SqsConsumer {
             try {
                 beforeCheck = await this._beforeHandle();
             } catch (e) {
-                logger.warn(e, 'Error encountered in the preHandle check');
+                logger.warn(
+                    {
+                        id: this._id,
+                        error: e,
+                    },
+                    'Error encountered in the preHandle check',
+                );
                 return;
             }
 
             if (!beforeCheck) {
-                logger.warn('before validation failed');
+                logger.warn(
+                    {
+                        id: this._id,
+                    },
+                    'before validation failed',
+                );
                 await delay(ONE_SECOND_MS);
                 return;
             }
@@ -73,7 +87,14 @@ export class SqsConsumer {
         try {
             await this._handleMessage(message);
         } catch (err) {
-            logger.error({ err, message }, 'Encountered error while handling message');
+            logger.error(
+                {
+                    err,
+                    message,
+                    id: this._id,
+                },
+                'Encountered error while handling message',
+            );
             // Retry message
             await this._sqsClient.changeMessageVisibilityAsync(message.ReceiptHandle!, 0);
             await delay(ONE_SECOND_MS);
@@ -84,6 +105,8 @@ export class SqsConsumer {
         await this._sqsClient.deleteMessageAsync(message.ReceiptHandle!);
 
         // Run the after hook
-this._afterHandle && await this._afterHandle(message);
+        if (this._afterHandle) {
+            await this._afterHandle(message);
+        }
     }
 }

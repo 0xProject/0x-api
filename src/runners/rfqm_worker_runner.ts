@@ -58,10 +58,11 @@ export async function runRfqmWorkerAsync(rfqmService: RfqmService): Promise<SqsC
     // Build the Sqs consumer
     const sqsClient = new SqsClient(new SQS({ apiVersion: '2012-11-05' }), RFQM_META_TX_SQS_URL!);
     const consumer = new SqsConsumer({
+        id: 'TODO-replace-with-address',
         sqsClient,
         handleMessage: async (message) => {
             RFQM_JOB_DEQUEUED.inc();
-            const orderHash = message.Body!;
+            const { orderHash } = JSON.parse(message.Body!);
             logger.info({ orderHash }, 'about to process job');
             return rfqmService.processRfqmJobAsync(orderHash);
         },

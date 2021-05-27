@@ -21,6 +21,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
+                    id: 'id',
                     sqsClient: sqsClientMock,
                     handleMessage,
                     beforeHandle,
@@ -43,6 +44,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
+                    id: 'id',
                     sqsClient: sqsClientMock,
                     handleMessage,
                     beforeHandle,
@@ -68,6 +70,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
+                    id: 'id',
                     sqsClient: sqsClientInstance,
                     handleMessage,
                 });
@@ -93,6 +96,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
+                    id: 'id',
                     sqsClient: sqsClientInstance,
                     beforeHandle,
                     handleMessage,
@@ -119,6 +123,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
+                    id: 'id',
                     sqsClient: sqsClientInstance,
                     handleMessage,
                 });
@@ -144,6 +149,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
+                    id: 'id',
                     sqsClient: sqsClientInstance,
                     handleMessage,
                 });
@@ -170,6 +176,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
+                    id: 'id',
                     sqsClient: sqsClientInstance,
                     handleMessage,
                 });
@@ -199,6 +206,7 @@ describe('SqsConsumer', () => {
                 };
 
                 const consumer = new SqsConsumer({
+                    id: 'id',
                     sqsClient: sqsClientInstance,
                     handleMessage: async () => {},
                     afterHandle,
