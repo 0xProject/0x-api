@@ -84,8 +84,6 @@ export class SqsConsumer {
         await this._sqsClient.deleteMessageAsync(message.ReceiptHandle!);
 
         // Run the after hook
-        if (this._afterHandle) {
-            await this._afterHandle(message);
-        }
+this._afterHandle && await this._afterHandle(message);
     }
 }
