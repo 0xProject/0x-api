@@ -13,6 +13,27 @@ const MIN_GAS_PRICE = new BigNumber(0);
 const MAX_GAS_PRICE = new BigNumber(1e13);
 
 export class RfqBlockchainUtils {
+    public static getPrivateKeyFromIndexAndPhrase(mnemonic: string, index: number): string {
+        const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
+
+        return hdNode.privateKey;
+    }
+
+    public static getAddressFromIndexAndPhrase(mnemonic: string, index: number): string {
+        const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
+
+        return hdNode.address;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    private static _getPathByIndex(index: number): string {
+        // ensure index is a 0+ integer
+        if (index < 0 || index !== Math.floor(index)) {
+            throw new Error(`invalid index`);
+        }
+        return `m/44'/60'/0'/0/`.concat(String(index));
+    }
+
     constructor(private readonly _exchangeProxy: IZeroExContract) {}
 
     // for use when 0x API operator submits an order on-chain on behalf of taker
@@ -74,26 +95,5 @@ export class RfqBlockchainUtils {
 
     public generateMetaTransactionCallData(metaTx: MetaTransaction, metaTxSig: Signature): string {
         return this._exchangeProxy.executeMetaTransaction(metaTx, metaTxSig).getABIEncodedTransactionData();
-    }
-
-    public getAddressFromIndexAndPhrase(mnemonic: string, index: number): string {
-        const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
-
-        return hdNode.address;
-    }
-
-    public getPrivateKeyFromIndexAndPhrase(mnemonic: string, index: number): string {
-        const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
-
-        return hdNode.privateKey;
-    }
-
-    // tslint:disable-next-line:prefer-function-over-method
-    private _getPathByIndex(index: number): string {
-        // ensure index is a 0+ integer
-        if (index < 0 || index !== Math.floor(index)) {
-            throw new Error(`invalid index`);
-        }
-        return `m/44'/60'/0'/0/`.concat(String(index));
     }
 }
