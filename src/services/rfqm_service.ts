@@ -1,27 +1,28 @@
 // tslint:disable:max-file-line-count
 import { AssetSwapperContractAddresses, MarketOperation, ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
-import { RfqmRequestOptions } from '@0x/asset-swapper/lib/src/types';
-import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
-import { Fee } from '@0x/quote-server/lib/src/types';
-import { BigNumber } from '@0x/utils';
-import { Web3Wrapper } from '@0x/web3-wrapper';
-import { Counter } from 'prom-client';
-import { Producer } from 'sqs-producer';
-import { Connection } from 'typeorm';
-
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
-import { NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
-import { RfqmQuoteEntity } from '../entities';
 import { InternalServerError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
-import { getBestQuote } from '../utils/quote_comparison_utils';
+import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
+import { NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import {
-    feeToStoredFee,
     RfqmDbUtils,
     RfqmJobOpts,
     RfqmJobStatus,
+    feeToStoredFee,
     v4RfqOrderToStoredOrder,
 } from '../utils/rfqm_db_utils';
+import { RfqmRequestOptions, SignedNativeOrder } from '@0x/asset-swapper/lib/src/types';
+
+import { BigNumber } from '@0x/utils';
+import { Connection } from 'typeorm';
+import { Counter } from 'prom-client';
+import { Fee } from '@0x/quote-server/lib/src/types';
+import { Producer } from 'sqs-producer';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
+import { RfqmQuoteEntity } from '../entities';
+import { Web3Wrapper } from '@0x/web3-wrapper';
+import { getBestQuote } from '../utils/quote_comparison_utils';
+import { logger } from '../logger';
 
 export enum RfqmTypes {
     MetaTransaction = 'metatransaction',
@@ -270,9 +271,18 @@ export class RfqmService {
             opts,
         );
 
+        const firmQuotesWithCorrectChainId = firmQuotes.reduce((result, quote) => {
+            if (quote.order.chainId !== CHAIN_ID) {
+                logger.debug(`Received a quote with incorrect chain id: ${quote}`);
+                return result;
+            }
+            result.push(quote);
+            return result;
+        }, [] as SignedNativeOrder[]);
+
         // Get the best quote
         const bestQuote = getBestQuote(
-            firmQuotes,
+            firmQuotesWithCorrectChainId,
             isSelling,
             takerToken,
             makerToken,
