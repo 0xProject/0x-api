@@ -13,6 +13,7 @@ import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from 
 import { NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import { RfqmQuoteEntity } from '../entities';
 import { InternalServerError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
+import { logger } from '../logger';
 import { getBestQuote } from '../utils/quote_comparison_utils';
 import {
     feeToStoredFee,
@@ -270,9 +271,17 @@ export class RfqmService {
             opts,
         );
 
+        const firmQuotesWithCorrectChainId = firmQuotes.filter((quote) => {
+            if (quote.order.chainId !== CHAIN_ID) {
+                logger.error(`Received a quote with incorrect chain id: ${quote}`);
+                return false;
+            }
+            return true;
+        });
+
         // Get the best quote
         const bestQuote = getBestQuote(
-            firmQuotes,
+            firmQuotesWithCorrectChainId,
             isSelling,
             takerToken,
             makerToken,
