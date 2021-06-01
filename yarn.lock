@@ -648,6 +648,20 @@
     express-async-handler "^1.1.4"
     http-status-codes "^1.4.0"
 
+"@0x/quote-server@^6.0.3":
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/@0x/quote-server/-/quote-server-6.0.3.tgz#2f59be57a6271ca6d704a6a5e8b53506f01c3075"
+  integrity sha512-ZEg5r3WhAeijgjb9rXSfAs0bBEI5J2PgmtcMBbQaqB3ILp5hOdA0jvj5B8diNneIOpXRMfZGmQSTlhmmWJtvdA==
+  dependencies:
+    "@0x/json-schemas" "^6.0.1"
+    "@0x/order-utils" "^10.2.4"
+    "@0x/protocol-utils" "^1.0.1"
+    "@0x/utils" "^5.4.1"
+    "@types/express" "^4.17.3"
+    express "^4.17.1"
+    express-async-handler "^1.1.4"
+    http-status-codes "^1.4.0"
+
 "@0x/sol-compiler@^4.6.1":
   version "4.6.1"
   resolved "https://registry.yarnpkg.com/@0x/sol-compiler/-/sol-compiler-4.6.1.tgz#d1f9c1547605ddbd4ad9cc6ebed60b91f5e1ce3d"
