@@ -116,6 +116,7 @@
         "@types/web3": "^1.0.19",
         "@types/ws": "^6.0.2",
         "@types/zen-observable": "^0.8.1",
+        "axios-mock-adapter": "^1.19.0",
         "env-cmd": "^10.1.0",
         "make-promises-safe": "^5.1.0",
         "mocha": "^6.2.2",

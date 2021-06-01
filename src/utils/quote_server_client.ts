@@ -31,8 +31,7 @@ export class QuoteServerClient {
     public async confirmLastLookAsync(makerUri: string, payload: SubmitRequest): Promise<boolean> {
         const timerStopFn = MARKET_MAKER_LAST_LOOK_LATENCY.labels(makerUri).startTimer();
         try {
-            const response = await this._axiosInstance.post(`${makerUri}/submit`, {
-                params: payload,
+            const response = await this._axiosInstance.post(`${makerUri}/submit`, payload, {
                 timeout: RFQT_REQUEST_MAX_RESPONSE_MS,
             });
             this._schemaValidator.validate(response.data, schemas.submitReceiptSchema);
