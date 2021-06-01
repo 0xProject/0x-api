@@ -9,15 +9,14 @@ import { BigNumber } from '@0x/utils';
 import Axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import * as HttpStatus from 'http-status-codes';
-import { RFQT_REQUEST_MAX_RESPONSE_MS } from '../../src/config';
 
 import { QuoteServerClient } from '../../src/utils/quote_server_client';
 import { CONTRACT_ADDRESSES } from '../constants';
 
 const makerUri = 'https://some-market-maker.xyz';
-describe.only('QuoteServerClient', () => {
-    let axiosInstance = Axios.create();
-    let axiosMock = new AxiosMockAdapter(axiosInstance);
+describe('QuoteServerClient', () => {
+    const axiosInstance = Axios.create();
+    const axiosMock = new AxiosMockAdapter(axiosInstance);
 
     afterEach(() => {
         axiosMock.reset();
