@@ -11,6 +11,8 @@ import * as express from 'express';
 import * as core from 'express-serve-static-core';
 import { Agent as HttpAgent, Server } from 'http';
 import { Agent as HttpsAgent } from 'https';
+import { Producer } from 'sqs-producer';
+import { Connection } from 'typeorm';
 
 import { getContractAddressesForNetworkOrThrowAsync } from '../app';
 import {
@@ -19,12 +21,16 @@ import {
     ETH_GAS_STATION_API_URL,
     META_TX_WORKER_REGISTRY,
     RFQM_MAKER_ASSET_OFFERINGS,
+    RFQM_META_TX_SQS_REGION,
+    RFQM_META_TX_SQS_URL,
     RFQT_MAKER_ASSET_OFFERINGS,
     RFQ_PROXY_ADDRESS,
     RFQ_PROXY_PORT,
     SWAP_QUOTER_OPTS,
 } from '../config';
 import { KEEP_ALIVE_TTL, PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS, RFQM_PATH } from '../constants';
+import { getDBConnectionAsync } from '../db_connection';
+import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
@@ -74,17 +80,26 @@ if (require.main === module) {
         const metaTxWorkerRegistry = META_TX_WORKER_REGISTRY || NULL_ADDRESS;
         const exchangeProxy = new IZeroExContract(contractAddresses.exchangeProxy, provider);
         const rfqBlockchainUtils = new RfqBlockchainUtils(exchangeProxy);
+
+        const connection = await getDBConnectionAsync();
+        const sqsProducer = Producer.create({
+            region: RFQM_META_TX_SQS_REGION,
+            queueUrl: RFQM_META_TX_SQS_URL,
+        });
+
         const rfqmService = new RfqmService(
             quoteRequestor,
             protocolFeeUtils,
             contractAddresses,
             metaTxWorkerRegistry,
             rfqBlockchainUtils,
+            connection,
+            sqsProducer,
         );
 
         const configManager = new ConfigManager();
 
-        await runHttpRfqmServiceAsync(rfqmService, configManager, config);
+        await runHttpRfqmServiceAsync(rfqmService, configManager, config, connection);
     })().catch((error) => logger.error(error.stack));
 }
 
@@ -113,12 +128,14 @@ export async function runHttpRfqmServiceAsync(
     rfqmService: RfqmService,
     configManager: ConfigManager,
     config: HttpServiceConfig,
+    connection: Connection,
     _app?: core.Express,
 ): Promise<{ app: express.Application; server: Server }> {
     const app = _app || express();
     app.use(addressNormalizer);
+    app.get('/', rootHandler);
     const server = createDefaultServer(config, app, logger, async () => {
-        /* TODO - clean up DB connection when present */
+        await connection.close();
     });
 
     if (rfqmService && configManager) {

@@ -2,6 +2,7 @@ import { IZeroExContract } from '@0x/contracts-zero-ex';
 import { CallData } from '@0x/dev-utils';
 import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
+import { HDNode } from '@ethersproject/hdnode';
 
 import { NULL_ADDRESS, ZERO } from '../constants';
 import { ChainId } from '../types';
@@ -12,6 +13,27 @@ const MIN_GAS_PRICE = new BigNumber(0);
 const MAX_GAS_PRICE = new BigNumber(1e13);
 
 export class RfqBlockchainUtils {
+    public static getPrivateKeyFromIndexAndPhrase(mnemonic: string, index: number): string {
+        const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
+
+        return hdNode.privateKey;
+    }
+
+    public static getAddressFromIndexAndPhrase(mnemonic: string, index: number): string {
+        const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
+
+        return hdNode.address;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    private static _getPathByIndex(index: number): string {
+        // ensure index is a 0+ integer
+        if (index < 0 || index !== Math.floor(index)) {
+            throw new Error(`invalid index`);
+        }
+        return `m/44'/60'/0'/0/`.concat(String(index));
+    }
+
     constructor(private readonly _exchangeProxy: IZeroExContract) {}
 
     // for use when 0x API operator submits an order on-chain on behalf of taker
@@ -43,6 +65,15 @@ export class RfqBlockchainUtils {
         });
     }
 
+    public async decodeMetaTransactionCallDataAndValidateAsync(
+        calldata: string,
+        sender: string,
+        txOptions?: Partial<CallData>,
+    ): Promise<[BigNumber, BigNumber]> {
+        const metaTxInput: any = this._exchangeProxy.getABIDecodedTransactionData('executeMetaTransaction', calldata);
+        return this.validateMetaTransactionOrThrowAsync(metaTxInput[0], metaTxInput[1], sender, txOptions);
+    }
+
     public async validateMetaTransactionOrThrowAsync(
         metaTx: MetaTransaction,
         metaTxSig: Signature,
@@ -53,8 +84,19 @@ export class RfqBlockchainUtils {
             const results = await this._exchangeProxy
                 .executeMetaTransaction(metaTx, metaTxSig)
                 .callAsync({ from: sender, ...txOptions });
+            const takerTokenFillAmount = (this._exchangeProxy.getABIDecodedTransactionData(
+                'fillRfqOrder',
+                metaTx.callData,
+            ) as any).takerTokenFillAmount;
+            const decodedResults: [BigNumber, BigNumber] = this._exchangeProxy.getABIDecodedReturnData(
+                'fillRfqOrder',
+                results,
+            );
+            if (decodedResults[0].isLessThan(takerTokenFillAmount)) {
+                throw new Error(`filled amount is less than requested fill amount`);
+            }
             // returns [takerTokenFilledAmount, makerTokenFilledAmount]
-            return this._exchangeProxy.getABIDecodedReturnData('fillRfqOrder', results);
+            return decodedResults;
         } catch (err) {
             throw new Error(err);
         }
