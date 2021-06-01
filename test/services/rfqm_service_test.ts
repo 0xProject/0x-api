@@ -721,6 +721,7 @@ describe('RfqmService', () => {
                 ).thenResolve([
                     {
                         order: new RfqOrder({
+                            chainId: 1337,
                             makerToken: 'DAI',
                             makerAmount: new BigNumber(100),
                             takerToken: 'SUSD',
