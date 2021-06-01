@@ -3,7 +3,6 @@
  */
 import { createDefaultServer } from '@0x/api-utils';
 import { ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
-import { IZeroExContract } from '@0x/contracts-zero-ex';
 import Axios, { AxiosRequestConfig } from 'axios';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
@@ -91,8 +90,7 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
         throw new Error('META_TX_WORKER_REGISTRY must be set!');
     }
 
-    const exchangeProxy = new IZeroExContract(contractAddresses.exchangeProxy, provider);
-    const rfqBlockchainUtils = new RfqBlockchainUtils(exchangeProxy);
+    const rfqBlockchainUtils = new RfqBlockchainUtils(provider, contractAddresses.exchangeProxy);
 
     const sqsProducer = Producer.create({
         queueUrl: RFQM_META_TX_SQS_URL,
