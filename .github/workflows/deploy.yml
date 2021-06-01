@@ -37,6 +37,10 @@ jobs:
             - name: deploy from branch to production (BSC)
               if: github.event.issue.pull_request && (github.event.comment.body == 'deploy production bsc' || github.event.comment.body == 'deploy bsc production')
               run: echo "folder_env=prod" >> $GITHUB_ENV; echo "chain=bsc" >> $GITHUB_ENV;
+            # Polygon: folder_chain=polygon
+            - name: deploy from branch to production (Polygon)
+              if: github.event.issue.pull_request && (github.event.comment.body == 'deploy production polygon' || github.event.comment.body == 'deploy polygon production')
+              run: echo "folder_env=prod" >> $GITHUB_ENV; echo "chain=polygon" >> $GITHUB_ENV;
             # Make the changes to 0x-main-infra
             - name: Checkout 0x-main-infra
               uses: actions/checkout@v2
@@ -48,6 +52,8 @@ jobs:
                 run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ env.branch_sha }}"/g' env/0x-api/${{ env.folder_env }}/common/*.yml env/0x-api/${{ env.folder_env }}/apis/*.yml
               if: env.chain == 'bsc'
                 run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ env.branch_sha }}"/g' env/0x-api/${{ env.folder_env }}/apis/bsc/*.yml
+              if: env.chain == 'polygon'
+                run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ env.branch_sha }}"/g' env/0x-api/${{ env.folder_env }}/apis/polygon/*.yml
             - name: Create Pull Request
               uses: peter-evans/create-pull-request@v3.5.0
               with:
