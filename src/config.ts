@@ -427,7 +427,7 @@ const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [ERC20BridgeSource.MultiBridge];
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.MakerPsm];
         case ChainId.Kovan:
             return allERC20BridgeSources.filter(
                 (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
@@ -495,6 +495,9 @@ const EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX = (sourceFlags: number) => {
         return TX_BASE_GAS.plus(40e3);
     } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
         return TX_BASE_GAS.plus(10e3);
+    } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
+        // Uniswap V3 VIP
+        return TX_BASE_GAS.plus(-4e3);
     } else {
         return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
     }
@@ -537,6 +540,9 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
     ) {
         // Multiplex multi-hop fill
         return TX_BASE_GAS.plus(25e3);
+    } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
+        // Uniswap V3 VIP
+        return TX_BASE_GAS.plus(-4e3);
     } else {
         return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
     }
