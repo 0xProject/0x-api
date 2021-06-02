@@ -335,10 +335,6 @@ export const RFQM_META_TX_SQS_URL: string | undefined = _.isEmpty(process.env.RF
     ? undefined
     : assertEnvVarType('RFQM_META_TX_SQS_URL', process.env.RFQM_META_TX_SQS_URL, EnvVarType.Url);
 
-export const RFQM_META_TX_SQS_REGION: string = _.isEmpty(process.env.SQS_REGION)
-    ? undefined
-    : assertEnvVarType('RFQM_META_TX_SQS_REGION', process.env.SQS_REGION, EnvVarType.NonEmptyString);
-
 // tslint:disable-next-line:boolean-naming
 export const RFQT_REQUEST_MAX_RESPONSE_MS = 600;
 
@@ -431,7 +427,7 @@ const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [ERC20BridgeSource.MultiBridge];
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.MakerPsm];
         case ChainId.Kovan:
             return allERC20BridgeSources.filter(
                 (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
