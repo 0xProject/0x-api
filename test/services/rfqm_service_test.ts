@@ -84,6 +84,7 @@ describe('RfqmService', () => {
             });
 
             it('should round price to six decimal places', async () => {
+                const contractAddresses = getContractAddressesForChainOrThrow(1);
                 // Given
                 const quoteRequestorMock = mock(QuoteRequestor);
                 when(
@@ -97,9 +98,9 @@ describe('RfqmService', () => {
                     ),
                 ).thenResolve([
                     {
-                        makerToken: 'DAI',
+                        makerToken: contractAddresses.zrxToken,
                         makerAmount: new BigNumber(111),
-                        takerToken: 'SUSD',
+                        takerToken: contractAddresses.etherToken,
                         takerAmount: new BigNumber(333),
                         expiry: NEVER_EXPIRES,
                     },
@@ -109,7 +110,6 @@ describe('RfqmService', () => {
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
                 const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
-                const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
@@ -127,8 +127,8 @@ describe('RfqmService', () => {
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
                     apiKey: 'some-api-key',
-                    buyToken: 'DAI',
-                    sellToken: 'SUSD',
+                    buyToken: contractAddresses.zrxToken,
+                    sellToken: contractAddresses.etherToken,
                     buyTokenDecimals: 18,
                     sellTokenDecimals: 18,
                     sellAmount: new BigNumber(333),
@@ -139,6 +139,7 @@ describe('RfqmService', () => {
                     expect.fail('res is null, but not expected to be null');
                     return;
                 }
+
                 expect(res.price.toNumber()).to.equal(0.3333333);
             });
 
@@ -763,6 +764,7 @@ describe('RfqmService', () => {
             });
 
             it('should round price to six decimal places', async () => {
+                const contractAddresses = getContractAddressesForChainOrThrow(1);
                 // Given
                 const makerUri = 'https://rfqm.somemaker.xyz';
                 const quoteRequestorMock = mock(QuoteRequestor);
@@ -779,9 +781,9 @@ describe('RfqmService', () => {
                     {
                         order: new RfqOrder({
                             chainId: 1337,
-                            makerToken: 'DAI',
+                            makerToken: contractAddresses.zrxToken,
                             makerAmount: new BigNumber(111),
-                            takerToken: 'SUSD',
+                            takerToken: contractAddresses.etherToken,
                             takerAmount: new BigNumber(333),
                             expiry: NEVER_EXPIRES,
                         }),
@@ -795,7 +797,6 @@ describe('RfqmService', () => {
                 const protocolFeeUtilsMock = mock(ProtocolFeeUtils);
                 when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
                 const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
-                const contractAddresses = getContractAddressesForChainOrThrow(1);
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 when(
                     rfqBlockchainUtilsMock.generateMetaTransaction(
@@ -833,8 +834,8 @@ describe('RfqmService', () => {
                 const res = await service.fetchFirmQuoteAsync({
                     apiKey: 'some-api-key',
                     takerAddress,
-                    buyToken: 'DAI',
-                    sellToken: 'SUSD',
+                    buyToken: contractAddresses.zrxToken,
+                    sellToken: contractAddresses.etherToken,
                     buyTokenDecimals: 18,
                     sellTokenDecimals: 18,
                     sellAmount: new BigNumber(333),
@@ -845,6 +846,7 @@ describe('RfqmService', () => {
                     expect.fail('res is null, but not expected to be null');
                     return;
                 }
+
                 expect(res.price.toNumber()).to.equal(0.3333333);
             });
         });
