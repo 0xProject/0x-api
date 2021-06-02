@@ -14,6 +14,7 @@ import { Connection, InsertResult, Repository } from 'typeorm';
 
 import { ONE_MINUTE_MS } from '../../src/constants';
 import { RfqmService } from '../../src/services/rfqm_service';
+import { QuoteServerClient } from '../../src/utils/quote_server_client';
 import { RfqBlockchainUtils } from '../../src/utils/rfq_blockchain_utils';
 
 const NEVER_EXPIRES = new BigNumber(9999999999999999);
@@ -53,6 +54,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -62,6 +64,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When
@@ -119,6 +122,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -128,6 +132,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When
@@ -178,6 +183,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -187,6 +193,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // Expect
@@ -237,6 +244,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -246,6 +254,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When
@@ -303,6 +312,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -312,6 +322,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When
@@ -370,6 +381,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -379,6 +391,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 const res = await service.fetchIndicativeQuoteAsync({
@@ -435,6 +448,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -444,6 +458,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When
@@ -497,6 +512,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -506,6 +522,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When
@@ -570,6 +587,7 @@ describe('RfqmService', () => {
                 const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
                 const connectionMock = mock(Connection);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -579,6 +597,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtilsMock,
                     connectionMock,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When
@@ -670,6 +689,7 @@ describe('RfqmService', () => {
                 when(connectionMock.getRepository(anything())).thenReturn(repositoryInstance);
                 const connectionInstance = instance(connectionMock);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -679,6 +699,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtils,
                     connectionInstance,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When
@@ -761,6 +782,7 @@ describe('RfqmService', () => {
                 when(connectionMock.getRepository(anything())).thenReturn(repositoryInstance);
                 const connectionInstance = instance(connectionMock);
                 const sqsMock = mock(Producer);
+                const quoteServerClientMock = mock(QuoteServerClient);
 
                 const service = new RfqmService(
                     quoteRequestorInstance,
@@ -770,6 +792,7 @@ describe('RfqmService', () => {
                     rfqBlockchainUtils,
                     connectionInstance,
                     sqsMock,
+                    quoteServerClientMock,
                 );
 
                 // When

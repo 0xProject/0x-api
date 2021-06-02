@@ -2,7 +2,7 @@
 import { AssetSwapperContractAddresses, MarketOperation, ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
 import { RfqmRequestOptions } from '@0x/asset-swapper/lib/src/types';
 import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
-import { Fee } from '@0x/quote-server/lib/src/types';
+import { Fee, SubmitRequest } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Counter } from 'prom-client';
@@ -15,11 +15,14 @@ import { RfqmQuoteEntity } from '../entities';
 import { InternalServerError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { getBestQuote } from '../utils/quote_comparison_utils';
+import { QuoteServerClient } from '../utils/quote_server_client';
 import {
     feeToStoredFee,
     RfqmDbUtils,
     RfqmJobOpts,
     RfqmJobStatus,
+    storedFeeToFee,
+    storedOrderToRfqmOrder,
     v4RfqOrderToStoredOrder,
 } from '../utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
@@ -134,6 +137,7 @@ export class RfqmService {
         private readonly _blockchainUtils: RfqBlockchainUtils,
         private readonly _connection: Connection,
         private readonly _sqsProducer: Producer,
+        private readonly _quoteServerClient: QuoteServerClient,
     ) {}
 
     /**
@@ -432,11 +436,90 @@ export class RfqmService {
     /**
      * Process an orderHash as an RfqmJob. Throws an error if job must be retried
      */
-    // tslint:disable: prefer-function-over-method
     public async processRfqmJobAsync(orderHash: string): Promise<void> {
-        logger.info({ orderHash }, 'finished processing job');
-        // tslint:disable-next-line: custom-no-magic-numbers
-        return Math.random() > 0.5 ? Promise.reject('failing') : Promise.resolve();
+        logger.info({ orderHash }, 'start processing job');
+
+        // Get job
+        const job = await this.dbUtils.findJobByOrderHashAsync(orderHash);
+        if (job === undefined) {
+            throw new NotFoundError(`job for orderHash ${orderHash} not found`);
+        }
+
+        // Basic validation
+        const { calldata, makerUri, order, fee } = job;
+        if (calldata === undefined) {
+            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+                status: RfqmJobStatus.Failed,
+                statusReason: 'Missing Calldata',
+            });
+            return;
+        }
+
+        if (makerUri === undefined) {
+            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+                status: RfqmJobStatus.Failed,
+                statusReason: 'Missing makerUri',
+            });
+            return;
+        }
+
+        if (order === null) {
+            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+                status: RfqmJobStatus.Failed,
+                statusReason: 'Missing order on fee',
+            });
+            return;
+        }
+
+        if (fee === null) {
+            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+                status: RfqmJobStatus.Failed,
+                statusReason: 'Missing fee on job',
+            });
+            return;
+        }
+
+        // Start processing
+        await this.dbUtils.updateRfqmJobAsync(orderHash, {
+            status: RfqmJobStatus.Processing,
+        });
+
+        // Validate w/Eth Call
+        try {
+            await this._blockchainUtils.decodeMetaTransactionCallDataAndValidateAsync(calldata, 'TODO Sender');
+        } catch (e) {
+            // Terminate with an error transition
+            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+                status: RfqmJobStatus.Failed,
+                statusReason: 'eth_call failed',
+            });
+            return;
+        }
+
+        // Get last look from MM
+        const submitRequest: SubmitRequest = {
+            order: storedOrderToRfqmOrder(order),
+            orderHash: job.orderHash!,
+            fee: storedFeeToFee(fee),
+        };
+
+        const shouldProceed = await this._quoteServerClient.confirmLastLookAsync(makerUri, submitRequest);
+        if (!shouldProceed) {
+            // Terminate with an error transition
+            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+                status: RfqmJobStatus.Failed,
+                statusReason: 'Rejected by MM last look',
+            });
+            return;
+        }
+
+        // TODO: Submit To Chain
+
+        // Update Status
+        await this.dbUtils.updateRfqmJobAsync(orderHash, {
+            status: RfqmJobStatus.Successful,
+        });
+        return;
     }
 
     private async _enqueueJobAsync(orderHash: string): Promise<void> {

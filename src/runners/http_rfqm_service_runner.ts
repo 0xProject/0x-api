@@ -35,6 +35,7 @@ import { RfqmService } from '../services/rfqm_service';
 import { HttpServiceConfig } from '../types';
 import { ConfigManager } from '../utils/config_manager';
 import { providerUtils } from '../utils/provider_utils';
+import { QuoteServerClient } from '../utils/quote_server_client';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 process.on('uncaughtException', (err) => {
@@ -72,10 +73,11 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
     const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
 
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
+    const axiosInstance = Axios.create(getAxiosRequestConfig());
     const quoteRequestor = new QuoteRequestor(
         {}, // No RFQT offerings
         RFQM_MAKER_ASSET_OFFERINGS,
-        Axios.create(getAxiosRequestConfig()),
+        axiosInstance,
         undefined, // No Alt RFQM offerings at the moment
         logger.warn.bind(logger),
         logger.info.bind(logger),
@@ -96,6 +98,8 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
         queueUrl: RFQM_META_TX_SQS_URL,
     });
 
+    const quoteServerClient = new QuoteServerClient(axiosInstance);
+
     return new RfqmService(
         quoteRequestor,
         protocolFeeUtils,
@@ -104,6 +108,7 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
         rfqBlockchainUtils,
         connection,
         sqsProducer,
+        quoteServerClient,
     );
 }
 
