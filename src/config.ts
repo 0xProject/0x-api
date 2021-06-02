@@ -546,7 +546,7 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: number) => {
         return TX_BASE_GAS.plus(25e3);
     } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
         // Uniswap V3 VIP
-        return TX_BASE_GAS.plus(-4e3);
+        return TX_BASE_GAS.plus(5e3);
     } else {
         return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
     }
