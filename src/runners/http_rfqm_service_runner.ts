@@ -74,6 +74,7 @@ if (require.main === module) {
 export async function buildRfqmServiceAsync(connection: Connection, asWorker: boolean): Promise<RfqmService> {
     let provider: SupportedProvider;
 
+    const rpcProvider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
     if (asWorker) {
         if (META_TX_WORKER_MNEMONIC === undefined) {
             throw new Error(`META_TX_WORKER_MNEMONIC must be defined to run RFQM service as a worker`);
@@ -86,10 +87,9 @@ export async function buildRfqmServiceAsync(connection: Connection, asWorker: bo
             META_TX_WORKER_INDEX,
         );
         const privateWalletSubprovider = new PrivateKeyWalletSubprovider(workerPrivateKey);
-        const rpcProvider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
         provider = RfqBlockchainUtils.createPrivateKeyProvider(rpcProvider, privateWalletSubprovider);
     } else {
-        provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
+        provider = rpcProvider;
     }
 
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
