@@ -985,6 +985,7 @@ describe(SUITE_NAME, () => {
                 order: mockStoredOrder,
                 chainId: 1337,
             });
+            const workerAddress = '0x123';
 
             const mmResponse = {
                 fee: mockStoredFee,
@@ -1003,7 +1004,7 @@ describe(SUITE_NAME, () => {
                 .expect(HttpStatus.CREATED)
                 .expect('Content-Type', /json/);
 
-            await rfqmService.processRfqmJobAsync(orderHash);
+            await rfqmService.processRfqmJobAsync(orderHash, workerAddress);
 
             const job = await dbUtils.findJobByOrderHashAsync(orderHash);
             expect(job?.status).to.eq(RfqmJobStatus.Successful);

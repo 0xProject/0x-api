@@ -64,7 +64,7 @@ export async function runRfqmWorkerAsync(rfqmService: RfqmService): Promise<SqsC
             RFQM_JOB_DEQUEUED.inc();
             const { orderHash } = JSON.parse(message.Body!);
             logger.info({ orderHash }, 'about to process job');
-            return rfqmService.processRfqmJobAsync(orderHash);
+            return rfqmService.processRfqmJobAsync(orderHash, 'TODO - worker address');
         },
         afterHandle: async (message) => {
             const orderHash = message.Body!;
