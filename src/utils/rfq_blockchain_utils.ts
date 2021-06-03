@@ -4,7 +4,7 @@ import { CallData, SupportedProvider, Web3Wrapper } from '@0x/dev-utils';
 import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { HDNode } from '@ethersproject/hdnode';
-import { TxData } from 'ethereum-types';
+import { TransactionReceipt, TxData } from 'ethereum-types';
 
 import { NULL_ADDRESS, ZERO } from '../constants';
 import { ChainId } from '../types';
@@ -13,6 +13,7 @@ import { ChainId } from '../types';
 const MIN_GAS_PRICE = new BigNumber(0);
 // 10K Gwei
 const MAX_GAS_PRICE = new BigNumber(1e13);
+const GAS_ESTIMATE_BUFFER = 0.05;
 
 export class RfqBlockchainUtils {
     private readonly _exchangeProxy: IZeroExContract;
@@ -112,6 +113,35 @@ export class RfqBlockchainUtils {
 
     public generateMetaTransactionCallData(metaTx: MetaTransaction, metaTxSig: Signature): string {
         return this._exchangeProxy.executeMetaTransaction(metaTx, metaTxSig).getABIEncodedTransactionData();
+    }
+
+    public async getNonceAsync(workerAddress: string): Promise<number> {
+        return this._web3Wrapper.getAccountNonceAsync(workerAddress);
+    }
+
+    public getExchangeProxyAddress(): string {
+        return this._exchangeProxyAddress;
+    }
+
+    public getTransactionReceiptIfExistsAsync(transactionHash: string): Promise<TransactionReceipt | undefined> {
+        return this._web3Wrapper.getTransactionReceiptIfExistsAsync(transactionHash);
+    }
+
+    public async getCurrentBlockAsync(): Promise<number> {
+        return this._web3Wrapper.getBlockNumberAsync();
+    }
+
+    public async estimateGasForExchangeProxyCallAsync(callData: string, workerAddress: string): Promise<number> {
+        const txData: Partial<TxData> = {
+            to: this._exchangeProxy.address,
+            data: callData,
+            from: workerAddress,
+        };
+
+        const gasEstimate = await this._web3Wrapper.estimateGasAsync(txData);
+
+        // add a buffer
+        return Math.ceil((GAS_ESTIMATE_BUFFER + 1) * gasEstimate);
     }
 
     public async submitCallDataToExchangeProxyAsync(

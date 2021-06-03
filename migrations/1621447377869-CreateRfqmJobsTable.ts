@@ -1,38 +1,53 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex, TableForeignKey } from 'typeorm';
 
-const rfqmJobsTable = new Table({
-    name: 'rfqm_jobs',
+const newTableName = 'rfqm_transaction_submissions';
+const transactionSubmissionsTable = new Table({
+    name: newTableName,
     columns: [
-        { name: 'order_hash', type: 'varchar', isPrimary: true },
-        { name: 'metatransaction_hash', type: 'varchar', isUnique: true, isNullable: true },
+        { name: 'transaction_hash', type: 'varchar', isPrimary: true },
+        { name: 'order_hash', type: 'varchar' },
         { name: 'created_at', type: 'timestamptz', default: 'NOW()' },
         { name: 'updated_at', type: 'timestamptz', isNullable: true },
-        { name: 'expiry', type: 'numeric' },
-        { name: 'chain_id', type: 'integer' },
-        { name: 'integrator_id', type: 'varchar', isNullable: true },
-        { name: 'maker_uri', type: 'varchar' },
+
+        // important transaction properties
+        { name: 'from', type: 'string', isNullable: true },
+        { name: 'to', type: 'string', isNullable: true },
+        { name: 'nonce', type: 'bigint', isNullable: true },
+        { name: 'gas_price', type: 'numeric', isNullable: true },
+        { name: 'gas_used', type: 'numeric', isNullable: true },
+        { name: 'block_mined', type: 'numeric', isNullable: true },
+
         { name: 'status', type: 'varchar' },
         { name: 'status_reason', type: 'varchar', isNullable: true },
-        { name: 'calldata', type: 'varchar' },
-        { name: 'fee', type: 'jsonb', isNullable: true },
-        { name: 'order', type: 'jsonb', isNullable: true },
         { name: 'metadata', type: 'jsonb', isNullable: true },
     ],
 });
 
-const createdAtIndex = new TableIndex({ name: `rfqm_jobs_created_at_index`, columnNames: ['created_at'] });
-const statusIndex = new TableIndex({ name: `rfqm_jobs_status_index`, columnNames: ['status'] });
+const createdAtIndex = new TableIndex({
+    name: `rfqm_transaction_submissions_created_at_index`,
+    columnNames: ['created_at'],
+});
+const statusIndex = new TableIndex({ name: `rfqm_transaction_submissions_status_index`, columnNames: ['status'] });
+
+const foreignKey = new TableForeignKey({
+    columnNames: ['order_hash'],
+    referencedColumnNames: ['order_hash'],
+    referencedTableName: 'rfqm_jobs',
+    onDelete: 'RESTRICT',
+});
 
 export class CreateRfqmJobsTable1621447377869 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.createTable(rfqmJobsTable);
-        await queryRunner.createIndex('rfqm_jobs', createdAtIndex);
-        await queryRunner.createIndex('rfqm_jobs', statusIndex);
+        await queryRunner.createTable(transactionSubmissionsTable);
+        await queryRunner.createIndex(newTableName, createdAtIndex);
+        await queryRunner.createIndex(newTableName, statusIndex);
+        await queryRunner.createForeignKey(newTableName, foreignKey);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropIndex('rfqm_jobs', createdAtIndex);
-        await queryRunner.dropIndex('rfqm_jobs', statusIndex);
-        await queryRunner.dropTable(rfqmJobsTable);
+        await queryRunner.dropForeignKey(newTableName, foreignKey);
+        await queryRunner.dropIndex(newTableName, createdAtIndex);
+        await queryRunner.dropIndex(newTableName, statusIndex);
+        await queryRunner.dropTable(transactionSubmissionsTable);
     }
 }

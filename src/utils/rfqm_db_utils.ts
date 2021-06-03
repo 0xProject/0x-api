@@ -3,7 +3,7 @@ import { RfqOrder } from '@0x/protocol-utils';
 import { Fee } from '@0x/quote-server/lib/src/types';
 import { Connection } from 'typeorm/connection/Connection';
 
-import { RfqmJobEntity, RfqmQuoteEntity } from '../entities';
+import { RfqmJobEntity, RfqmQuoteEntity, RfqmTransactionSubmissionEntity } from '../entities';
 
 export interface RfqmJobOpts {
     orderHash?: string;
@@ -22,12 +22,34 @@ export interface RfqmJobOpts {
     metadata?: object;
 }
 
+export interface RfqmTransactionSubmissionOpts {
+    transactionHash?: string;
+    orderHash?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+    from?: string;
+    to?: string;
+    gasPrice?: BigNumber | null;
+    gasUsed?: BigNumber | null;
+    nonce?: number | null;
+    status?: RfqmTranasctionSubmissionStatus;
+    statusReason?: string | null;
+    metadata?: object;
+}
+
 export enum RfqmJobStatus {
     InQueue = 'inQueue',
     Processing = 'processing',
     Submitted = 'submitted',
     Successful = 'successful',
     Failed = 'failed',
+}
+
+export enum RfqmTranasctionSubmissionStatus {
+    Submitted = 'submitted',
+    Successful = 'successful',
+    Reverted = 'reverted',
+    Replaced = 'replaced',
 }
 
 export enum RfqmOrderTypes {
@@ -160,5 +182,20 @@ export class RfqmDbUtils {
 
     public async writeRfqmJobToDbAsync(rfqmJobOpts: RfqmJobOpts): Promise<void> {
         await this._connection.getRepository(RfqmJobEntity).insert(new RfqmJobEntity(rfqmJobOpts));
+    }
+
+    public async writeRfqmTransactionSubmissionToDbAsync(
+        rfqmTransactionSubmissionOpts: RfqmTransactionSubmissionOpts,
+    ): Promise<RfqmTransactionSubmissionEntity> {
+        const entity = new RfqmTransactionSubmissionEntity(rfqmTransactionSubmissionOpts);
+        await this._connection.getRepository(RfqmTransactionSubmissionEntity).insert(entity);
+
+        return entity;
+    }
+
+    public async updateRfqmTransactionSubmissionsAsync(
+        entities: Partial<RfqmTransactionSubmissionEntity>[],
+    ): Promise<void> {
+        await this._connection.getRepository(RfqmTransactionSubmissionEntity).save(entities);
     }
 }
