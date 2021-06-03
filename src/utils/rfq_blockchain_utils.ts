@@ -24,7 +24,8 @@ export class RfqBlockchainUtils {
     public static getPrivateKeyFromIndexAndPhrase(mnemonic: string, index: number): string {
         const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(this._getPathByIndex(index));
 
-        return hdNode.privateKey;
+        // take '0x' off
+        return hdNode.privateKey.substring(2);
     }
 
     public static getAddressFromIndexAndPhrase(mnemonic: string, index: number): string {
