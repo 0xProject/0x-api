@@ -184,7 +184,7 @@ describe(SUITE_NAME, () => {
             };
             await dbUtils.writeRfqmJobToDbAsync(rfqmJobOpts);
 
-            const rfqmTransactionSubmissionEntityOpts: RfqmTransactionSubmissionEntityOpts = {
+            const rfqmTransactionSubmissionEntityOpts: Partial<RfqmTransactionSubmissionEntity> = {
                 transactionHash,
                 orderHash,
                 createdAt,
