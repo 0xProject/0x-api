@@ -142,7 +142,7 @@ describe(SUITE_NAME, () => {
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
-    describe('validateMetaTransaction', () => {
+    describe.only('validateMetaTransaction', () => {
         it('returns successful filled amounts for a valid metatransaction', async () => {
             const metaTx = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
             const metaTxSig = await metaTx.getSignatureWithProviderAsync(provider);
@@ -202,6 +202,22 @@ describe(SUITE_NAME, () => {
                 expect.fail(`validateMetaTransactionOrThrowAsync should throw an error when the order is unfillable`);
             } catch (err) {
                 expect(String(err)).to.contain('MetaTransactionCallFailedError');
+            }
+        });
+        it('should throw for a partially filled order', async () => {
+            const metaTx1 = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount.div(2), CHAIN_ID);
+            const metaTxSig1 = await metaTx1.getSignatureWithProviderAsync(provider);
+
+            await zeroEx.executeMetaTransaction(metaTx1, metaTxSig1).awaitTransactionSuccessAsync({from: txOrigin});
+
+            const metaTx2 = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
+            const metaTxSig2 = await metaTx2.getSignatureWithProviderAsync(provider);
+
+            try {
+                await rfqBlockchainUtils.validateMetaTransactionOrThrowAsync(metaTx2, metaTxSig2, txOrigin);
+                expect.fail(`validateMetaTransactionOrThrowAsync should throw an error when not filling the entire amount`);
+            } catch (err) {
+                expect(String(err)).to.contain(`filled amount is less than requested fill amount`);
             }
         });
     });
