@@ -22,24 +22,6 @@ export interface RfqmJobOpts {
     metadata?: object;
 }
 
-export interface RfqmTransactionSubmissionEntityOpts {
-    transactionHash?: string;
-    orderHash?: string;
-    createdAt?: Date;
-    updatedAt?: Date;
-    from?: string;
-    to?: string;
-    gasPrice?: BigNumber | null;
-    gasUsed?: BigNumber | null;
-    blockMined?: BigNumber | null;
-    nonce?: number | null;
-    expectedTakerTokenFillAmount?: BigNumber;
-    actualTakerTokenFillAmount?: BigNumber;
-    status?: RfqmTranasctionSubmissionStatus;
-    statusReason?: string | null;
-    metadata?: object;
-}
-
 export enum RfqmJobStatus {
     InQueue = 'inQueue',
     Processing = 'processing',
@@ -197,9 +179,9 @@ export class RfqmDbUtils {
     }
 
     public async writeRfqmTransactionSubmissionToDbAsync(
-        rfqmTransactionSubmissionOpts: RfqmTransactionSubmissionEntityOpts,
+        partialRfqmTransactionSubmissionEntity: Partial<RfqmTransactionSubmissionEntity>,
     ): Promise<RfqmTransactionSubmissionEntity> {
-        const entity = new RfqmTransactionSubmissionEntity(rfqmTransactionSubmissionOpts);
+        const entity = new RfqmTransactionSubmissionEntity(partialRfqmTransactionSubmissionEntity);
         await this._connection.getRepository(RfqmTransactionSubmissionEntity).insert(entity);
 
         return entity;

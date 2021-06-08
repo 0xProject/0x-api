@@ -142,7 +142,7 @@ describe(SUITE_NAME, () => {
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
-    describe.only('validateMetaTransaction', () => {
+    describe('validateMetaTransaction', () => {
         it('returns successful filled amounts for a valid metatransaction', async () => {
             const metaTx = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
             const metaTxSig = await metaTx.getSignatureWithProviderAsync(provider);

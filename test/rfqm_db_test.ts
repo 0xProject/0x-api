@@ -17,7 +17,6 @@ import {
     RfqmJobOpts,
     RfqmJobStatus,
     RfqmTranasctionSubmissionStatus,
-    RfqmTransactionSubmissionEntityOpts,
     v4RfqOrderToStoredOrder,
 } from '../src/utils/rfqm_db_utils';
 
@@ -224,7 +223,7 @@ describe(SUITE_NAME, () => {
             };
             await dbUtils.writeRfqmJobToDbAsync(rfqmJobOpts);
 
-            const rfqmTransactionSubmissionEntityOpts: RfqmTransactionSubmissionEntityOpts = {
+            const rfqmTransactionSubmissionEntityOpts: Partial<RfqmTransactionSubmissionEntity> = {
                 transactionHash,
                 orderHash,
                 createdAt,

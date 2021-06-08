@@ -1,7 +1,7 @@
 import { BigNumber } from '@0x/asset-swapper';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
-import { RfqmTranasctionSubmissionStatus, RfqmTransactionSubmissionEntityOpts } from '../utils/rfqm_db_utils';
+import { RfqmTranasctionSubmissionStatus } from '../utils/rfqm_db_utils';
 
 import { BigIntTransformer, BigNumberTransformer } from './transformers';
 
@@ -66,21 +66,21 @@ export class RfqmTransactionSubmissionEntity {
     @Column({ name: 'metadata', type: 'jsonb', nullable: true })
     public metadata: object | null;
 
-    constructor(opts: RfqmTransactionSubmissionEntityOpts = {}) {
-        this.transactionHash = opts.transactionHash;
-        this.orderHash = opts.orderHash;
-        this.createdAt = opts.createdAt;
-        this.updatedAt = opts.updatedAt || null;
-        this.from = opts.from || null;
-        this.to = opts.to || null;
-        this.gasPrice = opts.gasPrice || null;
-        this.gasUsed = opts.gasUsed || null;
-        this.blockMined = opts.blockMined || null;
-        this.nonce = opts.nonce || null;
-        this.expectedTakerTokenFillAmount = opts.expectedTakerTokenFillAmount || null;
-        this.actualTakerTokenFillAmount = opts.actualTakerTokenFillAmount || null;
-        this.status = opts.status;
-        this.statusReason = opts.statusReason || null;
-        this.metadata = opts.metadata || null;
+    constructor(partialEntity: Partial<RfqmTransactionSubmissionEntity> = {}) {
+        this.transactionHash = partialEntity.transactionHash;
+        this.orderHash = partialEntity.orderHash;
+        this.createdAt = partialEntity.createdAt;
+        this.updatedAt = partialEntity.updatedAt || null;
+        this.from = partialEntity.from || null;
+        this.to = partialEntity.to || null;
+        this.gasPrice = partialEntity.gasPrice || null;
+        this.gasUsed = partialEntity.gasUsed || null;
+        this.blockMined = partialEntity.blockMined || null;
+        this.nonce = partialEntity.nonce || null;
+        this.expectedTakerTokenFillAmount = partialEntity.expectedTakerTokenFillAmount || null;
+        this.actualTakerTokenFillAmount = partialEntity.actualTakerTokenFillAmount || null;
+        this.status = partialEntity.status;
+        this.statusReason = partialEntity.statusReason || null;
+        this.metadata = partialEntity.metadata || null;
     }
 }
