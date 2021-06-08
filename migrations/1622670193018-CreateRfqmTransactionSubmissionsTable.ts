@@ -16,6 +16,8 @@ const transactionSubmissionsTable = new Table({
         { name: 'gas_price', type: 'numeric', isNullable: true },
         { name: 'gas_used', type: 'numeric', isNullable: true },
         { name: 'block_mined', type: 'numeric', isNullable: true },
+        { name: 'expected_taker_token_fill_amount', type: 'numeric', isNullable: true },
+        { name: 'actual_taker_token_fill_amount', type: 'numeric', isNullable: true },
 
         { name: 'status', type: 'varchar' },
         { name: 'status_reason', type: 'varchar', isNullable: true },

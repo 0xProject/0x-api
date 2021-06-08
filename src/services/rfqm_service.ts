@@ -5,6 +5,7 @@ import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
 import { Fee } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import delay from 'delay';
 import { Counter } from 'prom-client';
 import { Producer } from 'sqs-producer';
 import { Connection } from 'typeorm';
@@ -21,13 +22,13 @@ import {
     RfqmJobOpts,
     RfqmJobStatus,
     RfqmTranasctionSubmissionStatus,
-    RfqmTransactionSubmissionOpts,
+    RfqmTransactionSubmissionEntityOpts,
     v4RfqOrderToStoredOrder,
 } from '../utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 const TRANSACTION_WATCHER_SLEEP_TIME_MS = 15000;
-const BLOCK_FINALITY_THRESHOLD = 6;
+export const BLOCK_FINALITY_THRESHOLD = 6;
 
 export enum RfqmTypes {
     MetaTransaction = 'metatransaction',
@@ -94,6 +95,16 @@ export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse 
     orderHash: string;
 }
 
+export interface SubmissionsMapStatus {
+    isTxMined: boolean;
+    isTxFinalized: boolean;
+    submissionsMap: SubmissionsMap;
+}
+
+export interface SubmissionsMap {
+    [transactionHash: string]: RfqmTransactionSubmissionEntity;
+}
+
 export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
 export type SubmitRfqmSignedQuoteParams = MetaTransactionSubmitRfqmSignedQuoteParams;
 export type SubmitRfqmSignedQuoteResponse = MetaTransactionSubmitRfqmSignedQuoteResponse;
@@ -125,12 +136,6 @@ const RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON = new Counter({
     name: 'rfqm_signed_quote_expiry_too_soon',
     help: 'A signed quote was not queued because it would expire too soon',
 });
-
-async function sleepAsync(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
 
 /**
  * RfqmService is the coordination layer for HTTP based RFQM flows.
@@ -458,64 +463,137 @@ export class RfqmService {
         workerAddress: string,
         callData: string,
     ): Promise<void> {
-        const submissions: { [transactionHash: string]: RfqmTransactionSubmissionEntity } = {};
+        let submissionsMap: SubmissionsMap = {};
 
-        let gasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+        let gasPrice: BigNumber;
+        let nonce: number;
+        let gasEstimate: number;
 
-        const firstSubmission = await this._submitTransactionAsync(orderHash, workerAddress, callData, gasPrice);
-        submissions[firstSubmission.transactionHash!] = firstSubmission;
+        [gasPrice, nonce, gasEstimate] = await Promise.all([
+            this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync(),
+            this._blockchainUtils.getNonceAsync(workerAddress),
+            this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress),
+        ]);
 
-        let isFinishedMonitoring = false;
-        let shouldTryResubmitting = true;
-        while (!isFinishedMonitoring) {
-            await sleepAsync(TRANSACTION_WATCHER_SLEEP_TIME_MS);
+        const expectedTakerTokenFillAmount = this._blockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
 
-            // check if any tx has been mined
-            const receipts = await Promise.all(
-                Object.keys(submissions).map(async (transactionHash) => {
-                    return {
-                        transactionHash,
-                        response: await this._blockchainUtils.getTransactionReceiptIfExistsAsync(transactionHash),
-                    };
-                }),
+        const firstSubmission = await this._submitTransactionAsync(
+            orderHash,
+            workerAddress,
+            callData,
+            gasPrice,
+            nonce,
+            gasEstimate,
+            expectedTakerTokenFillAmount,
+        );
+        submissionsMap[firstSubmission.transactionHash!] = firstSubmission;
+
+        let isTxMined = false;
+        let isTxFinalized = false;
+        while (!isTxFinalized) {
+            await delay(TRANSACTION_WATCHER_SLEEP_TIME_MS);
+
+            const statusCheckResult = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
+                submissionsMap,
+                expectedTakerTokenFillAmount,
             );
+            isTxMined = statusCheckResult.isTxMined;
+            isTxFinalized = statusCheckResult.isTxFinalized;
+            submissionsMap = statusCheckResult.submissionsMap;
 
-            for (const receipt of receipts) {
-                // if a tx has been mined, stop trying to resubmit
-                if (receipt.response !== undefined) {
-                    shouldTryResubmitting = false;
-                    const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
-                    if (receipt.response.blockNumber - currentBlock >= BLOCK_FINALITY_THRESHOLD) {
-                        isFinishedMonitoring = true;
-                    }
-                    // update all entities
-                    receipts.map((r) => {
-                        if (r.response !== undefined) {
-                            submissions[r.transactionHash].status =
-                                r.response.status === 1
-                                    ? RfqmTranasctionSubmissionStatus.Successful
-                                    : RfqmTranasctionSubmissionStatus.Reverted;
-                            submissions[r.transactionHash].blockMined = new BigNumber(r.response.blockNumber);
-                            submissions[r.transactionHash].gasUsed = new BigNumber(r.response.gasUsed);
-                        } else {
-                            submissions[r.transactionHash].status = RfqmTranasctionSubmissionStatus.DroppedAndReplaced;
-                        }
-                    });
-                    await this.dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissions));
-                    break;
-                }
-            }
-
-            if (shouldTryResubmitting) {
+            if (!isTxMined) {
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+                try {
+                    await this._blockchainUtils.decodeMetaTransactionCallDataAndValidateAsync(callData, workerAddress, {
+                        gasPrice: newGasPrice,
+                    });
+                } catch (err) {
+                    this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+                }
 
                 if (gasPrice.lt(newGasPrice)) {
                     gasPrice = newGasPrice;
-                    const submission = await this._submitTransactionAsync(orderHash, workerAddress, callData, gasPrice);
-                    submissions[submission.transactionHash!] = submission;
+                    const submission = await this._submitTransactionAsync(
+                        orderHash,
+                        workerAddress,
+                        callData,
+                        gasPrice,
+                        nonce,
+                        gasEstimate,
+                        expectedTakerTokenFillAmount,
+                    );
+                    submissionsMap[submission.transactionHash!] = submission;
                 }
             }
         }
+    }
+
+    /**
+     * Check for receipts from the tx's in a SubmissionsMap object
+     * Update database with status of all tx's
+     */
+    private async _checkSubmissionMapReceiptsAndUpdateDbAsync(
+        submissionsMap: SubmissionsMap,
+        expectedTakerTokenFillAmount: BigNumber,
+    ): Promise<SubmissionsMapStatus> {
+        let isTxMined: boolean = false;
+        let isTxFinalized: boolean = false;
+
+        // check if any tx has been mined
+        const receipts = await Promise.all(
+            Object.keys(submissionsMap).map(async (transactionHash) => {
+                return {
+                    transactionHash,
+                    response: await this._blockchainUtils.getTransactionReceiptIfExistsAsync(transactionHash),
+                };
+            }),
+        );
+
+        for (const receipt of receipts) {
+            if (receipt.response !== undefined) {
+                isTxMined = true;
+                const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
+                if (receipt.response.blockNumber - currentBlock >= BLOCK_FINALITY_THRESHOLD) {
+                    isTxFinalized = true;
+                }
+                // update all entities
+                for (const r of receipts) {
+                    if (r.response !== undefined) {
+                        if (r.response.status === 1) {
+                            const actualTakerTokenFilledAmount = this._blockchainUtils.getRfqOrderTakerTokenFilledAmountFromLogs(
+                                r.response.logs,
+                            );
+                            submissionsMap[r.transactionHash].status = actualTakerTokenFilledAmount.lt(
+                                expectedTakerTokenFillAmount,
+                            )
+                                ? RfqmTranasctionSubmissionStatus.PartialFill
+                                : RfqmTranasctionSubmissionStatus.Successful;
+                            submissionsMap[r.transactionHash].actualTakerTokenFillAmount = actualTakerTokenFilledAmount;
+                        } else {
+                            submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.Reverted;
+                            submissionsMap[r.transactionHash].actualTakerTokenFillAmount = null;
+                        }
+                        submissionsMap[r.transactionHash].blockMined = new BigNumber(r.response.blockNumber);
+                        submissionsMap[r.transactionHash].gasUsed = new BigNumber(r.response.gasUsed);
+                        submissionsMap[r.transactionHash].updatedAt = new Date();
+                    } else {
+                        submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.DroppedAndReplaced;
+                        submissionsMap[r.transactionHash].blockMined = null;
+                        submissionsMap[r.transactionHash].gasUsed = null;
+                        submissionsMap[r.transactionHash].actualTakerTokenFillAmount = null;
+                        submissionsMap[r.transactionHash].updatedAt = new Date();
+                    }
+                }
+                await this.dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap));
+                break;
+            }
+        }
+
+        return {
+            isTxMined,
+            isTxFinalized,
+            submissionsMap,
+        };
     }
 
     /**
@@ -526,13 +604,10 @@ export class RfqmService {
         workerAddress: string,
         callData: string,
         gasPrice: BigNumber,
+        nonce: number,
+        gasEstimate: number,
+        expectedTakerTokenFillAmount: BigNumber,
     ): Promise<RfqmTransactionSubmissionEntity> {
-        // get transaction properties
-        const [nonce, gasEstimate] = await Promise.all([
-            this._blockchainUtils.getNonceAsync(workerAddress),
-            this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress),
-        ]);
-
         const txOptions = {
             nonce,
             gas: gasEstimate,
@@ -548,7 +623,7 @@ export class RfqmService {
         );
 
         // save tx submission to DB
-        const entityOpts: RfqmTransactionSubmissionOpts = {
+        const entityOpts: RfqmTransactionSubmissionEntityOpts = {
             transactionHash,
             orderHash,
             createdAt: new Date(),
@@ -557,6 +632,7 @@ export class RfqmService {
             gasPrice,
             nonce,
             status: RfqmTranasctionSubmissionStatus.Submitted,
+            expectedTakerTokenFillAmount,
         };
 
         return this.dbUtils.writeRfqmTransactionSubmissionToDbAsync(entityOpts);

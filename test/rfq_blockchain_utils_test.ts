@@ -5,6 +5,7 @@ import { Web3ProviderEngine } from '@0x/dev-utils';
 import { RfqOrder, Signature } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
+import { LogEntry } from 'ethereum-types';
 import 'mocha';
 
 import { PROTOCOL_FEE_MULTIPLIER } from '../src/config';
@@ -19,6 +20,17 @@ const SUITE_NAME = 'RFQ Blockchain Utils Test';
 const GAS_PRICE = 1e9;
 const VALID_EXPIRY = new BigNumber(9000000000);
 const CHAIN_ID = ChainId.Ganache;
+const TEST_RFQ_ORDER_FILLED_EVENT_LOG: LogEntry = {
+    blockHash: '0x4c9f6904bd33f57204a8451de0891b448a7be065c1704e5b6905f382cb31b040',
+    address: '0xdef1c0ded9bec7f1a1670819833240f027b25eff',
+    logIndex: 74,
+    data: '0xf70ec34e807d08cb83757ec62fffd9e0d22db6b4b97f46b78adcf47682c4cccb000000000000000000000000e89bc18cee87c9af8b472635a152704b96dafb8f0000000000000000000000009016cc2122b52ff5d9937c0c1422b78d7e81ceea0000000000000000000000006b175474e89094c44da98b954eedeac495271d0f000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000000000000000000000000000000000000000000000000002386f26fc10000000000000000000000000000000000000000000000000000e44a075a36f7e7010000000000000000000000000000000000000000000000000000000000000000',
+    topics: ['0x829fa99d94dc4636925b38632e625736a614c154d55006b7ab6bea979c210c32'],
+    blockNumber: 11598119,
+    transactionIndex: 70,
+    transactionHash: '0x2b723137d9328fbe5e64bc2729ef5b1d846bb1d242ae2f3c016b9f70715aa818',
+};
+const TEST_RFQ_ORDER_FILLED_EVENT_TAKER_AMOUNT = new BigNumber('10000000000000000');
 
 describe(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
@@ -203,6 +215,24 @@ describe(SUITE_NAME, () => {
             const txHash = await rfqBlockchainUtils.submitCallDataToExchangeProxyAsync(callData, txOrigin, { gasPrice: 1e9, gas: 200000, value: 0 });
 
             expect(txHash).to.match(/^0x[0-9a-fA-F]+/);
+        });
+    });
+    describe('getTakerTokenFillAmountFromMetaTxCallData', () => {
+        it('returns the correct taker token fill amount from calldata', async () => {
+            const metaTx = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
+            const metaTxSig = await metaTx.getSignatureWithProviderAsync(provider);
+
+            const callData = rfqBlockchainUtils.generateMetaTransactionCallData(metaTx, metaTxSig);
+
+            const expectedTakerTokenFillAmount = rfqBlockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
+            expect(expectedTakerTokenFillAmount).to.deep.eq(takerAmount);
+        });
+    });
+    describe('getRfqOrderTakerTokenFilledAmountFromLogs', () => {
+        it('returns the correct taker token fill amount from an RfqOrderFillEvent log', async () => {
+            const actualTakerAmount = rfqBlockchainUtils.getRfqOrderTakerTokenFilledAmountFromLogs([TEST_RFQ_ORDER_FILLED_EVENT_LOG]);
+
+            expect(actualTakerAmount).to.deep.eq(TEST_RFQ_ORDER_FILLED_EVENT_TAKER_AMOUNT);
         });
     });
 });
