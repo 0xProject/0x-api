@@ -3,6 +3,8 @@
  */
 import { createDefaultServer } from '@0x/api-utils';
 import { ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
+import { SupportedProvider } from '@0x/dev-utils';
+import { PrivateKeyWalletSubprovider } from '@0x/subproviders';
 import Axios, { AxiosRequestConfig } from 'axios';
 import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
@@ -17,6 +19,8 @@ import {
     CHAIN_ID,
     defaultHttpServiceWithRateLimiterConfig,
     ETH_GAS_STATION_API_URL,
+    META_TX_WORKER_INDEX,
+    META_TX_WORKER_MNEMONIC,
     META_TX_WORKER_REGISTRY,
     RFQM_MAKER_ASSET_OFFERINGS,
     RFQM_META_TX_SQS_URL,
@@ -35,6 +39,7 @@ import { RfqmService } from '../services/rfqm_service';
 import { HttpServiceConfig } from '../types';
 import { ConfigManager } from '../utils/config_manager';
 import { providerUtils } from '../utils/provider_utils';
+import { QuoteServerClient } from '../utils/quote_server_client';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 process.on('uncaughtException', (err) => {
@@ -58,9 +63,8 @@ if (require.main === module) {
             meshHttpUri: undefined,
         };
         const connection = await getDBConnectionAsync();
-        const rfqmService = await buildRfqmServiceAsync(connection);
+        const rfqmService = await buildRfqmServiceAsync(connection, false);
         const configManager = new ConfigManager();
-
         await runHttpRfqmServiceAsync(rfqmService, configManager, config, connection);
     })().catch((error) => logger.error(error.stack));
 }
@@ -68,14 +72,33 @@ if (require.main === module) {
 /**
  * Builds an instance of RfqmService
  */
-export async function buildRfqmServiceAsync(connection: Connection): Promise<RfqmService> {
-    const provider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
+export async function buildRfqmServiceAsync(connection: Connection, asWorker: boolean): Promise<RfqmService> {
+    let provider: SupportedProvider;
+
+    const rpcProvider = providerUtils.createWeb3Provider(defaultHttpServiceWithRateLimiterConfig.ethereumRpcUrl);
+    if (asWorker) {
+        if (META_TX_WORKER_MNEMONIC === undefined) {
+            throw new Error(`META_TX_WORKER_MNEMONIC must be defined to run RFQM service as a worker`);
+        }
+        if (META_TX_WORKER_INDEX === undefined) {
+            throw new Error(`META_TX_WORKER_INDEX must be defined to run RFQM service as a worker`);
+        }
+        const workerPrivateKey = RfqBlockchainUtils.getPrivateKeyFromIndexAndPhrase(
+            META_TX_WORKER_MNEMONIC,
+            META_TX_WORKER_INDEX,
+        );
+        const privateWalletSubprovider = new PrivateKeyWalletSubprovider(workerPrivateKey);
+        provider = RfqBlockchainUtils.createPrivateKeyProvider(rpcProvider, privateWalletSubprovider);
+    } else {
+        provider = rpcProvider;
+    }
 
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
+    const axiosInstance = Axios.create(getAxiosRequestConfig());
     const quoteRequestor = new QuoteRequestor(
         {}, // No RFQT offerings
         RFQM_MAKER_ASSET_OFFERINGS,
-        Axios.create(getAxiosRequestConfig()),
+        axiosInstance,
         undefined, // No Alt RFQM offerings at the moment
         logger.warn.bind(logger),
         logger.info.bind(logger),
@@ -96,6 +119,8 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
         queueUrl: RFQM_META_TX_SQS_URL,
     });
 
+    const quoteServerClient = new QuoteServerClient(axiosInstance);
+
     return new RfqmService(
         quoteRequestor,
         protocolFeeUtils,
@@ -104,6 +129,7 @@ export async function buildRfqmServiceAsync(connection: Connection): Promise<Rfq
         rfqBlockchainUtils,
         connection,
         sqsProducer,
+        quoteServerClient,
     );
 }
 
