@@ -43,7 +43,7 @@ import {
 } from '../src/utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../src/utils/rfq_blockchain_utils';
 
-import { CONTRACT_ADDRESSES, getProvider, NULL_ADDRESS } from './constants';
+import { CONTRACT_ADDRESSES, getProvider, NULL_ADDRESS, TEST_DECODED_RFQ_ORDER_FILLED_EVENT_LOG, TEST_RFQ_ORDER_FILLED_EVENT_LOG } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 
 // Force reload of the app avoid variables being polluted between test suites
@@ -89,7 +89,7 @@ const SUCCESSFUL_TRANSACTION_RECEIPT = {
     cumulativeGasUsed: 150000,
     from: WORKER_ADDRESS,
     gasUsed: GAS_ESTIMATE,
-    logs: [],
+    logs: [TEST_RFQ_ORDER_FILLED_EVENT_LOG],
     status: TX_STATUS,
     to: MOCK_EXCHANGE_PROXY,
     transactionHash: FIRST_TRANSACTION_HASH,
@@ -188,13 +188,11 @@ describe(SUITE_NAME, () => {
             )
         ).thenReturn(EXPECTED_FILL_AMOUNT);
         when(
-            rfqBlockchainUtilsMock.getRfqOrderTakerTokenFilledAmountFromLogs(
-                anything(),
-            )
-        ).thenReturn(EXPECTED_FILL_AMOUNT);
-        when(
             rfqBlockchainUtilsMock.decodeMetaTransactionCallDataAndValidateAsync(anyString(), anyString(), anything()),
         ).thenResolve(validationResponse);
+        when(rfqBlockchainUtilsMock.getDecodedRfqOrderFillEventLogFromLogs(anything())).thenReturn(
+            TEST_DECODED_RFQ_ORDER_FILLED_EVENT_LOG,
+        );
         const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
 
         interface SqsResponse {
@@ -1017,8 +1015,6 @@ describe(SUITE_NAME, () => {
             expect(dbSubmissionEntity?.blockMined).to.deep.equal(new BigNumber(MINED_BLOCK));
             expect(dbSubmissionEntity?.to).to.deep.equal(MOCK_EXCHANGE_PROXY);
             expect(dbSubmissionEntity?.statusReason).to.deep.equal(null);
-            expect(dbSubmissionEntity?.expectedTakerTokenFillAmount).to.deep.equal(EXPECTED_FILL_AMOUNT);
-            expect(dbSubmissionEntity?.actualTakerTokenFillAmount).to.deep.equal(EXPECTED_FILL_AMOUNT);
         });
     });
     describe('processJobAsync', async () => {

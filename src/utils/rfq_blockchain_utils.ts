@@ -185,19 +185,6 @@ export class RfqBlockchainUtils {
         return Math.ceil((GAS_ESTIMATE_BUFFER + 1) * gasEstimate);
     }
 
-    public getRfqOrderTakerTokenFilledAmountFromLogs(logs: LogEntry[]): BigNumber {
-        for (const log of logs) {
-            if (log.topics[0] === RFQ_ORDER_FILLED_EVENT_TOPIC0) {
-                return (this._abiDecoder.tryToDecodeLogOrNoop(
-                    log,
-                ) as LogWithDecodedArgs<IZeroExRfqOrderFilledEventArgs>).args.takerTokenFilledAmount;
-            }
-        }
-        throw new Error(
-            `no RfqOrderFilledEvent logs among the logs passed into getRfqOrderTakerTokenFilledAmountFromLogs`,
-        );
-    }
-
     public getDecodedRfqOrderFillEventLogFromLogs(
         logs: LogEntry[],
     ): LogWithDecodedArgs<IZeroExRfqOrderFilledEventArgs> {
@@ -207,7 +194,7 @@ export class RfqBlockchainUtils {
             }
         }
         throw new Error(
-            `no RfqOrderFilledEvent logs among the logs passed into getRfqOrderTakerTokenFilledAmountFromLogs`,
+            `no RfqOrderFilledEvent logs among the logs passed into getDecodedRfqOrderFillEventLogFromLogs`,
         );
     }
 

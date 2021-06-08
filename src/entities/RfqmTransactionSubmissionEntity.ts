@@ -40,22 +40,6 @@ export class RfqmTransactionSubmissionEntity {
     @Column({ name: 'block_mined', type: 'numeric', nullable: true, transformer: BigNumberTransformer })
     public blockMined: BigNumber | null;
 
-    @Column({
-        name: 'expected_taker_token_fill_amount',
-        type: 'numeric',
-        nullable: true,
-        transformer: BigNumberTransformer,
-    })
-    public expectedTakerTokenFillAmount: BigNumber | null;
-
-    @Column({
-        name: 'actual_taker_token_fill_amount',
-        type: 'numeric',
-        nullable: true,
-        transformer: BigNumberTransformer,
-    })
-    public actualTakerTokenFillAmount: BigNumber | null;
-
     @Index()
     @Column({ name: 'status', type: 'varchar' })
     public status?: RfqmTranasctionSubmissionStatus;
@@ -77,8 +61,6 @@ export class RfqmTransactionSubmissionEntity {
         this.gasUsed = partialEntity.gasUsed || null;
         this.blockMined = partialEntity.blockMined || null;
         this.nonce = partialEntity.nonce || null;
-        this.expectedTakerTokenFillAmount = partialEntity.expectedTakerTokenFillAmount || null;
-        this.actualTakerTokenFillAmount = partialEntity.actualTakerTokenFillAmount || null;
         this.status = partialEntity.status;
         this.statusReason = partialEntity.statusReason || null;
         this.metadata = partialEntity.metadata || null;

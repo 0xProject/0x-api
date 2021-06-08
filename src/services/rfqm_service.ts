@@ -536,6 +536,11 @@ export class RfqmService {
         workerAddress: string,
         callData: string,
     ): Promise<void> {
+        // make sure this order hasn't been used by another worker (or this worker before)
+        if ((await this.dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash)).length !== 0) {
+            throw new Error(`this order hash has been previously worked on, exiting submission flow`);
+        }
+
         let submissionsMap: SubmissionsMap = {};
 
         let gasPrice: BigNumber;
@@ -557,7 +562,6 @@ export class RfqmService {
             gasPrice,
             nonce,
             gasEstimate,
-            expectedTakerTokenFillAmount,
         );
         submissionsMap[firstSubmission.transactionHash!] = firstSubmission;
 
@@ -586,7 +590,6 @@ export class RfqmService {
                         gasPrice,
                         nonce,
                         gasEstimate,
-                        expectedTakerTokenFillAmount,
                     );
                     submissionsMap[submission.transactionHash!] = submission;
                 }
@@ -627,19 +630,23 @@ export class RfqmService {
                 for (const r of receipts) {
                     if (r.response !== undefined) {
                         if (r.response.status === 1) {
-                            const actualTakerTokenFilledAmount = this._blockchainUtils.getRfqOrderTakerTokenFilledAmountFromLogs(
+                            const decodedLog = this._blockchainUtils.getDecodedRfqOrderFillEventLogFromLogs(
                                 r.response.logs,
                             );
-                            submissionsMap[r.transactionHash].status = actualTakerTokenFilledAmount.lt(
-                                expectedTakerTokenFillAmount,
-                            )
-                                ? RfqmTranasctionSubmissionStatus.PartialFill
-                                : RfqmTranasctionSubmissionStatus.Successful;
-                            submissionsMap[r.transactionHash].actualTakerTokenFillAmount = actualTakerTokenFilledAmount;
+                            submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.Successful;
+                            submissionsMap[r.transactionHash].metadata = {
+                                expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
+                                actualTakerFillAmount: decodedLog.args.takerTokenFilledAmount.toString(),
+                                decodedFillLog: JSON.stringify(decodedLog),
+                            };
                         } else {
                             submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.Reverted;
-                            submissionsMap[r.transactionHash].actualTakerTokenFillAmount = null;
                             submissionsMap[r.transactionHash].metadata = null;
+                            submissionsMap[r.transactionHash].metadata = {
+                                expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
+                                actualTakerFillAmount: '0',
+                                decodedFillLog: '{}',
+                            };
                         }
                         submissionsMap[r.transactionHash].blockMined = new BigNumber(r.response.blockNumber);
                         submissionsMap[r.transactionHash].gasUsed = new BigNumber(r.response.gasUsed);
@@ -648,8 +655,12 @@ export class RfqmService {
                         submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.DroppedAndReplaced;
                         submissionsMap[r.transactionHash].blockMined = null;
                         submissionsMap[r.transactionHash].gasUsed = null;
-                        submissionsMap[r.transactionHash].actualTakerTokenFillAmount = null;
                         submissionsMap[r.transactionHash].updatedAt = new Date();
+                        submissionsMap[r.transactionHash].metadata = {
+                            expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
+                            actualTakerFillAmount: '0',
+                            decodedFillLog: '{}',
+                        };
                     }
                 }
                 await this.dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap));
@@ -674,7 +685,6 @@ export class RfqmService {
         gasPrice: BigNumber,
         nonce: number,
         gasEstimate: number,
-        expectedTakerTokenFillAmount: BigNumber,
     ): Promise<RfqmTransactionSubmissionEntity> {
         const txOptions = {
             nonce,
@@ -691,7 +701,7 @@ export class RfqmService {
         );
 
         // save tx submission to DB
-        const entityOpts: Partial<RfqmTransactionSubmissionEntity> = {
+        const partialEntity: Partial<RfqmTransactionSubmissionEntity> = {
             transactionHash,
             orderHash,
             createdAt: new Date(),
@@ -700,10 +710,9 @@ export class RfqmService {
             gasPrice,
             nonce,
             status: RfqmTranasctionSubmissionStatus.Submitted,
-            expectedTakerTokenFillAmount,
         };
 
-        return this.dbUtils.writeRfqmTransactionSubmissionToDbAsync(entityOpts);
+        return this.dbUtils.writeRfqmTransactionSubmissionToDbAsync(partialEntity);
     }
 
     private async _enqueueJobAsync(orderHash: string): Promise<void> {
