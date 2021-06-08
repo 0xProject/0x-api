@@ -503,13 +503,6 @@ export class RfqmService {
 
             if (!isTxMined) {
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
-                try {
-                    await this._blockchainUtils.decodeMetaTransactionCallDataAndValidateAsync(callData, workerAddress, {
-                        gasPrice: newGasPrice,
-                    });
-                } catch (err) {
-                    this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
-                }
 
                 if (gasPrice.lt(newGasPrice)) {
                     gasPrice = newGasPrice;
@@ -557,6 +550,7 @@ export class RfqmService {
                     isTxFinalized = true;
                 }
                 // update all entities
+                // since the same nonce is being re-used, we expect only 1 defined receipt
                 for (const r of receipts) {
                     if (r.response !== undefined) {
                         if (r.response.status === 1) {
@@ -572,6 +566,7 @@ export class RfqmService {
                         } else {
                             submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.Reverted;
                             submissionsMap[r.transactionHash].actualTakerTokenFillAmount = null;
+                            submissionsMap[r.transactionHash].metadata = null;
                         }
                         submissionsMap[r.transactionHash].blockMined = new BigNumber(r.response.blockNumber);
                         submissionsMap[r.transactionHash].gasUsed = new BigNumber(r.response.gasUsed);

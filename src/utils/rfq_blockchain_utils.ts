@@ -3,6 +3,7 @@ import { provider } from '@0x/contracts-test-utils';
 import { IZeroExContract } from '@0x/contracts-zero-ex';
 import { CallData, SupportedProvider, Web3Wrapper } from '@0x/dev-utils';
 import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
+import { NonceTrackerSubprovider } from '@0x/subproviders';
 import { AbiDecoder, BigNumber } from '@0x/utils';
 import { HDNode } from '@ethersproject/hdnode';
 import { LogEntry, LogWithDecodedArgs, TransactionReceipt, TxData } from 'ethereum-types';
@@ -176,6 +177,19 @@ export class RfqBlockchainUtils {
                 return (this._abiDecoder.tryToDecodeLogOrNoop(
                     log,
                 ) as LogWithDecodedArgs<IZeroExRfqOrderFilledEventArgs>).args.takerTokenFilledAmount;
+            }
+        }
+        throw new Error(
+            `no RfqOrderFilledEvent logs among the logs passed into getRfqOrderTakerTokenFilledAmountFromLogs`,
+        );
+    }
+
+    public getDecodedRfqOrderFillEventLogFromLogs(logs: LogEntry[]): LogWithDecodedArgs<IZeroExRfqOrderFilledEventArgs> {
+        for (const log of logs) {
+            if (log.topics[0] === RFQ_ORDER_FILLED_EVENT_TOPIC0) {
+                return (this._abiDecoder.tryToDecodeLogOrNoop(
+                    log,
+                ) as LogWithDecodedArgs<IZeroExRfqOrderFilledEventArgs>);
             }
         }
         throw new Error(
