@@ -30,7 +30,7 @@ export class QuoteServerClient {
             });
             const validator = schemaValidator.validate(response.data, schemas.submitReceiptSchema);
             if (validator.errors.length > 0) {
-                const errorsMsg = validator.errors.map(err => err.toString()).join(',');
+                const errorsMsg = validator.errors.map((err) => err.toString()).join(',');
                 throw new Error(`Error from validator: ${errorsMsg}`);
             }
             const responseFee: Fee = {
@@ -44,11 +44,15 @@ export class QuoteServerClient {
             }
 
             if (response.data.signedOrderHash !== payload.orderHash) {
-                throw new Error(`Requested trade for order hash ${payload.orderHash} - received response for order hash ${response.data.signedOrderHash}`);
+                throw new Error(
+                    `Requested trade for order hash ${payload.orderHash} - received response for order hash ${response.data.signedOrderHash}`,
+                );
             }
 
             if (response.data.takerTokenFillAmount !== payload.takerTokenFillAmount.toString()) {
-                throw new Error('takerTokenFillableAmount in response is not equal to takerTokenFillableAmount in request');
+                throw new Error(
+                    'takerTokenFillableAmount in response is not equal to takerTokenFillableAmount in request',
+                );
             }
 
             return response.data.proceedWithFill === true;

@@ -45,7 +45,7 @@ describe('QuoteServerClient', () => {
                     token: CONTRACT_ADDRESSES.etherToken,
                 },
                 proceedWithFill: true,
-                takerTokenFillAmount: '1223',    // takerTokenFillableAmount is less than what was passed into the request.
+                takerTokenFillAmount: '1223', // takerTokenFillableAmount is less than what was passed into the request.
                 signedOrderHash: 'someOrderHash',
             };
 
