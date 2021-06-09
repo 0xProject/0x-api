@@ -171,6 +171,25 @@ export class RfqmService {
         return quotedMakerAmount.div(quotedTakerAmount).times(sellAmount).decimalPlaces(0);
     }
 
+    private static _validateJob(job: RfqmJobEntity): string | undefined {
+        const { calldata, makerUri, order, fee } = job;
+        if (calldata === undefined) {
+            return 'Missing calldata on job';
+        }
+
+        if (makerUri === undefined) {
+            return 'Missing makerUri on job';
+        }
+
+        if (order === null) {
+            return 'Missing order on job';
+        }
+
+        if (fee === null) {
+            return 'Missing fee on job';
+        }
+    }
+
     constructor(
         private readonly _quoteRequestor: QuoteRequestor,
         private readonly _protocolFeeUtils: ProtocolFeeUtils,
@@ -511,7 +530,13 @@ export class RfqmService {
         }
 
         // Basic validation
-        await this._validateJobAsync(orderHash, job);
+        const jobValidationError = RfqmService._validateJob(job);
+        if (jobValidationError !== undefined) {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, {
+                status: RfqmJobStatus.Failed,
+                statusReason: jobValidationError,
+            });
+        }
         const { calldata, makerUri, order, fee } = job;
 
         // Start processing
@@ -553,12 +578,16 @@ export class RfqmService {
             return;
         }
 
-        // TODO: Submit To Chain
+        // submit to chain
+        await this.completeSubmissionLifecycleAsync(orderHash, workerAddress, calldata!);
 
-        // Update Status
+        // Update Status base on transaction submission status
+        const finalJobStatus = await this._getJobStatusFromSubmissionsAsync(orderHash);
         await this._dbUtils.updateRfqmJobAsync(orderHash, {
-            status: RfqmJobStatus.Successful,
+            status: finalJobStatus.status,
+            statusReason: finalJobStatus.statusReason,
         });
+
         return;
     }
 
@@ -572,7 +601,7 @@ export class RfqmService {
     ): Promise<void> {
         // make sure this order hasn't been used by another worker (or this worker before)
         if ((await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash)).length !== 0) {
-            throw new Error(`this order hash has been previously worked on, exiting submission flow`);
+            return;
         }
 
         let submissionsMap: SubmissionsMap = {};
@@ -629,6 +658,36 @@ export class RfqmService {
                 }
             }
         }
+    }
+
+    /**
+     * update RfqmJobStatus based on transaction status
+     */
+    private async _getJobStatusFromSubmissionsAsync(
+        orderHash: string,
+    ): Promise<{ status: RfqmJobStatus; statusReason: string | null }> {
+        const submissions = await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
+
+        // there should only be one mined transaction, which will either be successful or a revert
+        for (const submission of submissions) {
+            if (submission.status === RfqmTranasctionSubmissionStatus.Successful) {
+                return {
+                    status: RfqmJobStatus.Successful,
+                    statusReason: null,
+                };
+            } else if (submission.status === RfqmTranasctionSubmissionStatus.Reverted) {
+                return {
+                    status: RfqmJobStatus.Failed,
+                    statusReason: 'transaction reverted',
+                };
+            }
+        }
+
+        // if there are no mined transactions, it's not resolved
+        return {
+            status: RfqmJobStatus.Processing,
+            statusReason: null,
+        };
     }
 
     /**
@@ -759,40 +818,5 @@ export class RfqmService {
             body: JSON.stringify({ orderHash }),
             deduplicationId: orderHash,
         });
-    }
-
-    private async _validateJobAsync(orderHash: string, job: RfqmJobEntity): Promise<void> {
-        const { calldata, makerUri, order, fee } = job;
-        if (calldata === undefined) {
-            await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.Failed,
-                statusReason: 'Missing Calldata',
-            });
-            return;
-        }
-
-        if (makerUri === undefined) {
-            await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.Failed,
-                statusReason: 'Missing makerUri',
-            });
-            return;
-        }
-
-        if (order === null) {
-            await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.Failed,
-                statusReason: 'Missing order on job',
-            });
-            return;
-        }
-
-        if (fee === null) {
-            await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.Failed,
-                statusReason: 'Missing fee on job',
-            });
-            return;
-        }
     }
 }
