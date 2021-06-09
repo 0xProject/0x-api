@@ -8,7 +8,6 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import delay from 'delay';
 import { Counter } from 'prom-client';
 import { Producer } from 'sqs-producer';
-import { Connection } from 'typeorm';
 
 import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
@@ -20,7 +19,6 @@ import { QuoteServerClient } from '../utils/quote_server_client';
 import {
     feeToStoredFee,
     RfqmDbUtils,
-    RfqmJobOpts,
     RfqmJobStatus,
     RfqmTranasctionSubmissionStatus,
     storedFeeToFee,
@@ -153,14 +151,33 @@ const PRICE_DECIMAL_PLACES = 6;
  * RfqmService is the coordination layer for HTTP based RFQM flows.
  */
 export class RfqmService {
-    public dbUtils = new RfqmDbUtils(this._connection);
+    private static _getSellAmountGivenBuyAmountAndQuote(
+        buyAmount: BigNumber,
+        quotedTakerAmount: BigNumber,
+        quotedMakerAmount: BigNumber,
+    ): BigNumber {
+        // Solving for x given the following proportion:
+        // x / buyAmount = quotedTakerAmount / quotedMakerAmount
+        return quotedTakerAmount.div(quotedMakerAmount).times(buyAmount).decimalPlaces(0);
+    }
+
+    private static _getBuyAmountGivenSellAmountAndQuote(
+        sellAmount: BigNumber,
+        quotedTakerAmount: BigNumber,
+        quotedMakerAmount: BigNumber,
+    ): BigNumber {
+        // Solving for y given the following proportion:
+        // y / sellAmount =  quotedMakerAmount / quotedTakerAmount
+        return quotedMakerAmount.div(quotedTakerAmount).times(sellAmount).decimalPlaces(0);
+    }
+
     constructor(
         private readonly _quoteRequestor: QuoteRequestor,
         private readonly _protocolFeeUtils: ProtocolFeeUtils,
         private readonly _contractAddresses: AssetSwapperContractAddresses,
         private readonly _registryAddress: string,
         private readonly _blockchainUtils: RfqBlockchainUtils,
-        private readonly _connection: Connection,
+        private readonly _dbUtils: RfqmDbUtils,
         private readonly _sqsProducer: Producer,
         private readonly _quoteServerClient: QuoteServerClient,
     ) {}
@@ -328,6 +345,31 @@ export class RfqmService {
             throw new Error(`makerUri unknown for maker address ${bestQuote.order.maker}`);
         }
 
+        // Prepare the price
+        const makerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.order.makerAmount, makerTokenDecimals);
+        const takerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.order.takerAmount, takerTokenDecimals);
+        const price = isSelling ? makerAmountInUnit.div(takerAmountInUnit) : takerAmountInUnit.div(makerAmountInUnit);
+        // The way the BigNumber round down behavior (https://mikemcl.github.io/bignumber.js/#dp) works requires us
+        // to add 1 to PRICE_DECIMAL_PLACES in order to actually come out with the decimal places specified.
+        const roundedPrice = price.decimalPlaces(PRICE_DECIMAL_PLACES + 1, BigNumber.ROUND_DOWN);
+
+        // Prepare the final takerAmount and makerAmount
+        const takerAmount = isSelling
+            ? sellAmount!
+            : RfqmService._getSellAmountGivenBuyAmountAndQuote(
+                  buyAmount!,
+                  bestQuote.order.takerAmount,
+                  bestQuote.order.makerAmount,
+              );
+
+        const makerAmount = isSelling
+            ? RfqmService._getBuyAmountGivenSellAmountAndQuote(
+                  sellAmount!,
+                  bestQuote.order.takerAmount,
+                  bestQuote.order.makerAmount,
+              )
+            : buyAmount!;
+
         // Get the Order and its hash
         const rfqOrder = new RfqOrder(bestQuote.order);
         const orderHash = rfqOrder.getHash();
@@ -337,14 +379,14 @@ export class RfqmService {
             rfqOrder,
             bestQuote.signature,
             takerAddress,
-            bestQuote.order.takerAmount,
+            takerAmount,
             CHAIN_ID,
         );
         const metaTransactionHash = metaTransaction.getHash();
 
         // TODO: Save the integratorId
         // Save the RfqmQuote
-        await this._connection.getRepository(RfqmQuoteEntity).insert(
+        await this._dbUtils.writeRfqmQuoteToDbAsync(
             new RfqmQuoteEntity({
                 orderHash,
                 metaTransactionHash,
@@ -356,22 +398,14 @@ export class RfqmService {
         );
         RFQM_QUOTE_INSERTED.labels(apiKey, makerUri).inc();
 
-        // Prepare the price
-        const makerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.order.makerAmount, makerTokenDecimals);
-        const takerAmountInUnit = Web3Wrapper.toUnitAmount(bestQuote.order.takerAmount, takerTokenDecimals);
-        const price = isSelling ? makerAmountInUnit.div(takerAmountInUnit) : takerAmountInUnit.div(makerAmountInUnit);
-        // The way the BigNumber round down behavior (https://mikemcl.github.io/bignumber.js/#dp) works requires us
-        // to add 1 to PRICE_DECIMAL_PLACES in order to actually come out with the decimal places specified.
-        const roundedPrice = price.decimalPlaces(PRICE_DECIMAL_PLACES + 1, BigNumber.ROUND_DOWN);
-
         // Prepare response
         return {
             type: RfqmTypes.MetaTransaction,
             price: roundedPrice,
             gas: gasPrice,
-            buyAmount: bestQuote.order.makerAmount,
+            buyAmount: makerAmount,
             buyTokenAddress: bestQuote.order.makerToken,
-            sellAmount: bestQuote.order.takerAmount,
+            sellAmount: takerAmount,
             sellTokenAddress: bestQuote.order.takerToken,
             allowanceTarget: this._contractAddresses.exchangeProxy,
             metaTransaction,
@@ -386,7 +420,7 @@ export class RfqmService {
         const metaTransactionHash = params.metaTransaction.getHash();
 
         // check that the firm quote is recognized as a previously returned quote
-        const quote = await this.dbUtils.findQuoteByMetaTransactionHashAsync(metaTransactionHash);
+        const quote = await this._dbUtils.findQuoteByMetaTransactionHashAsync(metaTransactionHash);
         if (quote === undefined) {
             RFQM_SIGNED_QUOTE_NOT_FOUND.inc();
             throw new NotFoundError('quote not found');
@@ -427,7 +461,7 @@ export class RfqmService {
             ]);
         }
 
-        const rfqmJobOpts: RfqmJobOpts = {
+        const rfqmJobOpts = {
             orderHash: quote.orderHash!,
             metaTransactionHash,
             createdAt: new Date(),
@@ -449,7 +483,7 @@ export class RfqmService {
         // that a signed quote cannot be queued twice
         try {
             // make sure job data is persisted to Postgres before queueing task
-            await this.dbUtils.writeRfqmJobToDbAsync(rfqmJobOpts);
+            await this._dbUtils.writeRfqmJobToDbAsync(rfqmJobOpts);
             await this._enqueueJobAsync(quote.orderHash!);
         } catch (err) {
             throw new InternalServerError(
@@ -471,7 +505,7 @@ export class RfqmService {
         logger.info({ orderHash }, 'start processing job');
 
         // Get job
-        const job = await this.dbUtils.findJobByOrderHashAsync(orderHash);
+        const job = await this._dbUtils.findJobByOrderHashAsync(orderHash);
         if (job === undefined) {
             throw new NotFoundError(`job for orderHash ${orderHash} not found`);
         }
@@ -481,7 +515,7 @@ export class RfqmService {
         const { calldata, makerUri, order, fee } = job;
 
         // Start processing
-        await this.dbUtils.updateRfqmJobAsync(orderHash, {
+        await this._dbUtils.updateRfqmJobAsync(orderHash, {
             status: RfqmJobStatus.Processing,
         });
 
@@ -492,7 +526,7 @@ export class RfqmService {
             RFQM_JOB_FAILED_ETHCALL_VALIDATION.inc();
             logger.warn({ error: e, orderHash }, 'The eth_call validation failed');
             // Terminate with an error transition
-            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, {
                 status: RfqmJobStatus.Failed,
                 statusReason: 'eth_call failed',
             });
@@ -512,7 +546,7 @@ export class RfqmService {
 
         if (!shouldProceed) {
             // Terminate with an error transition
-            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, {
                 status: RfqmJobStatus.Failed,
                 statusReason: 'Rejected by MM last look',
             });
@@ -522,7 +556,7 @@ export class RfqmService {
         // TODO: Submit To Chain
 
         // Update Status
-        await this.dbUtils.updateRfqmJobAsync(orderHash, {
+        await this._dbUtils.updateRfqmJobAsync(orderHash, {
             status: RfqmJobStatus.Successful,
         });
         return;
@@ -730,7 +764,7 @@ export class RfqmService {
     private async _validateJobAsync(orderHash: string, job: RfqmJobEntity): Promise<void> {
         const { calldata, makerUri, order, fee } = job;
         if (calldata === undefined) {
-            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, {
                 status: RfqmJobStatus.Failed,
                 statusReason: 'Missing Calldata',
             });
@@ -738,7 +772,7 @@ export class RfqmService {
         }
 
         if (makerUri === undefined) {
-            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, {
                 status: RfqmJobStatus.Failed,
                 statusReason: 'Missing makerUri',
             });
@@ -746,7 +780,7 @@ export class RfqmService {
         }
 
         if (order === null) {
-            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, {
                 status: RfqmJobStatus.Failed,
                 statusReason: 'Missing order on job',
             });
@@ -754,7 +788,7 @@ export class RfqmService {
         }
 
         if (fee === null) {
-            await this.dbUtils.updateRfqmJobAsync(orderHash, {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, {
                 status: RfqmJobStatus.Failed,
                 statusReason: 'Missing fee on job',
             });

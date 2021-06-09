@@ -16,11 +16,11 @@ import { MetaTransaction, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { Producer } from 'sqs-producer';
 import { anything, instance, mock, when } from 'ts-mockito';
-import { Connection, InsertResult, Repository } from 'typeorm';
 
 import { ONE_MINUTE_MS } from '../../src/constants';
 import { RfqmService } from '../../src/services/rfqm_service';
 import { QuoteServerClient } from '../../src/utils/quote_server_client';
+import { RfqmDbUtils } from '../../src/utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../../src/utils/rfq_blockchain_utils';
 
 const NEVER_EXPIRES = new BigNumber(9999999999999999);
@@ -32,7 +32,7 @@ const buildRfqmServiceForUnitTest = (
         quoteRequestor?: QuoteRequestor;
         protocolFeeUtils?: ProtocolFeeUtils;
         rfqBlockchainUtils?: RfqBlockchainUtils;
-        connection?: Connection;
+        dbUtils?: RfqmDbUtils;
         producer?: Producer;
         quoteServerClient?: QuoteServerClient;
     } = {},
@@ -63,7 +63,7 @@ const buildRfqmServiceForUnitTest = (
     when(protocolFeeUtilsMock.getGasPriceEstimationOrThrowAsync()).thenResolve(MOCK_GAS_PRICE);
     const protocolFeeUtilsInstance = instance(protocolFeeUtilsMock);
     const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
-    const connectionMock = mock(Connection);
+    const dbUtilsMock = mock(RfqmDbUtils);
     const sqsMock = mock(Producer);
     const quoteServerClientMock = mock(QuoteServerClient);
 
@@ -73,7 +73,7 @@ const buildRfqmServiceForUnitTest = (
         contractAddresses,
         MOCK_WORKER_REGISTRY_ADDRESS,
         overrides.rfqBlockchainUtils || rfqBlockchainUtilsMock,
-        overrides.connection || connectionMock,
+        overrides.dbUtils || dbUtilsMock,
         overrides.producer || sqsMock,
         overrides.quoteServerClient || quoteServerClientMock,
     );
@@ -535,6 +535,7 @@ describe('RfqmService', () => {
         const MOCK_META_TX = new MetaTransaction();
 
         describe('sells', () => {
+            const sellAmount = new BigNumber(100);
             it('should fetch a firm quote', async () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 // Given
@@ -580,20 +581,15 @@ describe('RfqmService', () => {
                 ).thenReturn(MOCK_META_TX);
                 const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
 
-                // Mock out the repository
-                const repositoryMock = mock(Repository);
-                when(repositoryMock.insert(anything())).thenResolve(new InsertResult());
-                const repositoryInstance = instance(repositoryMock);
-
-                // Mock out the connection
-                const connectionMock = mock(Connection);
-                when(connectionMock.getRepository(anything())).thenReturn(repositoryInstance);
-                const connectionInstance = instance(connectionMock);
+                // Mock out the dbUtils
+                const dbUtilsMock = mock(RfqmDbUtils);
+                when(dbUtilsMock.writeRfqmQuoteToDbAsync(anything())).thenResolve();
+                const dbUtils = instance(dbUtilsMock);
 
                 const service = buildRfqmServiceForUnitTest({
                     quoteRequestor: quoteRequestorInstance,
                     rfqBlockchainUtils,
-                    connection: connectionInstance,
+                    dbUtils,
                 });
 
                 // When
@@ -604,7 +600,7 @@ describe('RfqmService', () => {
                     sellToken: contractAddresses.etherToken,
                     buyTokenDecimals: 18,
                     sellTokenDecimals: 18,
-                    sellAmount: new BigNumber(100),
+                    sellAmount,
                 });
 
                 // Then
@@ -612,7 +608,86 @@ describe('RfqmService', () => {
                     expect.fail('res is null, but not expected to be null');
                     return;
                 }
-                expect(res.sellAmount.toNumber()).to.be.at.least(100);
+                expect(res.sellAmount).to.eq(sellAmount);
+                expect(res.price.toNumber()).to.equal(1.01);
+                expect(res.metaTransactionHash).to.match(/^0x[0-9a-fA-F]+/);
+                expect(res.orderHash).to.match(/^0x[0-9a-fA-F]+/);
+            });
+
+            it('should scale a firm quote if MM returns too much', async () => {
+                const contractAddresses = getContractAddressesForChainOrThrow(1);
+                // Given
+                const makerUri = 'https://rfqm.somemaker.xyz';
+                const quoteRequestorMock = mock(QuoteRequestor);
+                when(
+                    quoteRequestorMock.requestRfqmFirmQuotesAsync(
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                    ),
+                ).thenResolve([
+                    {
+                        order: new RfqOrder({
+                            chainId: 1337,
+                            makerToken: contractAddresses.zrxToken,
+                            makerAmount: new BigNumber(202),
+                            takerToken: contractAddresses.etherToken,
+                            takerAmount: new BigNumber(200), // returns more than sellAmount
+                            expiry: NEVER_EXPIRES,
+                        }),
+                        type: FillQuoteTransformerOrderType.Rfq,
+                        signature: INVALID_SIGNATURE,
+                    },
+                ]);
+                when(quoteRequestorMock.getMakerUriForSignature(anything())).thenReturn(makerUri);
+
+                const quoteRequestorInstance = instance(quoteRequestorMock);
+
+                // Mock out the blockchain utils
+                const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
+                when(
+                    rfqBlockchainUtilsMock.generateMetaTransaction(
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                    ),
+                ).thenReturn(MOCK_META_TX);
+                const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
+
+                // Mock out the dbUtils
+                const dbUtilsMock = mock(RfqmDbUtils);
+                when(dbUtilsMock.writeRfqmQuoteToDbAsync(anything())).thenResolve();
+                const dbUtils = instance(dbUtilsMock);
+
+                const service = buildRfqmServiceForUnitTest({
+                    quoteRequestor: quoteRequestorInstance,
+                    rfqBlockchainUtils,
+                    dbUtils,
+                });
+
+                // When
+                const res = await service.fetchFirmQuoteAsync({
+                    apiKey: 'some-api-key',
+                    takerAddress,
+                    buyToken: contractAddresses.zrxToken,
+                    sellToken: contractAddresses.etherToken,
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
+                    sellAmount,
+                });
+
+                // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
+                expect(res.sellAmount).to.eq(sellAmount);
+                expect(res.buyAmount.toNumber()).to.eq(101); // result is scaled
                 expect(res.price.toNumber()).to.equal(1.01);
                 expect(res.metaTransactionHash).to.match(/^0x[0-9a-fA-F]+/);
                 expect(res.orderHash).to.match(/^0x[0-9a-fA-F]+/);
@@ -663,20 +738,15 @@ describe('RfqmService', () => {
                 ).thenReturn(MOCK_META_TX);
                 const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
 
-                // Mock out the repository
-                const repositoryMock = mock(Repository);
-                when(repositoryMock.insert(anything())).thenResolve(new InsertResult());
-                const repositoryInstance = instance(repositoryMock);
-
-                // Mock out the connection
-                const connectionMock = mock(Connection);
-                when(connectionMock.getRepository(anything())).thenReturn(repositoryInstance);
-                const connectionInstance = instance(connectionMock);
+                // Mock out the dbUtils
+                const dbUtilsMock = mock(RfqmDbUtils);
+                when(dbUtilsMock.writeRfqmQuoteToDbAsync(anything())).thenResolve();
+                const dbUtils = instance(dbUtilsMock);
 
                 const service = buildRfqmServiceForUnitTest({
                     quoteRequestor: quoteRequestorInstance,
                     rfqBlockchainUtils,
-                    connection: connectionInstance,
+                    dbUtils,
                 });
 
                 // When
@@ -701,6 +771,7 @@ describe('RfqmService', () => {
         });
 
         describe('buys', () => {
+            const buyAmount = new BigNumber(100);
             it('should fetch a firm quote', async () => {
                 const contractAddresses = getContractAddressesForChainOrThrow(1);
                 // Given
@@ -746,20 +817,15 @@ describe('RfqmService', () => {
                 ).thenReturn(MOCK_META_TX);
                 const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
 
-                // Mock out the repository
-                const repositoryMock = mock(Repository);
-                when(repositoryMock.insert(anything())).thenResolve(new InsertResult());
-                const repositoryInstance = instance(repositoryMock);
-
-                // Mock out the connection
-                const connectionMock = mock(Connection);
-                when(connectionMock.getRepository(anything())).thenReturn(repositoryInstance);
-                const connectionInstance = instance(connectionMock);
+                // Mock out the dbUtils
+                const dbUtilsMock = mock(RfqmDbUtils);
+                when(dbUtilsMock.writeRfqmQuoteToDbAsync(anything())).thenResolve();
+                const dbUtils = instance(dbUtilsMock);
 
                 const service = buildRfqmServiceForUnitTest({
                     quoteRequestor: quoteRequestorInstance,
                     rfqBlockchainUtils,
-                    connection: connectionInstance,
+                    dbUtils,
                 });
 
                 // When
@@ -779,7 +845,87 @@ describe('RfqmService', () => {
                     return;
                 }
 
-                expect(res.buyAmount.toNumber()).to.be.at.least(100);
+                expect(res.buyAmount.toNumber()).to.eq(buyAmount.toNumber());
+                expect(res.price.toNumber()).to.equal(0.8);
+                expect(res.metaTransactionHash).to.match(/^0x[0-9a-fA-F]+/);
+                expect(res.orderHash).to.match(/^0x[0-9a-fA-F]+/);
+            });
+
+            it('should scale a firm quote to desired buyAmount if MM returns too much', async () => {
+                const contractAddresses = getContractAddressesForChainOrThrow(1);
+                // Given
+                const makerUri = 'https://rfqm.somemaker.xyz';
+                const quoteRequestorMock = mock(QuoteRequestor);
+                when(
+                    quoteRequestorMock.requestRfqmFirmQuotesAsync(
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                    ),
+                ).thenResolve([
+                    {
+                        order: new RfqOrder({
+                            chainId: 1337,
+                            makerToken: contractAddresses.zrxToken,
+                            makerAmount: new BigNumber(125), // more than buyAmount
+                            takerToken: contractAddresses.etherToken,
+                            takerAmount: new BigNumber(100),
+                            expiry: NEVER_EXPIRES,
+                        }),
+                        type: FillQuoteTransformerOrderType.Rfq,
+                        signature: INVALID_SIGNATURE,
+                    },
+                ]);
+                when(quoteRequestorMock.getMakerUriForSignature(anything())).thenReturn(makerUri);
+
+                const quoteRequestorInstance = instance(quoteRequestorMock);
+
+                // Mock out the blockchain utils
+                const rfqBlockchainUtilsMock = mock(RfqBlockchainUtils);
+                when(
+                    rfqBlockchainUtilsMock.generateMetaTransaction(
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                        anything(),
+                    ),
+                ).thenReturn(MOCK_META_TX);
+                const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
+
+                // Mock out the dbUtils
+                const dbUtilsMock = mock(RfqmDbUtils);
+                when(dbUtilsMock.writeRfqmQuoteToDbAsync(anything())).thenResolve();
+                const dbUtils = instance(dbUtilsMock);
+
+                const service = buildRfqmServiceForUnitTest({
+                    quoteRequestor: quoteRequestorInstance,
+                    rfqBlockchainUtils,
+                    dbUtils,
+                });
+
+                // When
+                const res = await service.fetchFirmQuoteAsync({
+                    apiKey: 'some-api-key',
+                    takerAddress,
+                    buyToken: contractAddresses.zrxToken,
+                    sellToken: contractAddresses.etherToken,
+                    buyTokenDecimals: 18,
+                    sellTokenDecimals: 18,
+                    buyAmount: new BigNumber(100),
+                });
+
+                // Then
+                if (res === null) {
+                    expect.fail('res is null, but not expected to be null');
+                    return;
+                }
+
+                expect(res.buyAmount.toNumber()).to.eq(buyAmount.toNumber());
+                expect(res.sellAmount.toNumber()).to.eq(80); // result is scaled
                 expect(res.price.toNumber()).to.equal(0.8);
                 expect(res.metaTransactionHash).to.match(/^0x[0-9a-fA-F]+/);
                 expect(res.orderHash).to.match(/^0x[0-9a-fA-F]+/);
@@ -844,20 +990,15 @@ describe('RfqmService', () => {
                 ).thenReturn(MOCK_META_TX);
                 const rfqBlockchainUtils = instance(rfqBlockchainUtilsMock);
 
-                // Mock out the repository
-                const repositoryMock = mock(Repository);
-                when(repositoryMock.insert(anything())).thenResolve(new InsertResult());
-                const repositoryInstance = instance(repositoryMock);
-
-                // Mock out the connection
-                const connectionMock = mock(Connection);
-                when(connectionMock.getRepository(anything())).thenReturn(repositoryInstance);
-                const connectionInstance = instance(connectionMock);
+                // Mock out the dbUtils
+                const dbUtilsMock = mock(RfqmDbUtils);
+                when(dbUtilsMock.writeRfqmQuoteToDbAsync(anything())).thenResolve();
+                const dbUtils = instance(dbUtilsMock);
 
                 const service = buildRfqmServiceForUnitTest({
                     quoteRequestor: quoteRequestorInstance,
                     rfqBlockchainUtils,
-                    connection: connectionInstance,
+                    dbUtils,
                 });
 
                 // When

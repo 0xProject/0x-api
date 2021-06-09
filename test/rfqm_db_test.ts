@@ -14,7 +14,6 @@ import {
 import {
     feeToStoredFee,
     RfqmDbUtils,
-    RfqmJobOpts,
     RfqmJobStatus,
     RfqmTranasctionSubmissionStatus,
     v4RfqOrderToStoredOrder,
@@ -112,7 +111,7 @@ describe(SUITE_NAME, () => {
             expect(dbEntity).to.deep.eq(testRfqmQuoteEntity);
         });
         it('should be able to save and read an rfqm job entity w/ no change in information', async () => {
-            const rfqmJobOpts: RfqmJobOpts = {
+            const rfqmJobOpts = {
                 orderHash,
                 metaTransactionHash,
                 createdAt,
@@ -137,7 +136,7 @@ describe(SUITE_NAME, () => {
         });
 
         it('should be able to update an rfqm job entity', async () => {
-            const rfqmJobOpts: RfqmJobOpts = {
+            const rfqmJobOpts = {
                 orderHash,
                 metaTransactionHash,
                 createdAt,
@@ -168,7 +167,7 @@ describe(SUITE_NAME, () => {
         });
         it('should be able to save and read an rfqm tx submission entity w/ no change in information', async () => {
             // need a pre-existing job entity bc of foreign key
-            const rfqmJobOpts: RfqmJobOpts = {
+            const rfqmJobOpts = {
                 orderHash,
                 metaTransactionHash,
                 createdAt,
