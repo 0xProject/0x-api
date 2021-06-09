@@ -1093,7 +1093,7 @@ describe(SUITE_NAME, () => {
 
             await request(app)
                 .post(`${RFQM_PATH}/submit`)
-                .send({ type: RfqmTypes.MetaTransaction, metaTransaction: metaTransaction, signature: VALID_SIGNATURE })
+                .send({ type: RfqmTypes.MetaTransaction, metaTransaction, signature: VALID_SIGNATURE })
                 .set('0x-api-key', API_KEY)
                 .expect(HttpStatus.CREATED)
                 .expect('Content-Type', /json/);
