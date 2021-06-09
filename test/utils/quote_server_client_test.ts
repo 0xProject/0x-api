@@ -23,6 +23,43 @@ describe('QuoteServerClient', () => {
     });
 
     describe('confirmLastLookAsync', () => {
+        it('should reject last look if invalid takerTokenFillableAmount passed', async () => {
+            // Given
+            const client = new QuoteServerClient(axiosInstance);
+            const order = new RfqOrder();
+            const request: SubmitRequest = {
+                order,
+                orderHash: 'someOrderHash',
+                takerTokenFillAmount: new BigNumber('1225'),
+                fee: {
+                    amount: new BigNumber('100'),
+                    type: 'fixed',
+                    token: CONTRACT_ADDRESSES.etherToken,
+                },
+            };
+
+            const response = {
+                fee: {
+                    amount: '100',
+                    type: 'fixed',
+                    token: CONTRACT_ADDRESSES.etherToken,
+                },
+                proceedWithFill: true,
+                takerTokenFillAmount: '1223',    // takerTokenFillableAmount is less than what was passed into the request.
+                signedOrderHash: 'someOrderHash',
+            };
+
+            axiosMock
+                .onPost(`${makerUri}/submit`, JSON.parse(JSON.stringify(request)))
+                .replyOnce(HttpStatus.OK, response);
+
+            // When
+            const shouldProceed = await client.confirmLastLookAsync(makerUri, request);
+
+            // Then
+            expect(shouldProceed).to.eq(false);
+        });
+
         it('should reject last look if valid negative response', async () => {
             // Given
             const client = new QuoteServerClient(axiosInstance);
