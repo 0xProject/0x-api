@@ -193,7 +193,7 @@ export class RfqmService {
     /**
      * update RfqmJobStatus based on transaction status
      */
-    private static _getJobStatusFromSubmissionsAsync(
+    private static _getJobStatusFromSubmissions(
         submissionsMap: SubmissionsMap,
     ): { status: RfqmJobStatus; statusReason: string | null } {
         // there should only be one mined transaction, which will either be successful or a revert
@@ -612,7 +612,7 @@ export class RfqmService {
         }
 
         // Update Status base on transaction submission status
-        const finalJobStatus = RfqmService._getJobStatusFromSubmissionsAsync(submissionsMap);
+        const finalJobStatus = RfqmService._getJobStatusFromSubmissions(submissionsMap);
         await this._dbUtils.updateRfqmJobAsync(orderHash, {
             status: finalJobStatus.status,
             statusReason: finalJobStatus.statusReason,
