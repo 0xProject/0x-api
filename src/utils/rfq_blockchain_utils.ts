@@ -10,6 +10,7 @@ import { LogEntry, LogWithDecodedArgs, TransactionReceipt, TxData } from 'ethere
 
 import { NULL_ADDRESS, ZERO } from '../constants';
 import { ChainId } from '../types';
+import { isWorkerReadyAndAbleAsync } from './rfqm_worker_balance_utils';
 
 import { SubproviderAdapter } from './subprovider_adapter';
 
@@ -211,5 +212,9 @@ export class RfqBlockchainUtils {
         };
 
         return this._web3Wrapper.sendTransactionAsync(txData);
+    }
+
+    public async isWorkerAddressReady(workerAddress: string, gasPrice: BigNumber): Promise<boolean> {
+        return isWorkerReadyAndAbleAsync(this._web3Wrapper, workerAddress, gasPrice);
     }
 }
