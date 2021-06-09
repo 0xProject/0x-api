@@ -10,8 +10,8 @@ import { LogEntry, LogWithDecodedArgs, TransactionReceipt, TxData } from 'ethere
 
 import { NULL_ADDRESS, ZERO } from '../constants';
 import { ChainId } from '../types';
-import { isWorkerReadyAndAbleAsync } from './rfqm_worker_balance_utils';
 
+import { isWorkerReadyAndAbleAsync } from './rfqm_worker_balance_utils';
 import { SubproviderAdapter } from './subprovider_adapter';
 
 // allow a wide range for gas price for flexibility
