@@ -612,7 +612,7 @@ export class RfqmService {
             throw new Error(`encountered an error in transaction submission`);
         }
 
-        // Update Status base on transaction submission status
+        // update job status based on transaction submission status
         const finalJobStatus = RfqmService._getJobStatusFromSubmissions(submissionsMap);
         await this._dbUtils.updateRfqmJobAsync(orderHash, {
             status: finalJobStatus.status,
