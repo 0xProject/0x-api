@@ -43,6 +43,10 @@ export class QuoteServerClient {
                 throw new Error('Fee in response is not equal to fee in request');
             }
 
+            if (response.data.signedOrderHash !== payload.orderHash) {
+                throw new Error(`Requested trade for order hash ${payload.orderHash} - received response for order hash ${response.data.signedOrderHash}`);
+            }
+
             if (response.data.takerTokenFillAmount !== payload.takerTokenFillAmount.toString()) {
                 throw new Error('takerTokenFillableAmount in response is not equal to takerTokenFillableAmount in request');
             }

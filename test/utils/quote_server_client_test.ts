@@ -120,7 +120,7 @@ describe('QuoteServerClient', () => {
                 },
                 takerTokenFillAmount: '1225',
                 proceedWithFill: true,
-                signedOrderHash: 'someSignedOrderHash',
+                signedOrderHash: 'someOrderHash',
             };
 
             axiosMock
@@ -157,7 +157,7 @@ describe('QuoteServerClient', () => {
                 },
                 proceedWithFill: true,
                 takerTokenFillAmount: '1225',
-                signedOrderHash: 'someSignedOrderHash',
+                signedOrderHash: 'someOrderHash',
             };
 
             axiosMock
@@ -194,7 +194,7 @@ describe('QuoteServerClient', () => {
                 },
                 proceedWithFill: true,
                 takerTokenFillAmount: '1225',
-                signedOrderHash: 'someSignedOrderHash',
+                signedOrderHash: 'someOrderHash',
             };
 
             axiosMock
