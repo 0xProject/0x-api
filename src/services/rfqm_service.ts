@@ -560,6 +560,7 @@ export class RfqmService {
                 status: RfqmJobStatus.Failed,
                 statusReason: err.message,
             });
+            return;
         }
         const { calldata, makerUri, order, fee } = job;
 
