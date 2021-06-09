@@ -1,4 +1,4 @@
-// tslint:disable:max-file-line-count
+// tslint:disable:max-file-line-count custom-no-magic-numbers
 import {
     BigNumber,
     MockedRfqQuoteResponse,
