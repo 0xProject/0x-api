@@ -30,6 +30,7 @@ describe('QuoteServerClient', () => {
             const request: SubmitRequest = {
                 order,
                 orderHash: 'someOrderHash',
+                takerTokenFillAmount: new BigNumber('1225'),
                 fee: {
                     amount: new BigNumber('100'),
                     type: 'fixed',
@@ -44,6 +45,7 @@ describe('QuoteServerClient', () => {
                     token: CONTRACT_ADDRESSES.etherToken,
                 },
                 proceedWithFill: false,
+                takerTokenFillAmount: '1225',
                 signedOrderHash: 'someSignedOrderHash',
             };
 
@@ -64,6 +66,7 @@ describe('QuoteServerClient', () => {
             const order = new RfqOrder();
             const request: SubmitRequest = {
                 order,
+                takerTokenFillAmount: new BigNumber('1225'),
                 orderHash: 'someOrderHash',
                 fee: {
                     amount: new BigNumber('100'),
@@ -78,6 +81,7 @@ describe('QuoteServerClient', () => {
                     type: 'fixed',
                     token: CONTRACT_ADDRESSES.etherToken,
                 },
+                takerTokenFillAmount: '1225',
                 proceedWithFill: true,
                 signedOrderHash: 'someSignedOrderHash',
             };
@@ -99,6 +103,7 @@ describe('QuoteServerClient', () => {
             const order = new RfqOrder();
             const request: SubmitRequest = {
                 order,
+                takerTokenFillAmount: new BigNumber('1225'),
                 orderHash: 'someOrderHash',
                 fee: {
                     amount: new BigNumber('100'),
@@ -114,6 +119,7 @@ describe('QuoteServerClient', () => {
                     token: CONTRACT_ADDRESSES.etherToken,
                 },
                 proceedWithFill: true,
+                takerTokenFillAmount: '1225',
                 signedOrderHash: 'someSignedOrderHash',
             };
 
@@ -134,6 +140,7 @@ describe('QuoteServerClient', () => {
             const order = new RfqOrder();
             const request: SubmitRequest = {
                 order,
+                takerTokenFillAmount: new BigNumber('1225'),
                 orderHash: 'someOrderHash',
                 fee: {
                     amount: new BigNumber('100'),
@@ -149,6 +156,7 @@ describe('QuoteServerClient', () => {
                     token: CONTRACT_ADDRESSES.etherToken,
                 },
                 proceedWithFill: true,
+                takerTokenFillAmount: '1225',
                 signedOrderHash: 'someSignedOrderHash',
             };
 
