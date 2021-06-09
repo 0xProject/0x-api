@@ -206,7 +206,7 @@ describe(SUITE_NAME, () => {
         });
         it('should be able to update a transaction submission entity', async () => {
             // need a pre-existing job entity bc of foreign key
-            const rfqmJobOpts: RfqmJobOpts = {
+            const rfqmJobOpts = {
                 orderHash,
                 metaTransactionHash,
                 createdAt,

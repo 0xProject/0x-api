@@ -571,7 +571,7 @@ export class RfqmService {
         callData: string,
     ): Promise<void> {
         // make sure this order hasn't been used by another worker (or this worker before)
-        if ((await this.dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash)).length !== 0) {
+        if ((await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash)).length !== 0) {
             throw new Error(`this order hash has been previously worked on, exiting submission flow`);
         }
 
@@ -697,7 +697,7 @@ export class RfqmService {
                         };
                     }
                 }
-                await this.dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap));
+                await this._dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap));
                 break;
             }
         }
@@ -747,7 +747,7 @@ export class RfqmService {
             status: RfqmTranasctionSubmissionStatus.Submitted,
         };
 
-        return this.dbUtils.writeRfqmTransactionSubmissionToDbAsync(partialEntity);
+        return this._dbUtils.writeRfqmTransactionSubmissionToDbAsync(partialEntity);
     }
 
     private async _enqueueJobAsync(orderHash: string): Promise<void> {
