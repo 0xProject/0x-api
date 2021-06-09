@@ -694,6 +694,7 @@ export class RfqmService {
         };
 
         // submit tx to chain
+        // TODO: get transaction hash prior to submission and save to DB first
         const transactionHash = await this._blockchainUtils.submitCallDataToExchangeProxyAsync(
             callData,
             workerAddress,
