@@ -76,6 +76,25 @@ export interface BaseRfqmQuoteResponse {
     sellTokenAddress: string;
 }
 
+interface OrderStatusPending {
+    status: 'pending';
+}
+
+interface OrderStatusSubmitted {
+    status: 'submitted';
+    transactions: { hash: string; timestamp: number /* unix ms */ }[];
+}
+
+interface OrderStatusFailed {
+    status: 'failed';
+    transactions: { hash: string; timestamp: number /* unix ms */ }[];
+}
+
+interface OrderStatusSuccessful {
+    status: 'successful';
+    transaction: { hash: string; timestamp: number /* unix ms */ }; // the filled transaction
+}
+
 export interface MetaTransactionSubmitRfqmSignedQuoteParams {
     type: RfqmTypes.MetaTransaction;
     metaTransaction: MetaTransaction;
@@ -108,6 +127,7 @@ export interface SubmissionsMap {
 export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
 export type SubmitRfqmSignedQuoteParams = MetaTransactionSubmitRfqmSignedQuoteParams;
 export type SubmitRfqmSignedQuoteResponse = MetaTransactionSubmitRfqmSignedQuoteResponse;
+export type StatusResponse = OrderStatusPending | OrderStatusSubmitted | OrderStatusFailed | OrderStatusSuccessful;
 
 const RFQM_QUOTE_INSERTED = new Counter({
     name: 'rfqm_quote_inserted',
@@ -469,6 +489,70 @@ export class RfqmService {
             return false;
         }
         return this._blockchainUtils.isWorkerReadyAsync(workerAddress, gasPrice);
+    }
+
+    public async getOrderStatusAsync(orderHash: string): Promise<StatusResponse | null> {
+        const transformSubmission = (submission: RfqmTransactionSubmissionEntity) => {
+            const { transactionHash: hash, createdAt } = submission;
+            if (!hash) {
+                return null;
+            }
+            return {
+                hash,
+                timestamp: createdAt.getTime(),
+            };
+        };
+        const transformSubmissions = (submissions: RfqmTransactionSubmissionEntity[]) =>
+            submissions.map(transformSubmission).flatMap((s) => (s ? s : []));
+
+        const job = await this._dbUtils.findJobByOrderHashAsync(orderHash);
+        if (!job) {
+            return null;
+        }
+        const { status } = job;
+        if (status === RfqmJobStatus.InQueue && job.expiry.lt(Date.now())) {
+            // the workers are dead/on vacation and the expiration time has passed
+            return {
+                status: 'failed',
+                transactions: [],
+            };
+        }
+        const transactionSubmissions = await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
+        switch (status) {
+            case RfqmJobStatus.InQueue:
+            case RfqmJobStatus.Processing:
+                return { status: 'pending' };
+            case RfqmJobStatus.Submitted:
+                return {
+                    status: 'submitted',
+                    transactions: transformSubmissions(transactionSubmissions),
+                };
+            case RfqmJobStatus.Failed:
+                return {
+                    status: 'failed',
+                    transactions: transformSubmissions(transactionSubmissions),
+                };
+            case RfqmJobStatus.Successful:
+                const successfulTransactions = transactionSubmissions.filter(
+                    (s) => s.status === RfqmTranasctionSubmissionStatus.Successful,
+                );
+                if (successfulTransactions.length !== 1) {
+                    throw new Error(
+                        `Expected exactly one successful transmission for order ${orderHash}; found ${successfulTransactions.length}`,
+                    );
+                }
+                const successfulTransaction = successfulTransactions[0];
+                const successfulTransactionData = transformSubmission(successfulTransaction);
+                if (!successfulTransactionData) {
+                    throw new Error(`Successful transaction did not have a hash`);
+                }
+                return {
+                    status: 'successful',
+                    transaction: successfulTransactionData,
+                };
+            default:
+                throw new Error(`RFQM job has an unknown status: ${status}`);
+        }
     }
 
     public async submitMetaTransactionSignedQuoteAsync(
