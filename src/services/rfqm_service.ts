@@ -717,7 +717,7 @@ export class RfqmService {
             if (receipt.response !== undefined) {
                 isTxMined = true;
                 const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
-                if (receipt.response.blockNumber - currentBlock >= BLOCK_FINALITY_THRESHOLD) {
+                if (currentBlock - receipt.response.blockNumber >= BLOCK_FINALITY_THRESHOLD) {
                     isTxFinalized = true;
                 }
                 // update all entities
