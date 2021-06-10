@@ -624,7 +624,10 @@ export class RfqmService {
         try {
             submissionsMap = await this.completeSubmissionLifecycleAsync(orderHash, workerAddress, calldata!);
         } catch (err) {
-            logger.warn({ orderHash, workerAddress, error: err }, `encountered an error in transaction submission: ${err}`);
+            logger.warn(
+                { orderHash, workerAddress, error: err },
+                `encountered an error in transaction submission: ${err}`,
+            );
             throw new Error(`encountered an error in transaction submission`);
         }
 
