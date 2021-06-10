@@ -676,6 +676,7 @@ export class RfqmService {
         let isTxMined = false;
         let isTxFinalized = false;
         while (!isTxFinalized) {
+            logger.warn({ orderHash, workerAddress }, `entering finalization flow`);
             await delay(TRANSACTION_WATCHER_SLEEP_TIME_MS);
 
             const statusCheckResult = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
@@ -687,6 +688,7 @@ export class RfqmService {
             submissionsMap = statusCheckResult.submissionsMap;
 
             if (!isTxMined) {
+                logger.warn({ orderHash, workerAddress }, `entering re-submission flow`);
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
                 if (gasPrice.lt(newGasPrice)) {
@@ -714,6 +716,7 @@ export class RfqmService {
         submissionsMap: SubmissionsMap,
         expectedTakerTokenFillAmount: BigNumber,
     ): Promise<SubmissionsMapStatus> {
+        logger.warn({}, `entering check submissions flow`);
         let isTxMined: boolean = false;
         let isTxFinalized: boolean = false;
 
@@ -726,6 +729,7 @@ export class RfqmService {
                 };
             }),
         );
+        logger.warn({}, `successfully obtained receipts`);
 
         for (const receipt of receipts) {
             if (receipt.response !== undefined) {
