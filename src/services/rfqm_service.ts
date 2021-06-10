@@ -624,7 +624,7 @@ export class RfqmService {
         try {
             submissionsMap = await this.completeSubmissionLifecycleAsync(orderHash, workerAddress, calldata!);
         } catch (err) {
-            logger.warn(
+            logger.trace(
                 { orderHash, workerAddress, error: err },
                 `encountered an error in transaction submission: ${err}`,
             );
@@ -679,6 +679,7 @@ export class RfqmService {
         let isTxMined = false;
         let isTxFinalized = false;
         while (!isTxFinalized) {
+            logger.warn({ workerAddress, orderHash, isTxMined }, `entering finalization flow`);
             await delay(TRANSACTION_WATCHER_SLEEP_TIME_MS);
 
             const statusCheckResult = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
@@ -689,10 +690,14 @@ export class RfqmService {
             isTxFinalized = statusCheckResult.isTxFinalized;
             submissionsMap = statusCheckResult.submissionsMap;
 
+            logger.warn({ workerAddress, orderHash, isTxMined }, `passed status check`);
             if (!isTxMined) {
+                logger.warn({ workerAddress, orderHash, isTxMined }, `calculating new gas price`);
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+                logger.warn({ workerAddress, orderHash, isTxMined, newGasPrice }, `got new gas price`);
 
                 if (gasPrice.lt(newGasPrice)) {
+                    logger.warn({ workerAddress, orderHash, isTxMined }, `trying to resubmit`);
                     gasPrice = newGasPrice;
                     const submission = await this._submitTransactionAsync(
                         orderHash,
@@ -719,6 +724,7 @@ export class RfqmService {
     ): Promise<SubmissionsMapStatus> {
         let isTxMined: boolean = false;
         let isTxFinalized: boolean = false;
+        logger.warn({}, `check submission flow`);
 
         // check if any tx has been mined
         const receipts = await Promise.all(
@@ -734,7 +740,9 @@ export class RfqmService {
             if (receipt.response !== undefined) {
                 isTxMined = true;
                 const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
+                logger.warn({ receipt }, `about to hit finalization check`);
                 if (currentBlock - receipt.response.blockNumber >= BLOCK_FINALITY_THRESHOLD) {
+                    logger.warn({}, `hit finalization criterion`);
                     isTxFinalized = true;
                 }
                 // update all entities
