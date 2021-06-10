@@ -167,7 +167,7 @@ export class RfqBlockchainUtils {
 
     public async getTransactionReceiptIfExistsAsync(transactionHash: string): Promise<TransactionReceipt | undefined> {
         try {
-            return this._web3Wrapper.getTransactionReceiptIfExistsAsync(transactionHash);
+            return await this._web3Wrapper.getTransactionReceiptIfExistsAsync(transactionHash);
         } catch (err) {
             logger.warn({ transactionHash, error: err }, `failed to get transaction receipt`);
             return undefined;
