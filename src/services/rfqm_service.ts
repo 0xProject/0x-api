@@ -729,10 +729,15 @@ export class RfqmService {
         // check if any tx has been mined
         const receipts = await Promise.all(
             Object.keys(submissionsMap).map(async (transactionHash) => {
-                return {
-                    transactionHash,
-                    response: await this._blockchainUtils.getTransactionReceiptIfExistsAsync(transactionHash),
-                };
+                try {
+                    return {
+                        transactionHash,
+                        response: await this._blockchainUtils.getTransactionReceiptIfExistsAsync(transactionHash),
+                    };
+                } catch (err) {
+                    logger.warn({ transactionHash, error: err }, `failed to get tx receipt`);
+                    throw new Error('failed to get tx receipt');
+                }
             }),
         );
 
