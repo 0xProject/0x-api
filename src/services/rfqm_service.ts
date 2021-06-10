@@ -687,7 +687,6 @@ export class RfqmService {
             submissionsMap = statusCheckResult.submissionsMap;
 
             if (!isTxMined) {
-                logger.warn({ orderHash, workerAddress }, `entering re-submission flow`);
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
                 if (gasPrice.lt(newGasPrice)) {
