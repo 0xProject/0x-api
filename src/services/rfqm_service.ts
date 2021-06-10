@@ -28,7 +28,7 @@ import {
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 const TRANSACTION_WATCHER_SLEEP_TIME_MS = 15000;
-export const BLOCK_FINALITY_THRESHOLD = 6;
+export const BLOCK_FINALITY_THRESHOLD = 3;
 
 export enum RfqmTypes {
     MetaTransaction = 'metatransaction',
@@ -676,7 +676,6 @@ export class RfqmService {
         let isTxMined = false;
         let isTxFinalized = false;
         while (!isTxFinalized) {
-            logger.warn({ orderHash, workerAddress }, `entering finalization flow`);
             await delay(TRANSACTION_WATCHER_SLEEP_TIME_MS);
 
             const statusCheckResult = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
@@ -716,7 +715,6 @@ export class RfqmService {
         submissionsMap: SubmissionsMap,
         expectedTakerTokenFillAmount: BigNumber,
     ): Promise<SubmissionsMapStatus> {
-        logger.warn({}, `entering check submissions flow`);
         let isTxMined: boolean = false;
         let isTxFinalized: boolean = false;
 
@@ -729,7 +727,6 @@ export class RfqmService {
                 };
             }),
         );
-        logger.warn({}, `successfully obtained receipts`);
 
         for (const receipt of receipts) {
             if (receipt.response !== undefined) {
