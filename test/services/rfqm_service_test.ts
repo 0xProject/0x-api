@@ -1026,7 +1026,7 @@ describe('RfqmService', () => {
         });
     });
 
-    describe.only('status', () => {
+    describe('status', () => {
         it("should return null when the specified order isn't found", async () => {
             const dbUtilsMock = mock(RfqmDbUtils);
             when(dbUtilsMock.findJobByOrderHashAsync(anything())).thenResolve();
