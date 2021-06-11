@@ -4,8 +4,10 @@ import { Fee } from '@0x/quote-server/lib/src/types';
 import { Connection } from 'typeorm/connection/Connection';
 
 import { RfqmJobEntity, RfqmQuoteEntity, RfqmTransactionSubmissionEntity } from '../entities';
-import { RfqmJobConstructorOpts, RfqmOrder, RfqmOrderTypes, StoredFee, StoredOrder } from '../entities/RfqmJobEntity';
+import { RfqmJobConstructorOpts, RfqmOrderTypes, StoredFee, StoredOrder } from '../entities/RfqmJobEntity';
 import { RfqmQuoteConstructorOpts } from '../entities/RfqmQuoteEntity';
+
+export type RfqmOrder = RfqOrder;
 
 /**
  * convert a stored order into the appropriate order class

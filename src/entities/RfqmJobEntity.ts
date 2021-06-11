@@ -33,7 +33,6 @@ export interface V4RfqStoredOrder {
 }
 
 export type StoredOrder = V4RfqStoredOrder;
-export type RfqmOrder = RfqOrder;
 
 export interface V4StringRfqOrderFields {
     txOrigin: string;
