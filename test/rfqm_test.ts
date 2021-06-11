@@ -41,7 +41,14 @@ import {
 } from '../src/utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../src/utils/rfq_blockchain_utils';
 
-import { CHAIN_ID, CONTRACT_ADDRESSES, getProvider, NULL_ADDRESS, TEST_DECODED_RFQ_ORDER_FILLED_EVENT_LOG, TEST_RFQ_ORDER_FILLED_EVENT_LOG } from './constants';
+import {
+    CHAIN_ID,
+    CONTRACT_ADDRESSES,
+    getProvider,
+    NULL_ADDRESS,
+    TEST_DECODED_RFQ_ORDER_FILLED_EVENT_LOG,
+    TEST_RFQ_ORDER_FILLED_EVENT_LOG,
+} from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 
 // Force reload of the app avoid variables being polluted between test suites
@@ -151,40 +158,21 @@ describe(SUITE_NAME, () => {
         when(
             rfqBlockchainUtilsMock.validateMetaTransactionOrThrowAsync(anything(), anything(), anything(), anything()),
         ).thenResolve(validationResponse);
-        when(
-            rfqBlockchainUtilsMock.getNonceAsync(
-                anything(),
-            ),
-        ).thenResolve(NONCE);
-        when(
-            rfqBlockchainUtilsMock.estimateGasForExchangeProxyCallAsync(
-                anything(),
-                anything(),
-            ),
-        ).thenResolve(GAS_ESTIMATE);
-        when(
-            rfqBlockchainUtilsMock.submitCallDataToExchangeProxyAsync(
-                anything(),
-                anything(),
-                anything(),
-            ),
-        ).thenResolve(FIRST_TRANSACTION_HASH);
-        when(
-            rfqBlockchainUtilsMock.getTransactionReceiptIfExistsAsync(
-                FIRST_TRANSACTION_HASH,
-            ),
-        ).thenResolve(SUCCESSFUL_TRANSACTION_RECEIPT);
-        when(
-            rfqBlockchainUtilsMock.getCurrentBlockAsync()
-        ).thenResolve(CURRENT_BLOCK);
-        when(
-            rfqBlockchainUtilsMock.getExchangeProxyAddress()
-        ).thenReturn(MOCK_EXCHANGE_PROXY);
-        when(
-            rfqBlockchainUtilsMock.getTakerTokenFillAmountFromMetaTxCallData(
-                anything(),
-            )
-        ).thenReturn(EXPECTED_FILL_AMOUNT);
+        when(rfqBlockchainUtilsMock.getNonceAsync(anything())).thenResolve(NONCE);
+        when(rfqBlockchainUtilsMock.estimateGasForExchangeProxyCallAsync(anything(), anything())).thenResolve(
+            GAS_ESTIMATE,
+        );
+        when(rfqBlockchainUtilsMock.submitCallDataToExchangeProxyAsync(anything(), anything(), anything())).thenResolve(
+            FIRST_TRANSACTION_HASH,
+        );
+        when(rfqBlockchainUtilsMock.getTransactionReceiptIfExistsAsync(FIRST_TRANSACTION_HASH)).thenResolve(
+            SUCCESSFUL_TRANSACTION_RECEIPT,
+        );
+        when(rfqBlockchainUtilsMock.getCurrentBlockAsync()).thenResolve(CURRENT_BLOCK);
+        when(rfqBlockchainUtilsMock.getExchangeProxyAddress()).thenReturn(MOCK_EXCHANGE_PROXY);
+        when(rfqBlockchainUtilsMock.getTakerTokenFillAmountFromMetaTxCallData(anything())).thenReturn(
+            EXPECTED_FILL_AMOUNT,
+        );
         when(
             rfqBlockchainUtilsMock.decodeMetaTransactionCallDataAndValidateAsync(anyString(), anyString(), anything()),
         ).thenResolve(validationResponse);
