@@ -1,3 +1,4 @@
+// tslint:disable: max-classes-per-file
 import { SQS } from 'aws-sdk';
 import delay from 'delay';
 
@@ -8,6 +9,7 @@ import { SqsClient } from './sqs_client';
 
 export type MessageHandler = (message: SQS.Types.Message) => Promise<any>;
 
+export class SqsRetryableError extends Error {}
 export class SqsConsumer {
     private readonly _id: string;
     private readonly _sqsClient: SqsClient;
@@ -95,10 +97,13 @@ export class SqsConsumer {
                 },
                 'Encountered error while handling message',
             );
-            // Retry message
-            await this._sqsClient.changeMessageVisibilityAsync(message.ReceiptHandle!, 0);
-            await delay(ONE_SECOND_MS);
-            return;
+
+            if (err instanceof SqsRetryableError) {
+                // Retry message
+                await this._sqsClient.changeMessageVisibilityAsync(message.ReceiptHandle!, 0);
+                await delay(ONE_SECOND_MS);
+                return;
+            }
         }
 
         // Delete message
