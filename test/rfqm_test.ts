@@ -35,10 +35,7 @@ import { runHttpRfqmServiceAsync } from '../src/runners/http_rfqm_service_runner
 import { BLOCK_FINALITY_THRESHOLD, RfqmService, RfqmTypes } from '../src/services/rfqm_service';
 import { ConfigManager } from '../src/utils/config_manager';
 import { QuoteServerClient } from '../src/utils/quote_server_client';
-import {
-    RfqmDbUtils,
-    storedOrderToRfqmOrder,
-} from '../src/utils/rfqm_db_utils';
+import { RfqmDbUtils, storedOrderToRfqmOrder } from '../src/utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../src/utils/rfq_blockchain_utils';
 
 import {
