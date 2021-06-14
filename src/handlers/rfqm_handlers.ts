@@ -137,7 +137,7 @@ export class RfqmHandlers {
 
         this._validateAndReturnApiKey(apiKeyLabel);
 
-        const {orderHash } = req.params;
+        const { orderHash } = req.params;
 
         const status = await this._rfqmService.getOrderStatusAsync(orderHash);
 

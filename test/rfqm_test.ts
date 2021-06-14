@@ -1077,7 +1077,6 @@ describe(SUITE_NAME, () => {
 
         it('should sucessfully resolve when the job is processed', async () => {
             const mockAxios = new AxiosMockAdapter(axiosClient);
-            const dbUtils = new RfqmDbUtils(connection);
             const blockchainUtils = new RfqBlockchainUtils(getProvider(), contractAddresses.exchangeProxy);
             const order = new RfqOrder({
                 txOrigin: randomAddress(),
