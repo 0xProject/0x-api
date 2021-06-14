@@ -1204,7 +1204,7 @@ describe('RfqmService', () => {
                 expect.fail('Status should be successful');
                 throw new Error();
             }
-            expect(jobStatus.transaction).to.contain({ hash: '0x02', timestamp: +transaction2Time.valueOf() });
+            expect(jobStatus.transactions[0]).to.contain({ hash: '0x02', timestamp: +transaction2Time.valueOf() });
         });
 
         it('should throw if the job is successful but there are no successful transactions', async () => {
