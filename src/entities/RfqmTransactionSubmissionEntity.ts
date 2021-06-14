@@ -8,7 +8,8 @@ export enum RfqmTranasctionSubmissionStatus {
     Successful = 'successful',
     Reverted = 'reverted',
     DroppedAndReplaced = 'droppedAndReplaced',
-    Confirmed = 'confirmed',
+    ConfirmedSuccessful = 'confirmedSuccessful',
+    ConfirmedReverted = 'confirmedReverted',
 }
 
 @Entity({ name: 'rfqm_transaction_submissions' })

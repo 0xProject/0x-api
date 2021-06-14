@@ -811,7 +811,7 @@ export class RfqmService {
                                 r.response.logs,
                             );
                             submissionsMap[r.transactionHash].status = isTxConfirmed
-                                ? RfqmTranasctionSubmissionStatus.Confirmed
+                                ? RfqmTranasctionSubmissionStatus.ConfirmedSuccessful
                                 : RfqmTranasctionSubmissionStatus.Successful;
                             submissionsMap[r.transactionHash].metadata = {
                                 expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
@@ -819,7 +819,9 @@ export class RfqmService {
                                 decodedFillLog: JSON.stringify(decodedLog),
                             };
                         } else {
-                            submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.Reverted;
+                            submissionsMap[r.transactionHash].status = isTxConfirmed
+                                ? RfqmTranasctionSubmissionStatus.ConfirmedReverted
+                                : RfqmTranasctionSubmissionStatus.Reverted;
                             submissionsMap[r.transactionHash].metadata = null;
                             submissionsMap[r.transactionHash].metadata = {
                                 expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
