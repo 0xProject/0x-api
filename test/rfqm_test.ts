@@ -30,7 +30,7 @@ import { RFQM_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { RfqmJobEntity, RfqmQuoteEntity, RfqmTransactionSubmissionEntity } from '../src/entities';
 import { RfqmJobStatus, RfqmOrderTypes, StoredFee, StoredOrder } from '../src/entities/RfqmJobEntity';
-import { RfqmTranasctionSubmissionStatus } from '../src/entities/RfqmTransactionSubmissionEntity';
+import { RfqmTransactionSubmissionStatus } from '../src/entities/RfqmTransactionSubmissionEntity';
 import { runHttpRfqmServiceAsync } from '../src/runners/http_rfqm_service_runner';
 import { BLOCK_FINALITY_THRESHOLD, RfqmService, RfqmTypes } from '../src/services/rfqm_service';
 import { ConfigManager } from '../src/utils/config_manager';
@@ -1061,7 +1061,7 @@ describe(SUITE_NAME, () => {
             expect(dbSubmissionEntity?.gasUsed).to.deep.equal(new BigNumber(GAS_ESTIMATE));
             expect(dbSubmissionEntity?.gasPrice).to.deep.equal(GAS_PRICE);
             expect(dbSubmissionEntity?.nonce).to.deep.equal(NONCE);
-            expect(dbSubmissionEntity?.status).to.deep.equal(RfqmTranasctionSubmissionStatus.Successful);
+            expect(dbSubmissionEntity?.status).to.deep.equal(RfqmTransactionSubmissionStatus.Successful);
             expect(dbSubmissionEntity?.blockMined).to.deep.equal(new BigNumber(MINED_BLOCK));
             expect(dbSubmissionEntity?.to).to.deep.equal(MOCK_EXCHANGE_PROXY);
             expect(dbSubmissionEntity?.statusReason).to.deep.equal(null);
@@ -1150,7 +1150,7 @@ describe(SUITE_NAME, () => {
             expect(job?.status).to.eq(RfqmJobStatus.Successful);
 
             const submissions = await dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
-            expect(submissions[0].status).to.eq(RfqmTranasctionSubmissionStatus.Successful);
+            expect(submissions[0].status).to.eq(RfqmTransactionSubmissionStatus.Successful);
 
             mockAxios.reset();
         });
