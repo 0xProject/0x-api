@@ -15,7 +15,7 @@ import { Server } from 'http';
 import { Connection } from 'typeorm';
 
 import { CHAIN_ID } from './config';
-import { RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
+import { NULL_ADDRESS, RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
@@ -73,6 +73,7 @@ async function deploySamplerContractAsync(
             provider,
             { from: account },
             {},
+            NULL_ADDRESS,
         );
         logger.info(`Deployed ERC20BridgeSamplerContract on network ${chainId}: ${sampler.address}`);
         return sampler;
