@@ -97,7 +97,7 @@ export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse 
 
 export interface SubmissionsMapStatus {
     isTxMined: boolean;
-    isTxFinalized: boolean;
+    isTxConfirmed: boolean;
     submissionsMap: SubmissionsMap;
 }
 
@@ -199,7 +199,9 @@ export class RfqmService {
     /**
      * update RfqmJobStatus based on transaction status
      */
-    private static _getJobStatusFromSubmissions(submissionsMap: SubmissionsMap): {
+    private static _getJobStatusFromSubmissions(
+        submissionsMap: SubmissionsMap,
+    ): {
         status: RfqmJobStatus;
         statusReason: string | null;
     } {
@@ -740,8 +742,8 @@ export class RfqmService {
         submissionsMap[firstSubmission.transactionHash!] = firstSubmission;
 
         let isTxMined = false;
-        let isTxFinalized = false;
-        while (!isTxFinalized) {
+        let isTxConfirmed = false;
+        while (!isTxConfirmed) {
             await delay(TRANSACTION_WATCHER_SLEEP_TIME_MS);
 
             const statusCheckResult = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
@@ -749,7 +751,7 @@ export class RfqmService {
                 expectedTakerTokenFillAmount,
             );
             isTxMined = statusCheckResult.isTxMined;
-            isTxFinalized = statusCheckResult.isTxFinalized;
+            isTxConfirmed = statusCheckResult.isTxConfirmed;
             submissionsMap = statusCheckResult.submissionsMap;
 
             if (!isTxMined) {
@@ -781,7 +783,7 @@ export class RfqmService {
         expectedTakerTokenFillAmount: BigNumber,
     ): Promise<SubmissionsMapStatus> {
         let isTxMined: boolean = false;
-        let isTxFinalized: boolean = false;
+        let isTxConfirmed: boolean = false;
 
         // check if any tx has been mined
         const receipts = await Promise.all(
@@ -798,7 +800,7 @@ export class RfqmService {
                 isTxMined = true;
                 const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
                 if (currentBlock - receipt.response.blockNumber >= BLOCK_FINALITY_THRESHOLD) {
-                    isTxFinalized = true;
+                    isTxConfirmed = true;
                 }
                 // update all entities
                 // since the same nonce is being re-used, we expect only 1 defined receipt
@@ -808,7 +810,9 @@ export class RfqmService {
                             const decodedLog = this._blockchainUtils.getDecodedRfqOrderFillEventLogFromLogs(
                                 r.response.logs,
                             );
-                            submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.Successful;
+                            submissionsMap[r.transactionHash].status = isTxConfirmed
+                                ? RfqmTranasctionSubmissionStatus.Confirmed
+                                : RfqmTranasctionSubmissionStatus.Successful;
                             submissionsMap[r.transactionHash].metadata = {
                                 expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
                                 actualTakerFillAmount: decodedLog.args.takerTokenFilledAmount.toString(),
@@ -845,7 +849,7 @@ export class RfqmService {
 
         return {
             isTxMined,
-            isTxFinalized,
+            isTxConfirmed,
             submissionsMap,
         };
     }
