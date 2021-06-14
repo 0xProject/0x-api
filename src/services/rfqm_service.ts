@@ -13,7 +13,7 @@ import { CHAIN_ID, META_TX_WORKER_REGISTRY, RFQT_REQUEST_MAX_RESPONSE_MS } from 
 import { NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import { RfqmJobEntity, RfqmQuoteEntity, RfqmTransactionSubmissionEntity } from '../entities';
 import { RfqmJobStatus } from '../entities/RfqmJobEntity';
-import { RfqmTranasctionSubmissionStatus } from '../entities/RfqmTransactionSubmissionEntity';
+import { RfqmTransactionSubmissionStatus } from '../entities/RfqmTransactionSubmissionEntity';
 import { InternalServerError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
 import { getBestQuote } from '../utils/quote_comparison_utils';
@@ -207,12 +207,12 @@ export class RfqmService {
     } {
         // there should only be one mined transaction, which will either be successful or a revert
         for (const submission of Object.values(submissionsMap)) {
-            if (submission.status === RfqmTranasctionSubmissionStatus.Successful) {
+            if (submission.status === RfqmTransactionSubmissionStatus.Successful) {
                 return {
                     status: RfqmJobStatus.Successful,
                     statusReason: null,
                 };
-            } else if (submission.status === RfqmTranasctionSubmissionStatus.Reverted) {
+            } else if (submission.status === RfqmTransactionSubmissionStatus.Reverted) {
                 return {
                     status: RfqmJobStatus.Failed,
                     statusReason: 'transaction reverted',
@@ -517,7 +517,9 @@ export class RfqmService {
                 };
             case RfqmJobStatus.Successful:
                 const successfulTransactions = transactionSubmissions.filter(
-                    (s) => s.status === RfqmTranasctionSubmissionStatus.Successful,
+                    (s) =>
+                        s.status === RfqmTransactionSubmissionStatus.Successful ||
+                        s.status === RfqmTransactionSubmissionStatus.ConfirmedSuccessful,
                 );
                 if (successfulTransactions.length !== 1) {
                     throw new Error(
@@ -811,8 +813,8 @@ export class RfqmService {
                                 r.response.logs,
                             );
                             submissionsMap[r.transactionHash].status = isTxConfirmed
-                                ? RfqmTranasctionSubmissionStatus.ConfirmedSuccessful
-                                : RfqmTranasctionSubmissionStatus.Successful;
+                                ? RfqmTransactionSubmissionStatus.ConfirmedSuccessful
+                                : RfqmTransactionSubmissionStatus.Successful;
                             submissionsMap[r.transactionHash].metadata = {
                                 expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
                                 actualTakerFillAmount: decodedLog.args.takerTokenFilledAmount.toString(),
@@ -820,8 +822,8 @@ export class RfqmService {
                             };
                         } else {
                             submissionsMap[r.transactionHash].status = isTxConfirmed
-                                ? RfqmTranasctionSubmissionStatus.ConfirmedReverted
-                                : RfqmTranasctionSubmissionStatus.Reverted;
+                                ? RfqmTransactionSubmissionStatus.ConfirmedReverted
+                                : RfqmTransactionSubmissionStatus.Reverted;
                             submissionsMap[r.transactionHash].metadata = null;
                             submissionsMap[r.transactionHash].metadata = {
                                 expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
@@ -833,7 +835,7 @@ export class RfqmService {
                         submissionsMap[r.transactionHash].gasUsed = new BigNumber(r.response.gasUsed);
                         submissionsMap[r.transactionHash].updatedAt = new Date();
                     } else {
-                        submissionsMap[r.transactionHash].status = RfqmTranasctionSubmissionStatus.DroppedAndReplaced;
+                        submissionsMap[r.transactionHash].status = RfqmTransactionSubmissionStatus.DroppedAndReplaced;
                         submissionsMap[r.transactionHash].blockMined = null;
                         submissionsMap[r.transactionHash].gasUsed = null;
                         submissionsMap[r.transactionHash].updatedAt = new Date();
@@ -891,7 +893,7 @@ export class RfqmService {
             to: this._blockchainUtils.getExchangeProxyAddress(),
             gasPrice,
             nonce,
-            status: RfqmTranasctionSubmissionStatus.Submitted,
+            status: RfqmTransactionSubmissionStatus.Submitted,
         };
 
         return this._dbUtils.writeRfqmTransactionSubmissionToDbAsync(partialEntity);

@@ -20,7 +20,7 @@ import { anything, instance, mock, when } from 'ts-mockito';
 import { ONE_MINUTE_MS } from '../../src/constants';
 import { RfqmJobEntity, RfqmTransactionSubmissionEntity } from '../../src/entities';
 import { RfqmJobStatus } from '../../src/entities/RfqmJobEntity';
-import { RfqmTranasctionSubmissionStatus } from '../../src/entities/RfqmTransactionSubmissionEntity';
+import { RfqmTransactionSubmissionStatus } from '../../src/entities/RfqmTransactionSubmissionEntity';
 import { RfqmService } from '../../src/services/rfqm_service';
 import { QuoteServerClient } from '../../src/utils/quote_server_client';
 import { RfqmDbUtils } from '../../src/utils/rfqm_db_utils';
@@ -1176,13 +1176,13 @@ describe('RfqmService', () => {
                 createdAt: new Date(transaction1Time),
                 orderHash: '0x00',
                 transactionHash: '0x01',
-                status: RfqmTranasctionSubmissionStatus.Reverted,
+                status: RfqmTransactionSubmissionStatus.Reverted,
             });
             const submission2 = new RfqmTransactionSubmissionEntity({
                 createdAt: new Date(transaction2Time),
                 orderHash: '0x00',
                 transactionHash: '0x02',
-                status: RfqmTranasctionSubmissionStatus.Successful,
+                status: RfqmTransactionSubmissionStatus.Successful,
             });
 
             const dbUtilsMock = mock(RfqmDbUtils);
@@ -1226,13 +1226,13 @@ describe('RfqmService', () => {
                 createdAt: new Date(transaction1Time),
                 orderHash: '0x00',
                 transactionHash: '0x01',
-                status: RfqmTranasctionSubmissionStatus.Reverted,
+                status: RfqmTransactionSubmissionStatus.Reverted,
             });
             const submission2 = new RfqmTransactionSubmissionEntity({
                 createdAt: new Date(transaction2Time),
                 orderHash: '0x00',
                 transactionHash: '0x02',
-                status: RfqmTranasctionSubmissionStatus.DroppedAndReplaced,
+                status: RfqmTransactionSubmissionStatus.DroppedAndReplaced,
             });
 
             const dbUtilsMock = mock(RfqmDbUtils);
@@ -1267,13 +1267,13 @@ describe('RfqmService', () => {
                 createdAt: new Date(transaction1Time),
                 orderHash: '0x00',
                 transactionHash: '0x01',
-                status: RfqmTranasctionSubmissionStatus.Successful,
+                status: RfqmTransactionSubmissionStatus.Successful,
             });
             const submission2 = new RfqmTransactionSubmissionEntity({
                 createdAt: new Date(transaction2Time),
                 orderHash: '0x00',
                 transactionHash: '0x02',
-                status: RfqmTranasctionSubmissionStatus.Successful,
+                status: RfqmTransactionSubmissionStatus.Successful,
             });
 
             const dbUtilsMock = mock(RfqmDbUtils);
