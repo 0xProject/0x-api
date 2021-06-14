@@ -482,14 +482,9 @@ export class RfqmService {
     public async getOrderStatusAsync(orderHash: string): Promise<StatusResponse | null> {
         const transformSubmission = (submission: RfqmTransactionSubmissionEntity) => {
             const { transactionHash: hash, createdAt } = submission;
-            if (!hash) {
-                return null;
-            }
-            return {
-                hash,
-                timestamp: createdAt.getTime(),
-            };
+            return hash ? { hash, timestamp: createdAt.getTime() } : null;
         };
+
         const transformSubmissions = (submissions: RfqmTransactionSubmissionEntity[]) =>
             submissions.map(transformSubmission).flatMap((s) => (s ? s : []));
 
