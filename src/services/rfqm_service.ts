@@ -76,25 +76,6 @@ export interface BaseRfqmQuoteResponse {
     sellTokenAddress: string;
 }
 
-interface OrderStatusPending {
-    status: 'pending';
-}
-
-interface OrderStatusSubmitted {
-    status: 'submitted';
-    transactions: { hash: string; timestamp: number /* unix ms */ }[];
-}
-
-interface OrderStatusFailed {
-    status: 'failed';
-    transactions: { hash: string; timestamp: number /* unix ms */ }[];
-}
-
-interface OrderStatusSuccessful {
-    status: 'successful';
-    transaction: { hash: string; timestamp: number /* unix ms */ }; // the filled transaction
-}
-
 export interface MetaTransactionSubmitRfqmSignedQuoteParams {
     type: RfqmTypes.MetaTransaction;
     metaTransaction: MetaTransaction;
@@ -127,7 +108,12 @@ export interface SubmissionsMap {
 export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
 export type SubmitRfqmSignedQuoteParams = MetaTransactionSubmitRfqmSignedQuoteParams;
 export type SubmitRfqmSignedQuoteResponse = MetaTransactionSubmitRfqmSignedQuoteResponse;
-export type StatusResponse = OrderStatusPending | OrderStatusSubmitted | OrderStatusFailed | OrderStatusSuccessful;
+
+export interface StatusResponse {
+    status: 'pending' | 'submitted' | 'failed' | 'successful';
+    // For pending, expect no transactions. For successful transactions, expect just the mined transaction.
+    transactions: { hash: string; timestamp: number /* unix ms */ }[];
+}
 
 const RFQM_QUOTE_INSERTED = new Counter({
     name: 'rfqm_quote_inserted',
@@ -213,7 +199,9 @@ export class RfqmService {
     /**
      * update RfqmJobStatus based on transaction status
      */
-    private static _getJobStatusFromSubmissions(submissionsMap: SubmissionsMap): {
+    private static _getJobStatusFromSubmissions(
+        submissionsMap: SubmissionsMap,
+    ): {
         status: RfqmJobStatus;
         statusReason: string | null;
     } {
@@ -521,7 +509,7 @@ export class RfqmService {
         switch (status) {
             case RfqmJobStatus.InQueue:
             case RfqmJobStatus.Processing:
-                return { status: 'pending' };
+                return { status: 'pending', transactions: [] };
             case RfqmJobStatus.Submitted:
                 return {
                     status: 'submitted',
@@ -548,7 +536,7 @@ export class RfqmService {
                 }
                 return {
                     status: 'successful',
-                    transaction: successfulTransactionData,
+                    transactions: [successfulTransactionData],
                 };
             default:
                 throw new Error(`RFQM job has an unknown status: ${status}`);
