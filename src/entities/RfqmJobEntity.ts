@@ -23,8 +23,10 @@ export enum RfqmJobStatus {
     FailedExpired = 'failed_expired',
     // Market Maker declined the last look
     FailedLastLookDeclined = 'failed_last_look_declined',
-    // Transaction was reverted
-    FailedReverted = 'failed_reverted',
+    // Transaction was reverted more than 3 blocks ago
+    FailedRevertedConfirmed = 'failed_reverted_confirmed',
+    // Transaction was reverted less than 3 blocks ago
+    FailedRevertedUnconfirmed = 'failed_reverted_unconfirmed',
     // Submitting the transaction to the network was unsuccessful
     FailedSubmitFailed = 'failed_submit_failed',
     // Transaction does not contain call data
