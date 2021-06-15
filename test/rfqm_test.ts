@@ -1061,7 +1061,7 @@ describe(SUITE_NAME, () => {
             expect(dbSubmissionEntity?.gasUsed).to.deep.equal(new BigNumber(GAS_ESTIMATE));
             expect(dbSubmissionEntity?.gasPrice).to.deep.equal(GAS_PRICE);
             expect(dbSubmissionEntity?.nonce).to.deep.equal(NONCE);
-            expect(dbSubmissionEntity?.status).to.deep.equal(RfqmTransactionSubmissionStatus.Successful);
+            expect(dbSubmissionEntity?.status).to.deep.equal(RfqmTransactionSubmissionStatus.ConfirmedSuccessful);
             expect(dbSubmissionEntity?.blockMined).to.deep.equal(new BigNumber(MINED_BLOCK));
             expect(dbSubmissionEntity?.to).to.deep.equal(MOCK_EXCHANGE_PROXY);
             expect(dbSubmissionEntity?.statusReason).to.deep.equal(null);
