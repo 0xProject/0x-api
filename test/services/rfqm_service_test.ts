@@ -1226,13 +1226,13 @@ describe('RfqmService', () => {
                 createdAt: new Date(transaction1Time),
                 orderHash: '0x00',
                 transactionHash: '0x01',
-                status: RfqmTranasctionSubmissionStatus.Reverted,
+                status: RfqmTranasctionSubmissionStatus.RevertedConfirmed,
             });
             const submission2 = new RfqmTransactionSubmissionEntity({
                 createdAt: new Date(transaction2Time),
                 orderHash: '0x00',
                 transactionHash: '0x02',
-                status: RfqmTranasctionSubmissionStatus.Successful,
+                status: RfqmTranasctionSubmissionStatus.SucceededConfirmed,
             });
 
             const dbUtilsMock = mock(RfqmDbUtils);
