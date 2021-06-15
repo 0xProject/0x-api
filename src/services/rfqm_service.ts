@@ -199,9 +199,7 @@ export class RfqmService {
     /**
      * update RfqmJobStatus based on transaction status
      */
-    private static _getJobStatusFromSubmissions(
-        submissionsMap: SubmissionsMap,
-    ): {
+    private static _getJobStatusFromSubmissions(submissionsMap: SubmissionsMap): {
         status: RfqmJobStatus;
         statusReason: string | null;
     } {
