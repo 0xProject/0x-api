@@ -97,6 +97,12 @@ export class RfqmJobEntity {
     @Column({ name: 'metadata', type: 'jsonb', nullable: true })
     public metadata: object | null;
 
+    @Column({ name: 'worker_address', type: 'varchar', nullable: true })
+    public workerAddress: string | null;
+
+    @Column({ name: 'last_look_result', type: 'boolean', nullable: true })
+    public lastLookResult: boolean | null;
+
     // TypeORM runs a validation check where it calls this initializer with no argument.
     // With no default `opts`, `opts` will be undefined and the validation will throw,
     // therefore, add this hacky default.
@@ -112,6 +118,7 @@ export class RfqmJobEntity {
         this.expiry = opts.expiry;
         this.fee = opts.fee || null;
         this.integratorId = opts.integratorId || null;
+        this.lastLookResult = opts.lastLookResult || null;
         this.makerUri = opts.makerUri;
         this.metadata = opts.metadata || null;
         this.metaTransactionHash = opts.metaTransactionHash || null;
@@ -120,5 +127,6 @@ export class RfqmJobEntity {
         this.status = opts.status || RfqmJobStatus.InQueue;
         this.statusReason = opts.statusReason || null;
         this.updatedAt = opts.updatedAt || null;
+        this.workerAddress = opts.workerAddress || null;
     }
 }
