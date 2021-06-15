@@ -1092,15 +1092,9 @@ describe(SUITE_NAME, () => {
                 salt: new BigNumber(1),
                 verifyingContract: contractAddresses.exchangeProxy,
             });
-            const fakeSignature: Signature = {
-                r: `0x${generatePseudoRandom256BitNumber().toString(16)}`,
-                s: `0x${generatePseudoRandom256BitNumber().toString(16)}`,
-                v: 27,
-                signatureType: SignatureType.EthSign,
-            };
             const metaTransaction = blockchainUtils.generateMetaTransaction(
                 order,
-                fakeSignature,
+                VALID_SIGNATURE,
                 randomAddress(),
                 new BigNumber(1),
                 CHAIN_ID,
