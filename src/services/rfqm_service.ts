@@ -208,7 +208,7 @@ export class RfqmService {
             if (submission.status === RfqmTranasctionSubmissionStatus.Successful) {
                 return RfqmJobStatus.SucceededUnconfirmed;
             } else if (submission.status === RfqmTranasctionSubmissionStatus.Reverted) {
-                return RfqmJobStatus.FailedReverted;
+                return RfqmJobStatus.FailedRevertedUnconfirmed;
             }
         }
         throw new Error('no transactions mined in submissions');
@@ -505,7 +505,8 @@ export class RfqmService {
             case RfqmJobStatus.FailedEthCallFailed:
             case RfqmJobStatus.FailedExpired:
             case RfqmJobStatus.FailedLastLookDeclined:
-            case RfqmJobStatus.FailedReverted:
+            case RfqmJobStatus.FailedRevertedConfirmed:
+            case RfqmJobStatus.FailedRevertedUnconfirmed:
             case RfqmJobStatus.FailedSubmitFailed:
             case RfqmJobStatus.FailedValidationNoCallData:
             case RfqmJobStatus.FailedValidationNoFee:
