@@ -497,8 +497,6 @@ export class RfqmService {
             case RfqmJobStatus.PendingEnqueued:
             case RfqmJobStatus.PendingProcessing:
                 return { status: 'pending', transactions: [] };
-            case RfqmJobStatus.PendingResubmittedGas:
-            case RfqmJobStatus.PendingResubmittedUncategorized:
             case RfqmJobStatus.PendingSubmitted:
                 return {
                     status: 'submitted',
@@ -509,7 +507,6 @@ export class RfqmService {
             case RfqmJobStatus.FailedLastLookDeclined:
             case RfqmJobStatus.FailedReverted:
             case RfqmJobStatus.FailedSubmitFailed:
-            case RfqmJobStatus.FailedUncategorized:
             case RfqmJobStatus.FailedValidationNoCallData:
             case RfqmJobStatus.FailedValidationNoFee:
             case RfqmJobStatus.FailedValidationNoMakerUri:

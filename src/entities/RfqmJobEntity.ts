@@ -16,13 +16,17 @@ export enum RfqmJobStatus {
     PendingProcessing = 'pending_processing',
     // Transaction has passed initial verification and has been submitted to the mem pool
     PendingSubmitted = 'pending_submitted',
-    // Transaction has been resubmitted to the network with an updated gas price
-    PendingResubmittedGas = 'pending_resubmitted_gas',
-    // Transaction has been resubmitted to the network for an uncategorized reason
-    PendingResubmittedUncategorized = 'pending_resubmitted_uncategorized',
 
+    // Eth Call made before transaction submission was unsuccessful
+    FailedEthCallFailed = 'failed_eth_call_failed',
     // Transaction has expired prior to eth call or worker is not available to make an eth call
     FailedExpired = 'failed_expired',
+    // Market Maker declined the last look
+    FailedLastLookDeclined = 'failed_last_look_declined',
+    // Transaction was reverted
+    FailedReverted = 'failed_reverted',
+    // Submitting the transaction to the network was unsuccessful
+    FailedSubmitFailed = 'failed_submit_failed',
     // Transaction does not contain call data
     FailedValidationNoCallData = 'failed_validation_no_call_data',
     // Transaction does not include a maker URI
@@ -31,21 +35,11 @@ export enum RfqmJobStatus {
     FailedValidationNoOrder = 'failed_validation_no_order',
     // Transaction does not contain a fee
     FailedValidationNoFee = 'failed_validation_no_fee',
-    // Eth Call made before transaction submission was unsuccessful
-    FailedEthCallFailed = 'failed_eth_call_failed',
-    // Market Maker declined the last look
-    FailedLastLookDeclined = 'failed_last_look_declined',
-    // Submitting the transaction to the network was unsuccessful
-    FailedSubmitFailed = 'failed_submit_failed',
-    // Transaction was reverted
-    FailedReverted = 'failed_reverted',
-    // Transaction failed for an uncategorized reason
-    FailedUncategorized = 'failed_uncategorized',
 
-    // Transaction was successfully mined and filled
-    SucceededUnconfirmed = 'succeeded_unconfirmed',
     // Transaction has succeeded with 3 subsequent blocks
     SucceededConfirmed = 'succeeded_confirmed',
+    // Transaction was successfully mined and filled
+    SucceededUnconfirmed = 'succeeded_unconfirmed',
 }
 
 export enum RfqmOrderTypes {
