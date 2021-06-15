@@ -13,7 +13,7 @@ export class DropRfqmStatusReasonColumn1623716682037 implements MigrationInterfa
             new TableColumn({
                 isNullable: true,
                 name: 'status_reason',
-                type: 'varchar'
+                type: 'varchar',
             }),
         );
     }
