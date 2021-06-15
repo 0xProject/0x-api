@@ -109,6 +109,12 @@ export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
 export type SubmitRfqmSignedQuoteParams = MetaTransactionSubmitRfqmSignedQuoteParams;
 export type SubmitRfqmSignedQuoteResponse = MetaTransactionSubmitRfqmSignedQuoteResponse;
 
+export interface StatusResponse {
+    status: 'pending' | 'submitted' | 'failed' | 'succeeded' | 'confirmed';
+    // For pending, expect no transactions. For successful transactions, expect just the mined transaction.
+    transactions: { hash: string; timestamp: number /* unix ms */ }[];
+}
+
 const RFQM_QUOTE_INSERTED = new Counter({
     name: 'rfqm_quote_inserted',
     help: 'An RfqmQuote was inserted in the DB',
@@ -171,44 +177,38 @@ export class RfqmService {
         return quotedMakerAmount.div(quotedTakerAmount).times(sellAmount).decimalPlaces(0);
     }
 
-    private static _validateJob(job: RfqmJobEntity): void {
+    // Returns a failure status for invalide jobs and null if the job is valid.
+    private static _validateJob(job: RfqmJobEntity): RfqmJobStatus | null {
         const { calldata, makerUri, order, fee } = job;
         if (calldata === undefined) {
-            throw new Error('Missing calldata on job');
+            return RfqmJobStatus.FailedValidationNoCallData;
         }
 
         if (makerUri === undefined) {
-            throw new Error('Missing makerUri on job');
+            return RfqmJobStatus.FailedValidationNoMakerUri;
         }
 
         if (order === null) {
-            throw new Error('Missing order on job');
+            return RfqmJobStatus.FailedValidationNoOrder;
         }
 
         if (fee === null) {
-            throw new Error('Missing fee on job');
+            return RfqmJobStatus.FailedValidationNoFee;
         }
+
+        return null;
     }
 
     /**
      * update RfqmJobStatus based on transaction status
      */
-    private static _getJobStatusFromSubmissions(submissionsMap: SubmissionsMap): {
-        status: RfqmJobStatus;
-        statusReason: string | null;
-    } {
+    private static _getJobStatusFromSubmissions(submissionsMap: SubmissionsMap): RfqmJobStatus {
         // there should only be one mined transaction, which will either be successful or a revert
         for (const submission of Object.values(submissionsMap)) {
             if (submission.status === RfqmTranasctionSubmissionStatus.Successful) {
-                return {
-                    status: RfqmJobStatus.Successful,
-                    statusReason: null,
-                };
+                return RfqmJobStatus.SucceededUnconfirmed;
             } else if (submission.status === RfqmTranasctionSubmissionStatus.Reverted) {
-                return {
-                    status: RfqmJobStatus.Failed,
-                    statusReason: 'transaction reverted',
-                };
+                return RfqmJobStatus.FailedRevertedUnconfirmed;
             }
         }
         throw new Error('no transactions mined in submissions');
@@ -471,6 +471,77 @@ export class RfqmService {
         return this._blockchainUtils.isWorkerReadyAsync(workerAddress, gasPrice);
     }
 
+    public async getOrderStatusAsync(orderHash: string): Promise<StatusResponse | null> {
+        const transformSubmission = (submission: RfqmTransactionSubmissionEntity) => {
+            const { transactionHash: hash, createdAt } = submission;
+            return hash ? { hash, timestamp: createdAt.getTime() } : null;
+        };
+
+        const transformSubmissions = (submissions: RfqmTransactionSubmissionEntity[]) =>
+            submissions.map(transformSubmission).flatMap((s) => (s ? s : []));
+
+        const job = await this._dbUtils.findJobByOrderHashAsync(orderHash);
+        if (!job) {
+            return null;
+        }
+        const { status } = job;
+        if (status === RfqmJobStatus.PendingEnqueued && job.expiry.lt(Date.now())) {
+            // the workers are dead/on vacation and the expiration time has passed
+            return {
+                status: 'failed',
+                transactions: [],
+            };
+        }
+        const transactionSubmissions = await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
+        switch (status) {
+            case RfqmJobStatus.PendingEnqueued:
+            case RfqmJobStatus.PendingProcessing:
+                return { status: 'pending', transactions: [] };
+            case RfqmJobStatus.PendingSubmitted:
+                return {
+                    status: 'submitted',
+                    transactions: transformSubmissions(transactionSubmissions),
+                };
+            case RfqmJobStatus.FailedEthCallFailed:
+            case RfqmJobStatus.FailedExpired:
+            case RfqmJobStatus.FailedLastLookDeclined:
+            case RfqmJobStatus.FailedRevertedConfirmed:
+            case RfqmJobStatus.FailedRevertedUnconfirmed:
+            case RfqmJobStatus.FailedSubmitFailed:
+            case RfqmJobStatus.FailedValidationNoCallData:
+            case RfqmJobStatus.FailedValidationNoFee:
+            case RfqmJobStatus.FailedValidationNoMakerUri:
+            case RfqmJobStatus.FailedValidationNoOrder:
+                return {
+                    status: 'failed',
+                    transactions: transformSubmissions(transactionSubmissions),
+                };
+            case RfqmJobStatus.SucceededConfirmed:
+            case RfqmJobStatus.SucceededUnconfirmed:
+                const successfulTransactions = transactionSubmissions.filter(
+                    (s) => s.status === RfqmTranasctionSubmissionStatus.Successful,
+                );
+                if (successfulTransactions.length !== 1) {
+                    throw new Error(
+                        `Expected exactly one successful transmission for order ${orderHash}; found ${successfulTransactions.length}`,
+                    );
+                }
+                const successfulTransaction = successfulTransactions[0];
+                const successfulTransactionData = transformSubmission(successfulTransaction);
+                if (!successfulTransactionData) {
+                    throw new Error(`Successful transaction did not have a hash`);
+                }
+                return {
+                    status: status === RfqmJobStatus.SucceededUnconfirmed ? 'succeeded' : 'confirmed',
+                    transactions: [successfulTransactionData],
+                };
+            default:
+                ((_x: never): never => {
+                    throw new Error('Unreachable');
+                })(status);
+        }
+    }
+
     public async submitMetaTransactionSignedQuoteAsync(
         params: MetaTransactionSubmitRfqmSignedQuoteParams,
     ): Promise<MetaTransactionSubmitRfqmSignedQuoteResponse> {
@@ -526,7 +597,7 @@ export class RfqmService {
             chainId: CHAIN_ID,
             integratorId: quote.integratorId ? quote.integratorId : null,
             makerUri: quote.makerUri,
-            status: RfqmJobStatus.InQueue,
+            status: RfqmJobStatus.PendingEnqueued,
             statusReason: null,
             calldata: this._blockchainUtils.generateMetaTransactionCallData(params.metaTransaction, params.signature),
             fee: quote.fee,
@@ -568,21 +639,19 @@ export class RfqmService {
         }
 
         // Basic validation
-        try {
-            RfqmService._validateJob(job);
-        } catch (err) {
+        const errorStatus = RfqmService._validateJob(job);
+        if (errorStatus !== null) {
             await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.Failed,
-                statusReason: err.message,
+                status: errorStatus,
             });
             return;
         }
         const { calldata, makerUri, order, fee } = job;
 
         // update status to processing if it's a fresh job
-        if (job.status === RfqmJobStatus.InQueue) {
+        if (job.status === RfqmJobStatus.PendingEnqueued) {
             await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.Processing,
+                status: RfqmJobStatus.PendingProcessing,
             });
         }
 
@@ -596,8 +665,7 @@ export class RfqmService {
                 logger.warn({ error: e, orderHash }, 'The eth_call validation failed');
                 // Terminate with an error transition
                 await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                    status: RfqmJobStatus.Failed,
-                    statusReason: 'eth_call failed',
+                    status: RfqmJobStatus.FailedEthCallFailed,
                 });
                 return;
             }
@@ -616,7 +684,7 @@ export class RfqmService {
                 RFQM_JOB_MM_REJECTED_LAST_LOOK.labels(makerUri!).inc();
                 // Terminate with an error transition
                 await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                    status: RfqmJobStatus.Failed,
+                    status: RfqmJobStatus.FailedLastLookDeclined,
                     lastLookResult: shouldProceed,
                 });
                 return;
@@ -627,7 +695,7 @@ export class RfqmService {
             }
         } else if (job.lastLookResult === false) {
             await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.Failed,
+                status: RfqmJobStatus.FailedLastLookDeclined,
             });
             return;
         }
@@ -644,8 +712,7 @@ export class RfqmService {
         // update job status based on transaction submission status
         const finalJobStatus = RfqmService._getJobStatusFromSubmissions(submissionsMap);
         await this._dbUtils.updateRfqmJobAsync(orderHash, {
-            status: finalJobStatus.status,
-            statusReason: finalJobStatus.statusReason,
+            status: finalJobStatus,
         });
     }
 
@@ -693,7 +760,7 @@ export class RfqmService {
         // if there are no previous submissions, send the first transaction
         } else {
             // claim this job for the worker, and set status to submitted
-            await this._dbUtils.updateRfqmJobAsync(orderHash, { status: RfqmJobStatus.Submitted, workerAddress });
+            await this._dbUtils.updateRfqmJobAsync(orderHash, { status: RfqmJobStatus.PendingSubmitted, workerAddress });
 
             [gasPrice, nonce, gasEstimate] = await Promise.all([
                 this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync(),
