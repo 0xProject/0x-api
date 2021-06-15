@@ -4,12 +4,12 @@ import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 import { BigIntTransformer, BigNumberTransformer } from './transformers';
 
 export enum RfqmTransactionSubmissionStatus {
+    DroppedAndReplaced = 'dropped_and_replaced',
+    RevertedConfirmed = 'reverted_confirmed',
+    RevertedUnconfirmed = 'reverted_unconfirmed',
     Submitted = 'submitted',
-    Successful = 'successful',
-    Reverted = 'reverted',
-    DroppedAndReplaced = 'droppedAndReplaced',
-    ConfirmedSuccessful = 'confirmedSuccessful',
-    ConfirmedReverted = 'confirmedReverted',
+    SucceededConfirmed = 'succeeded_confirmed',
+    SucceededUnconfirmed = 'succeeded_unconfirmed',
 }
 
 @Entity({ name: 'rfqm_transaction_submissions' })

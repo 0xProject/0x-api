@@ -258,7 +258,7 @@ describe(SUITE_NAME, () => {
             const updatedAt = new Date();
             const newBlockMined = new BigNumber(5);
             const newGasUsed = new BigNumber('165000');
-            const newStatus = RfqmTransactionSubmissionStatus.Successful;
+            const newStatus = RfqmTransactionSubmissionStatus.SucceededUnconfirmed;
 
             initialEntity!.updatedAt = updatedAt;
             initialEntity!.blockMined = newBlockMined;

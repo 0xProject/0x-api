@@ -199,18 +199,26 @@ export class RfqmService {
     /**
      * update RfqmJobStatus based on transaction status
      */
-    private static _getJobStatusFromSubmissions(submissionsMap: SubmissionsMap): {
+    private static _getJobStatusFromSubmissions(
+        submissionsMap: SubmissionsMap,
+    ): {
         status: RfqmJobStatus;
         statusReason: string | null;
     } {
         // there should only be one mined transaction, which will either be successful or a revert
         for (const submission of Object.values(submissionsMap)) {
-            if (submission.status === RfqmTransactionSubmissionStatus.Successful) {
+            if (
+                submission.status === RfqmTransactionSubmissionStatus.SucceededUnconfirmed ||
+                submission.status === RfqmTransactionSubmissionStatus.SucceededConfirmed
+            ) {
                 return {
                     status: RfqmJobStatus.Successful,
                     statusReason: null,
                 };
-            } else if (submission.status === RfqmTransactionSubmissionStatus.Reverted) {
+            } else if (
+                submission.status === RfqmTransactionSubmissionStatus.RevertedUnconfirmed ||
+                submission.status === RfqmTransactionSubmissionStatus.RevertedConfirmed
+            ) {
                 return {
                     status: RfqmJobStatus.Failed,
                     statusReason: 'transaction reverted',
@@ -516,8 +524,8 @@ export class RfqmService {
             case RfqmJobStatus.Successful:
                 const successfulTransactions = transactionSubmissions.filter(
                     (s) =>
-                        s.status === RfqmTransactionSubmissionStatus.Successful ||
-                        s.status === RfqmTransactionSubmissionStatus.ConfirmedSuccessful,
+                        s.status === RfqmTransactionSubmissionStatus.SucceededUnconfirmed ||
+                        s.status === RfqmTransactionSubmissionStatus.SucceededConfirmed,
                 );
                 if (successfulTransactions.length !== 1) {
                     throw new Error(
@@ -811,8 +819,8 @@ export class RfqmService {
                                 r.response.logs,
                             );
                             submissionsMap[r.transactionHash].status = isTxConfirmed
-                                ? RfqmTransactionSubmissionStatus.ConfirmedSuccessful
-                                : RfqmTransactionSubmissionStatus.Successful;
+                                ? RfqmTransactionSubmissionStatus.SucceededConfirmed
+                                : RfqmTransactionSubmissionStatus.SucceededUnconfirmed;
                             submissionsMap[r.transactionHash].metadata = {
                                 expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
                                 actualTakerFillAmount: decodedLog.args.takerTokenFilledAmount.toString(),
@@ -820,8 +828,8 @@ export class RfqmService {
                             };
                         } else {
                             submissionsMap[r.transactionHash].status = isTxConfirmed
-                                ? RfqmTransactionSubmissionStatus.ConfirmedReverted
-                                : RfqmTransactionSubmissionStatus.Reverted;
+                                ? RfqmTransactionSubmissionStatus.RevertedConfirmed
+                                : RfqmTransactionSubmissionStatus.RevertedUnconfirmed;
                             submissionsMap[r.transactionHash].metadata = null;
                             submissionsMap[r.transactionHash].metadata = {
                                 expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),

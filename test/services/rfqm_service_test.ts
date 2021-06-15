@@ -1176,13 +1176,13 @@ describe('RfqmService', () => {
                 createdAt: new Date(transaction1Time),
                 orderHash: '0x00',
                 transactionHash: '0x01',
-                status: RfqmTransactionSubmissionStatus.Reverted,
+                status: RfqmTransactionSubmissionStatus.RevertedUnconfirmed,
             });
             const submission2 = new RfqmTransactionSubmissionEntity({
                 createdAt: new Date(transaction2Time),
                 orderHash: '0x00',
                 transactionHash: '0x02',
-                status: RfqmTransactionSubmissionStatus.Successful,
+                status: RfqmTransactionSubmissionStatus.SucceededUnconfirmed,
             });
 
             const dbUtilsMock = mock(RfqmDbUtils);
@@ -1226,7 +1226,7 @@ describe('RfqmService', () => {
                 createdAt: new Date(transaction1Time),
                 orderHash: '0x00',
                 transactionHash: '0x01',
-                status: RfqmTransactionSubmissionStatus.Reverted,
+                status: RfqmTransactionSubmissionStatus.RevertedUnconfirmed,
             });
             const submission2 = new RfqmTransactionSubmissionEntity({
                 createdAt: new Date(transaction2Time),
@@ -1267,13 +1267,13 @@ describe('RfqmService', () => {
                 createdAt: new Date(transaction1Time),
                 orderHash: '0x00',
                 transactionHash: '0x01',
-                status: RfqmTransactionSubmissionStatus.Successful,
+                status: RfqmTransactionSubmissionStatus.SucceededUnconfirmed,
             });
             const submission2 = new RfqmTransactionSubmissionEntity({
                 createdAt: new Date(transaction2Time),
                 orderHash: '0x00',
                 transactionHash: '0x02',
-                status: RfqmTransactionSubmissionStatus.Successful,
+                status: RfqmTransactionSubmissionStatus.SucceededUnconfirmed,
             });
 
             const dbUtilsMock = mock(RfqmDbUtils);
