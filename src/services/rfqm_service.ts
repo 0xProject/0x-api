@@ -806,7 +806,7 @@ export class RfqmService {
         );
         const minedReceipt = receipts.find((r) => r.response !== undefined);
 
-        // No txns mined, nothing to do
+        // No txs mined, nothing to do
         if (minedReceipt === undefined) {
             return {
                 isTxMined,
@@ -815,14 +815,14 @@ export class RfqmService {
             };
         }
 
-        // A txn was mined
+        // A tx was mined
         isTxMined = true;
         const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
         if (currentBlock - minedReceipt.response!.blockNumber >= BLOCK_FINALITY_THRESHOLD) {
             isTxConfirmed = true;
         }
 
-        // Update the SubmissionMap for this mined txn
+        // Update the SubmissionMap for this mined tx
         if (minedReceipt.response!.status === 1) {
             // The txn succeeded
             const decodedLog = this._blockchainUtils.getDecodedRfqOrderFillEventLogFromLogs(
@@ -838,7 +838,7 @@ export class RfqmService {
                 decodedFillLog: JSON.stringify(decodedLog),
             };
         } else {
-            // The txn failed
+            // The tx failed
             jobStatus = isTxConfirmed ? RfqmJobStatus.FailedRevertedConfirmed : RfqmJobStatus.FailedRevertedUnconfirmed;
             submissionsMap[minedReceipt.transactionHash].status = isTxConfirmed
                 ? RfqmTransactionSubmissionStatus.RevertedConfirmed
@@ -850,15 +850,19 @@ export class RfqmService {
                 decodedFillLog: '{}',
             };
         }
+        // Update common fields for mined tx
+        submissionsMap[minedReceipt.transactionHash].blockMined = new BigNumber(minedReceipt.response!.blockNumber);
+        submissionsMap[minedReceipt.transactionHash].gasUsed = new BigNumber(minedReceipt.response!.gasUsed);
+        submissionsMap[minedReceipt.transactionHash].updatedAt = new Date();
 
         // Update the SubmissionMap for all others
         for (const r of receipts) {
-            // Ignore the mined txn (already updated)
+            // Ignore the mined tx (already updated)
             if (r.transactionHash === minedReceipt.transactionHash) {
                 continue;
             }
 
-            // The txn was replaced
+            // The tx was replaced
             submissionsMap[r.transactionHash].status = RfqmTransactionSubmissionStatus.DroppedAndReplaced;
             submissionsMap[r.transactionHash].blockMined = null;
             submissionsMap[r.transactionHash].gasUsed = null;
