@@ -754,6 +754,7 @@ export class RfqmService {
             await delay(TRANSACTION_WATCHER_SLEEP_TIME_MS);
 
             const statusCheckResult = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
+                orderHash,
                 submissionsMap,
                 expectedTakerTokenFillAmount,
             );
@@ -786,11 +787,13 @@ export class RfqmService {
      * Update database with status of all tx's
      */
     private async _checkSubmissionMapReceiptsAndUpdateDbAsync(
+        orderHash: string,
         submissionsMap: SubmissionsMap,
         expectedTakerTokenFillAmount: BigNumber,
     ): Promise<SubmissionsMapStatus> {
         let isTxMined: boolean = false;
         let isTxConfirmed: boolean = false;
+        let jobStatus: RfqmJobStatus | null = null;
 
         // check if any tx has been mined
         const receipts = await Promise.all(
@@ -817,6 +820,9 @@ export class RfqmService {
                             const decodedLog = this._blockchainUtils.getDecodedRfqOrderFillEventLogFromLogs(
                                 r.response.logs,
                             );
+                            jobStatus = isTxConfirmed
+                                ? RfqmJobStatus.SucceededConfirmed
+                                : RfqmJobStatus.SucceededUnconfirmed;
                             submissionsMap[r.transactionHash].status = isTxConfirmed
                                 ? RfqmTransactionSubmissionStatus.SucceededConfirmed
                                 : RfqmTransactionSubmissionStatus.SucceededUnconfirmed;
@@ -826,6 +832,9 @@ export class RfqmService {
                                 decodedFillLog: JSON.stringify(decodedLog),
                             };
                         } else {
+                            jobStatus = isTxConfirmed
+                                ? RfqmJobStatus.FailedRevertedConfirmed
+                                : RfqmJobStatus.FailedRevertedUnconfirmed;
                             submissionsMap[r.transactionHash].status = isTxConfirmed
                                 ? RfqmTransactionSubmissionStatus.RevertedConfirmed
                                 : RfqmTransactionSubmissionStatus.RevertedUnconfirmed;
@@ -852,6 +861,9 @@ export class RfqmService {
                     }
                 }
                 await this._dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap));
+                if (jobStatus !== null) {
+                    await this._dbUtils.updateRfqmJobAsync(orderHash, { status: jobStatus });
+                }
                 break;
             }
         }
