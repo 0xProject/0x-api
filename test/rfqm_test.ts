@@ -1066,7 +1066,7 @@ describe(SUITE_NAME, () => {
             expect(dbSubmissionEntity?.statusReason).to.deep.equal(null);
         });
     });
-    describe.only('processJobAsync', async () => {
+    describe('processJobAsync', async () => {
         const feeAddress = randomAddress();
         const mockStoredFee: StoredFee = {
             token: feeAddress,
