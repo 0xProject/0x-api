@@ -1046,7 +1046,13 @@ describe(SUITE_NAME, () => {
     describe('completeSubmissionLifecycleAsync', async () => {
         const callData = '0x123';
         const orderHash = '0xanOrderHash';
+
         it('should successfully process a transaction', async () => {
+            await dbUtils.writeRfqmJobToDbAsync({
+                ...MOCK_RFQM_JOB,
+                orderHash,
+                calldata: callData,
+            });
             await rfqmService.completeSubmissionLifecycleAsync(orderHash, WORKER_ADDRESS, callData);
 
             // find the saved results
