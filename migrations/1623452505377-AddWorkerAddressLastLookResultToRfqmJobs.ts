@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, TableColumn } from "typeorm";
+import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
 const targetTable = 'rfqm_jobs';
 const workerAddressColumn = new TableColumn({
@@ -12,9 +12,7 @@ const lastLookResultColumn = new TableColumn({
     isNullable: true,
 });
 
-
 export class AddWorkerAddressLastLookResultToRfqmJobs1623452505377 implements MigrationInterface {
-
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.addColumn(targetTable, workerAddressColumn);
         await queryRunner.addColumn(targetTable, lastLookResultColumn);
@@ -24,5 +22,4 @@ export class AddWorkerAddressLastLookResultToRfqmJobs1623452505377 implements Mi
         await queryRunner.dropColumn(targetTable, workerAddressColumn);
         await queryRunner.dropColumn(targetTable, lastLookResultColumn);
     }
-
 }

@@ -695,7 +695,7 @@ export class RfqmService {
                     lastLookResult: shouldProceed,
                 });
             }
-        } else if (job.lastLookResult === false) {
+        } else if (!job.lastLookResult) {
             await this._dbUtils.updateRfqmJobAsync(orderHash, {
                 status: RfqmJobStatus.FailedLastLookDeclined,
             });
@@ -759,10 +759,13 @@ export class RfqmService {
                 }
             }
             gasEstimate = await this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress);
-        // if there are no previous submissions, send the first transaction
+            // if there are no previous submissions, send the first transaction
         } else {
             // claim this job for the worker, and set status to submitted
-            await this._dbUtils.updateRfqmJobAsync(orderHash, { status: RfqmJobStatus.PendingSubmitted, workerAddress });
+            await this._dbUtils.updateRfqmJobAsync(orderHash, {
+                status: RfqmJobStatus.PendingSubmitted,
+                workerAddress,
+            });
 
             [gasPrice, nonce, gasEstimate] = await Promise.all([
                 this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync(),
