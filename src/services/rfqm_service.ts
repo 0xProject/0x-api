@@ -205,13 +205,9 @@ export class RfqmService {
     private static _getJobStatusFromSubmissions(submissionsMap: SubmissionsMap): RfqmJobStatus {
         // there should only be one mined transaction, which will either be successful or a revert
         for (const submission of Object.values(submissionsMap)) {
-            if (
-                submission.status === RfqmTransactionSubmissionStatus.SucceededConfirmed
-            ) {
+            if (submission.status === RfqmTransactionSubmissionStatus.SucceededConfirmed) {
                 return RfqmJobStatus.SucceededConfirmed;
-            } else if (
-                submission.status === RfqmTransactionSubmissionStatus.RevertedConfirmed
-            ) {
+            } else if (submission.status === RfqmTransactionSubmissionStatus.RevertedConfirmed) {
                 return RfqmJobStatus.FailedRevertedConfirmed;
             }
         }
