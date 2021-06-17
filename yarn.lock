@@ -68,19 +68,19 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.17.1-a634cac9a":
-  version "6.17.1"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/e1f4be29e9f7832bc71b10904020be3dbcb3ea77"
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v6.17.3-7d485bfe2":
+  version "6.17.3"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/548e50dffe873565b3d4f0e1b9efb6ef9620131a"
   dependencies:
     "@0x/assert" "^3.0.27"
     "@0x/base-contract" "^6.4.0"
-    "@0x/contract-addresses" "^6.3.0"
-    "@0x/contract-wrappers" "^13.17.0"
-    "@0x/contracts-erc20" "^3.3.11"
-    "@0x/contracts-zero-ex" "^0.25.0"
+    "@0x/contract-addresses" "^6.3.1"
+    "@0x/contract-wrappers" "^13.17.1"
+    "@0x/contracts-erc20" "^3.3.12"
+    "@0x/contracts-zero-ex" "^0.25.1"
     "@0x/dev-utils" "^4.2.7"
     "@0x/json-schemas" "^6.1.3"
-    "@0x/protocol-utils" "^1.7.0"
+    "@0x/protocol-utils" "^1.7.1"
     "@0x/quote-server" "^6.0.2"
     "@0x/types" "^3.3.3"
     "@0x/typescript-typings" "^5.2.0"
@@ -285,7 +285,7 @@
     "@0x/web3-wrapper" "^7.4.1"
     lodash "^4.17.11"
 
-"@0x/contracts-erc20@^3.3.11":
+"@0x/contracts-erc20@^3.3.12":
   version "3.3.12"
   resolved "https://registry.yarnpkg.com/@0x/contracts-erc20/-/contracts-erc20-3.3.12.tgz#6e6ba42cd2fde93273859d97749af837f7385d23"
   dependencies:
@@ -426,7 +426,7 @@
     ethereum-types "^3.4.0"
     ethereumjs-util "^5.1.1"
 
-"@0x/contracts-zero-ex@^0.25.0":
+"@0x/contracts-zero-ex@^0.25.1":
   version "0.25.1"
   resolved "https://registry.yarnpkg.com/@0x/contracts-zero-ex/-/contracts-zero-ex-0.25.1.tgz#9e644c9d0a2c98632d5d4966edf31b46a0b271e3"
   dependencies:
@@ -640,7 +640,7 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/protocol-utils@^1.7.0", "@0x/protocol-utils@^1.7.1":
+"@0x/protocol-utils@^1.7.1":
   version "1.7.1"
   resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-1.7.1.tgz#63b5b4adeeb2295062c6c118fc3bc3ede618946a"
   dependencies:
