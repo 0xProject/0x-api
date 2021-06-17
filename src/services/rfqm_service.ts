@@ -206,15 +206,13 @@ export class RfqmService {
         // there should only be one mined transaction, which will either be successful or a revert
         for (const submission of Object.values(submissionsMap)) {
             if (
-                submission.status === RfqmTransactionSubmissionStatus.SucceededUnconfirmed ||
                 submission.status === RfqmTransactionSubmissionStatus.SucceededConfirmed
             ) {
-                return RfqmJobStatus.SucceededUnconfirmed;
+                return RfqmJobStatus.SucceededConfirmed;
             } else if (
-                submission.status === RfqmTransactionSubmissionStatus.RevertedUnconfirmed ||
                 submission.status === RfqmTransactionSubmissionStatus.RevertedConfirmed
             ) {
-                return RfqmJobStatus.FailedRevertedUnconfirmed;
+                return RfqmJobStatus.FailedRevertedConfirmed;
             }
         }
         throw new Error('no transactions mined in submissions');
