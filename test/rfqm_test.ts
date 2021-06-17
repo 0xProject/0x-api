@@ -1146,7 +1146,7 @@ describe(SUITE_NAME, () => {
             await rfqmService.processRfqmJobAsync(orderHash, workerAddress);
 
             const job = await dbUtils.findJobByOrderHashAsync(orderHash);
-            expect(job?.status).to.eq(RfqmJobStatus.SucceededUnconfirmed);
+            expect(job?.status).to.eq(RfqmJobStatus.SucceededConfirmed);
 
             const submissions = await dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
             expect(submissions[0].status).to.eq(RfqmTransactionSubmissionStatus.SucceededConfirmed);
