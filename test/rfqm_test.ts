@@ -133,6 +133,8 @@ const MOCK_RFQM_JOB: RfqmJobEntity = {
     orderHash: '0x288d4d771179738ee9ca60f14df74612fb1ca43dfbc3bbb49dd9226a19747c11',
     status: RfqmJobStatus.PendingSubmitted,
     updatedAt: new Date(),
+    workerAddress: null,
+    lastLookResult: null,
 };
 
 describe(SUITE_NAME, () => {
