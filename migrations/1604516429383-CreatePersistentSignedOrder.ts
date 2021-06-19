@@ -1,13 +1,25 @@
-import { OrderEventEndState } from '@0x/mesh-rpc-client';
 import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
+export enum OrderEventEndState {
+    Invalid = 'INVALID',
+    Added = 'ADDED',
+    Filled = 'FILLED',
+    FullyFilled = 'FULLY_FILLED',
+    Cancelled = 'CANCELLED',
+    Expired = 'EXPIRED',
+    Unexpired = 'UNEXPIRED',
+    StoppedWatching = 'STOPPED_WATCHING',
+    Unfunded = 'UNFUNDED',
+    FillabilityIncreased = 'FILLABILITY_INCREASED',
+}
+
 const OrderEventEndStateStrings = Object.keys(OrderEventEndState)
-    .filter(x => isNaN(parseInt(x, 10)))
-    .map(s => s.toUpperCase());
+    .filter((x) => isNaN(parseInt(x, 10)))
+    .map((s) => s.toUpperCase());
 
 export class CreatePersistentSignedOrder1604516429383 implements MigrationInterface {
     public indices = ['maker_address', 'maker_asset_data', 'taker_asset_data', 'fee_recipient_address'].map(
-        colName => new TableIndex({ name: `persistent_signed_orders_${colName}`, columnNames: [colName] }),
+        (colName) => new TableIndex({ name: `persistent_signed_orders_${colName}`, columnNames: [colName] }),
     );
 
     // tslint:disable-next-line

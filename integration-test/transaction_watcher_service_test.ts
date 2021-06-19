@@ -6,9 +6,10 @@ import 'mocha';
 import * as request from 'supertest';
 import { Connection, Repository } from 'typeorm';
 
+// Force reload of the app avoid variables being polluted between test suites
+delete require.cache[require.resolve('../src/app')];
 import {
     createMetaTxnServiceFromSwapService,
-    createSwapServiceFromOrderBookService,
     getAppAsync,
     getContractAddressesForNetworkOrThrowAsync,
 } from '../src/app';
@@ -27,12 +28,12 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
 import { GeneralErrorCodes } from '../src/errors';
-import { MetricsService } from '../src/services/metrics_service';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
-import { StakingDataService } from '../src/services/staking_data_service';
+import { SwapService } from '../src/services/swap_service';
 import { TransactionWatcherSignerService } from '../src/services/transaction_watcher_signer_service';
 import { ChainId, TransactionStates, TransactionWatcherSignerServiceConfig } from '../src/types';
+import { AssetSwapperOrderbook } from '../src/utils/asset_swapper_orderbook';
 import { MeshClient } from '../src/utils/mesh_client';
 import { utils } from '../src/utils/utils';
 
@@ -63,7 +64,7 @@ async function _waitUntilStatusAsync(
     throw new Error(`failed to grab transaction: ${txHash} in a ${status} state`);
 }
 
-describe('transaction watcher service', () => {
+describe('Transaction Watcher Service integration test', () => {
     before(async () => {
         const providerEngine = new Web3ProviderEngine();
         providerEngine.addProvider(new RPCSubprovider(ETHEREUM_RPC_URL));
@@ -89,13 +90,17 @@ describe('transaction watcher service', () => {
         txWatcher = new TransactionWatcherSignerService(connection, txWatcherConfig);
         await txWatcher.syncTransactionStatusAsync();
         const orderBookService = new OrderBookService(connection);
-        const stakingDataService = new StakingDataService(connection);
         const websocketOpts = { path: SRA_PATH };
         const rfqFirmQuoteValidator = new PostgresRfqtFirmQuoteValidator(
             connection.getRepository(MakerBalanceChainCacheEntity),
             RFQ_FIRM_QUOTE_CACHE_EXPIRY,
         );
-        const swapService = createSwapServiceFromOrderBookService(orderBookService, rfqFirmQuoteValidator, provider, contractAddresses);
+        const swapService = new SwapService(
+            new AssetSwapperOrderbook(orderBookService),
+            provider,
+            contractAddresses,
+            rfqFirmQuoteValidator,
+        );
         const metaTransactionService = createMetaTxnServiceFromSwapService(
             provider,
             connection,
@@ -106,28 +111,28 @@ describe('transaction watcher service', () => {
             defaultHttpServiceConfig.meshWebsocketUri!,
             defaultHttpServiceConfig.meshHttpUri,
         );
-        const metricsService = new MetricsService();
         metaTxnUser = new TestMetaTxnUser();
         ({ app } = await getAppAsync(
             {
                 contractAddresses,
                 orderBookService,
                 metaTransactionService,
-                stakingDataService,
                 connection,
                 provider,
                 swapService,
                 meshClient,
                 websocketOpts,
-                metricsService,
             },
-            defaultHttpServiceWithRateLimiterConfig,
+            {
+                ...defaultHttpServiceWithRateLimiterConfig,
+                enablePrometheusMetrics: true,
+            },
         ));
     });
     it('sends a signed zeroex transaction correctly', async () => {
         const { zeroExTransactionHash, zeroExTransaction } = await request(app)
             .get(`${META_TRANSACTION_PATH}/quote${metaTxnUser.getQuoteString('DAI', 'WETH', '500000000')}`)
-            .then(async response => {
+            .then(async (response) => {
                 return response.body;
             });
         const signature = await metaTxnUser.signAsync(zeroExTransactionHash);
@@ -136,7 +141,7 @@ describe('transaction watcher service', () => {
             .set('0x-api-key', 'e20bd887-e195-4580-bca0-322607ec2a49')
             .send({ signature, zeroExTransaction })
             .expect('Content-Type', /json/)
-            .then(async response => {
+            .then(async (response) => {
                 expect(response.body.code).to.not.equal(GeneralErrorCodes.InvalidAPIKey);
                 const { ethereumTransactionHash } = response.body;
                 await _waitUntilStatusAsync(
@@ -148,7 +153,7 @@ describe('transaction watcher service', () => {
             });
         await request(app)
             .get(`${META_TRANSACTION_PATH}/status/${txHashToRequest}`)
-            .then(response => {
+            .then((response) => {
                 expect(response.body.hash).to.equal(txHashToRequest);
                 expect(response.body.status).to.equal('confirmed');
             });
@@ -156,7 +161,7 @@ describe('transaction watcher service', () => {
     it('handles low gas price correctly', async () => {
         const { zeroExTransaction } = await request(app)
             .get(`${META_TRANSACTION_PATH}/quote${metaTxnUser.getQuoteString('DAI', 'WETH', '500000000')}`)
-            .then(async response => {
+            .then(async (response) => {
                 return response.body;
             });
         zeroExTransaction.gasPrice = '1337';
@@ -166,7 +171,7 @@ describe('transaction watcher service', () => {
             .set('0x-api-key', 'e20bd887-e195-4580-bca0-322607ec2a49')
             .send({ signature, zeroExTransaction })
             .expect('Content-Type', /json/)
-            .then(async response => {
+            .then(async (response) => {
                 expect(response.body.code).to.not.equal(GeneralErrorCodes.InvalidAPIKey);
                 const { ethereumTransactionHash } = response.body;
                 await _waitUntilStatusAsync(
@@ -178,13 +183,13 @@ describe('transaction watcher service', () => {
             });
         await request(app)
             .get(`${META_TRANSACTION_PATH}/status/${txHashToRequest}`)
-            .then(response => {
+            .then((response) => {
                 expect(response.body.hash).to.equal(txHashToRequest);
                 expect(response.body.status).to.equal('aborted');
             });
         await request(app)
             .get('/metrics')
-            .then(response => {
+            .then((response) => {
                 expect(response.text).to.include('signer_transactions_count');
                 expect(response.text).to.include('signer_gas_price_sum');
                 expect(response.text).to.include('signer_eth_balance_sum');

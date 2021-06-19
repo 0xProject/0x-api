@@ -1,4 +1,5 @@
-import { BigNumber, BridgeReportSource, QuoteReport, QuoteReportSource } from '@0x/asset-swapper';
+import type { PinoLogger } from '@0x/api-utils';
+import { BigNumber, QuoteReport, QuoteReportEntry } from '@0x/asset-swapper';
 import _ = require('lodash');
 
 import { NUMBER_SOURCES_PER_LOG_LINE } from '../constants';
@@ -9,6 +10,7 @@ interface QuoteReportLogOptionsBase {
     buyAmount?: BigNumber;
     buyTokenAddress: string;
     sellTokenAddress: string;
+    apiKey?: string;
 }
 interface QuoteReportForTakerTxn extends QuoteReportLogOptionsBase {
     quoteReport: QuoteReport;
@@ -27,7 +29,7 @@ type QuoteReportLogOptions = QuoteReportForTakerTxn | QuoteReportForMetaTxn;
  * proess, we intentionally exclude fields that can contain huge output data.
  * @param source the quote report source
  */
-const omitFillData = (source: QuoteReportSource) => {
+const omitFillData = (source: QuoteReportEntry) => {
     return {
         ...source,
         fillData: undefined,
@@ -35,18 +37,14 @@ const omitFillData = (source: QuoteReportSource) => {
 };
 
 export const quoteReportUtils = {
-    logQuoteReport(logOpts: QuoteReportLogOptions): void {
+    logQuoteReport(logOpts: QuoteReportLogOptions, contextLogger?: PinoLogger): void {
+        const _logger = contextLogger ? contextLogger : logger;
         // NOTE: Removes bridge report fillData which we do not want to log to Kibana
         const qr: QuoteReport = {
             ...logOpts.quoteReport,
-            sourcesConsidered: logOpts.quoteReport.sourcesConsidered.map(source => {
-                const cleanedSource = { ...source };
-                if ((cleanedSource as BridgeReportSource).fillData) {
-                    delete (cleanedSource as BridgeReportSource).fillData;
-                }
-
-                return cleanedSource;
-            }),
+            sourcesConsidered: logOpts.quoteReport.sourcesConsidered.map(
+                (source) => _.omit(source, ['fillData']) as QuoteReportEntry,
+            ),
         };
 
         let logBase: { [key: string]: string | boolean | undefined } = {
@@ -56,6 +54,7 @@ export const quoteReportUtils = {
             sellAmount: logOpts.sellAmount ? logOpts.sellAmount.toString() : undefined,
             buyTokenAddress: logOpts.buyTokenAddress,
             sellTokenAddress: logOpts.sellTokenAddress,
+            apiKey: logOpts.apiKey,
         };
         if (logOpts.submissionBy === 'metaTxn') {
             logBase = { ...logBase, zeroExTransactionHash: logOpts.zeroExTransactionHash };
@@ -66,7 +65,7 @@ export const quoteReportUtils = {
         // Deliver in chunks since Kibana can't handle logs large requests
         const sourcesConsideredChunks = _.chunk(qr.sourcesConsidered.map(omitFillData), NUMBER_SOURCES_PER_LOG_LINE);
         sourcesConsideredChunks.forEach((chunk, i) => {
-            logger.info({
+            _logger.info({
                 ...logBase,
                 sourcesConsidered: chunk,
                 sourcesConsideredChunkIndex: i,
@@ -75,7 +74,7 @@ export const quoteReportUtils = {
         });
         const sourcesDeliveredChunks = _.chunk(qr.sourcesDelivered.map(omitFillData), NUMBER_SOURCES_PER_LOG_LINE);
         sourcesDeliveredChunks.forEach((chunk, i) => {
-            logger.info({
+            _logger.info({
                 ...logBase,
                 sourcesDelivered: chunk,
                 sourcesDeliveredChunkIndex: i,

@@ -3,6 +3,7 @@ import { BigNumber, hexUtils } from '@0x/utils';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
 
+import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { TransactionStates } from '../src/types';
 import { parseUtils } from '../src/utils/parse_utils';
@@ -16,10 +17,9 @@ import {
 import { MetaTransactionComposableLimiter } from '../src/utils/rate-limiters/meta_transaction_composable_rate_limiter';
 import { MetaTransactionRollingValueLimiter } from '../src/utils/rate-limiters/meta_transaction_value_limiter';
 
-import { getTestDBConnectionAsync } from './utils/db_connection';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 
-const SUITE_NAME = 'rate limiter tests';
+const SUITE_NAME = 'Rate Limiter Tests';
 const TEST_API_KEY = 'test-key';
 const TEST_FIRST_TAKER_ADDRESS = 'one';
 const TEST_SECOND_TAKER_ADDRESS = 'two';
@@ -82,7 +82,7 @@ const generateNewTransactionsForKey = (
 // NOTE: Because TypeORM does not allow us to override entities createdAt
 // directly, we resort to a raw query.
 const backdateTransactions = async (txes: TransactionEntity[], num: number, unit: string): Promise<void> => {
-    const txesString = txes.map(tx => `'${tx.refHash}'`).join(',');
+    const txesString = txes.map((tx) => `'${tx.refHash}'`).join(',');
     await transactionRepository.query(
         `UPDATE transactions SET created_at = now() - interval '${num} ${unit}' WHERE transactions.ref_hash IN (${txesString});`,
     );
@@ -95,7 +95,8 @@ const cleanTransactions = async (): Promise<void> => {
 describe(SUITE_NAME, () => {
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        connection = await getTestDBConnectionAsync();
+        connection = await getDBConnectionAsync();
+        await connection.synchronize(true);
 
         transactionRepository = connection.getRepository(TransactionEntity);
         dailyLimiter = new MetaTransactionDailyLimiter(DatabaseKeysUsedForRateLimiter.ApiKey, connection, {

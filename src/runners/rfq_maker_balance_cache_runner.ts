@@ -1,3 +1,4 @@
+import { createMetricsRouter, MetricsService } from '@0x/api-utils';
 import { BalanceCheckerContract } from '@0x/asset-swapper';
 import { artifacts } from '@0x/asset-swapper/lib/src/artifacts';
 import { BlockParamLiteral, SupportedProvider, Web3Wrapper } from '@0x/dev-utils';
@@ -9,12 +10,10 @@ import { Gauge, Summary } from 'prom-client';
 import { Connection } from 'typeorm';
 
 import * as defaultConfig from '../config';
-import { METRICS_PATH, ONE_SECOND_MS, RFQ_FIRM_QUOTE_CACHE_EXPIRY } from '../constants';
+import { METRICS_PATH, ONE_SECOND_MS, RFQ_ALLOWANCE_TARGET, RFQ_FIRM_QUOTE_CACHE_EXPIRY } from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
 import { MakerBalanceChainCacheEntity } from '../entities';
 import { logger } from '../logger';
-import { createMetricsRouter } from '../routers/metrics_router';
-import { MetricsService } from '../services/metrics_service';
 import { providerUtils } from '../utils/provider_utils';
 import { createResultCache, ResultCache } from '../utils/result_cache';
 
@@ -30,6 +29,9 @@ const BALANCE_CHECKER_GAS_LIMIT = 5500000;
 const MAX_ROWS_TO_UPDATE = 1000;
 
 const RANDOM_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
+
+const MAX_REQUEST_ERRORS = 10;
+const MAX_CACHE_RFQ_BALANCES_ERRORS = 10;
 
 // Metric collection related fields
 const LATEST_BLOCK_PROCESSED_GAUGE = new Gauge({
@@ -50,12 +52,12 @@ const MAKER_BALANCE_CACHE_RETRIEVAL_TIME = new Summary({
     labelNames: ['workerId'],
 });
 
-process.on('uncaughtException', err => {
+process.on('uncaughtException', (err) => {
     logger.error(err);
     process.exit(1);
 });
 
-process.on('unhandledRejection', err => {
+process.on('unhandledRejection', (err) => {
     if (err) {
         logger.error(err);
     }
@@ -80,8 +82,8 @@ if (require.main === module) {
         const balanceCheckerContractInterface = getBalanceCheckerContractInterface(RANDOM_ADDRESS, provider);
 
         await runRfqBalanceCacheAsync(web3Wrapper, connection, balanceCheckerContractInterface);
-    })().catch(error => {
-        logger.error(error.stack);
+    })().catch((error) => {
+        logger.error(error);
         process.exit(1);
     });
 }
@@ -99,27 +101,53 @@ async function runRfqBalanceCacheAsync(
         const server = app.listen(defaultConfig.PROMETHEUS_PORT, () => {
             logger.info(`Metrics (HTTP) listening on port ${defaultConfig.PROMETHEUS_PORT}`);
         });
-        server.on('error', err => {
+        server.on('error', (err) => {
             logger.error(err);
         });
     }
 
+    let blockRequestErrors = 0;
+    let cacheRfqBalanceErrors = 0;
+
     const workerId = _.uniqueId('rfqw_');
     let lastBlockSeen = -1;
     while (true) {
-        const newBlock = await web3Wrapper.getBlockNumberAsync();
+        if (blockRequestErrors >= MAX_REQUEST_ERRORS) {
+            throw new Error(`too many bad Web3 requests to fetch blocks (reached limit of ${MAX_REQUEST_ERRORS})`);
+        }
+        if (cacheRfqBalanceErrors >= MAX_CACHE_RFQ_BALANCES_ERRORS) {
+            throw new Error(
+                `too many errors from calling cacheRfqBalancesAsync (reached limit of ${MAX_CACHE_RFQ_BALANCES_ERRORS})`,
+            );
+        }
+        let newBlock: number;
+        try {
+            newBlock = await web3Wrapper.getBlockNumberAsync();
+        } catch (err) {
+            blockRequestErrors += 1;
+            logger.error(err);
+            continue;
+        }
+
         if (lastBlockSeen < newBlock) {
-            lastBlockSeen = newBlock;
-            LATEST_BLOCK_PROCESSED_GAUGE.labels(workerId).set(lastBlockSeen);
             logUtils.log(
                 {
-                    block: lastBlockSeen,
+                    block: newBlock,
                     workerId,
                 },
                 'Found new block',
             );
 
-            await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true, workerId);
+            try {
+                await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true, workerId);
+            } catch (err) {
+                logger.error(err);
+                cacheRfqBalanceErrors += 1;
+                continue;
+            }
+
+            LATEST_BLOCK_PROCESSED_GAUGE.labels(workerId).set(newBlock);
+            lastBlockSeen = newBlock;
 
             await delay(DELAY_WHEN_NEW_BLOCK_FOUND);
         } else {
@@ -185,7 +213,7 @@ function splitValues(makerTokens: MakerBalanceChainCacheEntity[]): BalancesCallI
 /**
  * Returns the balaceChecker interface given a random address
  */
-export function getBalanceCheckerContractInterface(
+function getBalanceCheckerContractInterface(
     contractAddress: string,
     provider: SupportedProvider,
 ): BalanceCheckerContract {
@@ -217,7 +245,7 @@ async function getErc20BalancesAsync(
                 : {};
 
             return balanceCheckerContractInterface
-                .balances(addressesChunk!, tokensChunk!)
+                .getMinOfBalancesOrAllowances(addressesChunk!, tokensChunk!, RFQ_ALLOWANCE_TARGET)
                 .callAsync(txOpts, BlockParamLiteral.Latest);
         }),
     );

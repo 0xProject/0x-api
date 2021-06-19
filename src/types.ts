@@ -1,19 +1,17 @@
+import { HttpServiceConfig as BaseHttpConfig } from '@0x/api-utils';
 import {
+    AffiliateFeeType,
     ContractAddresses,
     ERC20BridgeSource,
+    LimitOrderFields,
+    PriceComparisonsReport,
     QuoteReport,
-    RfqtRequestOpts,
+    RfqRequestOpts,
+    Signature,
     SupportedProvider,
 } from '@0x/asset-swapper';
-import { AcceptedOrderInfo, OrderEventEndState, RejectedOrderInfo } from '@0x/mesh-rpc-client';
-import {
-    APIOrder,
-    ExchangeProxyMetaTransaction,
-    OrdersChannelSubscriptionOpts,
-    SignedOrder,
-    UpdateOrdersChannelMessage,
-    ZeroExTransaction,
-} from '@0x/types';
+import { OrderEventEndState } from '@0x/mesh-graphql-client';
+import { ExchangeProxyMetaTransaction, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
 import { MetaTransactionRateLimiter } from './utils/rate-limiters';
@@ -41,28 +39,23 @@ export enum OrderWatcherLifeCycleEvents {
 }
 
 export interface OrdersByLifecycleEvents {
-    added: APIOrderWithMetaData[];
-    removed: APIOrderWithMetaData[];
-    updated: APIOrderWithMetaData[];
+    added: SRAOrder[];
+    removed: SRAOrder[];
+    updated: SRAOrder[];
 }
 
-export type onOrdersUpdateCallback = (orders: APIOrderWithMetaData[]) => void;
-
-export interface AcceptedRejectedResults {
-    accepted: AcceptedOrderInfo[];
-    rejected: RejectedOrderInfo[];
+export interface PaginatedCollection<T> {
+    total: number;
+    page: number;
+    perPage: number;
+    records: T[];
 }
 
-export interface APIOrderMetaData {
-    orderHash: string;
-    remainingFillableTakerAssetAmount: BigNumber;
-    state?: OrderEventEndState;
-    createdAt?: string;
+export interface SignedLimitOrder extends LimitOrderFields {
+    signature: Signature;
 }
 
-export interface APIOrderWithMetaData extends APIOrder {
-    metaData: APIOrderMetaData;
-}
+/** BEGIN SRA TYPES */
 
 export interface WebsocketSRAOpts {
     pongInterval: number;
@@ -87,289 +80,108 @@ export interface UpdateOrdersChannelMessageWithChannel extends UpdateOrdersChann
     channel: MessageChannels;
 }
 
-// Staking types
-export interface RawEpoch {
-    epoch_id: string;
-    starting_transaction_hash: string;
-    starting_block_number: string;
-    starting_transaction_index?: string;
-    starting_block_timestamp?: string;
-    ending_transaction_hash?: null;
-    ending_transaction_index?: null;
-    ending_block_number?: null;
-    ending_block_timestamp?: null;
-    zrx_deposited?: string;
-    zrx_staked?: string;
+export type OrdersChannelMessage = UpdateOrdersChannelMessage | UnknownOrdersChannelMessage;
+export enum OrdersChannelMessageTypes {
+    Update = 'update',
+    Unknown = 'unknown',
+}
+export interface UpdateOrdersChannelMessage {
+    type: OrdersChannelMessageTypes.Update;
+    requestId: string;
+    payload: SRAOrder[];
+}
+export interface UnknownOrdersChannelMessage {
+    type: OrdersChannelMessageTypes.Unknown;
+    requestId: string;
+    payload: undefined;
 }
 
-// Separating out the response with fees
-// As this is a significantly heavier query (it has to sum over fills)
-export interface RawEpochWithFees extends RawEpoch {
-    protocol_fees_generated_in_eth: string;
+export enum WebsocketConnectionEventType {
+    Close = 'close',
+    Error = 'error',
+    Message = 'message',
 }
 
-export interface TransactionDate {
-    blockNumber: number;
-    txHash: string;
-    timestamp?: string;
+export enum WebsocketClientEventType {
+    Connect = 'connect',
+    ConnectFailed = 'connectFailed',
 }
 
-export interface Epoch {
-    epochId: number;
-    epochStart: TransactionDate;
-    epochEnd?: TransactionDate;
-    zrxStaked: number;
-    zrxDeposited: number;
+/**
+ * makerToken: subscribes to new orders where the contract address for the maker token matches the value specified
+ * takerToken: subscribes to new orders where the contract address for the taker token matches the value specified
+ */
+export interface OrdersChannelSubscriptionOpts {
+    makerToken?: string;
+    takerToken?: string;
 }
 
-export interface EpochWithFees extends Epoch {
-    protocolFeesGeneratedInEth: number;
+export interface SRAOrderMetaData {
+    orderHash: string;
+    remainingFillableTakerAmount: BigNumber;
+    state?: OrderEventEndState;
+    createdAt?: string;
 }
 
-export interface RawPool {
-    pool_id: string;
-    operator: string;
-    created_at_block_number: string;
-    created_at_transaction_hash: string;
-    created_at_transaction_index: string;
-    maker_addresses: string[];
-    isVerified?: boolean;
-    logo_url?: string;
-    location?: string;
-    bio?: string;
-    website?: string;
-    name?: string;
+export interface SRAOrder {
+    order: SignedLimitOrder;
+    metaData: SRAOrderMetaData;
 }
 
-export interface RawPoolEpochRewards {
-    epoch_id: string;
-    pool_id: string;
-    operator_reward: string;
-    members_reward: string;
-    total_reward: string;
-    // Fields below are available but not used in response
-    starting_block_timestamp: string;
-    starting_block_number: string;
-    starting_transaction_index: string;
-    ending_block_number: string;
-    ending_timestamp: string;
-    ending_transaction_hash: string;
+export type OrdersResponse = PaginatedCollection<SRAOrder>;
+
+export interface OrderbookRequest {
+    baseToken: string;
+    quoteToken: string;
 }
 
-export interface PoolMetadata {
-    isVerified: boolean;
-    logoUrl?: string;
-    location?: string;
-    bio?: string;
-    websiteUrl?: string;
-    name?: string;
+export interface OrderbookResponse {
+    bids: PaginatedCollection<SRAOrder>;
+    asks: PaginatedCollection<SRAOrder>;
 }
 
-export interface Pool {
-    poolId: string;
-    operatorAddress: string;
-    createdAt: TransactionDate;
-    metaData: PoolMetadata;
+export interface OrderConfigRequestPayload {
+    maker: string;
+    taker: string;
+    makerAmount: BigNumber;
+    takerAmount: BigNumber;
+    makerToken: string;
+    takerToken: string;
+    verifyingContract: string;
+    expiry: BigNumber;
 }
 
-export interface PoolWithStats extends Pool {
-    currentEpochStats: EpochPoolStats;
-    nextEpochStats: EpochPoolStats;
-    sevenDayProtocolFeesGeneratedInEth: number;
-    avgMemberRewardInEth: number;
-    avgTotalRewardInEth: number;
-    avgMemberRewardEthPerZrx: number;
+export interface OrderConfigResponse {
+    feeRecipient: string;
+    sender: string;
+    takerTokenFeeAmount: BigNumber;
 }
 
-export interface PoolWithHistoricalStats extends PoolWithStats {
-    allTimeStats: AllTimePoolStats;
-    epochRewards: PoolEpochRewards[];
+export type FeeRecipientsResponse = PaginatedCollection<string>;
+
+export interface PagedRequestOpts {
+    page?: number;
+    perPage?: number;
 }
 
-export interface RawEpochPoolStats {
-    pool_id: string;
-    maker_addresses: string[];
-    operator_share?: string;
-    zrx_staked?: string;
-    operator_zrx_staked?: string;
-    member_zrx_staked?: string;
-    total_staked?: string;
-    share_of_stake?: string;
-    total_protocol_fees_generated_in_eth?: string;
-    number_of_fills?: string;
-    share_of_fees?: string;
-    share_of_fills?: string;
-    approximate_stake_ratio?: string;
-}
-
-export interface EpochPoolStats {
-    poolId: string;
-    zrxStaked: number;
-    operatorZrxStaked: number;
-    memberZrxStaked: number;
-    shareOfStake: number;
-    operatorShare?: number;
-    makerAddresses: string[];
-    totalProtocolFeesGeneratedInEth: number;
-    shareOfFees: number;
-    numberOfFills: number;
-    shareOfFills: number;
-    approximateStakeRatio: number;
-}
-
-export interface RewardsStats {
-    operatorRewardsPaidInEth: number;
-    membersRewardsPaidInEth: number;
-    totalRewardsPaidInEth: number;
-}
-
-export interface PoolEpochRewards extends RewardsStats {
-    epochId: number;
-    epochStartTimestamp: string;
-    epochEndTimestamp: string;
-}
-
-export interface RawPoolProtocolFeesGenerated {
-    pool_id: string;
-    seven_day_protocol_fees_generated_in_eth: string;
-    seven_day_number_of_fills: string;
-}
-
-export interface RawPoolAvgRewards {
-    pool_id: string;
-    avg_member_reward_in_eth: string;
-    avg_total_reward_in_eth: string;
-    avg_member_stake: string;
-    avg_member_reward_eth_per_zrx: string;
-}
-
-export interface PoolAvgRewards {
-    poolId: string;
-    avgMemberRewardInEth: number;
-    avgTotalRewardInEth: number;
-    avgMemberRewardEthPerZrx: number;
-}
-
-export interface RawPoolTotalProtocolFeesGenerated {
-    pool_id: string;
-    total_protocol_fees: string;
-    number_of_fills: string;
-}
-
-export interface PoolProtocolFeesGenerated {
-    poolId: string;
-    sevenDayProtocolFeesGeneratedInEth: number;
-    sevenDayNumberOfFills: number;
-}
-
-export interface RawAllTimeStakingStats {
-    total_rewards_paid: string;
-}
-export interface AllTimeStakingStats {
-    totalRewardsPaidInEth: number;
-}
-
-export interface StakingPoolResponse {
-    poolId: string;
-    stakingPool: PoolWithHistoricalStats;
-}
-export interface StakingPoolsResponse {
-    stakingPools: PoolWithStats[];
-}
-
-export interface RawDelegatorDeposited {
-    delegator: string;
-    zrx_deposited: string;
-}
-
-export interface RawDelegatorStaked {
-    delegator: string;
-    zrx_staked_overall: string;
-    pool_id: string;
-    zrx_staked_in_pool: string;
-}
-
-export interface RawAllTimeDelegatorPoolsStats {
-    pool_id: string;
-    reward: string;
-}
-
-export interface RawAllTimePoolRewards {
-    pool_id: string;
-    operator_reward: string;
-    members_reward: string;
-    total_rewards: string;
-}
-
-export interface PoolEpochDelegatorStats {
-    poolId: string;
-    zrxStaked: number;
-}
-
-export interface EpochDelegatorStats {
-    zrxDeposited: number;
-    zrxStaked: number;
-    poolData: PoolEpochDelegatorStats[];
-}
-
-export interface AllTimePoolStats extends RewardsStats {
-    protocolFeesGeneratedInEth: number;
-    numberOfFills: number;
-}
-
-export interface AllTimeDelegatorPoolStats {
-    poolId: string;
-    rewardsInEth: number;
-}
-
-export interface AllTimeDelegatorStats {
-    poolData: AllTimeDelegatorPoolStats[];
-}
-
-export interface StakingDelegatorResponse {
-    delegatorAddress: string;
-    forCurrentEpoch: EpochDelegatorStats;
-    forNextEpoch: EpochDelegatorStats;
-    allTime: AllTimeDelegatorStats;
-}
-export interface StakingEpochsResponse {
-    currentEpoch: Epoch;
-    nextEpoch: Epoch;
-}
-export interface StakingEpochsWithFeesResponse {
-    currentEpoch: EpochWithFees;
-    nextEpoch: EpochWithFees;
-}
-export interface StakingStatsResponse {
-    allTime: AllTimeStakingStats;
-}
-
-export interface RawDelegatorEvent {
-    event_type: string;
-    address: string;
-    block_number: string | null;
-    event_timestamp: string;
-    transaction_hash: string | null;
-    event_args: object;
-}
-export interface DelegatorEvent {
-    eventType: string;
-    address: string;
-    blockNumber: number | null;
-    eventTimestamp: string;
-    transactionHash: string | null;
-    eventArgs: object;
-}
+/** END SRA TYPES */
 
 export interface ObjectMap<T> {
     [key: string]: T;
 }
 
+// tslint:disable:enum-naming
 export enum ChainId {
     Mainnet = 1,
+    Ropsten = 3,
+    Rinkeby = 4,
     Kovan = 42,
     Ganache = 1337,
+    BSC = 56,
+    Polygon = 137,
+    PolygonMumbai = 80001,
 }
+// tslint:enable:enum-naming
 
 export interface TokenMetadata {
     symbol: string;
@@ -377,17 +189,21 @@ export interface TokenMetadata {
     tokenAddress: string;
 }
 
+// tslint:disable:enum-naming
+export enum FeeParamTypes {
+    POSITIVE_SLIPPAGE = 'POSITIVE_SLIPPAGE',
+    FIXED = 'FIXED',
+}
+// tslint:enable:enum-naming
+
 export interface AffiliateFeeAmounts {
     gasCost: BigNumber;
     sellTokenFeeAmount: BigNumber;
     buyTokenFeeAmount: BigNumber;
 }
 
-/**
- * Begin request and response types related to quotes
- */
+/** Begin /swap and /meta_transaction types */
 
-// Shared common types
 interface QuoteBase {
     price: BigNumber;
     buyAmount: BigNumber;
@@ -421,10 +237,11 @@ export interface SourceComparison {
     name: ERC20BridgeSource | '0x';
     price: BigNumber | null;
     gas: BigNumber | null;
-    savingsInEth?: BigNumber;
+    savingsInEth: BigNumber | null;
 }
 
-export interface PercentageFee {
+export interface AffiliateFee {
+    feeType: AffiliateFeeType;
     recipient: string;
     sellTokenPercentageFee: number;
     buyTokenPercentageFee: number;
@@ -437,16 +254,18 @@ interface SwapQuoteParamsBase {
     excludedSources: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
-    affiliateFee: PercentageFee;
+    affiliateFee: AffiliateFee;
     includePriceComparisons?: boolean;
 }
 
 // GET /swap/quote
 export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, BasePriceResponse {
     guaranteedPrice: BigNumber;
-    orders: SignedOrder[];
+    // orders: SignedOrder[];
+    orders?: any;
     from?: string;
     quoteReport?: QuoteReport;
+    priceComparisonsReport?: PriceComparisonsReport;
 }
 
 export interface SwapQuoteResponsePartialTransaction {
@@ -457,22 +276,26 @@ export interface SwapQuoteResponsePartialTransaction {
 }
 
 // Request params
-export interface GetSwapQuoteRequestParams extends SwapQuoteParamsBase {
+export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
     sellToken: string;
     buyToken: string;
     takerAddress?: string;
     apiKey?: string;
     gasPrice?: BigNumber;
-    rfqt?: Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'>;
+    rfqt?: Pick<RfqRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQ'>;
     skipValidation: boolean;
     shouldSellEntireBalance: boolean;
+    isWrap: boolean;
+    isUnwrap: boolean;
+    isETHSell: boolean;
+    isETHBuy: boolean;
+    isMetaTransaction: boolean;
 }
 
 // GET /swap/price
 export interface GetSwapPriceResponse extends BasePriceResponse {}
 
 // GET /swap/prices
-export type GetTokenPricesResponse = Price[];
 export interface Price {
     symbol: string;
     price: BigNumber;
@@ -482,7 +305,8 @@ export interface Price {
 export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
     mtxHash: string;
     mtx: ExchangeProxyMetaTransaction;
-    orders: SignedOrder[];
+    // orders: SignedOrder[]
+    orders?: any;
 }
 
 // GET /meta_transaction/price
@@ -518,26 +342,12 @@ export type ZeroExTransactionWithoutDomain = Omit<ZeroExTransaction, 'domain'>;
 
 export type ExchangeProxyMetaTransactionWithoutDomain = Omit<ExchangeProxyMetaTransaction, 'domain'>;
 
-export interface CalculateSwapQuoteParams extends SwapQuoteParamsBase {
-    buyTokenAddress: string;
-    sellTokenAddress: string;
-    from: string | undefined;
-    isETHSell: boolean;
-    isETHBuy: boolean;
-    apiKey?: string;
-    isMetaTransaction: boolean;
-    gasPrice?: BigNumber;
-    rfqt?: Partial<RfqtRequestOpts>;
-    skipValidation: boolean;
-    shouldSellEntireBalance: boolean;
-}
-
 export interface CalculateMetaTransactionQuoteResponse extends QuoteBase {
     sellTokenAddress: string;
     buyTokenAddress: string;
-    takerAddress: string;
+    taker: string;
     quoteReport?: QuoteReport;
-    orders: SignedOrder[];
+    // orders: SignedOrder[];
     callData: string;
 }
 
@@ -551,13 +361,11 @@ export interface CalculateMetaTransactionQuoteParams extends SwapQuoteParamsBase
     isETHSell: boolean;
 }
 
-/**
- * End quote-related types
- */
+/** End /swap types */
 
 export interface PinResult {
-    pin: SignedOrder[];
-    doNotPin: SignedOrder[];
+    pin: SignedLimitOrder[];
+    doNotPin: SignedLimitOrder[];
 }
 
 export enum TransactionStates {
@@ -608,14 +416,8 @@ export interface TransactionWatcherSignerServiceConfig {
     rateLimiter?: MetaTransactionRateLimiter;
 }
 
-export interface HttpServiceConfig {
-    httpPort: number;
-    healthcheckHttpPort: number;
+export interface HttpServiceConfig extends BaseHttpConfig {
     ethereumRpcUrl: string;
-    httpKeepAliveTimeout: number;
-    httpHeadersTimeout: number;
-    enablePrometheusMetrics: boolean;
-    prometheusPort: number;
     meshWebsocketUri?: string;
     meshHttpUri?: string;
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
@@ -641,22 +443,5 @@ export interface BucketedPriceDepth {
     price: BigNumber;
     bucket: number;
     bucketTotal: BigNumber;
-}
-export interface SRAGetOrdersRequestOpts {
-    makerAssetProxyId?: string;
-    takerAssetProxyId?: string;
-    makerAssetAddress?: string;
-    takerAssetAddress?: string;
-    exchangeAddress?: string;
-    senderAddress?: string;
-    makerAssetData?: string | string[];
-    takerAssetData?: string | string[];
-    makerFeeAssetData?: string;
-    takerFeeAssetData?: string;
-    makerAddress?: string;
-    takerAddress?: string;
-    traderAddress?: string;
-    feeRecipientAddress?: string;
-    isUnfillable?: boolean; // default false
 }
 // tslint:disable-line:max-file-line-count

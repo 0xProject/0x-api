@@ -4,11 +4,8 @@ require('./apm');
 import {
     artifacts,
     AssetSwapperContractAddresses,
-    BRIDGE_ADDRESSES_BY_CHAIN,
     ContractAddresses,
     ERC20BridgeSamplerContract,
-    Orderbook,
-    RfqtFirmQuoteValidator,
     SupportedProvider,
 } from '@0x/asset-swapper';
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
@@ -22,14 +19,11 @@ import { RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
-import { OrderBookServiceOrderProvider } from './order_book_service_order_provider';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
-import { MetricsService } from './services/metrics_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
-import { StakingDataService } from './services/staking_data_service';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
 import {
@@ -39,8 +33,8 @@ import {
     MetaTransactionRollingLimiterConfig,
     WebsocketSRAOpts,
 } from './types';
+import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
 import { MeshClient } from './utils/mesh_client';
-import { OrderStoreDbAdapter } from './utils/order_store_db_adapter';
 import {
     AvailableRateLimiter,
     DatabaseKeysUsedForRateLimiter,
@@ -53,7 +47,6 @@ import { MetaTransactionComposableLimiter } from './utils/rate-limiters/meta_tra
 export interface AppDependencies {
     contractAddresses: ContractAddresses;
     connection: Connection;
-    stakingDataService: StakingDataService;
     meshClient?: MeshClient;
     orderBookService: OrderBookService;
     swapService?: SwapService;
@@ -61,7 +54,6 @@ export interface AppDependencies {
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
     transactionWatcherService?: TransactionWatcherSignerService;
-    metricsService?: MetricsService;
     rateLimiter?: MetaTransactionRateLimiter;
 }
 
@@ -102,18 +94,19 @@ export async function getContractAddressesForNetworkOrThrowAsync(
     provider: SupportedProvider,
     chainId: ChainId,
 ): Promise<AssetSwapperContractAddresses> {
+    // If global exists, use that
     if (contractAddresses_) {
         return contractAddresses_;
     }
-    let contractAddresses = getContractAddressesForChainOrThrow(chainId);
-    const bridgeAddresses = BRIDGE_ADDRESSES_BY_CHAIN[chainId];
+    let contractAddresses = getContractAddressesForChainOrThrow(chainId.toString() as any);
     // In a testnet where the environment does not support overrides
     // so we deploy the latest sampler
     if (chainId === ChainId.Ganache) {
         const sampler = await deploySamplerContractAsync(provider, chainId);
-        contractAddresses = { ...contractAddresses, ...bridgeAddresses, erc20BridgeSampler: sampler.address };
+        contractAddresses = { ...contractAddresses, erc20BridgeSampler: sampler.address };
     }
-    contractAddresses_ = { ...contractAddresses, ...bridgeAddresses };
+    // Set the global cached contractAddresses_
+    contractAddresses_ = contractAddresses;
     return contractAddresses_;
 }
 
@@ -127,20 +120,15 @@ export async function getDefaultAppDependenciesAsync(
 ): Promise<AppDependencies> {
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
     const connection = await getDBConnectionAsync();
-    const stakingDataService = new StakingDataService(connection);
 
     let meshClient: MeshClient | undefined;
-    // hack (xianny): the Mesh client constructor has a fire-and-forget promise so we are unable
-    // to catch initialisation errors. Allow the calling function to skip Mesh initialization by
-    // not providing a websocket URI
-    if (config.meshWebsocketUri !== undefined) {
+    if (config.meshWebsocketUri !== undefined && config.meshHttpUri !== undefined) {
         meshClient = new MeshClient(config.meshWebsocketUri, config.meshHttpUri);
+        // HACK(kimpers): Need to wait for Mesh initialization to finish before we can subscribe to event updates
+        // When the stats request has resolved Mesh is ready to receive subscriptions
+        await meshClient.getStatsAsync();
     } else {
         logger.warn(`Skipping Mesh client creation because no URI provided`);
-    }
-    let metricsService: MetricsService | undefined;
-    if (config.enablePrometheusMetrics) {
-        metricsService = new MetricsService();
     }
 
     let rateLimiter: MetaTransactionRateLimiter | undefined;
@@ -158,11 +146,11 @@ export async function getDefaultAppDependenciesAsync(
     let swapService: SwapService | undefined;
     let metaTransactionService: MetaTransactionService | undefined;
     try {
-        swapService = createSwapServiceFromOrderBookService(
-            orderBookService,
-            rfqtFirmQuoteValidator,
+        swapService = new SwapService(
+            new AssetSwapperOrderbook(orderBookService),
             provider,
             contractAddresses,
+            rfqtFirmQuoteValidator,
         );
         metaTransactionService = createMetaTxnServiceFromSwapService(
             provider,
@@ -179,17 +167,16 @@ export async function getDefaultAppDependenciesAsync(
     return {
         contractAddresses,
         connection,
-        stakingDataService,
         meshClient,
         orderBookService,
         swapService,
         metaTransactionService,
         provider,
         websocketOpts,
-        metricsService,
         rateLimiter,
     };
 }
+
 /**
  * starts the app with dependencies injected. This entry-point is used when running a single instance 0x API
  * deployment and in tests. It is not used in production deployments where scaling is required.
@@ -229,10 +216,10 @@ function createMetaTransactionRateLimiterFromConfig(
 ): MetaTransactionRateLimiter {
     const rateLimiterConfigEntries = Object.entries(config.metaTxnRateLimiters!);
     const configuredRateLimiters = rateLimiterConfigEntries
-        .map(entries => {
+        .map((entries) => {
             const [dbField, rateLimiters] = entries;
 
-            return Object.entries(rateLimiters!).map(rateLimiterEntry => {
+            return Object.entries(rateLimiters!).map((rateLimiterEntry) => {
                 const [limiterType, value] = rateLimiterEntry;
                 switch (limiterType) {
                     case AvailableRateLimiter.Daily: {
@@ -260,21 +247,6 @@ function createMetaTransactionRateLimiterFromConfig(
             return prev.concat(...cur);
         }, []);
     return new MetaTransactionComposableLimiter(configuredRateLimiters);
-}
-
-/**
- * Instantiates SwapService using the provided OrderBookService and ethereum RPC provider.
- */
-export function createSwapServiceFromOrderBookService(
-    orderBookService: OrderBookService,
-    rfqFirmQuoteValidator: RfqtFirmQuoteValidator,
-    provider: SupportedProvider,
-    contractAddresses: AssetSwapperContractAddresses,
-): SwapService {
-    const orderStore = new OrderStoreDbAdapter(orderBookService);
-    const orderProvider = new OrderBookServiceOrderProvider(orderStore, orderBookService);
-    const orderBook = new Orderbook(orderProvider, orderStore);
-    return new SwapService(orderBook, provider, contractAddresses, rfqFirmQuoteValidator);
 }
 
 /**

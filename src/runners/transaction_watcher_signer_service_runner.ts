@@ -1,3 +1,4 @@
+import { createMetricsRouter, MetricsService } from '@0x/api-utils';
 import * as express from 'express';
 import { Connection } from 'typeorm';
 
@@ -13,8 +14,6 @@ import {
 } from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
 import { logger } from '../logger';
-import { createMetricsRouter } from '../routers/metrics_router';
-import { MetricsService } from '../services/metrics_service';
 import { TransactionWatcherSignerService } from '../services/transaction_watcher_signer_service';
 import { TransactionWatcherSignerServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
@@ -24,14 +23,14 @@ if (require.main === module) {
         const connection = await getDBConnectionAsync();
 
         await runTransactionWatcherServiceAsync(connection);
-    })().catch(error => logger.error(error));
+    })().catch((error) => logger.error(error));
 }
-process.on('uncaughtException', err => {
+process.on('uncaughtException', (err) => {
     logger.error(err);
     process.exit(1);
 });
 
-process.on('unhandledRejection', err => {
+process.on('unhandledRejection', (err) => {
     if (err) {
         logger.error(err);
     }
@@ -50,7 +49,7 @@ export async function runTransactionWatcherServiceAsync(connection: Connection):
         const server = app.listen(defaultConfig.PROMETHEUS_PORT, () => {
             logger.info(`Metrics (HTTP) listening on port ${defaultConfig.PROMETHEUS_PORT}`);
         });
-        server.on('error', err => {
+        server.on('error', (err) => {
             logger.error(err);
         });
     }
