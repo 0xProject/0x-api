@@ -50,7 +50,6 @@ export const ONE_GWEI = new BigNumber(1000000000);
 export const KEEP_ALIVE_TTL = ONE_MINUTE_MS * 5;
 
 // API namespaces
-export const SRA_PATH = '/sra/v4';
 export const SWAP_PATH = '/swap/v1';
 export const META_TRANSACTION_PATH = '/meta_transaction/v1';
 export const METRICS_PATH = '/metrics';
