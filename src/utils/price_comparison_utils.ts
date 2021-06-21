@@ -131,8 +131,8 @@ function getPriceComparisonFromQuoteOrThrow(
             gas,
             unitTakerAmount,
             unitMakerAmount,
-            unitTakerAmountAfterGasCosts,
-            unitMakerAmountAfterGasCosts,
+            unitTakerAmountAfterGasCosts, // isSelling ? same : plus TX_BASE_GAS
+            unitMakerAmountAfterGasCosts, // isSelling ? minus TX_BASE_GAS : same
         };
     });
 
@@ -151,11 +151,9 @@ function getPriceComparisonFromQuoteOrThrow(
 
     // *** Calculate additional fields that we want to return *** //
 
-    // Remove gas estimate safety buffer that we add to to the quote
-    const estimatedGasWithoutBuffer = quote.estimatedGas.dividedBy(GAS_LIMIT_BUFFER_MULTIPLIER);
-
     // Calculate savings (Part 1): Cost of the quote including gas
-    const quoteGasCostInTokens = estimatedGasWithoutBuffer
+    const quoteGasCostInTokens = quote.estimatedGas
+        .dividedBy(GAS_LIMIT_BUFFER_MULTIPLIER) // Remove gas estimate safety buffer that we added to the quote
         .times(quote.gasPrice)
         .dividedBy(ethUnitAmount)
         .times(quoteTokenToEthRate);
