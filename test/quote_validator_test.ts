@@ -1,49 +1,42 @@
 // tslint:disable:custom-no-magic-numbers
-import { ONE_SECOND_MS } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
-import { SignedOrder } from '@0x/connect';
+import { RfqOrderFields } from '@0x/asset-swapper';
 import { expect, randomAddress } from '@0x/contracts-test-utils';
 import { Web3Wrapper } from '@0x/dev-utils';
-import { assetDataUtils } from '@0x/order-utils';
-import { BigNumber, NULL_ADDRESS } from '@0x/utils';
+import { BigNumber, NULL_ADDRESS, NULL_BYTES } from '@0x/utils';
 import 'mocha';
 import { Connection, Repository } from 'typeorm';
 
-import { ONE_MINUTE_MS } from '../src/constants';
+import { ONE_MINUTE_MS, ONE_SECOND_MS } from '../src/constants';
+import { getDBConnectionAsync } from '../src/db_connection';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
 import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
 
-import { getTestDBConnectionAsync } from './utils/db_connection';
 import { setupDependenciesAsync } from './utils/deployment';
 
-const SUITE_NAME = 'QuoteValidatorTest';
+const SUITE_NAME = 'Quote Validator Test';
 let connection: Connection;
 let chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
 
-const createOrder = (
-    makerAddress: string,
+const createRfqOrder = (
+    maker: string,
     makerToken: string,
     takerToken: string,
-    makerAssetAmount: BigNumber,
-    takerAssetAmount: BigNumber,
-): SignedOrder => {
+    makerAmount: BigNumber,
+    takerAmount: BigNumber,
+): RfqOrderFields => {
     return {
+        makerToken,
+        takerToken,
         chainId: 1337,
-        exchangeAddress: randomAddress(),
-        makerAddress,
-        takerAddress: randomAddress(),
-        senderAddress: randomAddress(),
-        feeRecipientAddress: randomAddress(),
-        makerAssetAmount,
-        takerAssetAmount,
-        makerFee: new BigNumber(0),
-        takerFee: new BigNumber(0),
-        makerAssetData: assetDataUtils.encodeERC20AssetData(makerToken),
-        takerAssetData: assetDataUtils.encodeERC20AssetData(takerToken),
-        makerFeeAssetData: NULL_ADDRESS,
-        takerFeeAssetData: NULL_ADDRESS,
+        verifyingContract: randomAddress(),
+        maker,
+        taker: NULL_ADDRESS,
+        txOrigin: NULL_ADDRESS,
+        pool: NULL_BYTES,
+        makerAmount,
+        takerAmount,
         salt: new BigNumber(100),
-        expirationTimeSeconds: new BigNumber(100),
-        signature: '',
+        expiry: new BigNumber(100),
     };
 };
 
@@ -59,7 +52,8 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        connection = await getTestDBConnectionAsync();
+        connection = await getDBConnectionAsync();
+        await connection.synchronize(true);
         chainCacheRepository = connection.getRepository(MakerBalanceChainCacheEntity);
         validator = new PostgresRfqtFirmQuoteValidator(chainCacheRepository);
     });
@@ -72,8 +66,8 @@ describe(SUITE_NAME, () => {
         it('should fail gracefully and mark orders as fully fillable if no entries are found', async () => {
             const beforefilter = await chainCacheRepository.count();
             expect(beforefilter).to.eql(0);
-            const orders = [800, 801, 802].map(takerAmount => {
-                return createOrder(
+            const orders = [800, 801, 802].map((takerAmount) => {
+                return createRfqOrder(
                     MAKER1_ADDRESS,
                     DAI_TOKEN,
                     USDC_TOKEN,
@@ -83,7 +77,7 @@ describe(SUITE_NAME, () => {
             });
             const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(3);
-            expect(results.map(r => r.toString())).to.eql(['800000000', '801000000', '802000000']);
+            expect(results.map((r) => r.toString())).to.eql(['800000000', '801000000', '802000000']);
 
             const afterFilter = await chainCacheRepository.count();
             expect(afterFilter).to.eql(1);
@@ -98,7 +92,7 @@ describe(SUITE_NAME, () => {
                 timeOfSample: 'NOW()',
             });
 
-            const orderToValidate = createOrder(
+            const orderToValidate = createRfqOrder(
                 MAKER1_ADDRESS,
                 DAI_TOKEN,
                 USDC_TOKEN,
@@ -107,7 +101,42 @@ describe(SUITE_NAME, () => {
             );
             const results = await validator.getRfqtTakerFillableAmountsAsync([orderToValidate]);
             expect(results.length).to.eql(1);
-            expect(results.map(r => r.toString())).to.eql([
+            expect(results.map((r) => r.toString())).to.eql([
+                '342857142', // 342.857142
+            ]);
+        });
+
+        it('should be case insensitive to maker token addresses', async () => {
+            const makerToken = DAI_TOKEN;
+            const takerToken = USDC_TOKEN;
+
+            await chainCacheRepository.insert({
+                tokenAddress: makerToken,
+                makerAddress: MAKER1_ADDRESS,
+                balance: Web3Wrapper.toBaseUnitAmount(300, 18),
+                timeFirstSeen: 'NOW()',
+                timeOfSample: 'NOW()',
+            });
+
+            const order1 = createRfqOrder(
+                MAKER1_ADDRESS,
+                makerToken.toUpperCase(),
+                takerToken,
+                Web3Wrapper.toBaseUnitAmount(700, 18),
+                Web3Wrapper.toBaseUnitAmount(800, 6),
+            );
+
+            const order2 = createRfqOrder(
+                MAKER1_ADDRESS,
+                makerToken.toLowerCase(),
+                takerToken,
+                Web3Wrapper.toBaseUnitAmount(700, 18),
+                Web3Wrapper.toBaseUnitAmount(800, 6),
+            );
+            const results = await validator.getRfqtTakerFillableAmountsAsync([order1, order2]);
+            expect(results.length).to.eql(2);
+            expect(results.map((r) => r.toString())).to.eql([
+                '342857142', // 342.857142
                 '342857142', // 342.857142
             ]);
         });
@@ -132,8 +161,8 @@ describe(SUITE_NAME, () => {
                 timeFirstSeen: new Date(new Date().getTime() - ONE_SECOND_MS * 30),
             });
 
-            const orders = [MAKER1_ADDRESS, MAKER2_ADDRESS, MAKER3_ADDRESS].map(makerAddress => {
-                return createOrder(
+            const orders = [MAKER1_ADDRESS, MAKER2_ADDRESS, MAKER3_ADDRESS].map((makerAddress) => {
+                return createRfqOrder(
                     makerAddress,
                     DAI_TOKEN,
                     USDC_TOKEN,
@@ -143,7 +172,7 @@ describe(SUITE_NAME, () => {
             });
             const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(3);
-            expect(results.map(r => r.toString())).to.eql([
+            expect(results.map((r) => r.toString())).to.eql([
                 '0', // order maker has a cache entry which is too old
                 '0', // order maker never had a cache entry and was first seen 5 minutes ago - not fillable
                 '800000000', // order maker has a cache entry and was seen 30 seconds ago - fully fillable
@@ -179,8 +208,8 @@ describe(SUITE_NAME, () => {
                 timeFirstSeen: 'NOW()',
             });
 
-            const orders = [MAKER1_ADDRESS, MAKER2_ADDRESS, MAKER3_ADDRESS, MAKER4_ADDRESS].map(address => {
-                return createOrder(
+            const orders = [MAKER1_ADDRESS, MAKER2_ADDRESS, MAKER3_ADDRESS, MAKER4_ADDRESS].map((address) => {
+                return createRfqOrder(
                     address,
                     DAI_TOKEN,
                     USDC_TOKEN,
@@ -192,7 +221,7 @@ describe(SUITE_NAME, () => {
             const now = new Date();
             const results = await validator.getRfqtTakerFillableAmountsAsync(orders);
             expect(results.length).to.eql(4);
-            expect(results.map(r => r.toString())).to.eql(['0', '120000000', '1000000000', '1000000000']);
+            expect(results.map((r) => r.toString())).to.eql(['0', '120000000', '1000000000', '1000000000']);
 
             // MAKER4 did not exist in the cache, so check to ensure it's been added.
             const maker4Entry = await chainCacheRepository.findOneOrFail({

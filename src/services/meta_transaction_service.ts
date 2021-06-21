@@ -1,6 +1,5 @@
-import { ContractTxFunctionObj, QuoteReport } from '@0x/asset-swapper';
-import { ContractAddresses } from '@0x/contract-addresses';
-import { ContractWrappers } from '@0x/contract-wrappers';
+import { ContractAddresses, QuoteReport, Signature } from '@0x/asset-swapper';
+import { ContractTxFunctionObj, ContractWrappers } from '@0x/contract-wrappers';
 import {
     assetDataUtils,
     decodeFillQuoteTransformerData,
@@ -10,6 +9,7 @@ import {
     SupportedProvider,
 } from '@0x/order-utils';
 import { PartialTxParams } from '@0x/subproviders';
+import { getTokenMetadataIfExists } from '@0x/token-metadata';
 import { ExchangeProxyMetaTransaction, Order, SignedOrder } from '@0x/types';
 import { BigNumber, RevertError } from '@0x/utils';
 import * as _ from 'lodash';
@@ -39,9 +39,9 @@ import { logger } from '../logger';
 import {
     CalculateMetaTransactionQuoteParams,
     CalculateMetaTransactionQuoteResponse,
-    CalculateSwapQuoteParams,
     ExchangeProxyMetaTransactionWithoutDomain,
     GetMetaTransactionQuoteResponse,
+    GetSwapQuoteParams,
     GetSwapQuoteResponse,
     PostTransactionResponse,
     TransactionStates,
@@ -50,13 +50,12 @@ import {
 import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { quoteReportUtils } from '../utils/quote_report_utils';
 import { serviceUtils } from '../utils/service_utils';
-import { getTokenMetadataIfExists } from '../utils/token_metadata_utils';
 import { utils } from '../utils/utils';
 
 const WETHToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
 
 interface SwapService {
-    calculateSwapQuoteAsync(params: CalculateSwapQuoteParams): Promise<GetSwapQuoteResponse>;
+    calculateSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
 }
 
 interface Transformation {
@@ -118,7 +117,7 @@ export class MetaTransactionService {
             buyTokenAddress: params.buyTokenAddress,
             buyAmount: quote.buyAmount!,
             sellAmount: quote.sellAmount!,
-            orders: quote.orders,
+            // orders: quote.orders,
             sources: quote.sources,
             gasPrice: quote.gasPrice,
             estimatedGas: quote.estimatedGas,
@@ -138,9 +137,10 @@ export class MetaTransactionService {
         // Go through the Exchange Proxy.
         const epmtx = this._generateExchangeProxyMetaTransaction(
             quote.callData,
-            quote.takerAddress,
+            quote.taker,
             normalizeGasPrice(quote.gasPrice),
-            calculateProtocolFeeRequiredForOrders(normalizeGasPrice(quote.gasPrice), quote.orders),
+            // calculateProtocolFeeRequiredForOrders(normalizeGasPrice(quote.gasPrice), quote.orders), // todo (xianny): HACK
+            calculateProtocolFeeRequiredForOrders(normalizeGasPrice(quote.gasPrice), []),
         );
 
         const mtxHash = getExchangeProxyMetaTransactionHash(epmtx);
@@ -155,6 +155,7 @@ export class MetaTransactionService {
                 sellTokenAddress: params.sellTokenAddress,
                 buyAmount: params.buyAmount,
                 sellAmount: params.sellAmount,
+                apiKey: params.apiKey,
             });
         }
         return {
@@ -172,7 +173,7 @@ export class MetaTransactionService {
 
     public async validateTransactionIsFillableAsync(
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
-        signature: string,
+        signature: Signature,
     ): Promise<void> {
         const { executeCall, protocolFee, gasPrice } = this._getMetaTransactionExecutionDetails(mtx, signature);
 
@@ -229,7 +230,7 @@ export class MetaTransactionService {
 
     public async generatePartialExecuteTransactionEthereumTransactionAsync(
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
-        signature: string,
+        signature: Signature,
     ): Promise<PartialTxParams> {
         const { callTarget, gasPrice, protocolFee, executeCall } = this._getMetaTransactionExecutionDetails(
             mtx,
@@ -260,7 +261,7 @@ export class MetaTransactionService {
     public async submitTransactionAsync(
         mtxHash: string,
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
-        signature: string,
+        signature: Signature,
         apiKey: string,
         affiliateAddress?: string,
     ): Promise<PostTransactionResponse> {
@@ -353,32 +354,31 @@ export class MetaTransactionService {
             isMetaTransaction: true,
             ...params,
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-            buyTokenAddress: params.isETHBuy ? WETHToken.tokenAddress : params.buyTokenAddress,
-            sellTokenAddress: params.sellTokenAddress,
+            buyToken: params.isETHBuy ? WETHToken.tokenAddress : params.buyTokenAddress,
+            sellToken: params.sellTokenAddress,
             shouldSellEntireBalance: false,
+            isWrap: false,
+            isUnwrap: false,
         };
 
         const quote = await this._swapService.calculateSwapQuoteAsync(quoteParams);
         return {
-            ..._.pick(quote, [
-                'price',
-                'gasPrice',
-                'protocolFee',
-                'sources',
-                'buyAmount',
-                'sellAmount',
-                'estimatedGas',
-                'allowanceTarget',
-                'orders',
-                'sellTokenToEthRate',
-                'buyTokenToEthRate',
-                'quoteReport',
-            ]),
-            buyTokenAddress: params.buyTokenAddress,
-            sellTokenAddress: params.sellTokenAddress,
-            takerAddress: params.takerAddress,
+            price: quote.price,
+            gasPrice: quote.gasPrice,
+            protocolFee: quote.protocolFee,
+            sources: quote.sources,
+            buyAmount: quote.buyAmount,
+            sellAmount: quote.sellAmount,
+            estimatedGas: quote.estimatedGas,
+            allowanceTarget: quote.allowanceTarget,
+            sellTokenToEthRate: quote.sellTokenToEthRate,
+            buyTokenToEthRate: quote.buyTokenToEthRate,
+            quoteReport: quote.quoteReport,
             callData: quote.data,
             minimumProtocolFee: quote.protocolFee,
+            buyTokenAddress: params.buyTokenAddress,
+            sellTokenAddress: params.sellTokenAddress,
+            taker: params.takerAddress,
         };
     }
 
@@ -392,7 +392,7 @@ export class MetaTransactionService {
         const transformations: Transformation[] = decoded.functionArguments.transformations;
 
         const fillQuoteTransformations = transformations.filter(
-            t => t.deploymentNonce.toString() === this._fillQuoteTransformerDeploymentNonce.toString(),
+            (t) => t.deploymentNonce.toString() === this._fillQuoteTransformerDeploymentNonce.toString(),
         );
 
         if (fillQuoteTransformations.length === 0) {
@@ -414,7 +414,7 @@ export class MetaTransactionService {
 
     private _getMetaTransactionExecutionDetails(
         mtx: ExchangeProxyMetaTransactionWithoutDomain,
-        signature: string,
+        signature: Signature,
     ): {
         callTarget: string;
         executeCall: ContractTxFunctionObj<string>;
@@ -433,10 +433,7 @@ export class MetaTransactionService {
 }
 
 function normalizeGasPrice(gasPrice: BigNumber): BigNumber {
-    return gasPrice
-        .div(ONE_GWEI)
-        .integerValue(BigNumber.ROUND_UP)
-        .times(ONE_GWEI);
+    return gasPrice.div(ONE_GWEI).integerValue(BigNumber.ROUND_UP).times(ONE_GWEI);
 }
 
 function createExpirationTime(): BigNumber {
@@ -445,7 +442,7 @@ function createExpirationTime(): BigNumber {
 
 function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: (SignedOrder | Order)[]): BigNumber {
     const nativeOrderCount = orders.filter(
-        o => !assetDataUtils.isERC20BridgeAssetData(assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData)),
+        (o) => !assetDataUtils.isERC20BridgeAssetData(assetDataUtils.decodeAssetDataOrThrow(o.makerAssetData)),
     ).length;
     return gasPrice.times(nativeOrderCount).times(PROTOCOL_FEE_MULTIPLIER);
 }

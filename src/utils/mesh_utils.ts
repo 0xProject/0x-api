@@ -1,95 +1,147 @@
+import { LimitOrder } from '@0x/asset-swapper';
 import {
-    AcceptedOrderInfo,
+    AcceptedOrderResult,
     OrderEvent,
     OrderEventEndState,
-    OrderInfo,
-    RejectedCode,
-    RejectedOrderInfo,
-} from '@0x/mesh-rpc-client';
+    OrderWithMetadataV4,
+    RejectedOrderCode,
+    RejectedOrderResult,
+} from '@0x/mesh-graphql-client';
+import * as _ from 'lodash';
 
 import { ZERO } from '../constants';
 import { ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
-import { APIOrderWithMetaData, OrdersByLifecycleEvents } from '../types';
+import { OrdersByLifecycleEvents, SignedLimitOrder, SRAOrder } from '../types';
+import { objectETHAddressNormalizer } from '../utils/address_utils';
 
-import { orderUtils } from './order_utils';
+type AcceptedOrderWithEndState = AcceptedOrderResult<OrderWithMetadataV4> & { endState: OrderEventEndState };
+type OrderData =
+    | AcceptedOrderResult<OrderWithMetadataV4>
+    | AcceptedOrderWithEndState
+    | RejectedOrderResult<SignedLimitOrder>
+    | OrderWithMetadataV4;
+
+const isRejectedOrderResult = (orderData: OrderData): orderData is RejectedOrderResult<SignedLimitOrder> =>
+    !!(orderData as RejectedOrderResult<SignedLimitOrder>).code;
+const isOrderWithMetadata = (orderData: OrderData): orderData is OrderWithMetadataV4 =>
+    !!(orderData as OrderWithMetadataV4).fillableTakerAssetAmount;
+
+const isAcceptedOrderWithEndState = (orderData: OrderData): orderData is AcceptedOrderWithEndState =>
+    (orderData as AcceptedOrderWithEndState).isNew !== undefined && !!(orderData as AcceptedOrderWithEndState).endState;
+
+export type OrderEventV4 = OrderEvent & { orderv4: OrderWithMetadataV4 };
 
 export const meshUtils = {
-    orderInfosToApiOrders: (
-        orderEvent: (OrderEvent | AcceptedOrderInfo | RejectedOrderInfo | OrderInfo)[],
-    ): APIOrderWithMetaData[] => {
-        return orderEvent.map(e => meshUtils.orderInfoToAPIOrder(e));
+    orderWithMetadataToSignedOrder(order: OrderWithMetadataV4): SignedLimitOrder {
+        const cleanedOrder: SignedLimitOrder = objectETHAddressNormalizer(
+            _.omit(order, ['hash', 'fillableTakerAssetAmount']),
+        );
+
+        return cleanedOrder;
     },
-    orderInfoToAPIOrder: (
-        orderEvent: OrderEvent | AcceptedOrderInfo | RejectedOrderInfo | OrderInfo,
-    ): APIOrderWithMetaData => {
-        const { orderHash, fillableTakerAssetAmount, signedOrder } = orderEvent as OrderEvent;
-        const apiOrder: APIOrderWithMetaData = {
-            // orderEvent.signedOrder comes from mesh with string fields, needs to be serialized into SignedOrder
-            order: orderUtils.deserializeOrder(signedOrder as any), // tslint:disable-line:no-unnecessary-type-assertion
+    orderEventToSRAOrder: (orderData: OrderEventV4): SRAOrder => {
+        const order = meshUtils.orderWithMetadataToSignedOrder(orderData.orderv4);
+        const remainingFillableTakerAmount = orderData.orderv4.fillableTakerAssetAmount;
+        const orderHash = orderData.orderv4.hash;
+        const state = orderData.endState;
+
+        return {
+            order,
             metaData: {
                 orderHash,
-                remainingFillableTakerAssetAmount: fillableTakerAssetAmount || ZERO,
+                remainingFillableTakerAmount,
+                state,
             },
         };
-        // populate order state
-        apiOrder.metaData.state = (orderEvent as OrderEvent).endState;
-        if (apiOrder.metaData.state === undefined) {
-            const r = orderEvent as RejectedOrderInfo;
-            apiOrder.metaData.state =
-                r.status && r.status.code
-                    ? meshUtils.rejectedCodeToOrderState(r.status.code)
-                    : OrderEventEndState.Invalid;
-        }
-        return apiOrder;
     },
-    rejectedCodeToOrderState: (code: RejectedCode): OrderEventEndState | undefined => {
+    orderInfosToApiOrders: (orders: OrderData[]): SRAOrder[] => {
+        return orders.map((e) => meshUtils.orderInfoToSRAOrder(e));
+    },
+    orderInfoToSRAOrder: (orderData: OrderData): SRAOrder => {
+        let order: SignedLimitOrder;
+        let remainingFillableTakerAmount = ZERO;
+        let orderHash: string;
+        let state: OrderEventEndState | undefined;
+        if (isOrderWithMetadata(orderData)) {
+            order = meshUtils.orderWithMetadataToSignedOrder(orderData);
+            remainingFillableTakerAmount = orderData.fillableTakerAssetAmount;
+            orderHash = orderData.hash;
+        } else if (isRejectedOrderResult(orderData)) {
+            order = orderData.order;
+            orderHash = orderData.hash!;
+            state = meshUtils.rejectedCodeToOrderState(orderData.code);
+        } else {
+            order = meshUtils.orderWithMetadataToSignedOrder(orderData.order);
+            remainingFillableTakerAmount = orderData.order.fillableTakerAssetAmount;
+            orderHash = orderData.order.hash;
+            // For persistent orders we add an end state
+            if (isAcceptedOrderWithEndState(orderData)) {
+                state = orderData.endState;
+            }
+        }
+
+        // According to mesh graphql client spec, order hash can sometimes be empty
+        if (_.isEmpty(orderHash)) {
+            orderHash = new LimitOrder(order).getHash();
+        }
+
+        return {
+            order,
+            metaData: {
+                orderHash,
+                remainingFillableTakerAmount,
+                state,
+            },
+        };
+    },
+    rejectedCodeToOrderState: (code: RejectedOrderCode): OrderEventEndState | undefined => {
         switch (code) {
-            case RejectedCode.OrderCancelled:
+            case RejectedOrderCode.OrderCancelled:
                 return OrderEventEndState.Cancelled;
-            case RejectedCode.OrderExpired:
+            case RejectedOrderCode.OrderExpired:
                 return OrderEventEndState.Expired;
-            case RejectedCode.OrderUnfunded:
+            case RejectedOrderCode.OrderUnfunded:
                 return OrderEventEndState.Unfunded;
-            case RejectedCode.OrderFullyFilled:
+            case RejectedOrderCode.OrderFullyFilled:
                 return OrderEventEndState.FullyFilled;
             default:
-                return undefined;
+                return OrderEventEndState.Invalid;
         }
     },
-    rejectedCodeToSRACode: (code: RejectedCode): ValidationErrorCodes => {
+    rejectedCodeToSRACode: (code: RejectedOrderCode): ValidationErrorCodes => {
         switch (code) {
-            case RejectedCode.OrderCancelled:
-            case RejectedCode.OrderExpired:
-            case RejectedCode.OrderUnfunded:
-            case RejectedCode.OrderHasInvalidMakerAssetAmount:
-            case RejectedCode.OrderHasInvalidMakerAssetData:
-            case RejectedCode.OrderHasInvalidTakerAssetAmount:
-            case RejectedCode.OrderHasInvalidTakerAssetData:
-            case RejectedCode.OrderFullyFilled: {
+            case RejectedOrderCode.OrderCancelled:
+            case RejectedOrderCode.OrderExpired:
+            case RejectedOrderCode.OrderUnfunded:
+            case RejectedOrderCode.OrderHasInvalidMakerAssetAmount:
+            case RejectedOrderCode.OrderHasInvalidMakerAssetData:
+            case RejectedOrderCode.OrderHasInvalidTakerAssetAmount:
+            case RejectedOrderCode.OrderHasInvalidTakerAssetData:
+            case RejectedOrderCode.OrderFullyFilled: {
                 return ValidationErrorCodes.InvalidOrder;
             }
-            case RejectedCode.OrderHasInvalidSignature: {
+            case RejectedOrderCode.OrderHasInvalidSignature: {
                 return ValidationErrorCodes.InvalidSignatureOrHash;
             }
-            case RejectedCode.OrderForIncorrectChain: {
+            case RejectedOrderCode.OrderForIncorrectChain: {
                 return ValidationErrorCodes.InvalidAddress;
             }
             default:
                 return ValidationErrorCodes.InternalError;
         }
     },
-    calculateOrderLifecycle: (orders: APIOrderWithMetaData[]): OrdersByLifecycleEvents => {
-        const added: APIOrderWithMetaData[] = [];
-        const removed: APIOrderWithMetaData[] = [];
-        const updated: APIOrderWithMetaData[] = [];
+    calculateOrderLifecycle: (orders: SRAOrder[]): OrdersByLifecycleEvents => {
+        const added: SRAOrder[] = [];
+        const removed: SRAOrder[] = [];
+        const updated: SRAOrder[] = [];
         for (const order of orders) {
             switch (order.metaData.state as OrderEventEndState) {
                 case OrderEventEndState.Added: {
                     added.push(order);
                     break;
                 }
-                case OrderEventEndState.Invalid:
+                // case OrderEventEndState.Invalid: TODO(kimpers): Invalid state is no longer available, is this an issue?
                 case OrderEventEndState.Cancelled:
                 case OrderEventEndState.Expired:
                 case OrderEventEndState.FullyFilled:

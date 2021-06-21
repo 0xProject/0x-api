@@ -1,26 +1,32 @@
 import { assert } from '@0x/assert';
 import { Callback, ErrorCallback, Subprovider } from '@0x/subproviders';
 import { StatusCodes } from '@0x/types';
-import { fetchAsync } from '@0x/utils';
 import { JSONRPCRequestPayload } from 'ethereum-types';
+import * as http from 'http';
+import * as https from 'https';
 import JsonRpcError = require('json-rpc-error');
+import fetch, { Headers, Response } from 'node-fetch';
+
+const httpAgent = new http.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true });
+const agent = (_parsedURL: any) => (_parsedURL.protocol === 'http:' ? httpAgent : httpsAgent);
 
 /**
  * This class implements the [web3-provider-engine](https://github.com/MetaMask/provider-engine) subprovider interface.
  * It forwards on JSON RPC requests to the supplied `rpcUrl` endpoint
  */
 export class RPCSubprovider extends Subprovider {
-    private readonly _rpcUrl: string;
+    private readonly _rpcUrls: string[];
     private readonly _requestTimeoutMs: number;
     /**
      * @param rpcUrl URL to the backing Ethereum node to which JSON RPC requests should be sent
      * @param requestTimeoutMs Amount of miliseconds to wait before timing out the JSON RPC request
      */
-    constructor(rpcUrl: string, requestTimeoutMs: number = 20000) {
+    constructor(rpcUrl: string | string[], requestTimeoutMs: number = 5000) {
         super();
-        assert.isString('rpcUrl', rpcUrl);
+        this._rpcUrls = Array.isArray(rpcUrl) ? rpcUrl : [rpcUrl];
+        this._rpcUrls.forEach((url) => assert.isString('rpcUrl', url));
         assert.isNumber('requestTimeoutMs', requestTimeoutMs);
-        this._rpcUrl = rpcUrl;
         this._requestTimeoutMs = requestTimeoutMs;
     }
     /**
@@ -42,17 +48,16 @@ export class RPCSubprovider extends Subprovider {
         });
 
         let response: Response;
+        const rpcUrl = this._rpcUrls[Math.floor(Math.random() * this._rpcUrls.length)];
         try {
-            response = await fetchAsync(
-                this._rpcUrl,
-                {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(finalPayload),
-                    keepalive: true,
-                },
-                this._requestTimeoutMs,
-            );
+            response = await fetch(rpcUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(finalPayload),
+                timeout: this._requestTimeoutMs,
+                compress: true,
+                agent,
+            });
         } catch (err) {
             end(new JsonRpcError.InternalError(err));
             return;

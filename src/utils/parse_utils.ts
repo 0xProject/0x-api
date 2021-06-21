@@ -1,8 +1,12 @@
 import { assert } from '@0x/assert';
-import { ERC20BridgeSource } from '@0x/asset-swapper';
+import { AffiliateFeeType, ERC20BridgeSource } from '@0x/asset-swapper';
+import express from 'express';
 
+import { NULL_ADDRESS } from '../constants';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import {
+    AffiliateFee,
+    FeeParamTypes,
     MetaTransactionDailyLimiterConfig,
     MetaTransactionRateLimitConfig,
     MetaTransactionRollingLimiterConfig,
@@ -127,18 +131,18 @@ export const parseUtils = {
             Object.assign(
                 {},
                 ...sources
-                    .map(source => (source === '0x' ? 'Native' : source))
-                    .filter(source => Object.values(ERC20BridgeSource).includes(source as ERC20BridgeSource))
-                    .map(s => ({ [s]: s })),
+                    .map((source) => (source === '0x' ? 'Native' : source))
+                    .filter((source) => Object.values(ERC20BridgeSource).includes(source as ERC20BridgeSource))
+                    .map((s) => ({ [s]: s })),
             ),
         ) as ERC20BridgeSource[];
     },
     parseJsonStringForMetaTransactionRateLimitConfigOrThrow(configString: string): MetaTransactionRateLimitConfig {
         const parsedConfig: object = JSON.parse(configString);
-        Object.entries(parsedConfig).forEach(entry => {
+        Object.entries(parsedConfig).forEach((entry) => {
             const [key, value] = entry;
             assert.doesBelongToStringEnum('dbField', key, DatabaseKeysUsedForRateLimiter);
-            Object.entries(value).forEach(configEntry => {
+            Object.entries(value).forEach((configEntry) => {
                 const [rateLimiterType, rateLimiterConfig] = configEntry;
                 switch (rateLimiterType) {
                     case AvailableRateLimiter.Daily:
@@ -188,5 +192,76 @@ export const parseUtils = {
             return fields;
         }
         return field;
+    },
+    parseAffiliateFeeOptions(req: express.Request): AffiliateFee {
+        const { feeRecipient } = req.query;
+        const sellTokenPercentageFee = Number.parseFloat(req.query.sellTokenPercentageFee as string) || 0;
+        const buyTokenPercentageFee = Number.parseFloat(req.query.buyTokenPercentageFee as string) || 0;
+        if (sellTokenPercentageFee > 0) {
+            throw new ValidationError([
+                {
+                    field: 'sellTokenPercentageFee',
+                    code: ValidationErrorCodes.UnsupportedOption,
+                    reason: ValidationErrorReasons.ArgumentNotYetSupported,
+                },
+            ]);
+        }
+        if (buyTokenPercentageFee > 1) {
+            throw new ValidationError([
+                {
+                    field: 'buyTokenPercentageFee',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: ValidationErrorReasons.PercentageOutOfRange,
+                },
+            ]);
+        }
+        let feeType = AffiliateFeeType.None;
+        if (req.query.feeType === FeeParamTypes.POSITIVE_SLIPPAGE) {
+            feeType = AffiliateFeeType.PositiveSlippageFee;
+        } else if (buyTokenPercentageFee > 0) {
+            feeType = AffiliateFeeType.PercentageFee;
+        }
+
+        if (feeType === AffiliateFeeType.PositiveSlippageFee) {
+            // can't have percentage fee and positive slippage fee at the same time
+            if (buyTokenPercentageFee) {
+                throw new ValidationError([
+                    {
+                        field: 'buyTokenPercentageFee',
+                        code: ValidationErrorCodes.UnsupportedOption,
+                        reason: ValidationErrorReasons.MultipleFeeTypesUsed,
+                    },
+                    {
+                        field: 'feeType',
+                        code: ValidationErrorCodes.UnsupportedOption,
+                        reason: ValidationErrorReasons.MultipleFeeTypesUsed,
+                    },
+                ]);
+            }
+        }
+
+        if (feeType !== AffiliateFeeType.None && feeRecipient === undefined) {
+            throw new ValidationError([
+                {
+                    field: 'feeRecipient',
+                    code: ValidationErrorCodes.UnsupportedOption,
+                    reason: ValidationErrorReasons.FeeRecipientMissing,
+                },
+            ]);
+        }
+        const affiliateFee = feeRecipient
+            ? {
+                  feeType,
+                  recipient: feeRecipient as string,
+                  sellTokenPercentageFee,
+                  buyTokenPercentageFee,
+              }
+            : {
+                  feeType,
+                  recipient: NULL_ADDRESS,
+                  sellTokenPercentageFee: 0,
+                  buyTokenPercentageFee: 0,
+              };
+        return affiliateFee;
     },
 };
