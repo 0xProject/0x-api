@@ -1,246 +1,75 @@
 name: Deploy
 on:
-  issue_comment:
-    types: [created, edited]
-  workflow_dispatch:
+    issue_comment:
+        types: [created, edited]
+    workflow_dispatch:
 jobs:
-  staging:
-    runs-on: ubuntu-latest
-    if: github.event.comment.body == 'deploy staging'
-    steps:
-      - name: Fetch issue info
-        uses: octokit/request-action@v2.x
-        id: get_issue_info
-        with:
-          route: GET ${{ github.event.issue.url }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Parse issue info
-        id: parse_issue_info
-        uses: gr2m/get-json-paths-action@v1.x
-        with:
-          json: ${{ steps.get_issue_info.outputs.data }}
-          pull_request_url: "pull_request.url"
-      - name: Fetch PR info
-        uses: octokit/request-action@v2.x
-        id: get_pr_ref
-        with:
-          route: GET ${{ steps.parse_issue_info.outputs.pull_request_url }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Parse PR info
-        id: parse_pr_info
-        uses: gr2m/get-json-paths-action@v1.x
-        with:
-          json: ${{ steps.get_pr_ref.outputs.data }}
-          ref: "head.ref"
-          sha: "head.sha"
-      - run: "echo ${{ steps.parse_pr_info.outputs }}"
-      - uses: actions/checkout@v2
-        with:
-            token: ${{ secrets.PAT }}
-            repository: 0xProject/0x-main-infra
-      - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/staging/common/*.yml env/0x-api/staging/v1/*.yml
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3.5.0
-        with:
-            token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][staging] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            title: "[0xApi][staging] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            reviewers: dekz
-            labels: 0xApi, staging
-            branch: "0xApi/staging/${{ steps.parse_pr_info.outputs.ref }}"
-            body: |
-              https://github.com/${{ github.repository }}/compare/master...${{ steps.parse_pr_info.outputs.ref }}
-              ${{ steps.parse_pr_info.outputs.ref }}
-      - name: Check outputs
-        run: |
-            echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
-            echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-  prod:
-    runs-on: ubuntu-latest
-    if: github.event.comment.body == 'deploy production'
-    steps:
-      - name: Fetch issue info
-        uses: octokit/request-action@v2.x
-        id: get_issue_info
-        with:
-          route: GET ${{ github.event.issue.url }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Parse issue info
-        id: parse_issue_info
-        uses: gr2m/get-json-paths-action@v1.x
-        with:
-          json: ${{ steps.get_issue_info.outputs.data }}
-          pull_request_url: "pull_request.url"
-      - name: Fetch PR info
-        uses: octokit/request-action@v2.x
-        id: get_pr_ref
-        with:
-          route: GET ${{ steps.parse_issue_info.outputs.pull_request_url }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Parse PR info
-        id: parse_pr_info
-        uses: gr2m/get-json-paths-action@v1.x
-        with:
-          json: ${{ steps.get_pr_ref.outputs.data }}
-          ref: "head.ref"
-          sha: "head.sha"
-      - run: "echo ${{ steps.parse_pr_info.outputs }}"
-      - uses: actions/checkout@v2
-        with:
-            token: ${{ secrets.PAT }}
-            repository: 0xProject/0x-main-infra
-      - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/prod/common/*.yml env/0x-api/prod/v1/*.yml
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3.5.0
-        with:
-            token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][prod] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            title: "[0xApi][prod] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            reviewers: dekz
-            labels: 0xApi, prod
-            branch: "0xApi/prod/${{ steps.parse_pr_info.outputs.ref }}"
-            body: |
-              https://github.com/${{ github.repository }}/compare/master...${{ steps.parse_pr_info.outputs.ref }}
-              ${{ steps.parse_pr_info.outputs.ref }}
-      - name: Check outputs
-        run: |
-            echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
-            echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-  manual_prod:
-    runs-on: ubuntu-latest
-    if:  github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
-    steps:
-      
-      - name: Checkout infra repo
-        uses: actions/checkout@v2
-        with:
-            token: ${{ secrets.PAT }}
-            repository: 0xProject/0x-main-infra
-      - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ github.sha }}"/g' env/0x-api/prod/common/*.yml env/0x-api/prod/v1/*.yml
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3.5.0
-        with:
-            token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][prod] Deploy from main"
-            title: "[0xApi][prod] Deploy from main"
-            reviewers: dekz
-            labels: 0xApi, prod
-            branch: "0xApi/prod/master"
-            body: |
-              https://github.com/${{ github.repository }}/tree/${{ github.sha }}
-  kovan:
-    runs-on: ubuntu-latest
-    if: github.event.comment.body == 'deploy kovan'
-    steps:
-      - name: Fetch issue info
-        uses: octokit/request-action@v2.x
-        id: get_issue_info
-        with:
-          route: GET ${{ github.event.issue.url }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Parse issue info
-        id: parse_issue_info
-        uses: gr2m/get-json-paths-action@v1.x
-        with:
-          json: ${{ steps.get_issue_info.outputs.data }}
-          pull_request_url: "pull_request.url"
-      - name: Fetch PR info
-        uses: octokit/request-action@v2.x
-        id: get_pr_ref
-        with:
-          route: GET ${{ steps.parse_issue_info.outputs.pull_request_url }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Parse PR info
-        id: parse_pr_info
-        uses: gr2m/get-json-paths-action@v1.x
-        with:
-          json: ${{ steps.get_pr_ref.outputs.data }}
-          ref: "head.ref"
-          sha: "head.sha"
-      - run: "echo ${{ steps.parse_pr_info.outputs }}"
-      - uses: actions/checkout@v2
-        with:
-            token: ${{ secrets.PAT }}
-            repository: 0xProject/0x-main-infra
-      - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/kovan/common/*.yml env/0x-api/kovan/v1/*.yml
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3.5.0
-        with:
-            token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            title: "[0xApi][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            reviewers: dekz
-            labels: 0xApi, kovan
-            branch: "0xApi/kovan/${{ steps.parse_pr_info.outputs.ref }}"
-            body: |
-              https://github.com/${{ github.repository }}/compare/master...${{ steps.parse_pr_info.outputs.ref }}
-              ${{ steps.parse_pr_info.outputs.ref }}
-      - name: Check outputs
-        run: |
-            echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
-            echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-  kovan-staging:
-    runs-on: ubuntu-latest
-    if: github.event.comment.body == 'deploy kovan-staging'
-    steps:
-      - name: Fetch issue info
-        uses: octokit/request-action@v2.x
-        id: get_issue_info
-        with:
-          route: GET ${{ github.event.issue.url }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Parse issue info
-        id: parse_issue_info
-        uses: gr2m/get-json-paths-action@v1.x
-        with:
-          json: ${{ steps.get_issue_info.outputs.data }}
-          pull_request_url: "pull_request.url"
-      - name: Fetch PR info
-        uses: octokit/request-action@v2.x
-        id: get_pr_ref
-        with:
-          route: GET ${{ steps.parse_issue_info.outputs.pull_request_url }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Parse PR info
-        id: parse_pr_info
-        uses: gr2m/get-json-paths-action@v1.x
-        with:
-          json: ${{ steps.get_pr_ref.outputs.data }}
-          ref: "head.ref"
-          sha: "head.sha"
-      - run: "echo ${{ steps.parse_pr_info.outputs }}"
-      - uses: actions/checkout@v2
-        with:
-            token: ${{ secrets.PAT }}
-            repository: 0xProject/0x-main-infra
-      - name: Update API
-        run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ steps.parse_pr_info.outputs.sha }}"/g' env/0x-api/kovan-staging/common/*.yml env/0x-api/kovan-staging/v1/*.yml
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3.5.0
-        with:
-            token: ${{ secrets.PAT }}
-            commit-message: "[0xApi][staging][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            title: "[0xApi][staging][kovan] Deploy ${{ steps.parse_pr_info.outputs.ref }}"
-            reviewers: dekz
-            labels: 0xApi, kovan, staging
-            branch: "0xApi/kovan-staging/${{ steps.parse_pr_info.outputs.ref }}"
-            body: |
-              https://github.com/${{ github.repository }}/compare/master...${{ steps.parse_pr_info.outputs.ref }}
-              ${{ steps.parse_pr_info.outputs.ref }}
-      - name: Check outputs
-        run: |
-            echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
-            echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-
+    deploy:
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.comment.body, 'deploy')
+        runs-on: ubuntu-latest
+        steps:
+            # Grab the PR branch name; workflow sets github.ref to master by default
+            # Short version of branch name is set to ${{ env.trimmed_branch_name }}
+            - id: comment-branch
+              if: github.event.issue.pull_request
+              uses: xt0rted/pull-request-comment-branch@v1
+              with:
+                repo_token: ${{ github.token }}
+            - name: trim and save branch name
+              run: echo ${{ steps.comment-branch.outputs.head_ref }} | sed 's/refs\/heads\///g' | xargs echo "trimmed_branch_name=$1" | sed 's/[[:space:]]//g' >> $GITHUB_ENV
+            - name: save branch sha
+              run: echo ${{ steps.comment-branch.outputs.head_sha }} | xargs echo "branch_sha=$1" | sed 's/[[:space:]]//g' >> $GITHUB_ENV
+            # Different deploy scenarios
+            # Ethereum: folder_chain=''
+            - name: deploy from master to production (Ethereum)
+              if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+              run: echo "folder_env=prod" >> $GITHUB_ENV; echo "chain=ethereum" >> $GITHUB_ENV; echo "trimmed_branch_name=master" >> $GITHUB_ENV; echo ${{ github.sha }} | xargs echo "branch_sha=$1" | sed 's/[[:space:]]//g' >> $GITHUB_ENV
+            - name: deploy from branch to staging (Ethereum)
+              if: github.event.issue.pull_request && github.event.comment.body == 'deploy staging'
+              run: echo "folder_env=staging" >> $GITHUB_ENV; echo "chain=ethereum" >> $GITHUB_ENV;
+            - name: deploy from branch to production (Ethereum)
+              if: github.event.issue.pull_request && github.event.comment.body == 'deploy production'
+              run: echo "folder_env=prod" >> $GITHUB_ENV; echo "chain=ethereum" >> $GITHUB_ENV;
+            # BSC: folder_chain=bsc
+            - name: deploy from branch to staging (BSC)
+              if: github.event.issue.pull_request && (github.event.comment.body == 'deploy staging bsc' || github.event.comment.body == 'deploy bsc staging')
+              run: echo "folder_env=staging" >> $GITHUB_ENV; echo "chain=bsc" >> $GITHUB_ENV;
+            - name: deploy from branch to production (BSC)
+              if: github.event.issue.pull_request && (github.event.comment.body == 'deploy production bsc' || github.event.comment.body == 'deploy bsc production')
+              run: echo "folder_env=prod" >> $GITHUB_ENV; echo "chain=bsc" >> $GITHUB_ENV;
+            # Polygon: folder_chain=polygon
+            - name: deploy from branch to production (Polygon)
+              if: github.event.issue.pull_request && (github.event.comment.body == 'deploy production polygon' || github.event.comment.body == 'deploy polygon production')
+              run: echo "folder_env=prod" >> $GITHUB_ENV; echo "chain=polygon" >> $GITHUB_ENV;
+            # Make the changes to 0x-main-infra
+            - name: Checkout 0x-main-infra
+              uses: actions/checkout@v2
+              with:
+                  token: ${{ secrets.PAT }}
+                  repository: 0xProject/0x-main-infra
+            - name: Update API configs (Ethereum)
+              if: env.chain == 'ethereum'
+              run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ env.branch_sha }}"/g' env/0x-api/${{ env.folder_env }}/common/*.yml env/0x-api/${{ env.folder_env }}/apis/*.yml
+            - name: Update API configs (BSC)
+              if: env.chain == 'bsc'
+              run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ env.branch_sha }}"/g' env/0x-api/${{ env.folder_env }}/apis/bsc/*.yml
+            - name: Update API configs (Polygon)
+              if: env.chain == 'polygon'
+              run: sed -i -e 's/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:.*"/"883408475785\.dkr\.ecr\.us-east-1\.amazonaws\.com\/0x\/api\:${{ env.branch_sha }}"/g' env/0x-api/${{ env.folder_env }}/apis/polygon/*.yml
+            - name: Create Pull Request
+              uses: peter-evans/create-pull-request@v3.5.0
+              with:
+                  token: ${{ secrets.PAT }}
+                  author: ${{ github.event.sender.login }} <${{ github.event.sender.login }}@users.noreply.github.com>
+                  commit-message: '0x-api/${{ env.chain }}/${{ env.folder_env }}: Deploy ${{ env.trimmed_branch_name }}'
+                  title: '[0xApi][${{ env.chain }}][${{ env.folder_env }}] Deploy ${{ env.trimmed_branch_name }}'
+                  branch: '0xApi/${{ env.chain }}/${{ env.folder_env }}/${{ env.trimmed_branch_name }}'
+                  body: |
+                      ## Automated deploy action
+                      Triggered by @${{ github.event.sender.login }}
+                      PR: [${{ github.event.issue.title }}](${{ github.event.issue.html_url }})
+                      SHA: https://github.com/${{ github.repository }}/tree/${{ env.branch_sha }}
+                      Comparison: https://github.com/${{ github.repository }}/compare/master...refs/heads/${{ env.trimmed_branch_name }}
+            - name: Check outputs
+              run: |
+                  echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"

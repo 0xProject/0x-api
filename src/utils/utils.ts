@@ -1,8 +1,6 @@
 import { intervalUtils } from '@0x/utils';
 import * as _ from 'lodash';
 
-import { ObjectMap } from '../types';
-
 export interface JsonRpcResponse {
     error: any;
     id: number;
@@ -10,14 +8,6 @@ export interface JsonRpcResponse {
 }
 
 export const utils = {
-    arrayToMapWithId: <T extends object>(array: T[], idKey: keyof T): ObjectMap<T> => {
-        const initialMap: ObjectMap<T> = {};
-        return array.reduce((acc, val) => {
-            const id = val[idKey] as any;
-            acc[id] = val;
-            return acc;
-        }, initialMap);
-    },
     /**
      * Executes JSON-RPC response validation
      * Copied from https://github.com/ethereum/web3.js/blob/79a165a205074cfdc14f59a61c41ba9ef5d25172/packages/web3-providers/src/validators/JsonRpcResponseValidator.js
@@ -74,7 +64,7 @@ export const utils = {
     },
     delayAsync: async (ms: number): Promise<void> => {
         // tslint:disable-next-line:no-inferred-empty-object-type
-        return new Promise<void>(resolve => setTimeout(resolve, ms));
+        return new Promise<void>((resolve) => setTimeout(resolve, ms));
     },
     runWithTimeout: async <T>(fn: () => Promise<T>, timeoutMs: number): Promise<any> => {
         let _timeoutHandle: NodeJS.Timeout;
@@ -82,7 +72,7 @@ export const utils = {
         const timeoutPromise = new Promise((_resolve, reject) => {
             _timeoutHandle = setTimeout(() => reject(new Error('timeout')), timeoutMs);
         });
-        return Promise.race([fn(), timeoutPromise]).then(result => {
+        return Promise.race([fn(), timeoutPromise]).then((result) => {
             clearTimeout(_timeoutHandle);
             return result;
         });
@@ -106,5 +96,15 @@ export const utils = {
             }
         })();
         return intervalUtils.setAsyncExcludingInterval(fn, intervalMs, onError);
+    },
+    calculateCallDataGas: (bytes: string) => {
+        const buf = Buffer.from(bytes.replace(/0x/g, ''), 'hex');
+        let gas = 21000;
+        for (const b of buf) {
+            // 4 gas per 0 byte, 16 gas per non-zero
+            // tslint:disable-next-line
+            gas += b === 0 ? 4 : 16;
+        }
+        return gas;
     },
 };

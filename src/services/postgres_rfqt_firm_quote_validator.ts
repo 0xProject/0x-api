@@ -1,5 +1,4 @@
-import { BigNumber, RfqtFirmQuoteValidator, SignedOrder } from '@0x/asset-swapper';
-import { assetDataUtils, ERC20AssetData } from '@0x/order-utils';
+import { BigNumber, RfqFirmQuoteValidator, RfqOrderFields } from '@0x/asset-swapper';
 import * as _ from 'lodash';
 import { Counter, Summary } from 'prom-client';
 import { In } from 'typeorm';
@@ -50,8 +49,13 @@ const PG_LATENCY_READ = new Summary({
     help: 'Query latency',
     labelNames: ['workerId'],
 });
+const MAKER_TOKEN_NOT_UNIQUE = new Counter({
+    name: 'rfqtv_rejected_maker_token_not_unique',
+    help: 'RFQ batch was requested because not all orders return the same token',
+    labelNames: ['workerId'],
+});
 
-export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
+export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
     private readonly _chainCacheRepository: Repository<MakerBalanceChainCacheEntity>;
     private readonly _cacheExpiryThresholdMs: number;
     private readonly _workerId: string;
@@ -66,35 +70,31 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
     }
 
     // tslint:disable-next-line: prefer-function-over-method
-    public async getRfqtTakerFillableAmountsAsync(quotes: SignedOrder[]): Promise<BigNumber[]> {
+    public async getRfqtTakerFillableAmountsAsync(quotes: RfqOrderFields[]): Promise<BigNumber[]> {
         // TODO: Handle error on query
 
         // Ensure that all quotes have the same exact maker token.
-        const makerTokenAddressesSet = new Set(
-            quotes.map(quote => {
-                const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(quote.makerAssetData) as ERC20AssetData;
-                return decodedAssetData.tokenAddress;
-            }),
-        );
-        if (makerTokenAddressesSet.size !== 1) {
+        const uniqueMakerTokens = new Set(quotes.map((quote) => quote.makerToken.toLowerCase()));
+        if (uniqueMakerTokens.size !== 1) {
             logger.error(
                 `Quotes array was empty or found multiple maker token addresses within one single RFQ batch: ${JSON.stringify(
-                    Array.from(makerTokenAddressesSet),
+                    Array.from(uniqueMakerTokens),
                 )}. Rejecting the batch`,
             );
-            return quotes.map(_quote => ZERO);
+            MAKER_TOKEN_NOT_UNIQUE.labels(this._workerId).inc(quotes.length);
+            return quotes.map((_quote) => ZERO);
         }
-        const makerTokenAddress: string = makerTokenAddressesSet.values().next().value;
+        const makerToken: string = uniqueMakerTokens.values().next().value;
 
         // Fetch balances and create a lookup table. In order to fetch all the unique addresses we use a set, but then convert
         // the set to an array so that it can work with TypeORM.
         const makerLookup: { [key: string]: BigNumber } = {};
-        const makerAddresses = Array.from(new Set(quotes.map(quote => quote.makerAddress)));
+        const makerAddresses = Array.from(new Set(quotes.map((quote) => quote.maker.toLowerCase())));
         const timeStart = new Date().getTime();
         const cacheResults = await this._chainCacheRepository.find({
             where: [
                 {
-                    tokenAddress: makerTokenAddress,
+                    tokenAddress: makerToken,
                     makerAddress: In(makerAddresses),
                 },
             ],
@@ -102,11 +102,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
         PG_LATENCY_READ.labels(this._workerId).observe(new Date().getTime() - timeStart);
         const nowUnix = new Date().getTime();
         for (const result of cacheResults) {
-            makerLookup[result.makerAddress!] = this._calculateMakerBalanceFromResult(
-                result,
-                makerTokenAddress,
-                nowUnix,
-            );
+            makerLookup[result.makerAddress!] = this._calculateMakerBalanceFromResult(result, makerToken, nowUnix);
         }
 
         // Finally, adjust takerFillableAmount based on maker balances
@@ -126,10 +122,10 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
                 .createQueryBuilder()
                 .insert()
                 .values(
-                    makerAddressesToAddToCache.map(makerAddress => {
+                    makerAddressesToAddToCache.map((makerAddress) => {
                         return {
-                            makerAddress,
-                            tokenAddress: makerTokenAddress,
+                            makerAddress: makerAddress.toLowerCase(),
+                            tokenAddress: makerToken.toLowerCase(),
                             timeFirstSeen: 'NOW()',
                         };
                     }),
@@ -141,41 +137,41 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
     }
 
     private _calculateTakerFillableAmountsFromQuotes(
-        quotes: SignedOrder[],
+        quotes: RfqOrderFields[],
         makerLookup: { [key: string]: BigNumber },
     ): { makerAddressesToAddToCache: string[]; takerFillableAmounts: BigNumber[] } {
         const makerAddressesToAddToCacheSet: Set<string> = new Set();
-        const takerFillableAmounts = quotes.map(quote => {
-            const makerTokenBalanceForMaker: BigNumber | undefined = makerLookup[quote.makerAddress];
+        const takerFillableAmounts = quotes.map((quote) => {
+            const makerTokenBalanceForMaker: BigNumber | undefined = makerLookup[quote.maker];
 
             // TODO: Add Prometheus hooks
             if (makerTokenBalanceForMaker === undefined) {
-                makerAddressesToAddToCacheSet.add(quote.makerAddress);
+                makerAddressesToAddToCacheSet.add(quote.maker);
                 ORDER_NOT_VALIDATED.labels(this._workerId).inc();
-                return quote.takerAssetAmount;
+                return quote.takerAmount;
             }
 
             // Order is fully fillable, because Maker has 100% of the assets
-            if (makerTokenBalanceForMaker.gte(quote.makerAssetAmount)) {
+            if (makerTokenBalanceForMaker.gte(quote.makerAmount)) {
                 ORDER_FULLY_FILLABLE.labels(this._workerId).inc();
-                return quote.takerAssetAmount;
+                return quote.takerAmount;
             }
 
             // Order is empty, return zero
-            if (quote.makerAssetAmount.lte(0)) {
+            if (quote.makerAmount.lte(0)) {
                 ORDER_NOT_FILLABLE.labels(this._workerId).inc();
                 return ZERO;
             }
 
             // Order is partially fillable, because Maker has a fraction of the assets
             const partialFillableAmount = makerTokenBalanceForMaker
-                .times(quote.takerAssetAmount)
-                .div(quote.makerAssetAmount)
+                .times(quote.takerAmount)
+                .div(quote.makerAmount)
                 .integerValue(BigNumber.ROUND_DOWN);
             logger.warn(
                 `Maker ${
-                    quote.makerAddress
-                } balance is ${makerTokenBalanceForMaker.toString()} and can only partially cover order size ${quote.makerAssetAmount.toString()}. takerAssetAmount was reduced from ${quote.takerAssetAmount.toString()} to ${partialFillableAmount.toString()}`,
+                    quote.maker
+                } balance is ${makerTokenBalanceForMaker.toString()} and can only partially cover order size ${quote.makerAmount.toString()}. takerAssetAmount was reduced from ${quote.takerAmount.toString()} to ${partialFillableAmount.toString()}`,
             );
             if (!partialFillableAmount.isFinite()) {
                 logger.error(
@@ -195,7 +191,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
 
     private _calculateMakerBalanceFromResult(
         result: MakerBalanceChainCacheEntity,
-        makerTokenAddress: string,
+        makerToken: string,
         nowUnix: number,
     ): BigNumber {
         CACHE_CHECKED.labels(this._workerId).inc();
@@ -213,7 +209,7 @@ export class PostgresRfqtFirmQuoteValidator implements RfqtFirmQuoteValidator {
                 return ZERO;
             } else {
                 logger.warn(
-                    `Cannot find cache for token ${makerTokenAddress} and maker ${result.makerAddress}. This entry was recently added so assuming the entire maker fillable amount is available`,
+                    `Cannot find cache for token ${makerToken} and maker ${result.makerAddress}. This entry was recently added so assuming the entire maker fillable amount is available`,
                 );
                 return new BigNumber(Number.POSITIVE_INFINITY);
             }

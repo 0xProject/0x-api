@@ -2,18 +2,14 @@ import * as express from 'express';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as core from 'express-serve-static-core';
 
+import { objectETHAddressNormalizer } from '../utils/address_utils';
+
 /**
- * Searches for keys matching `[x]Address` in query params, and transforms values to lowercase
+ * Searches for query param values that match the ETH address format, and transforms them to lowercase
  */
 export function addressNormalizer(req: express.Request, _: express.Response, next: core.NextFunction): void {
-    const addressKeys = Object.keys(req.query).filter(key => key.match(/\w+Address/));
-    const normalized: { [key: string]: any } = {};
-    for (const key of addressKeys) {
-        normalized[key] = (req.query[key] as string).toLowerCase();
-    }
-    req.query = {
-        ...req.query,
-        ...normalized,
-    };
+    const normalizedQuery = objectETHAddressNormalizer(req.query);
+    req.query = normalizedQuery;
+
     next();
 }

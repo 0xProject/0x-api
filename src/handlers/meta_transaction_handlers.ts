@@ -1,7 +1,9 @@
+import { isAPIError, isRevertError } from '@0x/api-utils';
 import { assert } from '@0x/assert';
-import { ERC20BridgeSource, SwapQuoterError } from '@0x/asset-swapper';
+import { ERC20BridgeSource, Signature, SwapQuoterError } from '@0x/asset-swapper';
+import { getTokenMetadataIfExists, isNativeSymbolOrAddress } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
-import { BigNumber, NULL_ADDRESS } from '@0x/utils';
+import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
@@ -11,10 +13,11 @@ import { CHAIN_ID } from '../config';
 import { API_KEY_HEADER, DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE, META_TRANSACTION_DOCS_URL } from '../constants';
 import { TransactionEntity } from '../entities';
 import {
+    APIErrorCodes,
+    apiErrorCodesToReasons,
     EthSellNotSupportedError,
-    GeneralErrorCodes,
-    generalErrorCodeToReason,
     InternalServerError,
+    InvalidAPIKeyError,
     NotFoundError,
     RevertAPIError,
     ValidationError,
@@ -22,8 +25,7 @@ import {
     ValidationErrorReasons,
 } from '../errors';
 import { logger } from '../logger';
-import { isAPIError, isRevertError } from '../middleware/error_handling';
-import { schemas } from '../schemas/schemas';
+import { schemas } from '../schemas';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import {
     ChainId,
@@ -32,15 +34,11 @@ import {
     GetMetaTransactionStatusResponse,
     GetTransactionRequestParams,
 } from '../types';
+import { findTokenAddressOrThrowApiError } from '../utils/address_utils';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { schemaUtils } from '../utils/schema_utils';
-import {
-    findTokenAddressOrThrowApiError,
-    getTokenMetadataIfExists,
-    isETHSymbolOrAddress,
-} from '../utils/token_metadata_utils';
 
 export class MetaTransactionHandlers {
     private readonly _metaTransactionService: MetaTransactionService;
@@ -57,21 +55,17 @@ export class MetaTransactionHandlers {
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header(API_KEY_HEADER);
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
-            res.status(HttpStatus.BAD_REQUEST).send({
-                code: GeneralErrorCodes.InvalidAPIKey,
-                reason: generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey],
-            });
-            return;
+            throw new InvalidAPIKeyError();
         }
         // HACK typescript typing does not allow this valid json-schema
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
         // parse query params
         const params = parseGetTransactionRequestParams(req);
         const { buyTokenAddress, sellTokenAddress } = params;
-        const isETHBuy = isETHSymbolOrAddress(buyTokenAddress);
+        const isETHBuy = isNativeSymbolOrAddress(buyTokenAddress, CHAIN_ID);
 
         // ETH selling isn't supported.
-        if (isETHSymbolOrAddress(sellTokenAddress)) {
+        if (isNativeSymbolOrAddress(sellTokenAddress, CHAIN_ID)) {
             throw new EthSellNotSupportedError();
         }
 
@@ -89,7 +83,7 @@ export class MetaTransactionHandlers {
                 const marketSide = params.sellAmount !== undefined ? MarketOperation.Sell : MarketOperation.Buy;
                 quoteResponse.priceComparisons = priceComparisonUtils
                     .getPriceComparisonFromQuote(CHAIN_ID, marketSide, metaTransactionQuote)
-                    ?.map(sc => priceComparisonUtils.renameNative(sc));
+                    ?.map((sc) => priceComparisonUtils.renameNative(sc));
             }
 
             res.status(HttpStatus.OK).send(quoteResponse);
@@ -132,10 +126,7 @@ export class MetaTransactionHandlers {
     public async getPriceAsync(req: express.Request, res: express.Response): Promise<void> {
         const apiKey = req.header('0x-api-key');
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
-            res.status(HttpStatus.BAD_REQUEST).send({
-                code: GeneralErrorCodes.InvalidAPIKey,
-                reason: generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey],
-            });
+            throw new InvalidAPIKeyError();
             return;
         }
         // HACK typescript typing does not allow this valid json-schema
@@ -145,21 +136,20 @@ export class MetaTransactionHandlers {
         const { buyTokenAddress, sellTokenAddress } = params;
 
         // ETH selling isn't supported.
-        if (isETHSymbolOrAddress(sellTokenAddress)) {
+        if (isNativeSymbolOrAddress(sellTokenAddress, CHAIN_ID)) {
             throw new EthSellNotSupportedError();
         }
-        const isETHBuy = isETHSymbolOrAddress(buyTokenAddress);
+        const isETHBuy = isNativeSymbolOrAddress(buyTokenAddress, CHAIN_ID);
 
         try {
-            const metaTransactionPriceCalculation = await this._metaTransactionService.calculateMetaTransactionPriceAsync(
-                {
+            const metaTransactionPriceCalculation =
+                await this._metaTransactionService.calculateMetaTransactionPriceAsync({
                     ...params,
                     from: params.takerAddress,
                     apiKey,
                     isETHBuy,
                     isETHSell: false,
-                },
-            );
+                });
 
             const metaTransactionPriceResponse: GetMetaTransactionPriceResponse = {
                 ..._.omit(metaTransactionPriceCalculation, 'orders', 'quoteReport', 'estimatedGasTokenRefund'),
@@ -176,7 +166,7 @@ export class MetaTransactionHandlers {
                     marketSide,
                     metaTransactionPriceCalculation,
                 );
-                metaTransactionPriceResponse.priceComparisons = priceComparisons?.map(pc =>
+                metaTransactionPriceResponse.priceComparisons = priceComparisons?.map((pc) =>
                     priceComparisonUtils.renameNative(pc),
                 );
             }
@@ -222,13 +212,9 @@ export class MetaTransactionHandlers {
         const apiKey = req.header('0x-api-key');
         const affiliateAddress = req.query.affiliateAddress as string | undefined;
         if (apiKey !== undefined && !isValidUUID(apiKey)) {
-            res.status(HttpStatus.BAD_REQUEST).send({
-                code: GeneralErrorCodes.InvalidAPIKey,
-                reason: generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey],
-            });
+            throw new InvalidAPIKeyError();
             return;
         }
-        // TODO(kimpers): Refactor this to use published 5.2 @0x/json-schemas
         schemaUtils.validateSchema(req.body, schemas.metaTransactionFillRequestSchema);
 
         // parse the request body
@@ -254,8 +240,8 @@ export class MetaTransactionHandlers {
                 const isLive = await this._metaTransactionService.isSignerLiveAsync();
                 if (!isLive) {
                     res.status(HttpStatus.NOT_FOUND).send({
-                        code: GeneralErrorCodes.ServiceDisabled,
-                        reason: generalErrorCodeToReason[GeneralErrorCodes.ServiceDisabled],
+                        code: APIErrorCodes.ServiceDisabled,
+                        reason: apiErrorCodesToReasons[APIErrorCodes.ServiceDisabled],
                     });
                     return;
                 }
@@ -266,7 +252,7 @@ export class MetaTransactionHandlers {
                     });
                     if (isRateLimitedMetaTransactionResponse(rateLimitResponse)) {
                         res.status(HttpStatus.TOO_MANY_REQUESTS).send({
-                            code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
+                            code: APIErrorCodes.UnableToSubmitOnBehalfOfTaker,
                             reason: rateLimitResponse.reason,
                             ethereumTransaction: {
                                 data: ethTx.data,
@@ -289,8 +275,8 @@ export class MetaTransactionHandlers {
                 res.status(HttpStatus.OK).send(result);
             } else {
                 res.status(HttpStatus.FORBIDDEN).send({
-                    code: GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker,
-                    reason: generalErrorCodeToReason[GeneralErrorCodes.UnableToSubmitOnBehalfOfTaker],
+                    code: APIErrorCodes.UnableToSubmitOnBehalfOfTaker,
+                    reason: apiErrorCodesToReasons[APIErrorCodes.UnableToSubmitOnBehalfOfTaker],
                     ethereumTransaction: {
                         data: ethTx.data,
                         gasPrice: ethTx.gasPrice,
@@ -380,39 +366,7 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     const isBNT = sellTokenAddress.toLowerCase() === bntAddress || buyTokenAddress.toLowerCase() === bntAddress;
     const excludedSources = isBNT ? _excludedSources : _excludedSources.concat(ERC20BridgeSource.Bancor);
 
-    const feeRecipient = req.query.feeRecipient as string;
-    const sellTokenPercentageFee = Number.parseFloat(req.query.sellTokenPercentageFee as string) || 0;
-    const buyTokenPercentageFee = Number.parseFloat(req.query.buyTokenPercentageFee as string) || 0;
-    if (sellTokenPercentageFee > 0) {
-        throw new ValidationError([
-            {
-                field: 'sellTokenPercentageFee',
-                code: ValidationErrorCodes.UnsupportedOption,
-                reason: ValidationErrorReasons.ArgumentNotYetSupported,
-            },
-        ]);
-    }
-    if (buyTokenPercentageFee > 1) {
-        throw new ValidationError([
-            {
-                field: 'buyTokenPercentageFee',
-                code: ValidationErrorCodes.ValueOutOfRange,
-                reason: ValidationErrorReasons.PercentageOutOfRange,
-            },
-        ]);
-    }
-    const affiliateFee = feeRecipient
-        ? {
-              recipient: feeRecipient,
-              sellTokenPercentageFee,
-              buyTokenPercentageFee,
-          }
-        : {
-              recipient: NULL_ADDRESS,
-              sellTokenPercentageFee: 0,
-              buyTokenPercentageFee: 0,
-          };
-
+    const affiliateFee = parseUtils.parseAffiliateFeeOptions(req);
     const affiliateAddress = req.query.affiliateAddress as string | undefined;
 
     return {
@@ -432,7 +386,7 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
 
 interface PostTransactionRequestBody {
     mtx: ExchangeProxyMetaTransactionWithoutDomain;
-    signature: string;
+    signature: Signature;
 }
 
 const parsePostTransactionRequestBody = (req: any): PostTransactionRequestBody => {

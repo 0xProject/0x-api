@@ -5,7 +5,12 @@ import {
     KeyValueEntity,
     MakerBalanceChainCacheEntity,
     PersistentSignedOrderEntity,
+    PersistentSignedOrderV4Entity,
+    RfqmJobEntity,
+    RfqmQuoteEntity,
+    RfqmTransactionSubmissionEntity,
     SignedOrderEntity,
+    SignedOrderV4Entity,
     TransactionEntity,
 } from './entities';
 
@@ -15,6 +20,11 @@ const entities = [
     TransactionEntity,
     KeyValueEntity,
     MakerBalanceChainCacheEntity,
+    SignedOrderV4Entity,
+    PersistentSignedOrderV4Entity,
+    RfqmQuoteEntity,
+    RfqmJobEntity,
+    RfqmTransactionSubmissionEntity,
 ];
 
 const config: ConnectionOptions = {
@@ -32,9 +42,12 @@ const config: ConnectionOptions = {
         ? {
               replication: {
                   master: { url: POSTGRES_URI },
-                  slaves: POSTGRES_READ_REPLICA_URIS.map(r => ({ url: r })),
+                  slaves: POSTGRES_READ_REPLICA_URIS.map((r) => ({ url: r })),
               },
           }
         : { url: POSTGRES_URI }),
+    cli: {
+        migrationsDir: 'migrations',
+    },
 };
 module.exports = config;
