@@ -27,8 +27,8 @@ import {
 } from '../utils/rfqm_db_utils';
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
-const TRANSACTION_WATCHER_SLEEP_TIME_MS = 15000;
 export const BLOCK_FINALITY_THRESHOLD = 3;
+const TRANSACTION_WATCHER_SLEEP_TIME_MS = 15000;
 const MIN_GAS_PRICE_INCREASE = 0.1;
 
 export enum RfqmTypes {
@@ -760,7 +760,9 @@ export class RfqmService {
             if (!isTxMined) {
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
-                if (newGasPrice.gt(gasPrice.multipliedBy(MIN_GAS_PRICE_INCREASE + 1))) {
+                // Geth only allows replacement of transactions if the replacement gas price
+                // is at least 10% higher than the gas price of the  transaction being replaced
+                if (newGasPrice.gte(gasPrice.multipliedBy(MIN_GAS_PRICE_INCREASE + 1))) {
                     gasPrice = newGasPrice;
                     const submission = await this._submitTransactionAsync(
                         orderHash,
