@@ -1,24 +1,17 @@
-import { schemas } from '@0x/json-schemas';
-import { assetDataUtils, SignedOrder } from '@0x/order-utils';
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
-import { FEE_RECIPIENT_ADDRESS, WHITELISTED_TOKENS } from '../config';
-import { SRA_DOCS_URL } from '../constants';
-import {
-    GeneralErrorCodes,
-    generalErrorCodeToReason,
-    NotFoundError,
-    ValidationError,
-    ValidationErrorCodes,
-} from '../errors';
-import { schemas as apiSchemas } from '../schemas/schemas';
+import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
+import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
+import { SignedOrderV4Entity } from '../entities';
+import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
+import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
+import { OrderConfigResponse, SignedLimitOrder } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
-import { parseUtils } from '../utils/parse_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
 export class SRAHandlers {
@@ -35,25 +28,16 @@ export class SRAHandlers {
         res.status(HttpStatus.OK).send(paginatedFeeRecipients);
     }
     public static orderConfig(req: express.Request, res: express.Response): void {
-        schemaUtils.validateSchema(req.body, schemas.orderConfigRequestSchema);
-        const orderConfigResponse = orderUtils.getOrderConfig(req.body);
+        schemaUtils.validateSchema(req.body, schemas.sraOrderConfigPayloadSchema);
+        const orderConfigResponse: OrderConfigResponse = {
+            sender: NULL_ADDRESS,
+            feeRecipient: FEE_RECIPIENT_ADDRESS.toLowerCase(),
+            takerTokenFeeAmount: TAKER_FEE_UNIT_AMOUNT,
+        };
         res.status(HttpStatus.OK).send(orderConfigResponse);
     }
     constructor(orderBook: OrderBookService) {
         this._orderBook = orderBook;
-    }
-    public async assetPairsAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.query, schemas.assetPairsRequestOptsSchema);
-        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const assetDataA = req.query.assetDataA as string;
-        const assetDataB = req.query.assetDataB as string;
-        const assetPairs = await this._orderBook.getAssetPairsAsync(
-            page,
-            perPage,
-            assetDataA && assetDataA.toLowerCase(),
-            assetDataB && assetDataB.toLowerCase(),
-        );
-        res.status(HttpStatus.OK).send(assetPairs);
     }
     public async getOrderByHashAsync(req: express.Request, res: express.Response): Promise<void> {
         const orderIfExists = await this._orderBook.getOrderByHashIfExistsAsync(req.params.orderHash);
@@ -64,118 +48,130 @@ export class SRAHandlers {
         }
     }
     public async ordersAsync(req: express.Request, res: express.Response): Promise<void> {
-        // Parse the maker asset data, allowing for a comma separated list
-        const query = {
-            ...req.query,
-            makerAssetData: req.query.makerAssetData
-                ? parseUtils.parseAssetDatasStringFromQueryParam(req.query.makerAssetData as string)
-                : undefined,
-            takerAssetData: req.query.takerAssetData
-                ? parseUtils.parseAssetDatasStringFromQueryParam(req.query.takerAssetData as string)
-                : undefined,
-        } as any;
-        schemaUtils.validateSchema(query, apiSchemas.sraGetOrdersRequestSchema);
-        const isUnfillable = query.unfillable ? query.unfillable === 'true' : false;
+        schemaUtils.validateSchema(req.query, schemas.sraOrdersQuerySchema);
+        const orderFieldFilters = new SignedOrderV4Entity(req.query);
+        const additionalFilters = {
+            trader: req.query.trader ? req.query.trader.toString() : undefined,
+            isUnfillable: req.query.unfillable ? req.query.unfillable === 'true' : false,
+        };
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const paginatedOrders = await this._orderBook.getOrdersAsync(page, perPage, { ...query, isUnfillable });
+        const paginatedOrders = await this._orderBook.getOrdersAsync(
+            page,
+            perPage,
+            orderFieldFilters,
+            additionalFilters,
+        );
         res.status(HttpStatus.OK).send(paginatedOrders);
     }
     public async orderbookAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.query, schemas.orderBookRequestSchema);
+        schemaUtils.validateSchema(req.query, schemas.sraOrderbookQuerySchema);
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const baseAssetData = (req.query.baseAssetData as string).toLowerCase();
-        const quoteAssetData = (req.query.quoteAssetData as string).toLowerCase();
-        const orderbookResponse = await this._orderBook.getOrderBookAsync(page, perPage, baseAssetData, quoteAssetData);
+        const baseToken = (req.query.baseToken as string).toLowerCase();
+        const quoteToken = (req.query.quoteToken as string).toLowerCase();
+        const orderbookResponse = await this._orderBook.getOrderBookAsync(page, perPage, baseToken, quoteToken);
         res.status(HttpStatus.OK).send(orderbookResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, apiSchemas.sraPostOrderRequestSchema);
+        const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
+        schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.makerAssetData, 'makerAssetData');
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.takerAssetData, 'takerAssetData');
+            validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
+            validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
         }
-        const pinResult = await this._orderBook.splitOrdersByPinningAsync([signedOrder]);
+        if (shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
+        const pinResult = await orderUtils.splitOrdersByPinningAsync([signedOrder]);
         const isPinned = pinResult.pin.length === 1;
         await this._orderBook.addOrderAsync(signedOrder, isPinned);
-        res.status(HttpStatus.OK).send();
+        if (!shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
     }
     public async postOrdersAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, schemas.signedOrdersSchema);
+        const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
+        schemaUtils.validateSchema(req.body, schemas.sraPostOrdersPayloadSchema);
         const signedOrders = unmarshallOrders(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;
             for (const signedOrder of signedOrders) {
-                validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.makerAssetData, 'makerAssetData');
-                validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.takerAssetData, 'takerAssetData');
+                validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
+                validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
             }
         }
-        const pinResult = await this._orderBook.splitOrdersByPinningAsync(signedOrders);
+        if (shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
+        const pinResult = await orderUtils.splitOrdersByPinningAsync(signedOrders);
         await Promise.all([
             this._orderBook.addOrdersAsync(pinResult.pin, true),
             this._orderBook.addOrdersAsync(pinResult.doNotPin, false),
         ]);
-        res.status(HttpStatus.OK).send();
+        if (!shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
     }
 
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
+        const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         const apiKey = req.header('0x-api-key');
         if (apiKey === undefined || !isValidUUID(apiKey) || !OrderBookService.isAllowedPersistentOrders(apiKey)) {
-            res.status(HttpStatus.BAD_REQUEST).send({
-                code: GeneralErrorCodes.InvalidAPIKey,
-                reason: generalErrorCodeToReason[GeneralErrorCodes.InvalidAPIKey],
-            });
-            return;
+            throw new InvalidAPIKeyError();
         }
-        schemaUtils.validateSchema(req.body, apiSchemas.sraPostOrderRequestSchema);
+        schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.makerAssetData, 'makerAssetData');
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, signedOrder.takerAssetData, 'takerAssetData');
+            validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
+            validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
+        }
+        if (shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
         }
         await this._orderBook.addPersistentOrdersAsync([signedOrder], false);
-        res.status(HttpStatus.OK).send();
+        if (!shouldSkipConfirmation) {
+            res.status(HttpStatus.OK).send();
+        }
     }
 }
 
-function validateAssetDataIsWhitelistedOrThrow(allowedTokens: string[], assetData: string, field: string): void {
-    const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(assetData);
-    if (orderUtils.isMultiAssetData(decodedAssetData)) {
-        for (const [, nestedAssetDataElement] of decodedAssetData.nestedAssetData.entries()) {
-            validateAssetDataIsWhitelistedOrThrow(allowedTokens, nestedAssetDataElement, field);
-        }
-    } else if (orderUtils.isTokenAssetData(decodedAssetData)) {
-        if (!allowedTokens.includes(decodedAssetData.tokenAddress)) {
-            throw new ValidationError([
-                {
-                    field,
-                    code: ValidationErrorCodes.ValueOutOfRange,
-                    reason: `${decodedAssetData.tokenAddress} not supported`,
-                },
-            ]);
-        }
+function validateAssetTokenOrThrow(allowedTokens: string[], tokenAddress: string, field: string): void {
+    if (!allowedTokens.includes(tokenAddress)) {
+        throw new ValidationError([
+            {
+                field,
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: `${tokenAddress} not supported`,
+            },
+        ]);
     }
 }
 
 // As the order come in as JSON they need to be turned into the correct types such as BigNumber
-function unmarshallOrder(signedOrderRaw: any): SignedOrder {
-    const signedOrder = {
+function unmarshallOrder(signedOrderRaw: any): SignedLimitOrder {
+    const signedOrder: SignedLimitOrder = {
+        // Defaults...
+        taker: NULL_ADDRESS,
+        feeRecipient: NULL_ADDRESS,
+        pool: '0x0000000000000000000000000000000000000000000000000000000000000000',
         ...signedOrderRaw,
+        sender: NULL_ADDRESS, // NOTE: Mesh currently only supports orders with sender 0x000...
+        takerTokenFeeAmount: signedOrderRaw.takerTokenFeeAmount
+            ? new BigNumber(signedOrderRaw.takerTokenFeeAmount)
+            : ZERO,
+        makerAmount: new BigNumber(signedOrderRaw.makerAmount),
+        takerAmount: new BigNumber(signedOrderRaw.takerAmount),
+        expiry: new BigNumber(signedOrderRaw.expiry),
         salt: new BigNumber(signedOrderRaw.salt),
-        makerAssetAmount: new BigNumber(signedOrderRaw.makerAssetAmount),
-        takerAssetAmount: new BigNumber(signedOrderRaw.takerAssetAmount),
-        makerFee: new BigNumber(signedOrderRaw.makerFee),
-        takerFee: new BigNumber(signedOrderRaw.takerFee),
-        expirationTimeSeconds: new BigNumber(signedOrderRaw.expirationTimeSeconds),
     };
     return signedOrder;
 }
 
 // As the orders come in as JSON they need to be turned into the correct types such as BigNumber
-function unmarshallOrders(signedOrdersRaw: any[]): SignedOrder[] {
-    return signedOrdersRaw.map(signedOrderRaw => {
+function unmarshallOrders(signedOrdersRaw: any[]): SignedLimitOrder[] {
+    return signedOrdersRaw.map((signedOrderRaw) => {
         return unmarshallOrder(signedOrderRaw);
     });
 }

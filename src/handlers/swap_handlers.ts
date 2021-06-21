@@ -1,5 +1,14 @@
 // tslint:disable:max-file-line-count
-import { RfqtRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { isAPIError, isRevertError } from '@0x/api-utils';
+import { ERC20BridgeSource, RfqRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
+import { NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
+import {
+    findTokenAddressOrThrow,
+    getTokenMetadataIfExists,
+    isNativeSymbolOrAddress,
+    isNativeWrappedSymbolOrAddress,
+    TokenMetadatasForChains,
+} from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
@@ -7,7 +16,14 @@ import * as HttpStatus from 'http-status-codes';
 import _ = require('lodash');
 import { Counter } from 'prom-client';
 
-import { CHAIN_ID, PLP_API_KEY_WHITELIST, RFQT_API_KEY_WHITELIST, RFQT_REGISTRY_PASSWORDS } from '../config';
+import {
+    CHAIN_ID,
+    MATCHA_KEY,
+    NATIVE_WRAPPED_TOKEN_SYMBOL,
+    PLP_API_KEY_WHITELIST,
+    RFQT_API_KEY_WHITELIST,
+    RFQT_REGISTRY_PASSWORDS,
+} from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
@@ -21,30 +37,16 @@ import {
     ValidationErrorCodes,
     ValidationErrorReasons,
 } from '../errors';
-import { logger } from '../logger';
-import { isAPIError, isRevertError } from '../middleware/error_handling';
-import { schemas } from '../schemas/schemas';
+import { schemas } from '../schemas';
 import { SwapService } from '../services/swap_service';
-import { TokenMetadatasForChains } from '../token_metadatas_for_networks';
-import {
-    CalculateSwapQuoteParams,
-    GetSwapPriceResponse,
-    GetSwapQuoteRequestParams,
-    GetSwapQuoteResponse,
-} from '../types';
+import { GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
+import { findTokenAddressOrThrowApiError } from '../utils/address_utils';
+import { paginationUtils } from '../utils/pagination_utils';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
+import { quoteReportUtils } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
-import {
-    findTokenAddressOrThrow,
-    findTokenAddressOrThrowApiError,
-    getTokenMetadataIfExists,
-    isETHSymbolOrAddress,
-    isWETHSymbolOrAddress,
-} from '../utils/token_metadata_utils';
-
-import { quoteReportUtils } from './../utils/quote_report_utils';
 
 const BEARER_REGEX = /^Bearer\s(.{36})$/;
 const REGISTRY_SET: Set<string> = new Set(RFQT_REGISTRY_PASSWORDS);
@@ -56,12 +58,23 @@ const REGISTRY_ENDPOINT_FETCHED = new Counter({
 
 export class SwapHandlers {
     private readonly _swapService: SwapService;
-    public static rootAsync(_req: express.Request, res: express.Response): void {
+    public static root(_req: express.Request, res: express.Response): void {
         const message = `This is the root of the Swap API. Visit ${SWAP_DOCS_URL} for details about this API.`;
         res.status(HttpStatus.OK).send({ message });
     }
+    // tslint:disable-next-line:prefer-function-over-method
+    public static getTokens(_req: express.Request, res: express.Response): void {
+        const tokens = TokenMetadatasForChains.map((tm) => ({
+            symbol: tm.symbol,
+            address: tm.tokenAddresses[CHAIN_ID],
+            name: tm.name,
+            decimals: tm.decimals,
+        }));
+        const filteredTokens = tokens.filter((t) => t.address !== NULL_ADDRESS);
+        res.status(HttpStatus.OK).send({ records: filteredTokens });
+    }
 
-    public static async getRfqRegistryAsync(req: express.Request, res: express.Response): Promise<void> {
+    public static getRfqRegistry(req: express.Request, res: express.Response): void {
         const auth = req.header('Authorization');
         REGISTRY_ENDPOINT_FETCHED.labels(auth || 'N/A').inc();
         if (auth === undefined) {
@@ -75,19 +88,36 @@ export class SwapHandlers {
         if (!REGISTRY_SET.has(authToken)) {
             return res.status(HttpStatus.UNAUTHORIZED).end();
         }
-        res.status(HttpStatus.OK)
-            .send(RFQT_API_KEY_WHITELIST)
-            .end();
+        res.status(HttpStatus.OK).send(RFQT_API_KEY_WHITELIST).end();
     }
+
     constructor(swapService: SwapService) {
         this._swapService = swapService;
     }
 
-    public async getSwapQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        const params = parseGetSwapQuoteRequestParams(req, 'quote');
-        const quote = await this._calculateSwapQuoteAsync(params);
+    public async getTokenPricesAsync(req: express.Request, res: express.Response): Promise<void> {
+        const symbolOrAddress = (req.query.sellToken as string) || 'WETH';
+        const baseAsset = getTokenMetadataIfExists(symbolOrAddress, CHAIN_ID);
+        if (!baseAsset) {
+            throw new ValidationError([
+                {
+                    field: 'sellToken',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: `Could not find token ${symbolOrAddress}`,
+                },
+            ]);
+        }
+        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+        const unitAmount = new BigNumber(1);
+        const tokenPrices = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount, page, perPage);
+        res.status(HttpStatus.OK).send(tokenPrices);
+    }
+
+    public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
+        const params = parseSwapQuoteRequestParams(req, 'quote');
+        const quote = await this._getSwapQuoteAsync(params, req);
         if (params.rfqt !== undefined) {
-            logger.info({
+            req.log.info({
                 firmQuoteServed: {
                     taker: params.takerAddress,
                     apiKey: params.apiKey,
@@ -95,46 +125,47 @@ export class SwapHandlers {
                     sellToken: params.sellToken,
                     buyAmount: params.buyAmount,
                     sellAmount: params.sellAmount,
-                    makers: quote.orders.map(order => order.makerAddress),
+                    // makers: quote.orders.map(order => order.makerAddress),
                 },
             });
             if (quote.quoteReport && params.rfqt && params.rfqt.intentOnFilling) {
-                quoteReportUtils.logQuoteReport({
-                    quoteReport: quote.quoteReport,
-                    submissionBy: 'taker',
-                    decodedUniqueId: quote.decodedUniqueId,
-                    buyTokenAddress: quote.buyTokenAddress,
-                    sellTokenAddress: quote.sellTokenAddress,
-                    buyAmount: params.buyAmount,
-                    sellAmount: params.sellAmount,
-                });
+                quoteReportUtils.logQuoteReport(
+                    {
+                        quoteReport: quote.quoteReport,
+                        submissionBy: 'taker',
+                        decodedUniqueId: quote.decodedUniqueId,
+                        buyTokenAddress: quote.buyTokenAddress,
+                        sellTokenAddress: quote.sellTokenAddress,
+                        buyAmount: params.buyAmount,
+                        sellAmount: params.sellAmount,
+                        apiKey: params.apiKey,
+                    },
+                    req.log,
+                );
             }
         }
-        const response = _.omit(quote, 'quoteReport', 'decodedUniqueId');
-        const { quoteReport } = quote;
-        if (params.includePriceComparisons && quoteReport) {
+        const response = _.omit(
+            {
+                ...quote,
+                orders: quote.orders.map((o: any) => _.omit(o, 'fills')),
+            },
+            'quoteReport',
+            'priceComparisonsReport',
+            'decodedUniqueId',
+        );
+        if (params.includePriceComparisons && quote.priceComparisonsReport) {
             const side = params.sellAmount ? MarketOperation.Sell : MarketOperation.Buy;
             const priceComparisons = priceComparisonUtils.getPriceComparisonFromQuote(CHAIN_ID, side, quote);
-            response.priceComparisons = priceComparisons?.map(sc => priceComparisonUtils.renameNative(sc));
+            response.priceComparisons = priceComparisons?.map((sc) => priceComparisonUtils.renameNative(sc));
         }
         res.status(HttpStatus.OK).send(response);
     }
+
     // tslint:disable-next-line:prefer-function-over-method
-    public async getSwapTokensAsync(_req: express.Request, res: express.Response): Promise<void> {
-        const tokens = TokenMetadatasForChains.map(tm => ({
-            symbol: tm.symbol,
-            address: tm.tokenAddresses[CHAIN_ID],
-            name: tm.name,
-            decimals: tm.decimals,
-        }));
-        const filteredTokens = tokens.filter(t => t.address !== NULL_ADDRESS);
-        res.status(HttpStatus.OK).send({ records: filteredTokens });
-    }
-    // tslint:disable-next-line:prefer-function-over-method
-    public async getSwapPriceAsync(req: express.Request, res: express.Response): Promise<void> {
-        const params = parseGetSwapQuoteRequestParams(req, 'price');
-        const quote = await this._calculateSwapQuoteAsync({ ...params, skipValidation: true });
-        logger.info({
+    public async getQuotePriceAsync(req: express.Request, res: express.Response): Promise<void> {
+        const params = parseSwapQuoteRequestParams(req, 'price');
+        const quote = await this._getSwapQuoteAsync({ ...params, skipValidation: true }, req);
+        req.log.info({
             indicativeQuoteServed: {
                 taker: params.takerAddress,
                 apiKey: params.apiKey,
@@ -142,7 +173,7 @@ export class SwapHandlers {
                 sellToken: params.sellToken,
                 buyAmount: params.buyAmount,
                 sellAmount: params.sellAmount,
-                makers: quote.orders.map(o => o.makerAddress),
+                // makers: quote.orders.map(o => o.makerAddress),
             },
         });
 
@@ -164,40 +195,23 @@ export class SwapHandlers {
             'sellTokenToEthRate',
             'buyTokenToEthRate',
         );
-        const { quoteReport } = quote;
-        if (params.includePriceComparisons && quoteReport) {
+
+        if (params.includePriceComparisons && quote.priceComparisonsReport) {
             const marketSide = params.sellAmount ? MarketOperation.Sell : MarketOperation.Buy;
             response.priceComparisons = priceComparisonUtils
                 .getPriceComparisonFromQuote(CHAIN_ID, marketSide, quote)
-                ?.map(sc => priceComparisonUtils.renameNative(sc));
+                ?.map((sc) => priceComparisonUtils.renameNative(sc));
         }
-        res.status(HttpStatus.OK).send(quote);
-    }
-    // tslint:disable-next-line:prefer-function-over-method
-    public async getTokenPricesAsync(req: express.Request, res: express.Response): Promise<void> {
-        const symbolOrAddress = (req.query.sellToken as string) || 'WETH';
-        const baseAsset = getTokenMetadataIfExists(symbolOrAddress, CHAIN_ID);
-        if (!baseAsset) {
-            throw new ValidationError([
-                {
-                    field: 'sellToken',
-                    code: ValidationErrorCodes.ValueOutOfRange,
-                    reason: `Could not find token ${symbolOrAddress}`,
-                },
-            ]);
-        }
-        const unitAmount = new BigNumber(1);
-        const records = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount);
-        res.status(HttpStatus.OK).send({ records });
+        res.status(HttpStatus.OK).send(response);
     }
 
     public async getMarketDepthAsync(req: express.Request, res: express.Response): Promise<void> {
         // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-        const buyTokenSymbolOrAddress = isETHSymbolOrAddress(req.query.buyToken as string)
-            ? 'WETH'
+        const buyTokenSymbolOrAddress = isNativeSymbolOrAddress(req.query.buyToken as string, CHAIN_ID)
+            ? NATIVE_WRAPPED_TOKEN_SYMBOL
             : (req.query.buyToken as string);
-        const sellTokenSymbolOrAddress = isETHSymbolOrAddress(req.query.sellToken as string)
-            ? 'WETH'
+        const sellTokenSymbolOrAddress = isNativeSymbolOrAddress(req.query.sellToken as string, CHAIN_ID)
+            ? NATIVE_WRAPPED_TOKEN_SYMBOL
             : (req.query.sellToken as string);
 
         if (buyTokenSymbolOrAddress === sellTokenSymbolOrAddress) {
@@ -230,84 +244,15 @@ export class SwapHandlers {
         res.status(HttpStatus.OK).send(response);
     }
 
-    private async _calculateSwapQuoteAsync(params: GetSwapQuoteRequestParams): Promise<GetSwapQuoteResponse> {
-        const {
-            sellToken,
-            buyToken,
-            sellAmount,
-            buyAmount,
-            takerAddress,
-            slippagePercentage,
-            gasPrice,
-            excludedSources,
-            includedSources,
-            affiliateAddress,
-            rfqt,
-            // tslint:disable-next-line:boolean-naming
-            skipValidation,
-            apiKey,
-            affiliateFee,
-            // tslint:disable-next-line:boolean-naming
-            includePriceComparisons,
-            shouldSellEntireBalance,
-        } = params;
-
-        const isETHSell = isETHSymbolOrAddress(sellToken);
-        const isETHBuy = isETHSymbolOrAddress(buyToken);
-        // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-        const sellTokenAddress = findTokenAddressOrThrowApiError(isETHSell ? 'WETH' : sellToken, 'sellToken', CHAIN_ID);
-        const buyTokenAddress = findTokenAddressOrThrowApiError(isETHBuy ? 'WETH' : buyToken, 'buyToken', CHAIN_ID);
-        const isWrap = isETHSell && isWETHSymbolOrAddress(buyToken, CHAIN_ID);
-        const isUnwrap = isWETHSymbolOrAddress(sellToken, CHAIN_ID) && isETHBuy;
-        // if token addresses are the same but a unwrap or wrap operation is requested, ignore error
-        if (!isUnwrap && !isWrap && sellTokenAddress === buyTokenAddress) {
-            throw new ValidationError(
-                ['buyToken', 'sellToken'].map(field => {
-                    return {
-                        field,
-                        code: ValidationErrorCodes.RequiredField,
-                        reason: 'buyToken and sellToken must be different',
-                    };
-                }),
-            );
-        }
-
-        const calculateSwapQuoteParams: CalculateSwapQuoteParams = {
-            buyTokenAddress,
-            sellTokenAddress,
-            buyAmount,
-            sellAmount,
-            from: takerAddress,
-            isETHSell,
-            isETHBuy,
-            slippagePercentage,
-            gasPrice,
-            excludedSources,
-            includedSources,
-            affiliateAddress,
-            apiKey,
-            rfqt:
-                rfqt === undefined
-                    ? undefined
-                    : {
-                          intentOnFilling: rfqt.intentOnFilling,
-                          isIndicative: rfqt.isIndicative,
-                          nativeExclusivelyRFQT: rfqt.nativeExclusivelyRFQT,
-                      },
-            skipValidation,
-            affiliateFee,
-            isMetaTransaction: false,
-            includePriceComparisons,
-            shouldSellEntireBalance,
-        };
+    private async _getSwapQuoteAsync(params: GetSwapQuoteParams, req: express.Request): Promise<GetSwapQuoteResponse> {
         try {
             let swapQuote: GetSwapQuoteResponse;
-            if (isUnwrap) {
-                swapQuote = await this._swapService.getSwapQuoteForUnwrapAsync(calculateSwapQuoteParams);
-            } else if (isWrap) {
-                swapQuote = await this._swapService.getSwapQuoteForWrapAsync(calculateSwapQuoteParams);
+            if (params.isUnwrap) {
+                swapQuote = await this._swapService.getSwapQuoteForUnwrapAsync(params);
+            } else if (params.isWrap) {
+                swapQuote = await this._swapService.getSwapQuoteForWrapAsync(params);
             } else {
-                swapQuote = await this._swapService.calculateSwapQuoteAsync(calculateSwapQuoteParams);
+                swapQuote = await this._swapService.calculateSwapQuoteAsync(params);
             }
             return swapQuote;
         } catch (e) {
@@ -327,7 +272,7 @@ export class SwapHandlers {
             ) {
                 throw new ValidationError([
                     {
-                        field: buyAmount ? 'buyAmount' : 'sellAmount',
+                        field: params.sellAmount ? 'sellAmount' : 'buyAmount',
                         code: ValidationErrorCodes.ValueOutOfRange,
                         reason: SwapQuoterError.InsufficientAssetLiquidity,
                     },
@@ -342,26 +287,84 @@ export class SwapHandlers {
                     },
                 ]);
             }
-            logger.info('Uncaught error', e.message, e.stack);
+            req.log.info('Uncaught error', e.message, e.stack);
             throw new InternalServerError(e.message);
         }
     }
 }
 
-const parseGetSwapQuoteRequestParams = (
-    req: express.Request,
-    endpoint: 'price' | 'quote',
-): GetSwapQuoteRequestParams => {
+const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | 'quote'): GetSwapQuoteParams => {
     // HACK typescript typing does not allow this valid json-schema
     schemaUtils.validateSchema(req.query, schemas.swapQuoteRequestSchema as any);
-    const takerAddress = req.query.takerAddress as string;
-    const sellToken = req.query.sellToken as string;
-    const buyToken = req.query.buyToken as string;
+    const apiKey: string | undefined = req.header('0x-api-key');
+
+    // Parse string params
+    const { takerAddress, affiliateAddress } = req.query;
+
+    // Parse boolean params and defaults
+    // tslint:disable:boolean-naming
+    let skipValidation: boolean;
+    skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
+    if (endpoint === 'quote' && apiKey !== undefined && apiKey === MATCHA_KEY) {
+        skipValidation = false;
+    }
+    const includePriceComparisons = req.query.includePriceComparisons === 'true' ? true : false;
+    // Whether the entire callers balance should be sold, used for contracts where the
+    // amount available is non-deterministic
+    const shouldSellEntireBalance = req.query.shouldSellEntireBalance === 'true' ? true : false;
+    // tslint:enable:boolean-naming
+
+    // Parse tokens and eth wrap/unwraps
+    const sellTokenRaw = req.query.sellToken as string;
+    const buyTokenRaw = req.query.buyToken as string;
+    const isNativeSell = isNativeSymbolOrAddress(sellTokenRaw, CHAIN_ID);
+    const isNativeBuy = isNativeSymbolOrAddress(buyTokenRaw, CHAIN_ID);
+    // NOTE: Internally all Native token (like ETH) trades are for their wrapped equivalent (ie WETH), we just wrap/unwrap automatically
+    const sellToken = findTokenAddressOrThrowApiError(
+        isNativeSell ? NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID] : sellTokenRaw,
+        'sellToken',
+        CHAIN_ID,
+    ).toLowerCase();
+    const buyToken = findTokenAddressOrThrowApiError(
+        isNativeBuy ? NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID] : buyTokenRaw,
+        'buyToken',
+        CHAIN_ID,
+    ).toLowerCase();
+    const isWrap = isNativeSell && isNativeWrappedSymbolOrAddress(buyToken, CHAIN_ID);
+    const isUnwrap = isNativeWrappedSymbolOrAddress(sellToken, CHAIN_ID) && isNativeBuy;
+    // if token addresses are the same but a unwrap or wrap operation is requested, ignore error
+    if (!isUnwrap && !isWrap && sellToken === buyToken) {
+        throw new ValidationError(
+            ['buyToken', 'sellToken'].map((field) => {
+                return {
+                    field,
+                    code: ValidationErrorCodes.RequiredField,
+                    reason: 'buyToken and sellToken must be different',
+                };
+            }),
+        );
+    }
+
+    if (sellToken === NULL_ADDRESS || buyToken === NULL_ADDRESS) {
+        throw new ValidationError(
+            ['buyToken', 'sellToken'].map((field) => {
+                return {
+                    field,
+                    code: ValidationErrorCodes.FieldInvalid,
+                    reason: 'Invalid token combination',
+                };
+            }),
+        );
+    }
+
+    // Parse number params
     const sellAmount = req.query.sellAmount === undefined ? undefined : new BigNumber(req.query.sellAmount as string);
     const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount as string);
     const gasPrice = req.query.gasPrice === undefined ? undefined : new BigNumber(req.query.gasPrice as string);
     const slippagePercentage =
-        Number.parseFloat(req.query.slippagePercentage as string) || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE;
+        req.query.slippagePercentage === undefined
+            ? DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE
+            : Number.parseFloat(req.query.slippagePercentage as string);
     if (slippagePercentage > 1) {
         throw new ValidationError([
             {
@@ -372,47 +375,14 @@ const parseGetSwapQuoteRequestParams = (
         ]);
     }
 
-    const feeRecipient = req.query.feeRecipient as string;
-    const sellTokenPercentageFee = Number.parseFloat(req.query.sellTokenPercentageFee as string) || 0;
-    const buyTokenPercentageFee = Number.parseFloat(req.query.buyTokenPercentageFee as string) || 0;
-    if (sellTokenPercentageFee > 0) {
-        throw new ValidationError([
-            {
-                field: 'sellTokenPercentageFee',
-                code: ValidationErrorCodes.UnsupportedOption,
-                reason: ValidationErrorReasons.ArgumentNotYetSupported,
-            },
-        ]);
-    }
-    if (buyTokenPercentageFee > 1) {
-        throw new ValidationError([
-            {
-                field: 'buyTokenPercentageFee',
-                code: ValidationErrorCodes.ValueOutOfRange,
-                reason: ValidationErrorReasons.PercentageOutOfRange,
-            },
-        ]);
-    }
-    const affiliateFee = feeRecipient
-        ? {
-              recipient: feeRecipient,
-              sellTokenPercentageFee,
-              buyTokenPercentageFee,
-          }
-        : {
-              recipient: NULL_ADDRESS,
-              sellTokenPercentageFee: 0,
-              buyTokenPercentageFee: 0,
-          };
-
-    const apiKey: string | undefined = req.header('0x-api-key');
+    // Parse sources
     // tslint:disable-next-line: boolean-naming
     const { excludedSources, includedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
         {
             excludedSources: req.query.excludedSources as string | undefined,
             includedSources: req.query.includedSources as string | undefined,
             intentOnFilling: req.query.intentOnFilling as string | undefined,
-            takerAddress,
+            takerAddress: takerAddress as string,
             apiKey,
         },
         RFQT_API_KEY_WHITELIST,
@@ -427,7 +397,19 @@ const parseGetSwapQuoteRequestParams = (
         PLP_API_KEY_WHITELIST,
     );
 
-    logger.info({
+    const isAllExcluded = Object.values(ERC20BridgeSource).every((s) => updatedExcludedSources.includes(s));
+    if (isAllExcluded) {
+        throw new ValidationError([
+            {
+                field: 'excludedSources',
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: 'Request excluded all sources',
+            },
+        ]);
+    }
+
+    // Log the request if it passes all validations
+    req.log.info({
         type: 'swapRequest',
         endpoint,
         updatedExcludedSources,
@@ -435,10 +417,7 @@ const parseGetSwapQuoteRequestParams = (
         apiKey: apiKey || 'N/A',
     });
 
-    const affiliateAddress = req.query.affiliateAddress as string | undefined;
-    const rfqt:
-        | Pick<RfqtRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQT'>
-        | undefined = (() => {
+    const rfqt: Pick<RfqRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQ'> | undefined = (() => {
         if (apiKey) {
             if (endpoint === 'quote' && takerAddress) {
                 return {
@@ -456,16 +435,11 @@ const parseGetSwapQuoteRequestParams = (
         }
         return undefined;
     })();
-    // tslint:disable-next-line:boolean-naming
-    const skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
 
-    // tslint:disable-next-line:boolean-naming
-    const includePriceComparisons = req.query.includePriceComparisons === 'true' ? true : false;
-    // Whether the entire callers balance should be sold, used for contracts where the
-    // amount available is non-deterministic
-    const shouldSellEntireBalance = req.query.shouldSellEntireBalance === 'true' ? true : false;
+    const affiliateFee = parseUtils.parseAffiliateFeeOptions(req);
+
     return {
-        takerAddress,
+        takerAddress: takerAddress as string,
         sellToken,
         buyToken,
         sellAmount,
@@ -474,12 +448,17 @@ const parseGetSwapQuoteRequestParams = (
         gasPrice,
         excludedSources: updatedExcludedSources,
         includedSources,
-        affiliateAddress,
+        affiliateAddress: affiliateAddress as string,
         rfqt,
         skipValidation,
         apiKey,
         affiliateFee,
         includePriceComparisons,
         shouldSellEntireBalance,
+        isMetaTransaction: false,
+        isETHSell: isNativeSell,
+        isETHBuy: isNativeBuy,
+        isUnwrap,
+        isWrap,
     };
 };
