@@ -29,6 +29,7 @@ import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 const TRANSACTION_WATCHER_SLEEP_TIME_MS = 15000;
 export const BLOCK_FINALITY_THRESHOLD = 3;
+const MIN_GAS_PRICE_INCREASE = 0.1;
 
 export enum RfqmTypes {
     MetaTransaction = 'metatransaction',
@@ -759,7 +760,7 @@ export class RfqmService {
             if (!isTxMined) {
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
-                if (gasPrice.lt(newGasPrice)) {
+                if (newGasPrice.gt(gasPrice.multipliedBy(MIN_GAS_PRICE_INCREASE + 1))) {
                     gasPrice = newGasPrice;
                     const submission = await this._submitTransactionAsync(
                         orderHash,
