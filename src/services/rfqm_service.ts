@@ -158,6 +158,25 @@ const PRICE_DECIMAL_PLACES = 6;
  * RfqmService is the coordination layer for HTTP based RFQM flows.
  */
 export class RfqmService {
+
+    public static shouldResubmitTransaction(
+        oldGasPrice: BigNumber,
+        newGasPrice: BigNumber,
+    ): boolean {
+        // Geth only allows replacement of transactions if the replacement gas price
+        // is at least 10% higher than the gas price of the  transaction being replaced
+        return newGasPrice.gte(oldGasPrice.multipliedBy(MIN_GAS_PRICE_INCREASE + 1));
+    }
+
+    public static isBlockConfirmed(
+        currentBlock: number,
+        receiptBlockNumber: number,
+    ): boolean {
+        // We specify a finality threshold of n blocks deep to have greater confidence
+        // in the transaction receipt
+        return currentBlock - receiptBlockNumber >= BLOCK_FINALITY_THRESHOLD;
+    }
+
     private static _getSellAmountGivenBuyAmountAndQuote(
         buyAmount: BigNumber,
         quotedTakerAmount: BigNumber,
@@ -760,9 +779,7 @@ export class RfqmService {
             if (!isTxMined) {
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
-                // Geth only allows replacement of transactions if the replacement gas price
-                // is at least 10% higher than the gas price of the  transaction being replaced
-                if (newGasPrice.gte(gasPrice.multipliedBy(MIN_GAS_PRICE_INCREASE + 1))) {
+                if (RfqmService.shouldResubmitTransaction(gasPrice, newGasPrice)) {
                     gasPrice = newGasPrice;
                     const submission = await this._submitTransactionAsync(
                         orderHash,
@@ -806,9 +823,8 @@ export class RfqmService {
             if (receipt.response !== undefined) {
                 isTxMined = true;
                 const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
-                if (currentBlock - receipt.response.blockNumber >= BLOCK_FINALITY_THRESHOLD) {
-                    isTxConfirmed = true;
-                }
+                isTxConfirmed = RfqmService.isBlockConfirmed(currentBlock, receipt.response.blockNumber);
+
                 // update all entities
                 // since the same nonce is being re-used, we expect only 1 defined receipt
                 for (const r of receipts) {
