@@ -158,20 +158,13 @@ const PRICE_DECIMAL_PLACES = 6;
  * RfqmService is the coordination layer for HTTP based RFQM flows.
  */
 export class RfqmService {
-
-    public static shouldResubmitTransaction(
-        oldGasPrice: BigNumber,
-        newGasPrice: BigNumber,
-    ): boolean {
+    public static shouldResubmitTransaction(oldGasPrice: BigNumber, newGasPrice: BigNumber): boolean {
         // Geth only allows replacement of transactions if the replacement gas price
         // is at least 10% higher than the gas price of the  transaction being replaced
         return newGasPrice.gte(oldGasPrice.multipliedBy(MIN_GAS_PRICE_INCREASE + 1));
     }
 
-    public static isBlockConfirmed(
-        currentBlock: number,
-        receiptBlockNumber: number,
-    ): boolean {
+    public static isBlockConfirmed(currentBlock: number, receiptBlockNumber: number): boolean {
         // We specify a finality threshold of n blocks deep to have greater confidence
         // in the transaction receipt
         return currentBlock - receiptBlockNumber >= BLOCK_FINALITY_THRESHOLD;
