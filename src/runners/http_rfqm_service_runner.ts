@@ -100,7 +100,7 @@ export async function buildRfqmServiceAsync(connection: Connection, asWorker: bo
     axiosInstance.defaults.raxConfig = {
         retry: 3, // Retry on 429, 500, etc.
         noResponseRetries: 0, // Do not retry on timeouts
-        instance: axiosInstance
+        instance: axiosInstance,
     };
     rax.attach(axiosInstance);
     const quoteRequestor = new QuoteRequestor(

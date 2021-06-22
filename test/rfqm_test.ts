@@ -1225,6 +1225,5 @@ describe(SUITE_NAME, () => {
 
             mockAxios.reset();
         });
-
     });
 });
