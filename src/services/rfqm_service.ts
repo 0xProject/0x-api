@@ -492,6 +492,7 @@ export class RfqmService {
         // check for outstanding jobs from the worker and resolve them
         const unresolvedJobs = await this._dbUtils.findUnresolvedJobsAsync(workerAddress);
         for (const job of unresolvedJobs) {
+            logger.info({ workerAddress, orderHash: job.orderHash }, `Unresolved job found, attempting to re-process`);
             await this.processRfqmJobAsync(job.orderHash, workerAddress);
         }
 
@@ -725,8 +726,8 @@ export class RfqmService {
                     lastLookResult: shouldProceed,
                 });
             }
-            // log if last look completed and was previously accepted
         } else {
+            // log if last look completed and was previously accepted
             logger.info({ workerAddress, orderHash }, 'last look previously accepted, skipping ahead to submission');
         }
 
@@ -762,8 +763,8 @@ export class RfqmService {
         // else initaliaze the submission context and send the first tx
         const submissionContext =
             previousSubmissions.length > 0
-                ? await this._recoverSubmissionsContextAsync(workerAddress, orderHash, callData, previousSubmissions)
-                : await this._initalizeSubmissionsContextAsync(workerAddress, orderHash, callData);
+                ? await this._recoverSubmissionContextAsync(workerAddress, orderHash, callData, previousSubmissions)
+                : await this._initializeSubmissionContextAsync(workerAddress, orderHash, callData);
 
         submissionsMap = submissionContext.submissionsMap;
         const nonce = submissionContext.nonce;
@@ -817,9 +818,9 @@ export class RfqmService {
     }
 
     /**
-     * recover context from a previous submission attempt
+     * Recover context from a previous submission attempt
      */
-    private async _recoverSubmissionsContextAsync(
+    private async _recoverSubmissionContextAsync(
         workerAddress: string,
         orderHash: string,
         callData: string,
@@ -829,8 +830,8 @@ export class RfqmService {
         const submissionsMap: SubmissionsMap = {};
 
         // setting values to override them
-        let nonce = -1;
-        let gasPrice = new BigNumber(0);
+        const nonce = previousSubmissions[0].nonce;
+        let gasPrice = previousSubmissions[0].gasPrice;
         for (const submission of previousSubmissions) {
             // make sure this order hasn't been submitted by another worker
             if (submission.from !== workerAddress) {
@@ -842,18 +843,15 @@ export class RfqmService {
             }
             submissionsMap[submission.transactionHash!] = submission;
 
-            if (nonce === -1) {
-                nonce = submission.nonce!;
-            } else {
-                if (submission.nonce! !== nonce) {
-                    logger.warn(
-                        { workerAddress, orderHash },
-                        `found submissions with a different nonce when recovering context`,
-                    );
-                    throw new Error(`found different nonces in tx submissions`);
-                }
+            if (submission.nonce! !== nonce) {
+                logger.warn(
+                    { workerAddress, orderHash },
+                    `found submissions with a different nonce when recovering context`,
+                );
+                throw new Error(`found different nonces in tx submissions`);
             }
-            if (submission.gasPrice!.gt(gasPrice)) {
+
+            if (submission.gasPrice!.gt(gasPrice!)) {
                 gasPrice = submission.gasPrice!;
             }
         }
@@ -861,8 +859,8 @@ export class RfqmService {
 
         return {
             submissionsMap,
-            nonce,
-            gasPrice,
+            nonce: nonce!,
+            gasPrice: gasPrice!,
             gasEstimate,
         };
     }
@@ -870,7 +868,7 @@ export class RfqmService {
     /**
      * Initialize submission context and send the first transaction
      */
-    private async _initalizeSubmissionsContextAsync(
+    private async _initializeSubmissionContextAsync(
         workerAddress: string,
         orderHash: string,
         callData: string,

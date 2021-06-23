@@ -1171,8 +1171,6 @@ describe(SUITE_NAME, () => {
             mockAxios.reset();
         });
         it('should sucessfully resolve when there is a retry after last look is accepted', async () => {
-            const mockAxios = new AxiosMockAdapter(axiosClient);
-            mockAxios.onPost(`${MARKET_MAKER_1}/submit`).replyOnce(HttpStatus.OK, mmResponse);
             // write a corresponding quote entity to validate against
             await connection.getRepository(RfqmQuoteEntity).insert(mockQuote);
 
@@ -1197,12 +1195,8 @@ describe(SUITE_NAME, () => {
 
             const submissions = await dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
             expect(submissions[0].status).to.eq(RfqmTransactionSubmissionStatus.SucceededConfirmed);
-
-            mockAxios.reset();
         });
-        it('should sucessfully resolve when there is a retry after submissions exist', async () => {
-            const mockAxios = new AxiosMockAdapter(axiosClient);
-            mockAxios.onPost(`${MARKET_MAKER_1}/submit`).replyOnce(HttpStatus.OK, mmResponse);
+        it('should successfully complete a job if previous submissions found', async () => {
             // write a corresponding quote entity to validate against
             await connection.getRepository(RfqmQuoteEntity).insert(mockQuote);
 
@@ -1228,8 +1222,6 @@ describe(SUITE_NAME, () => {
 
             const submissions = await dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
             expect(submissions[0].status).to.eq(RfqmTransactionSubmissionStatus.SucceededConfirmed);
-
-            mockAxios.reset();
         });
     });
 });
