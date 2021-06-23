@@ -1,5 +1,4 @@
-import { SchemaValidator } from '@0x/json-schemas';
-import type { ErrorObject as AjvValidationErrorObject } from 'ajv';
+import { AJV, SchemaValidator } from '@0x/json-schemas';
 
 import { ValidationError, ValidationErrorCodes, ValidationErrorItem } from '../errors';
 import { schemas } from '../schemas';
@@ -28,9 +27,7 @@ export const schemaUtils = {
     },
 };
 
-function schemaValidationErrorToValidationErrorItem(
-    schemaValidationErrorObject: AjvValidationErrorObject,
-): ValidationErrorItem {
+function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject: AJV.ErrorObject): ValidationErrorItem {
     if (
         [
             'type',
@@ -48,7 +45,7 @@ function schemaValidationErrorToValidationErrorItem(
         ].includes(schemaValidationErrorObject.keyword)
     ) {
         return {
-            field: schemaValidationErrorObject.propertyName || '',
+            field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.IncorrectFormat,
             reason: schemaValidationErrorObject.message || '',
         };
@@ -58,19 +55,19 @@ function schemaValidationErrorToValidationErrorItem(
         )
     ) {
         return {
-            field: schemaValidationErrorObject.propertyName || '',
+            field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.ValueOutOfRange,
             reason: schemaValidationErrorObject.message || '',
         };
     } else if (schemaValidationErrorObject.keyword === 'required') {
         return {
-            field: schemaValidationErrorObject.propertyName || '',
+            field: (schemaValidationErrorObject.params as AJV.RequiredParams).missingProperty,
             code: ValidationErrorCodes.RequiredField,
             reason: schemaValidationErrorObject.message || '',
         };
     } else if (schemaValidationErrorObject.keyword === 'not') {
         return {
-            field: schemaValidationErrorObject.propertyName || '',
+            field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.UnsupportedOption,
             reason: schemaValidationErrorObject.message || '',
         };
