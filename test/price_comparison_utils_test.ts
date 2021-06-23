@@ -66,6 +66,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(90e3),
                     savingsInEth: new BigNumber('-0.0046'),
+                    sellAmount,
+                    buyAmount,
                 },
 
                 // Kyber sample not found
@@ -74,6 +76,8 @@ describe(SUITE_NAME, () => {
                     price: null,
                     gas: null,
                     savingsInEth: null,
+                    sellAmount: ZERO,
+                    buyAmount: ZERO,
                 },
             ]);
         });
@@ -104,6 +108,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(90e3),
                     savingsInEth: new BigNumber('-0.0046'),
+                    sellAmount,
+                    buyAmount,
                 },
 
                 // Balancer sample not found
@@ -112,6 +118,8 @@ describe(SUITE_NAME, () => {
                     price: null,
                     gas: null,
                     savingsInEth: null,
+                    sellAmount: ZERO,
+                    buyAmount: ZERO,
                 },
             ]);
         });
@@ -152,6 +160,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(90e3),
                     savingsInEth: new BigNumber('-0.0046'),
+                    sellAmount,
+                    buyAmount,
                 },
 
                 // MStable placeholder instead of invalid 0 amount result
@@ -160,6 +170,8 @@ describe(SUITE_NAME, () => {
                     price: null,
                     gas: null,
                     savingsInEth: null,
+                    sellAmount: ZERO,
+                    buyAmount: ZERO,
                 },
             ]);
         });
@@ -196,6 +208,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(90e3),
                     savingsInEth: new BigNumber('-0.0046'),
+                    sellAmount,
+                    buyAmount,
                 },
 
                 // MStable placeholder instead of invalid 0 amount result
@@ -204,6 +218,8 @@ describe(SUITE_NAME, () => {
                     price: null,
                     gas: null,
                     savingsInEth: null,
+                    sellAmount: ZERO,
+                    buyAmount: ZERO,
                 },
             ]);
         });
@@ -245,6 +261,8 @@ describe(SUITE_NAME, () => {
                     price: higherPrice,
                     gas: new BigNumber(4.5e5),
                     savingsInEth: new BigNumber(0.0314),
+                    sellAmount,
+                    buyAmount: higherBuyAmount,
                 },
             ]);
         });
@@ -282,6 +300,8 @@ describe(SUITE_NAME, () => {
                     price: lowerSellPrice,
                     gas: new BigNumber(4.5e5),
                     savingsInEth: new BigNumber(0.0314),
+                    sellAmount: lowerSellAmount,
+                    buyAmount,
                 },
             ]);
         });
@@ -326,6 +346,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(90e3),
                     savingsInEth: new BigNumber('-0.0046'),
+                    sellAmount: usdcAmount,
+                    buyAmount: wethAmount,
                 },
             ]);
         });
@@ -366,6 +388,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(90e3),
                     savingsInEth: new BigNumber('-0.0046'),
+                    sellAmount: usdcAmount,
+                    buyAmount: wethAmount,
                 },
             ]);
         });
@@ -409,6 +433,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(90e3),
                     savingsInEth: new BigNumber('-0.0046'),
+                    sellAmount: usdcAmount,
+                    buyAmount: daiAmount,
                 },
             ]);
         });
@@ -457,6 +483,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(1.5e5),
                     savingsInEth: new BigNumber('0.0014'),
+                    buyAmount,
+                    sellAmount,
                 },
             ]);
         });
@@ -510,6 +538,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(1.5e5),
                     savingsInEth: new BigNumber('0.0014'),
+                    buyAmount,
+                    sellAmount,
                 },
             ]);
         });
@@ -553,6 +583,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(1.5e5),
                     savingsInEth: new BigNumber('0.0014'),
+                    buyAmount,
+                    sellAmount,
                 },
             ]);
         });
@@ -592,6 +624,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(1.5e5),
                     savingsInEth: new BigNumber('0.0014'),
+                    buyAmount,
+                    sellAmount,
                 },
             ]);
         });
@@ -636,6 +670,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(2e5),
                     savingsInEth: ZERO,
+                    buyAmount: buyAmount.plus(1e18),
+                    sellAmount,
                 },
             ]);
         });
@@ -676,6 +712,8 @@ describe(SUITE_NAME, () => {
                     price,
                     gas: new BigNumber(2e5),
                     savingsInEth: ZERO,
+                    buyAmount,
+                    sellAmount: sellAmount.minus(0.004e18),
                 },
             ]);
         });

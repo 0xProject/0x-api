@@ -45,6 +45,8 @@ const NULL_SOURCE_COMPARISONS = Object.values(ERC20BridgeSource).reduce<SourceCo
         price: null,
         gas: null,
         savingsInEth: null,
+        buyAmount: ZERO,
+        sellAmount: ZERO,
     });
 
     return memo;
@@ -182,6 +184,8 @@ function getPriceComparisonFromQuoteOrThrow(
         return {
             name: liquiditySource,
             price,
+            sellAmount: source.takerAmount,
+            buyAmount: source.makerAmount,
             gas,
             savingsInEth,
         };
