@@ -28,7 +28,6 @@ import {
 import { RfqBlockchainUtils } from '../utils/rfq_blockchain_utils';
 
 export const BLOCK_FINALITY_THRESHOLD = 3;
-const TRANSACTION_WATCHER_SLEEP_TIME_MS = 15000;
 const MIN_GAS_PRICE_INCREASE = 0.1;
 
 export enum RfqmTypes {
@@ -104,6 +103,13 @@ export interface SubmissionsMapStatus {
 
 export interface SubmissionsMap {
     [transactionHash: string]: RfqmTransactionSubmissionEntity;
+}
+
+export interface SubmissionContext {
+    submissionsMap: SubmissionsMap;
+    nonce: number;
+    gasEstimate: number;
+    gasPrice: BigNumber;
 }
 
 export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
@@ -236,6 +242,7 @@ export class RfqmService {
         private readonly _dbUtils: RfqmDbUtils,
         private readonly _sqsProducer: Producer,
         private readonly _quoteServerClient: QuoteServerClient,
+        private readonly _transactionWatcherSleepTimeMs: number,
     ) {}
 
     /**
@@ -509,6 +516,7 @@ export class RfqmService {
         switch (status) {
             case RfqmJobStatus.PendingEnqueued:
             case RfqmJobStatus.PendingProcessing:
+            case RfqmJobStatus.PendingLastLookAccepted:
                 return { status: 'pending', transactions: [] };
             case RfqmJobStatus.PendingSubmitted:
                 return {
@@ -670,6 +678,7 @@ export class RfqmService {
             });
         }
 
+        // if haven't performed lastLook yet
         if (job.lastLookResult === null) {
             // Validate w/Eth Call
             // verify the order is fillable before confirming with MM
@@ -705,14 +714,13 @@ export class RfqmService {
                 return;
             } else {
                 await this._dbUtils.updateRfqmJobAsync(orderHash, {
+                    status: RfqmJobStatus.PendingLastLookAccepted,
                     lastLookResult: shouldProceed,
                 });
             }
-        } else if (!job.lastLookResult) {
-            await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.FailedLastLookDeclined,
-            });
-            return;
+            // log if last look completed and was previously accepted
+        } else {
+            logger.info({ workerAddress, orderHash }, 'last look previously accepted, skipping ahead to submission');
         }
 
         // submit to chain
@@ -739,69 +747,28 @@ export class RfqmService {
         workerAddress: string,
         callData: string,
     ): Promise<SubmissionsMap> {
-        let submissionsMap: SubmissionsMap = {};
-
-        let gasPrice: BigNumber;
-        let gasEstimate: number;
-        let nonce: number;
+        let submissionsMap: SubmissionsMap;
 
         const previousSubmissions = await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
 
         // if there are previous tx submissions (repair mode), pick up monitoring and re-submission
-        if (previousSubmissions.length !== 0) {
-            // setting values to override them
-            nonce = -1;
-            gasPrice = new BigNumber(0);
-            for (const submission of previousSubmissions) {
-                gasPrice = new BigNumber(0);
-                // make sure this order hasn't been submitted by another worker
-                if (submission.from !== workerAddress) {
-                    throw new Error('found tx submissions from a different worker');
-                }
-                submissionsMap[submission.transactionHash!] = submission;
+        // else initaliaze the submission context and send the first tx
+        const submissionContext =
+            previousSubmissions.length > 0
+                ? await this._recoverSubmissionsContextAsync(workerAddress, orderHash, callData, previousSubmissions)
+                : await this._initalizeSubmissionsContextAsync(workerAddress, orderHash, callData);
 
-                if (nonce === -1) {
-                    nonce = submission.nonce!;
-                } else {
-                    if (submission.nonce! !== nonce) {
-                        throw new Error('found different nonces in tx submissions');
-                    }
-                }
-                if (submission.gasPrice!.gt(gasPrice)) {
-                    gasPrice = submission.gasPrice!;
-                }
-            }
-            gasEstimate = await this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress);
-            // if there are no previous submissions, send the first transaction
-        } else {
-            // claim this job for the worker, and set status to submitted
-            await this._dbUtils.updateRfqmJobAsync(orderHash, {
-                status: RfqmJobStatus.PendingSubmitted,
-                workerAddress,
-            });
-
-            [gasPrice, nonce, gasEstimate] = await Promise.all([
-                this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync(),
-                this._blockchainUtils.getNonceAsync(workerAddress),
-                this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress),
-            ]);
-            const firstSubmission = await this._submitTransactionAsync(
-                orderHash,
-                workerAddress,
-                callData,
-                gasPrice,
-                nonce,
-                gasEstimate,
-            );
-            submissionsMap[firstSubmission.transactionHash!] = firstSubmission;
-        }
+        submissionsMap = submissionContext.submissionsMap;
+        const nonce = submissionContext.nonce;
+        const gasEstimate = submissionContext.gasEstimate;
+        let gasPrice = submissionContext.gasPrice;
 
         const expectedTakerTokenFillAmount = this._blockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
 
         let isTxMined = false;
         let isTxConfirmed = false;
         while (!isTxConfirmed) {
-            await delay(TRANSACTION_WATCHER_SLEEP_TIME_MS);
+            await delay(this._transactionWatcherSleepTimeMs);
 
             const statusCheckResult = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
                 orderHash,
@@ -816,7 +783,17 @@ export class RfqmService {
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
                 if (RfqmService.shouldResubmitTransaction(gasPrice, newGasPrice)) {
+                    logger.info(
+                        {
+                            workerAddress,
+                            orderHash,
+                            oldGasPrice: gasPrice,
+                            newGasPrice,
+                        },
+                        're-submitting tx with higher gas price',
+                    );
                     gasPrice = newGasPrice;
+
                     const submission = await this._submitTransactionAsync(
                         orderHash,
                         workerAddress,
@@ -830,6 +807,95 @@ export class RfqmService {
             }
         }
         return submissionsMap;
+    }
+
+    /**
+     * recover context from a previous submission attempt
+     */
+    private async _recoverSubmissionsContextAsync(
+        workerAddress: string,
+        orderHash: string,
+        callData: string,
+        previousSubmissions: RfqmTransactionSubmissionEntity[],
+    ): Promise<SubmissionContext> {
+        logger.info({ workerAddress, orderHash }, `previous submissions found, recovering context`);
+        const submissionsMap: SubmissionsMap = {};
+
+        // setting values to override them
+        let nonce = -1;
+        let gasPrice = new BigNumber(0);
+        for (const submission of previousSubmissions) {
+            // make sure this order hasn't been submitted by another worker
+            if (submission.from !== workerAddress) {
+                logger.warn(
+                    { workerAddress, orderHash },
+                    `found submissions from a different worker when recovering context`,
+                );
+                throw new Error('found tx submissions from a different worker');
+            }
+            submissionsMap[submission.transactionHash!] = submission;
+
+            if (nonce === -1) {
+                nonce = submission.nonce!;
+            } else {
+                if (submission.nonce! !== nonce) {
+                    logger.warn(
+                        { workerAddress, orderHash },
+                        `found submissions with a different nonce when recovering context`,
+                    );
+                    throw new Error(`found different nonces in tx submissions`);
+                }
+            }
+            if (submission.gasPrice!.gt(gasPrice)) {
+                gasPrice = submission.gasPrice!;
+            }
+        }
+        const gasEstimate = await this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress);
+
+        return {
+            submissionsMap,
+            nonce,
+            gasPrice,
+            gasEstimate,
+        };
+    }
+
+    /**
+     * Initialize submission context and send the first transaction
+     */
+    private async _initalizeSubmissionsContextAsync(
+        workerAddress: string,
+        orderHash: string,
+        callData: string,
+    ): Promise<SubmissionContext> {
+        // claim this job for the worker, and set status to submitted
+        await this._dbUtils.updateRfqmJobAsync(orderHash, {
+            status: RfqmJobStatus.PendingSubmitted,
+            workerAddress,
+        });
+
+        const [gasPrice, nonce, gasEstimate] = await Promise.all([
+            this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync(),
+            this._blockchainUtils.getNonceAsync(workerAddress),
+            this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress),
+        ]);
+
+        const firstSubmission = await this._submitTransactionAsync(
+            orderHash,
+            workerAddress,
+            callData,
+            gasPrice,
+            nonce,
+            gasEstimate,
+        );
+        const submissionsMap = { [firstSubmission.transactionHash!]: firstSubmission };
+
+        return {
+            submissionsMap,
+            nonce,
+            gasPrice,
+            gasEstimate,
+        };
     }
 
     /**

@@ -14,6 +14,8 @@ export enum RfqmJobStatus {
     PendingEnqueued = 'pending_enqueued',
     // Transaction has passed initial validation. Last look will be executed and transaction will be submitted if last look is accepted.
     PendingProcessing = 'pending_processing',
+    // Last look has been accepted, awaiting submission
+    PendingLastLookAccepted = 'pending_last_look_accepted',
     // Transaction has passed initial verification and has been submitted to the mem pool
     PendingSubmitted = 'pending_submitted',
 
