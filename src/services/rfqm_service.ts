@@ -488,6 +488,13 @@ export class RfqmService {
             logger.error({ error }, 'Current gas price is unable to be fetched, marking worker as not ready.');
             return false;
         }
+
+        // check for outstanding jobs from the worker and resolve them
+        const unresolvedJobs = await this._dbUtils.findUnresolvedJobsAsync(workerAddress);
+        for (const job of unresolvedJobs) {
+            await this.processRfqmJobAsync(job.orderHash, workerAddress);
+        }
+
         return this._blockchainUtils.isWorkerReadyAsync(workerAddress, gasPrice);
     }
 
@@ -664,7 +671,7 @@ export class RfqmService {
         // Basic validation
         const errorStatus = RfqmService._validateJob(job);
         if (errorStatus !== null) {
-            await this._dbUtils.updateRfqmJobAsync(orderHash, {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, true, {
                 status: errorStatus,
             });
             return;
@@ -673,7 +680,7 @@ export class RfqmService {
 
         // update status to processing if it's a fresh job
         if (job.status === RfqmJobStatus.PendingEnqueued) {
-            await this._dbUtils.updateRfqmJobAsync(orderHash, {
+            await this._dbUtils.updateRfqmJobAsync(orderHash, false, {
                 status: RfqmJobStatus.PendingProcessing,
             });
         }
@@ -688,7 +695,7 @@ export class RfqmService {
                 RFQM_JOB_FAILED_ETHCALL_VALIDATION.inc();
                 logger.warn({ error: e, orderHash }, 'The eth_call validation failed');
                 // Terminate with an error transition
-                await this._dbUtils.updateRfqmJobAsync(orderHash, {
+                await this._dbUtils.updateRfqmJobAsync(orderHash, true, {
                     status: RfqmJobStatus.FailedEthCallFailed,
                 });
                 return;
@@ -707,13 +714,13 @@ export class RfqmService {
             if (!shouldProceed) {
                 RFQM_JOB_MM_REJECTED_LAST_LOOK.labels(makerUri!).inc();
                 // Terminate with an error transition
-                await this._dbUtils.updateRfqmJobAsync(orderHash, {
+                await this._dbUtils.updateRfqmJobAsync(orderHash, true, {
                     status: RfqmJobStatus.FailedLastLookDeclined,
                     lastLookResult: shouldProceed,
                 });
                 return;
             } else {
-                await this._dbUtils.updateRfqmJobAsync(orderHash, {
+                await this._dbUtils.updateRfqmJobAsync(orderHash, false, {
                     status: RfqmJobStatus.PendingLastLookAccepted,
                     lastLookResult: shouldProceed,
                 });
@@ -734,7 +741,7 @@ export class RfqmService {
 
         // update job status based on transaction submission status
         const finalJobStatus = RfqmService._getJobStatusFromSubmissions(submissionsMap);
-        await this._dbUtils.updateRfqmJobAsync(orderHash, {
+        await this._dbUtils.updateRfqmJobAsync(orderHash, true, {
             status: finalJobStatus,
         });
     }
@@ -869,7 +876,7 @@ export class RfqmService {
         callData: string,
     ): Promise<SubmissionContext> {
         // claim this job for the worker, and set status to submitted
-        await this._dbUtils.updateRfqmJobAsync(orderHash, {
+        await this._dbUtils.updateRfqmJobAsync(orderHash, false, {
             status: RfqmJobStatus.PendingSubmitted,
             workerAddress,
         });
@@ -977,7 +984,7 @@ export class RfqmService {
                 }
                 await this._dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap));
                 if (jobStatus !== null) {
-                    await this._dbUtils.updateRfqmJobAsync(orderHash, { status: jobStatus });
+                    await this._dbUtils.updateRfqmJobAsync(orderHash, false, { status: jobStatus });
                 }
                 break;
             }

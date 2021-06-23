@@ -124,6 +124,9 @@ export class RfqmJobEntity {
     @Column({ name: 'metadata', type: 'jsonb', nullable: true })
     public metadata: object | null;
 
+    @Column({ name: 'is_completed', type: 'boolean', nullable: false })
+    public isCompleted: boolean;
+
     @Column({ name: 'worker_address', type: 'varchar', nullable: true })
     public workerAddress: string | null;
 
@@ -145,6 +148,7 @@ export class RfqmJobEntity {
         this.expiry = opts.expiry;
         this.fee = opts.fee || null;
         this.integratorId = opts.integratorId || null;
+        this.isCompleted = opts.isCompleted || false;
         this.lastLookResult = opts.lastLookResult || null;
         this.makerUri = opts.makerUri;
         this.metadata = opts.metadata || null;
