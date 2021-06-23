@@ -698,7 +698,8 @@ export class RfqmService {
             // Terminate with an error transition
             await this._dbUtils.updateRfqmJobAsync(orderHash, {
                 status: RfqmJobStatus.FailedLastLookDeclined,
-                calldata: '', // clear out calldata so transaction can never be submitted, even by accident
+                // append garbage to calldata so transaction cannot be submitted
+                calldata: `LAST_LOOK_DECLINED${calldata}`,
             });
             return;
         }

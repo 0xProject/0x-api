@@ -1221,7 +1221,7 @@ describe(SUITE_NAME, () => {
 
             const job = await dbUtils.findJobByOrderHashAsync(orderHash);
             expect(job?.status).to.eq(RfqmJobStatus.FailedLastLookDeclined);
-            expect(job?.calldata).to.eq('');
+            expect(job?.calldata).to.match(/^LAST_LOOK_DECLINED/);
 
             mockAxios.reset();
         });
