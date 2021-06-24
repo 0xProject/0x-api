@@ -6,6 +6,7 @@ import { Fee, SubmitRequest } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import delay from 'delay';
+import { response } from 'express';
 import { Counter } from 'prom-client';
 import { Producer } from 'sqs-producer';
 
@@ -159,6 +160,38 @@ const RFQM_JOB_MM_REJECTED_LAST_LOOK = new Counter({
     labelNames: ['makerUri'],
 });
 const PRICE_DECIMAL_PLACES = 6;
+
+export enum HealthCheckStatus {
+    Operational = 'operational',
+    Unknown = 'unknown',
+    Maintenance = 'maintenance',
+    Degraded = 'degraded',
+    Failed = 'failed',
+}
+
+export interface HealthCheckResponse {
+    status: HealthCheckStatus;
+    pairs: {
+        [pair: string]: HealthCheckStatus; // where the pair has the form `${contractA}-${contractB}`
+    };
+}
+
+interface HealthCheckIssue {
+    status: HealthCheckStatus;
+    description: string;
+}
+
+export interface HealthCheckResponseVerbose extends HealthCheckResponse {
+    http: {
+        status: HealthCheckStatus;
+        issues: HealthCheckIssue[];
+    };
+    workers: {
+        status: HealthCheckStatus;
+        issues: HealthCheckIssue[];
+    };
+    // TODO (rhinodavid): Add MarketMakers
+}
 
 /**
  * RfqmService is the coordination layer for HTTP based RFQM flows.
@@ -571,6 +604,23 @@ export class RfqmService {
                     throw new Error('Unreachable');
                 })(status);
         }
+    }
+
+    public async runHealthCheckAsync<T extends boolean>(
+        verbose: T,
+    ): Promise<T extends true ? HealthCheckResponseVerbose :HealthCheckResponse> {
+        const verboseResponse: HealthCheckResponseVerbose = {
+            status: HealthCheckStatus.Operational,
+            pairs: {},
+            http: { status: HealthCheckStatus.Operational, issues: [] },
+            workers: { status: HealthCheckStatus.Operational, issues: [] },
+        };
+
+        const response: HealthCheckResponse = {
+            status: HealthCheckStatus.Operational,
+            pairs: {},
+        };
+        return verbose ? verboseResponse : response;
     }
 
     public async submitMetaTransactionSignedQuoteAsync(
