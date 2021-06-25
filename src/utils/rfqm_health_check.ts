@@ -39,6 +39,8 @@ export interface RfqmHealthCheckShortResponse {
     pairs: [string, string][];
 }
 
+const MILLISECONDS_IN_MINUTE = 60 * 1000; // tslint:disable-line custom-no-magic-numbers
+
 /**
  * Transform the full health check result into the minimal response the Matcha UI requires.
  */
@@ -56,10 +58,11 @@ export function transformResultToShortResponse(result: HealthCheckResult): RfqmH
     };
 }
 
-export async function checkSqsQueueAsync(
-    producer: Producer,
-    nowTime: Date = new Date(),
-): Promise<Array<HealthCheckIssue>> {
+/**
+ * Runs checks on the SQS queue to detect if there are messages piling up or if there are old messages in the
+ * queue which have expired or will expire soon. `nowTime` parameter is provided for testing.
+ */
+export async function checkSqsQueueAsync(producer: Producer, nowTime: Date = new Date()): Promise<HealthCheckIssue[]> {
     const results: HealthCheckIssue[] = [];
     const messagesInQueue = await producer.queueSize();
     if (messagesInQueue === 0) {
@@ -87,23 +90,23 @@ export async function checkSqsQueueAsync(
     if (messages === undefined) {
         throw new Error("SQS response did not include 'Messages'");
     }
-    const messageTimestamps = messages.map((m) => parseInt(m.Attributes!.SentTimestamp)).sort();
+    const messageTimestamps = messages.map((m) => parseInt(m.Attributes!.SentTimestamp, 10)).sort();
     const oldestTimestamp = messageTimestamps[0];
     if (oldestTimestamp) {
-        const ageMs =  nowTime.getTime() - oldestTimestamp;
-        const ageMinutes = ageMs / 1000 / 60;
+        const ageMs = nowTime.getTime() - oldestTimestamp;
+        const ageMinutes = ageMs / MILLISECONDS_IN_MINUTE;
         if (ageMinutes > SQS_MESSAGE_AGE_MINUTES_FAILED_THRESHOLD) {
             results.push({
                 status: HealthCheckStatus.Failed,
                 description: `SQS queue contains a message ${ageMs} old (threshold is ${
-                    SQS_MESSAGE_AGE_MINUTES_FAILED_THRESHOLD * 1000 * 60
+                    SQS_MESSAGE_AGE_MINUTES_FAILED_THRESHOLD * MILLISECONDS_IN_MINUTE
                 })`,
             });
-        } else if (ageMinutes > SQS_MESSAGE_AGE_MINUTES_DEGRADED_THRESHOLD){
+        } else if (ageMinutes > SQS_MESSAGE_AGE_MINUTES_DEGRADED_THRESHOLD) {
             results.push({
                 status: HealthCheckStatus.Degraded,
                 description: `SQS queue contains a message ${ageMs} old (threshold is ${
-                    SQS_MESSAGE_AGE_MINUTES_DEGRADED_THRESHOLD * 1000 * 60
+                    SQS_MESSAGE_AGE_MINUTES_DEGRADED_THRESHOLD * MILLISECONDS_IN_MINUTE
                 })`,
             });
         }

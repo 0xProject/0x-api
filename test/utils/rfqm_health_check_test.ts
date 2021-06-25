@@ -1,8 +1,10 @@
+// tslint:disable custom-no-magic-numbers
 import { expect } from '@0x/contracts-test-utils';
-import { Producer } from 'sqs-producer';
-import { mock, when, instance, anything } from 'ts-mockito';
-import { checkSqsQueueAsync, HealthCheckStatus } from '../../src/utils/rfqm_health_check';
 import { Request, SQS } from 'aws-sdk';
+import { Producer } from 'sqs-producer';
+import { anything, instance, mock, when } from 'ts-mockito';
+
+import { checkSqsQueueAsync, HealthCheckStatus } from '../../src/utils/rfqm_health_check';
 
 let sqsMock: SQS;
 let requestMock: Request<any, any>; // NOT a normal request; see AWS types/docs for more.
@@ -56,6 +58,7 @@ describe('RFQm Health Check', () => {
                 expect(issues[0].status).to.equal(HealthCheckStatus.Failed);
             });
         });
+
         describe('message age check', () => {
             it('creates no issues for messages newer than 3 minutes', async () => {
                 const now = new Date();
@@ -68,8 +71,7 @@ describe('RFQm Health Check', () => {
                             Messages: [
                                 {
                                     MessageId: 'dfe0c393-3a3f-4160-aa58-6d6cffb07953',
-                                    ReceiptHandle:
-                                        'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv/u9pL6rsVwu1q+D1kThOM4rm9pdqRQCyWOzxS7/QByVilK+zzZmrY4nRg3xuFO/CWOo6PdLmUmm6bXE9dY0XWu28h8iCmSWoMhbYjMPBMyhRGDsx8yWb34IeKtIrTUqn68l/NVH2P1A8LOgjAlI4Mamxgr9cyJVnfdGsusqd9QlEVbzh6ZK+ccyTiixe65hHhkxVLhAu5Z4C2Vo/chjqPkNoy0exZefF7y4Whya3t7cOo0ZeNggyTukDDvkUKg+aHHYn1u1Myj+qSbThU=',
+                                    ReceiptHandle: 'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv',
                                     MD5OfBody: '29628f6790da2e7daa6f40ab933e05d9',
                                     Body: 'order-1',
                                     Attributes: {
@@ -98,8 +100,7 @@ describe('RFQm Health Check', () => {
                             Messages: [
                                 {
                                     MessageId: 'dfe0c393-3a3f-4160-aa58-6d6cffb07953',
-                                    ReceiptHandle:
-                                        'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv/u9pL6rsVwu1q+D1kThOM4rm9pdqRQCyWOzxS7/QByVilK+zzZmrY4nRg3xuFO/CWOo6PdLmUmm6bXE9dY0XWu28h8iCmSWoMhbYjMPBMyhRGDsx8yWb34IeKtIrTUqn68l/NVH2P1A8LOgjAlI4Mamxgr9cyJVnfdGsusqd9QlEVbzh6ZK+ccyTiixe65hHhkxVLhAu5Z4C2Vo/chjqPkNoy0exZefF7y4Whya3t7cOo0ZeNggyTukDDvkUKg+aHHYn1u1Myj+qSbThU=',
+                                    ReceiptHandle: 'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv',
                                     MD5OfBody: '29628f6790da2e7daa6f40ab933e05d9',
                                     Body: 'order-1',
                                     Attributes: {
@@ -108,8 +109,7 @@ describe('RFQm Health Check', () => {
                                 },
                                 {
                                     MessageId: 'dfe0c393-3a3f-4160-aa58-6d6cffb07954',
-                                    ReceiptHandle:
-                                        'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv/u9pL6rsVwu1q+D1kThOM4rm9pdqRQCyWOzxS7/QByVilK+zzZmrY4nRg3xuFO/CWOo6PdLmUmm6bXE9dY0XWu28h8iCmSWoMhbYjMPBMyhRGDsx8yWb34IeKtIrTUqn68l/NVH2P1A8LOgjAlI4Mamxgr9cyJVnfdGsusqd9QlEVbzh6ZK+ccyTiixe65hHhkxVLhAu5Z4C2Vo/chjqPkNoy0exZefF7y4Whya3t7cOo0ZeNggyTukDDvkUKg+aHHYn1u1Myj+qSbThU=',
+                                    ReceiptHandle: 'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv',
                                     MD5OfBody: '29628f6790da2e7daa6f40ab933e05d9',
                                     Body: 'order-2',
                                     Attributes: {
@@ -139,8 +139,7 @@ describe('RFQm Health Check', () => {
                             Messages: [
                                 {
                                     MessageId: 'dfe0c393-3a3f-4160-aa58-6d6cffb07953',
-                                    ReceiptHandle:
-                                        'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv/u9pL6rsVwu1q+D1kThOM4rm9pdqRQCyWOzxS7/QByVilK+zzZmrY4nRg3xuFO/CWOo6PdLmUmm6bXE9dY0XWu28h8iCmSWoMhbYjMPBMyhRGDsx8yWb34IeKtIrTUqn68l/NVH2P1A8LOgjAlI4Mamxgr9cyJVnfdGsusqd9QlEVbzh6ZK+ccyTiixe65hHhkxVLhAu5Z4C2Vo/chjqPkNoy0exZefF7y4Whya3t7cOo0ZeNggyTukDDvkUKg+aHHYn1u1Myj+qSbThU=',
+                                    ReceiptHandle: 'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv',
                                     MD5OfBody: '29628f6790da2e7daa6f40ab933e05d9',
                                     Body: 'order-1',
                                     Attributes: {
@@ -149,8 +148,7 @@ describe('RFQm Health Check', () => {
                                 },
                                 {
                                     MessageId: 'dfe0c393-3a3f-4160-aa58-6d6cffb07954',
-                                    ReceiptHandle:
-                                        'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv/u9pL6rsVwu1q+D1kThOM4rm9pdqRQCyWOzxS7/QByVilK+zzZmrY4nRg3xuFO/CWOo6PdLmUmm6bXE9dY0XWu28h8iCmSWoMhbYjMPBMyhRGDsx8yWb34IeKtIrTUqn68l/NVH2P1A8LOgjAlI4Mamxgr9cyJVnfdGsusqd9QlEVbzh6ZK+ccyTiixe65hHhkxVLhAu5Z4C2Vo/chjqPkNoy0exZefF7y4Whya3t7cOo0ZeNggyTukDDvkUKg+aHHYn1u1Myj+qSbThU=',
+                                    ReceiptHandle: 'AQEB8CCc9tm0ti4UKHOBAc0dCAsJqv',
                                     MD5OfBody: '29628f6790da2e7daa6f40ab933e05d9',
                                     Body: 'order-2',
                                     Attributes: {
@@ -161,8 +159,6 @@ describe('RFQm Health Check', () => {
                         });
                     }),
                 );
-
-
                 when(producerMock.queueSize()).thenResolve(2);
 
                 const issues = await checkSqsQueueAsync(instance(producerMock), now);
