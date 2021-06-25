@@ -84,7 +84,7 @@ export async function checkSqsQueueAsync(producer: Producer, nowTime: Date = new
             MaxNumberOfMessages: 10 /* API maximum */,
             QueueUrl: producer.queueUrl,
             AttributeNames: ['SentTimestamp'],
-            VisibilityTimeout: 1 /* sec (take these off the queue then put them right back on) */,
+            VisibilityTimeout: 0 /* sec (don't make the messages invisible to workers) */,
         })
         .promise();
     if (messages === undefined) {
