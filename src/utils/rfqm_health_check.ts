@@ -1,7 +1,7 @@
 import { Producer } from 'sqs-producer';
 
-const SQS_QUEUE_SIZE_DEGRADED_THRESHOLD = 5; // More messages sitting in queue than this will cause a DEGRADED issue
-const SQS_QUEUE_SIZE_FAILED_THRESHOLD = 10; // More messages sitting in queue than this will cause a FAILED issue
+const SQS_QUEUE_SIZE_DEGRADED_THRESHOLD = 10; // More messages sitting in queue than this will cause a DEGRADED issue
+const SQS_QUEUE_SIZE_FAILED_THRESHOLD = 20; // More messages sitting in queue than this will cause a FAILED issue
 const SQS_MESSAGE_AGE_MINUTES_DEGRADED_THRESHOLD = 3; // A message older than this in the queue will cause a DEGRADED issue
 const SQS_MESSAGE_AGE_MINUTES_FAILED_THRESHOLD = 5; // A message older than this in the queue will cause a FAILED issue
 

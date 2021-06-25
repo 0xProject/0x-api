@@ -32,7 +32,7 @@ describe('RFQm Health Check', () => {
         });
 
         describe('queue size check', () => {
-            it('creates no issues if there are 5 or less jobs in the queue', async () => {
+            it('creates no issues if there are 10 or less jobs in the queue', async () => {
                 when(producerMock.queueSize()).thenResolve(1);
 
                 const issues = await checkSqsQueueAsync(instance(producerMock));
@@ -41,7 +41,7 @@ describe('RFQm Health Check', () => {
             });
 
             it('creates a DEGRADED issue if there are more than 5 messages in the queue', async () => {
-                when(producerMock.queueSize()).thenResolve(6);
+                when(producerMock.queueSize()).thenResolve(11);
 
                 const issues = await checkSqsQueueAsync(instance(producerMock));
 
@@ -49,8 +49,8 @@ describe('RFQm Health Check', () => {
                 expect(issues[0].status).to.equal(HealthCheckStatus.Degraded);
             });
 
-            it('creates a FAILED issue if there are more than 10 messages in the queue', async () => {
-                when(producerMock.queueSize()).thenResolve(11);
+            it('creates a FAILED issue if there are more than 20 messages in the queue', async () => {
+                when(producerMock.queueSize()).thenResolve(21);
 
                 const issues = await checkSqsQueueAsync(instance(producerMock));
 
