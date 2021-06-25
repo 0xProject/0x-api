@@ -1,3 +1,10 @@
+import { Producer } from 'sqs-producer';
+
+const SQS_QUEUE_SIZE_DEGRADED_THRESHOLD = 5; // More messages sitting in queue than this will cause a DEGRADED issue
+const SQS_QUEUE_SIZE_FAILED_THRESHOLD = 10; // More messages sitting in queue than this will cause a FAILED issue
+const SQS_MESSAGE_AGE_MINUTES_DEGRADED_THRESHOLD = 3; // A message older than this in the queue will cause a DEGRADED issue
+const SQS_MESSAGE_AGE_MINUTES_FAILED_THRESHOLD = 5; // A message older than this in the queue will cause a FAILED issue
+
 export enum HealthCheckStatus {
     Operational = 'operational',
     Unknown = 'unknown',
@@ -47,4 +54,59 @@ export function transformResultToShortResponse(result: HealthCheckResult): RfqmH
                 return [tokenA, tokenB];
             }),
     };
+}
+
+export async function checkSqsQueueAsync(
+    producer: Producer,
+    nowTime: Date = new Date(),
+): Promise<Array<HealthCheckIssue>> {
+    const results: HealthCheckIssue[] = [];
+    const messagesInQueue = await producer.queueSize();
+    if (messagesInQueue === 0) {
+        return results;
+    }
+    if (messagesInQueue > SQS_QUEUE_SIZE_FAILED_THRESHOLD) {
+        results.push({
+            status: HealthCheckStatus.Failed,
+            description: `SQS queue contains ${messagesInQueue} messages (threshold is ${SQS_QUEUE_SIZE_FAILED_THRESHOLD})`,
+        });
+    } else if (messagesInQueue > SQS_QUEUE_SIZE_DEGRADED_THRESHOLD) {
+        results.push({
+            status: HealthCheckStatus.Degraded,
+            description: `SQS queue contains ${messagesInQueue} messages (threshold is ${SQS_QUEUE_SIZE_DEGRADED_THRESHOLD})`,
+        });
+    }
+    const { Messages: messages } = await producer.sqs
+        .receiveMessage({
+            MaxNumberOfMessages: 10 /* API maximum */,
+            QueueUrl: producer.queueUrl,
+            AttributeNames: ['SentTimestamp'],
+            VisibilityTimeout: 1 /* sec (take these off the queue then put them right back on) */,
+        })
+        .promise();
+    if (messages === undefined) {
+        throw new Error("SQS response did not include 'Messages'");
+    }
+    const messageTimestamps = messages.map((m) => parseInt(m.Attributes!.SentTimestamp)).sort();
+    const oldestTimestamp = messageTimestamps[0];
+    if (oldestTimestamp) {
+        const ageMs =  nowTime.getTime() - oldestTimestamp;
+        const ageMinutes = ageMs / 1000 / 60;
+        if (ageMinutes > SQS_MESSAGE_AGE_MINUTES_FAILED_THRESHOLD) {
+            results.push({
+                status: HealthCheckStatus.Failed,
+                description: `SQS queue contains a message ${ageMs} old (threshold is ${
+                    SQS_MESSAGE_AGE_MINUTES_FAILED_THRESHOLD * 1000 * 60
+                })`,
+            });
+        } else if (ageMinutes > SQS_MESSAGE_AGE_MINUTES_DEGRADED_THRESHOLD){
+            results.push({
+                status: HealthCheckStatus.Degraded,
+                description: `SQS queue contains a message ${ageMs} old (threshold is ${
+                    SQS_MESSAGE_AGE_MINUTES_DEGRADED_THRESHOLD * 1000 * 60
+                })`,
+            });
+        }
+    }
+    return results;
 }
