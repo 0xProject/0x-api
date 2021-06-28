@@ -11,6 +11,7 @@ import * as express from 'express';
 import * as core from 'express-serve-static-core';
 import { Agent as HttpAgent, Server } from 'http';
 import { Agent as HttpsAgent } from 'https';
+import * as rax from 'retry-axios';
 import { Producer } from 'sqs-producer';
 import { Connection } from 'typeorm';
 
@@ -28,7 +29,12 @@ import {
     RFQ_PROXY_PORT,
     SWAP_QUOTER_OPTS,
 } from '../config';
-import { KEEP_ALIVE_TTL, PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS, RFQM_PATH } from '../constants';
+import {
+    KEEP_ALIVE_TTL,
+    PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
+    RFQM_PATH,
+    RFQM_TRANSACTION_WATCHER_SLEEP_TIME_MS,
+} from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
@@ -96,6 +102,12 @@ export async function buildRfqmServiceAsync(connection: Connection, asWorker: bo
 
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
     const axiosInstance = Axios.create(getAxiosRequestConfig());
+    axiosInstance.defaults.raxConfig = {
+        retry: 3, // Retry on 429, 500, etc.
+        noResponseRetries: 0, // Do not retry on timeouts
+        instance: axiosInstance,
+    };
+    rax.attach(axiosInstance);
     const quoteRequestor = new QuoteRequestor(
         {}, // No RFQT offerings
         RFQM_MAKER_ASSET_OFFERINGS,
@@ -133,6 +145,7 @@ export async function buildRfqmServiceAsync(connection: Connection, asWorker: bo
         dbUtils,
         sqsProducer,
         quoteServerClient,
+        RFQM_TRANSACTION_WATCHER_SLEEP_TIME_MS,
     );
 }
 

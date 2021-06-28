@@ -24,11 +24,13 @@ import { RfqmTransactionSubmissionStatus } from '../../src/entities/RfqmTransact
 import { RfqmService } from '../../src/services/rfqm_service';
 import { QuoteServerClient } from '../../src/utils/quote_server_client';
 import { RfqmDbUtils } from '../../src/utils/rfqm_db_utils';
+import { HealthCheckStatus } from '../../src/utils/rfqm_health_check';
 import { RfqBlockchainUtils } from '../../src/utils/rfq_blockchain_utils';
 
 const NEVER_EXPIRES = new BigNumber(9999999999999999);
 const MOCK_WORKER_REGISTRY_ADDRESS = '0x1023331a469c6391730ff1E2749422CE8873EC38';
 const MOCK_GAS_PRICE = new BigNumber(100);
+const TEST_RFQM_TRANSACTION_WATCHER_SLEEP_TIME_MS = 500;
 
 const buildRfqmServiceForUnitTest = (
     overrides: {
@@ -79,6 +81,7 @@ const buildRfqmServiceForUnitTest = (
         overrides.dbUtils || dbUtilsMock,
         overrides.producer || sqsMock,
         overrides.quoteServerClient || quoteServerClientMock,
+        TEST_RFQM_TRANSACTION_WATCHER_SLEEP_TIME_MS,
     );
 };
 
@@ -1023,6 +1026,20 @@ describe('RfqmService', () => {
 
                 expect(res.price.toNumber()).to.equal(1.01); // Worse pricing wins because better pricing is for wrong chain
             });
+        });
+    });
+
+    describe('runHealthCheckAsync', () => {
+        it('returns active pairs', async () => {
+            const service = buildRfqmServiceForUnitTest();
+            const result = await service.runHealthCheckAsync();
+
+            expect(result.pairs).to.have.key(
+                '0x0b1ba0af832d7c05fd64161e0db78e85978e8082-0x871dd7c2b4b25e1aa18728e9d5f2af4c4e431f5c',
+            );
+            expect(
+                result.pairs['0x0b1ba0af832d7c05fd64161e0db78e85978e8082-0x871dd7c2b4b25e1aa18728e9d5f2af4c4e431f5c'],
+            ).to.equal(HealthCheckStatus.Operational);
         });
     });
 
