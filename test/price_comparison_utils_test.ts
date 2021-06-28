@@ -51,6 +51,7 @@ describe(SUITE_NAME, () => {
                                 takerAmount: sellAmount,
                                 liquiditySource: ERC20BridgeSource.Uniswap,
                                 fillData: {},
+                                gasUsed: new BigNumber(90000),
                             },
                         ],
                         multiHopSources: [],
@@ -90,6 +91,7 @@ describe(SUITE_NAME, () => {
                             takerAmount: sellAmount,
                             liquiditySource: ERC20BridgeSource.Uniswap,
                             fillData: {},
+                            gasUsed: new BigNumber(90000),
                         },
                     ],
                     multiHopSources: [],
@@ -131,12 +133,14 @@ describe(SUITE_NAME, () => {
                                 takerAmount: sellAmount,
                                 liquiditySource: ERC20BridgeSource.Uniswap,
                                 fillData: {},
+                                gasUsed: new BigNumber(90000),
                             },
                             {
                                 makerAmount: ZERO,
                                 takerAmount: sellAmount,
                                 liquiditySource: ERC20BridgeSource.MStable,
                                 fillData: {},
+                                gasUsed: new BigNumber(90000),
                             },
                         ],
                         multiHopSources: [],
@@ -176,12 +180,14 @@ describe(SUITE_NAME, () => {
                             takerAmount: sellAmount,
                             liquiditySource: ERC20BridgeSource.Uniswap,
                             fillData: {},
+                            gasUsed: new BigNumber(90e3),
                         },
                         {
                             makerAmount: buyAmount,
                             takerAmount: ZERO,
                             liquiditySource: ERC20BridgeSource.MStable,
                             fillData: {},
+                            gasUsed: new BigNumber(90e3),
                         },
                     ],
                     multiHopSources: [],
@@ -225,12 +231,14 @@ describe(SUITE_NAME, () => {
                                 takerAmount: sellAmount,
                                 liquiditySource: ERC20BridgeSource.Kyber,
                                 fillData: {},
+                                gasUsed: new BigNumber(4.5e5),
                             },
                             {
                                 makerAmount: higherBuyAmount,
                                 takerAmount: sellAmount,
                                 liquiditySource: ERC20BridgeSource.Kyber,
                                 fillData: {},
+                                gasUsed: new BigNumber(4.5e5),
                             },
                         ],
                         multiHopSources: [],
@@ -263,12 +271,14 @@ describe(SUITE_NAME, () => {
                             takerAmount: sellAmount,
                             liquiditySource: ERC20BridgeSource.Kyber,
                             fillData: {},
+                            gasUsed: new BigNumber(4.5e5),
                         },
                         {
                             makerAmount: buyAmount,
                             takerAmount: lowerSellAmount,
                             liquiditySource: ERC20BridgeSource.Kyber,
                             fillData: {},
+                            gasUsed: new BigNumber(4.5e5),
                         },
                     ],
                     multiHopSources: [],
@@ -311,6 +321,7 @@ describe(SUITE_NAME, () => {
                                 takerAmount: usdcAmount,
                                 liquiditySource: ERC20BridgeSource.Uniswap,
                                 fillData: {},
+                                gasUsed: new BigNumber(90e3),
                             },
                         ],
                         multiHopSources: [],
@@ -352,6 +363,7 @@ describe(SUITE_NAME, () => {
                             takerAmount: usdcAmount,
                             liquiditySource: ERC20BridgeSource.Uniswap,
                             fillData: {},
+                            gasUsed: new BigNumber(90e3),
                         },
                     ],
                     multiHopSources: [],
@@ -394,6 +406,7 @@ describe(SUITE_NAME, () => {
                                 takerAmount: usdcAmount,
                                 liquiditySource: ERC20BridgeSource.Uniswap,
                                 fillData: {},
+                                gasUsed: new BigNumber(90e3),
                             },
                         ],
                         multiHopSources: [],
@@ -427,6 +440,7 @@ describe(SUITE_NAME, () => {
                                 // Path length > 2 receives a higher gas estimate
                                 tokenAddressPath: [{}, {}, {}],
                             },
+                            gasUsed: new BigNumber(150e3),
                         },
                         {
                             makerAmount: buyAmount,
@@ -435,6 +449,7 @@ describe(SUITE_NAME, () => {
                             fillData: {
                                 tokenAddressPath: [],
                             },
+                            gasUsed: new BigNumber(150e3),
                         },
                         {
                             makerAmount: buyAmount,
@@ -444,6 +459,7 @@ describe(SUITE_NAME, () => {
                                 // Path length > 2 receives a higher gas estimate
                                 tokenAddressPath: [{}, {}, {}],
                             },
+                            gasUsed: new BigNumber(150e3),
                         },
                     ],
                     multiHopSources: [],
@@ -479,6 +495,7 @@ describe(SUITE_NAME, () => {
                                     // Path length > 2 receives a higher gas estimate
                                     tokenAddressPath: [{}, {}, {}],
                                 },
+                                gasUsed: new BigNumber(150e3),
                             },
                             {
                                 makerAmount: buyAmount,
@@ -487,6 +504,7 @@ describe(SUITE_NAME, () => {
                                 fillData: {
                                     tokenAddressPath: [],
                                 },
+                                gasUsed: new BigNumber(150e3),
                             },
                             {
                                 makerAmount: buyAmount,
@@ -496,6 +514,7 @@ describe(SUITE_NAME, () => {
                                     // Path length > 2 receives a higher gas estimate
                                     tokenAddressPath: [{}, {}, {}],
                                 },
+                                gasUsed: new BigNumber(150e3),
                             },
                         ],
                         multiHopSources: [],
@@ -531,6 +550,7 @@ describe(SUITE_NAME, () => {
                                     // Path length > 2 receives a higher gas estimate
                                     tokenAddressPath: [{}, {}, {}],
                                 },
+                                gasUsed: new BigNumber(150e3),
                             },
                             {
                                 makerAmount: buyAmount,
@@ -539,6 +559,7 @@ describe(SUITE_NAME, () => {
                                 fillData: {
                                     tokenAddressPath: [],
                                 },
+                                gasUsed: new BigNumber(150e3),
                             },
                         ],
                         multiHopSources: [],
@@ -571,6 +592,7 @@ describe(SUITE_NAME, () => {
                                 // Path length > 2 receives a higher gas estimate
                                 tokenAddressPath: [{}, {}, {}],
                             },
+                            gasUsed: new BigNumber(150e3),
                         },
                         {
                             makerAmount: buyAmount,
@@ -579,6 +601,7 @@ describe(SUITE_NAME, () => {
                             fillData: {
                                 tokenAddressPath: [],
                             },
+                            gasUsed: new BigNumber(150e3),
                         },
                     ],
                     multiHopSources: [],
@@ -614,6 +637,7 @@ describe(SUITE_NAME, () => {
                                     // Path length > 2 receives a higher gas estimate
                                     tokenAddressPath: [{}, {}, {}],
                                 },
+                                gasUsed: new BigNumber(200e3),
                             },
                             {
                                 makerAmount: buyAmount,
@@ -622,6 +646,7 @@ describe(SUITE_NAME, () => {
                                 fillData: {
                                     tokenAddressPath: [],
                                 },
+                                gasUsed: new BigNumber(150e3),
                             },
                         ],
                         multiHopSources: [],
@@ -655,6 +680,7 @@ describe(SUITE_NAME, () => {
                                 // Path length > 2 receives a higher gas estimate
                                 tokenAddressPath: [{}, {}, {}],
                             },
+                            gasUsed: new BigNumber(200e3),
                         },
                         {
                             makerAmount: buyAmount,
@@ -663,6 +689,7 @@ describe(SUITE_NAME, () => {
                             fillData: {
                                 tokenAddressPath: [],
                             },
+                            gasUsed: new BigNumber(150e3),
                         },
                     ],
                     multiHopSources: [],

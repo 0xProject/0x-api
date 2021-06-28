@@ -1,43 +1,13 @@
-import {
-    DEFAULT_GAS_SCHEDULE,
-    ERC20BridgeSource,
-    FeeSchedule,
-    PriceComparisonsReport,
-    UniswapV2FillData,
-} from '@0x/asset-swapper';
+import { ERC20BridgeSource, PriceComparisonsReport } from '@0x/asset-swapper';
 import { getTokenMetadataIfExists } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
-import { ZERO } from '../constants';
+import { TX_BASE_GAS, ZERO } from '../constants';
 import { logger } from '../logger';
 import { ChainId, SourceComparison } from '../types';
-
-// NOTE: Our internal Uniswap gas usage may be lower than the Uniswap UI usage
-// Therefore we need to adjust the gas estimates to be representative of using the Uniswap UI.
-const gasScheduleWithOverrides: FeeSchedule = {
-    ...DEFAULT_GAS_SCHEDULE,
-    [ERC20BridgeSource.UniswapV2]: (fillData) => {
-        let gas = 1.5e5;
-        // tslint:disable-next-line:custom-no-magic-numbers
-        if ((fillData as UniswapV2FillData).tokenAddressPath.length > 2) {
-            // tslint:disable-next-line:custom-no-magic-numbers
-            gas += 5e4;
-        }
-        return gas;
-    },
-    [ERC20BridgeSource.SushiSwap]: (fillData) => {
-        let gas = 1.5e5;
-        // tslint:disable-next-line:custom-no-magic-numbers
-        if ((fillData as UniswapV2FillData).tokenAddressPath.length > 2) {
-            // tslint:disable-next-line:custom-no-magic-numbers
-            gas += 5e4;
-        }
-        return gas;
-    },
-};
 
 const NULL_SOURCE_COMPARISONS = Object.values(ERC20BridgeSource).reduce<SourceComparison[]>((memo, liquiditySource) => {
     memo.push({
@@ -116,7 +86,7 @@ function getPriceComparisonFromQuoteOrThrow(
 
     // Calculate the maker/taker amounts after factoring in gas costs
     const tradeSourcesWithGas = fullTradeSources.map((source) => {
-        const gas = new BigNumber(gasScheduleWithOverrides[source.liquiditySource]!(source.fillData));
+        const gas = source.gasUsed.plus(TX_BASE_GAS);
 
         const gasCost = gas.times(quote.gasPrice).dividedBy(ethUnitAmount).times(quoteTokenToEthRate);
         const unitMakerAmount = Web3Wrapper.toUnitAmount(source.makerAmount, buyToken.decimals);

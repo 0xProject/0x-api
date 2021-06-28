@@ -13,8 +13,9 @@ const B = (v: number | string) => new BigNumber(v);
 
 const SUITE_NAME = 'marketDepthUtils';
 describe(SUITE_NAME, () => {
-    const defaultSample = { output: B(10), source: ERC20BridgeSource.Uniswap, fillData: {} as any };
-    const nativeSample = { output: B(10), source: ERC20BridgeSource.Native, fillData: {} as any };
+    const gasUsed = ZERO;
+    const defaultSample = { output: B(10), source: ERC20BridgeSource.Uniswap, fillData: {} as any, gasUsed };
+    const nativeSample = { output: B(10), source: ERC20BridgeSource.Native, fillData: {} as any, gasUsed };
     describe('getBucketPrices', () => {
         it('returns a range from start to end', async () => {
             const start = B('1');
