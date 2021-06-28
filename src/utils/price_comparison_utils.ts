@@ -131,8 +131,8 @@ function getPriceComparisonFromQuoteOrThrow(
             gas,
             unitTakerAmount,
             unitMakerAmount,
-            unitTakerAmountAfterGasCosts, // isSelling ? same : plus TX_BASE_GAS
-            unitMakerAmountAfterGasCosts, // isSelling ? minus TX_BASE_GAS : same
+            unitTakerAmountAfterGasCosts,
+            unitMakerAmountAfterGasCosts,
         };
     });
 
