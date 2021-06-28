@@ -119,17 +119,6 @@ export class OrderWatcherService {
             });
         });
     }
-    private async _removeOrdersByOrderHashAsync(orderHashes: string[]): Promise<void> {
-        // MAX SQL variable size is 999. This limit is imposed via Sqlite
-        // and other databases have higher limits (or no limits at all, eg postgresql)
-        // tslint:disable-next-line:custom-no-magic-numbers
-        const chunks = _.chunk(orderHashes, 999);
-
-        const signedOrderRepository = this._connection.getRepository(SignedOrderV4Entity);
-        for (const chunk of chunks) {
-            await signedOrderRepository.delete(chunk);
-        }
-    }
     private async _onOrderLifeCycleEventAsync(
         lifecycleEvent: OrderWatcherLifeCycleEvents,
         orders: SRAOrder[],
@@ -157,8 +146,6 @@ export class OrderWatcherService {
                 break;
             }
             case OrderWatcherLifeCycleEvents.Removed: {
-                const orderHashes = orders.map((o) => o.metaData.orderHash);
-                await this._removeOrdersByOrderHashAsync(orderHashes);
                 break;
             }
             case OrderWatcherLifeCycleEvents.PersistentUpdated: {
