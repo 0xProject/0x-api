@@ -7,7 +7,7 @@ const rfqmWorkerHeartbeatTable = new Table({
     columns: [
         { name: 'address', type: 'varchar', isPrimary: true },
         { name: 'timestamp', type: 'timestamptz', default: 'NOW()' },
-        { name: 'balance', type: 'numeric' },
+        { name: 'balance', type: 'bigint' },
         { name: 'index', type: 'int' },
     ],
 });
