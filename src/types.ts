@@ -239,8 +239,8 @@ export interface SourceComparison {
     price: BigNumber | null;
     gas: BigNumber | null;
     savingsInEth: BigNumber | null;
-    buyAmount: BigNumber;
-    sellAmount: BigNumber;
+    buyAmount: BigNumber | null;
+    sellAmount: BigNumber | null;
 }
 
 export interface AffiliateFee {

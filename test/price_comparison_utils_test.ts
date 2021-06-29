@@ -80,8 +80,8 @@ describe(SUITE_NAME, () => {
                     price: null,
                     gas: null,
                     savingsInEth: null,
-                    sellAmount: ZERO,
-                    buyAmount: ZERO,
+                    sellAmount: null,
+                    buyAmount: null,
                 },
             ]);
         });
@@ -122,8 +122,8 @@ describe(SUITE_NAME, () => {
                     price: null,
                     gas: null,
                     savingsInEth: null,
-                    sellAmount: ZERO,
-                    buyAmount: ZERO,
+                    sellAmount: null,
+                    buyAmount: null,
                 },
             ]);
         });
@@ -174,8 +174,8 @@ describe(SUITE_NAME, () => {
                     price: null,
                     gas: null,
                     savingsInEth: null,
-                    sellAmount: ZERO,
-                    buyAmount: ZERO,
+                    sellAmount: null,
+                    buyAmount: null,
                 },
             ]);
         });
@@ -222,8 +222,8 @@ describe(SUITE_NAME, () => {
                     price: null,
                     gas: null,
                     savingsInEth: null,
-                    sellAmount: ZERO,
-                    buyAmount: ZERO,
+                    sellAmount: null,
+                    buyAmount: null,
                 },
             ]);
         });
