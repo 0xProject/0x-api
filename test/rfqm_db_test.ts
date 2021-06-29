@@ -6,12 +6,7 @@ import 'mocha';
 import { Connection } from 'typeorm';
 
 import { getDBConnectionAsync } from '../src/db_connection';
-import {
-    RfqmJobEntity,
-    RfqmQuoteEntity,
-    RfqmTransactionSubmissionEntity,
-    RfqmWorkerHeartbeatEntity,
-} from '../src/entities';
+import { RfqmJobEntity, RfqmQuoteEntity, RfqmTransactionSubmissionEntity } from '../src/entities';
 import { RfqmJobStatus } from '../src/entities/RfqmJobEntity';
 import { RfqmTransactionSubmissionStatus } from '../src/entities/RfqmTransactionSubmissionEntity';
 import { feeToStoredFee, RfqmDbUtils, v4RfqOrderToStoredOrder } from '../src/utils/rfqm_db_utils';
@@ -323,29 +318,6 @@ describe(SUITE_NAME, () => {
             expect(unresolvedJobs.length).to.deep.eq(2);
             expect(unresolvedJobs[0].orderHash).to.deep.eq(orderHash);
             expect(unresolvedJobs[1].orderHash).to.deep.eq('0x1234');
-        });
-        it('should create heartbeat reports and update timestamp on new reports', async () => {
-            const address = '0x123';
-            const index = 0;
-            const balance = new BigNumber(2.5);
-            const repository = connection.getRepository(RfqmWorkerHeartbeatEntity);
-
-            await dbUtils.upsertRfqmWorkerHeartbeatToDbAsync(address, index, balance);
-
-            const report = await repository.findOne({ where: { address } });
-
-            expect(report).to.not.be.undefined; // tslint:disable-line no-unused-expression
-            expect(report!.address).to.equal(address);
-            expect(report!.index).to.equal(0);
-            expect(report!.balance).to.equal(balance);
-
-            const { timestamp: timestamp1 } = report!;
-
-            // Make another report and make sure the timestamp updates
-            await dbUtils.upsertRfqmWorkerHeartbeatToDbAsync(address, index, balance);
-            const report2 = await repository.findOne({ where: { address } });
-            expect(report2).to.not.be.undefined; // tslint:disable-line no-unused-expression
-            expect(report2!.timestamp).to.be.greaterThan(timestamp1);
         });
     });
 });
