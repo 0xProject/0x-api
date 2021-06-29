@@ -16,7 +16,13 @@ import {
     RFQM_WORKER_INDEX,
     RFQT_REQUEST_MAX_RESPONSE_MS,
 } from '../config';
-import { ETH_DECIMALS, NULL_ADDRESS, ONE_SECOND_MS, RFQM_MINIMUM_EXPIRY_DURATION_MS, RFQM_TX_GAS_ESTIMATE } from '../constants';
+import {
+    ETH_DECIMALS,
+    NULL_ADDRESS,
+    ONE_SECOND_MS,
+    RFQM_MINIMUM_EXPIRY_DURATION_MS,
+    RFQM_TX_GAS_ESTIMATE,
+} from '../constants';
 import { RfqmJobEntity, RfqmQuoteEntity, RfqmTransactionSubmissionEntity } from '../entities';
 import { RfqmJobStatus } from '../entities/RfqmJobEntity';
 import { RfqmTransactionSubmissionStatus } from '../entities/RfqmTransactionSubmissionEntity';
@@ -147,7 +153,7 @@ const RFQM_DEFAULT_OPTS = {
 const RFQM_WORKER_BALANCE = new Gauge({
     name: 'rfqm_worker_balance',
     labelNames: ['address'],
-    help: 'Worker balance for RFQM'
+    help: 'Worker balance for RFQM',
 });
 
 const RFQM_WORKER_READY = new Counter({
