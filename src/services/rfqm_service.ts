@@ -159,7 +159,7 @@ const RFQM_WORKER_READY = new Counter({
 const RFQM_WORKER_NOT_READY = new Counter({
     name: 'rfqm_worker_not_ready',
     labelNames: ['address'],
-    help: 'A worker did not pass the readiness check, and is ready to pick up work',
+    help: 'A worker did not pass the readiness check, and was not able to pick up work',
 });
 
 const RFQM_JOB_REPAIR = new Gauge({
