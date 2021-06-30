@@ -103,7 +103,7 @@ export class RfqmHandlers {
         // Result
         res.status(HttpStatus.OK).send({
             liquidityAvailable: indicativeQuote !== null,
-            ...indicativeQuote
+            ...indicativeQuote,
         });
     }
 
@@ -132,7 +132,7 @@ export class RfqmHandlers {
         // Result
         res.status(HttpStatus.OK).send({
             liquidityAvailable: firmQuote !== null,
-            ...firmQuote
+            ...firmQuote,
         });
     }
 
