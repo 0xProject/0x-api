@@ -1,5 +1,9 @@
+import { BigNumber } from '@0x/utils';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
+import { BigNumberTransformer } from './transformers';
+
+export type BlockedAddressConstructorOpts = Pick<BlockedAddressEntity, 'address'> & Partial<BlockedAddressEntity>;
 @Entity({ name: 'blocked_addresses' })
 export class BlockedAddressEntity {
     @PrimaryColumn({ name: 'address', type: 'varchar' })
@@ -9,11 +13,24 @@ export class BlockedAddressEntity {
     @Column({ name: 'created_at', type: 'timestamptz', default: () => 'now()' })
     public createdAt!: Date;
 
-    constructor(address: string, createdAt?: Date) {
+    @Column({ name: 'parent', type: 'varchar', nullable: true })
+    public parent: string | null;
+
+    @Column({ name: 'last_seen_nonce', type: 'numeric', nullable: true, transformer: BigNumberTransformer })
+    public lastSeenNonce: BigNumber | null;
+
+    @Column({ name: 'ignore', type: 'boolean', default: () => false })
+    public ignore: boolean;
+
+    // tslint:disable-next-line: no-object-literal-type-assertion
+    constructor(opts: BlockedAddressConstructorOpts = {} as BlockedAddressConstructorOpts) {
         // allow createdAt overrides for testing
-        if (createdAt) {
-            this.createdAt = createdAt;
+        if (opts.createdAt) {
+            this.createdAt = opts.createdAt;
         }
-        this.address = address;
+        this.address = opts.address;
+        this.parent = opts.parent || null;
+        this.lastSeenNonce = opts.lastSeenNonce || null;
+        this.ignore = opts.ignore || false;
     }
 }
