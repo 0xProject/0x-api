@@ -6,27 +6,17 @@ import { BlockedAddressEntity } from '../entities/BlockedAddressEntity';
  * RfqBlockedAddressUtils helps manage the RFQ blocked addresses
  */
 export class RfqBlockedAddressUtils {
-    private static _singleton: RfqBlockedAddressUtils;
     private _blocked: Set<string>;
     private _expiresAt: number;
     private _updatePromise: Promise<void> | undefined;
     private _updating: boolean;
     private readonly _ttlMs: number;
 
-    /**
-     * getOrCreate either gets the RfqBlockedAddressUtils singleton, or creates it
-     */
-    public static getOrCreate(
-        connection: Connection,
-        initialBlockedSet: Set<string>,
-        ttlMs: number,
-    ): RfqBlockedAddressUtils {
-        if (!RfqBlockedAddressUtils._singleton) {
-            this._singleton = new RfqBlockedAddressUtils(connection, initialBlockedSet, ttlMs);
-            return this._singleton;
-        }
-
-        return RfqBlockedAddressUtils._singleton;
+    constructor(private readonly _connection: Connection, initialBlacklist: Set<string>, ttlMs: number) {
+        this._blocked = initialBlacklist;
+        this._ttlMs = ttlMs;
+        this._updating = false;
+        this._expiresAt = Date.now().valueOf(); // cache expires immediately
     }
 
     /**
@@ -59,16 +49,6 @@ export class RfqBlockedAddressUtils {
 
         // Guaranteed to be a fresh value
         return this._blocked.has(address.toLowerCase());
-    }
-
-    /**
-     * Private constructor - use getOrCreate instead
-     */
-    private constructor(private readonly _connection: Connection, initialBlacklist: Set<string>, ttlMs: number) {
-        this._blocked = initialBlacklist;
-        this._ttlMs = ttlMs;
-        this._updating = false;
-        this._expiresAt = Date.now().valueOf(); // cache expires immediately
     }
 
     /**

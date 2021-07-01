@@ -1,5 +1,4 @@
 import { expect } from '@0x/contracts-test-utils';
-import delay from 'delay';
 import 'mocha';
 import { Connection } from 'typeorm';
 
@@ -15,7 +14,7 @@ delete require.cache[require.resolve('../../src/app')];
 const SUITE_NAME = 'rfqBlockedAddressUtils';
 const ttlMs = 50;
 
-describe(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let connection: Connection;
     let rfqBlacklistUtils: RfqBlockedAddressUtils;
 
@@ -23,7 +22,7 @@ describe(SUITE_NAME, () => {
         await setupDependenciesAsync(SUITE_NAME);
         connection = await getDBConnectionAsync();
         await connection.synchronize(true);
-        rfqBlacklistUtils = RfqBlockedAddressUtils.getOrCreate(connection, new Set(), ttlMs);
+        rfqBlacklistUtils = new RfqBlockedAddressUtils(connection, new Set(), ttlMs);
     });
 
     after(async () => {
@@ -37,18 +36,7 @@ describe(SUITE_NAME, () => {
         // reset DB
         connection = await getDBConnectionAsync();
         await connection.synchronize(true);
-        rfqBlacklistUtils = RfqBlockedAddressUtils.getOrCreate(connection, new Set(), ttlMs);
-    });
-
-    afterEach(async () => {
-        // wait for the TTL cache to expire
-        await delay(ttlMs + 1);
-    });
-
-    it('should not initialize twice!', () => {
-        const rfqBlacklistUtils2 = RfqBlockedAddressUtils.getOrCreate(connection, new Set(), ttlMs);
-
-        expect(rfqBlacklistUtils).to.eq(rfqBlacklistUtils2);
+        rfqBlacklistUtils = new RfqBlockedAddressUtils(connection, new Set(), ttlMs);
     });
 
     it('should use stale values via isBlocked', async () => {

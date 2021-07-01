@@ -1,5 +1,5 @@
 import { BigNumber } from '@0x/utils';
-import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
+import { Check, Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 import { BigNumberTransformer } from './transformers';
 
@@ -7,6 +7,7 @@ export type BlockedAddressConstructorOpts = Pick<BlockedAddressEntity, 'address'
 @Entity({ name: 'blocked_addresses' })
 export class BlockedAddressEntity {
     @PrimaryColumn({ name: 'address', type: 'varchar' })
+    @Check('address = lower(address)')
     public address: string;
 
     @Index()
