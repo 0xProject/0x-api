@@ -9,8 +9,8 @@ const SQS_QUEUE_SIZE_FAILED_THRESHOLD = 20; // (minuteds) More messages sitting 
 
 const RECENT_HEARTBEAT_AGE_THRESHOLD = 5; // (minutes) Heartbeats older than this will produce a DEGRADED issue. A FAILED issue is produced if NO heartbeats are newer than this.
 
-const BALANCE_FAILED_THRESHOLD = 0.002; // (eth) If NO worker has a balance higher than this, a FAILED issue gets created.
-const BALANCE_DEGRADED_THRESHOLD = 0.5; // (eth) If a worker's balance is lower than this, a DEGRADED issue gets created.
+const BALANCE_FAILED_THRESHOLD = 0.05; // (eth) If NO worker has a balance higher than this, a FAILED issue gets created.
+const BALANCE_DEGRADED_THRESHOLD = 0.25; // (eth) If a worker's balance is lower than this, a DEGRADED issue gets created.
 
 const MS_IN_MINUTE = 60000;
 export enum HealthCheckStatus {
@@ -133,7 +133,10 @@ export async function checkWorkerHeartbeatsAsync(
 
     // Balances
     const failedWeiThreshold = new BigNumber(BALANCE_FAILED_THRESHOLD).shiftedBy(ETH_DECIMALS);
-    if (heartbeats.filter(({ balance }) => balance.isGreaterThanOrEqualTo(failedWeiThreshold)).length === 0) {
+    const heartbeatsAboveCriticalBalanceThreshold = heartbeats.filter(({ balance }) =>
+        balance.isGreaterThanOrEqualTo(failedWeiThreshold),
+    );
+    if (heartbeatsAboveCriticalBalanceThreshold.length === 0) {
         results.push({
             status: HealthCheckStatus.Failed,
             description: `No worker has a balance greater than the failed threshold (${BALANCE_FAILED_THRESHOLD})`,
