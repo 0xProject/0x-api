@@ -4,13 +4,14 @@ import { Producer } from 'sqs-producer';
 import { ETH_DECIMALS } from '../constants';
 import { RfqmWorkerHeartbeatEntity } from '../entities';
 
-const SQS_QUEUE_SIZE_DEGRADED_THRESHOLD = 10; // (minutes) More messages sitting in queue than this will cause a DEGRADED issue
-const SQS_QUEUE_SIZE_FAILED_THRESHOLD = 20; // (minuteds) More messages sitting in queue than this will cause a FAILED issue
+const SQS_QUEUE_SIZE_DEGRADED_THRESHOLD = 10; // More messages sitting in queue than this will cause a DEGRADED issue
+const SQS_QUEUE_SIZE_FAILED_THRESHOLD = 20; // More messages sitting in queue than this will cause a FAILED issue
 
 const RECENT_HEARTBEAT_AGE_THRESHOLD = 5; // (minutes) Heartbeats older than this will produce a DEGRADED issue. A FAILED issue is produced if NO heartbeats are newer than this.
 
 const BALANCE_FAILED_THRESHOLD = 0.04; // (eth) If NO worker has a balance higher than this, a FAILED issue gets created.
-const BALANCE_DEGRADED_THRESHOLD = 0.25; // (eth) If a worker's balance is lower than this, a DEGRADED issue gets created.
+// tslint:disable-next-line: custom-no-magic-numbers
+const BALANCE_DEGRADED_THRESHOLD = BALANCE_FAILED_THRESHOLD * 4; // (eth) If a worker's balance is lower than this, a DEGRADED issue gets created.
 
 const MS_IN_MINUTE = 60000;
 export enum HealthCheckStatus {
@@ -123,7 +124,7 @@ export async function checkWorkerHeartbeatsAsync(
     // hearbeats because it's been removed.
     sortedHeartbeats.forEach(({ index, timestamp, address }) => {
         const heartbeatAgeMinutes = (nowDate.getTime() - timestamp.getTime()) / MS_IN_MINUTE;
-        if (heartbeatAgeMinutes > RECENT_HEARTBEAT_AGE_THRESHOLD) {
+        if (heartbeatAgeMinutes >= RECENT_HEARTBEAT_AGE_THRESHOLD) {
             results.push({
                 status: HealthCheckStatus.Degraded,
                 description: `Worker ${index} (${address}) last heartbeat was ${heartbeatAgeMinutes} ago`,
@@ -148,7 +149,9 @@ export async function checkWorkerHeartbeatsAsync(
         if (balance.isLessThan(degradedThreshold)) {
             results.push({
                 status: HealthCheckStatus.Degraded,
-                description: `Worker ${index} (${address}) has a low balance: ${balance.shiftedBy(ETH_DECIMALS * -1)}`,
+                description: `Worker ${index} (${address}) has a low balance: ${balance
+                    .shiftedBy(ETH_DECIMALS * -1)
+                    .toFixed(3)}`, // tslint:disable-line: custom-no-magic-numbers
             });
         }
     });
