@@ -1,9 +1,15 @@
+import { Gauge } from 'prom-client';
 import { Connection } from 'typeorm/connection/Connection';
 
 import { BlockedAddressEntity } from '../entities/BlockedAddressEntity';
 import { logger } from '../logger';
 
 const MAX_SET_SIZE = 5000;
+
+const RFQ_BLOCKED_ADDRESS_SET_SIZE = new Gauge({
+    name: 'rfq_blocked_address_set_size',
+    help: 'The number of blocked addresses',
+});
 
 /**
  * RfqBlockedAddressUtils helps manage the RFQ blocked addresses
@@ -53,6 +59,8 @@ export class RfqBlockedAddressUtils {
         const blockedAddresses = await this._connection
             .getRepository(BlockedAddressEntity)
             .find({ take: MAX_SET_SIZE });
+
+        RFQ_BLOCKED_ADDRESS_SET_SIZE.set(blockedAddresses.length);
         if (blockedAddresses.length >= MAX_SET_SIZE) {
             logger.warn('Blocked address table has hit or exceeded the limit');
         }
