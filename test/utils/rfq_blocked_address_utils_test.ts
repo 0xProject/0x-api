@@ -14,7 +14,7 @@ delete require.cache[require.resolve('../../src/app')];
 const SUITE_NAME = 'rfqBlockedAddressUtils';
 const ttlMs = 50;
 
-describe.only(SUITE_NAME, () => {
+describe(SUITE_NAME, () => {
     let connection: Connection;
     let rfqBlacklistUtils: RfqBlockedAddressUtils;
 
