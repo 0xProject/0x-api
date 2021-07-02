@@ -1,6 +1,9 @@
 import { Connection } from 'typeorm/connection/Connection';
 
 import { BlockedAddressEntity } from '../entities/BlockedAddressEntity';
+import { logger } from '../logger';
+
+const MAX_SET_SIZE = 5000;
 
 /**
  * RfqBlockedAddressUtils helps manage the RFQ blocked addresses
@@ -12,8 +15,8 @@ export class RfqBlockedAddressUtils {
     private _updating: boolean;
     private readonly _ttlMs: number;
 
-    constructor(private readonly _connection: Connection, initialBlacklist: Set<string>, ttlMs: number) {
-        this._blocked = initialBlacklist;
+    constructor(private readonly _connection: Connection, initialBlockedSet: Set<string>, ttlMs: number) {
+        this._blocked = initialBlockedSet;
         this._ttlMs = ttlMs;
         this._updating = false;
         this._expiresAt = Date.now().valueOf(); // cache expires immediately
@@ -34,21 +37,12 @@ export class RfqBlockedAddressUtils {
     }
 
     /**
-     * isBlockedAsync returns whether an address is blocked. The value is as "fresh" as the TTL allows
+     * completeUpdateAsync returns a Promise that resolves when the blocked address cache is updated
      */
-    public async isBlockedAsync(address: string): Promise<boolean> {
-        // If already updating, await until done
-        if (this._updating) {
-            await this._updatePromise;
+    public async completeUpdateAsync(): Promise<void> {
+        if (this._updatePromise) {
+            return this._updatePromise;
         }
-
-        // Check if the TTL has been exceeded
-        if (Date.now().valueOf() > this._expiresAt && !this._updating) {
-            await this._updateBlockedSetAsync();
-        }
-
-        // Guaranteed to be a fresh value
-        return this._blocked.has(address.toLowerCase());
     }
 
     /**
@@ -56,7 +50,12 @@ export class RfqBlockedAddressUtils {
      */
     private async _updateBlockedSetAsync(): Promise<void> {
         this._updating = true;
-        const blockedAddresses = await this._connection.getRepository(BlockedAddressEntity).find();
+        const blockedAddresses = await this._connection
+            .getRepository(BlockedAddressEntity)
+            .find({ take: MAX_SET_SIZE });
+        if (blockedAddresses.length >= MAX_SET_SIZE) {
+            logger.warn('Blocked address table has hit or exceeded the limit');
+        }
         this._blocked = new Set(blockedAddresses.map((entity) => entity.address.toLowerCase()));
         this._expiresAt = Date.now().valueOf() + this._ttlMs;
         this._updating = false;

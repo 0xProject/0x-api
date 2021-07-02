@@ -1,7 +1,4 @@
-import { BigNumber } from '@0x/utils';
 import { Check, Column, Entity, Index, PrimaryColumn } from 'typeorm';
-
-import { BigNumberTransformer } from './transformers';
 
 export type BlockedAddressConstructorOpts = Pick<BlockedAddressEntity, 'address'> & Partial<BlockedAddressEntity>;
 @Entity({ name: 'blocked_addresses' })
@@ -17,8 +14,8 @@ export class BlockedAddressEntity {
     @Column({ name: 'parent', type: 'varchar', nullable: true })
     public parent: string | null;
 
-    @Column({ name: 'last_seen_nonce', type: 'numeric', nullable: true, transformer: BigNumberTransformer })
-    public lastSeenNonce: BigNumber | null;
+    @Column({ name: 'last_seen_nonce', type: 'bigint', nullable: true })
+    public lastSeenNonce: number | null;
 
     @Column({ name: 'ignore', type: 'boolean', default: () => false })
     public ignore: boolean;

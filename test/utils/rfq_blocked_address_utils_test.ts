@@ -14,7 +14,7 @@ delete require.cache[require.resolve('../../src/app')];
 const SUITE_NAME = 'rfqBlockedAddressUtils';
 const ttlMs = 50;
 
-describe(SUITE_NAME, () => {
+describe.only(SUITE_NAME, () => {
     let connection: Connection;
     let rfqBlacklistUtils: RfqBlockedAddressUtils;
 
@@ -39,6 +39,29 @@ describe(SUITE_NAME, () => {
         rfqBlacklistUtils = new RfqBlockedAddressUtils(connection, new Set(), ttlMs);
     });
 
+    describe('blocked_addresses table', () => {
+        it('should only allow lower case insertions', async () => {
+            const sampleBadAddress = '0xA10612Ee5432B6395d1F0d6fB2601299a1c64274';
+
+            try {
+                await connection.getRepository(BlockedAddressEntity).save({
+                    address: sampleBadAddress,
+                });
+                expect.fail('should throw');
+            } catch (err) {
+                expect(err.message).to.match(/violates check constraint/);
+            }
+
+            try {
+                await connection.getRepository(BlockedAddressEntity).save({
+                    address: sampleBadAddress.toLowerCase(),
+                });
+            } catch (err) {
+                expect.fail('lower case should not throw');
+            }
+        });
+    });
+
     it('should use stale values via isBlocked', async () => {
         const sampleBadAddress = '0xA10612Ee5432B6395d1F0d6fB2601299a1c64274';
         expect(rfqBlacklistUtils.isBlocked(sampleBadAddress)).to.be.false();
@@ -51,7 +74,7 @@ describe(SUITE_NAME, () => {
         expect(rfqBlacklistUtils.isBlocked(sampleBadAddress)).to.be.false();
     });
 
-    it('should use fresh values via isBlockedAsync', async () => {
+    it('should use fresh values after the update is complete', async () => {
         const sampleBadAddress = '0xB10612Ee5432B6395d1F0d6fB2601299a1c64274';
 
         // Add it to the blocked list
@@ -59,21 +82,31 @@ describe(SUITE_NAME, () => {
             address: sampleBadAddress.toLowerCase(),
         });
 
-        const isBlocked = await rfqBlacklistUtils.isBlockedAsync(sampleBadAddress);
+        // Initally not blocked
+        const isBlocked_t0 = rfqBlacklistUtils.isBlocked(sampleBadAddress);
+        expect(isBlocked_t0).to.be.false();
 
-        expect(isBlocked).to.be.true();
+        // Await for the update to complete
+        await rfqBlacklistUtils.completeUpdateAsync();
+
+        // Now should be blocked
+        const isBlocked_t1 = rfqBlacklistUtils.isBlocked(sampleBadAddress);
+        expect(isBlocked_t1).to.be.true();
     });
 
     it('should be case insensitive', async () => {
         const sampleBadAddress = '0xC10612Ee5432B6395d1F0d6fB2601299a1c64274';
-        // Add it to the blocked list
         await connection.getRepository(BlockedAddressEntity).save({
             address: sampleBadAddress.toLowerCase(),
         });
 
-        const isChecksumBlocked = await rfqBlacklistUtils.isBlockedAsync(sampleBadAddress);
-        const isLowerCaseBlocked = await rfqBlacklistUtils.isBlockedAsync(sampleBadAddress.toLowerCase());
-        const isUpperCaseBlocked = await rfqBlacklistUtils.isBlockedAsync(sampleBadAddress.toUpperCase());
+        // Trigger the update and wait for completion
+        rfqBlacklistUtils.isBlocked(sampleBadAddress);
+        await rfqBlacklistUtils.completeUpdateAsync();
+
+        const isChecksumBlocked = rfqBlacklistUtils.isBlocked(sampleBadAddress);
+        const isLowerCaseBlocked = rfqBlacklistUtils.isBlocked(sampleBadAddress.toLowerCase());
+        const isUpperCaseBlocked = rfqBlacklistUtils.isBlocked(sampleBadAddress.toUpperCase());
 
         expect(isChecksumBlocked).to.be.true();
         expect(isLowerCaseBlocked).to.be.true();
