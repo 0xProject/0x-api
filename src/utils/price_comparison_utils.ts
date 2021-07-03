@@ -3,6 +3,7 @@ import {
     ERC20BridgeSource,
     FeeSchedule,
     PriceComparisonsReport,
+    SELL_SOURCE_FILTER_BY_CHAIN_ID,
     UniswapV2FillData,
 } from '@0x/asset-swapper';
 import { getTokenMetadataIfExists } from '@0x/token-metadata';
@@ -39,18 +40,19 @@ const gasScheduleWithOverrides: FeeSchedule = {
     },
 };
 
-const NULL_SOURCE_COMPARISONS = Object.values(ERC20BridgeSource).reduce<SourceComparison[]>((memo, liquiditySource) => {
-    memo.push({
-        name: liquiditySource,
-        price: null,
-        gas: null,
-        savingsInEth: null,
-        buyAmount: null,
-        sellAmount: null,
-    });
-
-    return memo;
-}, []);
+const getNullSourceComparisonsForChain = (chainId: ChainId) => {
+    return SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].sources.reduce<SourceComparison[]>((memo, liquiditySource) => {
+        memo.push({
+            name: liquiditySource,
+            price: null,
+            gas: null,
+            savingsInEth: null,
+            buyAmount: null,
+            sellAmount: null,
+        });
+        return memo;
+    }, []);
+};
 
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
@@ -193,6 +195,9 @@ function getPriceComparisonFromQuoteOrThrow(
     });
 
     // Add null values for all sources we don't have a result for so that we always have a full result set in the response
-    const allSourcePrices = _.uniqBy<SourceComparison>([...sourcePrices, ...NULL_SOURCE_COMPARISONS], 'name');
+    const allSourcePrices = _.uniqBy<SourceComparison>(
+        [...sourcePrices, ...getNullSourceComparisonsForChain(chainId)],
+        'name',
+    );
     return allSourcePrices;
 }
