@@ -11,6 +11,7 @@ import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
+import { CHAIN_ID } from '../config';
 
 import { GAS_LIMIT_BUFFER_MULTIPLIER, TX_BASE_GAS, ZERO } from '../constants';
 import { logger } from '../logger';
@@ -40,8 +41,8 @@ const gasScheduleWithOverrides: FeeSchedule = {
     },
 };
 
-const getNullSourceComparisonsForChain = (chainId: ChainId) => {
-    return SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].sources.reduce<SourceComparison[]>((memo, liquiditySource) => {
+const NULL_SOURCE_COMPARISONS = SELL_SOURCE_FILTER_BY_CHAIN_ID[CHAIN_ID].sources.reduce<SourceComparison[]>(
+    (memo, liquiditySource) => {
         memo.push({
             name: liquiditySource,
             price: null,
@@ -51,8 +52,9 @@ const getNullSourceComparisonsForChain = (chainId: ChainId) => {
             sellAmount: null,
         });
         return memo;
-    }, []);
-};
+    },
+    [],
+);
 
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
@@ -195,9 +197,6 @@ function getPriceComparisonFromQuoteOrThrow(
     });
 
     // Add null values for all sources we don't have a result for so that we always have a full result set in the response
-    const allSourcePrices = _.uniqBy<SourceComparison>(
-        [...sourcePrices, ...getNullSourceComparisonsForChain(chainId)],
-        'name',
-    );
+    const allSourcePrices = _.uniqBy<SourceComparison>([...sourcePrices, ...NULL_SOURCE_COMPARISONS], 'name');
     return allSourcePrices;
 }
