@@ -14,6 +14,10 @@ const BALANCE_FAILED_THRESHOLD = 0.04; // (eth) If NO worker has a balance highe
 const BALANCE_DEGRADED_THRESHOLD = BALANCE_FAILED_THRESHOLD * 4; // (eth) If a worker's balance is lower than this, a DEGRADED issue gets created.
 
 const MS_IN_MINUTE = 60000;
+
+const BALANCE_DEGRADED_THRESHOLD_WEI = new BigNumber(BALANCE_DEGRADED_THRESHOLD).shiftedBy(ETH_DECIMALS);
+const BALANCE_FAILED_THRESHOLD_WEI = new BigNumber(BALANCE_FAILED_THRESHOLD).shiftedBy(ETH_DECIMALS);
+
 export enum HealthCheckStatus {
     Operational = 'operational',
     Unknown = 'unknown',
@@ -76,7 +80,7 @@ export function getHttpIssues(isMaintainenceMode: boolean, registryBalance: BigN
             description: 'RFQM is set to maintainence mode via the 0x API configuration',
         });
     }
-    if (registryBalance.isLessThan(new BigNumber(BALANCE_FAILED_THRESHOLD).shiftedBy(ETH_DECIMALS))) {
+    if (registryBalance.isLessThan(BALANCE_FAILED_THRESHOLD_WEI)) {
         issues.push({
             status: HealthCheckStatus.Failed,
             description: `Registry balance is ${registryBalance
@@ -155,9 +159,8 @@ export async function checkWorkerHeartbeatsAsync(
     });
 
     // Balances
-    const failedWeiThreshold = new BigNumber(BALANCE_FAILED_THRESHOLD).shiftedBy(ETH_DECIMALS);
     const heartbeatsAboveCriticalBalanceThreshold = heartbeats.filter(({ balance }) =>
-        balance.isGreaterThanOrEqualTo(failedWeiThreshold),
+        balance.isGreaterThanOrEqualTo(BALANCE_FAILED_THRESHOLD_WEI),
     );
     if (heartbeatsAboveCriticalBalanceThreshold.length === 0) {
         results.push({
@@ -166,9 +169,8 @@ export async function checkWorkerHeartbeatsAsync(
         });
     }
 
-    const degradedThreshold = new BigNumber(BALANCE_DEGRADED_THRESHOLD).shiftedBy(ETH_DECIMALS);
     heartbeats.forEach(({ address, balance, index }) => {
-        if (balance.isLessThan(degradedThreshold)) {
+        if (balance.isLessThan(BALANCE_DEGRADED_THRESHOLD_WEI)) {
             results.push({
                 status: HealthCheckStatus.Degraded,
                 description: `Worker ${index} (${address}) has a low balance: ${balance
