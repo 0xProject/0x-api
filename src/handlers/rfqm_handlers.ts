@@ -24,7 +24,7 @@ import {
     SubmitRfqmSignedQuoteParams,
 } from '../services/rfqm_service';
 import { ConfigManager } from '../utils/config_manager';
-import { transformResultToShortResponse } from '../utils/rfqm_health_check';
+import { HealthCheckResult, transformResultToShortResponse } from '../utils/rfqm_health_check';
 import {
     StringMetaTransactionFields,
     StringSignatureFields,
@@ -75,7 +75,13 @@ const RFQM_SIGNED_QUOTE_SUBMITTED = new Counter({
     labelNames: ['apiKey'],
 });
 
+// If the cache is more seconds old than the value specified here, it will be refreshed.
+const HEALTH_CHECK_RESULT_CACHE_DURATION_S = 60;
+
+type RfqmHealthCheckResultCache = [HealthCheckResult, Date];
+
 export class RfqmHandlers {
+    private _cachedHealthCheckResult: RfqmHealthCheckResultCache | null = null;
     constructor(private readonly _rfqmService: RfqmService, private readonly _configManager: ConfigManager) {}
 
     public async getIndicativeQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
@@ -137,7 +143,42 @@ export class RfqmHandlers {
     }
 
     public async getHealthAsync(req: express.Request, res: express.Response): Promise<void> {
-        const result = await this._rfqmService.runHealthCheckAsync();
+        // The maximum age of the cache as specified in the request
+        let cacheAgeHeaderMaxAgeMs = Infinity;
+        // Users can add the `Cache Control` header to the request to get fresh data if they need it (mostly for dev testing).
+        // The header has the form of `Cache-Control: max-age=<seconds>`. See:
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#cache_request_directives
+        const cacheControlHeaderString = req.get('Cache-Control');
+        if (cacheControlHeaderString && this._cachedHealthCheckResult !== null) {
+            // https://regex101.com/r/baN0hO/1
+            const regexResult = /max-age=(?<maxAgeString>\d*\.?\d*)/i.exec(cacheControlHeaderString);
+            if (regexResult !== null) {
+                const maxAgeString = regexResult?.groups?.maxAgeString;
+                if (maxAgeString) {
+                    const maxAgeS = parseFloat(maxAgeString);
+                    if (!Number.isNaN(maxAgeS)) {
+                        // tslint:disable-next-line: custom-no-magic-numbers
+                        cacheAgeHeaderMaxAgeMs = maxAgeS * 1000;
+                    }
+                }
+            }
+        }
+
+        let result: HealthCheckResult;
+        if (this._cachedHealthCheckResult === null) {
+            result = await this._rfqmService.runHealthCheckAsync();
+            this._cachedHealthCheckResult = [result, new Date()];
+        } else {
+            const cacheAgeMs = Date.now() - this._cachedHealthCheckResult[1].getTime();
+            // tslint:disable-next-line: custom-no-magic-numbers
+            if (cacheAgeMs >= HEALTH_CHECK_RESULT_CACHE_DURATION_S * 1000 || cacheAgeMs >= cacheAgeHeaderMaxAgeMs) {
+                result = await this._rfqmService.runHealthCheckAsync();
+                this._cachedHealthCheckResult = [result, new Date()];
+            } else {
+                result = this._cachedHealthCheckResult[0];
+            }
+        }
+
         const response = transformResultToShortResponse(result);
         res.status(HttpStatus.OK).send(response);
     }
