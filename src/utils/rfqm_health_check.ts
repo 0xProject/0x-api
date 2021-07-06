@@ -66,6 +66,28 @@ export function transformResultToShortResponse(result: HealthCheckResult): RfqmH
 }
 
 /**
+ * Creates issues related to the server/API not specific to the worker farm.
+ */
+export function getHttpIssues(isMaintainenceMode: boolean, registryBalance: BigNumber): HealthCheckIssue[] {
+    const issues = [];
+    if (isMaintainenceMode) {
+        issues.push({
+            status: HealthCheckStatus.Maintenance,
+            description: 'RFQM is set to maintainence mode via the 0x API configuration',
+        });
+    }
+    if (registryBalance.isLessThan(new BigNumber(BALANCE_FAILED_THRESHOLD).shiftedBy(ETH_DECIMALS))) {
+        issues.push({
+            status: HealthCheckStatus.Failed,
+            description: `Registry balance is ${registryBalance
+                .shiftedBy(ETH_DECIMALS * -1)
+                .toFixed(2)} (threshold is ${BALANCE_FAILED_THRESHOLD})`,
+        });
+    }
+    return issues;
+}
+
+/**
  * Runs checks on the SQS queue to detect if there are messages piling up.
  */
 export async function checkSqsQueueAsync(producer: Producer): Promise<HealthCheckIssue[]> {
