@@ -56,13 +56,13 @@ async function runHttpServiceAsync(
     app.use(errorHandler);
 
     // websocket service
-    if (dependencies.meshClient) {
-        // tslint:disable-next-line:no-unused-expression
-        new WebsocketService(server, dependencies.meshClient, dependencies.websocketOpts);
-    } else {
-        logger.error(`Could not establish mesh connection, exiting`);
-        process.exit(1);
-    }
+    // if (dependencies.meshClient) {
+    //     // tslint:disable-next-line:no-unused-expression
+    //     new WebsocketService(server, dependencies.meshClient, dependencies.websocketOpts);
+    // } else {
+    //     logger.error(`Could not establish mesh connection, exiting`);
+    //     process.exit(1);
+    // }
 
     server.listen(config.httpPort);
     return server;
