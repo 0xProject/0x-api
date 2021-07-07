@@ -142,28 +142,10 @@ export class RfqmHandlers {
         });
     }
 
+    /**
+     * Handler for the `/rfqm/v1/healthz` endpoint.
+     */
     public async getHealthAsync(req: express.Request, res: express.Response): Promise<void> {
-        // The maximum age of the cache as specified in the request
-        let cacheAgeHeaderMaxAgeMs = Infinity;
-        // Users can add the `Cache Control` header to the request to get fresh data if they need it (mostly for dev testing).
-        // The header has the form of `Cache-Control: max-age=<seconds>`. See:
-        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#cache_request_directives
-        const cacheControlHeaderString = req.get('Cache-Control');
-        if (cacheControlHeaderString && this._cachedHealthCheckResult !== null) {
-            // https://regex101.com/r/baN0hO/1
-            const regexResult = /max-age=(?<maxAgeString>\d*\.?\d*)/i.exec(cacheControlHeaderString);
-            if (regexResult !== null) {
-                const maxAgeString = regexResult?.groups?.maxAgeString;
-                if (maxAgeString) {
-                    const maxAgeS = parseFloat(maxAgeString);
-                    if (!Number.isNaN(maxAgeS)) {
-                        // tslint:disable-next-line: custom-no-magic-numbers
-                        cacheAgeHeaderMaxAgeMs = maxAgeS * 1000;
-                    }
-                }
-            }
-        }
-
         let result: HealthCheckResult;
         if (this._cachedHealthCheckResult === null) {
             result = await this._rfqmService.runHealthCheckAsync();
