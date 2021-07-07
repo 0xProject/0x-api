@@ -76,7 +76,7 @@ const RFQM_SIGNED_QUOTE_SUBMITTED = new Counter({
 });
 
 // If the cache is more seconds old than the value specified here, it will be refreshed.
-const HEALTH_CHECK_RESULT_CACHE_DURATION_S = 60;
+const HEALTH_CHECK_RESULT_CACHE_DURATION_S = 30;
 
 type RfqmHealthCheckResultCache = [HealthCheckResult, Date];
 
@@ -153,7 +153,7 @@ export class RfqmHandlers {
         } else {
             const cacheAgeMs = Date.now() - this._cachedHealthCheckResult[1].getTime();
             // tslint:disable-next-line: custom-no-magic-numbers
-            if (cacheAgeMs >= HEALTH_CHECK_RESULT_CACHE_DURATION_S * 1000 || cacheAgeMs >= cacheAgeHeaderMaxAgeMs) {
+            if (cacheAgeMs >= HEALTH_CHECK_RESULT_CACHE_DURATION_S * 1000) {
                 result = await this._rfqmService.runHealthCheckAsync();
                 this._cachedHealthCheckResult = [result, new Date()];
             } else {
