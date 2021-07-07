@@ -197,7 +197,7 @@ export async function getAppAsync(
     config: HttpServiceConfig,
 ): Promise<{ app: Express.Application; server: Server }> {
     const app = express();
-    const { server, wsService } = await runHttpServiceAsync(dependencies, config, app);
+    const { server } = await runHttpServiceAsync(dependencies, config, app);
     if (dependencies.meshClient !== undefined) {
         try {
             await runOrderWatcherServiceAsync(dependencies.connection, dependencies.meshClient);
@@ -207,11 +207,10 @@ export async function getAppAsync(
     } else {
         logger.warn('No mesh client provided, API running without Order Watcher');
     }
-    // Register a shutdown event listener.
-    // TODO: More teardown logic should be added here. For example, the mesh rpc
-    // client should be destroyed and services should be torn down.
     server.on('close', async () => {
-        await wsService.destroyAsync();
+      // Register a shutdown event listener.
+      // TODO: More teardown logic should be added here. For example, the mesh rpc
+      // client should be destroyed and services should be torn down.
     });
 
     return { app, server };

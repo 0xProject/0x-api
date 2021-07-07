@@ -14,7 +14,6 @@ import { errorHandler } from '../middleware/error_handling';
 import { createMetaTransactionRouter } from '../routers/meta_transaction_router';
 import { createSRARouter } from '../routers/sra_router';
 import { createSwapRouter } from '../routers/swap_router';
-import { WebsocketService } from '../services/websocket_service';
 import { HttpServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
@@ -46,7 +45,6 @@ if (require.main === module) {
 
 export interface HttpServices {
     server: Server;
-    wsService: WebsocketService;
 }
 
 /**
@@ -93,18 +91,8 @@ export async function runHttpServiceAsync(
 
     app.use(errorHandler);
 
-    // websocket service
-    let wsService: WebsocketService;
-    if (dependencies.meshClient) {
-        // tslint:disable-next-line:no-unused-expression
-        wsService = new WebsocketService(server, dependencies.meshClient, dependencies.websocketOpts);
-    } else {
-        logger.error(`Could not establish mesh connection, exiting`);
-        process.exit(1);
-    }
     server.listen(config.httpPort);
     return {
         server,
-        wsService,
     };
 }
