@@ -2,7 +2,7 @@ import { createMetricsRouter, MetricsService } from '@0x/api-utils';
 import { BalanceCheckerContract } from '@0x/asset-swapper';
 import { artifacts } from '@0x/asset-swapper/lib/src/artifacts';
 import { BlockParamLiteral, SupportedProvider, Web3Wrapper } from '@0x/dev-utils';
-import { BigNumber, logUtils } from '@0x/utils';
+import { BigNumber } from '@0x/utils';
 import * as delay from 'delay';
 import * as express from 'express';
 import * as _ from 'lodash';
@@ -130,13 +130,10 @@ async function runRfqBalanceCacheAsync(
         }
 
         if (lastBlockSeen < newBlock) {
-            logUtils.log(
-                {
-                    block: newBlock,
-                    workerId,
-                },
-                'Found new block',
-            );
+            logger.info('Found new block', {
+                block: newBlock,
+                workerId,
+            });
 
             try {
                 await cacheRfqBalancesAsync(connection, balanceCheckerContractInterface, true, workerId);
