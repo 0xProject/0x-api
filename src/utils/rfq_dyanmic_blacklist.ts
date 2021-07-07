@@ -20,44 +20,37 @@ export class RfqDynamicBlacklist implements Set<string> {
         return this._rfqBlockedAddressUtils.isBlocked(value);
     }
 
-    /// Unimplemented methods
-    // tslint:disable-next-line: prefer-function-over-method
+    /// Pass through methods
     public add(value: string): this {
-        throw new Error('Method not implemented.');
+        this._rfqBlockedAddressUtils._blocked.add(value);
+        return this;
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     public clear(): void {
-        throw new Error('Method not implemented.');
+        this._rfqBlockedAddressUtils._blocked.clear();
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     public delete(value: string): boolean {
-        throw new Error('Method not implemented.');
+        return this._rfqBlockedAddressUtils._blocked.delete(value);
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     public forEach(callbackfn: (value: string, value2: string, set: Set<string>) => void, thisArg?: any): void {
-        throw new Error('Method not implemented.');
+        this._rfqBlockedAddressUtils._blocked.forEach(callbackfn);
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     public entries(): IterableIterator<[string, string]> {
-        throw new Error('Method not implemented.');
+        return this._rfqBlockedAddressUtils._blocked.entries();
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     public keys(): IterableIterator<string> {
-        throw new Error('Method not implemented.');
+        return this._rfqBlockedAddressUtils._blocked.keys();
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     public values(): IterableIterator<string> {
-        throw new Error('Method not implemented.');
+        return this._rfqBlockedAddressUtils._blocked.values();
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     public [Symbol.iterator](): IterableIterator<string> {
-        throw new Error('Method not implemented.');
+        return this._rfqBlockedAddressUtils._blocked.values();
     }
 }
