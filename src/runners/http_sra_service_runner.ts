@@ -15,7 +15,7 @@ import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
 import { createSRARouter } from '../routers/sra_router';
-import { WebsocketService } from '../services/websocket_service';
+// import { WebsocketService } from '../services/websocket_service';
 import { HttpServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
