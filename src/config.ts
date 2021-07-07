@@ -173,6 +173,8 @@ export const DB_ORDERS_UPDATE_CHUNK_SIZE = 300;
 // Ethereum RPC Url list
 export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.UrlList);
 
+export const ORDER_WATCHER_URL = '127.0.0.1:8080';
+
 // Mesh Endpoint
 export const MESH_WEBSOCKET_URI = _.isEmpty(process.env.MESH_WEBSOCKET_URI)
     ? undefined
@@ -592,8 +594,6 @@ export const defaultHttpServiceConfig: HttpServiceConfig = {
     enablePrometheusMetrics: ENABLE_PROMETHEUS_METRICS,
     prometheusPort: PROMETHEUS_PORT,
     prometheusPath: METRICS_PATH,
-    meshWebsocketUri: MESH_WEBSOCKET_URI,
-    meshHttpUri: MESH_HTTP_URI,
 };
 
 export const defaultHttpServiceWithRateLimiterConfig: HttpServiceConfig = {
