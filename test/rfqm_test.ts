@@ -1,6 +1,5 @@
 // tslint:disable:max-file-line-count custom-no-magic-numbers
 import {
-    BigNumber,
     MockedRfqQuoteResponse,
     ProtocolFeeUtils,
     QuoteRequestor,
@@ -12,7 +11,7 @@ import {
 import { ContractAddresses } from '@0x/contract-addresses';
 import { expect, randomAddress } from '@0x/contracts-test-utils';
 import { MetaTransaction, MetaTransactionFields, RfqOrder } from '@0x/protocol-utils';
-import { generatePseudoRandom256BitNumber } from '@0x/utils';
+import { BigNumber, generatePseudoRandom256BitNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import Axios, { AxiosInstance } from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';

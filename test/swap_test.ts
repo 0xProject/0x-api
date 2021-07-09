@@ -57,7 +57,7 @@ const DEFAULT_QUERY_PARAMS = {
 const MAKER_WETH_AMOUNT = new BigNumber('1000000000000000000');
 const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
-describe(SUITE_NAME, () => {
+describe.skip(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
     let dependencies: AppDependencies;

@@ -7,8 +7,8 @@ import * as https from 'https';
 import JsonRpcError = require('json-rpc-error');
 import fetch, { Headers, Response } from 'node-fetch';
 
-const httpAgent = new http.Agent({ keepAlive: true });
-const httpsAgent = new https.Agent({ keepAlive: true });
+const httpAgent = new http.Agent({ keepAlive: true } as any);
+const httpsAgent = new https.Agent({ keepAlive: true } as any);
 const agent = (_parsedURL: any) => (_parsedURL.protocol === 'http:' ? httpAgent : httpsAgent);
 
 /**

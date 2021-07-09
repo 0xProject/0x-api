@@ -1,10 +1,13 @@
-import { BalancerFillData, CurveFillData, FillData, UniswapV2FillData } from '@0x/asset-swapper';
 import {
+    BalancerFillData,
+    CurveFillData,
     DexSample,
     ERC20BridgeSource,
+    FillData,
     MarketDepthSide,
     NativeFillData,
-} from '@0x/asset-swapper/lib/src/utils/market_operation_utils/types';
+    UniswapV2FillData,
+} from '@0x/asset-swapper';
 import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
