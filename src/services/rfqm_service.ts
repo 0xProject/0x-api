@@ -529,18 +529,19 @@ export class RfqmService {
         const balanceUnitAmount = Web3Wrapper.toUnitAmount(balance, ETH_DECIMALS).decimalPlaces(PRICE_DECIMAL_PLACES);
         RFQM_WORKER_BALANCE.labels(workerAddress).set(balanceUnitAmount.toNumber());
 
+        // Check if worker is ready to process jobs
+        const isWorkerReady = await this._blockchainUtils.isWorkerReadyAsync(workerAddress, balance, gasPrice);
+        if (!isWorkerReady) {
+            RFQM_WORKER_NOT_READY.labels(workerAddress).inc();
+            return false;
+        }
+
         // check for outstanding jobs from the worker and resolve them
         const unresolvedJobs = await this._dbUtils.findUnresolvedJobsAsync(workerAddress);
         RFQM_JOB_REPAIR.labels(workerAddress).inc(unresolvedJobs.length);
         for (const job of unresolvedJobs) {
             logger.info({ workerAddress, orderHash: job.orderHash }, `Unresolved job found, attempting to re-process`);
             await this.processRfqmJobAsync(job.orderHash, workerAddress);
-        }
-
-        const isWorkerReady = await this._blockchainUtils.isWorkerReadyAsync(workerAddress, balance, gasPrice);
-        if (!isWorkerReady) {
-            RFQM_WORKER_NOT_READY.labels(workerAddress).inc();
-            return false;
         }
 
         // Publish a heartbeat if the worker is ready to go

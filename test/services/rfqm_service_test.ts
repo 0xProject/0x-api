@@ -15,7 +15,7 @@ import { expect } from '@0x/contracts-test-utils';
 import { MetaTransaction, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { Producer } from 'sqs-producer';
-import { anything, instance, mock, when } from 'ts-mockito';
+import { anything, instance, mock, verify, when } from 'ts-mockito';
 
 import { ETH_DECIMALS, ONE_MINUTE_MS } from '../../src/constants';
 import { RfqmJobEntity, RfqmTransactionSubmissionEntity } from '../../src/entities';
@@ -1031,6 +1031,26 @@ describe('RfqmService', () => {
 
                 expect(res.price.toNumber()).to.equal(1.01); // Worse pricing wins because better pricing is for wrong chain
             });
+        });
+    });
+
+    describe('workerBeforeLogicAsync', () => {
+        it('should not process unresolved jobs if worker is not ready', async () => {
+            const dbUtilsMock = mock(RfqmDbUtils);
+            const blockchainUtilsMock = mock(RfqBlockchainUtils);
+            when(blockchainUtilsMock.getAccountBalanceAsync(MOCK_WORKER_REGISTRY_ADDRESS)).thenResolve(
+                WORKER_FULL_BALANCE_WEI,
+            );
+            when(blockchainUtilsMock.isWorkerReadyAsync(anything(), anything(), anything())).thenResolve(false);
+            const service = buildRfqmServiceForUnitTest({
+                dbUtils: instance(dbUtilsMock),
+                rfqBlockchainUtils: instance(blockchainUtilsMock),
+            });
+
+            const isReady = await service.workerBeforeLogicAsync(MOCK_WORKER_REGISTRY_ADDRESS);
+
+            expect(isReady).to.eq(false);
+            verify(dbUtilsMock.findUnresolvedJobsAsync(anything())).never();
         });
     });
 
