@@ -95,7 +95,7 @@ describe('Transaction Watcher Service integration test', () => {
             connection.getRepository(MakerBalanceChainCacheEntity),
             RFQ_FIRM_QUOTE_CACHE_EXPIRY,
         );
-        const swapService = new SwapService(
+        const swapService = await SwapService.createAsync(
             new AssetSwapperOrderbook(orderBookService),
             provider,
             contractAddresses,

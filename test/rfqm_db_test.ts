@@ -1,7 +1,7 @@
-import { BigNumber } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
 import { RfqOrder } from '@0x/protocol-utils';
 import { Fee } from '@0x/quote-server/lib/src/types';
+import { BigNumber } from '@0x/utils';
 import 'mocha';
 import { Connection } from 'typeorm';
 

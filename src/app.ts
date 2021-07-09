@@ -152,7 +152,7 @@ export async function getDefaultAppDependenciesAsync(
             RFQT_TX_ORIGIN_BLACKLIST,
             RFQ_DYNAMIC_BLACKLIST_TTL,
         );
-        swapService = new SwapService(
+        swapService = await SwapService.createAsync(
             new AssetSwapperOrderbook(orderBookService),
             provider,
             contractAddresses,
