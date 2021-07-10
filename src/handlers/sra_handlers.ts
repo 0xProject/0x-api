@@ -1,10 +1,10 @@
 import { BigNumber } from '@0x/utils';
+import axios from 'axios';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
-import axios from 'axios'
 
-import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS, ORDER_WATCHER_URL } from '../config';
+import { FEE_RECIPIENT_ADDRESS, ORDER_WATCHER_URL, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
 import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
 import { SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
@@ -89,7 +89,7 @@ export class SRAHandlers {
 
         await axios.post(`${ORDER_WATCHER_URL}/order`, req.body, {
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
         });
 
@@ -112,7 +112,7 @@ export class SRAHandlers {
             res.status(HttpStatus.OK).send();
         }
         await axios.post(`${ORDER_WATCHER_URL}/orders`, {
-          data: req.body,
+            data: req.body,
         });
         if (!shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
