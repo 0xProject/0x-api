@@ -10,7 +10,6 @@ const SUITE_NAME = 'parseUtils';
 
 describe(SUITE_NAME, () => {
     beforeEach(() => {
-        delete process.env.TEST_LEGACY_KEY;
         delete process.env.TEST_NEW_KEY;
     });
 
