@@ -111,8 +111,10 @@ export class SRAHandlers {
         if (shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
-        await axios.post(`${ORDER_WATCHER_URL}/orders`, {
-            data: req.body,
+        await axios.post(`${ORDER_WATCHER_URL}/orders`, req.body, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
         if (!shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
