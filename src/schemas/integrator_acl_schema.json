@@ -16,7 +16,6 @@
         "plp": {
             "type": "boolean"
         },
-        "required": ["label", "integratorId", "apiKeys", "rfqt", "rfqm", "plp"],
         "rfqm": {
             "type": "boolean"
         },
@@ -24,5 +23,6 @@
             "type": "boolean"
         }
     },
+    "required": ["label", "integratorId", "apiKeys", "rfqt", "rfqm", "plp"],
     "type": "object"
 }
