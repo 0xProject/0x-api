@@ -3,7 +3,6 @@ import { expect } from '@0x/contracts-test-utils';
 import { NULL_ADDRESS } from '@0x/utils';
 import 'mocha';
 
-import { getApiKeyWhitelistFromIntegratorsAcl, IntegratorsAcl } from '../src/config';
 import { parseUtils } from '../src/utils/parse_utils';
 
 const SUITE_NAME = 'parseUtils';
