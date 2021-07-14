@@ -9,8 +9,8 @@ const TOKEN_GAS_PREMIUM: Record<string, number> = {
  * Prepares the gas estimate for an RFQM trade
  */
 export function calculateGasEstimate(makerToken: string, takerToken: string): number {
-    const makerTokenPremium: number = TOKEN_GAS_PREMIUM[makerToken] || 0;
-    const takerTokenPremium: number = TOKEN_GAS_PREMIUM[takerToken] || 0;
+    const makerTokenPremium: number = TOKEN_GAS_PREMIUM[makerToken.toLowerCase()] || 0;
+    const takerTokenPremium: number = TOKEN_GAS_PREMIUM[takerToken.toLowerCase()] || 0;
 
     return RFQM_TX_GAS_ESTIMATE + makerTokenPremium + takerTokenPremium;
 }
