@@ -33,7 +33,6 @@ import {
 } from '../utils/rfqm_request_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
-
 // TODO (MKR-123): Remove the apiKey reference once dashboards are updated
 const RFQM_INDICATIVE_QUOTE_REQUEST = new Counter({
     name: 'rfqm_handler_indicative_quote_requested',
