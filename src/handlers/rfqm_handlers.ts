@@ -178,7 +178,7 @@ export class RfqmHandlers {
 
     public async submitSignedQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const params = this._parseSubmitSignedQuoteParams(req);
-        RFQM_SIGNED_QUOTE_SUBMITTED.labels(params.integratorId).inc();
+        RFQM_SIGNED_QUOTE_SUBMITTED.labels(params.integratorId, params.integratorId).inc();
 
         if (params.type === RfqmTypes.MetaTransaction) {
             try {
