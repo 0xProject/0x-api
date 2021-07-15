@@ -143,7 +143,7 @@ export interface StatusResponse {
 const RFQM_QUOTE_INSERTED = new Counter({
     name: 'rfqm_quote_inserted',
     help: 'An RfqmQuote was inserted in the DB',
-    labelNames: ['apiKey', 'makerUri'],
+    labelNames: ['apiKey', 'integratorId', 'makerUri'],
 });
 
 const RFQM_DEFAULT_OPTS = {
@@ -509,7 +509,7 @@ export class RfqmService {
                 affiliateAddress,
             }),
         );
-        RFQM_QUOTE_INSERTED.labels(integratorId, makerUri).inc();
+        RFQM_QUOTE_INSERTED.labels(integratorId, integratorId, makerUri).inc();
 
         // Prepare response
         return {
