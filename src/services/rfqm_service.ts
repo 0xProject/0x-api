@@ -51,6 +51,7 @@ export enum RfqmTypes {
 
 export interface FetchIndicativeQuoteParams {
     apiKey: string;
+    integratorId: string;
     buyAmount?: BigNumber;
     buyToken: string;
     buyTokenDecimals: number;
@@ -73,6 +74,7 @@ export interface FetchIndicativeQuoteResponse {
 
 export interface FetchFirmQuoteParams {
     apiKey: string;
+    integratorId: string;
     buyAmount?: BigNumber;
     buyToken: string;
     buyTokenDecimals: number;
@@ -94,9 +96,10 @@ export interface BaseRfqmQuoteResponse {
 }
 
 export interface MetaTransactionSubmitRfqmSignedQuoteParams {
-    type: RfqmTypes.MetaTransaction;
+    integratorId: string;
     metaTransaction: MetaTransaction;
     signature: Signature;
+    type: RfqmTypes.MetaTransaction;
 }
 
 export interface MetaTransactionSubmitRfqmSignedQuoteResponse {
@@ -305,7 +308,7 @@ export class RfqmService {
             buyToken: makerToken,
             sellTokenDecimals: takerTokenDecimals,
             buyTokenDecimals: makerTokenDecimals,
-            apiKey,
+            integratorId,
         } = params;
 
         // Quote Requestor specific params
@@ -321,7 +324,7 @@ export class RfqmService {
         const opts: RfqmRequestOptions = {
             ...RFQM_DEFAULT_OPTS,
             txOrigin: this._registryAddress,
-            apiKey,
+            apiKey: integratorId, // Send the integrator ID vice the api key to the market makers
             intentOnFilling: false,
             isIndicative: true,
             isLastLook: true,
@@ -387,7 +390,7 @@ export class RfqmService {
             buyToken: makerToken,
             sellTokenDecimals: takerTokenDecimals,
             buyTokenDecimals: makerTokenDecimals,
-            apiKey,
+            integratorId,
             takerAddress,
             affiliateAddress,
         } = params;
@@ -412,7 +415,7 @@ export class RfqmService {
             ...RFQM_DEFAULT_OPTS,
             takerAddress,
             txOrigin: this._registryAddress,
-            apiKey,
+            apiKey: integratorId, // Send the integrator id vice the API key to the market makers
             intentOnFilling: true,
             isIndicative: false,
             isLastLook: true,
@@ -508,7 +511,7 @@ export class RfqmService {
                 affiliateAddress,
             }),
         );
-        RFQM_QUOTE_INSERTED.labels(apiKey, makerUri).inc();
+        RFQM_QUOTE_INSERTED.labels(integratorId, makerUri).inc();
 
         // Prepare response
         return {
