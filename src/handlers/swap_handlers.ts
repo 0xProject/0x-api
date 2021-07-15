@@ -131,7 +131,7 @@ export class SwapHandlers {
             req.log.info({
                 firmQuoteServed: {
                     taker: params.takerAddress,
-                    // TODO (rhinodavid): remove once the log consumers have been updated
+                    // TODO (MKR-123): remove once the log consumers have been updated
                     apiKey: params.integratorId,
                     integratorId: params.integratorId,
                     rawApiKey: params.apiKey,
@@ -182,7 +182,7 @@ export class SwapHandlers {
         req.log.info({
             indicativeQuoteServed: {
                 taker: params.takerAddress,
-                // TODO (rhinodavid): remove once the log source is updated
+                // TODO (MKR-123): remove once the log source is updated
                 apiKey: params.integratorId,
                 integratorId: params.integratorId,
                 rawApiKey: params.apiKey,
@@ -436,7 +436,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         endpoint,
         updatedExcludedSources,
         nativeExclusivelyRFQT,
-        // TODO (rhinodavid): Remove once the log source has been updated.
+        // TODO (MKR-123): Remove once the log source has been updated.
         apiKey: integratorId || 'N/A',
         integratorId: integratorId || 'N/A',
         rawApiKey: apiKey || 'N/A',
