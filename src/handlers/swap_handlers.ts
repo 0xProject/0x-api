@@ -284,7 +284,7 @@ export class SwapHandlers {
             if (isRevertError(e)) {
                 throw new RevertAPIError(e);
             }
-            const errorMessage: string = e.message;
+            const errorMessage: string = typeof e === 'string' ? e : e.message;
             // TODO AssetSwapper can throw raw Errors or InsufficientAssetLiquidityError
             if (
                 errorMessage.startsWith(SwapQuoterError.InsufficientAssetLiquidity) ||
@@ -307,7 +307,7 @@ export class SwapHandlers {
                     },
                 ]);
             }
-            req.log.info('Uncaught error', e.message, e.stack);
+            req.log.error('Uncaught error', e.message, e.stack);
             throw new InternalServerError(e.message);
         }
     }
