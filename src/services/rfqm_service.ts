@@ -322,7 +322,7 @@ export class RfqmService {
         const opts: RfqmRequestOptions = {
             ...RFQM_DEFAULT_OPTS,
             txOrigin: this._registryAddress,
-            apiKey: integratorId, // Send the integrator ID vice the api key to the market makers
+            apiKey: integratorId, // Send the integrator ID instead of the api key to the market makers
             intentOnFilling: false,
             isIndicative: true,
             isLastLook: true,
@@ -413,7 +413,7 @@ export class RfqmService {
             ...RFQM_DEFAULT_OPTS,
             takerAddress,
             txOrigin: this._registryAddress,
-            apiKey: integratorId, // Send the integrator id vice the API key to the market makers
+            apiKey: integratorId, // Send the integrator id instead of the API key to the market makers
             intentOnFilling: true,
             isIndicative: false,
             isLastLook: true,
