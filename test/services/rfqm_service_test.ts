@@ -100,7 +100,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -150,7 +149,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -205,7 +203,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -253,7 +250,6 @@ describe('RfqmService', () => {
 
                 // Expect
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -300,7 +296,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -354,7 +349,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -410,7 +404,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -461,7 +454,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -523,7 +515,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchIndicativeQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     buyToken: contractAddresses.zrxToken,
                     sellToken: contractAddresses.etherToken,
@@ -614,7 +605,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchFirmQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     takerAddress,
                     buyToken: contractAddresses.zrxToken,
@@ -693,7 +683,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchFirmQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     takerAddress,
                     buyToken: contractAddresses.zrxToken,
@@ -773,7 +762,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchFirmQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     takerAddress,
                     buyToken: contractAddresses.zrxToken,
@@ -853,7 +841,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchFirmQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     takerAddress,
                     buyToken: contractAddresses.zrxToken,
@@ -933,7 +920,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchFirmQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     takerAddress,
                     buyToken: contractAddresses.zrxToken,
@@ -1028,7 +1014,6 @@ describe('RfqmService', () => {
 
                 // When
                 const res = await service.fetchFirmQuoteAsync({
-                    apiKey: 'some-api-key',
                     integratorId: 'an-integrator-id',
                     takerAddress,
                     buyToken: contractAddresses.zrxToken,

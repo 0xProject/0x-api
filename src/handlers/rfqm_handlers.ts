@@ -246,7 +246,7 @@ export class RfqmHandlers {
     private _parseFetchIndicativeQuoteParams(req: express.Request): FetchIndicativeQuoteParams {
         // HACK - reusing the validation for Swap Quote as the interface here is a subset
         schemaUtils.validateSchema(req.query, schemas.swapQuoteRequestSchema as any);
-        const { apiKey, integratorId } = this._validateApiKey(req.header('0x-api-key'));
+        const { integratorId } = this._validateApiKey(req.header('0x-api-key'));
 
         // Parse string params
         const { takerAddress, affiliateAddress } = req.query;
@@ -269,7 +269,6 @@ export class RfqmHandlers {
         const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount as string);
 
         return {
-            apiKey,
             buyAmount,
             buyToken,
             buyTokenDecimals,

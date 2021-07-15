@@ -50,7 +50,6 @@ export enum RfqmTypes {
 }
 
 export interface FetchIndicativeQuoteParams {
-    apiKey: string;
     integratorId: string;
     buyAmount?: BigNumber;
     buyToken: string;
@@ -73,7 +72,6 @@ export interface FetchIndicativeQuoteResponse {
 }
 
 export interface FetchFirmQuoteParams {
-    apiKey: string;
     integratorId: string;
     buyAmount?: BigNumber;
     buyToken: string;
