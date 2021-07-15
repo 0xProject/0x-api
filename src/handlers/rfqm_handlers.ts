@@ -33,46 +33,48 @@ import {
 } from '../utils/rfqm_request_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
+
+// TODO (MKR-123): Remove the apiKey reference once dashboards are updated
 const RFQM_INDICATIVE_QUOTE_REQUEST = new Counter({
     name: 'rfqm_handler_indicative_quote_requested',
     help: 'Request made to fetch rfqm indicative quote',
-    labelNames: ['apiKey'],
+    labelNames: ['apiKey', 'integratorId'],
 });
 
 const RFQM_INDICATIVE_QUOTE_NOT_FOUND = new Counter({
     name: 'rfqm_handler_indicative_quote_not_found',
     help: 'Request to fetch rfqm indicative quote returned no quote',
-    labelNames: ['apiKey'],
+    labelNames: ['apiKey', 'integratorId'],
 });
 
 const RFQM_INDICATIVE_QUOTE_ERROR = new Counter({
     name: 'rfqm_handler_indicative_quote_error',
     help: 'Request to fetch rfqm indicative quote resulted in error',
-    labelNames: ['apiKey'],
+    labelNames: ['apiKey', 'integratorId'],
 });
 
 const RFQM_FIRM_QUOTE_REQUEST = new Counter({
     name: 'rfqm_handler_firm_quote_requested',
     help: 'Request made to fetch rfqm firm quote',
-    labelNames: ['apiKey'],
+    labelNames: ['apiKey', 'integratorId'],
 });
 
 const RFQM_FIRM_QUOTE_NOT_FOUND = new Counter({
     name: 'rfqm_handler_firm_quote_not_found',
     help: 'Request to fetch rfqm firm quote returned no quote',
-    labelNames: ['apiKey'],
+    labelNames: ['apiKey', 'integratorId'],
 });
 
 const RFQM_FIRM_QUOTE_ERROR = new Counter({
     name: 'rfqm_handler_firm_quote_error',
     help: 'Request to fetch rfqm firm quote resulted in error',
-    labelNames: ['apiKey'],
+    labelNames: ['apiKey', 'integratorId'],
 });
 
 const RFQM_SIGNED_QUOTE_SUBMITTED = new Counter({
     name: 'rfqm_handler_signed_quote_submitted',
     help: 'Request received to submit a signed rfqm quote',
-    labelNames: ['apiKey'],
+    labelNames: ['apiKey', 'integratorId'],
 });
 
 // If the cache is more seconds old than the value specified here, it will be refreshed.
@@ -86,7 +88,7 @@ export class RfqmHandlers {
 
     public async getIndicativeQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const integratorId = this._configManager.getIntegratorIdForApiKey(req.header('0x-api-key') || '') ?? 'N/A';
-        RFQM_INDICATIVE_QUOTE_REQUEST.labels(integratorId).inc();
+        RFQM_INDICATIVE_QUOTE_REQUEST.labels(integratorId, integratorId).inc();
 
         // Parse request
         const params = this._parseFetchIndicativeQuoteParams(req);
@@ -97,13 +99,13 @@ export class RfqmHandlers {
             indicativeQuote = await this._rfqmService.fetchIndicativeQuoteAsync(params);
         } catch (err) {
             req.log.error(err, 'Encountered an error while fetching an rfqm indicative quote');
-            RFQM_INDICATIVE_QUOTE_ERROR.labels(integratorId).inc();
+            RFQM_INDICATIVE_QUOTE_ERROR.labels(integratorId, integratorId).inc();
             throw new InternalServerError('Unexpected error encountered');
         }
 
         // Log no quote returned
         if (indicativeQuote === null) {
-            RFQM_INDICATIVE_QUOTE_NOT_FOUND.labels(integratorId).inc();
+            RFQM_INDICATIVE_QUOTE_NOT_FOUND.labels(integratorId, integratorId).inc();
         }
 
         // Result
@@ -115,7 +117,7 @@ export class RfqmHandlers {
 
     public async getFirmQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const integratorId = this._configManager.getIntegratorIdForApiKey(req.header('0x-api-key') || '') ?? 'N/A';
-        RFQM_FIRM_QUOTE_REQUEST.labels(integratorId).inc();
+        RFQM_FIRM_QUOTE_REQUEST.labels(integratorId, integratorId).inc();
 
         // Parse request
         const params = this._parseFetchFirmQuoteParams(req);
@@ -126,13 +128,13 @@ export class RfqmHandlers {
             firmQuote = await this._rfqmService.fetchFirmQuoteAsync(params);
         } catch (err) {
             req.log.error(err, 'Encountered an error while fetching an rfqm firm quote');
-            RFQM_FIRM_QUOTE_ERROR.labels(integratorId).inc();
+            RFQM_FIRM_QUOTE_ERROR.labels(integratorId, integratorId).inc();
             throw new InternalServerError('Unexpected error encountered');
         }
 
         // Log no quote returned
         if (firmQuote === null) {
-            RFQM_FIRM_QUOTE_NOT_FOUND.labels(integratorId).inc();
+            RFQM_FIRM_QUOTE_NOT_FOUND.labels(integratorId, integratorId).inc();
         }
 
         // Result
