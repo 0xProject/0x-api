@@ -4,7 +4,6 @@ import {
     AltRfqMakerAssetOfferings,
     artifacts,
     AssetSwapperContractAddresses,
-    BlockParamLiteral,
     ContractAddresses,
     ERC20BridgeSource,
     FakeTakerContract,
@@ -17,8 +16,8 @@ import {
     SwapQuoter,
     SwapQuoteRequestOpts,
     SwapQuoterOpts,
+    WRAPPED_NETWORK_TOKEN_BY_CHAIN_ID,
 } from '@0x/asset-swapper';
-import { NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
 import { getTokenMetadataIfExists, TokenMetadatasForChains } from '@0x/token-metadata';
@@ -87,6 +86,42 @@ export class SwapService {
     private readonly _firmQuoteValidator: RfqFirmQuoteValidator | undefined;
     private _altRfqMarketsCache: any;
 
+    public static async createAsync(
+        orderbook: Orderbook,
+        provider: SupportedProvider,
+        contractAddresses: AssetSwapperContractAddresses,
+        firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
+        rfqDynamicBlacklist?: RfqDynamicBlacklist,
+    ): Promise<SwapService> {
+        let axiosOpts = {};
+        if (RFQ_PROXY_ADDRESS !== undefined && RFQ_PROXY_PORT !== undefined) {
+            axiosOpts = {
+                proxy: {
+                    host: RFQ_PROXY_ADDRESS,
+                    port: RFQ_PROXY_PORT,
+                },
+            };
+        }
+        const swapQuoterOpts: Partial<SwapQuoterOpts> = {
+            ...SWAP_QUOTER_OPTS,
+            rfqt: {
+                ...SWAP_QUOTER_OPTS.rfqt!,
+                warningLogger: logger.warn.bind(logger),
+                infoLogger: logger.info.bind(logger),
+                axiosInstanceOpts: axiosOpts,
+            },
+            contractAddresses,
+        };
+
+        if (swapQuoterOpts.rfqt !== undefined && rfqDynamicBlacklist !== undefined) {
+            swapQuoterOpts.rfqt.txOriginBlacklist = rfqDynamicBlacklist;
+        }
+
+        const swapQuoter = await SwapQuoter.createAsync(provider, orderbook, swapQuoterOpts);
+        const swapQuoteConsumer = new SwapQuoteConsumer({ ...swapQuoterOpts, chainId: CHAIN_ID });
+        return new SwapService(swapQuoter, swapQuoteConsumer, provider, contractAddresses, firmQuoteValidator);
+    }
+
     private static _getSwapQuotePrice(
         buyAmount: BigNumber | undefined,
         buyTokenDecimals: number,
@@ -132,49 +167,16 @@ export class SwapService {
     }
 
     constructor(
-        orderbook: Orderbook,
+        swapQuoter: SwapQuoter,
+        swapQuoteConsumer: SwapQuoteConsumer,
         provider: SupportedProvider,
         contractAddresses: AssetSwapperContractAddresses,
         firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
-        rfqDynamicBlacklist?: RfqDynamicBlacklist,
     ) {
         this._provider = provider;
         this._firmQuoteValidator = firmQuoteValidator;
-
-        let axiosOpts = {};
-        if (RFQ_PROXY_ADDRESS !== undefined && RFQ_PROXY_PORT !== undefined) {
-            axiosOpts = {
-                proxy: {
-                    host: RFQ_PROXY_ADDRESS,
-                    port: RFQ_PROXY_PORT,
-                },
-            };
-        }
-        const swapQuoterOpts: Partial<SwapQuoterOpts> = {
-            ...SWAP_QUOTER_OPTS,
-            rfqt: {
-                ...SWAP_QUOTER_OPTS.rfqt!,
-                warningLogger: logger.warn.bind(logger),
-                infoLogger: logger.info.bind(logger),
-                axiosInstanceOpts: axiosOpts,
-            },
-            contractAddresses,
-        };
-
-        if (swapQuoterOpts.rfqt !== undefined && rfqDynamicBlacklist !== undefined) {
-            swapQuoterOpts.rfqt.txOriginBlacklist = rfqDynamicBlacklist;
-        }
-
-        if (CHAIN_ID === ChainId.Ganache) {
-            swapQuoterOpts.samplerOverrides = {
-                block: BlockParamLiteral.Latest,
-                overrides: {},
-                to: contractAddresses.erc20BridgeSampler,
-                ...(swapQuoterOpts.samplerOverrides || {}),
-            };
-        }
-        this._swapQuoter = new SwapQuoter(this._provider, orderbook, swapQuoterOpts);
-        this._swapQuoteConsumer = new SwapQuoteConsumer(swapQuoterOpts);
+        this._swapQuoter = swapQuoter;
+        this._swapQuoteConsumer = swapQuoteConsumer;
         this._web3Wrapper = new Web3Wrapper(this._provider);
 
         this._contractAddresses = contractAddresses;
@@ -572,7 +574,7 @@ export class SwapService {
             chainId: CHAIN_ID,
             price: ONE,
             guaranteedPrice: ONE,
-            to: NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID],
+            to: WRAPPED_NETWORK_TOKEN_BY_CHAIN_ID[CHAIN_ID],
             data: attributedCalldata.affiliatedData,
             decodedUniqueId: attributedCalldata.decodedUniqueId,
             value,

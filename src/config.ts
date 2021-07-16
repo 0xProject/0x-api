@@ -1,13 +1,11 @@
 // tslint:disable:custom-no-magic-numbers max-file-line-count
 import { assert } from '@0x/assert';
 import {
-    BlockParamLiteral,
     DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
     ERC20BridgeSource,
     LiquidityProviderRegistry,
     OrderPrunerPermittedFeeTypes,
     RfqMakerAssetOfferings,
-    SamplerOverrides,
     SOURCE_FLAGS,
     SwapQuoteRequestOpts,
     SwapQuoterOpts,
@@ -179,7 +177,7 @@ export const MESH_WEBSOCKET_URI = _.isEmpty(process.env.MESH_WEBSOCKET_URI)
     : assertEnvVarType('MESH_WEBSOCKET_URI', process.env.MESH_WEBSOCKET_URI, EnvVarType.Url);
 export const MESH_HTTP_URI = _.isEmpty(process.env.MESH_HTTP_URI)
     ? undefined
-    : assertEnvVarType('assertEnvVarType', process.env.MESH_HTTP_URI, EnvVarType.Url);
+    : assertEnvVarType('MESH_HTTP_URI', process.env.MESH_HTTP_URI, EnvVarType.Url);
 
 export const MESH_GET_ORDERS_DEFAULT_PAGE_SIZE = _.isEmpty(process.env.MESH_GET_ORDERS_DEFAULT_PAGE_SIZE)
     ? 200
@@ -443,70 +441,78 @@ const EXCLUDED_FEE_SOURCES = (() => {
 })();
 const FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD = new BigNumber(150e3);
 const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
-const EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX = (sourceFlags: bigint) => {
-    if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags) && CHAIN_ID === ChainId.Mainnet) {
-        // Uniswap and forks VIP
-        return TX_BASE_GAS;
-    } else if (
-        [
-            SOURCE_FLAGS.SushiSwap,
-            SOURCE_FLAGS.PancakeSwap,
-            SOURCE_FLAGS.PancakeSwap_V2,
-            SOURCE_FLAGS.BakerySwap,
-            SOURCE_FLAGS.ApeSwap,
-            SOURCE_FLAGS.CafeSwap,
-            SOURCE_FLAGS.CheeseSwap,
-            SOURCE_FLAGS.JulSwap,
-        ].includes(sourceFlags) &&
-        CHAIN_ID === ChainId.BSC
-    ) {
-        // PancakeSwap and forks VIP
-        return TX_BASE_GAS;
-    } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
-        // Uniswap V3 VIP
-        return TX_BASE_GAS.plus(5e3);
-    } else if (SOURCE_FLAGS.Curve === sourceFlags) {
-        // Curve pseudo-VIP
-        return TX_BASE_GAS.plus(40e3);
-    } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
-        return TX_BASE_GAS.plus(10e3);
-    } else {
-        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
+const EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX = (sourceFlags: bigint, numDistinctFills: number) => {
+    if (numDistinctFills === 1) {
+        // VIPs only support one "fill". Multi-hop uniswap paths are considered
+        // a single "fill" to the router.
+        if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags) && CHAIN_ID === ChainId.Mainnet) {
+            // Uniswap and forks VIP
+            return TX_BASE_GAS;
+        } else if (
+            [
+                SOURCE_FLAGS.SushiSwap,
+                SOURCE_FLAGS.PancakeSwap,
+                SOURCE_FLAGS.PancakeSwap_V2,
+                SOURCE_FLAGS.BakerySwap,
+                SOURCE_FLAGS.ApeSwap,
+                SOURCE_FLAGS.CafeSwap,
+                SOURCE_FLAGS.CheeseSwap,
+                SOURCE_FLAGS.JulSwap,
+            ].includes(sourceFlags) &&
+            CHAIN_ID === ChainId.BSC
+        ) {
+            // PancakeSwap and forks VIP
+            return TX_BASE_GAS;
+        } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
+            // Uniswap V3 VIP
+            return TX_BASE_GAS.plus(5e3);
+        } else if (SOURCE_FLAGS.Curve === sourceFlags) {
+            // Curve pseudo-VIP
+            return TX_BASE_GAS.plus(40e3);
+        } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
+            return TX_BASE_GAS.plus(10e3);
+        }
     }
+    return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
 };
 const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
     SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider | SOURCE_FLAGS.RfqOrder;
 const MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS =
     SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider;
-const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
-    if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
-        // Uniswap and forks VIP
-        return TX_BASE_GAS;
-    } else if (
-        [
-            SOURCE_FLAGS.SushiSwap,
-            SOURCE_FLAGS.PancakeSwap,
-            SOURCE_FLAGS.PancakeSwap_V2,
-            SOURCE_FLAGS.BakerySwap,
-            SOURCE_FLAGS.ApeSwap,
-            SOURCE_FLAGS.CafeSwap,
-            SOURCE_FLAGS.CheeseSwap,
-            SOURCE_FLAGS.JulSwap,
-        ].includes(sourceFlags) &&
-        CHAIN_ID === ChainId.BSC
-    ) {
-        // PancakeSwap and forks VIP
-        return TX_BASE_GAS;
-    } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
-        // Uniswap V3 VIP
-        return TX_BASE_GAS.plus(5e3);
-    } else if (SOURCE_FLAGS.Curve === sourceFlags) {
-        // Curve pseudo-VIP
-        return TX_BASE_GAS.plus(40e3);
-    } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
-        // PLP VIP
-        return TX_BASE_GAS.plus(10e3);
-    } else if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
+const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint, numDistinctFills: number) => {
+    if (numDistinctFills === 1) {
+        // VIPs only support one "fill". Multi-hop uniswap paths are considered
+        // a single "fill" to the router.
+        if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
+            // Uniswap and forks VIP
+            return TX_BASE_GAS;
+        } else if (
+            [
+                SOURCE_FLAGS.SushiSwap,
+                SOURCE_FLAGS.PancakeSwap,
+                SOURCE_FLAGS.PancakeSwap_V2,
+                SOURCE_FLAGS.BakerySwap,
+                SOURCE_FLAGS.ApeSwap,
+                SOURCE_FLAGS.CafeSwap,
+                SOURCE_FLAGS.CheeseSwap,
+                SOURCE_FLAGS.JulSwap,
+            ].includes(sourceFlags) &&
+            CHAIN_ID === ChainId.BSC
+        ) {
+            // PancakeSwap and forks VIP
+            return TX_BASE_GAS;
+        } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
+            // Uniswap V3 VIP
+            return TX_BASE_GAS.plus(5e3);
+        } else if (SOURCE_FLAGS.Curve === sourceFlags) {
+            // Curve pseudo-VIP
+            return TX_BASE_GAS.plus(40e3);
+        } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
+            // PLP VIP
+            return TX_BASE_GAS.plus(10e3);
+        }
+    }
+    if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
         // Multiplex batch fill
         return TX_BASE_GAS.plus(15e3);
     } else if (
@@ -515,9 +521,8 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
     ) {
         // Multiplex multi-hop fill
         return TX_BASE_GAS.plus(25e3);
-    } else {
-        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
     }
+    return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
 };
 
 export const NATIVE_WRAPPED_TOKEN_SYMBOL = nativeWrappedTokenSymbol(CHAIN_ID);
@@ -544,16 +549,6 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP: Partial<SwapQuoteRequestOp
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_NO_VIP,
 };
 
-export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
-    switch (CHAIN_ID) {
-        case ChainId.Ganache:
-        case ChainId.Kovan:
-            return { overrides: {}, block: BlockParamLiteral.Latest };
-        default:
-            return undefined;
-    }
-})();
-
 let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqOpts = {
     takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
     makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
@@ -571,12 +566,10 @@ if (ALT_RFQ_MM_API_KEY && ALT_RFQ_MM_PROFILE) {
 }
 
 export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
-    chainId: CHAIN_ID,
     expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     rfqt: SWAP_QUOTER_RFQT_OPTS,
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
-    samplerOverrides: SAMPLER_OVERRIDES,
     tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID[CHAIN_ID],
     liquidityProviderRegistry: LIQUIDITY_PROVIDER_REGISTRY,
 };
@@ -686,7 +679,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             return parseUtils.parseJsonStringForMetaTransactionRateLimitConfigOrThrow(value);
         case EnvVarType.APIKeys:
             assert.isString(name, value);
-            const apiKeys = (value as string).split(',');
+            const apiKeys = (value as string).split(',').filter((s) => s);
             apiKeys.forEach((apiKey) => {
                 const isValidUUID = validateUUID(apiKey);
                 if (!isValidUUID) {
