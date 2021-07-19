@@ -15,7 +15,7 @@ import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
 import { createSRARouter } from '../routers/sra_router';
-// import { WebsocketService } from '../services/websocket_service';
+import { WebsocketService } from '../services/websocket_service';
 import { HttpServiceConfig } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
@@ -56,9 +56,14 @@ async function runHttpServiceAsync(
     app.use(errorHandler);
 
     // websocket service
+    if (dependencies.kafkaClient) {
+        new WebsocketService(server, dependencies.kafkaClient, dependencies.websocketOpts);
+    } else {
+        logger.error('Could not establish kafka connection, exiting');
+        process.exit(1);
+    }
     // if (dependencies.meshClient) {
     //     // tslint:disable-next-line:no-unused-expression
-    //     new WebsocketService(server, dependencies.meshClient, dependencies.websocketOpts);
     // } else {
     //     logger.error(`Could not establish mesh connection, exiting`);
     //     process.exit(1);
