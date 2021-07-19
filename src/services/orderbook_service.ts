@@ -18,7 +18,6 @@ import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 
 export class OrderBookService {
-    private readonly _meshClient?: MeshClient;
     private readonly _connection: Connection;
     public static isAllowedPersistentOrders(apiKey: string): boolean {
         return SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS.includes(apiKey);
@@ -195,8 +194,7 @@ export class OrderBookService {
         const paginatedApiOrders = paginationUtils.paginate(fresh, page, perPage);
         return paginatedApiOrders;
     }
-    constructor(connection: Connection, meshClient?: MeshClient) {
-        this._meshClient = meshClient;
+    constructor(connection: Connection) {
         this._connection = connection;
     }
     public async addOrderAsync(signedOrder: SignedLimitOrder, pinned: boolean): Promise<void> {
@@ -232,19 +230,20 @@ export class OrderBookService {
         if (signedOrders.length === 0) {
             return [];
         }
-        if (this._meshClient) {
-            const { rejected, accepted } = await this._meshClient.addOrdersV4Async(signedOrders, pinned);
-            if (rejected.length !== 0) {
-                const validationErrors = rejected.map((r, i) => ({
-                    field: `signedOrder[${i}]`,
-                    code: meshUtils.rejectedCodeToSRACode(r.code),
-                    reason: `${r.code}: ${r.message}`,
-                }));
-                throw new ValidationError(validationErrors);
-            }
-            // Order Watcher Service will handle persistence
-            return accepted;
-        }
+        // TODO: This needs to be finished with the new order-watcher
+        // if (this._meshClient) {
+        //     const { rejected, accepted } = await this._meshClient.addOrdersV4Async(signedOrders, pinned);
+        //     if (rejected.length !== 0) {
+        //         const validationErrors = rejected.map((r, i) => ({
+        //             field: `signedOrder[${i}]`,
+        //             code: meshUtils.rejectedCodeToSRACode(r.code),
+        //             reason: `${r.code}: ${r.message}`,
+        //         }));
+        //         throw new ValidationError(validationErrors);
+        //     }
+        //     // Order Watcher Service will handle persistence
+        //     return accepted;
+        // }
         throw new Error('Could not add order to mesh.');
     }
 }

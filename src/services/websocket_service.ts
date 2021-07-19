@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as _ from 'lodash';
 import * as WebSocket from 'ws';
+import { Kafka, Consumer } from 'kafkajs';
 
 import { MESH_IGNORED_ADDRESSES } from '../config';
 import { MalformedJSONError, NotImplementedError, WebsocketServiceError } from '../errors';
@@ -19,7 +20,6 @@ import {
     WebsocketConnectionEventType,
     WebsocketSRAOpts,
 } from '../types';
-import { MeshClient } from '../utils/mesh_client';
 import { meshUtils, OrderEventV4 } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 import { schemaUtils } from '../utils/schema_utils';
@@ -44,11 +44,15 @@ type ALL_SUBSCRIPTION_OPTS = 'ALL_SUBSCRIPTION_OPTS';
  */
 export class WebsocketService {
     private readonly _server: WebSocket.Server;
-    private readonly _meshClient: MeshClient;
+    private readonly _kafkaClient: Kafka;
+    private readonly _orderWatcherKafkaEventConsumer: Consumer;
+    private readonly _orderWatcherKafkaEventTopic: string;
     private readonly _pongIntervalId: NodeJS.Timeout;
     private readonly _requestIdToSocket: Map<string, WrappedWebSocket> = new Map(); // requestId to WebSocket mapping
-    private readonly _requestIdToSubscriptionOpts: Map<string, OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS> =
-        new Map(); // requestId -> { base, quote }
+    private readonly _requestIdToSubscriptionOpts: Map<
+        string,
+        OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
+    > = new Map(); // requestId -> { base, quote }
     private _orderEventsSubscription?: ZenObservable.Subscription;
     private static _matchesOrdersChannelSubscription(
         order: SignedLimitOrder,
@@ -72,7 +76,7 @@ export class WebsocketService {
     private static _handleError(_ws: WrappedWebSocket, err: Error): void {
         logger.error(new WebsocketServiceError(err));
     }
-    constructor(server: http.Server, meshClient: MeshClient, opts?: Partial<WebsocketSRAOpts>) {
+    constructor(server: http.Server, kafkaClient: Kafka, opts?: Partial<WebsocketSRAOpts>) {
         const wsOpts: WebsocketSRAOpts = {
             ...DEFAULT_OPTS,
             ...opts,
@@ -81,27 +85,29 @@ export class WebsocketService {
         this._server.on('connection', this._processConnection.bind(this));
         this._server.on('error', WebsocketService._handleError.bind(this));
         this._pongIntervalId = setInterval(this._cleanupConnections.bind(this), wsOpts.pongInterval);
-        this._meshClient = meshClient;
+        this._kafkaClient = kafkaClient;
 
-        const subscribeToUpdates = () => {
-            this._orderEventsSubscription = this._meshClient.onOrderEvents().subscribe({
-                next: (events) =>
-                    this.orderUpdate(
-                        // NOTE: We only care about V4 order updates
-                        events.filter((e) => !!e.orderv4).map((e) => meshUtils.orderEventToSRAOrder(e as OrderEventV4)),
-                    ),
-                error: (err) => {
-                    logger.error(new WebsocketServiceError(err));
-                },
-            });
-        };
+        this._orderWatcherKafkaEventConsumer = this._kafkaClient.consumer({
+            groupId: 'testing-group',
+        });
+        // TODO add it as a config
+        this._orderWatcherKafkaEventTopic = 'order_watcher_events';
+    }
 
-        subscribeToUpdates();
+    // TODO: Rename to subscribe?
+    public async startAsync(): Promise<void> {
+        await this._orderWatcherKafkaEventConsumer.connect();
+        await this._orderWatcherKafkaEventConsumer.subscribe({ topic: this._orderWatcherKafkaEventTopic });
 
-        this._meshClient.onReconnected(() => {
-            logger.info('WebsocketService reconnected to Mesh.');
+        await this._orderWatcherKafkaEventConsumer.run({
+            eachMessage: async ({ topic, partition, message }) => {
+                // TODO: Finish
+                const messageString = message.value?.toString();
+                const jsonMessage = JSON.parse(messageString ? messageString : '');
+                const sraOrders: SRAOrder[] = jsonMessage as SRAOrder[];
 
-            subscribeToUpdates();
+                this.orderUpdate(sraOrders);
+            },
         });
     }
 

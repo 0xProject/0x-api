@@ -34,7 +34,7 @@ import {
     WebsocketSRAOpts,
 } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
-import { MeshClient } from './utils/mesh_client';
+import { Kafka } from 'kafkajs';
 import {
     AvailableRateLimiter,
     DatabaseKeysUsedForRateLimiter,
@@ -48,7 +48,7 @@ import { RfqDynamicBlacklist } from './utils/rfq_dyanmic_blacklist';
 export interface AppDependencies {
     contractAddresses: ContractAddresses;
     connection: Connection;
-    meshClient?: MeshClient;
+    kafkaClient?: Kafka;
     orderBookService: OrderBookService;
     swapService?: SwapService;
     metaTransactionService?: MetaTransactionService;
@@ -122,12 +122,12 @@ export async function getDefaultAppDependenciesAsync(
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
     const connection = await getDBConnectionAsync();
 
-    let meshClient: MeshClient | undefined;
-    if (config.meshWebsocketUri !== undefined && config.meshHttpUri !== undefined) {
-        meshClient = new MeshClient(config.meshWebsocketUri, config.meshHttpUri);
-        // HACK(kimpers): Need to wait for Mesh initialization to finish before we can subscribe to event updates
-        // When the stats request has resolved Mesh is ready to receive subscriptions
-        await meshClient.getStatsAsync();
+    let kafkaClient: Kafka | undefined;
+    if (config.kafkaBrokers !== undefined) {
+        kafkaClient = new Kafka({
+            clientId: 'sra-client',
+            brokers: config.kafkaBrokers,
+        });
     } else {
         logger.warn(`Skipping Mesh client creation because no URI provided`);
     }
@@ -137,7 +137,7 @@ export async function getDefaultAppDependenciesAsync(
         rateLimiter = createMetaTransactionRateLimiterFromConfig(connection, config);
     }
 
-    const orderBookService = new OrderBookService(connection, meshClient);
+    const orderBookService = new OrderBookService(connection);
 
     const rfqtFirmQuoteValidator = new PostgresRfqtFirmQuoteValidator(
         connection.getRepository(MakerBalanceChainCacheEntity),
@@ -174,7 +174,7 @@ export async function getDefaultAppDependenciesAsync(
     return {
         contractAddresses,
         connection,
-        meshClient,
+        kafkaClient,
         orderBookService,
         swapService,
         metaTransactionService,
@@ -198,19 +198,11 @@ export async function getAppAsync(
 ): Promise<{ app: Express.Application; server: Server }> {
     const app = express();
     const { server } = await runHttpServiceAsync(dependencies, config, app);
-    if (dependencies.meshClient !== undefined) {
-        try {
-            await runOrderWatcherServiceAsync(dependencies.connection, dependencies.meshClient);
-        } catch (e) {
-            logger.error(`Error attempting to start Order Watcher service, [${JSON.stringify(e)}]`);
-        }
-    } else {
-        logger.warn('No mesh client provided, API running without Order Watcher');
-    }
+
     server.on('close', async () => {
-      // Register a shutdown event listener.
-      // TODO: More teardown logic should be added here. For example, the mesh rpc
-      // client should be destroyed and services should be torn down.
+        // Register a shutdown event listener.
+        // TODO: More teardown logic should be added here. For example, the mesh rpc
+        // client should be destroyed and services should be torn down.
     });
 
     return { app, server };
