@@ -420,6 +420,7 @@ export interface HttpServiceConfig extends BaseHttpConfig {
     ethereumRpcUrl: string;
     meshWebsocketUri?: string;
     meshHttpUri?: string;
+    kafkaBrokers?: string[];
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
 }
 
