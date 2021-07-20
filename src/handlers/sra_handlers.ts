@@ -87,11 +87,15 @@ export class SRAHandlers {
         // const pinResult = await orderUtils.splitOrdersByPinningAsync([signedOrder]);
         // const isPinned = pinResult.pin.length === 1;
 
-        await axios.post(`${ORDER_WATCHER_URL}/order`, req.body, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        await axios
+            .post(`${ORDER_WATCHER_URL}/order`, req.body, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .catch((e) => {
+                throw new ValidationError(e.response.data.validationErrors);
+            });
 
         if (!shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
@@ -111,11 +115,17 @@ export class SRAHandlers {
         if (shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
-        await axios.post(`${ORDER_WATCHER_URL}/orders`, req.body, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+
+        await axios
+            .post(`${ORDER_WATCHER_URL}/orders`, req.body, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .catch((e) => {
+                throw new ValidationError(e.response.data.validationErrors);
+            });
+
         if (!shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
