@@ -60,6 +60,7 @@ export interface SignedLimitOrder extends LimitOrderFields {
 export interface WebsocketSRAOpts {
     pongInterval: number;
     path: string;
+    kafkaTopic: string;
 }
 
 export interface OrderChannelRequest {

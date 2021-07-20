@@ -14,13 +14,12 @@ import * as express from 'express';
 import { Server } from 'http';
 import { Connection } from 'typeorm';
 
-import { CHAIN_ID } from './config';
+import { CHAIN_ID, ORDER_WATCHER_KAFKA_TOPIC } from './config';
 import { RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
 import { runHttpServiceAsync } from './runners/http_service_runner';
-import { runOrderWatcherServiceAsync } from './runners/order_watcher_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
@@ -128,7 +127,7 @@ export async function getDefaultAppDependenciesAsync(
             brokers: config.kafkaBrokers,
         });
     } else {
-        logger.warn(`Skipping Mesh client creation because no URI provided`);
+        logger.warn(`skipping kafka client creation because no kafkaBrokers were passed in`);
     }
 
     let rateLimiter: MetaTransactionRateLimiter | undefined;
@@ -162,7 +161,7 @@ export async function getDefaultAppDependenciesAsync(
         logger.error(err.stack);
     }
 
-    const websocketOpts = { path: SRA_PATH };
+    const websocketOpts = { path: SRA_PATH, kafkaTopic: ORDER_WATCHER_KAFKA_TOPIC };
 
     return {
         contractAddresses,

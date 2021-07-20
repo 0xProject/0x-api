@@ -12,7 +12,6 @@ import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities'
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
 import { OrderbookResponse, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
-import { MeshClient } from '../utils/mesh_client';
 import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
