@@ -9,13 +9,11 @@ import { Connection } from 'typeorm';
 // Helps with printing test case results
 const { color, symbols } = Mocha.reporters.Base;
 
-import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../src/entities';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { PaginatedCollection, SRAOrder, SRAOrderMetaData } from '../src/types';
-import { MeshClient } from '../src/utils/mesh_client';
 import { orderUtils } from '../src/utils/order_utils';
 
 import { CHAIN_ID, getProvider } from './constants';
@@ -88,7 +86,6 @@ describe(SUITE_NAME, () => {
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
 
-    let meshClient: MeshClient;
     let orderBookService: OrderBookService;
     let privateKey: string;
 
@@ -100,8 +97,7 @@ describe(SUITE_NAME, () => {
         connection = await getDBConnectionAsync();
         await connection.synchronize(true);
         await meshClientMock.setupMockAsync();
-        meshClient = new MeshClient(config.MESH_WEBSOCKET_URI, config.MESH_HTTP_URI);
-        orderBookService = new OrderBookService(connection, meshClient);
+        orderBookService = new OrderBookService(connection);
         provider = getProvider();
         const web3Wrapper = new Web3Wrapper(provider);
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
