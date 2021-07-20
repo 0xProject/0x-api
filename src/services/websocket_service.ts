@@ -20,7 +20,6 @@ import {
     WebsocketConnectionEventType,
     WebsocketSRAOpts,
 } from '../types';
-import { meshUtils, OrderEventV4 } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
@@ -32,6 +31,7 @@ interface WrappedWebSocket extends WebSocket {
 const DEFAULT_OPTS: WebsocketSRAOpts = {
     pongInterval: 5000,
     path: '/',
+    kafkaTopic: 'order_watcher_events',
 };
 
 type ALL_SUBSCRIPTION_OPTS = 'ALL_SUBSCRIPTION_OPTS';
@@ -90,8 +90,7 @@ export class WebsocketService {
         this._orderWatcherKafkaEventConsumer = this._kafkaClient.consumer({
             groupId: 'testing-group',
         });
-        // TODO add it as a config
-        this._orderWatcherKafkaEventTopic = 'order_watcher_events';
+        this._orderWatcherKafkaEventTopic = wsOpts.kafkaTopic;
     }
 
     // TODO: Rename to subscribe?
@@ -101,12 +100,18 @@ export class WebsocketService {
 
         await this._orderWatcherKafkaEventConsumer.run({
             eachMessage: async ({ topic, partition, message }) => {
-                // TODO: Finish
-                const messageString = message.value?.toString();
-                const jsonMessage = JSON.parse(messageString ? messageString : '');
-                const sraOrders: SRAOrder[] = jsonMessage as SRAOrder[];
-
-                this.orderUpdate(sraOrders);
+                // do nothing if no value present
+                if (!message.value) {
+                    return;
+                }
+                const messageString = message.value.toString();
+                try {
+                    const jsonMessage = JSON.parse(messageString);
+                    const sraOrders: SRAOrder[] = jsonMessage as SRAOrder[];
+                    this.orderUpdate(sraOrders);
+                } catch (err) {
+                    logger.error('failed to update order', { error: err });
+                }
             },
         });
     }

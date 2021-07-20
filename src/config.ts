@@ -177,6 +177,14 @@ export const ORDER_WATCHER_URL = _.isEmpty(process.env.ORDER_WATCHER_URL)
     ? 'http://127.0.0.1:8080'
     : assertEnvVarType('ORDER_WATCHER_URL', process.env.ORDER_WATCHER_URL, EnvVarType.Url);
 
+export const ORDER_WATCHER_KAFKA_TOPIC = _.isEmpty(process.env.ORDER_WATCHER_KAFKA_TOPIC)
+    ? 'order_watcher_events'
+    : assertEnvVarType('ORDER_WATCHER_KAFKA_TOPIC', process.env.ORDER_WATCHER_KAFKA_TOPIC, EnvVarType.NonEmptyString);
+
+export const KAFKA_BROKERS = _.isEmpty(process.env.KAFKA_BROKERS)
+    ? undefined
+    : assertEnvVarType('KAFKA_BROKERS', process.env.KAFKA_BROKERS, EnvVarType.StringList);
+
 // Mesh Endpoint
 export const MESH_WEBSOCKET_URI = _.isEmpty(process.env.MESH_WEBSOCKET_URI)
     ? undefined
@@ -596,6 +604,7 @@ export const defaultHttpServiceConfig: HttpServiceConfig = {
     enablePrometheusMetrics: ENABLE_PROMETHEUS_METRICS,
     prometheusPort: PROMETHEUS_PORT,
     prometheusPath: METRICS_PATH,
+    kafkaBrokers: KAFKA_BROKERS,
 };
 
 export const defaultHttpServiceWithRateLimiterConfig: HttpServiceConfig = {
