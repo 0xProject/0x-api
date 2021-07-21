@@ -22,6 +22,7 @@ import {
 } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { schemaUtils } from '../utils/schema_utils';
+import { OrderWatcherEvent, orderWatcherEventToSRAOrder } from '../utils/order_watcher_utils';
 
 interface WrappedWebSocket extends WebSocket {
     isAlive: boolean;
@@ -106,11 +107,11 @@ export class WebsocketService {
                 }
                 const messageString = message.value.toString();
                 try {
-                    const jsonMessage = JSON.parse(messageString);
-                    const sraOrders: SRAOrder[] = jsonMessage as SRAOrder[];
+                    const jsonMessage: OrderWatcherEvent = JSON.parse(messageString);
+                    const sraOrders: SRAOrder[] = [orderWatcherEventToSRAOrder(jsonMessage)];
                     this.orderUpdate(sraOrders);
                 } catch (err) {
-                    logger.error('failed to update order', { error: err });
+                    logger.error('send websocket order update', { error: err });
                 }
             },
         });
