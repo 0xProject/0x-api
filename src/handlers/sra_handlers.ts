@@ -1,3 +1,4 @@
+import { InternalServerError } from '@0x/api-utils';
 import { BigNumber } from '@0x/utils';
 import axios from 'axios';
 import * as express from 'express';
@@ -87,11 +88,21 @@ export class SRAHandlers {
         // const pinResult = await orderUtils.splitOrdersByPinningAsync([signedOrder]);
         // const isPinned = pinResult.pin.length === 1;
 
-        await axios.post(`${ORDER_WATCHER_URL}/order`, req.body, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        try {
+            await axios.post(`${ORDER_WATCHER_URL}/order`, req.body, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+        } catch (err) {
+            if (err.response) {
+                throw new ValidationError(err.response.data.validationErrors);
+            } else if (err.request) {
+                throw new InternalServerError('failed to submit order to order-watcher');
+            } else {
+                throw new InternalServerError('failed to prepare the order-watcher request');
+            }
+        }
 
         if (!shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
@@ -110,6 +121,22 @@ export class SRAHandlers {
         }
         if (shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
+        }
+
+        try {
+            await axios.post(`${ORDER_WATCHER_URL}/orders`, req.body, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+        } catch (err) {
+            if (err.response) {
+                throw new ValidationError(err.response.data.validationErrors);
+            } else if (err.request) {
+                throw new InternalServerError('failed to submit order to order-watcher');
+            } else {
+                throw new InternalServerError('failed to prepare the order-watcher request');
+            }
         }
         await axios.post(`${ORDER_WATCHER_URL}/orders`, req.body, {
             headers: {
