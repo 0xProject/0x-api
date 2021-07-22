@@ -3,7 +3,7 @@ import { BigNumber } from '@0x/utils';
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
 
 export interface OrderWatcherEvent {
-    signed_order: {
+    order: {
         takerTokenFeeAmount: string; //BigNumber;
         sender: string;
         feeRecipient: string;
@@ -25,28 +25,28 @@ export interface OrderWatcherEvent {
             s: string;
         };
     };
-    metadata: {
-        hash: string;
-        remaining_fillable_taker_amount: string;
-        status: string;
-        created_at: string;
+    metaData: {
+        orderHash: string;
+        remainingFillableTakerAmount: string;
+        state: string;
+        createdAt: string;
     };
 }
 
 export const orderWatcherEventToSRAOrder = (event: OrderWatcherEvent): SRAOrder => {
     return {
         order: {
-            ...event.signed_order,
-            takerTokenFeeAmount: new BigNumber(event.signed_order.takerTokenFeeAmount),
-            makerAmount: new BigNumber(event.signed_order.makerAmount),
-            takerAmount: new BigNumber(event.signed_order.takerAmount),
-            expiry: new BigNumber(event.signed_order.expiry),
-            salt: new BigNumber(event.signed_order.salt),
+            ...event.order,
+            takerTokenFeeAmount: new BigNumber(event.order.takerTokenFeeAmount),
+            makerAmount: new BigNumber(event.order.makerAmount),
+            takerAmount: new BigNumber(event.order.takerAmount),
+            expiry: new BigNumber(event.order.expiry),
+            salt: new BigNumber(event.order.salt),
         },
         metaData: {
-            orderHash: event.metadata.hash,
-            remainingFillableTakerAmount: new BigNumber(event.metadata.remaining_fillable_taker_amount),
-            state: event.metadata.status.toUpperCase() as OrderEventEndState,
+            orderHash: event.metaData.orderHash,
+            remainingFillableTakerAmount: new BigNumber(event.metaData.remainingFillableTakerAmount),
+            state: event.metaData.state.toUpperCase() as OrderEventEndState,
         },
     };
 };
