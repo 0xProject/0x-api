@@ -22,6 +22,7 @@ export class OrderBookService {
         return SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS.includes(apiKey);
     }
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<SRAOrder | undefined> {
+        // Filter by invalid_since!
         let signedOrderEntity;
         signedOrderEntity = await this._connection.manager.findOne(SignedOrderV4Entity, orderHash);
         if (!signedOrderEntity) {
@@ -40,6 +41,7 @@ export class OrderBookService {
         baseToken: string,
         quoteToken: string,
     ): Promise<OrderbookResponse> {
+        // Filter by invalid_since!
         const orderEntities = await this._connection.manager.find(SignedOrderV4Entity, {
             where: {
                 takerToken: In([baseToken, quoteToken]),
@@ -75,6 +77,8 @@ export class OrderBookService {
         orderFieldFilters: Partial<SignedOrderV4Entity>,
         additionalFilters: { isUnfillable?: boolean; trader?: string },
     ): Promise<PaginatedCollection<SRAOrder>> {
+        // Filter by invalid_since!
+
         // Validation
         if (additionalFilters.isUnfillable === true && orderFieldFilters.maker === undefined) {
             throw new ValidationError([
