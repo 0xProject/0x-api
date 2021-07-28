@@ -8,6 +8,8 @@ import JsonRpcError = require('json-rpc-error');
 import fetch, { Headers, Response } from 'node-fetch';
 import { Counter, Summary } from 'prom-client';
 
+import { ONE_SECOND_MS } from './constants';
+
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
 const agent = (_parsedURL: any) => (_parsedURL.protocol === 'http:' ? httpAgent : httpsAgent);
@@ -16,6 +18,7 @@ const ETH_RPC_RESPONSE_TIME = new Summary({
     name: 'eth_rpc_response_time',
     help: 'The response time of an RPC request',
     labelNames: ['method'],
+    // tslint:disable-next-line:custom-no-magic-numbers
     percentiles: [0.01, 0.1, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99],
 });
 
@@ -92,7 +95,7 @@ export class RPCSubprovider extends Subprovider {
             end(new JsonRpcError.InternalError(err));
             return;
         } finally {
-            const durationMs = (Date.now() - begin) / 1000;
+            const durationMs = (Date.now() - begin) / ONE_SECOND_MS;
             ETH_RPC_RESPONSE_TIME.labels(finalPayload.method!).observe(durationMs);
         }
 
