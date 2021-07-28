@@ -1,4 +1,6 @@
+import { BigNumber } from '@0x/asset-swapper';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
+import { BigNumberTransformer } from './transformers';
 
 @Entity({ name: 'signed_orders_v4' })
 @Index(['makerToken', 'takerToken'], { unique: false })
@@ -57,6 +59,10 @@ export class SignedOrderV4Entity {
 
     @Column({ name: 'created_at', type: 'timestamptz', default: () => 'now()' })
     public createdAt?: string;
+
+    @Column({ name: 'invalid_since', type: 'bigint' , transformer: BigNumberTransformer})
+    public invalidSince?: BigNumber;
+
     constructor(
         opts: {
             hash?: string;
