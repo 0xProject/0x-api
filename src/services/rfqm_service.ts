@@ -863,8 +863,7 @@ export class RfqmService {
                 : await this._initializeSubmissionContextAsync(workerAddress, orderHash, callData);
 
         submissionsMap = submissionContext.submissionsMap;
-        const nonce = submissionContext.nonce;
-        const gasEstimate = submissionContext.gasEstimate;
+        const {nonce, gasEstimate} = submissionContext;
         let gasPrice = submissionContext.gasPrice;
 
         const expectedTakerTokenFillAmount = this._blockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
@@ -1054,7 +1053,6 @@ export class RfqmService {
                             submissionsMap[r.transactionHash].status = isTxConfirmed
                                 ? RfqmTransactionSubmissionStatus.RevertedConfirmed
                                 : RfqmTransactionSubmissionStatus.RevertedUnconfirmed;
-                            submissionsMap[r.transactionHash].metadata = null;
                             submissionsMap[r.transactionHash].metadata = {
                                 expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
                                 actualTakerFillAmount: '0',
