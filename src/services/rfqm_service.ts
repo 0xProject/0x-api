@@ -863,7 +863,7 @@ export class RfqmService {
                 : await this._initializeSubmissionContextAsync(workerAddress, orderHash, callData);
 
         submissionsMap = submissionContext.submissionsMap;
-        const {nonce, gasEstimate} = submissionContext;
+        const { nonce, gasEstimate } = submissionContext;
         let gasPrice = submissionContext.gasPrice;
 
         const expectedTakerTokenFillAmount = this._blockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
