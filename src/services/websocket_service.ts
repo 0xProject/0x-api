@@ -24,6 +24,11 @@ import { orderUtils } from '../utils/order_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { OrderWatcherEvent, orderWatcherEventToSRAOrder } from '../utils/order_watcher_utils';
 
+const getRandomKafkaConsumerGroupId = (): string => {
+    const randomInt = Math.floor(Math.random() * 10000);
+    return 'sra_0x_api_service_' + randomInt;
+};
+
 interface WrappedWebSocket extends WebSocket {
     isAlive: boolean;
     requestIds: Set<string>;
@@ -33,7 +38,7 @@ const DEFAULT_OPTS: WebsocketSRAOpts = {
     pongInterval: 5000,
     path: '/',
     kafkaTopic: 'order_watcher_events',
-    kafkaConsumerGroupId: 'sra_0x_api_service',
+    kafkaConsumerGroupId: getRandomKafkaConsumerGroupId(),
 };
 
 type ALL_SUBSCRIPTION_OPTS = 'ALL_SUBSCRIPTION_OPTS';
