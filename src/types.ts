@@ -61,6 +61,7 @@ export interface WebsocketSRAOpts {
     pongInterval: number;
     path: string;
     kafkaTopic: string;
+    kafkaConsumerGroupId: string;
 }
 
 export interface OrderChannelRequest {
@@ -422,6 +423,7 @@ export interface HttpServiceConfig extends BaseHttpConfig {
     meshWebsocketUri?: string;
     meshHttpUri?: string;
     kafkaBrokers?: string[];
+    kafkaConsumerGroupId?: string;
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
 }
 

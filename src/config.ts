@@ -212,6 +212,10 @@ export const KAFKA_BROKERS = _.isEmpty(process.env.KAFKA_BROKERS)
     ? undefined
     : assertEnvVarType('KAFKA_BROKERS', process.env.KAFKA_BROKERS, EnvVarType.StringList);
 
+export const KAFKA_CONSUMER_GROUP_ID = _.isEmpty(process.env.KAFKA_CONSUMER_GROUP_ID)
+    ? undefined
+    : assertEnvVarType('KAFKA_CONSUMER_GROUP_ID', process.env.KAFKA_CONSUMER_GROUP_ID, EnvVarType.NonEmptyString);
+
 // Mesh Endpoint
 export const MESH_WEBSOCKET_URI = _.isEmpty(process.env.MESH_WEBSOCKET_URI)
     ? undefined
@@ -636,6 +640,7 @@ export const defaultHttpServiceConfig: HttpServiceConfig = {
     prometheusPort: PROMETHEUS_PORT,
     prometheusPath: METRICS_PATH,
     kafkaBrokers: KAFKA_BROKERS,
+    kafkaConsumerGroupId: KAFKA_CONSUMER_GROUP_ID,
 };
 
 export const defaultHttpServiceWithRateLimiterConfig: HttpServiceConfig = {
