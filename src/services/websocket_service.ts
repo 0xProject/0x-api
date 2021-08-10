@@ -31,11 +31,6 @@ const getRandomKafkaConsumerGroupId = (): string => {
     return `sra_0x_api_service_${randomInt}`;
 };
 
-const getRandomKafkaConsumerGroupId = (): string => {
-    const randomInt = Math.floor(Math.random() * ID_CEILING);
-    return `sra_0x_api_service_${randomInt}`;
-};
-
 interface WrappedWebSocket extends WebSocket {
     isAlive: boolean;
     requestIds: Set<string>;
