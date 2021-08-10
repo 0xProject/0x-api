@@ -58,7 +58,7 @@ async function runHttpServiceAsync(
     // websocket service
     if (dependencies.kafkaClient) {
         const wsService = new WebsocketService(server, dependencies.kafkaClient, dependencies.websocketOpts);
-        wsService.startAsync();
+        wsService.startAsync().catch((error) => logger.error(error.stack));
     } else {
         logger.error('Could not establish kafka connection, exiting');
         process.exit(1);

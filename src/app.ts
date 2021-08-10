@@ -12,6 +12,7 @@ import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { Web3Wrapper } from '@0x/dev-utils';
 import * as express from 'express';
 import { Server } from 'http';
+import { Kafka } from 'kafkajs';
 import { Connection } from 'typeorm';
 
 import { CHAIN_ID, ORDER_WATCHER_KAFKA_TOPIC } from './config';
@@ -33,7 +34,6 @@ import {
     WebsocketSRAOpts,
 } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
-import { Kafka } from 'kafkajs';
 import {
     AvailableRateLimiter,
     DatabaseKeysUsedForRateLimiter,

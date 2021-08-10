@@ -1,21 +1,22 @@
-import { SRAOrder } from '../types';
-import { BigNumber } from '@0x/utils';
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
+import { BigNumber } from '@0x/utils';
+
+import { SRAOrder } from '../types';
 
 export interface OrderWatcherEvent {
     order: {
-        takerTokenFeeAmount: string; //BigNumber;
+        takerTokenFeeAmount: string; // BigNumber;
         sender: string;
         feeRecipient: string;
         makerToken: string;
         takerToken: string;
-        makerAmount: string; //BigNumber;
-        takerAmount: string; //BigNumber;
+        makerAmount: string; // BigNumber;
+        takerAmount: string; // BigNumber;
         maker: string;
         taker: string;
         pool: string;
-        expiry: string; //BigNumber;
-        salt: string; //BigNumber;
+        expiry: string; // BigNumber;
+        salt: string; // BigNumber;
         chainId: number;
         verifyingContract: string;
         signature: {

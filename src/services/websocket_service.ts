@@ -1,7 +1,7 @@
 import * as http from 'http';
+import { Consumer, Kafka } from 'kafkajs';
 import * as _ from 'lodash';
 import * as WebSocket from 'ws';
-import { Kafka, Consumer } from 'kafkajs';
 
 import { MESH_IGNORED_ADDRESSES } from '../config';
 import { MalformedJSONError, NotImplementedError, WebsocketServiceError } from '../errors';
@@ -21,12 +21,19 @@ import {
     WebsocketSRAOpts,
 } from '../types';
 import { orderUtils } from '../utils/order_utils';
-import { schemaUtils } from '../utils/schema_utils';
 import { OrderWatcherEvent, orderWatcherEventToSRAOrder } from '../utils/order_watcher_utils';
+import { schemaUtils } from '../utils/schema_utils';
+
+const ID_CEILING = 10000;
 
 const getRandomKafkaConsumerGroupId = (): string => {
-    const randomInt = Math.floor(Math.random() * 10000);
-    return 'sra_0x_api_service_' + randomInt;
+    const randomInt = Math.floor(Math.random() * ID_CEILING);
+    return `sra_0x_api_service_${randomInt}`;
+};
+
+const getRandomKafkaConsumerGroupId = (): string => {
+    const randomInt = Math.floor(Math.random() * ID_CEILING);
+    return `sra_0x_api_service_${randomInt}`;
 };
 
 interface WrappedWebSocket extends WebSocket {
@@ -58,7 +65,7 @@ export class WebsocketService {
     private readonly _requestIdToSocket: Map<string, WrappedWebSocket> = new Map(); // requestId to WebSocket mapping
     private readonly _requestIdToSubscriptionOpts: Map<string, OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS> =
         new Map(); // requestId -> { base, quote }
-    private _orderEventsSubscription?: ZenObservable.Subscription;
+    private readonly _orderEventsSubscription?: ZenObservable.Subscription;
     private static _matchesOrdersChannelSubscription(
         order: SignedLimitOrder,
         opts: OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS,
