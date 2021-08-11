@@ -186,9 +186,7 @@ export async function getDefaultAppDependenciesAsync(
 /**
  * starts the app with dependencies injected. This entry-point is used when running a single instance 0x API
  * deployment and in tests. It is not used in production deployments where scaling is required.
- * @param dependencies  all values are optional and will be filled with reasonable defaults, with one
- *                      exception. if a `meshClient` is not provided, the API will start without a
- *                      connection to mesh.
+ * @param dependencies  all values are optional and will be filled with reasonable defaults.
  * @return the app object
  */
 export async function getAppAsync(
