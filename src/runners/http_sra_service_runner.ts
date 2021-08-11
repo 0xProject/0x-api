@@ -63,12 +63,6 @@ async function runHttpServiceAsync(
         logger.error('Could not establish kafka connection, exiting');
         process.exit(1);
     }
-    // if (dependencies.meshClient) {
-    //     // tslint:disable-next-line:no-unused-expression
-    // } else {
-    //     logger.error(`Could not establish mesh connection, exiting`);
-    //     process.exit(1);
-    // }
 
     server.listen(config.httpPort);
     return server;
