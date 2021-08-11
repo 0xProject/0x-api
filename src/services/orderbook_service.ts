@@ -1,9 +1,12 @@
+import { InternalServerError } from '@0x/api-utils';
 import { AcceptedOrderResult, OrderEventEndState, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
+import axios from 'axios';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
+    ORDER_WATCHER_URL,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
 } from '../config';
@@ -18,6 +21,7 @@ import { paginationUtils } from '../utils/pagination_utils';
 
 export class OrderBookService {
     private readonly _connection: Connection;
+    private readonly _orderWatcherUrl: string;
     public static isAllowedPersistentOrders(apiKey: string): boolean {
         return SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS.includes(apiKey);
     }
@@ -195,6 +199,7 @@ export class OrderBookService {
     }
     constructor(connection: Connection) {
         this._connection = connection;
+        this._orderWatcherUrl = ORDER_WATCHER_URL;
     }
     public async addOrderAsync(signedOrder: SignedLimitOrder, pinned: boolean): Promise<void> {
         return this.addOrdersAsync([signedOrder], pinned);
@@ -219,30 +224,27 @@ export class OrderBookService {
             .getRepository(PersistentSignedOrderV4Entity)
             .save(persistentOrders, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
     }
+
+    // TODO: forward to ORDER_WATCHER_URL here.
     private async _addOrdersAsync(
         signedOrders: SignedLimitOrder[],
         pinned: boolean,
     ): Promise<AcceptedOrderResult<OrderWithMetadataV4>[]> {
-        // Avoid making a request with no orders to save mesh roundtrip time and
-        // error handling as an empty array of orders fails initial validation
-        // on Mesh >=v11.2.
-        if (signedOrders.length === 0) {
-            return [];
+        try {
+            await axios.post(`${this._orderWatcherUrl}/orders`, signedOrders, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+        } catch (err) {
+            if (err.response) {
+                throw new ValidationError(err.response.data.validationErrors);
+            } else if (err.request) {
+                throw new InternalServerError('failed to submit order to order-watcher');
+            } else {
+                throw new InternalServerError('failed to prepare the order-watcher request');
+            }
         }
-        // TODO: This needs to be finished with the new order-watcher
-        // if (this._meshClient) {
-        //     const { rejected, accepted } = await this._meshClient.addOrdersV4Async(signedOrders, pinned);
-        //     if (rejected.length !== 0) {
-        //         const validationErrors = rejected.map((r, i) => ({
-        //             field: `signedOrder[${i}]`,
-        //             code: meshUtils.rejectedCodeToSRACode(r.code),
-        //             reason: `${r.code}: ${r.message}`,
-        //         }));
-        //         throw new ValidationError(validationErrors);
-        //     }
-        //     // Order Watcher Service will handle persistence
-        //     return accepted;
-        // }
-        throw new Error('Could not add order to mesh.');
+        return [];
     }
 }
