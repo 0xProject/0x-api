@@ -49,9 +49,8 @@ export interface HttpServices {
 
 /**
  * This service handles the HTTP requests. This involves fetching from the database
- * as well as adding orders to mesh.
- * @param dependencies If no mesh client is supplied, the HTTP service will start without it.
- *                     It will provide defaults for other params.
+ * as well as adding orders to order-watcher.
+ * @param dependencies Defaults are provided for all params.
  */
 export async function runHttpServiceAsync(
     dependencies: AppDependencies,
