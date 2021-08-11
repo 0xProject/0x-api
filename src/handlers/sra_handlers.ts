@@ -1,18 +1,16 @@
-import { InternalServerError } from '@0x/api-utils';
 import { BigNumber } from '@0x/utils';
-import axios from 'axios';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
-import { FEE_RECIPIENT_ADDRESS, ORDER_WATCHER_URL, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
+import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
 import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
 import { SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
 import { OrderConfigResponse, SignedLimitOrder } from '../types';
-// import { orderUtils } from '../utils/order_utils';
+import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
@@ -85,25 +83,9 @@ export class SRAHandlers {
         if (shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
-        // const pinResult = await orderUtils.splitOrdersByPinningAsync([signedOrder]);
-        // const isPinned = pinResult.pin.length === 1;
-
-        try {
-            await axios.post(`${ORDER_WATCHER_URL}/order`, req.body, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-        } catch (err) {
-            if (err.response) {
-                throw new ValidationError(err.response.data.validationErrors);
-            } else if (err.request) {
-                throw new InternalServerError('failed to submit order to order-watcher');
-            } else {
-                throw new InternalServerError('failed to prepare the order-watcher request');
-            }
-        }
-
+        const pinResult = await orderUtils.splitOrdersByPinningAsync([signedOrder]);
+        const isPinned = pinResult.pin.length === 1;
+        await this._orderBook.addOrderAsync(signedOrder, isPinned);
         if (!shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
@@ -122,27 +104,11 @@ export class SRAHandlers {
         if (shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
-
-        try {
-            await axios.post(`${ORDER_WATCHER_URL}/orders`, req.body, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-        } catch (err) {
-            if (err.response) {
-                throw new ValidationError(err.response.data.validationErrors);
-            } else if (err.request) {
-                throw new InternalServerError('failed to submit order to order-watcher');
-            } else {
-                throw new InternalServerError('failed to prepare the order-watcher request');
-            }
-        }
-        await axios.post(`${ORDER_WATCHER_URL}/orders`, req.body, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        const pinResult = await orderUtils.splitOrdersByPinningAsync(signedOrders);
+        await Promise.all([
+            this._orderBook.addOrdersAsync(pinResult.pin, true),
+            this._orderBook.addOrdersAsync(pinResult.doNotPin, false),
+        ]);
         if (!shouldSkipConfirmation) {
             res.status(HttpStatus.OK).send();
         }
@@ -209,3 +175,25 @@ function unmarshallOrders(signedOrdersRaw: any[]): SignedLimitOrder[] {
         return unmarshallOrder(signedOrderRaw);
     });
 }
+//
+// export async function addOrdersAsync(
+//     signedOrders: SignedLimitOrder[],
+//     pinned: boolean,
+// ): Promise<AcceptedOrderResult<OrderWithMetadataV4>[]> {
+//     try {
+//         await axios.post(`${ORDER_WATCHER_URL}/orders`, signedOrders, {
+//             headers: {
+//                 'Content-Type': 'application/json',
+//             },
+//         });
+//     } catch (err) {
+//         if (err.response) {
+//             throw new ValidationError(err.response.data.validationErrors);
+//         } else if (err.request) {
+//             throw new InternalServerError('failed to submit order to order-watcher');
+//         } else {
+//             throw new InternalServerError('failed to prepare the order-watcher request');
+//         }
+//     }
+//     return [];
+// }
