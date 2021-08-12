@@ -75,7 +75,8 @@ describe(SUITE_NAME, () => {
         await setupDependenciesAsync(SUITE_NAME);
         await meshClientMock.setupMockAsync();
         const connection = await getDBConnectionAsync();
-        await connection.synchronize(true);
+        await connection.runMigrations();
+        // await connection.synchronize(true);
         provider = getProvider();
         const web3Wrapper = new Web3Wrapper(provider);
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
