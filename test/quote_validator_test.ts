@@ -53,7 +53,7 @@ describe(SUITE_NAME, () => {
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         connection = await getDBConnectionAsync();
-        // await connection.synchronize(true);
+        await connection.synchronize(true);
         chainCacheRepository = connection.getRepository(MakerBalanceChainCacheEntity);
         validator = new PostgresRfqtFirmQuoteValidator(chainCacheRepository);
     });
