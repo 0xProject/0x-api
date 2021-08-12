@@ -394,77 +394,77 @@ describe(SUITE_NAME, () => {
             expect(response.body).to.deep.eq(validationError);
         });
     });
-    describe('POST /orders', () => {
-        it('should return HTTP OK on success', async () => {
-            const order = await getRandomSignedLimitOrderAsync(provider, {
-                maker: makerAddress,
-                makerToken: ZRX_TOKEN_ADDRESS,
-                takerToken: WETH_TOKEN_ADDRESS,
-                makerAmount: MAX_MINT_AMOUNT,
-                // tslint:disable:custom-no-magic-numbers
-                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
-                chainId: CHAIN_ID,
-                expiry: TOMORROW,
-            });
-            const orderHash = new LimitOrder(order).getHash();
-
-            const response = await httpPostAsync({
-                app,
-                route: `${SRA_PATH}/order`,
-                body: {
-                    ...order,
-                },
-            });
-            expect(response.status).to.eq(HttpStatus.OK);
-            const meshOrders = await meshClientMock.mockMeshClient.getOrdersAsync();
-            expect(meshOrders.ordersInfos.find((info) => info.hash === orderHash)).to.not.be.undefined();
-        });
-        it('should respond before mesh order confirmation when ?skipConfirmation=true', async () => {
-            const order = await getRandomSignedLimitOrderAsync(provider, {
-                maker: makerAddress,
-                makerToken: ZRX_TOKEN_ADDRESS,
-                takerToken: WETH_TOKEN_ADDRESS,
-                makerAmount: MAX_MINT_AMOUNT,
-                // tslint:disable:custom-no-magic-numbers
-                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
-                chainId: CHAIN_ID,
-                expiry: TOMORROW,
-            });
-            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
-                return { rejected: orders, accepted: [] };
-            });
-            const response = await httpPostAsync({
-                app,
-                route: `${SRA_PATH}/order?skipConfirmation=true`,
-                body: {
-                    ...order,
-                },
-            });
-            expect(response.status).to.eq(HttpStatus.OK);
-        });
-        it('should not skip confirmation normally', async () => {
-            const order = await getRandomSignedLimitOrderAsync(provider, {
-                maker: makerAddress,
-                makerToken: ZRX_TOKEN_ADDRESS,
-                takerToken: WETH_TOKEN_ADDRESS,
-                makerAmount: MAX_MINT_AMOUNT,
-                // tslint:disable:custom-no-magic-numbers
-                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
-                chainId: CHAIN_ID,
-                expiry: TOMORROW,
-            });
-            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
-                return { rejected: orders, accepted: [] };
-            });
-            const response = await httpPostAsync({
-                app,
-                route: `${SRA_PATH}/order`,
-                body: {
-                    ...order,
-                },
-            });
-            expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
-        });
-    });
+    // describe('POST /orders', () => {
+    //     it('should return HTTP OK on success', async () => {
+    //         const order = await getRandomSignedLimitOrderAsync(provider, {
+    //             maker: makerAddress,
+    //             makerToken: ZRX_TOKEN_ADDRESS,
+    //             takerToken: WETH_TOKEN_ADDRESS,
+    //             makerAmount: MAX_MINT_AMOUNT,
+    //             // tslint:disable:custom-no-magic-numbers
+    //             takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+    //             chainId: CHAIN_ID,
+    //             expiry: TOMORROW,
+    //         });
+    //         const orderHash = new LimitOrder(order).getHash();
+    //
+    //         const response = await httpPostAsync({
+    //             app,
+    //             route: `${SRA_PATH}/order`,
+    //             body: {
+    //                 ...order,
+    //             },
+    //         });
+    //         expect(response.status).to.eq(HttpStatus.OK);
+    //         const meshOrders = await meshClientMock.mockMeshClient.getOrdersAsync();
+    //         expect(meshOrders.ordersInfos.find((info) => info.hash === orderHash)).to.not.be.undefined();
+    //     });
+    //     it('should respond before mesh order confirmation when ?skipConfirmation=true', async () => {
+    //         const order = await getRandomSignedLimitOrderAsync(provider, {
+    //             maker: makerAddress,
+    //             makerToken: ZRX_TOKEN_ADDRESS,
+    //             takerToken: WETH_TOKEN_ADDRESS,
+    //             makerAmount: MAX_MINT_AMOUNT,
+    //             // tslint:disable:custom-no-magic-numbers
+    //             takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+    //             chainId: CHAIN_ID,
+    //             expiry: TOMORROW,
+    //         });
+    //         meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
+    //             return { rejected: orders, accepted: [] };
+    //         });
+    //         const response = await httpPostAsync({
+    //             app,
+    //             route: `${SRA_PATH}/order?skipConfirmation=true`,
+    //             body: {
+    //                 ...order,
+    //             },
+    //         });
+    //         expect(response.status).to.eq(HttpStatus.OK);
+    //     });
+    //     it('should not skip confirmation normally', async () => {
+    //         const order = await getRandomSignedLimitOrderAsync(provider, {
+    //             maker: makerAddress,
+    //             makerToken: ZRX_TOKEN_ADDRESS,
+    //             takerToken: WETH_TOKEN_ADDRESS,
+    //             makerAmount: MAX_MINT_AMOUNT,
+    //             // tslint:disable:custom-no-magic-numbers
+    //             takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+    //             chainId: CHAIN_ID,
+    //             expiry: TOMORROW,
+    //         });
+    //         meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
+    //             return { rejected: orders, accepted: [] };
+    //         });
+    //         const response = await httpPostAsync({
+    //             app,
+    //             route: `${SRA_PATH}/order`,
+    //             body: {
+    //                 ...order,
+    //             },
+    //         });
+    //         expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
+    //     });
+    // });
 });
 // tslint:disable:max-file-line-count
