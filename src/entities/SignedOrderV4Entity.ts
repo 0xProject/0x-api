@@ -3,6 +3,7 @@ import { ViewColumn, ViewEntity } from 'typeorm';
 @ViewEntity({
     name: 'valid_signed_orders_v4',
     materialized: true,
+    synchronize: false,
 })
 class ValidSignedOrderV4Entity {
     @ViewColumn({ name: 'hash' })
