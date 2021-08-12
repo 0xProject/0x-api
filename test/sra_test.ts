@@ -1,5 +1,5 @@
 import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '@0x/api-utils';
-import { LimitOrder } from '@0x/asset-swapper';
+// import { LimitOrder } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine, Web3Wrapper } from '@0x/dev-utils';
 import { BigNumber } from '@0x/utils';
@@ -19,10 +19,10 @@ import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, ONE_SECOND_MS, SRA_PATH }
 // import { orderUtils } from '../src/utils/order_utils';
 
 import {
-    CHAIN_ID,
+    // CHAIN_ID,
     ETHEREUM_RPC_URL,
     getProvider,
-    MAX_MINT_AMOUNT,
+    // MAX_MINT_AMOUNT,
     WETH_TOKEN_ADDRESS,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
@@ -39,7 +39,7 @@ const EMPTY_PAGINATED_RESPONSE = {
     records: [],
 };
 
-const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
+// const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
 const NOW = Math.floor(Date.now() / ONE_SECOND_MS);
 const TOMORROW = new BigNumber(NOW + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
