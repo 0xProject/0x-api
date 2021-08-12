@@ -109,7 +109,7 @@ describe(SUITE_NAME, () => {
 
     beforeEach(async () => {
         meshClientMock.mockMeshClient._resetClient();
-        await dependencies.connection.synchronize(true);
+        await dependencies.connection.runMigrations();
         await blockchainLifecycle.startAsync();
     });
 
