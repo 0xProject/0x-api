@@ -1,4 +1,4 @@
-// // tslint:disable:max-file-line-count
+// tslint:disable:max-file-line-count
 //
 // import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ERC20BridgeSource } from '@0x/asset-swapper';
 // import { ChainId } from '@0x/contract-addresses';
