@@ -225,7 +225,6 @@ export class OrderBookService {
             .save(persistentOrders, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
     }
 
-    // TODO: forward to ORDER_WATCHER_URL here.
     private async _addOrdersAsync(
         signedOrders: SignedLimitOrder[],
         pinned: boolean,
