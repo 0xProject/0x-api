@@ -102,8 +102,9 @@ export async function runRfqmWorkerAsync(rfqmService: RfqmService, workerAddress
             const { orderHash } = JSON.parse(message.Body!);
             logger.info({ workerAddress, orderHash }, 'about to process job');
             const stopTimer = RFQM_JOB_PROCESSING_TIME.labels(workerAddress).startTimer();
-            rfqmService.processRfqmJobAsync(orderHash, workerAddress);
+            const outcome = await rfqmService.processRfqmJobAsync(orderHash, workerAddress);
             stopTimer();
+            return outcome;
         },
         afterHandle: async (message, error) => {
             const orderHash = message.Body!;
