@@ -15,7 +15,7 @@ const EXPIRATION_FOR_VALID_ORDER_SECONDS = new Histogram({
 });
 
 const ORDER_FILL_RATIO_WARNING_RANGE = new Counter({
-    name: 'rfq_order_expired_too_soon',
+    name: 'rfq_fill_ratio_warning',
     help: 'Fill ratio is in warning range (99%) usually due to a bug',
     labelNames: ['maker', 'isLastLook'],
 });
