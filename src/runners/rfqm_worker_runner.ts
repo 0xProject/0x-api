@@ -24,27 +24,27 @@ import { SqsConsumer } from '../utils/sqs_consumer';
 import { buildRfqmServiceAsync } from './http_rfqm_service_runner';
 
 const RFQM_JOB_DEQUEUED = new Counter({
-    name: "rfqm_job_dequeued",
-    help: "An Rfqm Job was pulled from the queue",
-    labelNames: ["address"],
+    name: 'rfqm_job_dequeued',
+    help: 'An Rfqm Job was pulled from the queue',
+    labelNames: ['address'],
 });
 
 const RFQM_JOB_COMPLETED = new Counter({
-    name: "rfqm_job_completed",
-    help: "An Rfqm Job completed with no errors",
-    labelNames: ["address"],
+    name: 'rfqm_job_completed',
+    help: 'An Rfqm Job completed with no errors',
+    labelNames: ['address'],
 });
 
 const RFQM_JOB_PROCESSING_TIME = new Summary({
-    name: "rfqm_job_processing_time",
-    help: "The time it takes to process an RFQM job",
-    labelNames: ["address"],
+    name: 'rfqm_job_processing_time',
+    help: 'The time it takes to process an RFQM job',
+    labelNames: ['address'],
 });
 
 const RFQM_JOB_COMPLETED_WITH_ERROR = new Counter({
-    name: "rfqm_job_completed_with_error",
-    help: "An Rfqm Job completed with an error",
-    labelNames: ["address"],
+    name: 'rfqm_job_completed_with_error',
+    help: 'An Rfqm Job completed with an error',
+    labelNames: ['address'],
 });
 
 process.on('uncaughtException', (err) => {
