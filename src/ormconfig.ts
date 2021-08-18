@@ -14,6 +14,7 @@ import {
     SignedOrderEntity,
     SignedOrderV4Entity,
     TransactionEntity,
+    OrderWatcherSignedOrderEntity
 } from './entities';
 
 const entities = [
@@ -29,6 +30,7 @@ const entities = [
     RfqmQuoteEntity,
     RfqmJobEntity,
     RfqmTransactionSubmissionEntity,
+    OrderWatcherSignedOrderEntity
 ];
 
 const config: ConnectionOptions = {
