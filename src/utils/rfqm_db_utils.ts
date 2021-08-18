@@ -27,6 +27,7 @@ export function storedOrderToRfqmOrder(storedOrder: StoredOrder): RfqmOrder {
             expiry: new BigNumber(storedOrder.order.expiry),
             verifyingContract: storedOrder.order.verifyingContract,
             chainId: Number(storedOrder.order.chainId),
+            pool: storedOrder.order.pool,
         });
     } else {
         throw new Error(`Unknown order type`);
