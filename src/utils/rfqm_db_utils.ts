@@ -24,7 +24,7 @@ export function storedOrderToRfqmOrder(storedOrder: StoredOrder): RfqmOrder {
             makerAmount: new BigNumber(storedOrder.order.makerAmount),
             takerAmount: new BigNumber(storedOrder.order.takerAmount),
             salt: new BigNumber(storedOrder.order.salt),
-            expiry: new BigNumber(storedOrder.order.takerAmount),
+            expiry: new BigNumber(storedOrder.order.expiry),
             verifyingContract: storedOrder.order.verifyingContract,
             chainId: Number(storedOrder.order.chainId),
         });
