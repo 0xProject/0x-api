@@ -27,6 +27,7 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
 import { GeneralErrorCodes } from '../src/errors';
+import { OrderWatcher} from '../src/utils/order_watcher';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
 import { SwapService } from '../src/services/swap_service';
@@ -87,7 +88,8 @@ describe('Transaction Watcher Service integration test', () => {
         transactionEntityRepository = connection.getRepository(TransactionEntity);
         txWatcher = new TransactionWatcherSignerService(connection, txWatcherConfig);
         await txWatcher.syncTransactionStatusAsync();
-        const orderBookService = new OrderBookService(connection);
+        const orderWatcher = new OrderWatcher();
+        const orderBookService = new OrderBookService(connection, orderWatcher);
         const websocketOpts = { path: SRA_PATH };
         const rfqFirmQuoteValidator = new PostgresRfqtFirmQuoteValidator(
             connection.getRepository(MakerBalanceChainCacheEntity),

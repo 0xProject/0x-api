@@ -22,6 +22,7 @@ import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheE
 import { logger } from './logger';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
+  import { OrderWatcher } from './utils/order_watcher';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
 import { SwapService } from './services/swap_service';
@@ -136,7 +137,7 @@ export async function getDefaultAppDependenciesAsync(
         rateLimiter = createMetaTransactionRateLimiterFromConfig(connection, config);
     }
 
-    const orderBookService = new OrderBookService(connection);
+    const orderBookService = new OrderBookService(connection, new OrderWatcher());
 
     const rfqtFirmQuoteValidator = new PostgresRfqtFirmQuoteValidator(
         connection.getRepository(MakerBalanceChainCacheEntity),
