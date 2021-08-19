@@ -93,7 +93,8 @@
         ]
     },
     "resolutions": {
-        "@0x/contracts-zero-ex": "^0.27.0"
+        "@0x/contracts-zero-ex": "^0.27.0",
+        "@0x/utils": "^6.4.3"
     },
     "devDependencies": {
         "@0x/contracts-erc20": "^3.3.16",
