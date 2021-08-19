@@ -52,7 +52,7 @@ export class SRAHandlers {
         const orderFieldFilters = new SignedOrderV4Entity(req.query);
         const additionalFilters = {
             trader: req.query.trader ? req.query.trader.toString() : undefined,
-            isUnfillable: req.query.unfillable ? req.query.unfillable === 'true' : false,
+            isUnfillable: req.query.unfillable === 'true',
         };
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const paginatedOrders = await this._orderBook.getOrdersAsync(
