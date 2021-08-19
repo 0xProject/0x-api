@@ -20,7 +20,7 @@ import { orderUtils } from '../src/utils/order_utils';
 
 import { CHAIN_ID, getProvider } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { getRandomLimitOrder, MeshClientMock } from './utils/mesh_client_mock';
+import { getRandomLimitOrder } from './utils/mesh_client_mock';
 import { MockOrderWatcher } from './utils/mock_order_watcher';
 
 const SUITE_NAME = 'OrderbookService';
@@ -93,13 +93,11 @@ describe(SUITE_NAME, () => {
     let privateKey: string;
 
     let connection: Connection;
-    const meshClientMock = new MeshClientMock();
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
         connection = await getDBConnectionAsync();
         await connection.runMigrations();
-        await meshClientMock.setupMockAsync();
         orderBookService = new OrderBookService(connection, new MockOrderWatcher(connection));
         provider = getProvider();
         const web3Wrapper = new Web3Wrapper(provider);
@@ -113,7 +111,6 @@ describe(SUITE_NAME, () => {
         await blockchainLifecycle.startAsync();
     });
     after(async () => {
-        meshClientMock.teardownMock();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
@@ -239,7 +236,6 @@ describe(SUITE_NAME, () => {
     });
     describe('addOrdersAsync, addPersistentOrdersAsync', () => {
         before(async () => {
-            // await meshClientMock.resetStateAsync();
             // await connection.runMigrations();
         });
         beforeEach(async () => {
@@ -269,12 +265,9 @@ describe(SUITE_NAME, () => {
             const result = await connection.manager.find(PersistentSignedOrderV4Entity, {
                 hash: apiOrder.metaData.orderHash,
             });
-
             const expected = orderUtils.serializePersistentOrder(apiOrder);
             expected.createdAt = result[0].createdAt; // createdAt is saved in the PersistentOrders table directly
-
             expect(result).to.deep.equal([expected]);
-
             // TODO: move this in to afterEach.
             await deletePersistentOrdersAsync(connection, [apiOrder.metaData.orderHash]);
         });
