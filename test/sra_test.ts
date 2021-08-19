@@ -262,23 +262,23 @@ describe(SUITE_NAME, () => {
         });
     });
     describe('GET /order', () => {
-        // it('should return order by order hash', async () => {
-        //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-        //     const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
-        //     apiOrder.metaData.createdAt = response.body.metaData.createdAt; // createdAt is saved in the SignedOrders table directly
-        //
-        //     expect(response.type).to.eq(`application/json`);
-        //     expect(response.status).to.eq(HttpStatus.OK);
-        //     expect(response.body).to.deep.eq(JSON.parse(JSON.stringify(apiOrder)));
-        //
-        //     await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
-        // });
-        // it('should return 404 if order is not found', async () => {
-        //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-        //     await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
-        //     const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
-        //     expect(response.status).to.deep.eq(HttpStatus.NOT_FOUND);
-        // });
+        it('should return order by order hash', async () => {
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
+            const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
+            apiOrder.metaData.createdAt = response.body.metaData.createdAt; // createdAt is saved in the SignedOrders table directly
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+            expect(response.body).to.deep.eq(JSON.parse(JSON.stringify(apiOrder)));
+
+            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+        });
+        it('should return 404 if order is not found', async () => {
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
+            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+            const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
+            expect(response.status).to.deep.eq(HttpStatus.NOT_FOUND);
+        });
     });
 
     describe('GET /orderbook', () => {
