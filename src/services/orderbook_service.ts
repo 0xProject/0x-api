@@ -97,7 +97,10 @@ export class OrderBookService {
         const filters = [];
 
         // Pre-filters; exists in the entity verbatim
-        const orderFilter = _.pickBy(orderFieldFilters, _.identity.bind(_));
+        let columnNames = await this._connection.getMetadata(SignedOrderV4Entity).columns.map((x) => x.propertyName);
+        const orderFilter = _.pickBy(orderFieldFilters, (v, k) => {
+            return columnNames.includes(k);
+        });
 
         // Post-filters; filters that don't exist verbatim
         if (additionalFilters.trader) {
