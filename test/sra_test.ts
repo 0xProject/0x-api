@@ -28,7 +28,7 @@ import {
     ZRX_TOKEN_ADDRESS,
 } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { httpGetAsync, httpPostAsync } from './utils/http_utils';
+import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { getRandomSignedLimitOrderAsync, MeshClientMock } from './utils/mesh_client_mock';
 
 const SUITE_NAME = 'Standard Relayer API (SRA) integration tests';
@@ -275,59 +275,59 @@ describe(SUITE_NAME, () => {
         // });
         // it('should return 404 if order is not found', async () => {
         //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-        //     await dependencies.connection.manager.remove(orderUtils.serializeOrder(apiOrder));
+        //     await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         //     const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
         //     expect(response.status).to.deep.eq(HttpStatus.NOT_FOUND);
         // });
     });
 
     describe('GET /orderbook', () => {
-        // it('should return orderbook for a given pair', async () => {
-        //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-        //     const response = await httpGetAsync({
-        //         app,
-        //         route: constructRoute({
-        //             baseRoute: `${SRA_PATH}/orderbook`,
-        //             queryParams: {
-        //                 baseToken: apiOrder.order.makerToken,
-        //                 quoteToken: apiOrder.order.takerToken,
-        //             },
-        //         }),
-        //     });
-        //     apiOrder.metaData.createdAt = response.body.asks.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
-        //
-        //     expect(response.type).to.eq(`application/json`);
-        //     expect(response.status).to.eq(HttpStatus.OK);
-        //
-        //     const expectedResponse = {
-        //         bids: EMPTY_PAGINATED_RESPONSE,
-        //         asks: {
-        //             ...EMPTY_PAGINATED_RESPONSE,
-        //             total: 1,
-        //             records: [JSON.parse(JSON.stringify(apiOrder))],
-        //         },
-        //     };
-        //     expect(response.body).to.deep.eq(expectedResponse);
-        //     await dependencies.connection.manager.remove(orderUtils.serializeOrder(apiOrder));
-        // });
-        // it('should return empty response if no matching orders', async () => {
-        //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-        //     const response = await httpGetAsync({
-        //         app,
-        //         route: constructRoute({
-        //             baseRoute: `${SRA_PATH}/orderbook`,
-        //             queryParams: { baseToken: apiOrder.order.makerToken, quoteToken: NULL_ADDRESS },
-        //         }),
-        //     });
-        //
-        //     expect(response.type).to.eq(`application/json`);
-        //     expect(response.status).to.eq(HttpStatus.OK);
-        //     expect(response.body).to.deep.eq({
-        //         bids: EMPTY_PAGINATED_RESPONSE,
-        //         asks: EMPTY_PAGINATED_RESPONSE,
-        //     });
-        //     await dependencies.connection.manager.remove(orderUtils.serializeOrder(apiOrder));
-        // });
+        it('should return orderbook for a given pair', async () => {
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
+            const response = await httpGetAsync({
+                app,
+                route: constructRoute({
+                    baseRoute: `${SRA_PATH}/orderbook`,
+                    queryParams: {
+                        baseToken: apiOrder.order.makerToken,
+                        quoteToken: apiOrder.order.takerToken,
+                    },
+                }),
+            });
+            apiOrder.metaData.createdAt = response.body.asks.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+
+            const expectedResponse = {
+                bids: EMPTY_PAGINATED_RESPONSE,
+                asks: {
+                    ...EMPTY_PAGINATED_RESPONSE,
+                    total: 1,
+                    records: [JSON.parse(JSON.stringify(apiOrder))],
+                },
+            };
+            expect(response.body).to.deep.eq(expectedResponse);
+            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+        });
+        it('should return empty response if no matching orders', async () => {
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
+            const response = await httpGetAsync({
+                app,
+                route: constructRoute({
+                    baseRoute: `${SRA_PATH}/orderbook`,
+                    queryParams: { baseToken: apiOrder.order.makerToken, quoteToken: NULL_ADDRESS },
+                }),
+            });
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+            expect(response.body).to.deep.eq({
+                bids: EMPTY_PAGINATED_RESPONSE,
+                asks: EMPTY_PAGINATED_RESPONSE,
+            });
+            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+        });
         it('should return validation error if query params are missing', async () => {
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orderbook?quoteToken=WETH` });
             const validationErrors = {
