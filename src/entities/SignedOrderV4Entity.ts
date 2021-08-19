@@ -1,4 +1,4 @@
-import { ViewColumn, ViewEntity } from 'typeorm';
+import { ViewColumn, ViewEntity, PrimaryColumn } from 'typeorm';
 
 @ViewEntity({
     name: 'valid_signed_orders_v4',
@@ -6,7 +6,7 @@ import { ViewColumn, ViewEntity } from 'typeorm';
     synchronize: false,
 })
 class ValidSignedOrderV4Entity {
-    @ViewColumn({ name: 'hash' })
+    @PrimaryColumn({ name: 'hash' })
     public hash?: string;
 
     @ViewColumn({ name: 'maker_token' })
