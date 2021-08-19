@@ -1,5 +1,5 @@
 import { ErrorBody, GeneralErrorCodes, generalErrorCodeToReason, ValidationErrorCodes } from '@0x/api-utils';
-// import { LimitOrder } from '@0x/asset-swapper';
+import { LimitOrder } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine, Web3Wrapper } from '@0x/dev-utils';
 import { BigNumber } from '@0x/utils';
@@ -14,9 +14,10 @@ delete require.cache[require.resolve('../src/app')];
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
 import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, ONE_SECOND_MS, SRA_PATH } from '../src/constants';
-// import { SignedOrderV4Entity } from '../src/entities';
-// import { SignedLimitOrder, SRAOrder } from '../src/types';
-// import { orderUtils } from '../src/utils/order_utils';
+import { OrderWatcherSignedOrderEntity } from '../src/entities';
+import { SignedLimitOrder, SRAOrder } from '../src/types';
+import { orderUtils } from '../src/utils/order_utils';
+// import {MockOrderWatcher} from './utils/mock_order_watcher';
 
 import {
     // CHAIN_ID,
@@ -49,29 +50,30 @@ describe(SUITE_NAME, () => {
     let server: Server;
     let dependencies: AppDependencies;
     let makerAddress: string;
-    // let otherAddress: string;
+    let otherAddress: string;
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
 
     const meshClientMock = new MeshClientMock();
+    // const orderWatcher = new MockOrderWatcher(dependencies.coonnection);
 
-    // async function addNewOrderAsync(
-    //     params: Partial<SignedLimitOrder> & { maker: string },
-    //     remainingFillableAmount?: BigNumber,
-    // ): Promise<SRAOrder> {
-    //     const limitOrder = await getRandomSignedLimitOrderAsync(provider, params);
-    //     const apiOrder: SRAOrder = {
-    //         order: limitOrder,
-    //         metaData: {
-    //             orderHash: new LimitOrder(limitOrder).getHash(),
-    //             remainingFillableTakerAmount: remainingFillableAmount || limitOrder.takerAmount,
-    //         },
-    //     };
-    //     const orderEntity = orderUtils.serializeOrder(apiOrder);
-    //     await dependencies.connection.getRepository(SignedOrderV4Entity).save(orderEntity);
-    //     return apiOrder;
-    // }
+    async function addNewOrderAsync(
+        params: Partial<SignedLimitOrder> & { maker: string },
+        remainingFillableAmount?: BigNumber,
+    ): Promise<SRAOrder> {
+        const limitOrder = await getRandomSignedLimitOrderAsync(provider, params);
+        const apiOrder: SRAOrder = {
+            order: limitOrder,
+            metaData: {
+                orderHash: new LimitOrder(limitOrder).getHash(),
+                remainingFillableTakerAmount: remainingFillableAmount || limitOrder.takerAmount,
+            },
+        };
+        const orderEntity = orderUtils.serializeOrder(apiOrder);
+        await dependencies.connection.getRepository(OrderWatcherSignedOrderEntity).save(orderEntity);
+        return apiOrder;
+    }
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
@@ -92,7 +94,9 @@ describe(SUITE_NAME, () => {
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
 
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
-        makerAddress = accounts[0];
+        [makerAddress, otherAddress] = accounts;
+        // makerAddress = accounts[0];
+        // otherAddress = accounts[1];
     });
     after(async () => {
         await new Promise<void>((resolve, reject) => {
@@ -111,10 +115,22 @@ describe(SUITE_NAME, () => {
         meshClientMock.mockMeshClient._resetClient();
         await dependencies.connection.runMigrations();
         await blockchainLifecycle.startAsync();
+        await dependencies.connection
+            .createQueryBuilder()
+            .delete()
+            .from(OrderWatcherSignedOrderEntity)
+            .where("true")
+            .execute();
     });
 
     afterEach(async () => {
         await blockchainLifecycle.revertAsync();
+        await dependencies.connection
+            .createQueryBuilder()
+            .delete()
+            .from(OrderWatcherSignedOrderEntity)
+            .where("true")
+            .execute();
     });
 
     describe('/fee_recipients', () => {
@@ -138,108 +154,112 @@ describe(SUITE_NAME, () => {
             expect(response.status).to.eq(HttpStatus.OK);
             expect(response.body).to.deep.eq(EMPTY_PAGINATED_RESPONSE);
         });
-        // it('should return orders in the local cache', async () => {
-        //     const apiOrder = await addNewOrderAsync({
-        //         maker: makerAddress,
-        //     });
-        //     const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders` });
-        //     apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
-        //
-        //     expect(response.type).to.eq(`application/json`);
-        //     expect(response.status).to.eq(HttpStatus.OK);
-        //     expect(response.body).to.deep.eq({
-        //         ...EMPTY_PAGINATED_RESPONSE,
-        //         total: 1,
-        //         records: [JSON.parse(JSON.stringify(apiOrder))],
-        //     });
-        //
-        //     await dependencies.connection.manager.remove(orderUtils.serializeOrder(apiOrder));
-        // });
-        // it('should return orders filtered by query params', async () => {
-        //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-        //     const response = await httpGetAsync({
-        //         app,
-        //         route: `${SRA_PATH}/orders?maker=${apiOrder.order.maker}`,
-        //     });
-        //     apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
-        //
-        //     expect(response.type).to.eq(`application/json`);
-        //     expect(response.status).to.eq(HttpStatus.OK);
-        //     expect(response.body).to.deep.eq({
-        //         ...EMPTY_PAGINATED_RESPONSE,
-        //         total: 1,
-        //         records: [JSON.parse(JSON.stringify(apiOrder))],
-        //     });
-        //
-        //     await dependencies.connection.manager.remove(orderUtils.serializeOrder(apiOrder));
-        // });
-        // it('should filter by order parameters AND trader', async () => {
-        //     const matchingOrders = await Promise.all([
-        //         addNewOrderAsync({
-        //             makerToken: ZRX_TOKEN_ADDRESS,
-        //             takerToken: WETH_TOKEN_ADDRESS,
-        //             maker: makerAddress,
-        //         }),
-        //         addNewOrderAsync({
-        //             makerToken: ZRX_TOKEN_ADDRESS,
-        //             takerToken: WETH_TOKEN_ADDRESS,
-        //             taker: makerAddress,
-        //             maker: otherAddress,
-        //         }),
-        //     ]);
-        //
-        //     // Should not match trader
-        //     const nonMatchingOrder = await addNewOrderAsync({
-        //         makerToken: ZRX_TOKEN_ADDRESS,
-        //         takerToken: WETH_TOKEN_ADDRESS,
-        //         maker: otherAddress,
-        //     });
-        //     const response = await httpGetAsync({
-        //         app,
-        //         route: `${SRA_PATH}/orders?makerToken=${ZRX_TOKEN_ADDRESS}&trader=${makerAddress}`,
-        //     });
-        //     const sortByHash = (arr: any[]) => _.sortBy(arr, 'metaData.orderHash');
-        //     const { body } = response;
-        //     // Remove createdAt from response for easier comparison
-        //     const cleanRecords = body.records.map((r: any) => _.omit(r, 'metaData.createdAt'));
-        //
-        //     expect(response.type).to.eq(`application/json`);
-        //     expect(response.status).to.eq(HttpStatus.OK);
-        //     expect(body.total).to.eq(2);
-        //     expect(sortByHash(cleanRecords)).to.deep.eq(sortByHash(JSON.parse(JSON.stringify(matchingOrders))));
-        //     const orders = [...matchingOrders, nonMatchingOrder];
-        //     await dependencies.connection.manager.remove(orders.map((apiOrder) => orderUtils.serializeOrder(apiOrder)));
-        // });
-        // it('should return empty response when filtered by query params', async () => {
-        //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-        //     const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders?maker=${NULL_ADDRESS}` });
-        //
-        //     expect(response.type).to.eq(`application/json`);
-        //     expect(response.status).to.eq(HttpStatus.OK);
-        //     expect(response.body).to.deep.eq(EMPTY_PAGINATED_RESPONSE);
-        //
-        //     await dependencies.connection.manager.remove(orderUtils.serializeOrder(apiOrder));
-        // });
-        // it('should normalize addresses to lowercase', async () => {
-        //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-        //
-        //     const makerUpperCase = `0x${apiOrder.order.maker.replace('0x', '').toUpperCase()}`;
-        //     const response = await httpGetAsync({
-        //         app,
-        //         route: `${SRA_PATH}/orders?maker=${makerUpperCase}`,
-        //     });
-        //     apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
-        //
-        //     expect(response.type).to.eq(`application/json`);
-        //     expect(response.status).to.eq(HttpStatus.OK);
-        //     expect(response.body).to.deep.eq({
-        //         ...EMPTY_PAGINATED_RESPONSE,
-        //         total: 1,
-        //         records: [JSON.parse(JSON.stringify(apiOrder))],
-        //     });
-        //
-        //     await dependencies.connection.manager.remove(orderUtils.serializeOrder(apiOrder));
-        // });
+        it('should return orders in the local cache', async () => {
+            const apiOrder = await addNewOrderAsync({
+                maker: makerAddress,
+            });
+            const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders` });
+            apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+            expect(response.body).to.deep.eq({
+                ...EMPTY_PAGINATED_RESPONSE,
+                total: 1,
+                records: [JSON.parse(JSON.stringify(apiOrder))],
+            });
+
+            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+        });
+        it('should return orders filtered by query params', async () => {
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
+            const response = await httpGetAsync({
+                app,
+                route: `${SRA_PATH}/orders?maker=${apiOrder.order.maker}`,
+            });
+            apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+            expect(response.body).to.deep.eq({
+                ...EMPTY_PAGINATED_RESPONSE,
+                total: 1,
+                records: [JSON.parse(JSON.stringify(apiOrder))],
+            });
+
+            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+        });
+        it('should filter by order parameters AND trader', async () => {
+            const matchingOrders = await Promise.all([
+                addNewOrderAsync({
+                    makerToken: ZRX_TOKEN_ADDRESS,
+                    takerToken: WETH_TOKEN_ADDRESS,
+                    maker: makerAddress,
+                }),
+                addNewOrderAsync({
+                    makerToken: ZRX_TOKEN_ADDRESS,
+                    takerToken: WETH_TOKEN_ADDRESS,
+                    taker: makerAddress,
+                    maker: otherAddress,
+                }),
+            ]);
+
+            // Should not match trader
+            const nonMatchingOrder = await addNewOrderAsync({
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                maker: otherAddress,
+            });
+            const response = await httpGetAsync({
+                app,
+                route: `${SRA_PATH}/orders?makerToken=${ZRX_TOKEN_ADDRESS}&trader=${makerAddress}`,
+            });
+            const sortByHash = (arr: any[]) => _.sortBy(arr, 'metaData.orderHash');
+            const { body } = response;
+            // Remove createdAt from response for easier comparison
+            console.log(response);
+            const cleanRecords = body.records.map((r: any) => _.omit(r, 'metaData.createdAt'));
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+            expect(body.total).to.eq(2);
+            expect(sortByHash(cleanRecords)).to.deep.eq(sortByHash(JSON.parse(JSON.stringify(matchingOrders))));
+            const orders = [...matchingOrders, nonMatchingOrder];
+            await dependencies.connection.manager.delete(
+                OrderWatcherSignedOrderEntity,
+                orders.map((apiOrder) => apiOrder.metaData.orderHash),
+            );
+        });
+        it('should return empty response when filtered by query params', async () => {
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
+            const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders?maker=${NULL_ADDRESS}` });
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+            expect(response.body).to.deep.eq(EMPTY_PAGINATED_RESPONSE);
+
+            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+        });
+        it('should normalize addresses to lowercase', async () => {
+            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
+
+            const makerUpperCase = `0x${apiOrder.order.maker.replace('0x', '').toUpperCase()}`;
+            const response = await httpGetAsync({
+                app,
+                route: `${SRA_PATH}/orders?maker=${makerUpperCase}`,
+            });
+            apiOrder.metaData.createdAt = response.body.records[0].metaData.createdAt; // createdAt is saved in the SignedOrders table directly
+
+            expect(response.type).to.eq(`application/json`);
+            expect(response.status).to.eq(HttpStatus.OK);
+            expect(response.body).to.deep.eq({
+                ...EMPTY_PAGINATED_RESPONSE,
+                total: 1,
+                records: [JSON.parse(JSON.stringify(apiOrder))],
+            });
+
+            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+        });
     });
     describe('GET /order', () => {
         // it('should return order by order hash', async () => {
@@ -251,7 +271,7 @@ describe(SUITE_NAME, () => {
         //     expect(response.status).to.eq(HttpStatus.OK);
         //     expect(response.body).to.deep.eq(JSON.parse(JSON.stringify(apiOrder)));
         //
-        //     await dependencies.connection.manager.remove(orderUtils.serializeOrder(apiOrder));
+        //     await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         // });
         // it('should return 404 if order is not found', async () => {
         //     const apiOrder = await addNewOrderAsync({ maker: makerAddress });
