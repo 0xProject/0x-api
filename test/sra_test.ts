@@ -115,12 +115,6 @@ describe(SUITE_NAME, () => {
         meshClientMock.mockMeshClient._resetClient();
         await dependencies.connection.runMigrations();
         await blockchainLifecycle.startAsync();
-        await dependencies.connection
-            .createQueryBuilder()
-            .delete()
-            .from(OrderWatcherSignedOrderEntity)
-            .where("true")
-            .execute();
     });
 
     afterEach(async () => {
@@ -168,8 +162,6 @@ describe(SUITE_NAME, () => {
                 total: 1,
                 records: [JSON.parse(JSON.stringify(apiOrder))],
             });
-
-            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         });
         it('should return orders filtered by query params', async () => {
             const apiOrder = await addNewOrderAsync({ maker: makerAddress });
@@ -186,8 +178,6 @@ describe(SUITE_NAME, () => {
                 total: 1,
                 records: [JSON.parse(JSON.stringify(apiOrder))],
             });
-
-            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         });
         it('should filter by order parameters AND trader', async () => {
             const matchingOrders = await Promise.all([
@@ -225,10 +215,6 @@ describe(SUITE_NAME, () => {
             expect(body.total).to.eq(2);
             expect(sortByHash(cleanRecords)).to.deep.eq(sortByHash(JSON.parse(JSON.stringify(matchingOrders))));
             const orders = [...matchingOrders, nonMatchingOrder];
-            await dependencies.connection.manager.delete(
-                OrderWatcherSignedOrderEntity,
-                orders.map((apiOrder) => apiOrder.metaData.orderHash),
-            );
         });
         it('should return empty response when filtered by query params', async () => {
             const apiOrder = await addNewOrderAsync({ maker: makerAddress });
@@ -237,8 +223,6 @@ describe(SUITE_NAME, () => {
             expect(response.type).to.eq(`application/json`);
             expect(response.status).to.eq(HttpStatus.OK);
             expect(response.body).to.deep.eq(EMPTY_PAGINATED_RESPONSE);
-
-            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         });
         it('should normalize addresses to lowercase', async () => {
             const apiOrder = await addNewOrderAsync({ maker: makerAddress });
@@ -257,8 +241,6 @@ describe(SUITE_NAME, () => {
                 total: 1,
                 records: [JSON.parse(JSON.stringify(apiOrder))],
             });
-
-            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         });
     });
     describe('GET /order', () => {
@@ -270,8 +252,6 @@ describe(SUITE_NAME, () => {
             expect(response.type).to.eq(`application/json`);
             expect(response.status).to.eq(HttpStatus.OK);
             expect(response.body).to.deep.eq(JSON.parse(JSON.stringify(apiOrder)));
-
-            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         });
         it('should return 404 if order is not found', async () => {
             const apiOrder = await addNewOrderAsync({ maker: makerAddress });
@@ -308,7 +288,6 @@ describe(SUITE_NAME, () => {
                 },
             };
             expect(response.body).to.deep.eq(expectedResponse);
-            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         });
         it('should return empty response if no matching orders', async () => {
             const apiOrder = await addNewOrderAsync({ maker: makerAddress });
@@ -326,7 +305,6 @@ describe(SUITE_NAME, () => {
                 bids: EMPTY_PAGINATED_RESPONSE,
                 asks: EMPTY_PAGINATED_RESPONSE,
             });
-            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
         });
         it('should return validation error if query params are missing', async () => {
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orderbook?quoteToken=WETH` });
