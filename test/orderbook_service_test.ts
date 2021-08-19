@@ -13,7 +13,7 @@ const { color, symbols } = Mocha.reporters.Base;
 
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
-import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../src/entities';
+import { PersistentSignedOrderV4Entity, SignedOrderV4Entity, OrderWatcherSignedOrderEntity } from '../src/entities';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { PaginatedCollection, SRAOrder, SRAOrderMetaData } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
@@ -34,21 +34,21 @@ const EMPTY_PAGINATED_RESPONSE = {
 
 const TOMORROW = new BigNumber(Date.now() + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
 
-// async function saveSignedOrdersAsync(connection: Connection, orders: SRAOrder[]): Promise<void> {
-//     await connection.getRepository(SignedOrderV4Entity).save(orders.map(orderUtils.serializeOrder));
-// }
+async function saveSignedOrdersAsync(connection: Connection, orders: SRAOrder[]): Promise<void> {
+    await connection.getRepository(OrderWatcherSignedOrderEntity).save(orders.map(orderUtils.serializeOrder));
+}
 
 async function savePersistentOrdersAsync(connection: Connection, orders: SRAOrder[]): Promise<void> {
     await connection.getRepository(PersistentSignedOrderV4Entity).save(orders.map(orderUtils.serializePersistentOrder));
 }
 
-// async function deleteSignedOrdersAsync(connection: Connection, orderHashes: string[]): Promise<void> {
-//     try {
-//         await connection.manager.delete(SignedOrderV4Entity, orderHashes);
-//     } catch (e) {
-//         return;
-//     }
-// }
+async function deleteSignedOrdersAsync(connection: Connection, orderHashes: string[]): Promise<void> {
+    try {
+        await connection.manager.delete(OrderWatcherSignedOrderEntity, orderHashes);
+    } catch (e) {
+        return;
+    }
+}
 
 async function deletePersistentOrdersAsync(connection: Connection, orderHashes: string[]): Promise<void> {
     try {
@@ -117,126 +117,126 @@ describe(SUITE_NAME, () => {
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
-    // describe('getOrdersAsync', () => {
-    //     it(`ran getOrdersAsync test cases`, async () => {
-    //         // Test case interface
-    //         type GetOrdersTestCase = [
-    //             SRAOrder[], // orders to save in the SignedOrder cache
-    //             SRAOrder[], // orders to save in the PersistentOrder cache
-    //             Partial<PaginatedCollection<SRAOrder>>, // expected response; missing fields will be filled in with defaults
-    //             Partial<Parameters<typeof orderBookService.getOrdersAsync>>, // params to pass to getOrdersAsync; using [] means default empty filter
-    //             string, // optional description to print out with the test case
-    //         ];
-    //
-    //         /** Define All Test Cases Here */
-    //         const testCases: GetOrdersTestCase[] = await Promise.all([
-    //             [[], [], {}, [], `should return empty response when no orders`],
-    //             await (async () => {
-    //                 const description = `should return orders in the cache when no filters`;
-    //                 const apiOrder = await newSRAOrderAsync(privateKey, {});
-    //                 const expected = {
-    //                     records: [apiOrder],
-    //                 };
-    //                 return [[apiOrder], [], expected, [], description] as GetOrdersTestCase;
-    //             })(),
-    //             await (async () => {
-    //                 const description = `should de-duplicate signed orders and persistent orders`;
-    //                 const apiOrder = await newSRAOrderAsync(privateKey, {});
-    //                 const expected = {
-    //                     records: [apiOrder],
-    //                 };
-    //                 return [[apiOrder], [apiOrder], expected, [], description] as GetOrdersTestCase;
-    //             })(),
-    //             await (async () => {
-    //                 const description = `should return persistent orders that are NOT in the signed orders cache`;
-    //                 const apiOrder = await newSRAOrderAsync(privateKey, {}, { state: OrderEventEndState.Cancelled });
-    //                 const expected = {
-    //                     records: [apiOrder],
-    //                 };
-    //                 const params = [
-    //                     DEFAULT_PAGE,
-    //                     DEFAULT_PER_PAGE,
-    //                     { maker: apiOrder.order.maker },
-    //                     { isUnfillable: true },
-    //                 ] as Parameters<typeof orderBookService.getOrdersAsync>;
-    //                 return [[], [apiOrder], expected, params, description] as GetOrdersTestCase;
-    //             })(),
-    //         ]);
-    //         /** End Test Cases */
-    //
-    //         // Generic test runner
-    //         function runTestCaseForGetOrdersFilters(
-    //             orders: SRAOrder[],
-    //             persistentOrders: SRAOrder[],
-    //             expectedResponse: PaginatedCollection<SRAOrder>,
-    //             description: string,
-    //         ): (params: Parameters<typeof orderBookService.getOrdersAsync>) => Promise<void> {
-    //             const indent = '     ';
-    //             return async (args: Parameters<typeof orderBookService.getOrdersAsync>) => {
-    //                 try {
-    //                     // setup
-    //                     await Promise.all([
-    //                         saveSignedOrdersAsync(connection, orders),
-    //                         savePersistentOrdersAsync(connection, persistentOrders),
-    //                     ]);
-    //                     const results = await orderBookService.getOrdersAsync(...args);
-    //                     // clean non-deterministic field
-    //                     expectedResponse.records.forEach((o, i) => {
-    //                         o.metaData.createdAt = results.records[i].metaData.createdAt;
-    //                     });
-    //                     // assertion
-    //                     expect(expectedResponse).deep.equal(results);
-    //
-    //                     // cleanup
-    //                     const deletePromise = async (_orders: SRAOrder[], isPersistent: boolean) => {
-    //                         const deleteFn = isPersistent ? deletePersistentOrdersAsync : deleteSignedOrdersAsync;
-    //                         return _orders.length > 0
-    //                             ? deleteFn(
-    //                                   connection,
-    //                                   _orders.map((o) => o.metaData.orderHash),
-    //                               )
-    //                             : Promise.resolve();
-    //                     };
-    //                     await Promise.all([deletePromise(orders, false), deletePromise(persistentOrders, true)]);
-    //                     // If anything went wrong, the test failed
-    //                     // tslint:disable:no-console
-    //                 } catch (e) {
-    //                     console.log(indent, color('bright fail', `${symbols.err}`), color('fail', description));
-    //                     throw e;
-    //                 }
-    //                 // Otherwise, succeeded
-    //                 console.log(indent, color('checkmark', `${symbols.ok}`), color('pass', description));
-    //                 // tslint:enable:no-console
-    //             };
-    //         }
-    //
-    //         // Run the tests synchronously; fill in default values
-    //         // tslint:disable:custom-no-magic-numbers
-    //         for (const [i, _test] of testCases.entries()) {
-    //             const test = fillInDefaultTestCaseValues(_test, i);
-    //             await runTestCaseForGetOrdersFilters(
-    //                 test[0],
-    //                 test[1],
-    //                 test[2] as PaginatedCollection<SRAOrder>,
-    //                 test[4],
-    //             )(test[3] as Parameters<typeof orderBookService.getOrdersAsync>);
-    //         }
-    //         function fillInDefaultTestCaseValues(test: GetOrdersTestCase, i: number): GetOrdersTestCase {
-    //             // expected orderbook response
-    //             test[2] = { ...EMPTY_PAGINATED_RESPONSE, ...test[2] };
-    //             test[2] = { ...test[2], total: test[2].records!.length };
-    //             // test description
-    //             test[4] = test[4] || `Test Case #${i}`;
-    //             // params for getOrdersAsync
-    //             test[3][0] = test[3][0] || DEFAULT_PAGE;
-    //             test[3][1] = test[3][1] || DEFAULT_PER_PAGE;
-    //             test[3][2] = test[3][2] || {};
-    //             test[3][3] = test[3][3] || {};
-    //             return test;
-    //         }
-    //         // tslint:enable:custom-no-magic-numbers
-    //     });
-    // });
+    describe('getOrdersAsync', () => {
+        it(`ran getOrdersAsync test cases`, async () => {
+            // Test case interface
+            type GetOrdersTestCase = [
+                SRAOrder[], // orders to save in the SignedOrder cache
+                SRAOrder[], // orders to save in the PersistentOrder cache
+                Partial<PaginatedCollection<SRAOrder>>, // expected response; missing fields will be filled in with defaults
+                Partial<Parameters<typeof orderBookService.getOrdersAsync>>, // params to pass to getOrdersAsync; using [] means default empty filter
+                string, // optional description to print out with the test case
+            ];
+
+            /** Define All Test Cases Here */
+            const testCases: GetOrdersTestCase[] = await Promise.all([
+                [[], [], {}, [], `should return empty response when no orders`],
+                await (async () => {
+                    const description = `should return orders in the cache when no filters`;
+                    const apiOrder = await newSRAOrderAsync(privateKey, {});
+                    const expected = {
+                        records: [apiOrder],
+                    };
+                    return [[apiOrder], [], expected, [], description] as GetOrdersTestCase;
+                })(),
+                await (async () => {
+                    const description = `should de-duplicate signed orders and persistent orders`;
+                    const apiOrder = await newSRAOrderAsync(privateKey, {});
+                    const expected = {
+                        records: [apiOrder],
+                    };
+                    return [[apiOrder], [apiOrder], expected, [], description] as GetOrdersTestCase;
+                })(),
+                await (async () => {
+                    const description = `should return persistent orders that are NOT in the signed orders cache`;
+                    const apiOrder = await newSRAOrderAsync(privateKey, {}, { state: OrderEventEndState.Cancelled });
+                    const expected = {
+                        records: [apiOrder],
+                    };
+                    const params = [
+                        DEFAULT_PAGE,
+                        DEFAULT_PER_PAGE,
+                        { maker: apiOrder.order.maker },
+                        { isUnfillable: true },
+                    ] as Parameters<typeof orderBookService.getOrdersAsync>;
+                    return [[], [apiOrder], expected, params, description] as GetOrdersTestCase;
+                })(),
+            ]);
+            /** End Test Cases */
+
+            // Generic test runner
+            function runTestCaseForGetOrdersFilters(
+                orders: SRAOrder[],
+                persistentOrders: SRAOrder[],
+                expectedResponse: PaginatedCollection<SRAOrder>,
+                description: string,
+            ): (params: Parameters<typeof orderBookService.getOrdersAsync>) => Promise<void> {
+                const indent = '     ';
+                return async (args: Parameters<typeof orderBookService.getOrdersAsync>) => {
+                    try {
+                        // setup
+                        await Promise.all([
+                            saveSignedOrdersAsync(connection, orders),
+                            savePersistentOrdersAsync(connection, persistentOrders),
+                        ]);
+                        const results = await orderBookService.getOrdersAsync(...args);
+                        // clean non-deterministic field
+                        expectedResponse.records.forEach((o, i) => {
+                            o.metaData.createdAt = results.records[i].metaData.createdAt;
+                        });
+                        // assertion
+                        expect(expectedResponse).deep.equal(results);
+
+                        // cleanup
+                        const deletePromise = async (_orders: SRAOrder[], isPersistent: boolean) => {
+                            const deleteFn = isPersistent ? deletePersistentOrdersAsync : deleteSignedOrdersAsync;
+                            return _orders.length > 0
+                                ? deleteFn(
+                                      connection,
+                                      _orders.map((o) => o.metaData.orderHash),
+                                  )
+                                : Promise.resolve();
+                        };
+                        await Promise.all([deletePromise(orders, false), deletePromise(persistentOrders, true)]);
+                        // If anything went wrong, the test failed
+                        // tslint:disable:no-console
+                    } catch (e) {
+                        console.log(indent, color('bright fail', `${symbols.err}`), color('fail', description));
+                        throw e;
+                    }
+                    // Otherwise, succeeded
+                    console.log(indent, color('checkmark', `${symbols.ok}`), color('pass', description));
+                    // tslint:enable:no-console
+                };
+            }
+
+            // Run the tests synchronously; fill in default values
+            // tslint:disable:custom-no-magic-numbers
+            for (const [i, _test] of testCases.entries()) {
+                const test = fillInDefaultTestCaseValues(_test, i);
+                await runTestCaseForGetOrdersFilters(
+                    test[0],
+                    test[1],
+                    test[2] as PaginatedCollection<SRAOrder>,
+                    test[4],
+                )(test[3] as Parameters<typeof orderBookService.getOrdersAsync>);
+            }
+            function fillInDefaultTestCaseValues(test: GetOrdersTestCase, i: number): GetOrdersTestCase {
+                // expected orderbook response
+                test[2] = { ...EMPTY_PAGINATED_RESPONSE, ...test[2] };
+                test[2] = { ...test[2], total: test[2].records!.length };
+                // test description
+                test[4] = test[4] || `Test Case #${i}`;
+                // params for getOrdersAsync
+                test[3][0] = test[3][0] || DEFAULT_PAGE;
+                test[3][1] = test[3][1] || DEFAULT_PER_PAGE;
+                test[3][2] = test[3][2] || {};
+                test[3][3] = test[3][3] || {};
+                return test;
+            }
+            // tslint:enable:custom-no-magic-numbers
+        });
+    });
     describe('addOrdersAsync, addPersistentOrdersAsync', () => {
         before(async () => {
             // await meshClientMock.resetStateAsync();
