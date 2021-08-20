@@ -27,13 +27,13 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { TransactionEntity } from '../src/entities';
 import { MakerBalanceChainCacheEntity } from '../src/entities/MakerBalanceChainCacheEntity';
 import { GeneralErrorCodes } from '../src/errors';
-import { OrderWatcher} from '../src/utils/order_watcher';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from '../src/services/postgres_rfqt_firm_quote_validator';
 import { SwapService } from '../src/services/swap_service';
 import { TransactionWatcherSignerService } from '../src/services/transaction_watcher_signer_service';
 import { ChainId, TransactionStates, TransactionWatcherSignerServiceConfig } from '../src/types';
 import { AssetSwapperOrderbook } from '../src/utils/asset_swapper_orderbook';
+import { OrderWatcher } from '../src/utils/order_watcher';
 import { utils } from '../src/utils/utils';
 
 import { TestMetaTxnUser } from './utils/test_signer';

@@ -1,4 +1,4 @@
-import { ViewColumn, ViewEntity, PrimaryColumn } from 'typeorm';
+import { PrimaryColumn, ViewColumn, ViewEntity } from 'typeorm';
 
 @ViewEntity({
     name: 'valid_signed_orders_v4',

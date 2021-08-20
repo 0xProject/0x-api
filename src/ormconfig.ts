@@ -5,6 +5,7 @@ import {
     BlockedAddressEntity,
     KeyValueEntity,
     MakerBalanceChainCacheEntity,
+    OrderWatcherSignedOrderEntity,
     PersistentSignedOrderEntity,
     PersistentSignedOrderV4Entity,
     RfqmJobEntity,
@@ -14,7 +15,6 @@ import {
     SignedOrderEntity,
     SignedOrderV4Entity,
     TransactionEntity,
-    OrderWatcherSignedOrderEntity
 } from './entities';
 
 const entities = [
@@ -30,7 +30,7 @@ const entities = [
     RfqmQuoteEntity,
     RfqmJobEntity,
     RfqmTransactionSubmissionEntity,
-    OrderWatcherSignedOrderEntity
+    OrderWatcherSignedOrderEntity,
 ];
 
 const config: ConnectionOptions = {

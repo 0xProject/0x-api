@@ -22,7 +22,6 @@ import { getDBConnectionAsync } from '../src/db_connection';
 import { ValidationErrorCodes, ValidationErrorItem, ValidationErrorReasons } from '../src/errors';
 import { logger } from '../src/logger';
 import { GetSwapQuoteResponse, SignedLimitOrder } from '../src/types';
-import { MockOrderWatcher } from './utils/mock_order_watcher';
 
 import {
     CHAIN_ID,
@@ -42,8 +41,9 @@ import {
 } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
-import { MeshClientMock, getRandomSignedLimitOrderAsync } from './utils/mesh_client_mock';
+import { getRandomSignedLimitOrderAsync } from './utils/mesh_client_mock';
 import { liquiditySources0xOnly } from './utils/mocks';
+import { MockOrderWatcher } from './utils/mock_order_watcher';
 
 const SUITE_NAME = 'Swap API';
 const EXCLUDED_SOURCES = BUY_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources.filter(
@@ -69,14 +69,10 @@ describe(SUITE_NAME, () => {
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
 
-    const meshClientMock = new MeshClientMock();
-
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        await meshClientMock.setupMockAsync();
         const connection = await getDBConnectionAsync();
         await connection.runMigrations();
-        // await connection.synchronize(true);
         provider = getProvider();
         const web3Wrapper = new Web3Wrapper(provider);
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
@@ -165,7 +161,6 @@ describe(SUITE_NAME, () => {
                 resolve();
             });
         });
-        meshClientMock.teardownMock();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
