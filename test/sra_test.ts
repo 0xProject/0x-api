@@ -3,12 +3,12 @@ import { LimitOrder } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine, Web3Wrapper } from '@0x/dev-utils';
 import { BigNumber } from '@0x/utils';
+import axios from 'axios';
+import AxiosMockAdapter from 'axios-mock-adapter';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 import 'mocha';
-import axios from 'axios';
-import AxiosMockAdapter from 'axios-mock-adapter';
 
 // Force reload of the app avoid variables being polluted between test suites
 delete require.cache[require.resolve('../src/app')];
@@ -209,7 +209,6 @@ describe(SUITE_NAME, () => {
             const sortByHash = (arr: any[]) => _.sortBy(arr, 'metaData.orderHash');
             const { body } = response;
             // Remove createdAt from response for easier comparison
-            console.log(response);
             const cleanRecords = body.records.map((r: any) => _.omit(r, 'metaData.createdAt'));
 
             expect(response.type).to.eq(`application/json`);
@@ -396,7 +395,7 @@ describe(SUITE_NAME, () => {
     describe('POST /orders', () => {
         it('should return HTTP OK on success', async () => {
             const mockAxios = new AxiosMockAdapter(axios);
-            mockAxios.onPost(`${config.ORDER_WATCHER_URL}/orders`).reply((_) => [HttpStatus.OK, {}]);
+            mockAxios.onPost(`${config.ORDER_WATCHER_URL}/orders`).reply(HttpStatus.OK);
 
             const order = await getRandomSignedLimitOrderAsync(provider, {
                 maker: makerAddress,
@@ -422,7 +421,7 @@ describe(SUITE_NAME, () => {
         });
         it('should respond before mesh order confirmation when ?skipConfirmation=true', async () => {
             const mockAxios = new AxiosMockAdapter(axios);
-            mockAxios.onPost(`${config.ORDER_WATCHER_URL}/orders`).reply((_) => [HttpStatus.BAD_REQUEST, {}]);
+            mockAxios.onPost(`${config.ORDER_WATCHER_URL}/orders`).reply(HttpStatus.BAD_REQUEST);
 
             const order = await getRandomSignedLimitOrderAsync(provider, {
                 maker: makerAddress,
@@ -448,7 +447,7 @@ describe(SUITE_NAME, () => {
         });
         it('should not skip confirmation normally', async () => {
             const mockAxios = new AxiosMockAdapter(axios);
-            mockAxios.onPost().reply(_ => [HttpStatus.BAD_REQUEST, {}]);
+            mockAxios.onPost().reply(HttpStatus.BAD_REQUEST);
 
             const order = await getRandomSignedLimitOrderAsync(provider, {
                 maker: makerAddress,

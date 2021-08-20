@@ -1,6 +1,6 @@
 import { LimitOrder } from '@0x/asset-swapper';
-import { LimitOrderFields } from '@0x/protocol-utils';
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
+import { LimitOrderFields } from '@0x/protocol-utils';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
@@ -15,8 +15,8 @@ import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '.
 import { alertOnExpiredOrders } from '../logger';
 import { OrderbookResponse, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
 import { orderUtils } from '../utils/order_utils';
-import { paginationUtils } from '../utils/pagination_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
+import { paginationUtils } from '../utils/pagination_utils';
 
 export class OrderBookService {
     private readonly _connection: Connection;
@@ -93,7 +93,7 @@ export class OrderBookService {
         const filters = [];
 
         // Pre-filters; exists in the entity verbatim
-        let columnNames = await this._connection.getMetadata(SignedOrderV4Entity).columns.map((x) => x.propertyName);
+        const columnNames = this._connection.getMetadata(SignedOrderV4Entity).columns.map((x) => x.propertyName);
         const orderFilter = _.pickBy(orderFieldFilters, (v, k) => {
             return columnNames.includes(k);
         });

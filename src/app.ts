@@ -22,7 +22,6 @@ import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheE
 import { logger } from './logger';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
-  import { OrderWatcher } from './utils/order_watcher';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
 import { SwapService } from './services/swap_service';
@@ -35,6 +34,7 @@ import {
     WebsocketSRAOpts,
 } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
+import { OrderWatcher } from './utils/order_watcher';
 import {
     AvailableRateLimiter,
     DatabaseKeysUsedForRateLimiter,
