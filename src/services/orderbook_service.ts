@@ -2,7 +2,6 @@ import { InternalServerError } from '@0x/api-utils';
 import { LimitOrder } from '@0x/asset-swapper';
 import { LimitOrderFields } from '@0x/protocol-utils';
 import { AcceptedOrderResult, OrderEventEndState, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
-import axios from 'axios';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
@@ -208,10 +207,10 @@ export class OrderBookService {
         this._orderWatcher = orderWatcher;
     }
     public async addOrderAsync(signedOrder: SignedLimitOrder, _pinned: boolean): Promise<void> {
-        this._orderWatcher.postOrders([signedOrder]);
+        await this._orderWatcher.postOrders([signedOrder]);
     }
     public async addOrdersAsync(signedOrders: SignedLimitOrder[], _pinned: boolean): Promise<void> {
-        this._orderWatcher.postOrders(signedOrders);
+        await this._orderWatcher.postOrders(signedOrders);
     }
     public async addPersistentOrdersAsync(signedOrders: SignedLimitOrder[], _pinned: boolean): Promise<void> {
         await this._orderWatcher.postOrders(signedOrders);
