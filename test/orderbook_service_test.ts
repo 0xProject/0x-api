@@ -244,20 +244,18 @@ describe(SUITE_NAME, () => {
         afterEach(async () => {
             await blockchainLifecycle.revertAsync();
         });
-        // it('should post orders to Mesh', async () => {
-        //     const apiOrder = await newSRAOrderAsync(privateKey, {});
-        //     await orderBookService.addOrdersAsync([apiOrder.order], false);
-        //
-        //     const meshOrders = await meshClientMock.mockMeshClient.getOrdersAsync();
-        //     expect(meshOrders.ordersInfos.find((i) => i.hash === apiOrder.metaData.orderHash)).to.not.be.undefined();
-        //
-        //     // should not save to persistent orders table
-        //     const result = await connection.manager.find(PersistentSignedOrderV4Entity, {
-        //         hash: apiOrder.metaData.orderHash,
-        //     });
-        //     expect(result).to.deep.equal([]);
-        //     await deleteSignedOrdersAsync(connection, [apiOrder.metaData.orderHash]);
-        // });
+        it('should post orders to order watcher', async () => {
+            const apiOrder = await newSRAOrderAsync(privateKey, {});
+            await orderBookService.addOrdersAsync([apiOrder.order], false);
+
+            // should not save to persistent orders table
+            const result = await connection.manager.find(PersistentSignedOrderV4Entity, {
+                hash: apiOrder.metaData.orderHash,
+            });
+            expect(result).to.deep.equal([]);
+
+            await deleteSignedOrdersAsync(connection, [apiOrder.metaData.orderHash]);
+        });
         it('should find persistent orders after posting them', async () => {
             const apiOrder = await newSRAOrderAsync(privateKey, {});
             await orderBookService.addPersistentOrdersAsync([apiOrder.order], false);
@@ -268,7 +266,7 @@ describe(SUITE_NAME, () => {
             const expected = orderUtils.serializePersistentOrder(apiOrder);
             expected.createdAt = result[0].createdAt; // createdAt is saved in the PersistentOrders table directly
             expect(result).to.deep.equal([expected]);
-            // TODO: move this in to afterEach.
+
             await deletePersistentOrdersAsync(connection, [apiOrder.metaData.orderHash]);
         });
     });
