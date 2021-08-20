@@ -27,6 +27,4 @@ export class MockOrderWatcher implements OrderWatcherInterface {
             }),
         );
     }
-
-    // public async deleteOrders()
 }

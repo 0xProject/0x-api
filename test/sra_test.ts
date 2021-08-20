@@ -19,7 +19,6 @@ import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, ONE_SECOND_MS, SRA_PATH }
 import { OrderWatcherSignedOrderEntity } from '../src/entities';
 import { SignedLimitOrder, SRAOrder } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
-// import {MockOrderWatcher} from './utils/mock_order_watcher';
 
 import {
     CHAIN_ID,
@@ -93,8 +92,6 @@ describe(SUITE_NAME, () => {
 
         const accounts = await web3Wrapper.getAvailableAddressesAsync();
         [makerAddress, otherAddress] = accounts;
-        // makerAddress = accounts[0];
-        // otherAddress = accounts[1];
     });
     after(async () => {
         await new Promise<void>((resolve, reject) => {
@@ -411,7 +408,7 @@ describe(SUITE_NAME, () => {
             });
             expect(response.status).to.eq(HttpStatus.OK);
         });
-        it('should respond before mesh order confirmation when ?skipConfirmation=true', async () => {
+        it('should respond before order watcher confirmation when ?skipConfirmation=true', async () => {
             const mockAxios = new AxiosMockAdapter(axios);
             mockAxios.onPost(`${config.ORDER_WATCHER_URL}/orders`).reply(HttpStatus.BAD_REQUEST);
 

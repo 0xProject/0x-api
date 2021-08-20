@@ -531,7 +531,6 @@ async function quoteAndExpectAsync(
     if (response.status !== HttpStatus.OK) {
         logger.warn(response.body);
     }
-    // console.log(response);
     expect(response.status).to.be.eq(HttpStatus.OK);
     expectCorrectQuote(response.body, quoteAssertions);
 }
