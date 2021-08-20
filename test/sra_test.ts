@@ -196,8 +196,8 @@ describe(SUITE_NAME, () => {
                 }),
             ]);
 
-            // Should not match trader
-            const nonMatchingOrder = await addNewOrderAsync({
+            // Add anotther order that should not appear in the response.
+            await addNewOrderAsync({
                 makerToken: ZRX_TOKEN_ADDRESS,
                 takerToken: WETH_TOKEN_ADDRESS,
                 maker: otherAddress,
@@ -216,10 +216,9 @@ describe(SUITE_NAME, () => {
             expect(response.status).to.eq(HttpStatus.OK);
             expect(body.total).to.eq(2);
             expect(sortByHash(cleanRecords)).to.deep.eq(sortByHash(JSON.parse(JSON.stringify(matchingOrders))));
-            const orders = [...matchingOrders, nonMatchingOrder];
         });
         it('should return empty response when filtered by query params', async () => {
-            const apiOrder = await addNewOrderAsync({ maker: makerAddress });
+            await addNewOrderAsync({ maker: makerAddress });
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/orders?maker=${NULL_ADDRESS}` });
 
             expect(response.type).to.eq(`application/json`);
@@ -409,7 +408,6 @@ describe(SUITE_NAME, () => {
                 chainId: CHAIN_ID,
                 expiry: TOMORROW,
             });
-            const orderHash = new LimitOrder(order).getHash();
 
             const response = await httpPostAsync({
                 app,

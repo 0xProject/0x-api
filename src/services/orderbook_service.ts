@@ -1,13 +1,11 @@
-import { InternalServerError } from '@0x/api-utils';
 import { LimitOrder } from '@0x/asset-swapper';
 import { LimitOrderFields } from '@0x/protocol-utils';
-import { AcceptedOrderResult, OrderEventEndState, OrderWithMetadataV4 } from '@0x/mesh-graphql-client';
+import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
-    ORDER_WATCHER_URL,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
 } from '../config';
@@ -16,7 +14,6 @@ import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities'
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
 import { OrderbookResponse, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
-import { meshUtils } from '../utils/mesh_utils';
 import { orderUtils } from '../utils/order_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';

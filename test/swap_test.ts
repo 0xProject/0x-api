@@ -1,6 +1,5 @@
 // tslint:disable:max-file-line-count
-import { LimitOrderFields,LimitOrder, SignatureType, SupportedProvider } from '@0x/asset-swapper';
-import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ERC20BridgeSource } from '@0x/asset-swapper';
+import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ERC20BridgeSource, LimitOrderFields } from '@0x/asset-swapper';
 import { ChainId } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
@@ -109,8 +108,7 @@ describe(SUITE_NAME, () => {
             .approve(CONTRACT_ADDRESSES.exchangeProxy, MAX_INT)
             .awaitTransactionSuccessAsync({ from: makerAdddress });
 
-        // masonnnnn
-        const limitOrders = [
+        const limitOrders: Partial<LimitOrderFields>[] = [
             {
                 makerToken: ZRX_TOKEN_ADDRESS,
                 takerToken: WETH_TOKEN_ADDRESS,
@@ -142,7 +140,7 @@ describe(SUITE_NAME, () => {
                 maker: makerAdddress,
             },
         ];
-        const signPartialOrder = (order) => getRandomSignedLimitOrderAsync(provider, order);
+        const signPartialOrder = (order: Partial<LimitOrderFields>) => getRandomSignedLimitOrderAsync(provider, order);
         const signedOrders: SignedLimitOrder[] = await Promise.all(limitOrders.map(signPartialOrder));
         await mockOrderWatcher.postOrders(signedOrders);
 
