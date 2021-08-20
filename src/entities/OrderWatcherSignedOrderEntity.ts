@@ -1,4 +1,3 @@
-import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: 'signed_orders_v4' })

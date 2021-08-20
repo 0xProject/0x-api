@@ -3,8 +3,8 @@ import { BlockchainLifecycle, Web3ProviderEngine, Web3Wrapper } from '@0x/dev-ut
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { LimitOrderFields } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
-import axios from 'axios';
-import AxiosMockAdapter from 'axios-mock-adapter';
+// import axios from 'axios';
+// import AxiosMockAdapter from 'axios-mock-adapter';
 import * as Mocha from 'mocha';
 import { Connection } from 'typeorm';
 
@@ -13,7 +13,7 @@ const { color, symbols } = Mocha.reporters.Base;
 
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
-import { PersistentSignedOrderV4Entity, SignedOrderV4Entity, OrderWatcherSignedOrderEntity } from '../src/entities';
+import { PersistentSignedOrderV4Entity, OrderWatcherSignedOrderEntity } from '../src/entities';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { PaginatedCollection, SRAOrder, SRAOrderMetaData } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
