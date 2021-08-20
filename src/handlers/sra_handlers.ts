@@ -175,25 +175,3 @@ function unmarshallOrders(signedOrdersRaw: any[]): SignedLimitOrder[] {
         return unmarshallOrder(signedOrderRaw);
     });
 }
-//
-// export async function addOrdersAsync(
-//     signedOrders: SignedLimitOrder[],
-//     pinned: boolean,
-// ): Promise<AcceptedOrderResult<OrderWithMetadataV4>[]> {
-//     try {
-//         await axios.post(`${ORDER_WATCHER_URL}/orders`, signedOrders, {
-//             headers: {
-//                 'Content-Type': 'application/json',
-//             },
-//         });
-//     } catch (err) {
-//         if (err.response) {
-//             throw new ValidationError(err.response.data.validationErrors);
-//         } else if (err.request) {
-//             throw new InternalServerError('failed to submit order to order-watcher');
-//         } else {
-//             throw new InternalServerError('failed to prepare the order-watcher request');
-//         }
-//     }
-//     return [];
-// }
