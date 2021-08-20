@@ -7,6 +7,8 @@ import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 import 'mocha';
+import axios from 'axios';
+import AxiosMockAdapter from 'axios-mock-adapter';
 
 // Force reload of the app avoid variables being polluted between test suites
 delete require.cache[require.resolve('../src/app')];
@@ -20,10 +22,10 @@ import { orderUtils } from '../src/utils/order_utils';
 // import {MockOrderWatcher} from './utils/mock_order_watcher';
 
 import {
-    // CHAIN_ID,
+    CHAIN_ID,
     ETHEREUM_RPC_URL,
     getProvider,
-    // MAX_MINT_AMOUNT,
+    MAX_MINT_AMOUNT,
     WETH_TOKEN_ADDRESS,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
@@ -40,7 +42,7 @@ const EMPTY_PAGINATED_RESPONSE = {
     records: [],
 };
 
-// const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
+const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
 const NOW = Math.floor(Date.now() / ONE_SECOND_MS);
 const TOMORROW = new BigNumber(NOW + 24 * 3600); // tslint:disable-line:custom-no-magic-numbers
@@ -123,7 +125,7 @@ describe(SUITE_NAME, () => {
             .createQueryBuilder()
             .delete()
             .from(OrderWatcherSignedOrderEntity)
-            .where("true")
+            .where('true')
             .execute();
     });
 
@@ -392,77 +394,86 @@ describe(SUITE_NAME, () => {
             expect(response.body).to.deep.eq(validationError);
         });
     });
-    // describe('POST /orders', () => {
-    //     it('should return HTTP OK on success', async () => {
-    //         const order = await getRandomSignedLimitOrderAsync(provider, {
-    //             maker: makerAddress,
-    //             makerToken: ZRX_TOKEN_ADDRESS,
-    //             takerToken: WETH_TOKEN_ADDRESS,
-    //             makerAmount: MAX_MINT_AMOUNT,
-    //             // tslint:disable:custom-no-magic-numbers
-    //             takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
-    //             chainId: CHAIN_ID,
-    //             expiry: TOMORROW,
-    //         });
-    //         const orderHash = new LimitOrder(order).getHash();
-    //
-    //         const response = await httpPostAsync({
-    //             app,
-    //             route: `${SRA_PATH}/order`,
-    //             body: {
-    //                 ...order,
-    //             },
-    //         });
-    //         expect(response.status).to.eq(HttpStatus.OK);
-    //         const meshOrders = await meshClientMock.mockMeshClient.getOrdersAsync();
-    //         expect(meshOrders.ordersInfos.find((info) => info.hash === orderHash)).to.not.be.undefined();
-    //     });
-    //     it('should respond before mesh order confirmation when ?skipConfirmation=true', async () => {
-    //         const order = await getRandomSignedLimitOrderAsync(provider, {
-    //             maker: makerAddress,
-    //             makerToken: ZRX_TOKEN_ADDRESS,
-    //             takerToken: WETH_TOKEN_ADDRESS,
-    //             makerAmount: MAX_MINT_AMOUNT,
-    //             // tslint:disable:custom-no-magic-numbers
-    //             takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
-    //             chainId: CHAIN_ID,
-    //             expiry: TOMORROW,
-    //         });
-    //         meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
-    //             return { rejected: orders, accepted: [] };
-    //         });
-    //         const response = await httpPostAsync({
-    //             app,
-    //             route: `${SRA_PATH}/order?skipConfirmation=true`,
-    //             body: {
-    //                 ...order,
-    //             },
-    //         });
-    //         expect(response.status).to.eq(HttpStatus.OK);
-    //     });
-    //     it('should not skip confirmation normally', async () => {
-    //         const order = await getRandomSignedLimitOrderAsync(provider, {
-    //             maker: makerAddress,
-    //             makerToken: ZRX_TOKEN_ADDRESS,
-    //             takerToken: WETH_TOKEN_ADDRESS,
-    //             makerAmount: MAX_MINT_AMOUNT,
-    //             // tslint:disable:custom-no-magic-numbers
-    //             takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
-    //             chainId: CHAIN_ID,
-    //             expiry: TOMORROW,
-    //         });
-    //         meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
-    //             return { rejected: orders, accepted: [] };
-    //         });
-    //         const response = await httpPostAsync({
-    //             app,
-    //             route: `${SRA_PATH}/order`,
-    //             body: {
-    //                 ...order,
-    //             },
-    //         });
-    //         expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
-    //     });
-    // });
+    describe('POST /orders', () => {
+        it('should return HTTP OK on success', async () => {
+            const mockAxios = new AxiosMockAdapter(axios);
+            mockAxios.onPost(`${config.ORDER_WATCHER_URL}/orders`).reply((_) => [HttpStatus.OK, {}]);
+
+            const order = await getRandomSignedLimitOrderAsync(provider, {
+                maker: makerAddress,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: MAX_MINT_AMOUNT,
+                // tslint:disable:custom-no-magic-numbers
+                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+                chainId: CHAIN_ID,
+                expiry: TOMORROW,
+            });
+            const orderHash = new LimitOrder(order).getHash();
+
+            const response = await httpPostAsync({
+                app,
+                route: `${SRA_PATH}/order`,
+                body: {
+                    ...order,
+                },
+            });
+            expect(response.status).to.eq(HttpStatus.OK);
+            // const meshOrders = await meshClientMock.mockMeshClient.getOrdersAsync();
+            // expect(meshOrders.ordersInfos.find((info) => info.hash === orderHash)).to.not.be.undefined();
+        });
+        it('should respond before mesh order confirmation when ?skipConfirmation=true', async () => {
+            const mockAxios = new AxiosMockAdapter(axios);
+            mockAxios.onPost(`${config.ORDER_WATCHER_URL}/orders`).reply((_) => [HttpStatus.BAD_REQUEST, {}]);
+
+            const order = await getRandomSignedLimitOrderAsync(provider, {
+                maker: makerAddress,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: MAX_MINT_AMOUNT,
+                // tslint:disable:custom-no-magic-numbers
+                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+                chainId: CHAIN_ID,
+                expiry: TOMORROW,
+            });
+            // meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
+            //     return { rejected: orders, accepted: [] };
+            // });
+            const response = await httpPostAsync({
+                app,
+                route: `${SRA_PATH}/order?skipConfirmation=true`,
+                body: {
+                    ...order,
+                },
+            });
+            expect(response.status).to.eq(HttpStatus.OK);
+        });
+        it('should not skip confirmation normally', async () => {
+            const mockAxios = new AxiosMockAdapter(axios);
+            mockAxios.onPost().reply(_ => [HttpStatus.BAD_REQUEST, {}]);
+
+            const order = await getRandomSignedLimitOrderAsync(provider, {
+                maker: makerAddress,
+                makerToken: ZRX_TOKEN_ADDRESS,
+                takerToken: WETH_TOKEN_ADDRESS,
+                makerAmount: MAX_MINT_AMOUNT,
+                // tslint:disable:custom-no-magic-numbers
+                takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
+                chainId: CHAIN_ID,
+                expiry: TOMORROW,
+            });
+            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
+                return { rejected: orders, accepted: [] };
+            });
+            const response = await httpPostAsync({
+                app,
+                route: `${SRA_PATH}/order`,
+                body: {
+                    ...order,
+                },
+            });
+            expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
+        });
+    });
 });
 // tslint:disable:max-file-line-count
