@@ -25,7 +25,7 @@ import {
     RFQM_TX_GAS_ESTIMATE,
 } from '../constants';
 import { RfqmJobEntity, RfqmQuoteEntity, RfqmTransactionSubmissionEntity } from '../entities';
-import { RfqmJobStatus } from '../entities/RfqmJobEntity';
+import { RfqmJobStatus, RfqmOrderTypes } from '../entities/RfqmJobEntity';
 import { RfqmTransactionSubmissionStatus } from '../entities/RfqmTransactionSubmissionEntity';
 import { InternalServerError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { logger } from '../logger';
@@ -260,6 +260,18 @@ export class RfqmService {
 
         if (fee === null) {
             return RfqmJobStatus.FailedValidationNoFee;
+        }
+
+        if (order.type === RfqmOrderTypes.V4Rfq) {
+
+            // Orders can expire if any of the following happen:
+            // 1) workers are backed up
+            // 2) an RFQM order broke during submission and the order is stuck in the queue for a long time.
+            const v4Order = order.order;
+            const expiryInMs = new BigNumber(v4Order.expiry).times(ONE_SECOND_MS);
+            if (expiryInMs.lte(new Date().getTime())) {
+                return RfqmJobStatus.FailedExpired;
+            }
         }
 
         return null;
@@ -768,6 +780,10 @@ export class RfqmService {
             await this._dbUtils.updateRfqmJobAsync(orderHash, true, {
                 status: errorStatus,
             });
+
+            if (errorStatus === RfqmJobStatus.FailedExpired) {
+                RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON.inc();
+            }
             return;
         }
         const { calldata, makerUri, order, fee } = job;
