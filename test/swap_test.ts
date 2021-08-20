@@ -175,15 +175,15 @@ describe(SUITE_NAME, () => {
         const WETH_BUY_AMOUNT = MAKER_WETH_AMOUNT.div(10).toString();
         const ZRX_BUY_AMOUNT = ONE_THOUSAND_IN_BASE.div(10).toString();
         const parameterPermutations = [
-            // { buyToken: 'ZRX', sellToken: 'WETH', buyAmount: ZRX_BUY_AMOUNT },
-            // { buyToken: 'WETH', sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT },
-            // { buyToken: ZRX_TOKEN_ADDRESS, sellToken: 'WETH', buyAmount: ZRX_BUY_AMOUNT },
-            // { buyToken: ZRX_TOKEN_ADDRESS, sellToken: WETH_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
-            // // { buyToken: 'ZRX', sellToken: UNKNOWN_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
-            // { buyToken: 'ZRX', sellToken: 'ETH', buyAmount: ZRX_BUY_AMOUNT },
-            // { buyToken: 'ETH', sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT },
-            // { buyToken: 'ZRX', sellToken: ETH_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
-            // { buyToken: ETH_TOKEN_ADDRESS, sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT },
+            { buyToken: 'ZRX', sellToken: 'WETH', buyAmount: ZRX_BUY_AMOUNT },
+            { buyToken: 'WETH', sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT },
+            { buyToken: ZRX_TOKEN_ADDRESS, sellToken: 'WETH', buyAmount: ZRX_BUY_AMOUNT },
+            { buyToken: ZRX_TOKEN_ADDRESS, sellToken: WETH_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
+            // { buyToken: 'ZRX', sellToken: UNKNOWN_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
+            { buyToken: 'ZRX', sellToken: 'ETH', buyAmount: ZRX_BUY_AMOUNT },
+            { buyToken: 'ETH', sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT },
+            { buyToken: 'ZRX', sellToken: ETH_TOKEN_ADDRESS, buyAmount: ZRX_BUY_AMOUNT },
+            { buyToken: ETH_TOKEN_ADDRESS, sellToken: 'ZRX', buyAmount: WETH_BUY_AMOUNT },
         ];
         parameterPermutations.map((parameters) => {
             it(`should return a valid quote with ${JSON.stringify(parameters)}`, async () => {
