@@ -31,7 +31,7 @@ import {
 } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
-import { getRandomSignedLimitOrderAsync, MeshClientMock } from './utils/mesh_client_mock';
+import { getRandomSignedLimitOrderAsync } from './utils/mesh_client_mock';
 
 const SUITE_NAME = 'Standard Relayer API (SRA) integration tests';
 
@@ -57,9 +57,6 @@ describe(SUITE_NAME, () => {
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
 
-    const meshClientMock = new MeshClientMock();
-    // const orderWatcher = new MockOrderWatcher(dependencies.coonnection);
-
     async function addNewOrderAsync(
         params: Partial<SignedLimitOrder> & { maker: string },
         remainingFillableAmount?: BigNumber,
@@ -79,7 +76,6 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        await meshClientMock.setupMockAsync();
 
         provider = getProvider();
         // start the 0x-api app
@@ -109,12 +105,10 @@ describe(SUITE_NAME, () => {
                 resolve();
             });
         });
-        meshClientMock.teardownMock();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
     beforeEach(async () => {
-        meshClientMock.mockMeshClient._resetClient();
         await dependencies.connection.runMigrations();
         await blockchainLifecycle.startAsync();
     });
@@ -416,8 +410,6 @@ describe(SUITE_NAME, () => {
                 },
             });
             expect(response.status).to.eq(HttpStatus.OK);
-            // const meshOrders = await meshClientMock.mockMeshClient.getOrdersAsync();
-            // expect(meshOrders.ordersInfos.find((info) => info.hash === orderHash)).to.not.be.undefined();
         });
         it('should respond before mesh order confirmation when ?skipConfirmation=true', async () => {
             const mockAxios = new AxiosMockAdapter(axios);
@@ -433,9 +425,6 @@ describe(SUITE_NAME, () => {
                 chainId: CHAIN_ID,
                 expiry: TOMORROW,
             });
-            // meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
-            //     return { rejected: orders, accepted: [] };
-            // });
             const response = await httpPostAsync({
                 app,
                 route: `${SRA_PATH}/order?skipConfirmation=true`,
@@ -458,9 +447,6 @@ describe(SUITE_NAME, () => {
                 takerAmount: ONE_THOUSAND_IN_BASE.multipliedBy(3),
                 chainId: CHAIN_ID,
                 expiry: TOMORROW,
-            });
-            meshClientMock.mockManager?.mock('addOrdersV4Async').callsFake((orders) => {
-                return { rejected: orders, accepted: [] };
             });
             const response = await httpPostAsync({
                 app,
