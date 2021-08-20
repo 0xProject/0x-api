@@ -469,7 +469,7 @@ describe(SUITE_NAME, () => {
                     ...order,
                 },
             });
-            expect(response.status).to.eq(HttpStatus.BAD_REQUEST);
+            expect(response.status).to.eq(HttpStatus.INTERNAL_SERVER_ERROR);
         });
     });
 });
