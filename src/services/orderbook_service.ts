@@ -204,13 +204,13 @@ export class OrderBookService {
         this._orderWatcher = orderWatcher;
     }
     public async addOrderAsync(signedOrder: SignedLimitOrder, _pinned: boolean): Promise<void> {
-        await this._orderWatcher.postOrders([signedOrder]);
+        await this._orderWatcher.postOrdersAsync([signedOrder]);
     }
     public async addOrdersAsync(signedOrders: SignedLimitOrder[], _pinned: boolean): Promise<void> {
-        await this._orderWatcher.postOrders(signedOrders);
+        await this._orderWatcher.postOrdersAsync(signedOrders);
     }
     public async addPersistentOrdersAsync(signedOrders: SignedLimitOrder[], _pinned: boolean): Promise<void> {
-        await this._orderWatcher.postOrders(signedOrders);
+        await this._orderWatcher.postOrdersAsync(signedOrders);
 
         // Figure out which orders were accepted by looking for them in the database.
         const hashes = signedOrders.map((o) => {

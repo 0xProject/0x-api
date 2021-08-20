@@ -13,7 +13,7 @@ export class MockOrderWatcher implements OrderWatcherInterface {
         this._connection = connection;
     }
 
-    public async postOrdersAsync(orders: SignedLimitOrder[]): Promise<Void> {
+    public async postOrdersAsync(orders: SignedLimitOrder[]): Promise<void> {
         await this._connection.getRepository(OrderWatcherSignedOrderEntity).save(
             orders.map((order) => {
                 const limitOrder = new LimitOrder(order as LimitOrderFields);

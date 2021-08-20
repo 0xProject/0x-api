@@ -6,7 +6,7 @@ import { ValidationError } from '../errors';
 import { SignedLimitOrder } from '../types';
 
 export interface OrderWatcherInterface {
-    postOrders(orders: SignedLimitOrder[]): Promise<void>;
+    postOrdersAsync(orders: SignedLimitOrder[]): Promise<void>;
 }
 
 export class OrderWatcher implements OrderWatcherInterface {

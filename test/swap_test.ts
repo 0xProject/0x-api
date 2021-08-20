@@ -138,7 +138,7 @@ describe(SUITE_NAME, () => {
         ];
         const signPartialOrder = (order: Partial<LimitOrderFields>) => getRandomSignedLimitOrderAsync(provider, order);
         const signedOrders: SignedLimitOrder[] = await Promise.all(limitOrders.map(signPartialOrder));
-        await mockOrderWatcher.postOrders(signedOrders);
+        await mockOrderWatcher.postOrdersAsync(signedOrders);
 
         // start the 0x-api app
         dependencies = await getDefaultAppDependenciesAsync(provider, {
