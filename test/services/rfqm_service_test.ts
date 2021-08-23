@@ -91,7 +91,6 @@ const buildRfqmServiceForUnitTest = (
 };
 
 describe('RfqmService', () => {
-
     it('should validate jobs and mark them as expired', () => {
         const in_five_minutes = Math.floor(Date.now() / ONE_SECOND_MS + 360).toString();
         const one_minute_ago = Math.floor(Date.now() / ONE_SECOND_MS - 60).toString();
