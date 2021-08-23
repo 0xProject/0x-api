@@ -244,7 +244,7 @@ export class RfqmService {
     }
 
     // Returns a failure status for invalide jobs and null if the job is valid.
-    private static _validateJob(job: RfqmJobEntity): RfqmJobStatus | null {
+    public static validateJob(job: RfqmJobEntity): RfqmJobStatus | null {
         const { calldata, makerUri, order, fee } = job;
         if (calldata === undefined) {
             return RfqmJobStatus.FailedValidationNoCallData;
@@ -269,7 +269,8 @@ export class RfqmService {
             // 2) an RFQM order broke during submission and the order is stuck in the queue for a long time.
             const v4Order = order.order;
             const expiryInMs = new BigNumber(v4Order.expiry).times(ONE_SECOND_MS);
-            if (expiryInMs.lte(new Date().getTime())) {
+            console.log()
+            if (expiryInMs.isNaN() || expiryInMs.lte(new Date().getTime())) {
                 return RfqmJobStatus.FailedExpired;
             }
         }
@@ -775,7 +776,7 @@ export class RfqmService {
         }
 
         // Basic validation
-        const errorStatus = RfqmService._validateJob(job);
+        const errorStatus = RfqmService.validateJob(job);
         if (errorStatus !== null) {
             await this._dbUtils.updateRfqmJobAsync(orderHash, true, {
                 status: errorStatus,
