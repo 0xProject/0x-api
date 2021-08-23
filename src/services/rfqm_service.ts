@@ -243,7 +243,6 @@ export class RfqmService {
         }
 
         if (order.type === RfqmOrderTypes.V4Rfq) {
-
             // Orders can expire if any of the following happen:
             // 1) workers are backed up
             // 2) an RFQM order broke during submission and the order is stuck in the queue for a long time.
