@@ -223,26 +223,6 @@ export class RfqmService {
         return currentBlock - receiptBlockNumber >= BLOCK_FINALITY_THRESHOLD;
     }
 
-    private static _getSellAmountGivenBuyAmountAndQuote(
-        buyAmount: BigNumber,
-        quotedTakerAmount: BigNumber,
-        quotedMakerAmount: BigNumber,
-    ): BigNumber {
-        // Solving for x given the following proportion:
-        // x / buyAmount = quotedTakerAmount / quotedMakerAmount
-        return quotedTakerAmount.div(quotedMakerAmount).times(buyAmount).decimalPlaces(0);
-    }
-
-    private static _getBuyAmountGivenSellAmountAndQuote(
-        sellAmount: BigNumber,
-        quotedTakerAmount: BigNumber,
-        quotedMakerAmount: BigNumber,
-    ): BigNumber {
-        // Solving for y given the following proportion:
-        // y / sellAmount =  quotedMakerAmount / quotedTakerAmount
-        return quotedMakerAmount.div(quotedTakerAmount).times(sellAmount).decimalPlaces(0);
-    }
-
     // Returns a failure status for invalide jobs and null if the job is valid.
     public static validateJob(job: RfqmJobEntity): RfqmJobStatus | null {
         const { calldata, makerUri, order, fee } = job;
@@ -268,14 +248,33 @@ export class RfqmService {
             // 1) workers are backed up
             // 2) an RFQM order broke during submission and the order is stuck in the queue for a long time.
             const v4Order = order.order;
-            const expiryInMs = new BigNumber(v4Order.expiry).times(ONE_SECOND_MS);
-            console.log()
-            if (expiryInMs.isNaN() || expiryInMs.lte(new Date().getTime())) {
+            const expiryTimeMs = new BigNumber(v4Order.expiry).times(ONE_SECOND_MS);
+            if (expiryTimeMs.isNaN() || expiryTimeMs.lte(new Date().getTime())) {
                 return RfqmJobStatus.FailedExpired;
             }
         }
 
         return null;
+    }
+
+    private static _getSellAmountGivenBuyAmountAndQuote(
+        buyAmount: BigNumber,
+        quotedTakerAmount: BigNumber,
+        quotedMakerAmount: BigNumber,
+    ): BigNumber {
+        // Solving for x given the following proportion:
+        // x / buyAmount = quotedTakerAmount / quotedMakerAmount
+        return quotedTakerAmount.div(quotedMakerAmount).times(buyAmount).decimalPlaces(0);
+    }
+
+    private static _getBuyAmountGivenSellAmountAndQuote(
+        sellAmount: BigNumber,
+        quotedTakerAmount: BigNumber,
+        quotedMakerAmount: BigNumber,
+    ): BigNumber {
+        // Solving for y given the following proportion:
+        // y / sellAmount =  quotedMakerAmount / quotedTakerAmount
+        return quotedMakerAmount.div(quotedTakerAmount).times(sellAmount).decimalPlaces(0);
     }
 
     /**
@@ -783,6 +782,7 @@ export class RfqmService {
             });
 
             if (errorStatus === RfqmJobStatus.FailedExpired) {
+                logger.error(`Job "${orderHash}" expired and cannot be processed. Marking job as complete`);
                 RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON.inc();
             }
             return;

@@ -107,7 +107,7 @@ describe('RfqmService', () => {
             takerToken: '',
             txOrigin: '',
             verifyingContract: ''
-        }
+        };
         const partialJob = {
             chainId: 1,
             affiliateAddress: '',
@@ -124,7 +124,7 @@ describe('RfqmService', () => {
             metaTransactionHash: '',
             calldata: '0x000',
             makerUri: 'http://foo.bar',
-        }
+        };
 
         // First test, order not expired
         let response = RfqmService.validateJob({
