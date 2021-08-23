@@ -223,7 +223,7 @@ export class RfqmService {
         return currentBlock - receiptBlockNumber >= BLOCK_FINALITY_THRESHOLD;
     }
 
-    // Returns a failure status for invalide jobs and null if the job is valid.
+    // Returns a failure status for invalid jobs and null if the job is valid.
     public static validateJob(job: RfqmJobEntity): RfqmJobStatus | null {
         const { calldata, makerUri, order, fee } = job;
         if (calldata === undefined) {
