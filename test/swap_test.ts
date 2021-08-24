@@ -41,9 +41,9 @@ import {
 } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
-import { getRandomSignedLimitOrderAsync } from './utils/orders';
 import { liquiditySources0xOnly } from './utils/mocks';
 import { MockOrderWatcher } from './utils/mock_order_watcher';
+import { getRandomSignedLimitOrderAsync } from './utils/orders';
 
 const SUITE_NAME = 'Swap API';
 const EXCLUDED_SOURCES = BUY_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources.filter(
