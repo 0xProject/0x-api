@@ -113,7 +113,7 @@ export async function getContractAddressesForNetworkOrThrowAsync(
 
 /**
  * Instantiates dependencies required to run the app. Uses default settings based on config
- * @param config should contain a URI for mesh to listen to, and the ethereum RPC URL
+ * @param config should the ethereum RPC URL
  */
 export async function getDefaultAppDependenciesAsync(
     provider: SupportedProvider,
@@ -199,8 +199,7 @@ export async function getAppAsync(
 
     server.on('close', async () => {
         // Register a shutdown event listener.
-        // TODO: More teardown logic should be added here. For example, the mesh rpc
-        // client should be destroyed and services should be torn down.
+        // TODO: More teardown logic should be added here.
     });
 
     return { app, server };
