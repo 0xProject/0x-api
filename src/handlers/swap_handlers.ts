@@ -16,12 +16,14 @@ import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
+import { Kafka, Producer } from 'kafkajs';
 import _ = require('lodash');
 import { Counter, Histogram } from 'prom-client';
 
 import {
     CHAIN_ID,
     getIntegratorIdForApiKey,
+    KAFKA_BROKERS,
     MATCHA_INTEGRATOR_ID,
     NATIVE_WRAPPED_TOKEN_SYMBOL,
     PLP_API_KEY_WHITELIST,
@@ -54,6 +56,17 @@ import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { quoteReportUtils } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
+
+let kafkaProducer: Producer | undefined;
+if (KAFKA_BROKERS.length > 0) {
+    const kafka = new Kafka({
+        clientId: '0x-api',
+        brokers: KAFKA_BROKERS,
+    });
+
+    kafkaProducer = kafka.producer();
+    kafkaProducer.connect();
+}
 
 const BEARER_REGEX = /^Bearer\s(.{36})$/;
 const REGISTRY_SET: Set<string> = new Set(RFQT_REGISTRY_PASSWORDS);
@@ -167,6 +180,27 @@ export class SwapHandlers {
                     req.log,
                 );
             }
+
+            if (quote.extendedQuoteReport && kafkaProducer) {
+                const bytesPos = quote.data.indexOf('869584cd');
+                // tslint:disable-next-line
+                const quoteId = quote.data.slice(bytesPos + 118, bytesPos + 128);
+                quoteReportUtils.publishQuoteReport(
+                    {
+                        quoteId,
+                        taker: params.takerAddress,
+                        quoteReport: quote.extendedQuoteReport,
+                        submissionBy: 'taker',
+                        decodedUniqueId: quote.decodedUniqueId,
+                        buyTokenAddress: quote.buyTokenAddress,
+                        sellTokenAddress: quote.sellTokenAddress,
+                        buyAmount: params.buyAmount,
+                        sellAmount: params.sellAmount,
+                        apiKey: params.integratorId, // TODO (rhinodavid): update to align apiKey/integratorId
+                    },
+                    kafkaProducer,
+                );
+            }
         }
         const response = _.omit(
             {
@@ -174,6 +208,7 @@ export class SwapHandlers {
                 orders: quote.orders.map((o: any) => _.omit(o, 'fills')),
             },
             'quoteReport',
+            'extendedQuoteReport',
             'priceComparisonsReport',
             'decodedUniqueId',
         );

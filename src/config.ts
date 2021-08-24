@@ -22,6 +22,7 @@ import {
     DEFAULT_ETH_GAS_STATION_API_URL,
     DEFAULT_EXPECTED_MINED_SEC,
     DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
+    DEFAULT_KAFKA_TOPIC_QUOTE_REPORT,
     DEFAULT_LOCAL_POSTGRES_URI,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
@@ -386,6 +387,14 @@ export const RFQ_PROXY_ADDRESS: string | undefined = _.isEmpty(process.env.RFQ_P
 export const RFQ_PROXY_PORT: number | undefined = _.isEmpty(process.env.RFQ_PROXY_PORT)
     ? undefined
     : assertEnvVarType('RFQ_PROXY_PORT', process.env.RFQ_PROXY_PORT, EnvVarType.Port);
+
+export const KAFKA_BROKERS: string[] = _.isEmpty(process.env.KAFKA_BROKERS)
+    ? []
+    : assertEnvVarType('KAFKA_BROKERS', process.env.KAFKA_BROKERS, EnvVarType.NonEmptyString).split(',');
+
+export const KAFKA_TOPIC_QUOTE_REPORT: string = _.isEmpty(process.env.KAFKA_TOPIC_QUOTE_REPORT)
+    ? DEFAULT_KAFKA_TOPIC_QUOTE_REPORT
+    : assertEnvVarType('KAFKA_TOPIC_QUOTE_REPORT', process.env.KAFKA_TOPIC_QUOTE_REPORT, EnvVarType.NonEmptyString);
 
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;

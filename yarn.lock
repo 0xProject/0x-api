@@ -46,9 +46,9 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@^16.26.0":
-  version "16.26.0"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.26.0.tgz#f57ba4a7f2fc13bfdced85c5ec11c91e8a7c00c7"
+"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v16.26.1-ed3524e0d":
+  version "16.26.1"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/145a7e5525a9968ed065827ba0691e81629af09c"
   dependencies:
     "@0x/assert" "^3.0.27"
     "@0x/base-contract" "^6.4.0"
@@ -6316,6 +6316,11 @@ jsprim@^1.2.2:
 just-extend@^4.0.2:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/just-extend/-/just-extend-4.1.1.tgz#158f1fdb01f128c411dc8b286a7b4837b3545282"
+
+kafkajs@^1.15.0:
+  version "1.15.0"
+  resolved "https://registry.yarnpkg.com/kafkajs/-/kafkajs-1.15.0.tgz#a5ada0d933edca2149177393562be6fb0875ec3a"
+  integrity sha512-yjPyEnQCkPxAuQLIJnY5dI+xnmmgXmhuOQ1GVxClG5KTOV/rJcW1qA3UfvyEJKTp/RTSqQnUR3HJsKFvHyTpNg==
 
 keccak@3.0.1, keccak@^3.0.0:
   version "3.0.1"

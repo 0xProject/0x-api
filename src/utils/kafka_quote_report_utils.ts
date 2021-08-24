@@ -1,10 +1,8 @@
-import type { PinoLogger } from '@0x/api-utils';
 import { BigNumber, QuoteReport, QuoteReportEntry } from '@0x/asset-swapper';
 import { Producer } from 'kafkajs';
 import _ = require('lodash');
 
 import { KAFKA_TOPIC_QUOTE_REPORT } from '../config';
-import { NUMBER_SOURCES_PER_LOG_LINE } from '../constants';
 import { logger } from '../logger';
 
 interface QuoteReportLogOptionsBase {
@@ -14,7 +12,6 @@ interface QuoteReportLogOptionsBase {
     buyTokenAddress: string;
     sellTokenAddress: string;
     apiKey?: string;
-    taker?: string;
 }
 interface QuoteReportForTakerTxn extends QuoteReportLogOptionsBase {
     quoteReport: QuoteReport;
@@ -41,8 +38,7 @@ const omitFillData = (source: QuoteReportEntry) => {
 };
 
 export const quoteReportUtils = {
-    logQuoteReport(logOpts: QuoteReportLogOptions, contextLogger?: PinoLogger): void {
-        const _logger = contextLogger ? contextLogger : logger;
+    logQuoteReport(logOpts: QuoteReportLogOptions, kafkaProducer?: Producer): void {
         // NOTE: Removes bridge report fillData which we do not want to log to Kibana
         const qr: QuoteReport = {
             ...logOpts.quoteReport,
@@ -52,53 +48,7 @@ export const quoteReportUtils = {
         };
 
         let logBase: { [key: string]: string | boolean | undefined } = {
-            firmQuoteReport: true,
-            submissionBy: logOpts.submissionBy,
-            buyAmount: logOpts.buyAmount ? logOpts.buyAmount.toString() : undefined,
-            sellAmount: logOpts.sellAmount ? logOpts.sellAmount.toString() : undefined,
-            buyTokenAddress: logOpts.buyTokenAddress,
-            sellTokenAddress: logOpts.sellTokenAddress,
-            apiKey: logOpts.apiKey,
-        };
-        if (logOpts.submissionBy === 'metaTxn') {
-            logBase = { ...logBase, zeroExTransactionHash: logOpts.zeroExTransactionHash };
-        } else if (logOpts.submissionBy === 'taker') {
-            logBase = { ...logBase, decodedUniqueId: logOpts.decodedUniqueId };
-        }
-
-        // Deliver in chunks since Kibana can't handle logs large requests
-        const sourcesConsideredChunks = _.chunk(qr.sourcesConsidered.map(omitFillData), NUMBER_SOURCES_PER_LOG_LINE);
-        sourcesConsideredChunks.forEach((chunk, i) => {
-            _logger.info({
-                ...logBase,
-                sourcesConsidered: chunk,
-                sourcesConsideredChunkIndex: i,
-                sourcesConsideredChunkLength: sourcesConsideredChunks.length,
-            });
-        });
-        const sourcesDeliveredChunks = _.chunk(qr.sourcesDelivered.map(omitFillData), NUMBER_SOURCES_PER_LOG_LINE);
-        sourcesDeliveredChunks.forEach((chunk, i) => {
-            _logger.info({
-                ...logBase,
-                sourcesDelivered: chunk,
-                sourcesDeliveredChunkIndex: i,
-                sourcesDeliveredChunkLength: sourcesDeliveredChunks.length,
-            });
-        });
-    },
-    publishQuoteReport(logOpts: QuoteReportLogOptions, kafkaProducer: Producer): void {
-        // NOTE: Removes bridge report fillData which we do not want to log to Kibana
-        const qr: QuoteReport = {
-            ...logOpts.quoteReport,
-            sourcesConsidered: logOpts.quoteReport.sourcesConsidered.map(
-                (source) => _.omit(source, ['fillData']) as QuoteReportEntry,
-            ),
-        };
-
-        let logBase: { [key: string]: string | boolean | number | undefined } = {
             quoteId: logOpts.quoteId,
-            taker: logOpts.taker,
-            timestamp: Date.now(),
             firmQuoteReport: true,
             submissionBy: logOpts.submissionBy,
             buyAmount: logOpts.buyAmount ? logOpts.buyAmount.toString() : undefined,
@@ -125,6 +75,12 @@ export const quoteReportUtils = {
                         }),
                     },
                 ],
+            });
+        } else {
+            logger.info({
+                ...logBase,
+                sourcesConsidered: qr.sourcesConsidered.map(omitFillData),
+                sourcesDelivered: qr.sourcesDelivered.map(omitFillData),
             });
         }
     },

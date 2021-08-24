@@ -268,6 +268,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     orders?: any;
     from?: string;
     quoteReport?: QuoteReport;
+    extendedQuoteReport?: QuoteReport;
     priceComparisonsReport?: PriceComparisonsReport;
 }
 
