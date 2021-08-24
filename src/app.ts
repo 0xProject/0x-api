@@ -199,7 +199,7 @@ export async function getAppAsync(
 
     server.on('close', async () => {
         // Register a shutdown event listener.
-        // TODO: More teardown logic should be added here.
+        // TODO: More teardown logic should be added here. For example individual services should be torn down.
     });
 
     return { app, server };
