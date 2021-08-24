@@ -20,7 +20,7 @@ import { orderUtils } from '../src/utils/order_utils';
 
 import { CHAIN_ID, getProvider } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { getRandomLimitOrder } from './utils/mesh_client_mock';
+import { getRandomLimitOrder } from './utils/orders';
 import { MockOrderWatcher } from './utils/mock_order_watcher';
 
 const SUITE_NAME = 'OrderbookService';

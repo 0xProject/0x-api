@@ -30,7 +30,7 @@ import {
 } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
-import { getRandomSignedLimitOrderAsync } from './utils/mesh_client_mock';
+import { getRandomSignedLimitOrderAsync } from './utils/orders';
 
 const SUITE_NAME = 'Standard Relayer API (SRA) integration tests';
 
