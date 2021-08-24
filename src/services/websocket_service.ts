@@ -1,3 +1,4 @@
+import { hexUtils } from '@0x/utils';
 import * as http from 'http';
 import { Consumer, Kafka } from 'kafkajs';
 import * as _ from 'lodash';
@@ -22,11 +23,10 @@ import {
 import { OrderWatcherEvent, orderWatcherEventToSRAOrder } from '../utils/order_watcher_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
-const ID_CEILING = 10000;
-
 const getRandomKafkaConsumerGroupId = (): string => {
-    const randomInt = Math.floor(Math.random() * ID_CEILING);
-    return `sra_0x_api_service_${randomInt}`;
+    // tslint:disable:custom-no-magic-numbers
+    const randomHex = hexUtils.random(4).substr(2);
+    return `sra_0x_api_service_${randomHex}`;
 };
 
 interface WrappedWebSocket extends WebSocket {
@@ -56,8 +56,10 @@ export class WebsocketService {
     private readonly _orderWatcherKafkaEventTopic: string;
     private readonly _pongIntervalId: NodeJS.Timeout;
     private readonly _requestIdToSocket: Map<string, WrappedWebSocket> = new Map(); // requestId to WebSocket mapping
-    private readonly _requestIdToSubscriptionOpts: Map<string, OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS> =
-        new Map(); // requestId -> { base, quote }
+    private readonly _requestIdToSubscriptionOpts: Map<
+        string,
+        OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
+    > = new Map(); // requestId -> { base, quote }
     private readonly _orderEventsSubscription?: ZenObservable.Subscription;
     private static _matchesOrdersChannelSubscription(
         order: SignedLimitOrder,
