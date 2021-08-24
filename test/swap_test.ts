@@ -41,7 +41,7 @@ import {
 } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
 import { constructRoute, httpGetAsync } from './utils/http_utils';
-import { getRandomSignedLimitOrderAsync } from './utils/mesh_client_mock';
+import { getRandomSignedLimitOrderAsync } from './utils/orders';
 import { liquiditySources0xOnly } from './utils/mocks';
 import { MockOrderWatcher } from './utils/mock_order_watcher';
 
