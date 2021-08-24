@@ -246,7 +246,7 @@ describe(SUITE_NAME, () => {
         });
         it('should post orders to order watcher', async () => {
             const apiOrder = await newSRAOrderAsync(privateKey, {});
-            await orderBookService.addOrdersAsync([apiOrder.order], false);
+            await orderBookService.addOrdersAsync([apiOrder.order]);
 
             // should not save to persistent orders table
             const result = await connection.manager.find(PersistentSignedOrderV4Entity, {
@@ -258,7 +258,7 @@ describe(SUITE_NAME, () => {
         });
         it('should find persistent orders after posting them', async () => {
             const apiOrder = await newSRAOrderAsync(privateKey, {});
-            await orderBookService.addPersistentOrdersAsync([apiOrder.order], false);
+            await orderBookService.addPersistentOrdersAsync([apiOrder.order]);
 
             const result = await connection.manager.find(PersistentSignedOrderV4Entity, {
                 hash: apiOrder.metaData.orderHash,
