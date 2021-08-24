@@ -56,10 +56,8 @@ export class WebsocketService {
     private readonly _orderWatcherKafkaEventTopic: string;
     private readonly _pongIntervalId: NodeJS.Timeout;
     private readonly _requestIdToSocket: Map<string, WrappedWebSocket> = new Map(); // requestId to WebSocket mapping
-    private readonly _requestIdToSubscriptionOpts: Map<
-        string,
-        OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS
-    > = new Map(); // requestId -> { base, quote }
+    private readonly _requestIdToSubscriptionOpts: Map<string, OrdersChannelSubscriptionOpts | ALL_SUBSCRIPTION_OPTS> =
+        new Map(); // requestId -> { base, quote }
     private readonly _orderEventsSubscription?: ZenObservable.Subscription;
     private static _matchesOrdersChannelSubscription(
         order: SignedLimitOrder,
