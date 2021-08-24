@@ -39,7 +39,7 @@ export function getRandomLimitOrder(fields: Partial<LimitOrderFields> = {}): Lim
         takerTokenFeeAmount: ZERO,
         maker: randomAddress(),
         taker: NULL_ADDRESS, // NOTE: Open limit orders should allow any taker address
-        sender: NULL_ADDRESS, // NOTE: Mesh currently only support NULL address sender
+        sender: NULL_ADDRESS, // NOTE: the exchange proxy contract only support NULL address sender
         feeRecipient: NULL_ADDRESS,
         expiry: new BigNumber(2524604400), // Close to infinite
         salt: new BigNumber(hexUtils.random()),
