@@ -45,9 +45,9 @@ type ALL_SUBSCRIPTION_OPTS = 'ALL_SUBSCRIPTION_OPTS';
 
 /* A websocket server that sends order updates to subscribed
  * clients. The server listens on the supplied path for
- * subscription requests from relayers. It also subscribes to
- * Mesh using mesh-rpc-client. It filters Mesh updates and sends
- * relevant orders to the subscribed clients in real time.
+ * subscription requests from relayers. It also forwards to
+ * order events from the order watcher to the subscribed clients
+ * in real time.
  */
 export class WebsocketService {
     private readonly _server: WebSocket.Server;
