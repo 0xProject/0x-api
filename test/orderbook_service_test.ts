@@ -3,8 +3,6 @@ import { BlockchainLifecycle, Web3ProviderEngine, Web3Wrapper } from '@0x/dev-ut
 import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { LimitOrderFields } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
-// import axios from 'axios';
-// import AxiosMockAdapter from 'axios-mock-adapter';
 import * as Mocha from 'mocha';
 import { Connection } from 'typeorm';
 
