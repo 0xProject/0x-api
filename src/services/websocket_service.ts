@@ -19,7 +19,6 @@ import {
     WebsocketConnectionEventType,
     WebsocketSRAOpts,
 } from '../types';
-import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherEvent, orderWatcherEventToSRAOrder } from '../utils/order_watcher_utils';
 import { schemaUtils } from '../utils/schema_utils';
 

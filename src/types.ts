@@ -370,11 +370,6 @@ export interface CalculateMetaTransactionQuoteParams extends SwapQuoteParamsBase
 
 /** End /swap types */
 
-export interface PinResult {
-    pin: SignedLimitOrder[];
-    doNotPin: SignedLimitOrder[];
-}
-
 export enum TransactionStates {
     // transaction has been constructed, but not yet submitted to the network.
     Unsubmitted = 'unsubmitted',
@@ -425,8 +420,6 @@ export interface TransactionWatcherSignerServiceConfig {
 
 export interface HttpServiceConfig extends BaseHttpConfig {
     ethereumRpcUrl: string;
-    meshWebsocketUri?: string;
-    meshHttpUri?: string;
     kafkaBrokers?: string[];
     kafkaConsumerGroupId?: string;
     metaTxnRateLimiters?: MetaTransactionRateLimitConfig;
