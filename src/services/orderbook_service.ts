@@ -1,5 +1,4 @@
 import { LimitOrder } from '@0x/asset-swapper';
-import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { LimitOrderFields } from '@0x/protocol-utils';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
@@ -13,7 +12,7 @@ import { ONE_SECOND_MS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { OrderbookResponse, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
+import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';

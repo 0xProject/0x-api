@@ -1,6 +1,5 @@
 import { constants, expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine, Web3Wrapper } from '@0x/dev-utils';
-import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { LimitOrderFields } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import * as Mocha from 'mocha';
@@ -13,7 +12,7 @@ import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
 import { OrderWatcherSignedOrderEntity, PersistentSignedOrderV4Entity } from '../src/entities';
 import { OrderBookService } from '../src/services/orderbook_service';
-import { PaginatedCollection, SRAOrder, SRAOrderMetaData } from '../src/types';
+import { OrderEventEndState, PaginatedCollection, SRAOrder, SRAOrderMetaData } from '../src/types';
 import { orderUtils } from '../src/utils/order_utils';
 
 import { CHAIN_ID, getProvider } from './constants';

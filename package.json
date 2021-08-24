@@ -146,7 +146,6 @@
         "@0x/contract-wrappers": "^13.17.4",
         "@0x/contracts-zero-ex": "^0.27.0",
         "@0x/json-schemas": "^6.2.0",
-        "@0x/mesh-graphql-client": "^11.2.0",
         "@0x/order-utils": "^10.4.28",
         "@0x/protocol-utils": "^1.8.3",
         "@0x/quote-server": "^6.0.6",

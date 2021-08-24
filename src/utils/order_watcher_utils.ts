@@ -1,7 +1,6 @@
-import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { BigNumber } from '@0x/utils';
 
-import { SRAOrder } from '../types';
+import { OrderEventEndState, SRAOrder } from '../types';
 
 export interface OrderWatcherEvent {
     order: {

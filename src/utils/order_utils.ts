@@ -1,12 +1,18 @@
 import { assert } from '@0x/assert';
-import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { Signature, SignatureType } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, SRA_ORDER_EXPIRATION_BUFFER_SECONDS, TAKER_FEE_UNIT_AMOUNT } from '../config';
 import { NULL_ADDRESS, ONE_SECOND_MS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
-import { OrderConfigRequestPayload, OrderConfigResponse, SignedLimitOrder, SRAOrder, SRAOrderMetaData } from '../types';
+import {
+    OrderConfigRequestPayload,
+    OrderConfigResponse,
+    OrderEventEndState,
+    SignedLimitOrder,
+    SRAOrder,
+    SRAOrderMetaData,
+} from '../types';
 
 export const orderUtils = {
     isIgnoredOrder: (addressesToIgnore: string[], apiOrder: SRAOrder): boolean => {

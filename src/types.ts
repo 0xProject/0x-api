@@ -10,7 +10,6 @@ import {
     Signature,
     SupportedProvider,
 } from '@0x/asset-swapper';
-import { OrderEventEndState } from '@0x/mesh-graphql-client';
 import { ExchangeProxyMetaTransaction, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
@@ -446,4 +445,33 @@ export interface BucketedPriceDepth {
     bucket: number;
     bucketTotal: BigNumber;
 }
+
+export enum OrderEventEndState {
+    // The order was successfully validated and added to the Mesh node. The order is now being watched and any changes to
+    // the fillability will result in subsequent order events.
+    Added = 'ADDED',
+    // The order was filled for a partial amount. The order is still fillable up to the fillableTakerAssetAmount.
+    Filled = 'FILLED',
+    // The order was fully filled and its remaining fillableTakerAssetAmount is 0. The order is no longer fillable.
+    FullyFilled = 'FULLY_FILLED',
+    // The order was cancelled and is no longer fillable.
+    Cancelled = 'CANCELLED',
+    // The order expired and is no longer fillable.
+    Expired = 'EXPIRED',
+    // Catch all 'Invalid' state when invalid orders are submitted.
+    Invalid = 'INVALID',
+    // The order was previously expired, but due to a block re-org it is no longer considered expired (should be rare).
+    Unexpired = 'UNEXPIRED',
+    // The order has become unfunded and is no longer fillable. This can happen if the maker makes a transfer or changes their allowance.
+    Unfunded = 'UNFUNDED',
+    // The fillability of the order has increased. This can happen if a previously processed fill event gets reverted due to a block re-org,
+    // or if a maker makes a transfer or changes their allowance.
+    FillabilityIncreased = 'FILLABILITY_INCREASED',
+    // The order is potentially still valid but was removed for a different reason (e.g.
+    // the database is full or the peer that sent the order was misbehaving). The order will no longer be watched
+    // and no further events for this order will be emitted. In some cases, the order may be re-added in the
+    // future.
+    StoppedWatching = 'STOPPED_WATCHING',
+}
+
 // tslint:disable-line:max-file-line-count
