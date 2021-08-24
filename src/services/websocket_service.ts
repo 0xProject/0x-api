@@ -3,7 +3,6 @@ import { Consumer, Kafka } from 'kafkajs';
 import * as _ from 'lodash';
 import * as WebSocket from 'ws';
 
-import { MESH_IGNORED_ADDRESSES } from '../config';
 import { MalformedJSONError, NotImplementedError, WebsocketServiceError } from '../errors';
 import { logger } from '../logger';
 import { errorUtils } from '../middleware/error_handling';
@@ -144,10 +143,7 @@ export class WebsocketService {
             channel: MessageChannels.Orders,
             payload: apiOrders,
         };
-        const allowedOrders = apiOrders.filter(
-            (apiOrder) => !orderUtils.isIgnoredOrder(MESH_IGNORED_ADDRESSES, apiOrder),
-        );
-        for (const order of allowedOrders) {
+        for (const order of apiOrders) {
             // Future optimisation is to invert this structure so the order isn't duplicated over many request ids
             // order->requestIds it is less likely to get multiple order updates and more likely
             // to have many subscribers and a single order
