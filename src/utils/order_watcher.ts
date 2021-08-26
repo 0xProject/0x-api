@@ -17,6 +17,7 @@ export class OrderWatcher implements OrderWatcherInterface {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                timeout: 1000,
             });
         } catch (err) {
             if (err.response.data) {
