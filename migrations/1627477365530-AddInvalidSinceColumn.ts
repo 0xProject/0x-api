@@ -1,5 +1,6 @@
 import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
+// The block number in which the signed order became invalid. A null value means that the order is valid.
 const InvalidSinceColumn = new TableColumn({
     name: 'invalid_since',
     type: 'bigint',

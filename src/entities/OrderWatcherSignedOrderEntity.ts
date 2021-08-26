@@ -1,5 +1,8 @@
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
+// This should only be used in tests to set the state of `signed_orders_v4`.
+// In production, we only care about valid orders, so use
+// `ValidSignedOrderV4Entity` instead.
 @Entity({ name: 'signed_orders_v4' })
 export class OrderWatcherSignedOrderEntity {
     @PrimaryColumn({ name: 'hash', type: 'varchar' })
