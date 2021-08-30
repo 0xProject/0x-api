@@ -129,7 +129,7 @@ export async function buildRfqmServiceAsync(connection: Connection, asWorker: bo
 
     const dbUtils = new RfqmDbUtils(connection);
 
-    const sqsProducer = Producer.create({
+    const sqsProducer1 = Producer.create({
         queueUrl: RFQM_META_TX_SQS_URL,
     });
 
@@ -142,7 +142,7 @@ export async function buildRfqmServiceAsync(connection: Connection, asWorker: bo
         META_TX_WORKER_REGISTRY!,
         rfqBlockchainUtils,
         dbUtils,
-        sqsProducer,
+        sqsProducer1,
         quoteServerClient,
         RFQM_TRANSACTION_WATCHER_SLEEP_TIME_MS,
     );
