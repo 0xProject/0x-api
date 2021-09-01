@@ -13,6 +13,7 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from '@0x/asset-swapper';
+import { ChainId } from '@0x/contract-addresses';
 import { nativeWrappedTokenSymbol, TokenMetadatasForChains } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
@@ -32,7 +33,7 @@ import {
     TX_BASE_GAS,
 } from './constants';
 import { schemas } from './schemas';
-import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
+import { HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 import { schemaUtils } from './utils/schema_utils';
 
