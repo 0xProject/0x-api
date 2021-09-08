@@ -1,7 +1,12 @@
 import { expect } from '@0x/contracts-test-utils';
 import 'mocha';
 
-import { getApiKeyWhitelistFromIntegratorsAcl, getIntegratorIdForApiKey, RFQT_INTEGRATOR_IDS } from '../src/config';
+import {
+    getApiKeyWhitelistFromIntegratorsAcl,
+    getIntegratorIdForApiKey,
+    INTEGRATOR_KEYED_BY_ID,
+    RFQT_INTEGRATOR_IDS,
+} from '../src/config';
 
 /**
  * Configuration tests which run against the config in `test_env` file.
@@ -12,6 +17,19 @@ describe('Config', () => {
             const id = getIntegratorIdForApiKey('test-api-key-1');
 
             expect(id).to.equal('test-integrator-id-1');
+        });
+
+        it('correctly parses whitelist', () => {
+            const integratorWithWhitelist = INTEGRATOR_KEYED_BY_ID.get('test-integrator-id-1')!;
+            expect(integratorWithWhitelist.whitelistIntegratorUrls?.length).to.eql(1);
+            expect(integratorWithWhitelist.whitelistIntegratorUrls![0]).to.eql('http://foo.bar');
+
+            const integratorWithoutWhitelist = INTEGRATOR_KEYED_BY_ID.get('test-integrator-id-2')!;
+            expect(integratorWithoutWhitelist.whitelistIntegratorUrls).to.eql(undefined);
+        });
+
+        it('allows us to fetch Integrator by Integrator key', () => {
+            expect(INTEGRATOR_KEYED_BY_ID.get('test-integrator-id-1')?.label).to.eql('Test Integrator 1');
         });
 
         it('returns `undefined` for non-existent api keys', () => {
