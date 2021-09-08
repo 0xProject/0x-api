@@ -93,7 +93,7 @@ export async function computeHealthCheckAsync(
     const workersStatus = getWorstStatus(workersIssues.map((issue) => issue.status));
 
     // Prometheus counters
-    [...httpIssues, ...queueIssues, ...workersIssues].forEach((issue) =>
+    [...httpIssues, ...workersIssues].forEach((issue) =>
         RFQM_HEALTH_CHECK_ISSUE_COUNTER.labels(issue.status, issue.label).inc(),
     );
 
@@ -149,12 +149,15 @@ export function getHttpIssues(isMaintainenceMode: boolean, registryBalance: BigN
         });
     }
 
-    if (registryBalance.isLessThan(BALANCE_DEGRADED_THRESHOLD_WEI)) {
+    if (
+        registryBalance.isLessThan(BALANCE_DEGRADED_THRESHOLD_WEI) &&
+        registryBalance.isGreaterThanOrEqualTo(BALANCE_FAILED_THRESHOLD_WEI)
+    ) {
         issues.push({
             status: HealthCheckStatus.Degraded,
             description: `Registry balance is ${registryBalance
                 .shiftedBy(ETH_DECIMALS * -1)
-                .toFixed(2)} (threshold is ${BALANCE_DEGRADED_THRESHOLD_WEI})`,
+                .toFixed(2)} (threshold is ${BALANCE_DEGRADED_THRESHOLD})`,
             label: 'registry balance',
         });
     }
