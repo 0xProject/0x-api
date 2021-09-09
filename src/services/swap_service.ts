@@ -37,7 +37,7 @@ import {
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_MULTIPLEX,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
     CHAIN_ID,
-    INTEGRATOR_KEYED_BY_ID,
+    getWhitelistedIntegratorUrlsForIntegratorId,
     RFQT_REQUEST_MAX_RESPONSE_MS,
     RFQ_PROXY_ADDRESS,
     RFQ_PROXY_PORT,
@@ -219,10 +219,7 @@ export class SwapService {
 
         // Check if integrator ID specifically whitelists a set of maker URIs. If whitelist is "undefined" then it
         // means all integrators will be enabled.
-        const apiKeyWhitelist: string[] | undefined = INTEGRATOR_KEYED_BY_ID.get(
-            integratorId!,
-        )?.whitelistIntegratorUrls;
-
+        const apiKeyWhitelist: string[] | undefined = getWhitelistedIntegratorUrlsForIntegratorId(integratorId!);
         if (shouldEnableRfqt) {
             // tslint:disable-next-line:custom-no-magic-numbers
             const altRfqAssetOfferings = await this._getAltMarketOfferingsAsync(1500);

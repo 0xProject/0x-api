@@ -11,7 +11,7 @@ import { Producer } from 'sqs-producer';
 
 import {
     CHAIN_ID,
-    INTEGRATOR_KEYED_BY_ID,
+    getWhitelistedIntegratorUrlsForIntegratorId,
     META_TX_WORKER_REGISTRY,
     RFQM_MAINTENANCE_MODE,
     RFQM_MAKER_ASSET_OFFERINGS,
@@ -422,7 +422,7 @@ export class RfqmService {
 
         // Check if integrator ID specifically whitelists a set of maker URIs. If whitelist is "undefined" then it
         // means all integrators will be enabled.
-        const apiKeyWhitelist: string[] | undefined = INTEGRATOR_KEYED_BY_ID.get(integratorId)?.whitelistIntegratorUrls;
+        const apiKeyWhitelist: string[] | undefined = getWhitelistedIntegratorUrlsForIntegratorId(integratorId!);
 
         // Fetch quotes
         const opts: RfqmRequestOptions = {

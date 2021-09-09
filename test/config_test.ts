@@ -4,7 +4,7 @@ import 'mocha';
 import {
     getApiKeyWhitelistFromIntegratorsAcl,
     getIntegratorIdForApiKey,
-    INTEGRATOR_KEYED_BY_ID,
+    getWhitelistedIntegratorUrlsForIntegratorId,
     RFQT_INTEGRATOR_IDS,
 } from '../src/config';
 
@@ -20,16 +20,13 @@ describe('Config', () => {
         });
 
         it('correctly parses whitelist', () => {
-            const integratorWithWhitelist = INTEGRATOR_KEYED_BY_ID.get('test-integrator-id-1')!;
-            expect(integratorWithWhitelist.whitelistIntegratorUrls?.length).to.eql(1);
-            expect(integratorWithWhitelist.whitelistIntegratorUrls![0]).to.eql('http://foo.bar');
-
-            const integratorWithoutWhitelist = INTEGRATOR_KEYED_BY_ID.get('test-integrator-id-2')!;
-            expect(integratorWithoutWhitelist.whitelistIntegratorUrls).to.eql(undefined);
+            expect(getWhitelistedIntegratorUrlsForIntegratorId('test-integrator-id-2')).to.eql(undefined);
         });
 
         it('allows us to fetch Integrator by Integrator key', () => {
-            expect(INTEGRATOR_KEYED_BY_ID.get('test-integrator-id-1')?.label).to.eql('Test Integrator 1');
+            const whitelists = getWhitelistedIntegratorUrlsForIntegratorId('test-integrator-id-1')!;
+            expect(whitelists.length).to.eql(1);
+            expect(whitelists[0]).to.eql('http://foo.bar');
         });
 
         it('returns `undefined` for non-existent api keys', () => {

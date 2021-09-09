@@ -590,7 +590,13 @@ export const defaultHttpServiceWithRateLimiterConfig: HttpServiceConfig = {
     metaTxnRateLimiters: META_TXN_RATE_LIMITER_CONFIG,
 };
 
-export const INTEGRATOR_KEYED_BY_ID = transformIntegratorsAcl(INTEGRATORS_ACL, 'integratorId');
+export const getWhitelistedIntegratorUrlsForIntegratorId = (
+    (integratorsMap: Map<string, Integrator>) =>
+    (integratorId: string): string[] | undefined => {
+        const integrator = integratorsMap.get(integratorId);
+        return integrator?.whitelistIntegratorUrls;
+    }
+)(transformIntegratorsAcl(INTEGRATORS_ACL, 'integratorId'));
 
 /**
  * Gets the integrator ID for a given API key. If the API key is not in the configuration, returns `undefined`.
@@ -599,7 +605,7 @@ export const getIntegratorIdForApiKey = (
     (integratorsMap: Map<string, Integrator>) =>
     (apiKey: string): string | undefined => {
         const integrator = integratorsMap.get(apiKey);
-        return integrator ? integrator.integratorId : undefined;
+        return integrator?.integratorId;
     }
 )(transformIntegratorsAcl(INTEGRATORS_ACL, 'apiKeys'));
 
