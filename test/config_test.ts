@@ -20,7 +20,12 @@ describe('Config', () => {
         });
 
         it('correctly parses whitelist', () => {
-            expect(getIntegratorByIdOrThrow('test-integrator-id-2')).to.throw();
+            try {
+                getIntegratorByIdOrThrow('test-integrator-id-2');
+                expect.fail(`"test-integrator-id-2" should not exist`);
+            } catch (e) {
+                expect(e.toString()).to.equal('AssertionError: "test-integrator-id-2" should not exist');
+            }
         });
 
         it('allows us to fetch Integrator by Integrator key', () => {
