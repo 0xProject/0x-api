@@ -37,10 +37,10 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@^16.27.1":
-  version "16.27.1"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.27.1.tgz#47f9f94d75d8fd3a1cb4ac9c755a1bd01a87ee05"
-  integrity sha512-yRfGLUBjt3ue11yQCKMJN1SHleeYCmprbgXlnHuBV5HbJUDo5hDyANayir4hXv9R+6AP3SkmQsLapGsF9ol4Cg==
+"@0x/asset-swapper@^16.27.3":
+  version "16.27.3"
+  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.27.3.tgz#153aaec3cc5a4b60835c49c34cc27e679287716a"
+  integrity sha512-FYSFU992TOQVrieqsIHtJ171CVJj+OCCa3dgxy+5bGhxphA0TQyxCJPk/znuLHmT9tttOuj5y14y97cjR/b7qw==
   dependencies:
     "@0x/assert" "^3.0.27"
     "@0x/base-contract" "^6.4.0"
