@@ -26,7 +26,7 @@ const ORDER_FILL_RATIO_WARNING_RANGE = new Counter({
 });
 
 const RFQ_MAKER_NETWORK_INTERACTION_COUNTER = new Counter({
-    name: 'rfq_maker_network_interaction',
+    name: 'rfq_maker_network_interaction_counter',
     help: 'Provides stats around market maker network interactions',
     labelNames: [
         'isLastLook',
@@ -41,7 +41,7 @@ const RFQ_MAKER_NETWORK_INTERACTION_COUNTER = new Counter({
 });
 
 const RFQ_MAKER_NETWORK_INTERACTION_SUMMARY = new Summary({
-    name: 'rfq_maker_network_interaction',
+    name: 'rfq_maker_network_interaction_summary',
     help: 'Provides stats around market maker network interactions',
     labelNames: [
         'isLastLook',
