@@ -16,7 +16,7 @@ import { Kafka } from 'kafkajs';
 import { Connection } from 'typeorm';
 
 import { CHAIN_ID, ORDER_WATCHER_KAFKA_TOPIC, RFQT_TX_ORIGIN_BLACKLIST, WEBSOCKET_ORDER_UPDATES_PATH } from './config';
-import { RFQ_DYNAMIC_BLACKLIST_TTL, RFQ_FIRM_QUOTE_CACHE_EXPIRY, SRA_PATH } from './constants';
+import { RFQ_DYNAMIC_BLACKLIST_TTL, RFQ_FIRM_QUOTE_CACHE_EXPIRY } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
