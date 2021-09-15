@@ -177,9 +177,14 @@ export const KAFKA_CONSUMER_GROUP_ID = _.isEmpty(process.env.KAFKA_CONSUMER_GROU
     ? undefined
     : assertEnvVarType('KAFKA_CONSUMER_GROUP_ID', process.env.KAFKA_CONSUMER_GROUP_ID, EnvVarType.NonEmptyString);
 
+// The path for the Websocket order-watcher updates
 export const WEBSOCKET_ORDER_UPDATES_PATH = _.isEmpty(process.env.WEBSOCKET_ORDER_UPDATES_PATH)
     ? ORDERBOOK_PATH
-    : assertEnvVarType('WEBSOCKET_ORDER_UPDATES_PATH', process.env.WEBSOCKET_ORDER_UPDATES_PATH, EnvVarType.Url);
+    : assertEnvVarType(
+          'WEBSOCKET_ORDER_UPDATES_PATH',
+          process.env.WEBSOCKET_ORDER_UPDATES_PATH,
+          EnvVarType.NonEmptyString,
+      );
 
 // The fee recipient for orders
 export const FEE_RECIPIENT_ADDRESS = _.isEmpty(process.env.FEE_RECIPIENT_ADDRESS)
@@ -596,27 +601,25 @@ export const defaultHttpServiceWithRateLimiterConfig: HttpServiceConfig = {
     metaTxnRateLimiters: META_TXN_RATE_LIMITER_CONFIG,
 };
 
-export const getIntegratorByIdOrThrow = (
-    (integratorsMap: Map<string, Integrator>) =>
-    (integratorId: string): Integrator => {
-        const integrator = integratorsMap.get(integratorId);
-        if (!integrator) {
-            throw new Error(`Integrator ${integratorId} does not exist.`);
-        }
-        return integrator;
+export const getIntegratorByIdOrThrow = ((integratorsMap: Map<string, Integrator>) => (
+    integratorId: string,
+): Integrator => {
+    const integrator = integratorsMap.get(integratorId);
+    if (!integrator) {
+        throw new Error(`Integrator ${integratorId} does not exist.`);
     }
-)(transformIntegratorsAcl(INTEGRATORS_ACL, 'integratorId'));
+    return integrator;
+})(transformIntegratorsAcl(INTEGRATORS_ACL, 'integratorId'));
 
 /**
  * Gets the integrator ID for a given API key. If the API key is not in the configuration, returns `undefined`.
  */
-export const getIntegratorIdForApiKey = (
-    (integratorsMap: Map<string, Integrator>) =>
-    (apiKey: string): string | undefined => {
-        const integrator = integratorsMap.get(apiKey);
-        return integrator?.integratorId;
-    }
-)(transformIntegratorsAcl(INTEGRATORS_ACL, 'apiKeys'));
+export const getIntegratorIdForApiKey = ((integratorsMap: Map<string, Integrator>) => (
+    apiKey: string,
+): string | undefined => {
+    const integrator = integratorsMap.get(apiKey);
+    return integrator?.integratorId;
+})(transformIntegratorsAcl(INTEGRATORS_ACL, 'apiKeys'));
 
 /**
  * Utility function to transform INTEGRATORS_ACL into a map of apiKey => integrator. The result can
