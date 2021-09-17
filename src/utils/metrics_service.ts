@@ -35,8 +35,7 @@ const RFQ_MAKER_NETWORK_INTERACTION_COUNTER = new Counter({
         'quoteType',
         'included',
         'statusCode',
-        'sellTokenAddress',
-        'buyTokenAddress',
+        'market',
     ],
 });
 
@@ -50,10 +49,41 @@ const RFQ_MAKER_NETWORK_INTERACTION_SUMMARY = new Summary({
         'quoteType',
         'included',
         'statusCode',
-        'sellTokenAddress',
-        'buyTokenAddress',
+        'market',
     ],
 });
+
+
+// NOTE: Do not use this map for anything sensitive. This is only used for
+// metrics/datavis purposes.
+const KNOWN_TOKENS: {[key: string]: string} = {
+    "0x6b175474e89094c44da98b954eedeac495271d0f": "DAI",
+    "0xdac17f958d2ee523a2206206994597c13d831ec7": "USDT",
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": "USDC",
+    "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": "WBTC",
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "WETH",
+};
+
+/**
+ * Returns a human-readible label for Prometheus counters. Only popular most relevant pairs
+ * should be displayed in Prometheus (since it overload the service) and any other market that does
+ * not contain popular pairs will simply return "Other".
+ * 
+ * @param tokenSold the token being sold
+ * @param tokenPurchased the token being purchased
+ * @returns a market like "WETH-DAI", or "Other" is a pair is unknown
+ */
+function getMarketLabel(tokenSold: string, tokenPurchased: string): string {
+    const items = [tokenSold.toLowerCase(), tokenPurchased.toLowerCase()];
+    items.sort();
+
+    const tokenA: string | undefined = KNOWN_TOKENS[items[0]];
+    const tokenB: string | undefined = KNOWN_TOKENS[items[1]];
+    if (!tokenA || !tokenB) {
+        return "Other";
+    }
+    return `${tokenA}-${tokenB}`;
+}
 
 export const METRICS_PROXY: MetricsProxy = {
     incrementExpirationToSoonCounter: (isLastLook: boolean, maker: string) => {
@@ -92,6 +122,8 @@ export const METRICS_PROXY: MetricsProxy = {
             buyTokenAddress,
             latencyMs,
         } = interaction;
+
+        const market = getMarketLabel(sellTokenAddress, buyTokenAddress);
         const payload = [
             isLastLook.toString(),
             integrator.label,
@@ -99,8 +131,7 @@ export const METRICS_PROXY: MetricsProxy = {
             quoteType,
             isIncluded.toString(),
             `${statusCode || 'N/A'}`,
-            sellTokenAddress,
-            buyTokenAddress,
+            market,
         ];
         RFQ_MAKER_NETWORK_INTERACTION_COUNTER.labels(...payload).inc();
         RFQ_MAKER_NETWORK_INTERACTION_SUMMARY.labels(...payload).observe(latencyMs);
