@@ -39,6 +39,9 @@ export async function isWorkerReadyAndAbleAsync(
             'Worker does not have enough balance to trade.',
         );
     }
+    if (!hasEnoughBalance) {
+        return false;
+    }
 
     // check worker has no pending transactions
     const lastNonceOnChain = await wrapper.getAccountNonceAsync(accountAddress);
@@ -55,5 +58,5 @@ export async function isWorkerReadyAndAbleAsync(
         );
     }
 
-    return hasEnoughBalance && hasNoPendingTransactions;
+    return hasNoPendingTransactions;
 }
