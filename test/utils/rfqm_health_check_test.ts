@@ -142,7 +142,7 @@ describe('RFQm Health Check', () => {
 
                 expect(degradedIssues).to.have.length(1);
                 expect(degradedIssues[0].description).to.contain(
-                    'Less than two workers have a balance above the degraded threshold (0.1)',
+                    'Less than two workers have a balance above the degraded threshold',
                 );
             });
         });
