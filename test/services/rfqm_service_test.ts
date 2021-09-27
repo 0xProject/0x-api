@@ -175,57 +175,64 @@ describe('RfqmService', () => {
         it('should fail if there is already a pending trade for the taker and taker token', async () => {
             const existingOrder = {
                 chainId: '1',
+                expiry: NEVER_EXPIRES.toString(),
                 maker: '',
                 makerAmount: '',
-                taker: '0xtaker',
-                takerAmount: '',
                 makerToken: '',
                 pool: '',
                 salt: '',
+                taker: '0xtaker',
+                takerAmount: '',
                 takerToken: '0xtakertoken',
                 txOrigin: '',
-                verifyingContract: '',
-                expiry: NEVER_EXPIRES.toString(),
+                verifyingContract: ''
             };
             const existingJob: RfqmJobEntity = {
-                chainId: 1,
                 affiliateAddress: '',
+                calldata: '0x000',
+                chainId: 1,
                 createdAt: new Date(),
                 expiry: NEVER_EXPIRES,
+                fee: {
+                    amount: '0',
+                    token: '',
+                    type: 'fixed'
+                },
                 integratorId: '',
                 isCompleted: false,
                 lastLookResult: null,
-                fee: {
-                    type: 'fixed',
-                    amount: '0',
-                    token: '',
-                },
-                order: {
-                    type: RfqmOrderTypes.V4Rfq,
-                    order: existingOrder,
-                },
+                makerUri: 'http://foo.bar',
                 metadata: null,
+                metaTransactionHash: '',
+                order: {
+                    order: existingOrder,
+                    type: RfqmOrderTypes.V4Rfq
+                },
+                orderHash: '',
                 status: RfqmJobStatus.PendingEnqueued,
                 updatedAt: new Date(),
-                workerAddress: '',
-                orderHash: '',
-                metaTransactionHash: '',
-                calldata: '0x000',
-                makerUri: 'http://foo.bar',
+                workerAddress: ''
             };
 
             const dbUtilsMock = mock(RfqmDbUtils);
             when(dbUtilsMock.findJobsWithStatusesAsync(anything())).thenResolve([existingJob]);
             when(dbUtilsMock.findQuoteByMetaTransactionHashAsync('0xmetatransactionhash')).thenResolve({
-                orderHash: '',
-                metaTransactionHash: '0xmetatransactionhash',
-                createdAt: new Date(),
+                affiliateAddress: '',
                 chainId: 1,
+                createdAt: new Date(),
+                fee: {
+                    amount: '0',
+                    token: '',
+                    type: 'fixed'
+                },
                 integratorId: '',
                 makerUri: 'http://foo.bar',
-                fee: { type: 'fixed', amount: '0', token: '' },
-                order: { type: RfqmOrderTypes.V4Rfq, order: existingOrder },
-                affiliateAddress: '',
+                metaTransactionHash: '0xmetatransactionhash',
+                order: {
+                    order: existingOrder,
+                    type: RfqmOrderTypes.V4Rfq
+                },
+                orderHash: ''
             });
             const metatransactionMock = mock(MetaTransaction);
             when(metatransactionMock.getHash()).thenReturn('0xmetatransactionhash');
@@ -241,12 +248,12 @@ describe('RfqmService', () => {
                     integrator: MOCK_INTEGRATOR,
                     metaTransaction: instance(metatransactionMock),
                     signature: {
-                        signatureType: SignatureType.EthSign,
-                        v: 1,
                         r: '',
                         s: '',
+                        signatureType: SignatureType.EthSign,
+                        v: 1
                     },
-                    type: RfqmTypes.MetaTransaction,
+                    type: RfqmTypes.MetaTransaction
                 }),
             ).to.be.rejectedWith(ValidationError); // tslint:disable-line no-unused-expression
         });
