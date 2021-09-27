@@ -194,7 +194,7 @@ const RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON = new Counter({
 });
 const RFQM_TAKER_AND_TAKERTOKEN_TRADE_EXISTS = new Counter({
     name: 'rfqm_taker_and_takertoken_trade_exists',
-    help: 'The rfqm system already has a pending trade for this taker and takertoken',
+    help: 'A trade was submitted when the system already had a pending trade for the same taker and takertoken',
 });
 const RFQM_JOB_FAILED_ETHCALL_VALIDATION = new Counter({
     name: 'rfqm_job_failed_ethcall_validation',
