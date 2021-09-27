@@ -2,6 +2,7 @@
 // tslint:disable:no-empty
 // tslint:disable:max-file-line-count
 
+import { ValidationError } from '@0x/api-utils';
 import {
     FillQuoteTransformerOrderType,
     ProtocolFeeUtils,
@@ -22,7 +23,7 @@ import { ETH_DECIMALS, ONE_MINUTE_MS } from '../../src/constants';
 import { RfqmJobEntity, RfqmTransactionSubmissionEntity } from '../../src/entities';
 import { RfqmJobStatus, RfqmOrderTypes } from '../../src/entities/RfqmJobEntity';
 import { RfqmTransactionSubmissionStatus } from '../../src/entities/RfqmTransactionSubmissionEntity';
-import { RfqmService } from '../../src/services/rfqm_service';
+import { RfqmService, RfqmTypes } from '../../src/services/rfqm_service';
 import { QuoteServerClient } from '../../src/utils/quote_server_client';
 import { RfqmDbUtils } from '../../src/utils/rfqm_db_utils';
 import { HealthCheckStatus } from '../../src/utils/rfqm_health_check';
@@ -168,6 +169,87 @@ describe('RfqmService', () => {
             },
         });
         expect(response).to.eql(RfqmJobStatus.FailedExpired);
+    });
+
+    describe('submitMetaTransactionSignedQuoteAsync', () => {
+        it('should fail if there is already a pending trade for the taker and taker token', async () => {
+            const existingOrder = {
+                chainId: '1',
+                maker: '',
+                makerAmount: '',
+                taker: '0xtaker',
+                takerAmount: '',
+                makerToken: '',
+                pool: '',
+                salt: '',
+                takerToken: '0xtakertoken',
+                txOrigin: '',
+                verifyingContract: '',
+                expiry: NEVER_EXPIRES.toString(),
+            };
+            const existingJob: RfqmJobEntity = {
+                chainId: 1,
+                affiliateAddress: '',
+                createdAt: new Date(),
+                expiry: NEVER_EXPIRES,
+                integratorId: '',
+                isCompleted: false,
+                lastLookResult: null,
+                fee: {
+                    type: 'fixed',
+                    amount: '0',
+                    token: '',
+                },
+                order: {
+                    type: RfqmOrderTypes.V4Rfq,
+                    order: existingOrder,
+                },
+                metadata: null,
+                status: RfqmJobStatus.PendingEnqueued,
+                updatedAt: new Date(),
+                workerAddress: '',
+                orderHash: '',
+                metaTransactionHash: '',
+                calldata: '0x000',
+                makerUri: 'http://foo.bar',
+            };
+
+            const dbUtilsMock = mock(RfqmDbUtils);
+            when(dbUtilsMock.findJobsWithStatusesAsync(anything())).thenResolve([existingJob]);
+            when(dbUtilsMock.findQuoteByMetaTransactionHashAsync('0xmetatransactionhash')).thenResolve({
+                orderHash: '',
+                metaTransactionHash: '0xmetatransactionhash',
+                createdAt: new Date(),
+                chainId: 1,
+                integratorId: '',
+                makerUri: 'http://foo.bar',
+                fee: { type: 'fixed', amount: '0', token: '' },
+                order: { type: RfqmOrderTypes.V4Rfq, order: existingOrder },
+                affiliateAddress: '',
+            });
+            const metatransactionMock = mock(MetaTransaction);
+            when(metatransactionMock.getHash()).thenReturn('0xmetatransactionhash');
+            when(metatransactionMock.expirationTimeSeconds).thenReturn(NEVER_EXPIRES);
+            const dbUtils = instance(dbUtilsMock);
+
+            const service = buildRfqmServiceForUnitTest({
+                dbUtils,
+            });
+
+            expect(
+                service.submitMetaTransactionSignedQuoteAsync({
+                    integrator: MOCK_INTEGRATOR,
+                    metaTransaction: instance(metatransactionMock),
+                    signature: {
+                        signatureType: SignatureType.EthSign,
+                        v: 1,
+                        r: '',
+                        s: '',
+                    },
+                    type: RfqmTypes.MetaTransaction,
+                }),
+            ).to.be.rejectedWith(ValidationError); // tslint:disable-line no-unused-expression
+        });
     });
 
     describe('fetchIndicativeQuoteAsync', () => {

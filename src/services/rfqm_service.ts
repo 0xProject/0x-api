@@ -192,6 +192,10 @@ const RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON = new Counter({
     name: 'rfqm_signed_quote_expiry_too_soon',
     help: 'A signed quote was not queued because it would expire too soon',
 });
+const RFQM_TAKER_AND_TAKERTOKEN_TRADE_EXISTS = new Counter({
+    name: 'rfqm_taker_and_takertoken_trade_exists',
+    help: 'The rfqm system already has a pending trade for this taker and takertoken',
+});
 const RFQM_JOB_FAILED_ETHCALL_VALIDATION = new Counter({
     name: 'rfqm_job_failed_ethcall_validation',
     help: 'A job failed eth_call validation before being queued',
@@ -699,6 +703,32 @@ export class RfqmService {
             ]);
         }
 
+        // verify that there is not a pending transaction for this taker and taker token
+        const pendingJobs = await this._dbUtils.findJobsWithStatusesAsync([
+            RfqmJobStatus.PendingEnqueued,
+            RfqmJobStatus.PendingProcessing,
+            RfqmJobStatus.PendingLastLookAccepted,
+            RfqmJobStatus.PendingSubmitted,
+        ]);
+
+        if (
+            pendingJobs.some(
+                (job) =>
+                    job.order?.order.taker === quote.order?.order.taker &&
+                    job.order?.order.takerToken === quote.order?.order.takerToken &&
+                    // Other logic handles the case where the same order is submitted twice
+                    job.metaTransactionHash !== quote.metaTransactionHash,
+            )
+        ) {
+            RFQM_TAKER_AND_TAKERTOKEN_TRADE_EXISTS.inc();
+            throw new ValidationError([
+                {
+                    field: 'n/a',
+                    code: ValidationErrorCodes.InvalidOrder,
+                    reason: 'a trade for this taker and takertoken already exists',
+                },
+            ]);
+        }
         // validate that the firm quote is fillable using the origin registry address (this address is assumed to hold ETH)
         try {
             await this._blockchainUtils.validateMetaTransactionOrThrowAsync(
