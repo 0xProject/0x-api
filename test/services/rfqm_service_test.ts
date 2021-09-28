@@ -185,7 +185,7 @@ describe('RfqmService', () => {
                 takerAmount: '',
                 takerToken: '0xtakertoken',
                 txOrigin: '',
-                verifyingContract: ''
+                verifyingContract: '',
             };
             const existingJob: RfqmJobEntity = {
                 affiliateAddress: '',
@@ -196,7 +196,7 @@ describe('RfqmService', () => {
                 fee: {
                     amount: '0',
                     token: '',
-                    type: 'fixed'
+                    type: 'fixed',
                 },
                 integratorId: '',
                 isCompleted: false,
@@ -206,12 +206,12 @@ describe('RfqmService', () => {
                 metaTransactionHash: '',
                 order: {
                     order: existingOrder,
-                    type: RfqmOrderTypes.V4Rfq
+                    type: RfqmOrderTypes.V4Rfq,
                 },
                 orderHash: '',
                 status: RfqmJobStatus.PendingEnqueued,
                 updatedAt: new Date(),
-                workerAddress: ''
+                workerAddress: '',
             };
 
             const dbUtilsMock = mock(RfqmDbUtils);
@@ -223,16 +223,16 @@ describe('RfqmService', () => {
                 fee: {
                     amount: '0',
                     token: '',
-                    type: 'fixed'
+                    type: 'fixed',
                 },
                 integratorId: '',
                 makerUri: 'http://foo.bar',
                 metaTransactionHash: '0xmetatransactionhash',
                 order: {
                     order: existingOrder,
-                    type: RfqmOrderTypes.V4Rfq
+                    type: RfqmOrderTypes.V4Rfq,
                 },
-                orderHash: ''
+                orderHash: '',
             });
             const metatransactionMock = mock(MetaTransaction);
             when(metatransactionMock.getHash()).thenReturn('0xmetatransactionhash');
@@ -251,9 +251,9 @@ describe('RfqmService', () => {
                         r: '',
                         s: '',
                         signatureType: SignatureType.EthSign,
-                        v: 1
+                        v: 1,
                     },
-                    type: RfqmTypes.MetaTransaction
+                    type: RfqmTypes.MetaTransaction,
                 }),
             ).to.be.rejectedWith(ValidationError); // tslint:disable-line no-unused-expression
         });
