@@ -714,8 +714,8 @@ export class RfqmService {
         if (
             pendingJobs.some(
                 (job) =>
-                    job.order?.order.taker === quote.order?.order.taker &&
-                    job.order?.order.takerToken === quote.order?.order.takerToken &&
+                    job.order?.order.taker.toLowerCase() === quote.order?.order.taker.toLowerCase() &&
+                    job.order?.order.takerToken.toLowerCase() === quote.order?.order.takerToken.toLowerCase() &&
                     // Other logic handles the case where the same order is submitted twice
                     job.metaTransactionHash !== quote.metaTransactionHash,
             )
