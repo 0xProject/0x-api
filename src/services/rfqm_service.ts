@@ -1,4 +1,5 @@
 // tslint:disable:max-file-line-count
+import { TooManyRequestsError } from '@0x/api-utils';
 import { AssetSwapperContractAddresses, MarketOperation, ProtocolFeeUtils, QuoteRequestor } from '@0x/asset-swapper';
 import { RfqmRequestOptions } from '@0x/asset-swapper/lib/src/types';
 import { MetaTransaction, RfqOrder, Signature } from '@0x/protocol-utils';
@@ -193,7 +194,7 @@ const RFQM_SIGNED_QUOTE_EXPIRY_TOO_SOON = new Counter({
     help: 'A signed quote was not queued because it would expire too soon',
 });
 const RFQM_TAKER_AND_TAKERTOKEN_TRADE_EXISTS = new Counter({
-    name: 'rfqm_taker_and_takertoken_trade_exists',
+    name: 'rfqm_signed_quote_taker_and_takertoken_trade_exists',
     help: 'A trade was submitted when the system already had a pending trade for the same taker and takertoken',
 });
 const RFQM_JOB_FAILED_ETHCALL_VALIDATION = new Counter({
@@ -721,13 +722,7 @@ export class RfqmService {
             )
         ) {
             RFQM_TAKER_AND_TAKERTOKEN_TRADE_EXISTS.inc();
-            throw new ValidationError([
-                {
-                    field: 'n/a',
-                    code: ValidationErrorCodes.InvalidOrder,
-                    reason: 'a trade for this taker and takertoken already exists',
-                },
-            ]);
+            throw new TooManyRequestsError('a pending trade for this taker and takertoken already exists');
         }
         // validate that the firm quote is fillable using the origin registry address (this address is assumed to hold ETH)
         try {
