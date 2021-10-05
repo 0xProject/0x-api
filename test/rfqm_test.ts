@@ -319,6 +319,7 @@ describe(SUITE_NAME, () => {
                 resolve();
             });
         });
+        await cacheClient.closeAsync();
         await teardownDependenciesAsync(SUITE_NAME);
     });
 
