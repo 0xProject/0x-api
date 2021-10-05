@@ -20,7 +20,7 @@ import { TransactionReceiptStatus } from 'ethereum-types';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
 import 'mocha';
-import { RedisClient } from 'redis';
+import * as redis from 'redis';
 import { Producer } from 'sqs-producer';
 import * as request from 'supertest';
 import { anyString, anything, instance, mock, when } from 'ts-mockito';
@@ -272,7 +272,9 @@ describe(SUITE_NAME, () => {
         const quoteServerClient = new QuoteServerClient(axiosClient);
 
         // Create the CacheClient
-        const redisClient = new RedisClient({}); // default settings will work
+        const redisClient = redis.createClient({
+            url: config.REDIS_URI,
+        });
         cacheClient = new CacheClient(redisClient);
 
         rfqmService = new RfqmService(
