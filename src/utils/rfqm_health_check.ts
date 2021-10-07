@@ -104,6 +104,8 @@ export async function computeHealthCheckAsync(
     );
 
     if (gasPrice) {
+        // Note that this gauge is an estimation of the total number of trades, since two workers could have
+        // 50% of the amount for one trade and the gauge would show 1 but the actual capacity would be 0.
         const totalWorkerBalance = heartbeats.reduce((total, { balance }) => total.plus(balance), new BigNumber(0));
         const totalSystemTradeCapacity = totalWorkerBalance.div(gasPrice.times(RFQM_TX_GAS_ESTIMATE));
         RFQM_TOTAL_SYSTEM_TRADE_CAPACITY_GAUGE.set(totalSystemTradeCapacity.toNumber());
