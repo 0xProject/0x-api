@@ -673,7 +673,7 @@ export class RfqmService {
         const registryBalance = await this._blockchainUtils.getAccountBalanceAsync(this._registryAddress);
         let gasPrice: BigNumber | undefined;
         try {
-            const gasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+            gasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
         } catch (error) {
             logger.warn({ error }, 'Failed to get gas price for health check');
         }
@@ -683,7 +683,7 @@ export class RfqmService {
             RFQM_MAKER_ASSET_OFFERINGS,
             this._sqsProducer,
             heartbeats,
-            
+            gasPrice,
         );
     }
 

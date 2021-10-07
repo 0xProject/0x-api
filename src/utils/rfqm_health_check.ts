@@ -3,7 +3,7 @@ import { BigNumber } from '@0x/utils';
 import { Counter, Gauge } from 'prom-client';
 import { Producer } from 'sqs-producer';
 
-import { ETH_DECIMALS } from '../constants';
+import { ETH_DECIMALS, RFQM_TX_GAS_ESTIMATE } from '../constants';
 import { RfqmWorkerHeartbeatEntity } from '../entities';
 
 const SQS_QUEUE_SIZE_DEGRADED_THRESHOLD = 10; // More messages sitting in queue than this will cause a DEGRADED issue
@@ -105,7 +105,7 @@ export async function computeHealthCheckAsync(
 
     if (gasPrice) {
         const totalWorkerBalance = heartbeats.reduce((total, { balance }) => total.plus(balance), new BigNumber(0));
-        const totalSystemTradeCapacity = totalWorkerBalance.div(gasPrice);
+        const totalSystemTradeCapacity = totalWorkerBalance.div(gasPrice.times(RFQM_TX_GAS_ESTIMATE));
         RFQM_TOTAL_SYSTEM_TRADE_CAPACITY_GAUGE.set(totalSystemTradeCapacity.toNumber());
     }
 
