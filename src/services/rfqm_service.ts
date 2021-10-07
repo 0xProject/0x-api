@@ -115,7 +115,6 @@ export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse 
     metaTransaction: MetaTransaction;
     metaTransactionHash: string;
     orderHash: string;
-    bucketNumber: number;
 }
 
 export interface SubmissionsMapStatus {
@@ -549,7 +548,6 @@ export class RfqmService {
             metaTransaction,
             metaTransactionHash,
             orderHash,
-            bucketNumber: currentBucket,
         };
     }
 
