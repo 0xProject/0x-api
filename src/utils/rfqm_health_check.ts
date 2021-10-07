@@ -1,6 +1,6 @@
 import { RfqMakerAssetOfferings } from '@0x/asset-swapper';
 import { BigNumber } from '@0x/utils';
-import { Counter } from 'prom-client';
+import { Counter, Gauge } from 'prom-client';
 import { Producer } from 'sqs-producer';
 
 import { ETH_DECIMALS } from '../constants';
@@ -24,6 +24,11 @@ const RFQM_HEALTH_CHECK_ISSUE_COUNTER = new Counter({
     name: 'rfqm_health_check_issue',
     labelNames: ['status' /* :HealthCheckStatus, except for Operational */, 'label' /* :HealthCheckLabel */],
     help: 'RFQM health system has detected a problem with the system',
+});
+
+const RFQM_TOTAL_SYSTEM_TRADE_CAPACITY_GAUGE = new Gauge({
+    name: 'rfqm_total_system_trade_capacity',
+    help: 'Total amount of ETH in the worker pool divided by the current expected gas of a trade',
 });
 
 export enum HealthCheckStatus {
@@ -81,6 +86,7 @@ export async function computeHealthCheckAsync(
     offerings: RfqMakerAssetOfferings,
     producer: Producer,
     heartbeats: RfqmWorkerHeartbeatEntity[],
+    gasPrice?: BigNumber,
 ): Promise<HealthCheckResult> {
     const pairs = transformPairs(offerings);
 
@@ -96,6 +102,12 @@ export async function computeHealthCheckAsync(
     [...httpIssues, ...workersIssues].forEach((issue) =>
         RFQM_HEALTH_CHECK_ISSUE_COUNTER.labels(issue.status, issue.label).inc(),
     );
+
+    if (gasPrice) {
+        const totalWorkerBalance = heartbeats.reduce((total, { balance }) => total.plus(balance), new BigNumber(0));
+        const totalSystemTradeCapacity = totalWorkerBalance.div(gasPrice);
+        RFQM_TOTAL_SYSTEM_TRADE_CAPACITY_GAUGE.set(totalSystemTradeCapacity.toNumber());
+    }
 
     return {
         status: getWorstStatus([httpStatus, workersStatus]),
