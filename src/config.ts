@@ -63,7 +63,9 @@ enum EnvVarType {
     JsonStringList,
 }
 
-const JSON_CONFIGS_DIR = '/app/jsonConfigs';
+const JSON_CONFIGS_DIR = _.isEmpty(process.env.JSON_CONFIGS_DIR)
+    ? '/app/jsonConfigs'
+    : assertEnvVarType('JSON_CONFIGS_DIR', process.env.JSON_CONFIGS_DIR, EnvVarType.NonEmptyString);
 
 /**
  * A taker-integrator of the 0x API.
@@ -277,13 +279,12 @@ export const RFQT_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOffering
     {},
 );
 
-export const RFQM_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(process.env.RFQM_MAKER_ASSET_OFFERINGS)
-    ? {}
-    : assertEnvVarType(
-          'RFQM_MAKER_ASSET_OFFERINGS',
-          process.env.RFQM_MAKER_ASSET_OFFERINGS,
-          EnvVarType.RfqMakerAssetOfferings,
-      );
+export const RFQM_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOfferings>(
+    `${JSON_CONFIGS_DIR}/RFQM_MAKER_ASSET_OFFERINGS.json`,
+    'RFQM_MAKER_ASSET_OFFERINGS',
+    EnvVarType.RfqMakerAssetOfferings,
+    {},
+);
 
 export const META_TX_WORKER_REGISTRY: string | undefined = _.isEmpty(process.env.META_TX_WORKER_REGISTRY)
     ? undefined
