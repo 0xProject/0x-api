@@ -16,6 +16,7 @@ import {
 import { ChainId } from '@0x/contract-addresses';
 import { nativeWrappedTokenSymbol, TokenMetadatasForChains } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
+import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as validateUUID from 'uuid-validate';
 
@@ -61,6 +62,8 @@ enum EnvVarType {
     LiquidityProviderRegistry,
     JsonStringList,
 }
+
+const JSON_CONFIGS_DIR = '/app/jsonConfigs';
 
 /**
  * A taker-integrator of the 0x API.
@@ -267,13 +270,12 @@ export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_PROFILE', process.env.ALT_RFQ_MM_PROFILE, EnvVarType.NonEmptyString);
 
-export const RFQT_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(process.env.RFQT_MAKER_ASSET_OFFERINGS)
-    ? {}
-    : assertEnvVarType(
-          'RFQT_MAKER_ASSET_OFFERINGS',
-          process.env.RFQT_MAKER_ASSET_OFFERINGS,
-          EnvVarType.RfqMakerAssetOfferings,
-      );
+export const RFQT_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOfferings>(
+    `${JSON_CONFIGS_DIR}/RFQT_MAKER_ASSET_OFFERINGS.json`,
+    'RFQT_MAKER_ASSET_OFFERINGS',
+    EnvVarType.RfqMakerAssetOfferings,
+    {},
+);
 
 export const RFQM_MAKER_ASSET_OFFERINGS: RfqMakerAssetOfferings = _.isEmpty(process.env.RFQM_MAKER_ASSET_OFFERINGS)
     ? {}
@@ -621,6 +623,37 @@ function transformIntegratorsAcl(
         });
     });
     return result;
+}
+
+/**
+ * Returns a config of type T by attempting to:
+ * - Read from file
+ * - Read from Environment Variable
+ * - Use the fallback
+ * In that order
+ *
+ * @param filename - The name of the file to read
+ * @param envVar - The environment variable to fallback to
+ * @param envVarType - The type of the environment variable to assert against
+ * @param fallback - A fallback value
+ * @returns The config
+ */
+function readWithFallback<T>(filename: string, envVar: string, envVarType: EnvVarType, fallback: T): T {
+    const fromFile: T | undefined = fs.existsSync(filename) ? JSON.parse(fs.readFileSync(filename, 'utf8')) : undefined;
+
+    if (fromFile) {
+        return fromFile;
+    }
+
+    const fromEnvVar: T | undefined = _.isEmpty(process.env[envVar])
+        ? undefined
+        : assertEnvVarType(envVar, process.env[envVar], envVarType);
+
+    if (fromEnvVar) {
+        return fromEnvVar;
+    }
+
+    return fallback;
 }
 
 function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): any {
