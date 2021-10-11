@@ -273,16 +273,16 @@ export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_
     : assertEnvVarType('ALT_RFQ_MM_PROFILE', process.env.ALT_RFQ_MM_PROFILE, EnvVarType.NonEmptyString);
 
 export const RFQT_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOfferings>(
-    `${JSON_CONFIGS_DIR}/rfqt_makers.json`,
     'RFQT_MAKER_ASSET_OFFERINGS',
     EnvVarType.RfqMakerAssetOfferings,
+    `rfqt_makers.json`,
     {},
 );
 
 export const RFQM_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOfferings>(
-    `${JSON_CONFIGS_DIR}/rfqm_makers.json`,
     'RFQM_MAKER_ASSET_OFFERINGS',
     EnvVarType.RfqMakerAssetOfferings,
+    `rfqm_makers.json`,
     {},
 );
 
@@ -628,30 +628,32 @@ function transformIntegratorsAcl(
 
 /**
  * Returns a config of type T by attempting to:
- * - Read from file
  * - Read from Environment Variable
- * - Use the fallback
+ * - Read from file
+ * - Use a hardcoded fallback
  * In that order
  *
- * @param filename - The name of the file to read
  * @param envVar - The environment variable to fallback to
  * @param envVarType - The type of the environment variable to assert against
+ * @param filename - The name of the file to read
  * @param fallback - A fallback value
  * @returns The config
  */
-function readWithFallback<T>(filename: string, envVar: string, envVarType: EnvVarType, fallback: T): T {
-    const fromFile: T | undefined = fs.existsSync(filename) ? JSON.parse(fs.readFileSync(filename, 'utf8')) : undefined;
-
-    if (fromFile) {
-        return fromFile;
-    }
-
+function readWithFallback<T>(envVar: string, envVarType: EnvVarType, filename: string, fallback: T): T {
     const fromEnvVar: T | undefined = _.isEmpty(process.env[envVar])
         ? undefined
         : assertEnvVarType(envVar, process.env[envVar], envVarType);
 
     if (fromEnvVar) {
         return fromEnvVar;
+    }
+
+    const fromFile: T | undefined = fs.existsSync(filename)
+        ? JSON.parse(fs.readFileSync(`${JSON_CONFIGS_DIR}/${filename}`, 'utf8'))
+        : undefined;
+
+    if (fromFile) {
+        return fromFile;
     }
 
     return fallback;
