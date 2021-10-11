@@ -84,7 +84,7 @@ export type IntegratorsAcl = Integrator[];
 export const INTEGRATORS_ACL: IntegratorsAcl = (() => {
     let integrators: IntegratorsAcl;
     try {
-        integrators = resolveEnvVar<IntegratorsAcl>('INTEGRATORS_ACL', EnvVarType.NonEmptyString, []);
+        integrators = resolveEnvVar<IntegratorsAcl>('INTEGRATORS_ACL', EnvVarType.JsonStringList, []);
         schemaUtils.validateSchema(integrators, schemas.integratorsAclSchema);
     } catch (e) {
         throw new Error(`INTEGRATORS_ACL was defined but is not valid JSON per the schema: ${e}`);
@@ -633,7 +633,7 @@ function transformIntegratorsAcl(
  */
 function resolveEnvVar<T>(envVar: string, envVarType: EnvVarType, fallback: T): T {
     const rawEnvVar = process.env[envVar];
-    if (rawEnvVar === undefined) {
+    if (rawEnvVar === undefined || _.isEmpty(rawEnvVar)) {
         return fallback;
     }
 
