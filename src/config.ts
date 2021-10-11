@@ -63,10 +63,6 @@ enum EnvVarType {
     JsonStringList,
 }
 
-const JSON_CONFIGS_DIR = _.isEmpty(process.env.JSON_CONFIGS_DIR)
-    ? '/app/jsonConfigs'
-    : assertEnvVarType('JSON_CONFIGS_DIR', process.env.JSON_CONFIGS_DIR, EnvVarType.NonEmptyString);
-
 /**
  * A taker-integrator of the 0x API.
  */
@@ -88,7 +84,7 @@ export type IntegratorsAcl = Integrator[];
 export const INTEGRATORS_ACL: IntegratorsAcl = (() => {
     let integrators: IntegratorsAcl;
     try {
-        integrators = JSON.parse(process.env.INTEGRATORS_ACL || '[]');
+        integrators = resolveEnvVar<IntegratorsAcl>('INTEGRATORS_ACL', EnvVarType.NonEmptyString, []);
         schemaUtils.validateSchema(integrators, schemas.integratorsAclSchema);
     } catch (e) {
         throw new Error(`INTEGRATORS_ACL was defined but is not valid JSON per the schema: ${e}`);
@@ -272,17 +268,15 @@ export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_PROFILE', process.env.ALT_RFQ_MM_PROFILE, EnvVarType.NonEmptyString);
 
-export const RFQT_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOfferings>(
+export const RFQT_MAKER_ASSET_OFFERINGS = resolveEnvVar<RfqMakerAssetOfferings>(
     'RFQT_MAKER_ASSET_OFFERINGS',
     EnvVarType.RfqMakerAssetOfferings,
-    `rfqt_makers.json`,
     {},
 );
 
-export const RFQM_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOfferings>(
+export const RFQM_MAKER_ASSET_OFFERINGS = resolveEnvVar<RfqMakerAssetOfferings>(
     'RFQM_MAKER_ASSET_OFFERINGS',
     EnvVarType.RfqMakerAssetOfferings,
-    `rfqm_makers.json`,
     {},
 );
 
@@ -627,36 +621,28 @@ function transformIntegratorsAcl(
 }
 
 /**
- * Returns a config of type T by attempting to:
- * - Read from Environment Variable
- * - Read from file
- * - Use a hardcoded fallback
- * In that order
+ * Resolves a config of type T for an Enviornment Variable. Checks:
+ *  - If the env variable is undefined, use the hardcoded fallback
+ *  - If the env variable points to a filepath, resolve it
+ *  - Otherwise, just use the env variable
  *
- * @param envVar - The environment variable to fallback to
- * @param envVarType - The type of the environment variable to assert against
- * @param filename - The name of the file to read
- * @param fallback - A fallback value
+ * @param envVar - the name of the Environment Variable
+ * @param envVarType - the type
+ * @param fallback  - A hardcoded fallback value
  * @returns The config
  */
-function readWithFallback<T>(envVar: string, envVarType: EnvVarType, filename: string, fallback: T): T {
-    const fromEnvVar: T | undefined = _.isEmpty(process.env[envVar])
-        ? undefined
-        : assertEnvVarType(envVar, process.env[envVar], envVarType);
-
-    if (fromEnvVar) {
-        return fromEnvVar;
+function resolveEnvVar<T>(envVar: string, envVarType: EnvVarType, fallback: T): T {
+    const rawEnvVar = process.env[envVar];
+    if (rawEnvVar === undefined) {
+        return fallback;
     }
 
-    const fromFile: T | undefined = fs.existsSync(filename)
-        ? JSON.parse(fs.readFileSync(`${JSON_CONFIGS_DIR}/${filename}`, 'utf8'))
-        : undefined;
-
-    if (fromFile) {
-        return fromFile;
+    // If the enviornment variable points to a file
+    if (fs.existsSync(rawEnvVar)) {
+        return JSON.parse(fs.readFileSync(rawEnvVar, 'utf8'));
     }
 
-    return fallback;
+    return assertEnvVarType(envVar, process.env[envVar], envVarType);
 }
 
 function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): any {
