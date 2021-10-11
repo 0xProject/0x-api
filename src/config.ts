@@ -273,14 +273,14 @@ export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_
     : assertEnvVarType('ALT_RFQ_MM_PROFILE', process.env.ALT_RFQ_MM_PROFILE, EnvVarType.NonEmptyString);
 
 export const RFQT_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOfferings>(
-    `${JSON_CONFIGS_DIR}/RFQT_MAKER_ASSET_OFFERINGS.json`,
+    `${JSON_CONFIGS_DIR}/rfqt_makers.json`,
     'RFQT_MAKER_ASSET_OFFERINGS',
     EnvVarType.RfqMakerAssetOfferings,
     {},
 );
 
 export const RFQM_MAKER_ASSET_OFFERINGS = readWithFallback<RfqMakerAssetOfferings>(
-    `${JSON_CONFIGS_DIR}/RFQM_MAKER_ASSET_OFFERINGS.json`,
+    `${JSON_CONFIGS_DIR}/rfqm_makers.json`,
     'RFQM_MAKER_ASSET_OFFERINGS',
     EnvVarType.RfqMakerAssetOfferings,
     {},
