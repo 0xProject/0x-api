@@ -236,9 +236,11 @@ export const LIQUIDITY_PROVIDER_REGISTRY: LiquidityProviderRegistry = _.isEmpty(
           EnvVarType.LiquidityProviderRegistry,
       );
 
-export const RFQT_REGISTRY_PASSWORDS: string[] = _.isEmpty(process.env.RFQT_REGISTRY_PASSWORDS)
-    ? []
-    : assertEnvVarType('RFQT_REGISTRY_PASSWORDS', process.env.RFQT_REGISTRY_PASSWORDS, EnvVarType.JsonStringList);
+export const RFQT_REGISTRY_PASSWORDS: string[] = resolveEnvVar<string[]>(
+    'RFQT_REGISTRY_PASSWORDS',
+    EnvVarType.JsonStringList,
+    [],
+);
 
 export const RFQT_INTEGRATORS: Integrator[] = INTEGRATORS_ACL.filter((i) => i.rfqt);
 export const RFQT_INTEGRATOR_IDS: string[] = INTEGRATORS_ACL.filter((i) => i.rfqt).map((i) => i.integratorId);
@@ -248,15 +250,11 @@ export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegrators
 
 export const MATCHA_INTEGRATOR_ID: string | undefined = getIntegratorIdFromLabel('Matcha');
 
-export const RFQT_TX_ORIGIN_BLACKLIST: Set<string> = _.isEmpty(process.env.RFQT_TX_ORIGIN_BLACKLIST)
-    ? new Set()
-    : new Set(
-          assertEnvVarType(
-              'RFQT_TX_ORIGIN_BLACKLIST',
-              process.env.RFQT_TX_ORIGIN_BLACKLIST,
-              EnvVarType.JsonStringList,
-          ).map((addr: string) => addr.toLowerCase()),
-      );
+export const RFQT_TX_ORIGIN_BLACKLIST: Set<string> = new Set(
+    resolveEnvVar<string[]>('RFQT_TX_ORIGIN_BLACKLIST', EnvVarType.JsonStringList, []).map((addr) =>
+        addr.toLowerCase(),
+    ),
+);
 
 export const ALT_RFQ_MM_ENDPOINT: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_ENDPOINT)
     ? undefined
