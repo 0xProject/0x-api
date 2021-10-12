@@ -198,6 +198,7 @@ export class SwapHandlers {
                         sellAmount: params.sellAmount,
                         apiKey: params.integratorId, // TODO (rhinodavid): update to align apiKey/integratorId
                     },
+                    true,
                     kafkaProducer,
                 );
             }
@@ -267,6 +268,29 @@ export class SwapHandlers {
                 .getPriceComparisonFromQuote(CHAIN_ID, marketSide, quote)
                 ?.map((sc) => priceComparisonUtils.renameNative(sc));
         }
+
+        if (quote.extendedQuoteReport && kafkaProducer) {
+            const bytesPos = quote.data.indexOf('869584cd');
+            // tslint:disable-next-line
+            const quoteId = quote.data.slice(bytesPos + 118, bytesPos + 128);
+            quoteReportUtils.publishQuoteReport(
+                {
+                    quoteId,
+                    taker: params.takerAddress,
+                    quoteReport: quote.extendedQuoteReport,
+                    submissionBy: 'taker',
+                    decodedUniqueId: quote.decodedUniqueId,
+                    buyTokenAddress: quote.buyTokenAddress,
+                    sellTokenAddress: quote.sellTokenAddress,
+                    buyAmount: params.buyAmount,
+                    sellAmount: params.sellAmount,
+                    apiKey: params.integratorId, // TODO (rhinodavid): update to align apiKey/integratorId
+                },
+                false,
+                kafkaProducer,
+            );
+        }
+
         res.status(HttpStatus.OK).send(response);
     }
 

@@ -6,6 +6,7 @@ import {
     LimitOrderFields,
     PriceComparisonsReport,
     QuoteReport,
+    ExtendedQuoteReport,
     RfqRequestOpts,
     Signature,
     SupportedProvider,
@@ -269,7 +270,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     orders?: any;
     from?: string;
     quoteReport?: QuoteReport;
-    extendedQuoteReport?: QuoteReport;
+    extendedQuoteReport?: ExtendedQuoteReport;
     priceComparisonsReport?: PriceComparisonsReport;
 }
 

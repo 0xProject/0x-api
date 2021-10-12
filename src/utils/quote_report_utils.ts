@@ -1,5 +1,11 @@
 import type { PinoLogger } from '@0x/api-utils';
-import { BigNumber, QuoteReport, QuoteReportEntry } from '@0x/asset-swapper';
+import {
+    BigNumber,
+    QuoteReport,
+    ExtendedQuoteReport,
+    QuoteReportEntry,
+    ExtendedQuoteReportEntry,
+} from '@0x/asset-swapper';
 import { Producer } from 'kafkajs';
 import _ = require('lodash');
 
@@ -26,14 +32,25 @@ interface QuoteReportForMetaTxn extends QuoteReportLogOptionsBase {
     submissionBy: 'metaTxn';
     zeroExTransactionHash: string;
 }
+interface ExtendedQuoteReportForTakerTxn extends QuoteReportLogOptionsBase {
+    quoteReport: ExtendedQuoteReport;
+    submissionBy: 'taker';
+    decodedUniqueId: string;
+}
+interface ExtendedQuoteReportForMetaTxn extends QuoteReportLogOptionsBase {
+    quoteReport: ExtendedQuoteReport;
+    submissionBy: 'metaTxn';
+    zeroExTransactionHash: string;
+}
 type QuoteReportLogOptions = QuoteReportForTakerTxn | QuoteReportForMetaTxn;
+type ExtendedQuoteReportLogOptions = ExtendedQuoteReportForTakerTxn | ExtendedQuoteReportForMetaTxn;
 
 /**
  * In order to avoid the logger to output unnecessary data that break the Quote Report ETL
  * proess, we intentionally exclude fields that can contain huge output data.
  * @param source the quote report source
  */
-const omitFillData = (source: QuoteReportEntry) => {
+const omitFillData = (source: QuoteReportEntry | ExtendedQuoteReportEntry) => {
     return {
         ...source,
         fillData: undefined,
@@ -86,20 +103,13 @@ export const quoteReportUtils = {
             });
         });
     },
-    publishQuoteReport(logOpts: QuoteReportLogOptions, kafkaProducer: Producer): void {
-        // NOTE: Removes bridge report fillData which we do not want to log to Kibana
-        const qr: QuoteReport = {
-            ...logOpts.quoteReport,
-            sourcesConsidered: logOpts.quoteReport.sourcesConsidered.map(
-                (source) => _.omit(source, ['fillData']) as QuoteReportEntry,
-            ),
-        };
-
+    publishQuoteReport(logOpts: ExtendedQuoteReportLogOptions, isFirmQuote: boolean, kafkaProducer: Producer): void {
+        const qr: ExtendedQuoteReport = logOpts.quoteReport;
         let logBase: { [key: string]: string | boolean | number | undefined } = {
             quoteId: logOpts.quoteId,
             taker: logOpts.taker,
             timestamp: Date.now(),
-            firmQuoteReport: true,
+            firmQuoteReport: isFirmQuote,
             submissionBy: logOpts.submissionBy,
             buyAmount: logOpts.buyAmount ? logOpts.buyAmount.toString() : undefined,
             sellAmount: logOpts.sellAmount ? logOpts.sellAmount.toString() : undefined,
