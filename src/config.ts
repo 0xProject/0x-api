@@ -13,6 +13,7 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from '@0x/asset-swapper';
+import { ChainId } from '@0x/contract-addresses';
 import { nativeWrappedTokenSymbol, TokenMetadatasForChains } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
@@ -29,11 +30,12 @@ import {
     HEALTHCHECK_PATH,
     METRICS_PATH,
     NULL_ADDRESS,
+    ORDERBOOK_PATH,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     TX_BASE_GAS,
 } from './constants';
 import { schemas } from './schemas';
-import { ChainId, HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
+import { HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 import { schemaUtils } from './utils/schema_utils';
 
@@ -67,6 +69,7 @@ enum EnvVarType {
 export interface Integrator {
     apiKeys: string[];
     integratorId: string;
+    whitelistIntegratorUrls?: string[];
     label: string;
     plp: boolean;
     rfqm: boolean;
@@ -175,6 +178,15 @@ export const KAFKA_CONSUMER_GROUP_ID = _.isEmpty(process.env.KAFKA_CONSUMER_GROU
     ? undefined
     : assertEnvVarType('KAFKA_CONSUMER_GROUP_ID', process.env.KAFKA_CONSUMER_GROUP_ID, EnvVarType.NonEmptyString);
 
+// The path for the Websocket order-watcher updates
+export const WEBSOCKET_ORDER_UPDATES_PATH = _.isEmpty(process.env.WEBSOCKET_ORDER_UPDATES_PATH)
+    ? ORDERBOOK_PATH
+    : assertEnvVarType(
+          'WEBSOCKET_ORDER_UPDATES_PATH',
+          process.env.WEBSOCKET_ORDER_UPDATES_PATH,
+          EnvVarType.NonEmptyString,
+      );
+
 // The fee recipient for orders
 export const FEE_RECIPIENT_ADDRESS = _.isEmpty(process.env.FEE_RECIPIENT_ADDRESS)
     ? NULL_ADDRESS
@@ -228,6 +240,7 @@ export const RFQT_REGISTRY_PASSWORDS: string[] = _.isEmpty(process.env.RFQT_REGI
     ? []
     : assertEnvVarType('RFQT_REGISTRY_PASSWORDS', process.env.RFQT_REGISTRY_PASSWORDS, EnvVarType.JsonStringList);
 
+export const RFQT_INTEGRATORS: Integrator[] = INTEGRATORS_ACL.filter((i) => i.rfqt);
 export const RFQT_INTEGRATOR_IDS: string[] = INTEGRATORS_ACL.filter((i) => i.rfqt).map((i) => i.integratorId);
 export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('rfqt');
 export const RFQM_API_KEY_WHITELIST: Set<string> = new Set(getApiKeyWhitelistFromIntegratorsAcl('rfqm'));
@@ -382,7 +395,7 @@ export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision
 export const DEFAULT_ERC20_TOKEN_PRECISION = 18;
 
-export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(70000);
+export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(0);
 
 export const RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER = 1.2;
 
@@ -411,6 +424,8 @@ const EXCLUDED_SOURCES = (() => {
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         case ChainId.Polygon:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
+        case ChainId.Avalanche:
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
             return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
     }
@@ -434,41 +449,14 @@ const EXCLUDED_FEE_SOURCES = (() => {
 })();
 const FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD = new BigNumber(150e3);
 const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
-const EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX = (sourceFlags: bigint) => {
-    if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags) && CHAIN_ID === ChainId.Mainnet) {
-        // Uniswap and forks VIP
-        return TX_BASE_GAS;
-    } else if (
-        [
-            SOURCE_FLAGS.SushiSwap,
-            SOURCE_FLAGS.PancakeSwap,
-            SOURCE_FLAGS.PancakeSwap_V2,
-            SOURCE_FLAGS.BakerySwap,
-            SOURCE_FLAGS.ApeSwap,
-            SOURCE_FLAGS.CafeSwap,
-            SOURCE_FLAGS.CheeseSwap,
-            SOURCE_FLAGS.JulSwap,
-        ].includes(sourceFlags) &&
-        CHAIN_ID === ChainId.BSC
-    ) {
-        // PancakeSwap and forks VIP
-        return TX_BASE_GAS;
-    } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
-        // Uniswap V3 VIP
-        return TX_BASE_GAS.plus(5e3);
-    } else if (SOURCE_FLAGS.Curve === sourceFlags) {
-        // Curve pseudo-VIP
-        return TX_BASE_GAS.plus(40e3);
-    } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
-        return TX_BASE_GAS.plus(10e3);
-    } else {
-        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
-    }
-};
 const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
-    SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider | SOURCE_FLAGS.RfqOrder;
+    SOURCE_FLAGS.Uniswap_V2 |
+    SOURCE_FLAGS.SushiSwap |
+    SOURCE_FLAGS.LiquidityProvider |
+    SOURCE_FLAGS.RfqOrder |
+    SOURCE_FLAGS.Uniswap_V3;
 const MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS =
-    SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider;
+    SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider | SOURCE_FLAGS.Uniswap_V3;
 const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
     if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
         // Uniswap and forks VIP
@@ -525,11 +513,6 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     shouldGenerateQuoteReport: true,
 };
 
-export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_MULTIPLEX: Partial<SwapQuoteRequestOpts> = {
-    ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-    exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_NO_MULTIPLEX,
-};
-
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP: Partial<SwapQuoteRequestOpts> = {
     ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_NO_VIP,
@@ -546,7 +529,7 @@ export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
 })();
 
 let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqOpts = {
-    takerApiKeyWhitelist: RFQT_API_KEY_WHITELIST,
+    integratorsWhitelist: RFQT_INTEGRATORS,
     makerAssetOfferings: RFQT_MAKER_ASSET_OFFERINGS,
     txOriginBlacklist: RFQT_TX_ORIGIN_BLACKLIST,
 };
@@ -591,27 +574,54 @@ export const defaultHttpServiceWithRateLimiterConfig: HttpServiceConfig = {
     metaTxnRateLimiters: META_TXN_RATE_LIMITER_CONFIG,
 };
 
+export const getIntegratorByIdOrThrow = (
+    (integratorsMap: Map<string, Integrator>) =>
+    (integratorId: string): Integrator => {
+        const integrator = integratorsMap.get(integratorId);
+        if (!integrator) {
+            throw new Error(`Integrator ${integratorId} does not exist.`);
+        }
+        return integrator;
+    }
+)(transformIntegratorsAcl(INTEGRATORS_ACL, 'integratorId'));
+
 /**
  * Gets the integrator ID for a given API key. If the API key is not in the configuration, returns `undefined`.
- * `integratorsMap` is closed in so it only needs to be evaluated once. Much efficiency!
  */
 export const getIntegratorIdForApiKey = (
     (integratorsMap: Map<string, Integrator>) =>
     (apiKey: string): string | undefined => {
         const integrator = integratorsMap.get(apiKey);
-        return integrator ? integrator.integratorId : undefined;
+        return integrator?.integratorId;
     }
-)(transformIntegratorsAcl(INTEGRATORS_ACL));
+)(transformIntegratorsAcl(INTEGRATORS_ACL, 'apiKeys'));
 
 /**
  * Utility function to transform INTEGRATORS_ACL into a map of apiKey => integrator. The result can
  * be used to optimize the lookup of the integrator when a request comes in with an api key. Lookup complexity
  * becomes O(1) with the map instead of O(# integrators * # api keys) with the array.
+ *
+ * @param integrators the integrators map from the environment variable
+ * @param keyBy either apiKeys (creates map keyed by every API key) or 'integratorId' (integratorId => Integrator)
  */
-function transformIntegratorsAcl(integrators: IntegratorsAcl): Map<string, Integrator> {
+function transformIntegratorsAcl(
+    integrators: IntegratorsAcl,
+    keyBy: 'apiKeys' | 'integratorId',
+): Map<string, Integrator> {
     const result = new Map<string, Integrator>();
     integrators.forEach((integrator) => {
-        integrator.apiKeys.forEach((apiKey) => {
+        let mapKeys: string[];
+        switch (keyBy) {
+            case 'apiKeys':
+                mapKeys = integrator.apiKeys;
+                break;
+            case 'integratorId':
+                mapKeys = [integrator.integratorId];
+                break;
+            default:
+                throw new Error(`Parameter "${keyBy}" is misconfigured`);
+        }
+        mapKeys.forEach((apiKey) => {
             result.set(apiKey, integrator);
         });
     });

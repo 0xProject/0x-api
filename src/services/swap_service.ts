@@ -19,6 +19,7 @@ import {
     SwapQuoterOpts,
 } from '@0x/asset-swapper';
 import { NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
+import { ChainId } from '@0x/contract-addresses';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
 import { getTokenMetadataIfExists, TokenMetadatasForChains } from '@0x/token-metadata';
@@ -33,7 +34,6 @@ import {
     ALT_RFQ_MM_API_KEY,
     ALT_RFQ_MM_ENDPOINT,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_MULTIPLEX,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
     CHAIN_ID,
     RFQT_REQUEST_MAX_RESPONSE_MS,
@@ -60,7 +60,6 @@ import {
     AffiliateFee,
     BucketedPriceDepth,
     CalaculateMarketDepthParams,
-    ChainId,
     GetSwapQuoteParams,
     GetSwapQuoteResponse,
     Price,
@@ -198,7 +197,7 @@ export class SwapService {
             isETHBuy,
             excludedSources,
             includedSources,
-            integratorId,
+            integrator,
             rfqt,
             affiliateAddress,
             affiliateFee,
@@ -214,7 +213,10 @@ export class SwapService {
         // forwarder transaction (isETHSell===true), (b) there's a taker
         // address present, or (c) it's an indicative quote.
         const shouldEnableRfqt =
-            integratorId !== undefined && (isETHSell || takerAddress !== undefined || (rfqt && rfqt.isIndicative));
+            integrator !== undefined && (isETHSell || takerAddress !== undefined || (rfqt && rfqt.isIndicative));
+
+        // Check if integrator ID specifically whitelists a set of maker URIs. If whitelist is "undefined" then it
+        // means all integrators will be enabled.
         if (shouldEnableRfqt) {
             // tslint:disable-next-line:custom-no-magic-numbers
             const altRfqAssetOfferings = await this._getAltMarketOfferingsAsync(1500);
@@ -222,7 +224,7 @@ export class SwapService {
             _rfqt = {
                 ...rfqt,
                 intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
-                apiKey: integratorId!, // Send the integrator ID to market makers instead of the raw API key
+                integrator: integrator!,
                 makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
                 // Note 0xAPI maps takerAddress query parameter to txOrigin as takerAddress is always Exchange Proxy or a VIP
                 takerAddress: NULL_ADDRESS,
@@ -236,6 +238,7 @@ export class SwapService {
         const shouldGenerateQuoteReport = rfqt && rfqt.intentOnFilling;
 
         let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
+        // tslint:disable-next-line:prefer-conditional-expression
         if (
             isMetaTransaction ||
             shouldSellEntireBalance ||
@@ -243,8 +246,6 @@ export class SwapService {
             affiliateFee.feeType === AffiliateFeeType.PercentageFee
         ) {
             swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP;
-        } else if (isETHBuy || isETHSell) {
-            swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_MULTIPLEX;
         } else {
             swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS;
         }

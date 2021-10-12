@@ -11,9 +11,11 @@ import {
     Signature,
     SupportedProvider,
 } from '@0x/asset-swapper';
+import { ChainId } from '@0x/contract-addresses';
 import { ExchangeProxyMetaTransaction, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
+import { Integrator } from './config';
 import { MetaTransactionRateLimiter } from './utils/rate-limiters';
 import { MetaTransactionRateLimitConfig } from './utils/rate-limiters/types';
 
@@ -172,19 +174,6 @@ export interface ObjectMap<T> {
     [key: string]: T;
 }
 
-// tslint:disable:enum-naming
-export enum ChainId {
-    Mainnet = 1,
-    Ropsten = 3,
-    Rinkeby = 4,
-    Kovan = 42,
-    Ganache = 1337,
-    BSC = 56,
-    Polygon = 137,
-    PolygonMumbai = 80001,
-}
-// tslint:enable:enum-naming
-
 export interface TokenMetadata {
     symbol: string;
     decimals: number;
@@ -297,7 +286,7 @@ export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
     isETHBuy: boolean;
     isMetaTransaction: boolean;
     // The ID of the integrator associated with the provided API key, if there is one.
-    integratorId?: string;
+    integrator?: Integrator;
 }
 
 // GET /swap/price
