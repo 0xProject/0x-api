@@ -176,7 +176,8 @@ export class SwapHandlers {
                         sellTokenAddress: quote.sellTokenAddress,
                         buyAmount: params.buyAmount,
                         sellAmount: params.sellAmount,
-                        apiKey: params.integrator?.integratorId, // TODO (rhinodavid): update to align apiKey/integratorId
+                        integratorId: params.integrator?.integratorId,
+                        slippage: undefined,
                     },
                     req.log,
                 );
@@ -197,7 +198,8 @@ export class SwapHandlers {
                         sellTokenAddress: quote.sellTokenAddress,
                         buyAmount: params.buyAmount,
                         sellAmount: params.sellAmount,
-                        apiKey: params.integratorId, // TODO (rhinodavid): update to align apiKey/integratorId
+                        integratorId: params.integrator?.integratorId,
+                        slippage: params.slippagePercentage,
                     },
                     true,
                     kafkaProducer,
@@ -285,7 +287,8 @@ export class SwapHandlers {
                     sellTokenAddress: quote.sellTokenAddress,
                     buyAmount: params.buyAmount,
                     sellAmount: params.sellAmount,
-                    apiKey: params.integratorId, // TODO (rhinodavid): update to align apiKey/integratorId
+                    integratorId: params.integrator?.integratorId,
+                    slippage: params.slippagePercentage,
                 },
                 false,
                 kafkaProducer,

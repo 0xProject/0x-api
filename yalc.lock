@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "packages": {
+    "@0x/asset-swapper": {
+      "signature": "0e9caf1a7c47e8a752fc700d51404178",
+      "file": true,
+      "replaced": "^16.29.1"
+    }
+  }
+}

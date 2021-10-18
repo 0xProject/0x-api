@@ -9,10 +9,12 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import delay from 'delay';
 import { Counter, Gauge, Summary } from 'prom-client';
 import { Producer } from 'sqs-producer';
+import { Kafka, Producer as KafkaProducer } from 'kafkajs';
 
 import {
     CHAIN_ID,
     Integrator,
+    KAFKA_BROKERS,
     META_TX_WORKER_REGISTRY,
     RFQM_MAINTENANCE_MODE,
     RFQM_MAKER_ASSET_OFFERINGS,
@@ -33,6 +35,7 @@ import { InternalServerError, NotFoundError, ValidationError, ValidationErrorCod
 import { logger } from '../logger';
 import { getBestQuote } from '../utils/quote_comparison_utils';
 import { QuoteServerClient } from '../utils/quote_server_client';
+import { quoteReportUtils, WrappedSignedNativeOrderMM } from '../utils/quote_report_utils';
 import {
     feeToStoredFee,
     RfqmDbUtils,
@@ -213,6 +216,17 @@ const RFQM_PROCESS_JOB_LATENCY = new Summary({
 });
 const PRICE_DECIMAL_PLACES = 6;
 
+let kafkaProducer: KafkaProducer | undefined;
+if (KAFKA_BROKERS.length > 0) {
+    const kafka = new Kafka({
+        clientId: '0x-api',
+        brokers: KAFKA_BROKERS,
+    });
+
+    kafkaProducer = kafka.producer();
+    kafkaProducer.connect();
+}
+
 /**
  * RfqmService is the coordination layer for HTTP based RFQM flows.
  */
@@ -368,6 +382,24 @@ export class RfqmService {
             RFQM_MINIMUM_EXPIRY_DURATION_MS,
         );
 
+        // Quote Report
+        if (kafkaProducer) {
+            quoteReportUtils.publishRFQMIndicativeQuoteReport(
+                {
+                    taker: params.takerAddress,
+                    buyTokenAddress: makerToken,
+                    sellTokenAddress: takerToken,
+                    buyAmount: params.buyAmount,
+                    sellAmount: params.sellAmount,
+                    integratorId: params.integrator?.integratorId,
+                    allQuotes: indicativeQuotes,
+                    bestQuote,
+                    slippage: undefined, // No slippage in RFQm
+                },
+                kafkaProducer,
+            );
+        }
+
         // No quotes found
         if (bestQuote === null) {
             return null;
@@ -445,6 +477,8 @@ export class RfqmService {
             opts,
         );
 
+        console.log(firmQuotes);
+
         const firmQuotesWithCorrectChainId = firmQuotes.filter((quote) => {
             if (quote.order.chainId !== CHAIN_ID) {
                 logger.error({ quote }, 'Received a quote with incorrect chain id');
@@ -462,16 +496,49 @@ export class RfqmService {
             assetFillAmount,
             RFQM_MINIMUM_EXPIRY_DURATION_MS,
         );
+        let makerUri: string = '';
+        let wrappedBestQuote: WrappedSignedNativeOrderMM | null = null;
+        if (bestQuote) {
+            // Get the makerUri
+            const tmpMakerUri = this._quoteRequestor.getMakerUriForSignature(bestQuote.signature);
+            if (tmpMakerUri === undefined) {
+                throw new Error(`makerUri unknown for maker address ${bestQuote.order.maker}`);
+            } else {
+                makerUri = tmpMakerUri;
+            }
+            wrappedBestQuote = { order: bestQuote, makerUri: makerUri };
+        }
+
+        // Quote Report
+        if (kafkaProducer) {
+            const sourcesConsidered = firmQuotes.map((quote, index) => {
+                // Get the makerUri
+                const fillMakerUri = this._quoteRequestor.getMakerUriForSignature(quote.signature);
+                if (fillMakerUri === undefined) {
+                    throw new Error(`makerUri unknown for maker address ${quote.order.maker}`);
+                }
+                return { order: quote, makerUri: fillMakerUri } as WrappedSignedNativeOrderMM;
+            });
+
+            quoteReportUtils.publishRFQMFirmQuoteReport(
+                {
+                    taker: params.takerAddress,
+                    buyTokenAddress: makerToken,
+                    sellTokenAddress: takerToken,
+                    buyAmount: params.buyAmount,
+                    sellAmount: params.sellAmount,
+                    integratorId: params.integrator?.integratorId,
+                    allQuotes: sourcesConsidered,
+                    bestQuote: wrappedBestQuote,
+                    slippage: undefined, // No slippage in RFQm
+                },
+                kafkaProducer,
+            );
+        }
 
         // No quote found
         if (bestQuote === null) {
             return null;
-        }
-
-        // Get the makerUri
-        const makerUri = this._quoteRequestor.getMakerUriForSignature(bestQuote.signature);
-        if (makerUri === undefined) {
-            throw new Error(`makerUri unknown for maker address ${bestQuote.order.maker}`);
         }
 
         // Prepare the price
