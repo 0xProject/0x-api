@@ -29,7 +29,7 @@ describe(SUITE_NAME, () => {
     let makerAddress2: string;
 
     before(async () => {
-        await setupDependenciesAsync(SUITE_NAME);
+        await setupDependenciesAsync(SUITE_NAME, true);
         provider = getProvider();
         web3Wrapper = new Web3Wrapper(provider);
 
