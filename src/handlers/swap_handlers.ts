@@ -59,7 +59,7 @@ import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
 
 let kafkaProducer: Producer | undefined;
-if (KAFKA_BROKERS.length > 0) {
+if (KAFKA_BROKERS !== undefined) {
     const kafka = new Kafka({
         clientId: '0x-api',
         brokers: KAFKA_BROKERS,

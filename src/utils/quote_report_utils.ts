@@ -67,6 +67,13 @@ interface ExtendedQuoteReportForRFQMFirmLogOptions extends Omit<QuoteReportLogOp
 type QuoteReportLogOptions = QuoteReportForTakerTxn | QuoteReportForMetaTxn;
 type ExtendedQuoteReportLogOptions = ExtendedQuoteReportForTakerTxn | ExtendedQuoteReportForMetaTxn;
 
+type ExtendedQuoteReportIndexedEntry = ExtendedQuoteReportEntry & {
+    quoteEntryIndex: number;
+    isDelivered: boolean;
+};
+
+const BIPS_IN_INT = 10000;
+
 /**
  * In order to avoid the logger to output unnecessary data that break the Quote Report ETL
  * proess, we intentionally exclude fields that can contain huge output data.
@@ -82,11 +89,11 @@ const omitFillData = (source: QuoteReportEntry) => {
 /**
  * For the extended quote report, we outout the filldata as JSON
  */
-const jsonifyFillData = (source: ExtendedQuoteReportEntry) => {
+const jsonifyFillData = (source: ExtendedQuoteReportEntry | ExtendedQuoteReportIndexedEntry) => {
     return {
         ...source,
-        fillData: JSON.stringify(source.fillData, function (key, value) {
-            if (key == '_samplerContract') {
+        fillData: JSON.stringify(source.fillData, (key: string, value: any) => {
+            if (key === '_samplerContract') {
                 return {};
             } else {
                 return value;
@@ -154,7 +161,7 @@ export const quoteReportUtils = {
             buyTokenAddress: logOpts.buyTokenAddress,
             sellTokenAddress: logOpts.sellTokenAddress,
             integratorId: logOpts.integratorId,
-            slippageBips: logOpts.slippage ? logOpts.slippage * 10000 : undefined,
+            slippageBips: logOpts.slippage ? logOpts.slippage * BIPS_IN_INT : undefined,
         };
         if (logOpts.submissionBy === 'metaTxn') {
             logBase = { ...logBase, zeroExTransactionHash: logOpts.zeroExTransactionHash };
@@ -182,8 +189,8 @@ export const quoteReportUtils = {
         kafkaProducer: Producer,
     ): void {
         const quoteId = numberUtils.randomHexNumberOfLength(10);
-        let logBase: { [key: string]: string | boolean | number | undefined } = {
-            quoteId: quoteId,
+        const logBase: { [key: string]: string | boolean | number | undefined } = {
+            quoteId,
             taker: logOpts.taker,
             timestamp: Date.now(),
             firmQuoteReport: false,
@@ -238,8 +245,8 @@ export const quoteReportUtils = {
     },
     publishRFQMFirmQuoteReport(logOpts: ExtendedQuoteReportForRFQMFirmLogOptions, kafkaProducer: Producer): void {
         const quoteId = numberUtils.randomHexNumberOfLength(10);
-        let logBase: { [key: string]: string | boolean | number | undefined } = {
-            quoteId: quoteId,
+        const logBase: { [key: string]: string | boolean | number | undefined } = {
+            quoteId,
             taker: logOpts.taker,
             timestamp: Date.now(),
             firmQuoteReport: true,
@@ -252,7 +259,7 @@ export const quoteReportUtils = {
             slippageBips: undefined,
         };
 
-        const sourcesConsidered = logOpts.allQuotes.map((quote, index) => {
+        const sourcesConsidered = logOpts.allQuotes.map((quote, index): ExtendedQuoteReportIndexedEntry => {
             return {
                 quoteEntryIndex: index,
                 isDelivered: false,
@@ -264,10 +271,10 @@ export const quoteReportUtils = {
                 makerUri: quote.makerUri,
                 comparisonPrice: logOpts.comparisonPrice,
                 fillData: quote.order,
-            } as ExtendedQuoteReportEntry;
+            };
         });
-        const bestQuote = logOpts.bestQuote
-            ? ({
+        const bestQuote: ExtendedQuoteReportIndexedEntry | null = logOpts.bestQuote
+            ? {
                   quoteEntryIndex: 0,
                   isDelivered: true,
                   liquiditySource: ERC20BridgeSource.Native,
@@ -278,9 +285,8 @@ export const quoteReportUtils = {
                   makerUri: logOpts.bestQuote?.makerUri,
                   comparisonPrice: logOpts.comparisonPrice,
                   fillData: logOpts.bestQuote.order,
-              } as ExtendedQuoteReportEntry)
+              }
             : null;
-        console.log(bestQuote);
         if (kafkaProducer) {
             kafkaProducer.send({
                 topic: KAFKA_TOPIC_QUOTE_REPORT,

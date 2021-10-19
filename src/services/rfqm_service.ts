@@ -7,9 +7,9 @@ import { Fee, SubmitRequest } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import delay from 'delay';
+import { Kafka, Producer as KafkaProducer } from 'kafkajs';
 import { Counter, Gauge, Summary } from 'prom-client';
 import { Producer } from 'sqs-producer';
-import { Kafka, Producer as KafkaProducer } from 'kafkajs';
 
 import {
     CHAIN_ID,
@@ -36,8 +36,8 @@ import { InternalServerError, NotFoundError, ValidationError, ValidationErrorCod
 import { logger } from '../logger';
 import { CacheClient } from '../utils/cache_client';
 import { getBestQuote } from '../utils/quote_comparison_utils';
-import { QuoteServerClient } from '../utils/quote_server_client';
 import { quoteReportUtils, WrappedSignedNativeOrderMM } from '../utils/quote_report_utils';
+import { QuoteServerClient } from '../utils/quote_server_client';
 import {
     feeToStoredFee,
     RfqmDbUtils,
@@ -219,7 +219,7 @@ const RFQM_PROCESS_JOB_LATENCY = new Summary({
 const PRICE_DECIMAL_PLACES = 6;
 
 let kafkaProducer: KafkaProducer | undefined;
-if (KAFKA_BROKERS.length > 0) {
+if (KAFKA_BROKERS !== undefined) {
     const kafka = new Kafka({
         clientId: '0x-api',
         brokers: KAFKA_BROKERS,
@@ -484,8 +484,6 @@ export class RfqmService {
             opts,
         );
 
-        console.log(firmQuotes);
-
         const firmQuotesWithCorrectChainId = firmQuotes.filter((quote) => {
             if (quote.order.chainId !== CHAIN_ID) {
                 logger.error({ quote }, 'Received a quote with incorrect chain id');
@@ -513,7 +511,7 @@ export class RfqmService {
             } else {
                 makerUri = tmpMakerUri;
             }
-            wrappedBestQuote = { order: bestQuote, makerUri: makerUri };
+            wrappedBestQuote = { order: bestQuote, makerUri };
         }
 
         // Quote Report
@@ -524,7 +522,8 @@ export class RfqmService {
                 if (fillMakerUri === undefined) {
                     throw new Error(`makerUri unknown for maker address ${quote.order.maker}`);
                 }
-                return { order: quote, makerUri: fillMakerUri } as WrappedSignedNativeOrderMM;
+                const wrappedOrder: WrappedSignedNativeOrderMM = { order: quote, makerUri: fillMakerUri };
+                return wrappedOrder;
             });
 
             quoteReportUtils.publishRFQMFirmQuoteReport(
