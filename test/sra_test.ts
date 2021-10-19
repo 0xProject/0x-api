@@ -74,7 +74,7 @@ describe(SUITE_NAME, () => {
     }
 
     before(async () => {
-        await setupDependenciesAsync(SUITE_NAME);
+        await setupDependenciesAsync(SUITE_NAME, true);
 
         provider = getProvider();
         // start the 0x-api app

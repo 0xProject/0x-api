@@ -70,7 +70,7 @@ describe(SUITE_NAME, () => {
     let provider: Web3ProviderEngine;
 
     before(async () => {
-        await setupDependenciesAsync(SUITE_NAME);
+        await setupDependenciesAsync(SUITE_NAME, true);
         const connection = await getDBConnectionAsync();
         await connection.runMigrations();
         provider = getProvider();
