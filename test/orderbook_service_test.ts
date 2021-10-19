@@ -92,7 +92,7 @@ describe(SUITE_NAME, () => {
     let connection: Connection;
 
     before(async () => {
-        await setupDependenciesAsync(SUITE_NAME);
+        await setupDependenciesAsync(SUITE_NAME, true);
         connection = await getDBConnectionAsync();
         await connection.runMigrations();
         orderBookService = new OrderBookService(connection, new MockOrderWatcher(connection));
