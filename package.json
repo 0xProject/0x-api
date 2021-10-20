@@ -97,6 +97,7 @@
         "@0x/contracts-utils": "^4.8.2",
         "@0x/dev-utils": "^4.2.10",
         "@0x/migrations": "^8.1.9",
+        "@0x/neon-router": "^0.2.1",
         "@0x/tslint-config": "^4.1.4",
         "@0x/typescript-typings": "^5.2.1",
         "@balancer-labs/sor": "^0.3.0",
