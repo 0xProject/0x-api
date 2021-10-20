@@ -624,7 +624,7 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/protocol-utils@^1.9.3":
+"@0x/protocol-utils@^1.9.0", "@0x/protocol-utils@^1.9.3":
   version "1.9.3"
   resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-1.9.3.tgz#d36b2f0bace4a209a0dd652b51aa6ee15023af07"
   integrity sha512-tCsA1ne2PEJVWUGN4hNmej7NUKLNrCKXAs181uihcbYlYz4LUhwac99Ax6nYn7tlEgpzq90hl7r1m74BxU8hPw==
@@ -649,6 +649,20 @@
     "@0x/json-schemas" "^6.0.1"
     "@0x/order-utils" "^10.2.4"
     "@0x/protocol-utils" "^1.0.1"
+    "@0x/utils" "^5.4.1"
+    "@types/express" "^4.17.3"
+    express "^4.17.1"
+    express-async-handler "^1.1.4"
+    http-status-codes "^1.4.0"
+
+"@0x/quote-server@^7.0.2":
+  version "7.0.2"
+  resolved "https://registry.yarnpkg.com/@0x/quote-server/-/quote-server-7.0.2.tgz#fa4cff5f0d9070bdf6f73f8375d51754efe7ca47"
+  integrity sha512-sivvlKWrHVv1b/nXnBT96UCks/+gTwFzYG+hyoU3NJhxyqPGxGWBkkXyW/n07NjFAQeuRZL2a0fKXX26izb/bQ==
+  dependencies:
+    "@0x/json-schemas" "^6.4.0"
+    "@0x/order-utils" "^10.2.4"
+    "@0x/protocol-utils" "^1.9.0"
     "@0x/utils" "^5.4.1"
     "@types/express" "^4.17.3"
     express "^4.17.1"
