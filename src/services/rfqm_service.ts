@@ -932,7 +932,7 @@ export class RfqmService {
         const previousSubmissions = await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
 
         // if there are previous tx submissions (repair mode), pick up monitoring and re-submission
-        // else initaliaze the submission context and send the first tx
+        // else initialize the submission context and send the first tx
         const submissionContext =
             previousSubmissions.length > 0
                 ? await this._recoverSubmissionContextAsync(workerAddress, orderHash, callData, previousSubmissions)
@@ -1094,84 +1094,75 @@ export class RfqmService {
         submissionsMap: SubmissionsMap,
         expectedTakerTokenFillAmount: BigNumber,
     ): Promise<SubmissionsMapStatus> {
-        let isTxMined = false;
-        let isTxConfirmed = false;
-        let jobStatus: RfqmJobStatus | null = null;
-
-        // check if any tx has been mined
         const receipts = await Promise.all(
-            Object.keys(submissionsMap).map(async (transactionHash) => {
-                return {
-                    transactionHash,
-                    response: await this._blockchainUtils.getTransactionReceiptIfExistsAsync(transactionHash),
-                };
-            }),
+            Object.keys(submissionsMap).map((h) => this._blockchainUtils.getTransactionReceiptIfExistsAsync(h)),
         );
 
-        for (const receipt of receipts) {
-            if (receipt.response === undefined) {
-                continue;
-            }
-            isTxMined = true;
-            const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
-            isTxConfirmed = RfqmService.isBlockConfirmed(currentBlock, receipt.response.blockNumber);
-
-            // update all entities
-            // since the same nonce is being re-used, we expect only 1 defined receipt
-            for (const r of receipts) {
-                if (r.response !== undefined) {
-                    if (r.response.status === 1) {
-                        const decodedLog = this._blockchainUtils.getDecodedRfqOrderFillEventLogFromLogs(
-                            r.response.logs,
-                        );
-                        jobStatus = isTxConfirmed
-                            ? RfqmJobStatus.SucceededConfirmed
-                            : RfqmJobStatus.SucceededUnconfirmed;
-                        submissionsMap[r.transactionHash].status = isTxConfirmed
-                            ? RfqmTransactionSubmissionStatus.SucceededConfirmed
-                            : RfqmTransactionSubmissionStatus.SucceededUnconfirmed;
-                        submissionsMap[r.transactionHash].metadata = {
-                            expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
-                            actualTakerFillAmount: decodedLog.args.takerTokenFilledAmount.toString(),
-                            decodedFillLog: JSON.stringify(decodedLog),
-                        };
-                    } else {
-                        jobStatus = isTxConfirmed
-                            ? RfqmJobStatus.FailedRevertedConfirmed
-                            : RfqmJobStatus.FailedRevertedUnconfirmed;
-                        submissionsMap[r.transactionHash].status = isTxConfirmed
-                            ? RfqmTransactionSubmissionStatus.RevertedConfirmed
-                            : RfqmTransactionSubmissionStatus.RevertedUnconfirmed;
-                        submissionsMap[r.transactionHash].metadata = {
-                            expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
-                            actualTakerFillAmount: '0',
-                            decodedFillLog: '{}',
-                        };
-                    }
-                    submissionsMap[r.transactionHash].blockMined = new BigNumber(r.response.blockNumber);
-                    submissionsMap[r.transactionHash].gasUsed = new BigNumber(r.response.gasUsed);
-                    submissionsMap[r.transactionHash].updatedAt = new Date();
-                } else {
-                    submissionsMap[r.transactionHash].status = RfqmTransactionSubmissionStatus.DroppedAndReplaced;
-                    submissionsMap[r.transactionHash].blockMined = null;
-                    submissionsMap[r.transactionHash].gasUsed = null;
-                    submissionsMap[r.transactionHash].updatedAt = new Date();
-                    submissionsMap[r.transactionHash].metadata = {
-                        expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
-                        actualTakerFillAmount: '0',
-                        decodedFillLog: '{}',
-                    };
-                }
-            }
-            await this._dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap));
-            if (jobStatus !== null) {
-                await this._dbUtils.updateRfqmJobAsync(orderHash, false, { status: jobStatus });
-            }
-            break;
+        const minedReceipt = receipts.find((r) => r !== undefined);
+        if (minedReceipt === undefined) {
+            return {
+                isTxMined: false,
+                isTxConfirmed: false,
+                submissionsMap,
+            };
         }
 
+        const isTxSuccessful = minedReceipt.status === 1;
+
+        const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
+        const isTxConfirmed = RfqmService.isBlockConfirmed(currentBlock, minedReceipt.blockNumber);
+
+        const defaultSubmission = new RfqmTransactionSubmissionEntity({
+            updatedAt: new Date(),
+            metadata: {
+                expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
+                actualTakerFillAmount: '0',
+                decodedFillLog: '{}',
+            },
+        });
+
+        for (const transactionHash of Object.keys(submissionsMap)) {
+            submissionsMap[transactionHash] = defaultSubmission;
+            if (transactionHash === minedReceipt.transactionHash) {
+                if (isTxSuccessful) {
+                    const decodedLog = this._blockchainUtils.getDecodedRfqOrderFillEventLogFromLogs(minedReceipt.logs);
+                    submissionsMap[transactionHash].metadata = {
+                        expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
+                        actualTakerFillAmount: decodedLog.args.takerTokenFilledAmount.toString(),
+                        decodedFillLog: JSON.stringify(decodedLog),
+                    };
+                }
+
+                const submissionStatus = isTxSuccessful
+                    ? isTxConfirmed
+                        ? RfqmTransactionSubmissionStatus.SucceededConfirmed
+                        : RfqmTransactionSubmissionStatus.SucceededUnconfirmed
+                    : isTxConfirmed
+                    ? RfqmTransactionSubmissionStatus.RevertedConfirmed
+                    : RfqmTransactionSubmissionStatus.RevertedUnconfirmed;
+
+                submissionsMap[transactionHash].status = submissionStatus;
+                submissionsMap[transactionHash].blockMined = new BigNumber(minedReceipt.blockNumber);
+                submissionsMap[transactionHash].gasUsed = new BigNumber(minedReceipt.gasUsed);
+            } else {
+                submissionsMap[transactionHash].status = RfqmTransactionSubmissionStatus.DroppedAndReplaced;
+            }
+        }
+
+        const jobStatus = isTxConfirmed
+            ? isTxSuccessful
+                ? RfqmJobStatus.SucceededConfirmed
+                : RfqmJobStatus.FailedRevertedConfirmed
+            : isTxSuccessful
+            ? RfqmJobStatus.SucceededUnconfirmed
+            : RfqmJobStatus.FailedRevertedUnconfirmed;
+        await Promise.all([
+            this._dbUtils.updateRfqmTransactionSubmissionsAsync(Object.values(submissionsMap)),
+            this._dbUtils.updateRfqmJobAsync(orderHash, false, { status: jobStatus }),
+        ]);
+
         return {
-            isTxMined,
+            isTxMined: true,
             isTxConfirmed,
             submissionsMap,
         };
