@@ -107,6 +107,3 @@ export const DEFAULT_CACHE_AGE_SECONDS = 13;
 
 // Prometheus shared metrics
 export const PROMETHEUS_REQUEST_BUCKETS = linearBuckets(0, 0.25, 25); // [ 0,  0.25,  0.5,  0.75, ... 5 ]
-
-// Kafka topics
-export const DEFAULT_KAFKA_TOPIC_QUOTE_REPORT = 'zeroex-api.quote-report-raw';

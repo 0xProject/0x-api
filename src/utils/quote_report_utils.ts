@@ -9,6 +9,7 @@ import {
     SignedNativeOrder,
     V4RFQIndicativeQuoteMM,
 } from '@0x/asset-swapper';
+import { RfqOrder } from '@0x/protocol-utils';
 import { Producer } from 'kafkajs';
 import _ = require('lodash');
 
@@ -169,7 +170,7 @@ export const quoteReportUtils = {
             logBase = { ...logBase, decodedUniqueId: logOpts.decodedUniqueId };
         }
 
-        if (kafkaProducer) {
+        if (kafkaProducer && KAFKA_TOPIC_QUOTE_REPORT) {
             kafkaProducer.send({
                 topic: KAFKA_TOPIC_QUOTE_REPORT,
                 messages: [
@@ -228,7 +229,7 @@ export const quoteReportUtils = {
                   comparisonPrice: null,
               }
             : null;
-        if (kafkaProducer) {
+        if (kafkaProducer && KAFKA_TOPIC_QUOTE_REPORT) {
             kafkaProducer.send({
                 topic: KAFKA_TOPIC_QUOTE_REPORT,
                 messages: [
@@ -244,6 +245,11 @@ export const quoteReportUtils = {
         }
     },
     publishRFQMFirmQuoteReport(logOpts: ExtendedQuoteReportForRFQMFirmLogOptions, kafkaProducer: Producer): void {
+        let orderHash: string | undefined;
+        if (logOpts.bestQuote) {
+            const rfqOrder = new RfqOrder(logOpts.bestQuote.order.order);
+            orderHash = rfqOrder.getHash();
+        }
         const quoteId = numberUtils.randomHexNumberOfLength(10);
         const logBase: { [key: string]: string | boolean | number | undefined } = {
             quoteId,
@@ -257,6 +263,7 @@ export const quoteReportUtils = {
             sellTokenAddress: logOpts.sellTokenAddress,
             integratorId: logOpts.integratorId,
             slippageBips: undefined,
+            zeroExTransactionHash: orderHash,
         };
 
         const sourcesConsidered = logOpts.allQuotes.map((quote, index): ExtendedQuoteReportIndexedEntry => {
@@ -287,7 +294,7 @@ export const quoteReportUtils = {
                   fillData: logOpts.bestQuote.order,
               }
             : null;
-        if (kafkaProducer) {
+        if (kafkaProducer && KAFKA_TOPIC_QUOTE_REPORT) {
             kafkaProducer.send({
                 topic: KAFKA_TOPIC_QUOTE_REPORT,
                 messages: [
