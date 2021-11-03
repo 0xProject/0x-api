@@ -45,6 +45,12 @@ export class RfqmTransactionSubmissionEntity {
     @Column({ name: 'gas_used', type: 'numeric', nullable: true, transformer: BigNumberTransformer })
     public gasUsed: BigNumber | null;
 
+    @Column({ name: 'max_fee_per_gas', type: 'numeric', nullable: true, transformer: BigNumberTransformer })
+    public maxFeePerGas: BigNumber | null;
+
+    @Column({ name: 'max_priority_fee_per_gas', type: 'numeric', nullable: true, transformer: BigNumberTransformer })
+    public maxPriorityFeePerGas: BigNumber | null;
+
     @Column({ name: 'block_mined', type: 'numeric', nullable: true, transformer: BigNumberTransformer })
     public blockMined: BigNumber | null;
 
@@ -76,5 +82,7 @@ export class RfqmTransactionSubmissionEntity {
         this.to = opts.to || null;
         this.transactionHash = opts.transactionHash;
         this.updatedAt = opts.updatedAt || null;
+        this.maxFeePerGas = opts.maxFeePerGas || null;
+        this.maxPriorityFeePerGas = opts.maxPriorityFeePerGas || null;
     }
 }
