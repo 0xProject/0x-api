@@ -117,17 +117,16 @@ export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse 
     orderHash: string;
 }
 
-export interface SubmissionsMapStatus {
-    isTxMined: boolean;
-    isTxConfirmed: boolean;
-    submissionsMap: SubmissionsMap;
+interface TxStatus {
+    isMined: boolean;
+    isConfirmed: boolean;
 }
 
-export interface SubmissionsMap {
-    [transactionHash: string]: RfqmTransactionSubmissionEntity;
+interface SubmissionsMap {
+    [transactionHash: string]: Partial<RfqmTransactionSubmissionEntity>;
 }
 
-export interface SubmissionContext {
+interface SubmissionContext {
     submissionsMap: SubmissionsMap;
     nonce: number;
     gasEstimate: number;
@@ -1091,19 +1090,19 @@ export class RfqmService {
      */
     private async _checkSubmissionMapReceiptsAndUpdateDbAsync(
         orderHash: string,
-        submissionsMap: SubmissionsMap,
+        txHashes: string[],
         expectedTakerTokenFillAmount: BigNumber,
-    ): Promise<SubmissionsMapStatus> {
-        const receipts = await Promise.all(
-            Object.keys(submissionsMap).map((h) => this._blockchainUtils.getTransactionReceiptIfExistsAsync(h)),
-        );
+    ): Promise<TxStatus> {
+        // At most one tx can be mined, since they all have the same nonce.
+        const minedReceipt = await Promise.all(
+            txHashes.map((h) => this._blockchainUtils.getTransactionReceiptIfExistsAsync(h)),
+        ).then((receipts) => receipts.find((r) => r !== undefined));
 
-        const minedReceipt = receipts.find((r) => r !== undefined);
+        // If no tx was mined, there's no updates to do.
         if (minedReceipt === undefined) {
             return {
                 isTxMined: false,
                 isTxConfirmed: false,
-                submissionsMap,
             };
         }
 
@@ -1112,21 +1111,20 @@ export class RfqmService {
         const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
         const isTxConfirmed = RfqmService.isBlockConfirmed(currentBlock, minedReceipt.blockNumber);
 
-        const defaultSubmission = new RfqmTransactionSubmissionEntity({
-            updatedAt: new Date(),
-            metadata: {
-                expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
-                actualTakerFillAmount: '0',
-                decodedFillLog: '{}',
-            },
-        });
-
-        for (const transactionHash of Object.keys(submissionsMap)) {
-            submissionsMap[transactionHash] = defaultSubmission;
+        for (const hash of txHashes) {
+            const submissionUpdate: Partial<RfqmTransactionSubmissionEntity> = {
+                transactionHash,
+                updatedAt: new Date(),
+                metadata: {
+                    expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
+                    actualTakerFillAmount: '0',
+                    decodedFillLog: '{}',
+                },
+            };
             if (transactionHash === minedReceipt.transactionHash) {
                 if (isTxSuccessful) {
                     const decodedLog = this._blockchainUtils.getDecodedRfqOrderFillEventLogFromLogs(minedReceipt.logs);
-                    submissionsMap[transactionHash].metadata = {
+                    submissionUpdate.metadata = {
                         expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
                         actualTakerFillAmount: decodedLog.args.takerTokenFilledAmount.toString(),
                         decodedFillLog: JSON.stringify(decodedLog),
@@ -1141,12 +1139,14 @@ export class RfqmService {
                     ? RfqmTransactionSubmissionStatus.RevertedConfirmed
                     : RfqmTransactionSubmissionStatus.RevertedUnconfirmed;
 
-                submissionsMap[transactionHash].status = submissionStatus;
-                submissionsMap[transactionHash].blockMined = new BigNumber(minedReceipt.blockNumber);
-                submissionsMap[transactionHash].gasUsed = new BigNumber(minedReceipt.gasUsed);
+                submissionUpdate.status = submissionStatus;
+                submissionUpdate.blockMined = new BigNumber(minedReceipt.blockNumber);
+                submissionUpdate.gasUsed = new BigNumber(minedReceipt.gasUsed);
             } else {
-                submissionsMap[transactionHash].status = RfqmTransactionSubmissionStatus.DroppedAndReplaced;
+                submissionUpdate.status = RfqmTransactionSubmissionStatus.DroppedAndReplaced;
             }
+
+            submissionsMap[transactionHash] = submissionUpdate;
         }
 
         const jobStatus = isTxConfirmed
@@ -1164,7 +1164,6 @@ export class RfqmService {
         return {
             isTxMined: true,
             isTxConfirmed,
-            submissionsMap,
         };
     }
 
