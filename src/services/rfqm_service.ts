@@ -905,8 +905,6 @@ export class RfqmService {
         workerAddress: string,
         callData: string,
     ): Promise<RfqmJobStatus.FailedRevertedConfirmed | RfqmJobStatus.SucceededConfirmed> {
-        let submissionsMap: SubmissionsMap;
-
         const previousSubmissions = await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
 
         // if there are previous tx submissions (repair mode), pick up monitoring and re-submission
@@ -916,19 +914,19 @@ export class RfqmService {
                 ? await this._recoverSubmissionContextAsync(workerAddress, orderHash, callData, previousSubmissions)
                 : await this._initializeSubmissionContextAsync(workerAddress, orderHash, callData);
 
-        submissionsMap = submissionContext.submissionsMap;
+        const submittedTxHashes = Object.keys(submissionContext.submissionsMap);
         const { nonce, gasEstimate } = submissionContext;
         let gasPrice = submissionContext.gasPrice;
 
         const expectedTakerTokenFillAmount = this._blockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
 
         while (true) {
-            // We've already submitted the transaction once at this point.
+            // We've already submitted the transaction once at this point, so we first need to wait checking the status.
             await delay(this._transactionWatcherSleepTimeMs);
 
             const jobStatus = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
                 orderHash,
-                Object.keys(submissionsMap),
+                submittedTxHashes,
                 expectedTakerTokenFillAmount,
             );
 
@@ -949,26 +947,31 @@ export class RfqmService {
                         gasPrice = newGasPrice;
 
                         // TODO(rhinodavid): make sure a throw here gets handled
-                        const submission = await this._submitTransactionAsync(
-                            orderHash,
-                            workerAddress,
-                            callData,
-                            gasPrice,
-                            nonce,
-                            gasEstimate,
-                        );
+                        const transactionHash = (
+                            await this._submitTransactionAsync(
+                                orderHash,
+                                workerAddress,
+                                callData,
+                                gasPrice,
+                                nonce,
+                                gasEstimate,
+                            )
+                        ).transactionHash!;
                         logger.info(
-                            { workerAddress, orderHash, transactionHash: submission.transactionHash },
+                            { workerAddress, orderHash, transactionHash },
                             'Successfully resubmited tx with higher gas price',
                         );
-                        submissionsMap[submission.transactionHash!] = submission;
+                        submittedTxHashes.push(transactionHash);
                     }
+                    break;
                 case RfqmJobStatus.FailedRevertedUnconfirmed:
                 case RfqmJobStatus.SucceededUnconfirmed:
-                    continue;
+                    break;
                 case RfqmJobStatus.FailedRevertedConfirmed:
                 case RfqmJobStatus.SucceededConfirmed:
                     return jobStatus;
+                default:
+                    throw new Error('Unreachable');
             }
         }
     }
@@ -1066,8 +1069,7 @@ export class RfqmService {
     }
 
     /**
-     * Check for receipts from the tx's in a SubmissionsMap object
-     * Update database with status of all tx's
+     * Check for receipts from the tx hashes and update databases with status of all tx's.
      */
     private async _checkSubmissionMapReceiptsAndUpdateDbAsync(
         orderHash: string,
