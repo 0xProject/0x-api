@@ -120,6 +120,7 @@ export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse 
 interface TxStatus {
     isMined: boolean;
     isConfirmed: boolean;
+    isSuccessful: boolean;
 }
 
 interface SubmissionsMap {
@@ -281,21 +282,6 @@ export class RfqmService {
         // Solving for y given the following proportion:
         // y / sellAmount =  quotedMakerAmount / quotedTakerAmount
         return quotedMakerAmount.div(quotedTakerAmount).times(sellAmount).decimalPlaces(0);
-    }
-
-    /**
-     * update RfqmJobStatus based on transaction status
-     */
-    private static _getJobStatusFromSubmissions(submissionsMap: SubmissionsMap): RfqmJobStatus {
-        // there should only be one mined transaction, which will either be successful or a revert
-        for (const submission of Object.values(submissionsMap)) {
-            if (submission.status === RfqmTransactionSubmissionStatus.SucceededConfirmed) {
-                return RfqmJobStatus.SucceededConfirmed;
-            } else if (submission.status === RfqmTransactionSubmissionStatus.RevertedConfirmed) {
-                return RfqmJobStatus.FailedRevertedConfirmed;
-            }
-        }
-        throw new Error('no transactions mined in submissions');
     }
 
     constructor(
@@ -897,9 +883,9 @@ export class RfqmService {
         }
 
         // submit to chain
-        let submissionsMap: SubmissionsMap;
+        let finalJobStatus: RfqmJobStatus.FailedRevertedConfirmed | RfqmJobStatus.SucceededConfirmed;
         try {
-            submissionsMap = await this.completeSubmissionLifecycleAsync(orderHash, workerAddress, calldata!);
+            finalJobStatus = await this.completeSubmissionLifecycleAsync(orderHash, workerAddress, calldata!);
         } catch (error) {
             logger.error(
                 { errorMessage: error.message, orderHash, workerAddress },
@@ -909,8 +895,7 @@ export class RfqmService {
             throw new Error(`encountered an error in transaction submission`);
         }
 
-        // update job status based on transaction submission status
-        const finalJobStatus = RfqmService._getJobStatusFromSubmissions(submissionsMap);
+        // update job status based on final transaction submission status
         await this._dbUtils.updateRfqmJobAsync(orderHash, true, {
             status: finalJobStatus,
         });
@@ -925,7 +910,7 @@ export class RfqmService {
         orderHash: string,
         workerAddress: string,
         callData: string,
-    ): Promise<SubmissionsMap> {
+    ): Promise<RfqmJobStatus.FailedRevertedConfirmed | RfqmJobStatus.SucceededConfirmed> {
         let submissionsMap: SubmissionsMap;
 
         const previousSubmissions = await this._dbUtils.findRfqmTransactionSubmissionsByOrderHashAsync(orderHash);
@@ -945,17 +930,18 @@ export class RfqmService {
 
         let isTxMined = false;
         let isTxConfirmed = false;
+        let isTxSuccessful = false;
         while (!isTxConfirmed) {
             await delay(this._transactionWatcherSleepTimeMs);
 
-            const statusCheckResult = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
+            const txStatus = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
                 orderHash,
-                submissionsMap,
+                Object.keys(submissionsMap),
                 expectedTakerTokenFillAmount,
             );
-            isTxMined = statusCheckResult.isTxMined;
-            isTxConfirmed = statusCheckResult.isTxConfirmed;
-            submissionsMap = statusCheckResult.submissionsMap;
+            isTxMined = txStatus.isMined;
+            isTxConfirmed = txStatus.isConfirmed;
+            isTxSuccessful = txStatus.isSuccessful;
 
             if (!isTxMined) {
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
@@ -989,7 +975,7 @@ export class RfqmService {
                 }
             }
         }
-        return submissionsMap;
+        return isTxSuccessful ? RfqmJobStatus.SucceededConfirmed : RfqmJobStatus.FailedRevertedConfirmed;
     }
 
     /**
@@ -1098,11 +1084,12 @@ export class RfqmService {
             txHashes.map((h) => this._blockchainUtils.getTransactionReceiptIfExistsAsync(h)),
         ).then((receipts) => receipts.find((r) => r !== undefined));
 
-        // If no tx was mined, there's no updates to do.
+        // If no tx was mined, there're no updates to do.
         if (minedReceipt === undefined) {
             return {
-                isTxMined: false,
-                isTxConfirmed: false,
+                isMined: false,
+                isConfirmed: false,
+                isSuccessful: false,
             };
         }
 
@@ -1111,9 +1098,10 @@ export class RfqmService {
         const currentBlock = await this._blockchainUtils.getCurrentBlockAsync();
         const isTxConfirmed = RfqmService.isBlockConfirmed(currentBlock, minedReceipt.blockNumber);
 
+        const submissionsMap: SubmissionsMap = {};
         for (const hash of txHashes) {
             const submissionUpdate: Partial<RfqmTransactionSubmissionEntity> = {
-                transactionHash,
+                transactionHash: hash,
                 updatedAt: new Date(),
                 metadata: {
                     expectedTakerTokenFillAmount: expectedTakerTokenFillAmount.toString(),
@@ -1121,7 +1109,7 @@ export class RfqmService {
                     decodedFillLog: '{}',
                 },
             };
-            if (transactionHash === minedReceipt.transactionHash) {
+            if (hash === minedReceipt.transactionHash) {
                 if (isTxSuccessful) {
                     const decodedLog = this._blockchainUtils.getDecodedRfqOrderFillEventLogFromLogs(minedReceipt.logs);
                     submissionUpdate.metadata = {
@@ -1146,7 +1134,7 @@ export class RfqmService {
                 submissionUpdate.status = RfqmTransactionSubmissionStatus.DroppedAndReplaced;
             }
 
-            submissionsMap[transactionHash] = submissionUpdate;
+            submissionsMap[hash] = submissionUpdate;
         }
 
         const jobStatus = isTxConfirmed
@@ -1162,8 +1150,9 @@ export class RfqmService {
         ]);
 
         return {
-            isTxMined: true,
-            isTxConfirmed,
+            isMined: true,
+            isConfirmed: isTxConfirmed,
+            isSuccessful: isTxSuccessful,
         };
     }
 
