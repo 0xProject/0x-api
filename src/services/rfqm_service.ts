@@ -117,12 +117,6 @@ export interface MetaTransactionRfqmQuoteResponse extends BaseRfqmQuoteResponse 
     orderHash: string;
 }
 
-interface TxStatus {
-    isMined: boolean;
-    isConfirmed: boolean;
-    isSuccessful: boolean;
-}
-
 interface SubmissionsMap {
     [transactionHash: string]: Partial<RfqmTransactionSubmissionEntity>;
 }
@@ -928,22 +922,23 @@ export class RfqmService {
 
         const expectedTakerTokenFillAmount = this._blockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
 
-        let isTxMined = false;
-        let isTxConfirmed = false;
-        let isTxSuccessful = false;
-        while (!isTxConfirmed) {
+        let jobStatus:
+            | RfqmJobStatus.PendingSubmitted
+            | RfqmJobStatus.FailedRevertedConfirmed
+            | RfqmJobStatus.FailedRevertedUnconfirmed
+            | RfqmJobStatus.SucceededConfirmed
+            | RfqmJobStatus.SucceededUnconfirmed = RfqmJobStatus.PendingSubmitted;
+
+        while (jobStatus !== RfqmJobStatus.FailedRevertedConfirmed && jobStatus !== RfqmJobStatus.SucceededConfirmed) {
             await delay(this._transactionWatcherSleepTimeMs);
 
-            const txStatus = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
+            jobStatus = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
                 orderHash,
                 Object.keys(submissionsMap),
                 expectedTakerTokenFillAmount,
             );
-            isTxMined = txStatus.isMined;
-            isTxConfirmed = txStatus.isConfirmed;
-            isTxSuccessful = txStatus.isSuccessful;
 
-            if (!isTxMined) {
+            if (jobStatus === RfqmJobStatus.PendingSubmitted) {
                 const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
                 if (RfqmService.shouldResubmitTransaction(gasPrice, newGasPrice)) {
@@ -975,7 +970,7 @@ export class RfqmService {
                 }
             }
         }
-        return isTxSuccessful ? RfqmJobStatus.SucceededConfirmed : RfqmJobStatus.FailedRevertedConfirmed;
+        return jobStatus;
     }
 
     /**
@@ -1078,7 +1073,13 @@ export class RfqmService {
         orderHash: string,
         txHashes: string[],
         expectedTakerTokenFillAmount: BigNumber,
-    ): Promise<TxStatus> {
+    ): Promise<
+        | RfqmJobStatus.PendingSubmitted
+        | RfqmJobStatus.FailedRevertedConfirmed
+        | RfqmJobStatus.FailedRevertedUnconfirmed
+        | RfqmJobStatus.SucceededConfirmed
+        | RfqmJobStatus.SucceededUnconfirmed
+    > {
         // At most one tx can be mined, since they all have the same nonce.
         const minedReceipt = await Promise.all(
             txHashes.map((h) => this._blockchainUtils.getTransactionReceiptIfExistsAsync(h)),
@@ -1086,11 +1087,7 @@ export class RfqmService {
 
         // If no tx was mined, there're no updates to do.
         if (minedReceipt === undefined) {
-            return {
-                isMined: false,
-                isConfirmed: false,
-                isSuccessful: false,
-            };
+            return RfqmJobStatus.PendingSubmitted;
         }
 
         const isTxSuccessful = minedReceipt.status === 1;
@@ -1149,11 +1146,7 @@ export class RfqmService {
             this._dbUtils.updateRfqmJobAsync(orderHash, false, { status: jobStatus }),
         ]);
 
-        return {
-            isMined: true,
-            isConfirmed: isTxConfirmed,
-            isSuccessful: isTxSuccessful,
-        };
+        return jobStatus;
     }
 
     /**
