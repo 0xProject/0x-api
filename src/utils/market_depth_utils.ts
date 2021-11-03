@@ -1,9 +1,7 @@
-import { BalancerFillData, CurveFillData, FillData, UniswapV2FillData } from '@0x/asset-swapper';
 import {
     DexSample,
     ERC20BridgeSource,
     MarketDepthSide,
-    NativeFillData,
 } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/types';
 import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
@@ -14,6 +12,7 @@ import {
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
     MARKET_DEPTH_END_PRICE_SLIPPAGE_PERC,
     MARKET_DEPTH_MAX_SAMPLES,
+    NULL_BYTES,
     ZERO,
 } from '../constants';
 import { BucketedPriceDepth, TokenMetadata } from '../types';
@@ -71,7 +70,7 @@ export const marketDepthUtils = {
         return sampleAmounts;
     },
     sampleNativeOrders: (
-        path: DexSample<NativeFillData>[],
+        path: DexSample[],
         targetInput: BigNumber,
         side: MarketOperation,
     ): BigNumber => {
@@ -106,7 +105,7 @@ export const marketDepthUtils = {
         const sampleAmounts = marketDepthUtils.getSampleAmountsFromDepthSide(depthSide);
         const nativeSamples = sampleAmounts.map((a) => {
             const sample = marketDepthUtils.sampleNativeOrders(
-                depthSide[nativeIndexIfExists] as DexSample<NativeFillData>[],
+                depthSide[nativeIndexIfExists] as DexSample[],
                 a,
                 side,
             );
@@ -116,7 +115,8 @@ export const marketDepthUtils = {
                 input,
                 output,
                 source: ERC20BridgeSource.Native,
-                fillData: {},
+                encodedFillData: NULL_BYTES,
+                gasCost: 0,
             };
         });
         const normalizedDepth = [
@@ -164,25 +164,12 @@ export const marketDepthUtils = {
                 return side === MarketOperation.Sell ? price.isGreaterThanOrEqualTo(b) : price.isLessThanOrEqualTo(b);
             });
         };
-        const sampleToSourceKey = (sample: DexSample<FillData>): string => {
+        const sampleToSourceKey = (sample: DexSample): string => {
             const source = sample.source;
-            if (!sample.fillData) {
+            if (!sample.encodedFillData) {
                 return source;
             }
-            switch (source) {
-                case ERC20BridgeSource.Curve:
-                    // tslint:disable-next-line:no-unnecessary-type-assertion
-                    return `${source}:${(sample.fillData as CurveFillData).pool.poolAddress}`;
-                case ERC20BridgeSource.Balancer:
-                    // tslint:disable-next-line:no-unnecessary-type-assertion
-                    return `${source}:${(sample.fillData as BalancerFillData).poolAddress}`;
-                case ERC20BridgeSource.UniswapV2:
-                    // tslint:disable-next-line:no-unnecessary-type-assertion
-                    return `${source}:${(sample.fillData as UniswapV2FillData).tokenAddressPath.join('-')}`;
-                default:
-                    break;
-            }
-            return source;
+            return `${source}:${sample.encodedFillData}`;
         };
         for (const samples of depthSide) {
             // Since multiple samples can fall into a bucket we do not want to

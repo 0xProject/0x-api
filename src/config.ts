@@ -2,7 +2,6 @@
 import { assert } from '@0x/assert';
 import {
     BlockParamLiteral,
-    DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
     ERC20BridgeSource,
     LiquidityProviderRegistry,
     OrderPrunerPermittedFeeTypes,
@@ -10,7 +9,6 @@ import {
     SamplerOverrides,
     SOURCE_FLAGS,
     SwapQuoteRequestOpts,
-    SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from '@0x/asset-swapper';
 import { ChainId } from '@0x/contract-addresses';
@@ -203,7 +201,7 @@ export const HTTP_HEADERS_TIMEOUT = _.isEmpty(process.env.HTTP_HEADERS_TIMEOUT)
 
 // Default chain id to use when not specified
 export const CHAIN_ID: ChainId = _.isEmpty(process.env.CHAIN_ID)
-    ? ChainId.Kovan
+    ? ChainId.Mainnet
     : assertEnvVarType('CHAIN_ID', process.env.CHAIN_ID, EnvVarType.ChainId);
 
 // Whitelisted token addresses. Set to a '*' instead of an array to allow all tokens.
@@ -472,6 +470,9 @@ export const KAFKA_TOPIC_QUOTE_REPORT: string = _.isEmpty(process.env.KAFKA_TOPI
     ? undefined
     : assertEnvVarType('KAFKA_TOPIC_QUOTE_REPORT', process.env.KAFKA_TOPIC_QUOTE_REPORT, EnvVarType.NonEmptyString);
 
+export const SAMPLER_SERVICE_RPC_URL: string =
+    assertEnvVarType('SAMPLER_SERVICE_RPC_URL', process.env.SAMPLER_SERVICE_RPC_URL, EnvVarType.Url);
+
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision
@@ -651,15 +652,13 @@ if (ALT_RFQ_MM_API_KEY && ALT_RFQ_MM_PROFILE) {
     };
 }
 
-export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
+export const SWAP_QUOTER_OPTS = {
     chainId: CHAIN_ID,
     expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     rfqt: SWAP_QUOTER_RFQT_OPTS,
     ethGasStationUrl: ETH_GAS_STATION_API_URL,
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
-    samplerOverrides: SAMPLER_OVERRIDES,
-    tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID[CHAIN_ID],
-    liquidityProviderRegistry: LIQUIDITY_PROVIDER_REGISTRY,
+    samplerServiceUrl: SAMPLER_SERVICE_RPC_URL,
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
