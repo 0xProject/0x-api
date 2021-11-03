@@ -1165,7 +1165,8 @@ export class RfqmService {
         const txOptions = {
             from: workerAddress,
             gas: gasEstimate,
-            gasPrice,
+            maxFeePerGas: gasPrice,
+            maxPriorityFeePerGas: new BigNumber(4),
             nonce,
             value: 0,
         };
@@ -1185,7 +1186,8 @@ export class RfqmService {
             createdAt: new Date(),
             from: workerAddress,
             to: this._blockchainUtils.getExchangeProxyAddress(),
-            gasPrice,
+            maxFeePerGas: gasPrice,
+            maxPriorityFeePerGas: new BigNumber(4),
             nonce,
             status: RfqmTransactionSubmissionStatus.Presubmit,
         };
