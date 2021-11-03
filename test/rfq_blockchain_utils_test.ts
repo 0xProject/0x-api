@@ -314,6 +314,7 @@ describe(SUITE_NAME, () => {
             expect(result.to).to.equal(zeroEx.address);
         });
     });
+    // Unskip this test if/when ganache 7.0.0, with EIP1559 support, is released.
     describe.skip('signTransactionRequestAsync', () => {
         it('matches the transaction hash from web3wrapper', async () => {
             const metaTx = rfqBlockchainUtils.generateMetaTransaction(rfqOrder, orderSig, taker, takerAmount, CHAIN_ID);
@@ -339,6 +340,7 @@ describe(SUITE_NAME, () => {
                 callData,
             );
 
+            // This line will produce an error because ganache cannot sign EIP1559 transactions.
             const { signedTransaction, transactionHash: preSubmitHash } = await rfqBlockchainUtils.signTransactionAsync(
                 transactionRequest,
             );
