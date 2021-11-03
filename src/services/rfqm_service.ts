@@ -922,55 +922,55 @@ export class RfqmService {
 
         const expectedTakerTokenFillAmount = this._blockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
 
-        let jobStatus:
-            | RfqmJobStatus.PendingSubmitted
-            | RfqmJobStatus.FailedRevertedConfirmed
-            | RfqmJobStatus.FailedRevertedUnconfirmed
-            | RfqmJobStatus.SucceededConfirmed
-            | RfqmJobStatus.SucceededUnconfirmed = RfqmJobStatus.PendingSubmitted;
-
-        while (jobStatus !== RfqmJobStatus.FailedRevertedConfirmed && jobStatus !== RfqmJobStatus.SucceededConfirmed) {
+        while (true) {
+            // We've already submitted the transaction once at this point.
             await delay(this._transactionWatcherSleepTimeMs);
 
-            jobStatus = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
+            const jobStatus = await this._checkSubmissionMapReceiptsAndUpdateDbAsync(
                 orderHash,
                 Object.keys(submissionsMap),
                 expectedTakerTokenFillAmount,
             );
 
-            if (jobStatus === RfqmJobStatus.PendingSubmitted) {
-                const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+            switch (jobStatus) {
+                case RfqmJobStatus.PendingSubmitted:
+                    const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
-                if (RfqmService.shouldResubmitTransaction(gasPrice, newGasPrice)) {
-                    logger.info(
-                        {
-                            workerAddress,
+                    if (RfqmService.shouldResubmitTransaction(gasPrice, newGasPrice)) {
+                        logger.info(
+                            {
+                                workerAddress,
+                                orderHash,
+                                oldGasPrice: gasPrice,
+                                newGasPrice,
+                            },
+                            'Resubmitting tx with higher gas price',
+                        );
+                        gasPrice = newGasPrice;
+
+                        // TODO(rhinodavid): make sure a throw here gets handled
+                        const submission = await this._submitTransactionAsync(
                             orderHash,
-                            oldGasPrice: gasPrice,
-                            newGasPrice,
-                        },
-                        'Resubmitting tx with higher gas price',
-                    );
-                    gasPrice = newGasPrice;
-
-                    // TODO(rhinodavid): make sure a throw here gets handled
-                    const submission = await this._submitTransactionAsync(
-                        orderHash,
-                        workerAddress,
-                        callData,
-                        gasPrice,
-                        nonce,
-                        gasEstimate,
-                    );
-                    logger.info(
-                        { workerAddress, orderHash, transactionHash: submission.transactionHash },
-                        'Successfully resubmited tx with higher gas price',
-                    );
-                    submissionsMap[submission.transactionHash!] = submission;
-                }
+                            workerAddress,
+                            callData,
+                            gasPrice,
+                            nonce,
+                            gasEstimate,
+                        );
+                        logger.info(
+                            { workerAddress, orderHash, transactionHash: submission.transactionHash },
+                            'Successfully resubmited tx with higher gas price',
+                        );
+                        submissionsMap[submission.transactionHash!] = submission;
+                    }
+                case RfqmJobStatus.FailedRevertedUnconfirmed:
+                case RfqmJobStatus.SucceededUnconfirmed:
+                    continue;
+                case RfqmJobStatus.FailedRevertedConfirmed:
+                case RfqmJobStatus.SucceededConfirmed:
+                    return jobStatus;
             }
         }
-        return jobStatus;
     }
 
     /**
