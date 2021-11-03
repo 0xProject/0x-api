@@ -1087,7 +1087,7 @@ export class RfqmService {
             txHashes.map((h) => this._blockchainUtils.getTransactionReceiptIfExistsAsync(h)),
         ).then((receipts) => receipts.find((r) => r !== undefined));
 
-        // If no tx was mined, there're no updates to do.
+        // If the tx hasn't been mined yet, there're no database updates to do.
         if (minedReceipt === undefined) {
             return RfqmJobStatus.PendingSubmitted;
         }
