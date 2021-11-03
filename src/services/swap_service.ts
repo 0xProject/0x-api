@@ -217,6 +217,7 @@ export class SwapService {
         }
         this._swapQuoterOpts = {
             ...SWAP_QUOTER_OPTS,
+            orderRefreshIntervalMs: 10e3,
             rfqt: {
                 ...SWAP_QUOTER_OPTS.rfqt!,
                 warningLogger: logger.warn.bind(logger),
@@ -231,20 +232,11 @@ export class SwapService {
             this._swapQuoterOpts.rfqt.txOriginBlacklist = rfqDynamicBlacklist;
         }
 
-        if (CHAIN_ID === ChainId.Ganache) {
-            this._swapQuoterOpts.samplerOverrides = {
-                block: BlockParamLiteral.Latest,
-                overrides: {},
-                to: contractAddresses.erc20BridgeSampler,
-                ...(this._swapQuoterOpts.samplerOverrides || {}),
-            };
-        }
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, this._swapQuoterOpts);
         this._renewSwapQuoter();
         this._pairsManager?.on(PairsManager.REFRESHED_EVENT, () => {
             this._renewSwapQuoter();
         });
-
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._swapQuoterOpts);
         this._web3Wrapper = new Web3Wrapper(this._provider);
 
