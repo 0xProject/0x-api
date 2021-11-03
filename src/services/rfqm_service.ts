@@ -215,6 +215,7 @@ const RFQM_PROCESS_JOB_LATENCY = new Summary({
 const PRICE_DECIMAL_PLACES = 6;
 
 const INITIAL_MAX_PRIORITY_FEE_PER_GAS = new BigNumber(4);
+const MAX_PRIORITY_FEE_PER_GAS_MULTIPLIER = new BigNumber(1.5);
 
 /**
  * RfqmService is the coordination layer for HTTP based RFQM flows.
@@ -951,8 +952,13 @@ export class RfqmService {
                             },
                             'Resubmitting tx with higher gas price',
                         );
-                        // TODOOOOOO
-                        // gasFees = gasFees;
+
+                        gasFees = {
+                            maxFeePerGas: gasPriceEstimate,
+                            maxPriorityFeePerGas: gasFees.maxPriorityFeePerGas.multipliedBy(
+                                MAX_PRIORITY_FEE_PER_GAS_MULTIPLIER,
+                            ),
+                        };
 
                         // TODO(rhinodavid): make sure a throw here gets handled
                         const transactionHash = (
