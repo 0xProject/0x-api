@@ -121,10 +121,10 @@ interface SubmissionsMap {
     [transactionHash: string]: Partial<RfqmTransactionSubmissionEntity>;
 }
 
-type GasFees = {
+interface GasFees {
     maxFeePerGas: BigNumber;
     maxPriorityFeePerGas: BigNumber;
-};
+}
 
 interface SubmissionContext {
     submissionsMap: SubmissionsMap;
