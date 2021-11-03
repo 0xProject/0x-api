@@ -121,11 +121,16 @@ interface SubmissionsMap {
     [transactionHash: string]: Partial<RfqmTransactionSubmissionEntity>;
 }
 
+type GasFees = {
+    maxFeePerGas: BigNumber;
+    maxPriorityFeePerGas: BigNumber;
+};
+
 interface SubmissionContext {
     submissionsMap: SubmissionsMap;
     nonce: number;
     gasEstimate: number;
-    gasPrice: BigNumber;
+    gasFees: GasFees;
 }
 
 export type FetchFirmQuoteResponse = MetaTransactionRfqmQuoteResponse;
@@ -209,14 +214,16 @@ const RFQM_PROCESS_JOB_LATENCY = new Summary({
 });
 const PRICE_DECIMAL_PLACES = 6;
 
+const INITIAL_MAX_PRIORITY_FEE_PER_GAS = new BigNumber(4);
+
 /**
  * RfqmService is the coordination layer for HTTP based RFQM flows.
  */
 export class RfqmService {
-    public static shouldResubmitTransaction(oldGasPrice: BigNumber, newGasPrice: BigNumber): boolean {
+    public static shouldResubmitTransaction(gasFees: GasFees, gasPriceEstimate: BigNumber): boolean {
         // Geth only allows replacement of transactions if the replacement gas price
-        // is at least 10% higher than the gas price of the  transaction being replaced
-        return newGasPrice.gte(oldGasPrice.multipliedBy(MIN_GAS_PRICE_INCREASE + 1));
+        // is at least 10% higher than the gas price of the transaction being replaced
+        return gasPriceEstimate.gte(gasFees.maxFeePerGas.multipliedBy(MIN_GAS_PRICE_INCREASE + 1));
     }
 
     public static isBlockConfirmed(currentBlock: number, receiptBlockNumber: number): boolean {
@@ -916,7 +923,7 @@ export class RfqmService {
 
         const submittedTxHashes = Object.keys(submissionContext.submissionsMap);
         const { nonce, gasEstimate } = submissionContext;
-        let gasPrice = submissionContext.gasPrice;
+        let gasFees = submissionContext.gasFees;
 
         const expectedTakerTokenFillAmount = this._blockchainUtils.getTakerTokenFillAmountFromMetaTxCallData(callData);
 
@@ -932,19 +939,20 @@ export class RfqmService {
 
             switch (jobStatus) {
                 case RfqmJobStatus.PendingSubmitted:
-                    const newGasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+                    const gasPriceEstimate = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
 
-                    if (RfqmService.shouldResubmitTransaction(gasPrice, newGasPrice)) {
+                    if (RfqmService.shouldResubmitTransaction(gasFees, gasPriceEstimate)) {
                         logger.info(
                             {
                                 workerAddress,
                                 orderHash,
-                                oldGasPrice: gasPrice,
-                                newGasPrice,
+                                gasFees,
+                                gasPriceEstimate,
                             },
                             'Resubmitting tx with higher gas price',
                         );
-                        gasPrice = newGasPrice;
+                        // TODOOOOOO
+                        // gasFees = gasFees;
 
                         // TODO(rhinodavid): make sure a throw here gets handled
                         const transactionHash = (
@@ -952,7 +960,7 @@ export class RfqmService {
                                 orderHash,
                                 workerAddress,
                                 callData,
-                                gasPrice,
+                                gasFees,
                                 nonce,
                                 gasEstimate,
                             )
@@ -990,7 +998,6 @@ export class RfqmService {
 
         // setting values to override them
         const nonce = previousSubmissions[0].nonce;
-        let gasPrice = previousSubmissions[0].gasPrice;
         for (const submission of previousSubmissions) {
             // make sure this order hasn't been submitted by another worker
             if (submission.from !== workerAddress) {
@@ -1009,17 +1016,16 @@ export class RfqmService {
                 );
                 throw new Error(`found different nonces in tx submissions`);
             }
-
-            if (submission.gasPrice!.gt(gasPrice!)) {
-                gasPrice = submission.gasPrice!;
-            }
         }
-        const gasEstimate = await this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress);
+        const [gasEstimate, gasPriceEstimate] = await Promise.all([
+            this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress),
+            this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync(),
+        ]);
 
         return {
             submissionsMap,
             nonce: nonce!,
-            gasPrice: gasPrice!,
+            gasFees: { maxPriorityFeePerGas: INITIAL_MAX_PRIORITY_FEE_PER_GAS, maxFeePerGas: gasPriceEstimate },
             gasEstimate,
         };
     }
@@ -1040,17 +1046,19 @@ export class RfqmService {
             workerAddress,
         });
 
-        const [gasPrice, nonce, gasEstimate] = await Promise.all([
+        const [gasPriceEstimate, nonce, gasEstimate] = await Promise.all([
             this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync(),
             this._blockchainUtils.getNonceAsync(workerAddress),
             this._blockchainUtils.estimateGasForExchangeProxyCallAsync(callData, workerAddress),
         ]);
 
+        const gasFees = { maxFeePerGas: gasPriceEstimate, maxPriorityFeePerGas: INITIAL_MAX_PRIORITY_FEE_PER_GAS };
+
         const firstSubmission = await this._submitTransactionAsync(
             orderHash,
             workerAddress,
             callData,
-            gasPrice,
+            gasFees,
             nonce,
             gasEstimate,
         );
@@ -1063,7 +1071,7 @@ export class RfqmService {
         return {
             submissionsMap,
             nonce,
-            gasPrice,
+            gasFees,
             gasEstimate,
         };
     }
@@ -1158,15 +1166,14 @@ export class RfqmService {
         orderHash: string,
         workerAddress: string,
         callData: string,
-        gasPrice: BigNumber,
+        gasFees: GasFees,
         nonce: number,
         gasEstimate: number,
     ): Promise<RfqmTransactionSubmissionEntity> {
         const txOptions = {
+            ...gasFees,
             from: workerAddress,
             gas: gasEstimate,
-            maxFeePerGas: gasPrice,
-            maxPriorityFeePerGas: new BigNumber(4),
             nonce,
             value: 0,
         };
@@ -1181,13 +1188,12 @@ export class RfqmService {
         );
 
         const partialEntity: Partial<RfqmTransactionSubmissionEntity> = {
+            ...gasFees,
             transactionHash,
             orderHash,
             createdAt: new Date(),
             from: workerAddress,
             to: this._blockchainUtils.getExchangeProxyAddress(),
-            maxFeePerGas: gasPrice,
-            maxPriorityFeePerGas: new BigNumber(4),
             nonce,
             status: RfqmTransactionSubmissionStatus.Presubmit,
         };
