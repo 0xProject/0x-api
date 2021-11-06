@@ -5,7 +5,7 @@ import { JSONRPCRequestPayload } from 'ethereum-types';
 import * as http from 'http';
 import * as https from 'https';
 import JsonRpcError = require('json-rpc-error');
-import fetch, { Headers, Response } from 'node-fetch';
+import fetch, { AxiosResponse } from 'axios';
 import { Counter, Histogram, Summary } from 'prom-client';
 import { gzip } from 'zlib';
 
@@ -78,7 +78,7 @@ export class RPCSubprovider extends Subprovider {
     // tslint:disable-next-line:prefer-function-over-method async-suffix
     public async handleRequest(payload: JSONRPCRequestPayload, _next: Callback, end: ErrorCallback): Promise<void> {
         const finalPayload = Subprovider._createFinalPayload(payload);
-        const headers = new Headers({
+        const headers = {
             Accept: 'application/json',
             'Accept-Encoding': 'gzip, deflate',
             Connection: 'keep-alive',
@@ -89,7 +89,7 @@ export class RPCSubprovider extends Subprovider {
         ETH_RPC_REQUESTS.labels(finalPayload.method!).inc();
         const begin = Date.now();
 
-        let response: Response;
+        let response: AxiosResponse;
         const rpcUrl = this._rpcUrls[Math.floor(Math.random() * this._rpcUrls.length)];
         const body = await this._encodeRequestPayloadAsync(finalPayload);
         ETH_RPC_REQUEST_SIZE_SUMMARY.labels(finalPayload.method!).observe(Buffer.byteLength(body, 'utf8'));
@@ -97,10 +97,10 @@ export class RPCSubprovider extends Subprovider {
             response = await fetch(rpcUrl, {
                 method: 'POST',
                 headers,
-                body,
+                data: JSON.stringify(finalPayload),
                 timeout: this._requestTimeoutMs,
-                compress: true,
-                agent,
+                decompress: true,
+                httpAgent: agent,
             });
         } catch (err) {
             ETH_RPC_REQUEST_ERROR.labels(finalPayload.method!).inc();
@@ -111,9 +111,8 @@ export class RPCSubprovider extends Subprovider {
             ETH_RPC_RESPONSE_TIME.labels(finalPayload.method!).observe(duration);
         }
 
-        const text = await response.text();
-
-        if (!response.ok) {
+        const text = await response.data;
+        if (response.status != 200) {
             ETH_RPC_REQUEST_ERROR.labels(finalPayload.method!).inc();
             const statusCode = response.status;
             switch (statusCode) {

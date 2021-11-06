@@ -27,7 +27,7 @@ const wrapper = function (orig: any, name: any) {
 };
 
 var shimmer = require('elastic-apm-node/lib/instrumentation/shimmer');
-var DexOrderSampler = require('@0x/asset-swapper/lib/src/utils/market_operation_utils/sampler').DexOrderSampler;
+// var DexOrderSampler = require('@0x/asset-swapper/lib/src/utils/market_operation_utils/sampler').DexOrderSampler;
 var SamplerOperations =
     require('@0x/asset-swapper/lib/src/utils/market_operation_utils/sampler_operations').SamplerOperations;
 var QuoteRequestor = require('@0x/asset-swapper/lib/src/utils/quote_requestor').QuoteRequestor;
@@ -40,7 +40,7 @@ shimmer.wrap(QuoteRequestor.prototype, 'requestRfqtIndicativeQuotesAsync', wrapp
 shimmer.wrap(SamplerOperations.prototype, 'getSellQuotes', wrapper);
 shimmer.wrap(MarketOperationUtils.prototype, '_generateOptimizedOrdersAsync', wrapper);
 shimmer.wrap(MarketOperationUtils.prototype, 'getMarketSellLiquidityAsync', wrapper);
-shimmer.wrap(DexOrderSampler.prototype, 'executeBatchAsync', wrapper);
+// shimmer.wrap(DexOrderSampler.prototype, 'executeBatchAsync', wrapper);
 shimmer.wrap(quoteReporter, 'generateQuoteReport', wrapper);
 shimmer.wrap(pathOptimizer, 'findOptimalPathAsync', wrapper);
 
