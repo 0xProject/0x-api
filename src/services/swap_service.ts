@@ -564,7 +564,6 @@ export class SwapService {
                             ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
                             bridgeSlippage: 0,
                             maxFallbackSlippage: 0,
-                            numSamples: 1,
                         },
                     );
                     return quotes;
@@ -608,74 +607,73 @@ export class SwapService {
         buyToken: TokenMetadataOptionalSymbol;
         sellToken: TokenMetadataOptionalSymbol;
     }> {
-        const {
-            buyToken: buyToken,
-            sellToken: sellToken,
-            sellAmount,
-            numSamples,
-            sampleDistributionBase,
-            excludedSources,
-            includedSources,
-        } = params;
-
-        const marketDepth = await this._swapQuoter.getBidAskLiquidityForMakerTakerAssetPairAsync(
-            buyToken,
-            sellToken,
-            sellAmount,
-            {
-                numSamples,
-                excludedSources: [
-                    ...(excludedSources || []),
-                    ERC20BridgeSource.MultiBridge,
-                    ERC20BridgeSource.MultiHop,
-                ],
-                includedSources,
-                sampleDistributionBase,
-            },
-        );
-
-        const maxEndSlippagePercentage = 20;
-        const scalePriceByDecimals = (priceDepth: BucketedPriceDepth[]) =>
-            priceDepth.map((b) => ({
-                ...b,
-                price: b.price.times(
-                    new BigNumber(10).pow(marketDepth.takerTokenDecimals - marketDepth.makerTokenDecimals),
-                ),
-            }));
-        const askDepth = scalePriceByDecimals(
-            marketDepthUtils.calculateDepthForSide(
-                marketDepth.asks,
-                MarketOperation.Sell,
-                numSamples * 2,
-                sampleDistributionBase,
-                maxEndSlippagePercentage,
-            ),
-        );
-        const bidDepth = scalePriceByDecimals(
-            marketDepthUtils.calculateDepthForSide(
-                marketDepth.bids,
-                MarketOperation.Buy,
-                numSamples * 2,
-                sampleDistributionBase,
-                maxEndSlippagePercentage,
-            ),
-        );
-        return {
-            // We're buying buyToken and SELLING sellToken (DAI) (50k)
-            // Price goes from HIGH to LOW
-            asks: { depth: askDepth },
-            // We're BUYING sellToken (DAI) (50k) and selling buyToken
-            // Price goes from LOW to HIGH
-            bids: { depth: bidDepth },
-            buyToken: {
-                tokenAddress: buyToken,
-                decimals: marketDepth.makerTokenDecimals,
-            },
-            sellToken: {
-                tokenAddress: sellToken,
-                decimals: marketDepth.takerTokenDecimals,
-            },
-        };
+        throw new Error(`No implementado`);
+        // const {
+        //     buyToken: buyToken,
+        //     sellToken: sellToken,
+        //     sellAmount,
+        //     numSamples,
+        //     sampleDistributionBase,
+        //     excludedSources,
+        //     includedSources,
+        // } = params;
+        //
+        // const marketDepth = await this._swapQuoter.getBidAskLiquidityForMakerTakerAssetPairAsync(
+        //     buyToken,
+        //     sellToken,
+        //     sellAmount,
+        //     {
+        //         excludedSources: [
+        //             ...(excludedSources || []),
+        //             ERC20BridgeSource.MultiBridge,
+        //             ERC20BridgeSource.MultiHop,
+        //         ],
+        //         includedSources,
+        //     },
+        // );
+        //
+        // const maxEndSlippagePercentage = 20;
+        // const scalePriceByDecimals = (priceDepth: BucketedPriceDepth[]) =>
+        //     priceDepth.map((b) => ({
+        //         ...b,
+        //         price: b.price.times(
+        //             new BigNumber(10).pow(marketDepth.takerTokenDecimals - marketDepth.makerTokenDecimals),
+        //         ),
+        //     }));
+        // const askDepth = scalePriceByDecimals(
+        //     marketDepthUtils.calculateDepthForSide(
+        //         marketDepth.asks,
+        //         MarketOperation.Sell,
+        //         numSamples * 2,
+        //         sampleDistributionBase,
+        //         maxEndSlippagePercentage,
+        //     ),
+        // );
+        // const bidDepth = scalePriceByDecimals(
+        //     marketDepthUtils.calculateDepthForSide(
+        //         marketDepth.bids,
+        //         MarketOperation.Buy,
+        //         numSamples * 2,
+        //         sampleDistributionBase,
+        //         maxEndSlippagePercentage,
+        //     ),
+        // );
+        // return {
+        //     // We're buying buyToken and SELLING sellToken (DAI) (50k)
+        //     // Price goes from HIGH to LOW
+        //     asks: { depth: askDepth },
+        //     // We're BUYING sellToken (DAI) (50k) and selling buyToken
+        //     // Price goes from LOW to HIGH
+        //     bids: { depth: bidDepth },
+        //     buyToken: {
+        //         tokenAddress: buyToken,
+        //         decimals: marketDepth.makerTokenDecimals,
+        //     },
+        //     sellToken: {
+        //         tokenAddress: sellToken,
+        //         decimals: marketDepth.takerTokenDecimals,
+        //     },
+        // };
     }
 
     private async _getSwapQuoteForNativeWrappedAsync(

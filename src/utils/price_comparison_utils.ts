@@ -14,10 +14,8 @@ import { Web3Wrapper } from '@0x/web3-wrapper';
 import * as _ from 'lodash';
 
 import { CHAIN_ID } from '../config';
-import { GAS_LIMIT_BUFFER_MULTIPLIER, TX_BASE_GAS, ZERO } from '../constants';
 import { logger } from '../logger';
 import { SourceComparison } from '../types';
-
 import { SlippageModelManager } from './slippage_model_manager';
 
 // NOTE: Our internal Uniswap gas usage may be lower than the Uniswap UI usage
