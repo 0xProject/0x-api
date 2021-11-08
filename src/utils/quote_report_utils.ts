@@ -1,22 +1,19 @@
 import type { PinoLogger } from '@0x/api-utils';
 import {
     BigNumber,
-    ERC20BridgeSource,
     ExtendedQuoteReport,
-    ExtendedQuoteReportEntry,
+    ExtendedQuoteReportSources,
+    jsonifyFillData,
     QuoteReport,
     QuoteReportEntry,
     SignedNativeOrder,
-    V4RFQIndicativeQuoteMM,
 } from '@0x/asset-swapper';
-import { RfqOrder } from '@0x/protocol-utils';
 import { Producer } from 'kafkajs';
 import _ = require('lodash');
 
 import { KAFKA_TOPIC_QUOTE_REPORT } from '../config';
 import { NUMBER_SOURCES_PER_LOG_LINE } from '../constants';
 import { logger } from '../logger';
-import { numberUtils } from '../utils/number_utils';
 
 interface QuoteReportLogOptionsBase {
     quoteId?: string;
@@ -39,12 +36,12 @@ interface QuoteReportForMetaTxn extends QuoteReportLogOptionsBase {
     zeroExTransactionHash: string;
 }
 interface ExtendedQuoteReportForTakerTxn extends QuoteReportLogOptionsBase {
-    quoteReport: ExtendedQuoteReport;
+    quoteReportSources: ExtendedQuoteReportSources;
     submissionBy: 'taker';
     decodedUniqueId: string;
 }
 interface ExtendedQuoteReportForMetaTxn extends QuoteReportLogOptionsBase {
-    quoteReport: ExtendedQuoteReport;
+    quoteReportSources: ExtendedQuoteReportSources;
     submissionBy: 'metaTxn';
     zeroExTransactionHash: string;
 }
@@ -54,24 +51,8 @@ export interface WrappedSignedNativeOrderMM {
     makerUri: string;
 }
 
-interface ExtendedQuoteReportForRFQMIndicativeLogOptions extends Omit<QuoteReportLogOptionsBase, 'quoteId'> {
-    allQuotes: V4RFQIndicativeQuoteMM[];
-    bestQuote: V4RFQIndicativeQuoteMM | null;
-}
-
-interface ExtendedQuoteReportForRFQMFirmLogOptions extends Omit<QuoteReportLogOptionsBase, 'quoteId'> {
-    allQuotes: WrappedSignedNativeOrderMM[];
-    bestQuote: WrappedSignedNativeOrderMM | null;
-    comparisonPrice?: number;
-}
-
 type QuoteReportLogOptions = QuoteReportForTakerTxn | QuoteReportForMetaTxn;
 type ExtendedQuoteReportLogOptions = ExtendedQuoteReportForTakerTxn | ExtendedQuoteReportForMetaTxn;
-
-type ExtendedQuoteReportIndexedEntry = ExtendedQuoteReportEntry & {
-    quoteEntryIndex: number;
-    isDelivered: boolean;
-};
 
 const BIPS_IN_INT = 10000;
 
@@ -84,22 +65,6 @@ const omitFillData = (source: QuoteReportEntry) => {
     return {
         ...source,
         fillData: undefined,
-    };
-};
-
-/**
- * For the extended quote report, we outout the filldata as JSON
- */
-const jsonifyFillData = (source: ExtendedQuoteReportEntry | ExtendedQuoteReportIndexedEntry) => {
-    return {
-        ...source,
-        fillData: JSON.stringify(source.fillData, (key: string, value: any) => {
-            if (key === '_samplerContract') {
-                return {};
-            } else {
-                return value;
-            }
-        }),
     };
 };
 
@@ -150,160 +115,29 @@ export const quoteReportUtils = {
         });
     },
     publishQuoteReport(logOpts: ExtendedQuoteReportLogOptions, isFirmQuote: boolean, kafkaProducer: Producer): void {
-        const qr: ExtendedQuoteReport = logOpts.quoteReport;
-        let logBase: { [key: string]: string | boolean | number | undefined } = {
-            quoteId: logOpts.quoteId,
-            taker: logOpts.taker,
-            timestamp: Date.now(),
-            firmQuoteReport: isFirmQuote,
-            submissionBy: logOpts.submissionBy,
-            buyAmount: logOpts.buyAmount ? logOpts.buyAmount.toString() : undefined,
-            sellAmount: logOpts.sellAmount ? logOpts.sellAmount.toString() : undefined,
-            buyTokenAddress: logOpts.buyTokenAddress,
-            sellTokenAddress: logOpts.sellTokenAddress,
-            integratorId: logOpts.integratorId,
-            slippageBips: logOpts.slippage ? logOpts.slippage * BIPS_IN_INT : undefined,
-        };
-        if (logOpts.submissionBy === 'metaTxn') {
-            logBase = { ...logBase, zeroExTransactionHash: logOpts.zeroExTransactionHash };
-        } else if (logOpts.submissionBy === 'taker') {
-            logBase = { ...logBase, decodedUniqueId: logOpts.decodedUniqueId };
-        }
-
         if (kafkaProducer && KAFKA_TOPIC_QUOTE_REPORT) {
-            kafkaProducer.send({
-                topic: KAFKA_TOPIC_QUOTE_REPORT,
-                messages: [
-                    {
-                        value: JSON.stringify({
-                            ...logBase,
-                            sourcesConsidered: qr.sourcesConsidered.map(jsonifyFillData),
-                            sourcesDelivered: qr.sourcesDelivered.map(jsonifyFillData),
-                        }),
-                    },
-                ],
-            });
-        }
-    },
-    publishRFQMIndicativeQuoteReport(
-        logOpts: ExtendedQuoteReportForRFQMIndicativeLogOptions,
-        kafkaProducer: Producer,
-    ): void {
-        const quoteId = numberUtils.randomHexNumberOfLength(10);
-        const logBase: { [key: string]: string | boolean | number | undefined } = {
-            quoteId,
-            taker: logOpts.taker,
-            timestamp: Date.now(),
-            firmQuoteReport: false,
-            submissionBy: 'rfqm',
-            buyAmount: logOpts.buyAmount ? logOpts.buyAmount.toString() : undefined,
-            sellAmount: logOpts.sellAmount ? logOpts.sellAmount.toString() : undefined,
-            buyTokenAddress: logOpts.buyTokenAddress,
-            sellTokenAddress: logOpts.sellTokenAddress,
-            integratorId: logOpts.integratorId,
-            slippageBips: undefined,
-        };
-
-        const sourcesConsidered = logOpts.allQuotes.map((quote, index) => {
-            return {
-                quoteEntryIndex: index,
-                isDelivered: false,
-                liquiditySource: ERC20BridgeSource.Native,
-                makerAmount: quote.makerAmount,
-                takerAmount: quote.takerAmount,
-                fillableTakerAmount: quote.takerAmount,
-                isRFQ: true,
-                makerUri: quote.makerUri,
-                comparisonPrice: null,
+            const extendedQuoteReport: ExtendedQuoteReport = {
+                quoteId: logOpts.quoteId,
+                taker: logOpts.taker,
+                timestamp: Date.now(),
+                firmQuoteReport: isFirmQuote,
+                submissionBy: logOpts.submissionBy,
+                buyAmount: logOpts.buyAmount ? logOpts.buyAmount.toString() : undefined,
+                sellAmount: logOpts.sellAmount ? logOpts.sellAmount.toString() : undefined,
+                buyTokenAddress: logOpts.buyTokenAddress,
+                sellTokenAddress: logOpts.sellTokenAddress,
+                integratorId: logOpts.integratorId,
+                slippageBips: logOpts.slippage ? logOpts.slippage * BIPS_IN_INT : undefined,
+                zeroExTransactionHash: logOpts.submissionBy === 'metaTxn' ? logOpts.zeroExTransactionHash : undefined,
+                decodedUniqueId: logOpts.submissionBy === 'taker' ? logOpts.decodedUniqueId : undefined,
+                sourcesConsidered: logOpts.quoteReportSources.sourcesConsidered.map(jsonifyFillData),
+                sourcesDelivered: logOpts.quoteReportSources.sourcesDelivered?.map(jsonifyFillData),
             };
-        });
-
-        const bestQuote = logOpts.bestQuote
-            ? {
-                  ...logOpts.bestQuote,
-                  quoteEntryIndex: 0,
-                  isDelivered: true,
-                  liquiditySource: ERC20BridgeSource.Native,
-                  fillableTakerAmount: logOpts.bestQuote.takerAmount,
-                  isRFQ: true,
-                  comparisonPrice: null,
-              }
-            : null;
-        if (kafkaProducer && KAFKA_TOPIC_QUOTE_REPORT) {
             kafkaProducer.send({
                 topic: KAFKA_TOPIC_QUOTE_REPORT,
                 messages: [
                     {
-                        value: JSON.stringify({
-                            ...logBase,
-                            sourcesConsidered,
-                            sourcesDelivered: [bestQuote],
-                        }),
-                    },
-                ],
-            });
-        }
-    },
-    publishRFQMFirmQuoteReport(logOpts: ExtendedQuoteReportForRFQMFirmLogOptions, kafkaProducer: Producer): void {
-        let orderHash: string | undefined;
-        if (logOpts.bestQuote) {
-            const rfqOrder = new RfqOrder(logOpts.bestQuote.order.order);
-            orderHash = rfqOrder.getHash();
-        }
-        const quoteId = numberUtils.randomHexNumberOfLength(10);
-        const logBase: { [key: string]: string | boolean | number | undefined } = {
-            quoteId,
-            taker: logOpts.taker,
-            timestamp: Date.now(),
-            firmQuoteReport: true,
-            submissionBy: 'rfqm',
-            buyAmount: logOpts.buyAmount ? logOpts.buyAmount.toString() : undefined,
-            sellAmount: logOpts.sellAmount ? logOpts.sellAmount.toString() : undefined,
-            buyTokenAddress: logOpts.buyTokenAddress,
-            sellTokenAddress: logOpts.sellTokenAddress,
-            integratorId: logOpts.integratorId,
-            slippageBips: undefined,
-            zeroExTransactionHash: orderHash,
-        };
-
-        const sourcesConsidered = logOpts.allQuotes.map((quote, index): ExtendedQuoteReportIndexedEntry => {
-            return {
-                quoteEntryIndex: index,
-                isDelivered: false,
-                liquiditySource: ERC20BridgeSource.Native,
-                makerAmount: quote.order.order.makerAmount,
-                takerAmount: quote.order.order.takerAmount,
-                fillableTakerAmount: quote.order.order.takerAmount,
-                isRFQ: true,
-                makerUri: quote.makerUri,
-                comparisonPrice: logOpts.comparisonPrice,
-                fillData: quote.order,
-            };
-        });
-        const bestQuote: ExtendedQuoteReportIndexedEntry | null = logOpts.bestQuote
-            ? {
-                  quoteEntryIndex: 0,
-                  isDelivered: true,
-                  liquiditySource: ERC20BridgeSource.Native,
-                  makerAmount: logOpts.bestQuote?.order.order.makerAmount,
-                  takerAmount: logOpts.bestQuote?.order.order.takerAmount,
-                  fillableTakerAmount: logOpts.bestQuote?.order.order.takerAmount,
-                  isRFQ: true,
-                  makerUri: logOpts.bestQuote?.makerUri,
-                  comparisonPrice: logOpts.comparisonPrice,
-                  fillData: logOpts.bestQuote.order,
-              }
-            : null;
-        if (kafkaProducer && KAFKA_TOPIC_QUOTE_REPORT) {
-            kafkaProducer.send({
-                topic: KAFKA_TOPIC_QUOTE_REPORT,
-                messages: [
-                    {
-                        value: JSON.stringify({
-                            ...logBase,
-                            sourcesConsidered: sourcesConsidered.map(jsonifyFillData),
-                            sourcesDelivered: bestQuote ? [bestQuote].map(jsonifyFillData) : null,
-                        }),
+                        value: JSON.stringify(extendedQuoteReport),
                     },
                 ],
             });

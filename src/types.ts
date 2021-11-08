@@ -3,7 +3,7 @@ import {
     AffiliateFeeType,
     ContractAddresses,
     ERC20BridgeSource,
-    ExtendedQuoteReport,
+    ExtendedQuoteReportSources,
     LimitOrderFields,
     PriceComparisonsReport,
     QuoteReport,
@@ -259,7 +259,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     orders?: any;
     from?: string;
     quoteReport?: QuoteReport;
-    extendedQuoteReport?: ExtendedQuoteReport;
+    extendedQuoteReportSources?: ExtendedQuoteReportSources;
     priceComparisonsReport?: PriceComparisonsReport;
 }
 

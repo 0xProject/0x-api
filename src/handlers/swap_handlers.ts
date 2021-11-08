@@ -33,6 +33,7 @@ import {
     RFQT_REGISTRY_PASSWORDS,
 } from '../config';
 import {
+    AFFILIATE_DATA_SELECTOR,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     MARKET_DEPTH_DEFAULT_DISTRIBUTION,
     MARKET_DEPTH_MAX_SAMPLES,
@@ -183,15 +184,13 @@ export class SwapHandlers {
                 );
             }
 
-            if (quote.extendedQuoteReport && kafkaProducer) {
-                const bytesPos = quote.data.indexOf('869584cd');
-                // tslint:disable-next-line
-                const quoteId = quote.data.slice(bytesPos + 118, bytesPos + 128);
+            if (quote.extendedQuoteReportSources && kafkaProducer) {
+                const quoteId = getQuoteIdFromSwapQuote(quote);
                 quoteReportUtils.publishQuoteReport(
                     {
                         quoteId,
                         taker: params.takerAddress,
-                        quoteReport: quote.extendedQuoteReport,
+                        quoteReportSources: quote.extendedQuoteReportSources,
                         submissionBy: 'taker',
                         decodedUniqueId: quote.decodedUniqueId,
                         buyTokenAddress: quote.buyTokenAddress,
@@ -212,7 +211,7 @@ export class SwapHandlers {
                 orders: quote.orders.map((o: any) => _.omit(o, 'fills')),
             },
             'quoteReport',
-            'extendedQuoteReport',
+            'extendedQuoteReportSources',
             'priceComparisonsReport',
             'decodedUniqueId',
         );
@@ -272,15 +271,13 @@ export class SwapHandlers {
                 ?.map((sc) => priceComparisonUtils.renameNative(sc));
         }
 
-        if (quote.extendedQuoteReport && kafkaProducer) {
-            const bytesPos = quote.data.indexOf('869584cd');
-            // tslint:disable-next-line
-            const quoteId = quote.data.slice(bytesPos + 118, bytesPos + 128);
+        if (quote.extendedQuoteReportSources && kafkaProducer) {
+            const quoteId = getQuoteIdFromSwapQuote(quote);
             quoteReportUtils.publishQuoteReport(
                 {
                     quoteId,
                     taker: params.takerAddress,
-                    quoteReport: quote.extendedQuoteReport,
+                    quoteReportSources: quote.extendedQuoteReportSources,
                     submissionBy: 'taker',
                     decodedUniqueId: quote.decodedUniqueId,
                     buyTokenAddress: quote.buyTokenAddress,
@@ -566,3 +563,14 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         isWrap,
     };
 };
+
+/*
+ * Extract the quote ID from the quote filldata
+ */
+function getQuoteIdFromSwapQuote(quote: GetSwapQuoteResponse): string {
+    const bytesPos = quote.data.indexOf(AFFILIATE_DATA_SELECTOR);
+    const quoteIdOffset = 118; // Offset of quoteId from Affiliate data selector
+    const startingIndex = bytesPos + quoteIdOffset;
+    const quoteId = quote.data.slice(startingIndex, startingIndex + 10);
+    return quoteId;
+}
