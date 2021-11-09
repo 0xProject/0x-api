@@ -140,7 +140,7 @@
     "dependencies": {
         "@0x/api-utils": "^0.0.1",
         "@0x/assert": "^3.0.30",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v16.31.0-3e82830a4",
+        "@0x/asset-swapper": "^16.32.0",
         "@0x/contract-addresses": "^6.8.0",
         "@0x/contract-wrappers": "^13.18.1",
         "@0x/contracts-zero-ex": "^0.29.2",
