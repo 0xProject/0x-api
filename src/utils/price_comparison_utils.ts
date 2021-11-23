@@ -1,9 +1,7 @@
 import {
     ERC20BridgeSource,
-    FeeSchedule,
     PriceComparisonsReport,
     SELL_SOURCE_FILTER_BY_CHAIN_ID,
-    UniswapV2FillData,
 } from '@0x/asset-swapper';
 import { ChainId } from '@0x/contract-addresses';
 import { getTokenMetadataIfExists } from '@0x/token-metadata';

@@ -132,6 +132,8 @@ export class MetaTransactionService {
             sellTokenToEthRate,
             buyTokenToEthRate,
             quoteReport: quote.quoteReport,
+            maxSellAmount: quote.maxSellAmount,
+            minBuyAmount: quote.minBuyAmount,
         };
 
         const shouldLogQuoteReport = quote.quoteReport && params.apiKey !== undefined;
@@ -386,6 +388,8 @@ export class MetaTransactionService {
             buyTokenAddress: params.buyTokenAddress,
             sellTokenAddress: params.sellTokenAddress,
             taker: params.takerAddress,
+            maxSellAmount: quote.maxSellAmount,
+            minBuyAmount: quote.minBuyAmount,
         };
     }
 

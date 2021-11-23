@@ -266,6 +266,8 @@ export class SwapHandlers {
             'expectedSlippage',
             'expectedBuyAmount',
             'expectedSellAmount',
+            'maxSellAmount',
+            'minBuyAmount',
         );
 
         if (params.includePriceComparisons && quote.priceComparisonsReport) {
