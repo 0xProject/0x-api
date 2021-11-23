@@ -5,7 +5,6 @@ import {
     GasSchedule,
     PriceComparisonsReport,
     SELL_SOURCE_FILTER_BY_CHAIN_ID,
-    UniswapV2FillData,
 } from '@0x/asset-swapper';
 import { getTokenMetadataIfExists } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';

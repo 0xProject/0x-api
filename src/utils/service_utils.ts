@@ -4,6 +4,7 @@ import {
     SELL_SOURCE_FILTER_BY_CHAIN_ID,
     SwapQuote,
     SwapQuoteOrdersBreakdown,
+    SwapQuoteMultiHopBreakdown,
 } from '@0x/asset-swapper';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
@@ -84,22 +85,29 @@ export const serviceUtils = {
             {},
             // TODO Jacob SELL is a superset of BUY, but may not always be
             ...Object.values(SELL_SOURCE_FILTER_BY_CHAIN_ID[CHAIN_ID].sources).map((s) => ({ [s]: ZERO })),
+            {
+                [ERC20BridgeSource.MultiHop]: {
+                    proportion: 0,
+                    tokenPath: [],
+                    breakdown: {},
+                }
+            }
         );
 
         return Object.entries({ ...defaultSourceBreakdown, ...sourceBreakdown }).reduce<
             GetSwapQuoteResponseLiquiditySource[]
         >((acc, [source, breakdown]) => {
             let obj;
-            if (source === ERC20BridgeSource.MultiHop && !BigNumber.isBigNumber(breakdown)) {
+            if (isMultiHopBreakdown(source as ERC20BridgeSource, breakdown)) {
                 obj = {
-                    ...breakdown!,
                     name: ERC20BridgeSource.MultiHop,
-                    proportion: new BigNumber(breakdown!.proportion.toPrecision(PERCENTAGE_SIG_DIGITS)),
+                    ...breakdown!,
+                    proportion: Number(breakdown.proportion.toPrecision(PERCENTAGE_SIG_DIGITS)),
                 };
             } else {
                 obj = {
                     name: source === ERC20BridgeSource.Native ? '0x' : source,
-                    proportion: new BigNumber((breakdown as BigNumber).toPrecision(PERCENTAGE_SIG_DIGITS)),
+                    proportion: Number(breakdown.toPrecision(PERCENTAGE_SIG_DIGITS)),
                 };
             }
             return [...acc, obj];
@@ -129,3 +137,7 @@ export const serviceUtils = {
         };
     },
 };
+
+function isMultiHopBreakdown(source: ERC20BridgeSource, _breakdown: any): _breakdown is SwapQuoteMultiHopBreakdown {
+    return source === ERC20BridgeSource.MultiHop;
+}

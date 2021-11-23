@@ -211,11 +211,13 @@ interface QuoteBase {
     // Our calculated price impact or null if we were unable to
     // to calculate any price impact
     estimatedPriceImpact: BigNumber | null;
+    maxSellAmount: BigNumber;
+    minBuyAmount: BigNumber;
 }
 
 export interface GetSwapQuoteResponseLiquiditySource {
     name: string;
-    proportion: BigNumber;
+    proportion: number;
     intermediateToken?: string;
     hops?: string[];
 }

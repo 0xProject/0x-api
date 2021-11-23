@@ -498,7 +498,7 @@ export class SwapService {
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
-            orders: swapQuote.orders,
+            orders: swapQuote.hops.map(h => h.orders).flat(1),
             allowanceTarget,
             decodedUniqueId,
             extendedQuoteReportSources,
@@ -507,6 +507,11 @@ export class SwapService {
             quoteReport,
             priceComparisonsReport,
             blockNumber: swapQuote.blockNumber,
+            maxSellAmount: BigNumber.max(
+                swapQuote.bestCaseQuoteInfo.totalTakerAmount,
+                swapQuote.worstCaseQuoteInfo.totalTakerAmount,
+            ),
+            minBuyAmount: swapQuote.worstCaseQuoteInfo.makerAmount,
         };
 
         // If the slippage Model is forced on for the integrator, or if they have opted in to slippage protection
@@ -726,6 +731,8 @@ export class SwapService {
             buyTokenToEthRate: new BigNumber(1),
             allowanceTarget: NULL_ADDRESS,
             blockNumber: undefined,
+            maxSellAmount: amount,
+            minBuyAmount: amount,
         };
         return apiSwapQuote;
     }
