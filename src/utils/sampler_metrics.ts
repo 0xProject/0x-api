@@ -18,7 +18,7 @@ const SAMPLER_BLOCK_NUMBER_GUAGE = new Gauge({
 });
 
 export const SAMPLER_METRICS: SamplerMetrics = {
-    logGasDetails: function (data: { gasBefore: BigNumber; gasAfter: BigNumber }): void {
+    logGasDetails: (data: { gasBefore: BigNumber; gasAfter: BigNumber }): void => {
         const { gasBefore, gasAfter } = data;
         const gasUsed = gasBefore.minus(gasAfter);
 
@@ -26,7 +26,7 @@ export const SAMPLER_METRICS: SamplerMetrics = {
         SAMPLER_GAS_LIMIT_SUMMARY.observe(gasBefore.toNumber());
     },
 
-    logBlockNumber: function (blockNumber: BigNumber): void {
+    logBlockNumber: (blockNumber: BigNumber): void => {
         SAMPLER_BLOCK_NUMBER_GUAGE.set(blockNumber.toNumber());
     },
 };
