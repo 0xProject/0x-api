@@ -40,6 +40,8 @@ import { HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 import { schemaUtils } from './utils/schema_utils';
 
+const SHOULD_USE_RUST_ROUTER = process.env.RUST_ROUTER === 'true';
+
 // tslint:disable:no-bitwise
 
 enum EnvVarType {
@@ -537,7 +539,8 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
-    sampleDistributionBase: 1.05,
+    // TODO(kimpers): Due to an issue with the Rust router we only support equidistant samples when using the Rust router
+    sampleDistributionBase: SHOULD_USE_RUST_ROUTER ? 1 : 1.05,
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
     runLimit: 2 ** 8,
     shouldGenerateQuoteReport: true,
