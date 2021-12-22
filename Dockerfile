@@ -1,5 +1,5 @@
 # Stage 1
-FROM node:12-alpine as yarn-install
+FROM node:16-alpine as yarn-install
 WORKDIR /usr/src/app
 # Install app dependencies
 COPY package.json yarn.lock ./
