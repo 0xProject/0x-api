@@ -7,7 +7,7 @@ import * as https from 'https';
 import JsonRpcError = require('json-rpc-error');
 import fetch, { Headers, Response } from 'node-fetch';
 import { Counter, Histogram } from 'prom-client';
-import { gzipSync } from 'zlib';
+import { gzip } from 'zlib';
 
 import { ONE_SECOND_MS, PROMETHEUS_REQUEST_BUCKETS } from './constants';
 
@@ -92,7 +92,7 @@ export class RPCSubprovider extends Subprovider {
 
         let response: Response;
         const rpcUrl = this._rpcUrls[Math.floor(Math.random() * this._rpcUrls.length)];
-        const body = this._encodeRequestPayload(finalPayload);
+        const body = await this._encodeRequestPayloadAsync(finalPayload);
         ETH_RPC_REQUEST_SIZE.labels(finalPayload.method!).observe(Buffer.byteLength(body, 'utf8'));
         try {
             response = await fetch(rpcUrl, {
@@ -151,11 +151,15 @@ export class RPCSubprovider extends Subprovider {
         end(null, data.result);
     }
 
-    private _encodeRequestPayload(finalPayload: Partial<JSONRPCRequestPayloadWithMethod>): Buffer {
+    private async _encodeRequestPayloadAsync(finalPayload: Partial<JSONRPCRequestPayloadWithMethod>): Promise<Buffer> {
         const body = Buffer.from(JSON.stringify(finalPayload));
         if (!this._shouldCompressRequest) {
             return body;
         }
-        return Buffer.from(gzipSync(body));
+        return new Promise((resolve, reject) => {
+            gzip(body, (err, result) => {
+                err ? reject(err) : resolve(result);
+            });
+        });
     }
 }
