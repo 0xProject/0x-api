@@ -11,7 +11,7 @@ RUN apk update && \
     yarn cache clean
 
 # Runtime container with minimal dependencies
-FROM node:12-alpine
+FROM node:16-alpine
 
 RUN apk update && \
     apk upgrade && \
