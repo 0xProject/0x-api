@@ -143,10 +143,6 @@
   version "6.8.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.8.0.tgz#d974d80ec396f96a426da7daa419d8e437062e68"
 
-"@0x/contract-addresses@^6.9.0":
-  version "6.9.0"
-  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.9.0.tgz#910115ba5a9de8a7d9d03b44390c8b509cfed8a6"
-
 "@0x/contract-wrappers@^13.17.4", "@0x/contract-wrappers@^13.17.6":
   version "13.17.6"
   resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.17.6.tgz#e75cf9dea0d49bcc75320be2d4eef35e33b4b326"
@@ -983,12 +979,12 @@
   optionalDependencies:
     "@ledgerhq/hw-transport-node-hid" "^4.3.0"
 
-"@0x/token-metadata@^0.1.10":
-  version "0.1.10"
-  resolved "https://registry.yarnpkg.com/@0x/token-metadata/-/token-metadata-0.1.10.tgz#e65325f0c0af32d10c41d8f9340fe6a46f97537c"
-  integrity sha512-O/dvuwhPRAD3s35goQYUcA3tbzXVbL/AUxB93t7cZDch6VJ12DzuDnN90H0erUT2nUmwIY3eznz4d8skutNLRw==
+"@0x/token-metadata@^0.1.11":
+  version "0.1.11"
+  resolved "https://registry.yarnpkg.com/@0x/token-metadata/-/token-metadata-0.1.11.tgz#eff0cc0372704c1f07850dad1f5dadccad4c10e5"
+  integrity sha512-7YrAeTazMMo1z6qm17QKjrNUt0uO9/lIwXIBu96SfJAZ3NJBqtn8ev5ZLdgwv0gRS7u9hrBwpm0L57ALMm7dwQ==
   dependencies:
-    "@0x/contract-addresses" "^6.9.0"
+    "@0x/contract-addresses" "^6.11.0"
     typescript "^4.2.4"
 
 "@0x/tslint-config@^4.1.4":
