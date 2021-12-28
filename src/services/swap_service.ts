@@ -498,7 +498,7 @@ export class SwapService {
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
-            orders: swapQuote.hops.map(h => h.orders).flat(1),
+            orders: (marketSide === MarketOperation.Sell ? swapQuote.hops : swapQuote.hops.slice().reverse()).map(h => h.orders).flat(1),
             allowanceTarget,
             decodedUniqueId,
             extendedQuoteReportSources,
