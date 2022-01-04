@@ -12,13 +12,13 @@ const SAMPLER_GAS_LIMIT_SUMMARY = new Summary({
     help: 'Provides information about the gas limit detected during a sampler call',
 });
 
-const SAMPLER_BLOCK_NUMBER_GUAGE = new Gauge({
+const SAMPLER_BLOCK_NUMBER_GAUGE = new Gauge({
     name: 'sampler_blocknumber',
     help: 'Provides information about the gas limit detected during a sampler call',
 });
 
-const SAMPLER_ROUTER_EXECUTION_TIME_SUMMARY = new Summary({
-    name: 'sampler_router_execution_time',
+const ROUTER_EXECUTION_TIME_SUMMARY = new Summary({
+    name: 'router_execution_time',
     help: 'Provides information about the execution time for routing related logic',
     labelNames: ['router', 'type'],
 });
@@ -33,7 +33,7 @@ export const SAMPLER_METRICS: SamplerMetrics = {
     },
 
     logBlockNumber: (blockNumber: BigNumber): void => {
-        SAMPLER_BLOCK_NUMBER_GUAGE.set(blockNumber.toNumber());
+        SAMPLER_BLOCK_NUMBER_GAUGE.set(blockNumber.toNumber());
     },
 
     logRouterDetails: (data: {
@@ -42,6 +42,6 @@ export const SAMPLER_METRICS: SamplerMetrics = {
         timingMs: number;
     }): void => {
         const { router, type, timingMs } = data;
-        SAMPLER_ROUTER_EXECUTION_TIME_SUMMARY.observe({ router, type }, timingMs);
+        ROUTER_EXECUTION_TIME_SUMMARY.observe({ router, type }, timingMs);
     },
 };
