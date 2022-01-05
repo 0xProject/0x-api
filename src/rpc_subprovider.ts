@@ -6,7 +6,7 @@ import * as http from 'http';
 import * as https from 'https';
 import JsonRpcError = require('json-rpc-error');
 import fetch, { Headers, Response } from 'node-fetch';
-import { Counter, Histogram } from 'prom-client';
+import { Counter, Histogram, Summary } from 'prom-client';
 import { gzip } from 'zlib';
 
 import { ONE_SECOND_MS, PROMETHEUS_REQUEST_BUCKETS } from './constants';
@@ -22,11 +22,10 @@ const ETH_RPC_RESPONSE_TIME = new Histogram({
     buckets: PROMETHEUS_REQUEST_BUCKETS,
 });
 
-const ETH_RPC_REQUEST_SIZE = new Histogram({
-    name: 'eth_rpc_request_size',
+const ETH_RPC_REQUEST_SIZE_SUMMARY = new Summary({
+    name: 'eth_rpc_request_size_summary',
     help: 'The rpc request payload size',
     labelNames: ['method'],
-    buckets: PROMETHEUS_REQUEST_BUCKETS,
 });
 
 const ETH_RPC_REQUESTS = new Counter({
@@ -93,7 +92,7 @@ export class RPCSubprovider extends Subprovider {
         let response: Response;
         const rpcUrl = this._rpcUrls[Math.floor(Math.random() * this._rpcUrls.length)];
         const body = await this._encodeRequestPayloadAsync(finalPayload);
-        ETH_RPC_REQUEST_SIZE.labels(finalPayload.method!).observe(Buffer.byteLength(body, 'utf8'));
+        ETH_RPC_REQUEST_SIZE_SUMMARY.labels(finalPayload.method!).observe(Buffer.byteLength(body, 'utf8'));
         try {
             response = await fetch(rpcUrl, {
                 method: 'POST',
