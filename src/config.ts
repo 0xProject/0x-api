@@ -113,6 +113,48 @@ export const getIntegratorIdFromLabel = (label: string): string | undefined => {
     }
 };
 
+/**
+ * The JSON config for each Market Maker, providing information including URLs, type of order supported and authentication.
+ */
+ export interface RfqMakerConfig {
+    makerId: string;
+    label: string;
+    rfqmMakerUri: string;
+    rfqmOrderTypes: ('rfq' | 'otc')[];
+    rfqtMakerUri: string;
+    rfqtOrderTypes: ('rfq' | 'otc')[];
+    apiKeyHashes: string[];
+};
+
+/**
+ * Generate a map from MakerId to MakerConfig that support a given order type for a given workflow
+ */
+export const getMakerConfigMapForOrderType = (
+    orderType: 'rfq' | 'otc',
+    workflow: 'rfqt' | 'rfqm',
+): Map</* makerId */ string, RfqMakerConfig> => {
+    const typesField = workflow === 'rfqt' ? 'rfqtOrderTypes' : 'rfqmOrderTypes';
+    return RFQ_MAKER_CONFIGS.reduce((acc, curr) => {
+        if (curr[typesField].includes(orderType)) {
+            acc.set(curr.makerId, curr);
+        }
+        return acc;
+    }, new Map<string, RfqMakerConfig>());
+};
+
+/**
+ * A list of type RfqMakerConfig, read from the RFQ_MAKER_CONFIGS env variable
+ */
+ export const RFQ_MAKER_CONFIGS: RfqMakerConfig[] = (() => {
+    try {
+        const makerConfigs = resolveEnvVar<RfqMakerConfig[]>('RFQ_MAKER_CONFIGS', EnvVarType.JsonStringList, []);
+        schemaUtils.validateSchema(makerConfigs, schemas.rfqMakerConfigListSchema);
+        return makerConfigs;
+    } catch (e) {
+        throw new Error(`RFQ_MAKER_CONFIGS was defined but is not valid JSON per the schema: ${e}`);
+    }
+})();
+
 // Log level for pino.js
 export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
     ? 'info'
@@ -264,6 +306,10 @@ export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegrator
 export const RFQM_API_KEY_WHITELIST: Set<string> = new Set(getApiKeyWhitelistFromIntegratorsAcl('rfqm'));
 export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('plp');
 
+export const RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER: Map<string, RfqMakerConfig> = getMakerConfigMapForOrderType(
+    'rfq',
+    'rfqt',
+);
 export const MATCHA_INTEGRATOR_ID: string | undefined = getIntegratorIdFromLabel('Matcha');
 
 export const RFQT_TX_ORIGIN_BLACKLIST: Set<string> = new Set(

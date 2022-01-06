@@ -3,6 +3,7 @@ export { KeyValueEntity } from './KeyValueEntity';
 export { MakerBalanceChainCacheEntity } from './MakerBalanceChainCacheEntity';
 export { PersistentSignedOrderEntity } from './PersistentSignedOrderEntity';
 export { PersistentSignedOrderV4Entity } from './PersistentSignedOrderV4Entity';
+export { RfqMakerPairs } from './RfqMakerPairs';
 export { RfqmJobEntity } from './RfqmJobEntity';
 export { RfqmQuoteEntity } from './RfqmQuoteEntity';
 export { RfqmWorkerHeartbeatEntity } from './RfqmWorkerHeartbeatEntity';
