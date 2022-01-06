@@ -73,6 +73,7 @@ import { METRICS_PROXY } from '../utils/metrics_service';
 import { paginationUtils } from '../utils/pagination_utils';
 import { createResultCache } from '../utils/result_cache';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
+import { SAMPLER_METRICS } from '../utils/sampler_metrics';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
 
@@ -217,6 +218,7 @@ export class SwapService {
 
         // Check if integrator ID specifically whitelists a set of maker URIs. If whitelist is "undefined" then it
         // means all integrators will be enabled.
+
         if (shouldEnableRfqt) {
             // tslint:disable-next-line:custom-no-magic-numbers
             const altRfqAssetOfferings = await this._getAltMarketOfferingsAsync(1500);
@@ -259,6 +261,7 @@ export class SwapService {
             rfqt: _rfqt,
             shouldGenerateQuoteReport,
             shouldIncludePriceComparisonsReport: !!includePriceComparisons,
+            samplerMetrics: SAMPLER_METRICS,
         };
 
         const marketSide = sellAmount !== undefined ? MarketOperation.Sell : MarketOperation.Buy;
@@ -282,7 +285,7 @@ export class SwapService {
             protocolFeeInWeiAmount: bestCaseProtocolFee,
         } = swapQuote.bestCaseQuoteInfo;
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = swapQuote.worstCaseQuoteInfo;
-        const { gasPrice, sourceBreakdown, quoteReport, extendedQuoteReportSources, priceComparisonsReport } =
+        const { gasPrice, sourceBreakdown, quoteReport, priceComparisonsReport, extendedQuoteReportSources } =
             swapQuote;
 
         const {
@@ -388,12 +391,13 @@ export class SwapService {
             orders: swapQuote.orders,
             allowanceTarget,
             decodedUniqueId,
+            extendedQuoteReportSources,
             sellTokenToEthRate,
             buyTokenToEthRate,
             quoteReport,
-            extendedQuoteReportSources,
             priceComparisonsReport,
         };
+
         return apiSwapQuote;
     }
 
