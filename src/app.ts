@@ -116,7 +116,7 @@ export async function getContractAddressesForNetworkOrThrowAsync(
 /**
  * Create and initialize a PairsManager instance
  */
-async function createAndInitializePairsManager(connection: Connection): Promise<PairsManager> {
+async function createAndInitializePairsManagerAsync(connection: Connection): Promise<PairsManager> {
     const configManager: ConfigManager = new ConfigManager();
     const rfqMakerDbUtils: RfqMakerDbUtils = new RfqMakerDbUtils(connection);
     const pairsManager = new PairsManager(configManager, rfqMakerDbUtils);
@@ -166,7 +166,7 @@ export async function getDefaultAppDependenciesAsync(
             RFQ_DYNAMIC_BLACKLIST_TTL,
         );
 
-        const pairsManager = await createAndInitializePairsManager(connection);
+        const pairsManager = await createAndInitializePairsManagerAsync(connection);
         swapService = new SwapService(
             new AssetSwapperOrderbook(orderBookService),
             provider,

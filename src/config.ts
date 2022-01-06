@@ -116,7 +116,7 @@ export const getIntegratorIdFromLabel = (label: string): string | undefined => {
 /**
  * The JSON config for each Market Maker, providing information including URLs, type of order supported and authentication.
  */
- export interface RfqMakerConfig {
+export interface RfqMakerConfig {
     makerId: string;
     label: string;
     rfqmMakerUri: string;
@@ -124,7 +124,7 @@ export const getIntegratorIdFromLabel = (label: string): string | undefined => {
     rfqtMakerUri: string;
     rfqtOrderTypes: ('rfq' | 'otc')[];
     apiKeyHashes: string[];
-};
+}
 
 /**
  * Generate a map from MakerId to MakerConfig that support a given order type for a given workflow
@@ -145,7 +145,7 @@ export const getMakerConfigMapForOrderType = (
 /**
  * A list of type RfqMakerConfig, read from the RFQ_MAKER_CONFIGS env variable
  */
- export const RFQ_MAKER_CONFIGS: RfqMakerConfig[] = (() => {
+export const RFQ_MAKER_CONFIGS: RfqMakerConfig[] = (() => {
     try {
         const makerConfigs = resolveEnvVar<RfqMakerConfig[]>('RFQ_MAKER_CONFIGS', EnvVarType.JsonStringList, []);
         schemaUtils.validateSchema(makerConfigs, schemas.rfqMakerConfigListSchema);

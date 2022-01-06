@@ -760,13 +760,13 @@ export class SwapService {
     /**
      * Recreate the cached QuoteRequestor instance with up date date RFQm assets from PairManager
      */
-     private _renewSwapQuoter(): void {
+    private _renewSwapQuoter(): void {
         if (this._pairsManager !== undefined && this._swapQuoterOpts.rfqt !== undefined) {
             this._swapQuoterOpts.rfqt.makerAssetOfferings = this._pairsManager.getRfqtMakerOfferingsForRfqOrder();
             this._swapQuoter = new SwapQuoter(
                 this._swapQuoter.provider,
                 this._swapQuoter.orderbook,
-                this._swapQuoterOpts
+                this._swapQuoterOpts,
             );
         }
     }
