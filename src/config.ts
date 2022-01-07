@@ -127,12 +127,17 @@ export interface RfqMakerConfig {
 }
 
 /**
+ * A Map type which map the makerId to the config object.
+ */
+export type MakerIdsToConfigs = Map</* makerId */ string, RfqMakerConfig>;
+
+/**
  * Generate a map from MakerId to MakerConfig that support a given order type for a given workflow
  */
 export const getMakerConfigMapForOrderType = (
     orderType: 'rfq' | 'otc',
     workflow: 'rfqt' | 'rfqm',
-): Map</* makerId */ string, RfqMakerConfig> => {
+): MakerIdsToConfigs => {
     const typesField = workflow === 'rfqt' ? 'rfqtOrderTypes' : 'rfqmOrderTypes';
     return RFQ_MAKER_CONFIGS.reduce((acc, curr) => {
         if (curr[typesField].includes(orderType)) {
@@ -306,10 +311,7 @@ export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegrator
 export const RFQM_API_KEY_WHITELIST: Set<string> = new Set(getApiKeyWhitelistFromIntegratorsAcl('rfqm'));
 export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('plp');
 
-export const RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER: Map<string, RfqMakerConfig> = getMakerConfigMapForOrderType(
-    'rfq',
-    'rfqt',
-);
+export const RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER: MakerIdsToConfigs = getMakerConfigMapForOrderType('rfq', 'rfqt');
 export const MATCHA_INTEGRATOR_ID: string | undefined = getIntegratorIdFromLabel('Matcha');
 
 export const RFQT_TX_ORIGIN_BLACKLIST: Set<string> = new Set(

@@ -2,7 +2,7 @@ import { RfqMakerAssetOfferings } from '@0x/asset-swapper';
 import * as EventEmitter from 'events';
 import { Counter, Summary } from 'prom-client';
 
-import { RfqMakerConfig } from '../config';
+import { MakerIdsToConfigs, RfqMakerConfig } from '../config';
 import { RFQ_MAKER_URL_FIELD, RFQ_PAIR_REFRESH_INTERVAL_MS, RFQ_WORKFLOW } from '../constants';
 import { RfqMakerPairs } from '../entities';
 import { logger } from '../logger';
@@ -27,17 +27,19 @@ const RFQ_MAKER_PAIRS_REFRESH_LATENCY = new Summary({
 });
 
 /**
- * Get a function to reduce an array of RfqMakerPairs obtained from database to RfqMakerAssetOfferings
- * for given makers and URI field name which depends on the workflow type.
+ * Returns Asset Offerings from an RfqMakerConfig map and a list of RfqMakerPairs
  */
-const getReduceToOfferingFunction = (makers: Map<string, RfqMakerConfig>) => {
-    return (offering: RfqMakerAssetOfferings, pairs: RfqMakerPairs): RfqMakerAssetOfferings => {
-        if (makers.has(pairs.makerId)) {
-            const makerConfig: RfqMakerConfig = makers.get(pairs.makerId)!;
+const generateAssetOfferings = (
+    makerConfigMap: MakerIdsToConfigs,
+    makerPairsList: RfqMakerPairs[],
+): RfqMakerAssetOfferings => {
+    return makerPairsList.reduce((offering: RfqMakerAssetOfferings, pairs: RfqMakerPairs) => {
+        if (makerConfigMap.has(pairs.makerId)) {
+            const makerConfig: RfqMakerConfig = makerConfigMap.get(pairs.makerId)!;
             offering[makerConfig[RFQ_MAKER_URL_FIELD]] = pairs.pairs;
         }
         return offering;
-    };
+    }, {});
 };
 
 /**
@@ -46,7 +48,7 @@ const getReduceToOfferingFunction = (makers: Map<string, RfqMakerConfig>) => {
 export class PairsManager extends EventEmitter {
     public static REFRESHED_EVENT = 'refreshed';
 
-    private readonly _rfqtMakerConfigMapForRfqOrder: Map<string, RfqMakerConfig>;
+    private readonly _rfqtMakerConfigMapForRfqOrder: MakerIdsToConfigs;
     private _rfqtMakerOfferingsForRfqOrder: RfqMakerAssetOfferings;
 
     constructor(private readonly _configManager: ConfigManager, private readonly _dbUtils: RfqMakerDbUtils) {
@@ -88,10 +90,9 @@ export class PairsManager extends EventEmitter {
 
             const rfqMakerPairs = await this._dbUtils.getPairsArrayAsync(chainId);
 
-            this._rfqtMakerOfferingsForRfqOrder = {};
-            rfqMakerPairs.reduce(
-                getReduceToOfferingFunction(this._rfqtMakerConfigMapForRfqOrder),
-                this._rfqtMakerOfferingsForRfqOrder,
+            this._rfqtMakerOfferingsForRfqOrder = generateAssetOfferings(
+                this._rfqtMakerConfigMapForRfqOrder,
+                rfqMakerPairs,
             );
 
             this.emit(PairsManager.REFRESHED_EVENT);

@@ -6,7 +6,7 @@ import {
     getIntegratorByIdOrThrow,
     getIntegratorIdForApiKey,
     Integrator,
-    RfqMakerConfig,
+    MakerIdsToConfigs,
     RFQM_API_KEY_WHITELIST,
     RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER,
 } from '../config';
@@ -33,7 +33,7 @@ export class ConfigManager {
      * Get a map of makers that support RFQt workflow with rfq order type
      * @returns a map from makerIds to makers' configuration object
      */
-    public getRfqtMakerConfigMapForRfqOrder(): Map<string, RfqMakerConfig> {
+    public getRfqtMakerConfigMapForRfqOrder(): MakerIdsToConfigs {
         return RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER;
     }
 
