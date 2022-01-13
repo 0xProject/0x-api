@@ -96,7 +96,6 @@
         "@0x/contracts-utils": "^4.8.6",
         "@0x/dev-utils": "^4.2.10",
         "@0x/migrations": "^8.1.14",
-        "@0x/neon-router": "^0.3.0",
         "@0x/tslint-config": "^4.1.4",
         "@0x/typescript-typings": "^5.2.1",
         "@balancer-labs/sor": "^0.3.0",
@@ -139,7 +138,7 @@
     "dependencies": {
         "@0x/api-utils": "^0.0.1",
         "@0x/assert": "^3.0.30",
-        "@0x/asset-swapper": "^16.45.1",
+        "@0x/asset-swapper": "^16.46.0",
         "@0x/contract-addresses": "^6.11.0",
         "@0x/contract-wrappers": "^13.18.5",
         "@0x/contracts-zero-ex": "^0.30.1",
