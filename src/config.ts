@@ -31,6 +31,7 @@ import {
     HEALTHCHECK_PATH,
     METRICS_PATH,
     NULL_ADDRESS,
+    ONE_MINUTE_MS,
     ORDERBOOK_PATH,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     TX_BASE_GAS,
@@ -113,6 +114,12 @@ export const getIntegratorIdFromLabel = (label: string): string | undefined => {
     }
 };
 
+export type RfqWorkFlowType = 'rfqt' | 'rfqm';
+export type RfqOrderType = 'rfq' | 'otc';
+
+export const RFQ_WORKFLOW: RfqWorkFlowType = 'rfqt'; // This code base currently only supports rfqt workflow.
+export const RFQ_PAIR_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
+
 /**
  * The JSON config for each Market Maker, providing information including URIs, type of order supported and authentication.
  */
@@ -120,9 +127,9 @@ export interface RfqMakerConfig {
     makerId: string;
     label: string;
     rfqmMakerUri: string;
-    rfqmOrderTypes: ('rfq' | 'otc')[];
+    rfqmOrderTypes: RfqOrderType[];
     rfqtMakerUri: string;
-    rfqtOrderTypes: ('rfq' | 'otc')[];
+    rfqtOrderTypes: RfqOrderType[];
     apiKeyHashes: string[];
 }
 
@@ -135,12 +142,12 @@ export type MakerIdsToConfigs = Map</* makerId */ string, RfqMakerConfig>;
  * Generate a map from MakerId to MakerConfig that support a given order type for a given workflow
  */
 export const getMakerConfigMapForOrderType = (
-    orderType: 'rfq' | 'otc',
-    workflow: 'rfqt' | 'rfqm',
+    orderType: RfqOrderType | 'any',
+    workflow: RfqWorkFlowType,
 ): MakerIdsToConfigs => {
     const typesField = workflow === 'rfqt' ? 'rfqtOrderTypes' : 'rfqmOrderTypes';
     return RFQ_MAKER_CONFIGS.reduce((acc, curr) => {
-        if (curr[typesField].includes(orderType)) {
+        if (orderType === 'any' || curr[typesField].includes(orderType)) {
             acc.set(curr.makerId, curr);
         }
         return acc;

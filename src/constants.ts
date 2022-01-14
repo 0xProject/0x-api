@@ -16,7 +16,6 @@ export const DEFAULT_LOCAL_REDIS_URI = 'redis://localhost';
 export const DEFAULT_LOGGER_INCLUDE_TIMESTAMP = true;
 export const ONE_SECOND_MS = 1000;
 export const ONE_MINUTE_MS = ONE_SECOND_MS * 60;
-export const ONE_HOUR_MS = ONE_MINUTE_MS * 60;
 export const TEN_MINUTES_MS = ONE_MINUTE_MS * 10;
 export const DEFAULT_VALIDATION_GAS_LIMIT = 10e6;
 export const HEX_BASE = 16;
@@ -45,10 +44,6 @@ export const AFFILIATE_DATA_SELECTOR = '869584cd';
 export const KEEP_ALIVE_TTL = ONE_MINUTE_MS * 5;
 export const RFQM_TRANSACTION_WATCHER_SLEEP_TIME_MS = ONE_SECOND_MS * 15;
 export const RFQM_NUM_BUCKETS = 1000;
-
-export const RFQ_WORKFLOW: 'rfqt' | 'rfqm' = 'rfqt'; // This code base only supports rfqt workflow. rfqm is currently supported in 0x-rfq-api repo.
-export const RFQ_MAKER_URL_FIELD: 'rfqtMakerUri' | 'rfqmMakerUri' = 'rfqtMakerUri';
-export const RFQ_PAIR_REFRESH_INTERVAL_MS: number = ONE_HOUR_MS * 1;
 
 // API namespaces
 export const SRA_PATH = '/sra/v4';

@@ -2,8 +2,7 @@ import { RfqMakerAssetOfferings } from '@0x/asset-swapper';
 import * as EventEmitter from 'events';
 import { Counter, Summary } from 'prom-client';
 
-import { MakerIdsToConfigs, RfqMakerConfig } from '../config';
-import { RFQ_MAKER_URL_FIELD, RFQ_PAIR_REFRESH_INTERVAL_MS, RFQ_WORKFLOW } from '../constants';
+import { MakerIdsToConfigs, RfqMakerConfig, RFQ_PAIR_REFRESH_INTERVAL_MS, RFQ_WORKFLOW } from '../config';
 import { RfqMakerPairs } from '../entities';
 import { logger } from '../logger';
 
@@ -26,6 +25,7 @@ const RFQ_MAKER_PAIRS_REFRESH_LATENCY = new Summary({
     labelNames: ['chainId', 'workflow'],
 });
 
+const RfqMakerUrlField: 'rfqtMakerUri' | 'rfqmMakerUri' = `${RFQ_WORKFLOW}MakerUri`;
 /**
  * Returns Asset Offerings from an RfqMakerConfig map and a list of RfqMakerPairs
  */
@@ -36,7 +36,7 @@ const generateAssetOfferings = (
     return makerPairsList.reduce((offering: RfqMakerAssetOfferings, pairs: RfqMakerPairs) => {
         if (makerConfigMap.has(pairs.makerId)) {
             const makerConfig: RfqMakerConfig = makerConfigMap.get(pairs.makerId)!;
-            offering[makerConfig[RFQ_MAKER_URL_FIELD]] = pairs.pairs;
+            offering[makerConfig[RfqMakerUrlField]] = pairs.pairs;
         }
         return offering;
     }, {});
@@ -50,12 +50,14 @@ export class PairsManager extends EventEmitter {
 
     private readonly _rfqtMakerConfigMapForRfqOrder: MakerIdsToConfigs;
     private _rfqtMakerOfferingsForRfqOrder: RfqMakerAssetOfferings;
+    private _rfqMakerPairsListUpdateTimeHash: string | null;
 
     constructor(private readonly _configManager: ConfigManager, private readonly _dbUtils: RfqMakerDbUtils) {
         super();
 
         this._rfqtMakerOfferingsForRfqOrder = {};
         this._rfqtMakerConfigMapForRfqOrder = this._configManager.getRfqtMakerConfigMapForRfqOrder();
+        this._rfqMakerPairsListUpdateTimeHash = null;
     }
 
     /**
@@ -86,8 +88,18 @@ export class PairsManager extends EventEmitter {
         const timerStopFunction = RFQ_MAKER_PAIRS_REFRESH_LATENCY.labels(chainId.toString(), RFQ_WORKFLOW).startTimer();
 
         try {
+            logger.info({ chainId, refreshTime }, `Check if refreshing is necessary.`);
+
+            const rfqMakerPairsListUpdateTimeHash = await this._dbUtils.getPairsArrayUpdateTimeHashAsync(chainId);
+
+            if (rfqMakerPairsListUpdateTimeHash === this._rfqMakerPairsListUpdateTimeHash) {
+                logger.info({ chainId, refreshTime }, `Pairs are up to date.`);
+                return;
+            }
+
             logger.info({ chainId, refreshTime }, `Start refreshing pairs.`);
 
+            this._rfqMakerPairsListUpdateTimeHash = rfqMakerPairsListUpdateTimeHash;
             const rfqMakerPairs = await this._dbUtils.getPairsArrayAsync(chainId);
 
             this._rfqtMakerOfferingsForRfqOrder = generateAssetOfferings(
