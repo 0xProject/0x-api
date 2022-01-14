@@ -114,7 +114,7 @@ export const getIntegratorIdFromLabel = (label: string): string | undefined => {
 };
 
 /**
- * The JSON config for each Market Maker, providing information including URLs, type of order supported and authentication.
+ * The JSON config for each Market Maker, providing information including URIs, type of order supported and authentication.
  */
 export interface RfqMakerConfig {
     makerId: string;

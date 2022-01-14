@@ -758,7 +758,7 @@ export class SwapService {
     }
 
     /**
-     * Recreate the cached QuoteRequestor instance with up date date RFQm assets from PairManager
+     * Update to a new SwapQuoter instance with the newest RFQt assets offerings
      */
     private _renewSwapQuoter(): void {
         if (this._pairsManager !== undefined && this._swapQuoterOpts.rfqt !== undefined) {
