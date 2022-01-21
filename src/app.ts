@@ -120,7 +120,8 @@ async function createAndInitializePairsManagerAsync(
     configManager: ConfigManager,
     rfqMakerDbUtils: RfqMakerDbUtils,
 ): Promise<PairsManager | undefined> {
-    if (configManager.getChainId() !== ChainId.Mainnet) {
+    const chainId = configManager.getChainId();
+    if (chainId !== ChainId.Mainnet && chainId !== ChainId.Ropsten) {
         return undefined;
     }
 
