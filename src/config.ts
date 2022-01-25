@@ -31,6 +31,7 @@ import {
     HEALTHCHECK_PATH,
     METRICS_PATH,
     NULL_ADDRESS,
+    ONE_MINUTE_MS,
     ORDERBOOK_PATH,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     TX_BASE_GAS,
@@ -39,6 +40,8 @@ import { schemas } from './schemas';
 import { HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 import { schemaUtils } from './utils/schema_utils';
+
+const SHOULD_USE_RUST_ROUTER = process.env.RUST_ROUTER === 'true';
 
 // tslint:disable:no-bitwise
 
@@ -112,6 +115,59 @@ export const getIntegratorIdFromLabel = (label: string): string | undefined => {
         }
     }
 };
+
+export type RfqWorkFlowType = 'rfqt' | 'rfqm';
+export type RfqOrderType = 'rfq' | 'otc';
+
+export const RFQ_WORKFLOW: RfqWorkFlowType = 'rfqt'; // This code base currently only supports rfqt workflow.
+export const RFQ_PAIR_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
+
+/**
+ * The JSON config for each Market Maker, providing information including URIs, type of order supported and authentication.
+ */
+export interface RfqMakerConfig {
+    makerId: string;
+    label: string;
+    rfqmMakerUri: string;
+    rfqmOrderTypes: RfqOrderType[];
+    rfqtMakerUri: string;
+    rfqtOrderTypes: RfqOrderType[];
+    apiKeyHashes: string[];
+}
+
+/**
+ * A Map type which map the makerId to the config object.
+ */
+export type MakerIdsToConfigs = Map</* makerId */ string, RfqMakerConfig>;
+
+/**
+ * Generate a map from MakerId to MakerConfig that support a given order type for a given workflow
+ */
+export const getMakerConfigMapForOrderType = (
+    orderType: RfqOrderType | 'any',
+    workflow: RfqWorkFlowType,
+): MakerIdsToConfigs => {
+    const typesField = workflow === 'rfqt' ? 'rfqtOrderTypes' : 'rfqmOrderTypes';
+    return RFQ_MAKER_CONFIGS.reduce((acc, curr) => {
+        if (orderType === 'any' || curr[typesField].includes(orderType)) {
+            acc.set(curr.makerId, curr);
+        }
+        return acc;
+    }, new Map<string, RfqMakerConfig>());
+};
+
+/**
+ * A list of type RfqMakerConfig, read from the RFQ_MAKER_CONFIGS env variable
+ */
+export const RFQ_MAKER_CONFIGS: RfqMakerConfig[] = (() => {
+    try {
+        const makerConfigs = resolveEnvVar<RfqMakerConfig[]>('RFQ_MAKER_CONFIGS', EnvVarType.JsonStringList, []);
+        schemaUtils.validateSchema(makerConfigs, schemas.rfqMakerConfigListSchema);
+        return makerConfigs;
+    } catch (e) {
+        throw new Error(`RFQ_MAKER_CONFIGS was defined but is not valid JSON per the schema: ${e}`);
+    }
+})();
 
 // Log level for pino.js
 export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
@@ -264,6 +320,7 @@ export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegrator
 export const RFQM_API_KEY_WHITELIST: Set<string> = new Set(getApiKeyWhitelistFromIntegratorsAcl('rfqm'));
 export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('plp');
 
+export const RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER: MakerIdsToConfigs = getMakerConfigMapForOrderType('rfq', 'rfqt');
 export const MATCHA_INTEGRATOR_ID: string | undefined = getIntegratorIdFromLabel('Matcha');
 
 export const RFQT_TX_ORIGIN_BLACKLIST: Set<string> = new Set(
@@ -531,13 +588,18 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
 
 export const NATIVE_WRAPPED_TOKEN_SYMBOL = nativeWrappedTokenSymbol(CHAIN_ID);
 
+const NEON_ROUTER_NUM_SAMPLES = 14;
+// TODO(kimpers): Due to an issue with the Rust router we want to use equidistant samples when using the Rust router
+const SAMPLE_DISTRIBUTION_BASE = SHOULD_USE_RUST_ROUTER ? 1 : 1.05;
+
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
     excludedFeeSources: EXCLUDED_FEE_SOURCES,
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
-    sampleDistributionBase: 1.05,
+    sampleDistributionBase: SAMPLE_DISTRIBUTION_BASE,
+    neonRouterNumSamples: NEON_ROUTER_NUM_SAMPLES,
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
     runLimit: 2 ** 8,
     shouldGenerateQuoteReport: true,

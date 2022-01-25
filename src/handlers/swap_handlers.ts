@@ -377,7 +377,6 @@ export class SwapHandlers {
                     },
                 ]);
             }
-            req.log.info('Uncaught error', e.message, e.stack);
             throw new InternalServerError(e.message);
         }
     }
@@ -399,6 +398,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     // tslint:disable:boolean-naming
     let skipValidation: boolean;
     skipValidation = req.query.skipValidation === undefined ? false : req.query.skipValidation === 'true';
+
     if (endpoint === 'quote' && integratorId !== undefined && integratorId === MATCHA_INTEGRATOR_ID) {
         // NOTE: force skip validation to false if the quote comes from Matcha
         // NOTE: allow skip validation param if the quote comes from unknown integrators (without API keys or Simbot)
