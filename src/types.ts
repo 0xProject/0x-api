@@ -208,6 +208,7 @@ interface QuoteBase {
     protocolFee: BigNumber;
     minimumProtocolFee: BigNumber;
     allowanceTarget?: string;
+    estimatedPriceImpactPercentage: BigNumber;
 }
 
 export interface GetSwapQuoteResponseLiquiditySource {
@@ -261,7 +262,6 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     quoteReport?: QuoteReport;
     extendedQuoteReportSources?: ExtendedQuoteReportSources;
     priceComparisonsReport?: PriceComparisonsReport;
-    estimatedPriceImpactPercentage: BigNumber;
 }
 
 export interface SwapQuoteResponsePartialTransaction {

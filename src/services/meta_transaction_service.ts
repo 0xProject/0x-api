@@ -114,6 +114,7 @@ export class MetaTransactionService {
         const commonQuoteFields = {
             chainId: quote.chainId,
             price: quote.price,
+            estimatedPriceImpactPercentage: quote.estimatedPriceImpactPercentage,
             sellTokenAddress: params.sellTokenAddress,
             buyTokenAddress: params.buyTokenAddress,
             buyAmount: quote.buyAmount!,
@@ -367,6 +368,7 @@ export class MetaTransactionService {
         return {
             chainId: quote.chainId,
             price: quote.price,
+            estimatedPriceImpactPercentage: quote.estimatedPriceImpactPercentage,
             gasPrice: quote.gasPrice,
             protocolFee: quote.protocolFee,
             sources: quote.sources,
