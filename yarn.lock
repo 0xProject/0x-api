@@ -57,9 +57,10 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@^16.45.1":
-  version "16.45.1"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.45.1.tgz#6f9f6b94cd6f2b4df6afe15d4bbd42cc38d0af53"
+"@0x/asset-swapper@^16.47.0":
+  version "16.47.0"
+  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.47.0.tgz#9711cd951431bc1cc311a1e7c9a7b860d93857be"
+  integrity sha512-hviPf6KMdDe/5jicomtSlQIGztUUAMAnZgh2Cd/NuQGkNjiIYzHFzPbkkn+t28kS6WOMRUhTjP3q5Ge//fCRLg==
   dependencies:
     "@0x/assert" "^3.0.29"
     "@0x/base-contract" "^6.4.2"
@@ -966,9 +967,10 @@
   optionalDependencies:
     "@ledgerhq/hw-transport-node-hid" "^4.3.0"
 
-"@0x/token-metadata@^0.1.12":
-  version "0.1.12"
-  resolved "https://registry.yarnpkg.com/@0x/token-metadata/-/token-metadata-0.1.12.tgz#36e79e4dc608e892d971c08530b6cc8cea974c50"
+"@0x/token-metadata@^0.1.15":
+  version "0.1.15"
+  resolved "https://registry.yarnpkg.com/@0x/token-metadata/-/token-metadata-0.1.15.tgz#ca51986cfbb705297abda811f78b8311c8777000"
+  integrity sha512-MwonIGEi3lFy6GxPhDv4HTtBZ46DBzW/CorDuHxBvEwDcTZrzVkaS4k70bB7fTPsZuE2FOBJCLr56hMh2sOhYQ==
   dependencies:
     "@0x/contract-addresses" "^6.11.0"
     typescript "^4.2.4"
@@ -5045,9 +5047,10 @@ fake-merkle-patricia-tree@^1.0.1:
   dependencies:
     checkpoint-store "^1.1.0"
 
-fast-abi@^0.0.2:
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/fast-abi/-/fast-abi-0.0.2.tgz#da5f796fd7c7b0c966d916ee21daae3eca61c07c"
+fast-abi@^0.0.2, fast-abi@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/fast-abi/-/fast-abi-0.0.3.tgz#b6da674cbbc699e6ccc32888642eb26dd09de1f4"
+  integrity sha512-3LhvfQQCbi9f+j4c6hNU7mIIX6Sn1Gj5fWVji90LmVj4cXLfF6kBi70SqcsTsW6YjzuhzFDHqXXb5/udFKNThg==
   dependencies:
     "@mapbox/node-pre-gyp" "^1.0.4"
     neon-cli "^0.8.0"
