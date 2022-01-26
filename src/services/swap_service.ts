@@ -349,6 +349,10 @@ export class SwapService {
                     conservativeBestCaseGasEstimate,
                 );
             } catch (error) {
+                if (isFirmQuote) {
+                    // On firm quotes, when skipValidation=false, we want to raise an error
+                    throw error;
+                }
                 logger.warn(
                     { takerAddress, data, value, gasPrice, error: error?.message },
                     'Unable to use eth_estimateGas. Falling back to faux estimate',
