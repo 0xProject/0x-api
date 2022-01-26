@@ -325,7 +325,7 @@ export class SwapService {
 
         // Cannot eth_gasEstimate for indicative quotes when RFQ Native liquidity is included
         const isNativeIncluded = swapQuote.sourceBreakdown.Native !== undefined;
-        const isFirmQuote = !_rfqt?.isIndicative;
+        const isFirmQuote = _rfqt !== undefined && !_rfqt.isIndicative;
         const canEstimateGas = isFirmQuote || !isNativeIncluded;
 
         // If the taker address is provided we can provide a more accurate gas estimate
