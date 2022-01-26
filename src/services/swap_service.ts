@@ -332,21 +332,28 @@ export class SwapService {
         // using eth_gasEstimate
         // If an error occurs we attempt to provide a better message then "Transaction Reverted"
         if (takerAddress && !skipValidation && canEstimateGas) {
-            let estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
-                to,
-                data,
-                from: takerAddress,
-                value,
-                gasPrice,
-            });
-            // Add any underterministic gas overhead the encoded transaction has detected
-            estimateGasCallResult = estimateGasCallResult.plus(gasOverhead);
-            // Take the max of the faux estimate or the real estimate
-            conservativeBestCaseGasEstimate = BigNumber.max(
-                // Add a little buffer to eth_estimateGas as it is not always correct
-                estimateGasCallResult.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue(),
-                conservativeBestCaseGasEstimate,
-            );
+            try {
+                let estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
+                    to,
+                    data,
+                    from: takerAddress,
+                    value,
+                    gasPrice,
+                });
+                // Add any underterministic gas overhead the encoded transaction has detected
+                estimateGasCallResult = estimateGasCallResult.plus(gasOverhead);
+                // Take the max of the faux estimate or the real estimate
+                conservativeBestCaseGasEstimate = BigNumber.max(
+                    // Add a little buffer to eth_estimateGas as it is not always correct
+                    estimateGasCallResult.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue(),
+                    conservativeBestCaseGasEstimate,
+                );
+            } catch (error) {
+                logger.warn(
+                    { takerAddress, data, value, gasPrice, error: error?.message },
+                    'Unable to use eth_estimateGas. Falling back to faux estimate',
+                );
+            }
         }
         // If any sources can be undeterministic in gas costs, we add a buffer
         const hasUndeterministicFills = _.flatten(swapQuote.orders.map((order) => order.fills)).some((fill) =>
