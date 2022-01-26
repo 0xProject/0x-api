@@ -194,6 +194,7 @@ export class SwapService {
 
     public async calculateSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
         const {
+            endpoint,
             takerAddress,
             sellAmount,
             buyAmount,
@@ -323,10 +324,10 @@ export class SwapService {
             .plus(isETHSell ? WRAP_ETH_GAS : 0)
             .plus(isETHBuy ? UNWRAP_WETH_GAS : 0);
 
-        // Cannot eth_gasEstimate for indicative quotes when RFQ Native liquidity is included
+        // Cannot eth_gasEstimate for /price when RFQ Native liquidity is included
         const isNativeIncluded = swapQuote.sourceBreakdown.Native !== undefined;
-        const isFirmQuote = _rfqt !== undefined && !_rfqt.isIndicative;
-        const canEstimateGas = isFirmQuote || !isNativeIncluded;
+        const isQuote = endpoint === 'quote';
+        const canEstimateGas = isQuote || !isNativeIncluded;
 
         // If the taker address is provided we can provide a more accurate gas estimate
         // using eth_gasEstimate
@@ -349,8 +350,8 @@ export class SwapService {
                     conservativeBestCaseGasEstimate,
                 );
             } catch (error) {
-                if (isFirmQuote) {
-                    // On firm quotes, when skipValidation=false, we want to raise an error
+                if (isQuote) {
+                    // On /quote, when skipValidation=false, we want to raise an error
                     throw error;
                 }
                 logger.warn(

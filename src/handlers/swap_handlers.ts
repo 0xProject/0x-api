@@ -539,6 +539,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     const integrator = integratorId ? getIntegratorByIdOrThrow(integratorId) : undefined;
 
     return {
+        endpoint,
         takerAddress: takerAddress as string,
         sellToken,
         buyToken,
