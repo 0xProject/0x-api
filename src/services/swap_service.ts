@@ -101,14 +101,20 @@ export class SwapService {
      * @param sellTokenToEthRate the rate of selling the sellToken to the native asset (e.g USDC->FTM)
      * @param buyTokenToEthRate  the rate of selling the buy token to the native asset (e.g DAI->FTM)
      * @param marketSide whether this is a sell or a buy (as the price is flipped)
-     * @returns an estimated price impact percentage calculated from the fee sources (median value)
+     * @returns an estimated price impact percentage calculated from the fee sources (median value).
+     * We return undefined if we are unable to calculate a price impact
      */
     private static _calculateEstimatedPriceImpactPercent(
         price: BigNumber,
         sellTokenToEthRate: BigNumber,
         buyTokenToEthRate: BigNumber,
         marketSide: MarketOperation,
-    ): BigNumber {
+    ): BigNumber | undefined {
+        // There are cases where our fee source information is limited
+        // since it is only a shallow search, as such we can't calculate price impact
+        if (sellTokenToEthRate.isZero() || buyTokenToEthRate.isZero()) {
+            return undefined;
+        }
         // ETH to USDC
         // price: "2418.92"
         // sellTokenToEthRate: "1"

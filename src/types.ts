@@ -208,7 +208,9 @@ interface QuoteBase {
     protocolFee: BigNumber;
     minimumProtocolFee: BigNumber;
     allowanceTarget?: string;
-    estimatedPriceImpactPercentage: BigNumber;
+    // Our calculated price impact or undefined if we were unable to
+    // to calculate any price impact
+    estimatedPriceImpactPercentage: BigNumber | undefined;
 }
 
 export interface GetSwapQuoteResponseLiquiditySource {
