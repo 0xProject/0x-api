@@ -102,25 +102,25 @@ export class SwapService {
      * @param buyTokenToEthRate  the rate of selling the buy token to the native asset (e.g DAI->FTM)
      * @param marketSide whether this is a sell or a buy (as the price is flipped)
      * @returns an estimated price impact percentage calculated from the fee sources (median value).
-     * We return undefined if we are unable to calculate a price impact
+     * We return null if we are unable to calculate a price impact
      */
     private static _calculateEstimatedPriceImpactPercent(
         price: BigNumber,
         sellTokenToEthRate: BigNumber,
         buyTokenToEthRate: BigNumber,
         marketSide: MarketOperation,
-    ): BigNumber | undefined {
+    ): BigNumber | null {
         // There are cases where our fee source information is limited
         // since it is only a shallow search, as such we can't calculate price impact
         if (sellTokenToEthRate.isZero() || buyTokenToEthRate.isZero()) {
-            return undefined;
+            return null;
         }
         // ETH to USDC
         // price: "2418.92"
         // sellTokenToEthRate: "1"
         // buyTokenToEthRate: "2438.74"
 
-        // If sell than price is in taker token, if buy price is inverted
+        // If sell then price is in taker token, if buy price is inverted
         const normalizedPrice = marketSide === MarketOperation.Sell ? price : new BigNumber(1).dividedBy(price);
         // 2418.92 / (2438.74/1) = 0.99187 or 99.187%
         const actualPriceToEstimatedPriceRatio = normalizedPrice.dividedBy(
@@ -438,7 +438,7 @@ export class SwapService {
             .times(new BigNumber(10).pow(wethToken.decimals - makerTokenDecimals))
             .decimalPlaces(makerTokenDecimals);
 
-        const estimatedPriceImpactPercentage = SwapService._calculateEstimatedPriceImpactPercent(
+        const estimatedPriceImpact = SwapService._calculateEstimatedPriceImpactPercent(
             price,
             sellTokenToEthRate,
             buyTokenToEthRate,
@@ -449,7 +449,7 @@ export class SwapService {
             chainId: CHAIN_ID,
             price,
             guaranteedPrice,
-            estimatedPriceImpactPercentage,
+            estimatedPriceImpact,
             to,
             data,
             value: adjustedValue,
@@ -656,7 +656,7 @@ export class SwapService {
         const gasEstimate = isUnwrap ? UNWRAP_QUOTE_GAS : WRAP_QUOTE_GAS;
         const apiSwapQuote: GetSwapQuoteResponse = {
             chainId: CHAIN_ID,
-            estimatedPriceImpactPercentage: ZERO_AMOUNT,
+            estimatedPriceImpact: ZERO_AMOUNT,
             price: ONE,
             guaranteedPrice: ONE,
             to: NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID],
