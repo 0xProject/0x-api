@@ -31,6 +31,7 @@ import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
 import axios from 'axios';
 import { SupportedProvider } from 'ethereum-types';
+import { Kafka, Producer } from 'kafkajs';
 import * as _ from 'lodash';
 
 import {
@@ -82,6 +83,7 @@ import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
 
 export class SwapService {
+    public kafkaProducer: Producer | undefined;
     private readonly _provider: SupportedProvider;
     private readonly _fakeTaker: FakeTakerContract;
     private readonly _swapQuoteConsumer: SwapQuoteConsumer;
@@ -90,6 +92,7 @@ export class SwapService {
     private readonly _contractAddresses: ContractAddresses;
     private readonly _firmQuoteValidator: RfqFirmQuoteValidator | undefined;
     private readonly _swapQuoterOpts: Partial<SwapQuoterOpts>;
+    private readonly _kafkaClient: Kafka | undefined;
     private _altRfqMarketsCache: any;
     private _swapQuoter: SwapQuoter;
 
@@ -197,9 +200,13 @@ export class SwapService {
         firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
         rfqDynamicBlacklist?: RfqDynamicBlacklist,
         private readonly _pairsManager?: PairsManager,
+        _kafkaClient?: Kafka,
     ) {
         this._provider = provider;
         this._firmQuoteValidator = firmQuoteValidator;
+        this._kafkaClient = _kafkaClient;
+        // We initialize this async via connectKafka()
+        this.kafkaProducer = undefined;
 
         let axiosOpts = {};
         if (RFQ_PROXY_ADDRESS !== undefined && RFQ_PROXY_PORT !== undefined) {
@@ -627,6 +634,15 @@ export class SwapService {
                 decimals: marketDepth.takerTokenDecimals,
             },
         };
+    }
+
+    public async connectKafkaOrThrow(): Promise<void> {
+        if (!this._kafkaClient) {
+            throw Error('Kafka client was not passed in.');
+        }
+        const producer = this._kafkaClient.producer();
+        await producer.connect();
+        this.kafkaProducer = producer;
     }
 
     private async _getSwapQuoteForNativeWrappedAsync(

@@ -16,7 +16,6 @@ import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
 import * as HttpStatus from 'http-status-codes';
-import { Kafka, Producer } from 'kafkajs';
 import _ = require('lodash');
 import { Counter, Histogram } from 'prom-client';
 
@@ -24,7 +23,6 @@ import {
     CHAIN_ID,
     getIntegratorByIdOrThrow,
     getIntegratorIdForApiKey,
-    KAFKA_BROKERS,
     MATCHA_INTEGRATOR_ID,
     NATIVE_WRAPPED_TOKEN_SYMBOL,
     PLP_API_KEY_WHITELIST,
@@ -58,17 +56,6 @@ import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { quoteReportUtils } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
-
-let kafkaProducer: Producer | undefined;
-if (KAFKA_BROKERS !== undefined) {
-    const kafka = new Kafka({
-        clientId: '0x-api',
-        brokers: KAFKA_BROKERS,
-    });
-
-    kafkaProducer = kafka.producer();
-    kafkaProducer.connect();
-}
 
 const BEARER_REGEX = /^Bearer\s(.{36})$/;
 const REGISTRY_SET: Set<string> = new Set(RFQT_REGISTRY_PASSWORDS);
@@ -184,7 +171,7 @@ export class SwapHandlers {
                 );
             }
 
-            if (quote.extendedQuoteReportSources && kafkaProducer) {
+            if (quote.extendedQuoteReportSources && this._swapService.kafkaProducer) {
                 const quoteId = getQuoteIdFromSwapQuote(quote);
                 quoteReportUtils.publishQuoteReport(
                     {
@@ -201,7 +188,7 @@ export class SwapHandlers {
                         slippage: params.slippagePercentage,
                     },
                     true,
-                    kafkaProducer,
+                    this._swapService.kafkaProducer,
                 );
             }
         }
@@ -272,7 +259,7 @@ export class SwapHandlers {
                 ?.map((sc) => priceComparisonUtils.renameNative(sc));
         }
 
-        if (quote.extendedQuoteReportSources && kafkaProducer) {
+        if (quote.extendedQuoteReportSources && this._swapService.kafkaProducer) {
             const quoteId = getQuoteIdFromSwapQuote(quote);
             quoteReportUtils.publishQuoteReport(
                 {
@@ -289,7 +276,7 @@ export class SwapHandlers {
                     slippage: params.slippagePercentage,
                 },
                 false,
-                kafkaProducer,
+                this._swapService.kafkaProducer,
             );
         }
 

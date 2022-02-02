@@ -59,6 +59,8 @@ async function runHttpServiceAsync(
     app.get('/', rootHandler);
 
     if (dependencies.swapService) {
+        await dependencies.swapService.connectKafkaOrThrow();
+
         app.use(SWAP_PATH, createSwapRouter(dependencies.swapService));
     } else {
         logger.error(`Could not run swap service, exiting`);
