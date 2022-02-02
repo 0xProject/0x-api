@@ -35,12 +35,6 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-<<<<<<< HEAD
-"@0x/asset-swapper@^16.49.2":
-  version "16.49.2"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.49.2.tgz#ee4abf4844cbec4853f3693c054d76d823611485"
-  integrity sha512-iRVrdnwRtTE0n9u0j7fmp5GUf6/RUtdRtWppr2IxTWIg1jV07kjh4f9YancdMBK3dOK20a9jWbmHLpG3NvLsbQ==
-=======
 "@0x/assert@^3.0.31":
   version "3.0.31"
   resolved "https://registry.yarnpkg.com/@0x/assert/-/assert-3.0.31.tgz#2c9e7e0ff9cc7bae8cd0380022e1723ee505a82e"
@@ -53,10 +47,10 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@^16.46.0":
-  version "16.46.0"
-  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.46.0.tgz#710ea1df1bca9fc524858ed2dd98dd8a2e4571aa"
->>>>>>> aa46478 (trying to fix mobius pairs)
+"@0x/asset-swapper@^16.49.2":
+  version "16.49.2"
+  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.49.2.tgz#ee4abf4844cbec4853f3693c054d76d823611485"
+  integrity sha512-iRVrdnwRtTE0n9u0j7fmp5GUf6/RUtdRtWppr2IxTWIg1jV07kjh4f9YancdMBK3dOK20a9jWbmHLpG3NvLsbQ==
   dependencies:
     "@0x/assert" "^3.0.29"
     "@0x/base-contract" "^6.4.2"
