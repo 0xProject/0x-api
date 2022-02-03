@@ -183,6 +183,6 @@
     "resolutions": {
         "fast-abi": "^0.0.3",
         "bignumber.js": "9.0.1",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v16.49.2-dca00b6c4"
+        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v16.49.2-3b0953598"
     }
 }
