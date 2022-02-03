@@ -181,6 +181,7 @@
         "zen-observable": "^0.8.15"
     },
     "resolutions": {
-        "fast-abi": "^0.0.3"
+        "fast-abi": "^0.0.3",
+        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v16.49.2-dca00b6c4"
     }
 }
