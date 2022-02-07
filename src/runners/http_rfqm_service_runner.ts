@@ -111,7 +111,7 @@ export async function buildRfqmServiceAsync(connection: Connection, asWorker: bo
         provider = RfqBlockchainUtils.createPrivateKeyProvider(rpcProvider, privateWalletSubprovider);
 
         ethersWallet = Wallet.fromMnemonic(META_TX_WORKER_MNEMONIC, `m/44'/60'/0'/0/${RFQM_WORKER_INDEX!}`);
-        ethersWallet = ethersWallet.connect(ethersProvider);
+        ethersWallet = ethersWallet.connect(ethersProvider as any); // TODO(lawrence): why TS?
     } else {
         provider = rpcProvider;
     }
