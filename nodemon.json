@@ -1,6 +1,6 @@
 {
     "execMap": {
-        "ts": "ts-node"
+        "ts": "node --inspect -r ts-node/register"
     },
     "ignore": [".git", "node_modules"],
     "watch": ["src"],
