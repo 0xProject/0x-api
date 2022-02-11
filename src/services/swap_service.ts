@@ -390,6 +390,8 @@ export class SwapService {
         // If an error occurs we attempt to provide a better message then "Transaction Reverted"
         if (takerAddress && !skipValidation && canEstimateGas) {
             try {
+                // Record the faux gas estimate
+                const fauxGasEstimate = conservativeBestCaseGasEstimate;
                 let estimateGasCallResult = await this._estimateGasOrThrowRevertErrorAsync({
                     to,
                     data,
@@ -399,11 +401,20 @@ export class SwapService {
                 });
                 // Add any underterministic gas overhead the encoded transaction has detected
                 estimateGasCallResult = estimateGasCallResult.plus(gasOverhead);
+                // Add a little buffer to eth_estimateGas as it is not always correct
+                const realGasEstimate = estimateGasCallResult.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue();
                 // Take the max of the faux estimate or the real estimate
-                conservativeBestCaseGasEstimate = BigNumber.max(
-                    // Add a little buffer to eth_estimateGas as it is not always correct
-                    estimateGasCallResult.times(GAS_LIMIT_BUFFER_MULTIPLIER).integerValue(),
-                    conservativeBestCaseGasEstimate,
+                conservativeBestCaseGasEstimate = BigNumber.max(fauxGasEstimate, realGasEstimate);
+                logger.info(
+                    {
+                        fauxGasEstimate,
+                        realGasEstimate,
+                        delta: realGasEstimate.minus(fauxGasEstimate),
+                        buyToken,
+                        sellToken,
+                        sources: Object.keys(swapQuote.sourceBreakdown),
+                    },
+                    'Improved gas estimate',
                 );
             } catch (error) {
                 if (isQuote) {
