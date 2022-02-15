@@ -28,7 +28,7 @@
         "rfqt": {
             "type": "boolean"
         },
-        "slippageData": {
+        "slippageModel": {
             "type": "boolean"
         }
     },

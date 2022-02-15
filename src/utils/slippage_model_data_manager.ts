@@ -22,7 +22,8 @@ interface SlippageModelData extends SlippageModelDataPayload {
     source: string;
 }
 
-type SlippageModelDataCache = Map<string, Map<string, SlippageModelDataPayload>>;
+export type SlippageModelDataCacheForPair = Map<string, SlippageModelDataPayload>;
+export type SlippageModelDataCache = Map<string, SlippageModelDataCacheForPair>;
 
 const createSlippageModelDataCache = function (slippageModelDataFileContent: string): SlippageModelDataCache {
     const slippageModelDataList: SlippageModelData[] = JSON.parse(slippageModelDataFileContent);
@@ -66,6 +67,17 @@ export class SlippageModelDataManager {
         setInterval(async () => {
             await this._refreshAsync();
         }, SLIPPAGE_MODEL_DATA_REFRESH_INTERVAL_MS);
+    }
+
+    /**
+     * Get the cached slippage model data for a specific pair and source
+     * @param tokenA Address of one token
+     * @param tokenB Address of another token
+     * @returns Slippage model data cache for that pair of tokens
+     */
+    public getCacheForPair(tokenA: string, tokenB: string): SlippageModelDataCacheForPair | undefined {
+        const pairKey = pairUtils.toKey(tokenA, tokenB);
+        return this._cachedSlippageModelData.get(pairKey);
     }
 
     /**

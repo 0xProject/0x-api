@@ -78,7 +78,7 @@ export interface Integrator {
     plp: boolean;
     rfqm: boolean;
     rfqt: boolean;
-    slippageData?: boolean;
+    slippageModel?: boolean;
 }
 export type IntegratorsAcl = Integrator[];
 

@@ -18,6 +18,7 @@ import { BigNumber } from '@0x/utils';
 import { Integrator } from './config';
 import { MetaTransactionRateLimiter } from './utils/rate-limiters';
 import { MetaTransactionRateLimitConfig } from './utils/rate-limiters/types';
+import { SlippageModelDataPayload } from './utils/slippage_model_data_manager';
 
 export {
     AvailableRateLimiter,
@@ -218,6 +219,7 @@ export interface GetSwapQuoteResponseLiquiditySource {
     proportion: BigNumber;
     intermediateToken?: string;
     hops?: string[];
+    slippageModel?: SlippageModelDataPayload;
 }
 
 export interface BasePriceResponse extends QuoteBase {

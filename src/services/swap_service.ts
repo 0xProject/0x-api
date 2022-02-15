@@ -79,6 +79,7 @@ import { createResultCache } from '../utils/result_cache';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
 import { SAMPLER_METRICS } from '../utils/sampler_metrics';
 import { serviceUtils } from '../utils/service_utils';
+import { SlippageModelDataCacheForPair, SlippageModelDataManager } from '../utils/slippage_model_data_manager';
 import { utils } from '../utils/utils';
 
 export class SwapService {
@@ -197,6 +198,7 @@ export class SwapService {
         firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
         rfqDynamicBlacklist?: RfqDynamicBlacklist,
         private readonly _pairsManager?: PairsManager,
+        private readonly _slippageModelDataManager?: SlippageModelDataManager,
     ) {
         this._provider = provider;
         this._firmQuoteValidator = firmQuoteValidator;
@@ -384,6 +386,17 @@ export class SwapService {
         const isFirmQuote = !_rfqt?.isIndicative;
         const canEstimateGas = isFirmQuote || !isNativeIncluded;
 
+        const buyTokenAddress = isETHBuy ? ETH_TOKEN_ADDRESS : buyToken;
+        const sellTokenAddress = isETHSell ? ETH_TOKEN_ADDRESS : sellToken;
+        const sources = serviceUtils.convertSourceBreakdownToArray(sourceBreakdown);
+        if (this._slippageModelDataManager !== undefined && integrator?.slippageModel === true) {
+            const slippageModelDataCacheForPair: SlippageModelDataCacheForPair | undefined =
+                this._slippageModelDataManager.getCacheForPair(buyTokenAddress, sellTokenAddress);
+            if (slippageModelDataCacheForPair) {
+                serviceUtils.attachSlippageModelData(sources, slippageModelDataCacheForPair);
+            }
+        }
+
         // If the taker address is provided we can provide a more accurate gas estimate
         // using eth_gasEstimate
         // If an error occurs we attempt to provide a better message then "Transaction Reverted"
@@ -460,11 +473,11 @@ export class SwapService {
             protocolFee,
             minimumProtocolFee: BigNumber.min(protocolFee, bestCaseProtocolFee),
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-            buyTokenAddress: isETHBuy ? ETH_TOKEN_ADDRESS : buyToken,
-            sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellToken,
+            buyTokenAddress,
+            sellTokenAddress,
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
-            sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
+            sources,
             orders: swapQuote.orders,
             allowanceTarget,
             decodedUniqueId,
