@@ -235,17 +235,17 @@ export const ENABLE_RPC_REQUEST_COMPRESSION = _.isEmpty(process.env.ENABLE_RPC_R
 
 
 // S3 bucket for slippage model data file
-export const SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME: string | undefined = _.isEmpty(
-    process.env.SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME,
+export const SLIPPAGE_MODEL_S3_BUCKET_NAME: string | undefined = _.isEmpty(
+    process.env.SLIPPAGE_MODEL_S3_BUCKET_NAME,
 )
     ? '0x-slippage-data-xinxing'
     : assertEnvVarType(
-          'SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME',
-          process.env.SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME,
+          'SLIPPAGE_MODEL_S3_BUCKET_NAME',
+          process.env.SLIPPAGE_MODEL_S3_BUCKET_NAME,
           EnvVarType.NonEmptyString,
       );
-export const SLIPPAGE_MODEL_DATA_S3_FILE_NAME: string = `slippageModel-${CHAIN_ID}.json`;
-export const SLIPPAGE_MODEL_DATA_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
+export const SLIPPAGE_MODEL_S3_FILE_NAME: string = `slippageModel-${CHAIN_ID}.json`;
+export const SLIPPAGE_MODEL_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
 
 export const ORDER_WATCHER_URL = _.isEmpty(process.env.ORDER_WATCHER_URL)
     ? 'http://127.0.0.1:8080'

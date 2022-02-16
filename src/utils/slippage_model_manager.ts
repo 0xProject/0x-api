@@ -1,7 +1,7 @@
 import {
-    SLIPPAGE_MODEL_DATA_REFRESH_INTERVAL_MS,
-    SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME,
-    SLIPPAGE_MODEL_DATA_S3_FILE_NAME,
+    SLIPPAGE_MODEL_REFRESH_INTERVAL_MS,
+    SLIPPAGE_MODEL_S3_BUCKET_NAME,
+    SLIPPAGE_MODEL_S3_FILE_NAME,
 } from '../config';
 import { logger } from '../logger';
 import { schemas } from '../schemas';
@@ -58,7 +58,7 @@ export class SlippageModelManager {
      * Initialize and set up periodical refreshing
      */
     public async initializeAsync(): Promise<void> {
-        if (SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME === undefined) {
+        if (SLIPPAGE_MODEL_S3_BUCKET_NAME === undefined) {
             return;
         }
 
@@ -66,7 +66,7 @@ export class SlippageModelManager {
 
         setInterval(async () => {
             await this._refreshAsync();
-        }, SLIPPAGE_MODEL_DATA_REFRESH_INTERVAL_MS);
+        }, SLIPPAGE_MODEL_REFRESH_INTERVAL_MS);
     }
 
     /**
@@ -78,25 +78,6 @@ export class SlippageModelManager {
     public getCacheForPair(tokenA: string, tokenB: string): SlippageModelCacheForPair | undefined {
         const pairKey = pairUtils.toKey(tokenA, tokenB);
         return this._cachedSlippageModel.get(pairKey);
-    }
-
-    /**
-     * Get the cached slippage model data for a specific pair and source
-     * @param tokenA Address of one token
-     * @param tokenB Address of another token
-     * @param source Liquidity source
-     * @returns Slippage model data for that pair and source
-     */
-    public get(tokenA: string, tokenB: string, source: string): SlippageModelPayload | null {
-        const pairKey = pairUtils.toKey(tokenA, tokenB);
-        if (!this._cachedSlippageModel.has(pairKey)) {
-            return null;
-        }
-        const cachedSlippageModelForPair = this._cachedSlippageModel.get(pairKey);
-        if (!cachedSlippageModelForPair!.has(source)) {
-            return null;
-        }
-        return cachedSlippageModelForPair!.get(source)!;
     }
 
     /**
@@ -112,12 +93,12 @@ export class SlippageModelManager {
      * if the file has been updated since `this._lastRefreshed`.
      */
     private async _refreshAsync(): Promise<void> {
-        const bucket: string = SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME!;
-        const key: string = SLIPPAGE_MODEL_DATA_S3_FILE_NAME;
+        const bucket: string = SLIPPAGE_MODEL_S3_BUCKET_NAME!;
+        const fileName: string = SLIPPAGE_MODEL_S3_FILE_NAME;
         const refreshTime = new Date();
 
         try {
-            const { exists, lastModified } = await this._s3Client.hasFileAsync(bucket, key);
+            const { exists, lastModified } = await this._s3Client.hasFileAsync(bucket, fileName);
             if (!exists) {
                 this._resetCache();
                 return;
@@ -127,14 +108,14 @@ export class SlippageModelManager {
                 return;
             }
 
-            logger.info({ bucket, key, refreshTime }, `Start refreshing slippage model data.`);
+            logger.info({ bucket, fileName, refreshTime }, `Start refreshing slippage model data.`);
 
-            const { content, lastModified: lastRefreshed } = await this._s3Client.getFileContentAsync(bucket, key);
+            const { content, lastModified: lastRefreshed } = await this._s3Client.getFileContentAsync(bucket, fileName);
 
             if (content !== null && lastRefreshed !== undefined) {
                 this._lastRefreshed = lastRefreshed;
                 this._cachedSlippageModel = createSlippageModelCache(content);
-                logger.info({ bucket, key, refreshTime }, `Successfully refreshed slippage model data.`);
+                logger.info({ bucket, fileName, refreshTime }, `Successfully refreshed slippage model data.`);
             }
             else {
             }
