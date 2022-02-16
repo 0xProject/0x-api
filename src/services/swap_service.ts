@@ -79,7 +79,7 @@ import { createResultCache } from '../utils/result_cache';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
 import { SAMPLER_METRICS } from '../utils/sampler_metrics';
 import { serviceUtils } from '../utils/service_utils';
-import { SlippageModelDataCacheForPair, SlippageModelDataManager } from '../utils/slippage_model_data_manager';
+import { SlippageModelCacheForPair, SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
 
 export class SwapService {
@@ -198,7 +198,7 @@ export class SwapService {
         firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
         rfqDynamicBlacklist?: RfqDynamicBlacklist,
         private readonly _pairsManager?: PairsManager,
-        private readonly _slippageModelDataManager?: SlippageModelDataManager,
+        private readonly _slippageModelManager?: SlippageModelManager,
     ) {
         this._provider = provider;
         this._firmQuoteValidator = firmQuoteValidator;
@@ -389,11 +389,11 @@ export class SwapService {
         const buyTokenAddress = isETHBuy ? ETH_TOKEN_ADDRESS : buyToken;
         const sellTokenAddress = isETHSell ? ETH_TOKEN_ADDRESS : sellToken;
         const sources = serviceUtils.convertSourceBreakdownToArray(sourceBreakdown);
-        if (this._slippageModelDataManager !== undefined && integrator?.slippageModel === true) {
-            const slippageModelDataCacheForPair: SlippageModelDataCacheForPair | undefined =
-                this._slippageModelDataManager.getCacheForPair(buyTokenAddress, sellTokenAddress);
-            if (slippageModelDataCacheForPair) {
-                serviceUtils.attachSlippageModelData(sources, slippageModelDataCacheForPair);
+        if (this._slippageModelManager !== undefined && integrator?.slippageModel === true) {
+            const slippageModelCacheForPair: SlippageModelCacheForPair | undefined =
+                this._slippageModelManager.getCacheForPair(buyTokenAddress, sellTokenAddress);
+            if (slippageModelCacheForPair) {
+                serviceUtils.attachSlippageModel(sources, slippageModelCacheForPair);
             }
         }
 

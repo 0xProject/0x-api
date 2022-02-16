@@ -1,5 +1,5 @@
 {
-    "id": "/slippageModelDataSchema",
+    "id": "/slippageModelSchema",
     "properties": {
         "token0": {
             "$ref": "/addressSchema"

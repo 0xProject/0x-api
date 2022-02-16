@@ -244,7 +244,7 @@ export const SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME: string | undefined = _.isEmpty(
           process.env.SLIPPAGE_MODEL_DATA_S3_BUCKET_NAME,
           EnvVarType.NonEmptyString,
       );
-export const SLIPPAGE_MODEL_DATA_S3_FILE_NAME: string = `slippageModelData-${CHAIN_ID}.json`;
+export const SLIPPAGE_MODEL_DATA_S3_FILE_NAME: string = `slippageModel-${CHAIN_ID}.json`;
 export const SLIPPAGE_MODEL_DATA_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
 
 export const ORDER_WATCHER_URL = _.isEmpty(process.env.ORDER_WATCHER_URL)

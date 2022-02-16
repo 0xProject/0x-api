@@ -21,7 +21,7 @@ import {
 import { AffiliateFee, AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource } from '../types';
 
 import { numberUtils } from './number_utils';
-import { SlippageModelDataCacheForPair } from './slippage_model_data_manager';
+import { SlippageModelCacheForPair } from './slippage_model_manager';
 
 export const serviceUtils = {
     attributeCallData(
@@ -106,10 +106,10 @@ export const serviceUtils = {
             return [...acc, obj];
         }, []);
     },
-    attachSlippageModelData(sources: GetSwapQuoteResponseLiquiditySource[], slippageModelDataCacheForPair: SlippageModelDataCacheForPair): void {
+    attachSlippageModel(sources: GetSwapQuoteResponseLiquiditySource[], slippageModelCacheForPair: SlippageModelCacheForPair): void {
         sources.forEach(source => {
             if (source.proportion.gt(new BigNumber(0))) {
-                const slippageModel = slippageModelDataCacheForPair.get(source.name);
+                const slippageModel = slippageModelCacheForPair.get(source.name);
                 if (slippageModel !== undefined) {
                     source.slippageModel = slippageModel;
                 }

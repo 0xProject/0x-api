@@ -10,45 +10,45 @@ import { pairUtils } from './pair_utils';
 import { S3Client } from './s3_client';
 import { schemaUtils } from './schema_utils';
 
-export interface SlippageModelDataPayload {
+export interface SlippageModelPayload {
     slippageCoefficient: number;
     volumeCoefficient: number;
     intercept: number;
 }
 
-interface SlippageModelData extends SlippageModelDataPayload {
+interface SlippageModel extends SlippageModelPayload {
     token0: string;
     token1: string;
     source: string;
 }
 
-export type SlippageModelDataCacheForPair = Map<string, SlippageModelDataPayload>;
-export type SlippageModelDataCache = Map<string, SlippageModelDataCacheForPair>;
+export type SlippageModelCacheForPair = Map<string, SlippageModelPayload>;
+export type SlippageModelCache = Map<string, SlippageModelCacheForPair>;
 
-const createSlippageModelDataCache = function (slippageModelDataFileContent: string): SlippageModelDataCache {
-    const slippageModelDataList: SlippageModelData[] = JSON.parse(slippageModelDataFileContent);
-    schemaUtils.validateSchema(slippageModelDataList, schemas.slippageModelDataFileSchema);
-    const cache: SlippageModelDataCache = new Map();
-    slippageModelDataList.forEach((slippageModelData) => {
-        const pairKey = pairUtils.toKey(slippageModelData.token0, slippageModelData.token1);
+const createSlippageModelCache = function (slippageModelFileContent: string): SlippageModelCache {
+    const slippageModelList: SlippageModel[] = JSON.parse(slippageModelFileContent);
+    schemaUtils.validateSchema(slippageModelList, schemas.slippageModelFileSchema);
+    const cache: SlippageModelCache = new Map();
+    slippageModelList.forEach((slippageModel) => {
+        const pairKey = pairUtils.toKey(slippageModel.token0, slippageModel.token1);
         if (!cache.has(pairKey)) {
             cache.set(pairKey, new Map());
         }
-        cache.get(pairKey)!.set(slippageModelData.source, {
-            slippageCoefficient: slippageModelData.slippageCoefficient,
-            volumeCoefficient: slippageModelData.volumeCoefficient,
-            intercept: slippageModelData.intercept,
+        cache.get(pairKey)!.set(slippageModel.source, {
+            slippageCoefficient: slippageModel.slippageCoefficient,
+            volumeCoefficient: slippageModel.volumeCoefficient,
+            intercept: slippageModel.intercept,
         });
     });
     return cache;
 };
 
 /**
- * SlippageModelDataManager caches slippage model data in memory and keep in sync with the file in S3 bucket
+ * SlippageModelManager caches slippage model data in memory and keep in sync with the file in S3 bucket
  */
-export class SlippageModelDataManager {
+export class SlippageModelManager {
     private _lastRefreshed!: Date;
-    private _cachedSlippageModelData!: SlippageModelDataCache;
+    private _cachedSlippageModel!: SlippageModelCache;
 
     constructor(private readonly _s3Client: S3Client) {
         this._resetCache();
@@ -75,9 +75,9 @@ export class SlippageModelDataManager {
      * @param tokenB Address of another token
      * @returns Slippage model data cache for that pair of tokens
      */
-    public getCacheForPair(tokenA: string, tokenB: string): SlippageModelDataCacheForPair | undefined {
+    public getCacheForPair(tokenA: string, tokenB: string): SlippageModelCacheForPair | undefined {
         const pairKey = pairUtils.toKey(tokenA, tokenB);
-        return this._cachedSlippageModelData.get(pairKey);
+        return this._cachedSlippageModel.get(pairKey);
     }
 
     /**
@@ -87,16 +87,16 @@ export class SlippageModelDataManager {
      * @param source Liquidity source
      * @returns Slippage model data for that pair and source
      */
-    public get(tokenA: string, tokenB: string, source: string): SlippageModelDataPayload | null {
+    public get(tokenA: string, tokenB: string, source: string): SlippageModelPayload | null {
         const pairKey = pairUtils.toKey(tokenA, tokenB);
-        if (!this._cachedSlippageModelData.has(pairKey)) {
+        if (!this._cachedSlippageModel.has(pairKey)) {
             return null;
         }
-        const cachedSlippageModelDataForPair = this._cachedSlippageModelData.get(pairKey);
-        if (!cachedSlippageModelDataForPair!.has(source)) {
+        const cachedSlippageModelForPair = this._cachedSlippageModel.get(pairKey);
+        if (!cachedSlippageModelForPair!.has(source)) {
             return null;
         }
-        return cachedSlippageModelDataForPair!.get(source)!;
+        return cachedSlippageModelForPair!.get(source)!;
     }
 
     /**
@@ -104,7 +104,7 @@ export class SlippageModelDataManager {
      */
     private _resetCache(): void {
         this._lastRefreshed = new Date(0);
-        this._cachedSlippageModelData = new Map();
+        this._cachedSlippageModel = new Map();
     }
 
     /**
@@ -133,7 +133,7 @@ export class SlippageModelDataManager {
 
             if (content !== null && lastRefreshed !== undefined) {
                 this._lastRefreshed = lastRefreshed;
-                this._cachedSlippageModelData = createSlippageModelDataCache(content);
+                this._cachedSlippageModel = createSlippageModelCache(content);
                 logger.info({ bucket, key, refreshTime }, `Successfully refreshed slippage model data.`);
             }
             else {
