@@ -25,7 +25,7 @@ export interface SlippageModel extends SlippageModelPayload {
 export type SlippageModelCacheForPair = Map<string, SlippageModelPayload>;
 export type SlippageModelCache = Map<string, SlippageModelCacheForPair>;
 
-const createSlippageModelCache = function (slippageModelFileContent: string): SlippageModelCache {
+const createSlippageModelCache = (slippageModelFileContent: string): SlippageModelCache => {
     const slippageModelList: SlippageModel[] = JSON.parse(slippageModelFileContent);
     schemaUtils.validateSchema(slippageModelList, schemas.slippageModelFileSchema);
     const cache: SlippageModelCache = new Map();
@@ -98,8 +98,8 @@ export class SlippageModelManager {
         const refreshTime = new Date();
 
         try {
-            const { exists, lastModified } = await this._s3Client.hasFileAsync(bucket, fileName);
-            if (!exists) {
+            const { exists: doesFileExist, lastModified } = await this._s3Client.hasFileAsync(bucket, fileName);
+            if (!doesFileExist) {
                 this._resetCache();
                 return;
             }
@@ -116,7 +116,10 @@ export class SlippageModelManager {
 
             logger.info({ bucket, fileName, refreshTime }, `Successfully refreshed slippage models.`);
         } catch (error) {
-            logger.error({ bucket, fileName, refreshTime, errorMessage: error.message }, `Failed to refresh slippage models.`);
+            logger.error(
+                { bucket, fileName, refreshTime, errorMessage: error.message },
+                `Failed to refresh slippage models.`,
+            );
         }
     }
 }

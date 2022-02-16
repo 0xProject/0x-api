@@ -106,8 +106,11 @@ export const serviceUtils = {
             return [...acc, obj];
         }, []);
     },
-    attachSlippageModel(sources: GetSwapQuoteResponseLiquiditySource[], slippageModelCacheForPair: SlippageModelCacheForPair): void {
-        sources.forEach(source => {
+    attachSlippageModel(
+        sources: GetSwapQuoteResponseLiquiditySource[],
+        slippageModelCacheForPair: SlippageModelCacheForPair,
+    ): void {
+        sources.forEach((source) => {
             if (source.proportion.gt(new BigNumber(0))) {
                 const slippageModel = slippageModelCacheForPair.get(source.name);
                 if (slippageModel !== undefined) {

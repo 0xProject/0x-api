@@ -7,14 +7,14 @@ export class S3Client {
     constructor(private readonly _s3: S3) {}
 
     /**
-     * Check if a file exists in S3 without obtaining its content. If it exists, 
+     * Check if a file exists in S3 without obtaining its content. If it exists,
      * returns the `lastModified` timestamp with the result.
      */
     public async hasFileAsync(
         bucket: string,
         fileName: string,
     ): Promise<{ exists: boolean; lastModified: Date | undefined }> {
-        var bucketParams = {
+        const bucketParams = {
             Bucket: bucket,
             Key: fileName,
         };
@@ -40,8 +40,11 @@ export class S3Client {
      * and will throw if the request failed for whatever reasons. On successful query it
      * always returns the `lastModified` timestamp with the result.
      */
-    public async getFileContentAsync(bucket: string, fileName: string): Promise<{ content: string; lastModified: Date }> {
-        var bucketParams = {
+    public async getFileContentAsync(
+        bucket: string,
+        fileName: string,
+    ): Promise<{ content: string; lastModified: Date }> {
+        const bucketParams = {
             Bucket: bucket,
             Key: fileName,
         };

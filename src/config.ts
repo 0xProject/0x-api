@@ -233,11 +233,8 @@ export const ENABLE_RPC_REQUEST_COMPRESSION = _.isEmpty(process.env.ENABLE_RPC_R
           EnvVarType.Boolean,
       );
 
-
 // S3 bucket for slippage model file
-export const SLIPPAGE_MODEL_S3_BUCKET_NAME: string | undefined = _.isEmpty(
-    process.env.SLIPPAGE_MODEL_S3_BUCKET_NAME,
-)
+export const SLIPPAGE_MODEL_S3_BUCKET_NAME: string | undefined = _.isEmpty(process.env.SLIPPAGE_MODEL_S3_BUCKET_NAME)
     ? undefined
     : assertEnvVarType(
           'SLIPPAGE_MODEL_S3_BUCKET_NAME',
