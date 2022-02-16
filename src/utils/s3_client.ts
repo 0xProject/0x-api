@@ -17,7 +17,11 @@ export class S3Client {
 
         try {
             const response = await this._s3.headObject(bucketParams).promise();
-            return { exists: true, lastModified: response.LastModified };
+            if (response.LastModified) {
+                return { exists: true, lastModified: response.LastModified };
+            } else {
+                throw new Error(`Failed to get metadata of S3 object ${key} in bucket ${bucket}.`);
+            }
         } catch (error) {
             if (error.code === 'NotFound') {
                 return { exists: false, lastModified: undefined };
@@ -27,18 +31,17 @@ export class S3Client {
         }
     }
 
-    public async getFileContentAsync(bucket: string, key: string): Promise< { content: string | null, lastModified: Date | undefined }> {
+    public async getFileContentAsync(bucket: string, key: string): Promise<{ content: string; lastModified: Date }> {
         var bucketParams = {
             Bucket: bucket,
             Key: key,
         };
 
-        try {
-            const response = await this._s3.getObject(bucketParams).promise();
-            if (response?.Body) {
-                return { content: response.Body.toString(), lastModified: response.LastModified };
-            }
-        } catch (error) {}
-        return { content: null, lastModified: undefined };
+        const response = await this._s3.getObject(bucketParams).promise();
+        if (response && response.Body && response.LastModified) {
+            return { content: response.Body.toString(), lastModified: response.LastModified };
+        } else {
+            throw new Error(`Failed to get content of S3 object ${key} in bucket ${bucket}.`);
+        }
     }
 }

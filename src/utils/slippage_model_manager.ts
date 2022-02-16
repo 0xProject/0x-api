@@ -16,7 +16,7 @@ export interface SlippageModelPayload {
     intercept: number;
 }
 
-interface SlippageModel extends SlippageModelPayload {
+export interface SlippageModel extends SlippageModelPayload {
     token0: string;
     token1: string;
     source: string;
@@ -84,8 +84,8 @@ export class SlippageModelManager {
      * Reset the cache and its timestamp
      */
     private _resetCache(): void {
-        this._lastRefreshed = new Date(0);
         this._cachedSlippageModel = new Map();
+        this._lastRefreshed = new Date(0);
     }
 
     /**
@@ -104,25 +104,19 @@ export class SlippageModelManager {
                 return;
             }
 
-            if (lastModified === undefined || lastModified <= this._lastRefreshed) {
+            if (lastModified! <= this._lastRefreshed) {
                 return;
             }
 
-            logger.info({ bucket, fileName, refreshTime }, `Start refreshing slippage model data.`);
+            logger.info({ bucket, fileName, refreshTime }, `Start refreshing slippage models.`);
 
             const { content, lastModified: lastRefreshed } = await this._s3Client.getFileContentAsync(bucket, fileName);
+            this._cachedSlippageModel = createSlippageModelCache(content);
+            this._lastRefreshed = lastRefreshed;
 
-            if (content !== null && lastRefreshed !== undefined) {
-                this._lastRefreshed = lastRefreshed;
-                this._cachedSlippageModel = createSlippageModelCache(content);
-                logger.info({ bucket, fileName, refreshTime }, `Successfully refreshed slippage model data.`);
-            }
-            else {
-            }
-
+            logger.info({ bucket, fileName, refreshTime }, `Successfully refreshed slippage models.`);
         } catch (error) {
-            logger.error(error);
-        } finally {
+            logger.error({ bucket, fileName, refreshTime, errorMessage: error.message }, `Failed to refresh slippage models.`);
         }
     }
 }
