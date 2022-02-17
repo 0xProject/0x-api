@@ -494,7 +494,9 @@ export class SwapService {
             if (marketSide === MarketOperation.Sell) {
                 apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(apiSwapQuote.expectedSlippage.plus(1));
             } else {
-                apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount.times(apiSwapQuote.expectedSlippage.times(-1).plus(1));
+                apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount.times(
+                    apiSwapQuote.expectedSlippage.times(-1).plus(1),
+                );
             }
         }
 

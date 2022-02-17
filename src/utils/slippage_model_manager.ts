@@ -1,4 +1,5 @@
 import { BigNumber } from '@0x/utils';
+
 import {
     SLIPPAGE_MODEL_REFRESH_INTERVAL_MS,
     SLIPPAGE_MODEL_S3_BUCKET_NAME,
@@ -13,7 +14,7 @@ import { pairUtils } from './pair_utils';
 import { S3Client } from './s3_client';
 import { schemaUtils } from './schema_utils';
 
-export interface SlippageModel {
+interface SlippageModel {
     token0: string;
     token1: string;
     source: string;
@@ -22,8 +23,8 @@ export interface SlippageModel {
     intercept: number;
 }
 
-export type SlippageModelCacheForPair = Map<string, SlippageModel>;
-export type SlippageModelCache = Map<string, SlippageModelCacheForPair>;
+type SlippageModelCacheForPair = Map<string, SlippageModel>;
+type SlippageModelCache = Map<string, SlippageModelCacheForPair>;
 
 const createSlippageModelCache = (slippageModelFileContent: string, logLabels: {}): SlippageModelCache => {
     const slippageModelList: SlippageModel[] = JSON.parse(slippageModelFileContent);
