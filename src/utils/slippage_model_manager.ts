@@ -123,8 +123,8 @@ export class SlippageModelManager {
                     const expectedSlippageOfSource = calculateExpectedSlippageForModel(
                         buyToken,
                         sellToken,
-                        buyAmount,
-                        sellAmount,
+                        buyAmount.times(source.proportion),
+                        sellAmount.times(source.proportion),
                         slippageInBps,
                         slippageModel,
                     );
