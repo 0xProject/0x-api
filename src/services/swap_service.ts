@@ -79,7 +79,7 @@ import { createResultCache } from '../utils/result_cache';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
 import { SAMPLER_METRICS } from '../utils/sampler_metrics';
 import { serviceUtils } from '../utils/service_utils';
-import { SlippageModelCacheForPair, SlippageModelManager } from '../utils/slippage_model_manager';
+import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
 
 export class SwapService {
@@ -386,17 +386,6 @@ export class SwapService {
         const isFirmQuote = !_rfqt?.isIndicative;
         const canEstimateGas = isFirmQuote || !isNativeIncluded;
 
-        const buyTokenAddress = isETHBuy ? ETH_TOKEN_ADDRESS : buyToken;
-        const sellTokenAddress = isETHSell ? ETH_TOKEN_ADDRESS : sellToken;
-        const sources = serviceUtils.convertSourceBreakdownToArray(sourceBreakdown);
-        if (this._slippageModelManager !== undefined && integrator?.slippageModel === true) {
-            const slippageModelCacheForPair: SlippageModelCacheForPair | undefined =
-                this._slippageModelManager.getCacheForPair(buyTokenAddress, sellTokenAddress);
-            if (slippageModelCacheForPair) {
-                serviceUtils.attachSlippageModel(sources, slippageModelCacheForPair);
-            }
-        }
-
         // If the taker address is provided we can provide a more accurate gas estimate
         // using eth_gasEstimate
         // If an error occurs we attempt to provide a better message then "Transaction Reverted"
@@ -473,11 +462,11 @@ export class SwapService {
             protocolFee,
             minimumProtocolFee: BigNumber.min(protocolFee, bestCaseProtocolFee),
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-            buyTokenAddress,
-            sellTokenAddress,
+            buyTokenAddress: isETHBuy ? ETH_TOKEN_ADDRESS : buyToken,
+            sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellToken,
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
-            sources,
+            sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
             orders: swapQuote.orders,
             allowanceTarget,
             decodedUniqueId,
@@ -487,6 +476,27 @@ export class SwapService {
             quoteReport,
             priceComparisonsReport,
         };
+
+        if (integrator?.slippageModel === true) {
+            if (this._slippageModelManager) {
+                apiSwapQuote.expectedSlippage = this._slippageModelManager.calculateExpectedSlippage(
+                    buyToken,
+                    sellToken,
+                    apiSwapQuote.buyAmount,
+                    apiSwapQuote.sellAmount,
+                    slippagePercentage,
+                    apiSwapQuote.sources,
+                );
+            } else {
+                apiSwapQuote.expectedSlippage = new BigNumber(0);
+            }
+
+            if (marketSide === MarketOperation.Sell) {
+                apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(apiSwapQuote.expectedSlippage.plus(1));
+            } else {
+                apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount.times(apiSwapQuote.expectedSlippage.times(-1).plus(1));
+            }
+        }
 
         return apiSwapQuote;
     }

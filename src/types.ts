@@ -18,7 +18,6 @@ import { BigNumber } from '@0x/utils';
 import { Integrator } from './config';
 import { MetaTransactionRateLimiter } from './utils/rate-limiters';
 import { MetaTransactionRateLimitConfig } from './utils/rate-limiters/types';
-import { SlippageModelPayload } from './utils/slippage_model_manager';
 
 export {
     AvailableRateLimiter,
@@ -219,7 +218,6 @@ export interface GetSwapQuoteResponseLiquiditySource {
     proportion: BigNumber;
     intermediateToken?: string;
     hops?: string[];
-    slippageModel?: SlippageModelPayload;
 }
 
 export interface BasePriceResponse extends QuoteBase {
@@ -249,7 +247,7 @@ export interface AffiliateFee {
 interface SwapQuoteParamsBase {
     sellAmount?: BigNumber;
     buyAmount?: BigNumber;
-    slippagePercentage?: number;
+    slippagePercentage: number;
     excludedSources: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;
@@ -266,6 +264,9 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     quoteReport?: QuoteReport;
     extendedQuoteReportSources?: ExtendedQuoteReportSources;
     priceComparisonsReport?: PriceComparisonsReport;
+    expectedSlippage?: BigNumber;
+    expectedBuyAmount?: BigNumber;
+    expectedSellAmount?: BigNumber;
 }
 
 export interface SwapQuoteResponsePartialTransaction {
