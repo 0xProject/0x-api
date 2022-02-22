@@ -4,7 +4,7 @@ import {
     SLIPPAGE_MODEL_REFRESH_INTERVAL_MS,
     SLIPPAGE_MODEL_S3_BUCKET_NAME,
     SLIPPAGE_MODEL_S3_FILE_NAME,
-    SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_HOUR,
+    SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_MS,
 } from '../config';
 import { ONE_IN_BASE_POINTS } from '../constants';
 import { logger } from '../logger';
@@ -174,8 +174,7 @@ export class SlippageModelManager {
             const { exists: doesFileExist, lastModified } = await this._s3Client.hasFileAsync(bucket, fileName);
             if (
                 !doesFileExist ||
-                lastModified! <=
-                    new Date(refreshTime.setHours(refreshTime.getHours() - SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_HOUR))
+                lastModified! < new Date(refreshTime.getTime() - SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_MS)
             ) {
                 this._resetCache();
                 return;
