@@ -4,6 +4,7 @@ import {
     SLIPPAGE_MODEL_REFRESH_INTERVAL_MS,
     SLIPPAGE_MODEL_S3_BUCKET_NAME,
     SLIPPAGE_MODEL_S3_FILE_NAME,
+    SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_HOUR,
 } from '../config';
 import { ONE_IN_BASE_POINTS } from '../constants';
 import { logger } from '../logger';
@@ -21,11 +22,15 @@ interface SlippageModel {
     slippageCoefficient: number;
     volumeCoefficient: number;
     intercept: number;
+    token0PriceInUsd: number;
 }
 
 type SlippageModelCacheForPair = Map<string, SlippageModel>;
 type SlippageModelCache = Map<string, SlippageModelCacheForPair>;
 
+/**
+ * Create an in-memory cache for all slippage models loaded from file.
+ */
 const createSlippageModelCache = (slippageModelFileContent: string, logLabels: {}): SlippageModelCache => {
     const slippageModelList: SlippageModel[] = JSON.parse(slippageModelFileContent);
     schemaUtils.validateSchema(slippageModelList, schemas.slippageModelFileSchema);
@@ -55,29 +60,23 @@ const createSlippageModelCache = (slippageModelFileContent: string, logLabels: {
             slippageCoefficient: slippageModel.slippageCoefficient,
             volumeCoefficient: slippageModel.volumeCoefficient,
             intercept: slippageModel.intercept,
+            token0PriceInUsd: slippageModel.token0PriceInUsd,
         });
     });
     return cache;
 };
 
+/**
+ * Calculate `expectedSlippage` of an order based on slippage model
+ */
 const calculateExpectedSlippageForModel = (
-    buyToken: string,
-    sellToken: string,
-    buyAmount: BigNumber,
-    sellAmount: BigNumber,
-    slippageInBps: BigNumber,
+    token0Amount: BigNumber,
+    maxSlippageInBps: BigNumber,
     slippageModel: SlippageModel,
 ): BigNumber => {
-    let expectedSlippage: BigNumber = slippageInBps
-        .times(slippageModel.slippageCoefficient)
-        .plus(slippageModel.intercept);
-
-    if (slippageModel.token0 === buyToken.toLowerCase()) {
-        expectedSlippage = expectedSlippage.plus(buyAmount.times(slippageModel.volumeCoefficient));
-    } else if (slippageModel.token0 === sellToken.toLowerCase()) {
-        expectedSlippage = expectedSlippage.plus(sellAmount.times(slippageModel.volumeCoefficient));
-    }
-    return expectedSlippage;
+    const slippageTerm = maxSlippageInBps.times(slippageModel.slippageCoefficient);
+    const volumeTerm = token0Amount.times(slippageModel.token0PriceInUsd).times(slippageModel.volumeCoefficient);
+    return slippageTerm.plus(volumeTerm).plus(slippageModel.intercept);
 };
 
 /**
@@ -111,21 +110,25 @@ export class SlippageModelManager {
         sellToken: string,
         buyAmount: BigNumber,
         sellAmount: BigNumber,
-        slippageRate: number,
+        maxSlippageRate: number,
         sources: GetSwapQuoteResponseLiquiditySource[],
     ): BigNumber {
-        const slippageInBps = new BigNumber(slippageRate * ONE_IN_BASE_POINTS);
+        const maxSlippageInBps = new BigNumber(maxSlippageRate * ONE_IN_BASE_POINTS);
         let expectedSlippage: BigNumber = new BigNumber(0);
         sources.forEach((source) => {
             if (source.proportion.isGreaterThan(0)) {
                 const slippageModel = this._getCachedModel(buyToken, sellToken, source.name);
                 if (slippageModel !== undefined) {
+                    let token0Amount: BigNumber;
+                    if (slippageModel.token0 === buyToken.toLowerCase()) {
+                        token0Amount = buyAmount.times(source.proportion);
+                    } else {
+                        token0Amount = sellAmount.times(source.proportion);
+                    }
+
                     const expectedSlippageOfSource = calculateExpectedSlippageForModel(
-                        buyToken,
-                        sellToken,
-                        buyAmount.times(source.proportion),
-                        sellAmount.times(source.proportion),
-                        slippageInBps,
+                        token0Amount,
+                        maxSlippageInBps,
                         slippageModel,
                     );
                     expectedSlippage = expectedSlippage.plus(source.proportion.times(expectedSlippageOfSource));
@@ -169,7 +172,11 @@ export class SlippageModelManager {
 
         try {
             const { exists: doesFileExist, lastModified } = await this._s3Client.hasFileAsync(bucket, fileName);
-            if (!doesFileExist) {
+            if (
+                !doesFileExist ||
+                lastModified! <=
+                    new Date(refreshTime.setHours(refreshTime.getHours() - SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_HOUR))
+            ) {
                 this._resetCache();
                 return;
             }

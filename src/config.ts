@@ -243,6 +243,7 @@ export const SLIPPAGE_MODEL_S3_BUCKET_NAME: string | undefined = _.isEmpty(proce
       );
 export const SLIPPAGE_MODEL_S3_FILE_NAME: string = `slippageModel-${CHAIN_ID}.json`;
 export const SLIPPAGE_MODEL_S3_API_VERSION: string = '2006-03-01';
+export const SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_HOUR: number = 2;
 export const SLIPPAGE_MODEL_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
 
 export const ORDER_WATCHER_URL = _.isEmpty(process.env.ORDER_WATCHER_URL)
