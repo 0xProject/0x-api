@@ -119,12 +119,9 @@ export class SlippageModelManager {
             if (source.proportion.isGreaterThan(0)) {
                 const slippageModel = this._getCachedModel(buyToken, sellToken, source.name);
                 if (slippageModel !== undefined) {
-                    let token0Amount: BigNumber;
-                    if (slippageModel.token0 === buyToken.toLowerCase()) {
-                        token0Amount = buyAmount.times(source.proportion);
-                    } else {
-                        token0Amount = sellAmount.times(source.proportion);
-                    }
+                    const token0Amount = source.proportion.times(
+                        slippageModel.token0 === buyToken.toLowerCase() ? buyAmount : sellAmount,
+                    );
 
                     const expectedSlippageOfSource = calculateExpectedSlippageForModel(
                         token0Amount,
