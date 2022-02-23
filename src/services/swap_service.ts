@@ -487,16 +487,10 @@ export class SwapService {
                     slippagePercentage ?? 0,
                     apiSwapQuote.sources,
                 );
-            } else {
-                apiSwapQuote.expectedSlippage = new BigNumber(0);
-            }
-
-            if (marketSide === MarketOperation.Sell) {
                 apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(apiSwapQuote.expectedSlippage.plus(1));
             } else {
-                apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount.times(
-                    apiSwapQuote.expectedSlippage.times(-1).plus(1),
-                );
+                apiSwapQuote.expectedSlippage = null;
+                apiSwapQuote.expectedBuyAmount = null;
             }
         }
 

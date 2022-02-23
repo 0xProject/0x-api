@@ -105,6 +105,9 @@ export class SlippageModelManager {
         }, SLIPPAGE_MODEL_REFRESH_INTERVAL_MS);
     }
 
+    /**
+     * Calculate the weighted average of `expectedSlippage` over all sources.
+     */
     public calculateExpectedSlippage(
         buyToken: string,
         sellToken: string,

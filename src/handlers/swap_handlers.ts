@@ -265,7 +265,6 @@ export class SwapHandlers {
             'buyTokenToEthRate',
             'expectedSlippage',
             'expectedBuyAmount',
-            'expectedSellAmount',
         );
 
         if (params.includePriceComparisons && quote.priceComparisonsReport) {
