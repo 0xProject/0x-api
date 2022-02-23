@@ -487,11 +487,11 @@ export class SwapService {
                     slippagePercentage ?? 0,
                     apiSwapQuote.sources,
                 );
-                apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(apiSwapQuote.expectedSlippage.plus(1));
             } else {
-                apiSwapQuote.expectedSlippage = null;
-                apiSwapQuote.expectedBuyAmount = null;
+                apiSwapQuote.expectedSlippage = new BigNumber(0);
             }
+
+            apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(apiSwapQuote.expectedSlippage.plus(1));
         }
 
         return apiSwapQuote;
