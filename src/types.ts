@@ -266,6 +266,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     priceComparisonsReport?: PriceComparisonsReport;
     expectedSlippage?: BigNumber;
     expectedBuyAmount?: BigNumber;
+    expectedSellAmount?: BigNumber;
 }
 
 export interface SwapQuoteResponsePartialTransaction {
