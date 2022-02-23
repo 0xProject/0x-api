@@ -247,7 +247,7 @@ export interface AffiliateFee {
 interface SwapQuoteParamsBase {
     sellAmount?: BigNumber;
     buyAmount?: BigNumber;
-    slippagePercentage: number;
+    slippagePercentage?: number;
     excludedSources: ERC20BridgeSource[];
     includedSources?: ERC20BridgeSource[];
     affiliateAddress?: string;

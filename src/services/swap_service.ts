@@ -484,7 +484,7 @@ export class SwapService {
                     sellToken,
                     apiSwapQuote.buyAmount,
                     apiSwapQuote.sellAmount,
-                    slippagePercentage,
+                    slippagePercentage?? 0,
                     apiSwapQuote.sources,
                 );
             } else {
