@@ -5,7 +5,6 @@ import {
     artifacts,
     AssetSwapperContractAddresses,
     ContractAddresses,
-    ERC20BridgeSamplerContract,
     SupportedProvider,
 } from '@0x/asset-swapper';
 import { ChainId, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
@@ -72,26 +71,8 @@ export interface AppDependencies {
 async function deploySamplerContractAsync(
     provider: SupportedProvider,
     chainId: ChainId,
-): Promise<ERC20BridgeSamplerContract> {
-    const web3Wrapper = new Web3Wrapper(provider);
-    const _chainId = await web3Wrapper.getChainIdAsync();
-    if (_chainId !== chainId) {
-        throw new Error(`Incorrect Chain Id: ${_chainId}`);
-    }
-    const [account] = await web3Wrapper.getAvailableAddressesAsync();
-    try {
-        const sampler = await ERC20BridgeSamplerContract.deployFrom0xArtifactAsync(
-            artifacts.ERC20BridgeSampler,
-            provider,
-            { from: account },
-            {},
-        );
-        logger.info(`Deployed ERC20BridgeSamplerContract on network ${chainId}: ${sampler.address}`);
-        return sampler;
-    } catch (err) {
-        logger.error(`Failed to deploy ERC20BridgeSamplerContract on network ${chainId}: ${err}`);
-        throw err;
-    }
+): Promise<any> {
+    throw new Error('No implementado');
 }
 
 let contractAddresses_: AssetSwapperContractAddresses | undefined;
