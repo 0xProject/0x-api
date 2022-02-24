@@ -1,4 +1,5 @@
 import { BigNumber } from '@0x/utils';
+import { Counter } from 'prom-client';
 
 import {
     SLIPPAGE_MODEL_REFRESH_INTERVAL_MS,
@@ -14,6 +15,12 @@ import { GetSwapQuoteResponseLiquiditySource } from '../types';
 import { pairUtils } from './pair_utils';
 import { S3Client } from './s3_client';
 import { schemaUtils } from './schema_utils';
+
+const SLIPPAGE_MODEL_FILE_STALE = new Counter({
+    name: 'slippage_model_file_stale',
+    help: 'Slippage model file in S3 goes stale',
+    labelNames: ['bucket', 'fileName'],
+});
 
 interface SlippageModel {
     token0: string;
@@ -172,18 +179,29 @@ export class SlippageModelManager {
 
         try {
             const { exists: doesFileExist, lastModified } = await this._s3Client.hasFileAsync(bucket, fileName);
-            if (
-                !doesFileExist ||
-                lastModified! < new Date(refreshTime.getTime() - SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_MS)
-            ) {
+
+            // If the file does not exist, reset the in-memory cache
+            if (!doesFileExist) {
                 this._resetCache();
                 return;
             }
 
+            // If the file exists but is stale which indicate the data exporting job failed to run on time,
+            // reset the in-memory cache while log the warning msg, and increase the `slippage_model_file_stale`
+            // counter to potentially trigger an alert.
+            if (lastModified! < new Date(refreshTime.getTime() - SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_MS)) {
+                logger.warn({ bucket, fileName, refreshTime }, `Slippage model file is stale.`);
+                SLIPPAGE_MODEL_FILE_STALE.labels(bucket, fileName).inc();
+                this._resetCache();
+                return;
+            }
+
+            // If the file has been loaded, do nothing
             if (lastModified! <= this._lastRefreshed) {
                 return;
             }
 
+            // If the file is new, load the content to refresh the in-memory cache
             logger.info({ bucket, fileName, refreshTime }, `Start refreshing slippage models.`);
 
             const { content, lastModified: lastRefreshed } = await this._s3Client.getFileContentAsync(bucket, fileName);
@@ -193,7 +211,7 @@ export class SlippageModelManager {
             logger.info({ bucket, fileName, refreshTime }, `Successfully refreshed slippage models.`);
         } catch (error) {
             logger.error(
-                { bucket, fileName, refreshTime, errorMessage: error.message },
+                { bucket, fileName, refreshTime, errorMessage: error.message, errorCode: error.code },
                 `Failed to refresh slippage models.`,
             );
         }
