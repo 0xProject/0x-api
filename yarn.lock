@@ -516,10 +516,9 @@
   optionalDependencies:
     "@ledgerhq/hw-transport-node-hid" "^4.3.0"
 
-"@0x/neon-router@^0.3.3":
-  version "0.3.3"
-  resolved "https://registry.yarnpkg.com/@0x/neon-router/-/neon-router-0.3.3.tgz#dab540f4cd2aea6441ba29cbc35c28ca3f7a2b4f"
-  integrity sha512-xRIpRJ+gStLfDQI9mVdeugoLHQAp/bZfX7dycEQdStZlF6kcZk5kRe/iXCFoxoEY42fMaQW0/7JMFiB1C18t6Q==
+"@0x/neon-router@0xProject/gitpkg-registry#0x-neon-router-v0.3.3-commit.836ab9c-57f706f", "@0x/neon-router@^0.3.3":
+  version "0.3.3-commit.836ab9c"
+  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/4c91a0708e4831a3f8d01988e1e6da2532ba0ac7"
   dependencies:
     "@mapbox/node-pre-gyp" "^1.0.5"
 

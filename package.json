@@ -179,5 +179,8 @@
         "uuid-validate": "^0.0.3",
         "ws": "^7.4.6",
         "zen-observable": "^0.8.15"
+    },
+    "resolutions": {
+        "@0x/neon-router": "0xProject/gitpkg-registry#0x-neon-router-v0.3.3-commit.836ab9c-57f706f"
     }
 }
