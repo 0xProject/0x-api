@@ -47,9 +47,10 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v16.49.8-9020da923":
-  version "16.49.8"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/e83558b0b3b8d8ce1b30a5e7d4cd5abb19fe2a3d"
+"@0x/asset-swapper@^16.49.9":
+  version "16.49.9"
+  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.49.9.tgz#587b599788df191feb894afb574368fa149cadc2"
+  integrity sha512-CkwCRpYys3TANwFGzgYCVU53vg1BQB00MeMKx08BKVsOz5UxYXd9TRCcgUNq1HxNyQCyDSS55el9o00SOeaQ1A==
   dependencies:
     "@0x/assert" "^3.0.31"
     "@0x/base-contract" "^6.4.5"
@@ -59,7 +60,7 @@
     "@0x/contracts-zero-ex" "^0.31.0"
     "@0x/dev-utils" "^4.2.11"
     "@0x/json-schemas" "^6.4.1"
-    "@0x/neon-router" "0xProject/gitpkg-registry#0x-neon-router-v0.3.2-commit.4b8eda4-4b8eda4"
+    "@0x/neon-router" "^0.3.3"
     "@0x/protocol-utils" "^1.11.0"
     "@0x/quote-server" "^6.0.6"
     "@0x/types" "^3.3.4"
@@ -515,9 +516,10 @@
   optionalDependencies:
     "@ledgerhq/hw-transport-node-hid" "^4.3.0"
 
-"@0x/neon-router@0xProject/gitpkg-registry#0x-neon-router-v0.3.2-commit.4b8eda4-4b8eda4":
-  version "0.3.2-commit.4b8eda4"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/52d180d51b583ac56a7aad4778ebf5162f1e0775"
+"@0x/neon-router@^0.3.3":
+  version "0.3.3"
+  resolved "https://registry.yarnpkg.com/@0x/neon-router/-/neon-router-0.3.3.tgz#dab540f4cd2aea6441ba29cbc35c28ca3f7a2b4f"
+  integrity sha512-xRIpRJ+gStLfDQI9mVdeugoLHQAp/bZfX7dycEQdStZlF6kcZk5kRe/iXCFoxoEY42fMaQW0/7JMFiB1C18t6Q==
   dependencies:
     "@mapbox/node-pre-gyp" "^1.0.5"
 
