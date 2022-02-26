@@ -84,7 +84,7 @@ export class RPCSubprovider extends Subprovider {
             Connection: 'keep-alive',
             'Content-Type': 'application/json',
             ...(this._shouldCompressRequest ? { 'Content-Encoding': 'gzip' } : {}),
-        });
+        };
 
         ETH_RPC_REQUESTS.labels(finalPayload.method!).inc();
         const begin = Date.now();
