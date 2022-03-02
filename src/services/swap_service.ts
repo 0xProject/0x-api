@@ -89,7 +89,7 @@ export class SwapService {
     private readonly _wethContract: WETH9Contract;
     private readonly _contractAddresses: ContractAddresses;
     private readonly _firmQuoteValidator: RfqFirmQuoteValidator | undefined;
-    private readonly _swapQuoterOpts: Partial<SwapQuoterOpts>;
+    private readonly _swapQuoterOpts: SwapQuoterOpts;
     private _altRfqMarketsCache: any;
     private _swapQuoter: SwapQuoter;
 
