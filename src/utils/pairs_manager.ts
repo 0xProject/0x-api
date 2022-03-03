@@ -88,12 +88,8 @@ export class PairsManager extends EventEmitter {
         const timerStopFunction = RFQ_MAKER_PAIRS_REFRESH_LATENCY.labels(chainId.toString(), RFQ_WORKFLOW).startTimer();
 
         try {
-            logger.info({ chainId, refreshTime }, `Check if refreshing is necessary.`);
-
             const rfqMakerPairsListUpdateTimeHash = await this._dbUtils.getPairsArrayUpdateTimeHashAsync(chainId);
-
             if (rfqMakerPairsListUpdateTimeHash === this._rfqMakerPairsListUpdateTimeHash) {
-                logger.info({ chainId, refreshTime }, `Pairs are up to date.`);
                 return;
             }
 
