@@ -59,9 +59,10 @@
     lodash "^4.17.11"
     valid-url "^1.0.9"
 
-"@0x/asset-swapper@0xProject/gitpkg-registry#0x-asset-swapper-v16.50.0-68e3b3e12":
-  version "16.50.0"
-  resolved "https://codeload.github.com/0xProject/gitpkg-registry/tar.gz/23c49eee9390af320561c9169a780471b72f01a2"
+"@0x/asset-swapper@^16.50.1":
+  version "16.50.1"
+  resolved "https://registry.yarnpkg.com/@0x/asset-swapper/-/asset-swapper-16.50.1.tgz#d72abb47322fb88dc4054eaef429a8ef6c121ddd"
+  integrity sha512-hD899ZGX0n17O6W4ywM9rRtERDq47W5teIzRgplf16DZGp01ByoWkZ+oUE/o91skhEz6ZEnu7tcMApVvXbHpZQ==
   dependencies:
     "@0x/assert" "^3.0.31"
     "@0x/base-contract" "^6.4.5"
