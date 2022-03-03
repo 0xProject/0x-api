@@ -278,6 +278,7 @@ export interface SwapQuoteResponsePartialTransaction {
 
 // Request params
 export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
+    endpoint: 'price' | 'quote';
     sellToken: string;
     buyToken: string;
     takerAddress?: string;
