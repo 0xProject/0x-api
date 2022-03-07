@@ -59,7 +59,7 @@ async function runHttpServiceAsync(
     app.get('/', rootHandler);
 
     if (dependencies.swapService) {
-        await dependencies.swapService.connectKafkaOrThrow();
+        await dependencies.swapService.connectKafkaOrThrowAsync();
 
         app.use(SWAP_PATH, createSwapRouter(dependencies.swapService));
     } else {

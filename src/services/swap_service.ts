@@ -205,7 +205,7 @@ export class SwapService {
         this._provider = provider;
         this._firmQuoteValidator = firmQuoteValidator;
         this._kafkaClient = _kafkaClient;
-        // We initialize this async via connectKafka()
+        // We initialize this async via connectKafkaOrThrowAsync()
         this.kafkaProducer = undefined;
 
         let axiosOpts = {};
@@ -636,7 +636,7 @@ export class SwapService {
         };
     }
 
-    public async connectKafkaOrThrow(): Promise<void> {
+    public async connectKafkaOrThrowAsync(): Promise<void> {
         if (!this._kafkaClient) {
             throw Error('Kafka client was not passed in.');
         }
