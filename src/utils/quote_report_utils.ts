@@ -24,6 +24,7 @@ interface QuoteReportLogOptionsBase {
     integratorId?: string;
     taker?: string;
     slippage: number | undefined;
+    blockNumber: number | undefined;
 }
 interface QuoteReportForTakerTxn extends QuoteReportLogOptionsBase {
     quoteReport: QuoteReport;
