@@ -562,8 +562,9 @@ const EXCLUDED_FEE_SOURCES = (() => {
             return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
     }
 })();
-const FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD = new BigNumber(150e3);
-const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
+const TRANSFORM_ERC20_GAS_OVERHEAD = new BigNumber(100e3);
+const FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD = new BigNumber(35e3);
+const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => TRANSFORM_ERC20_GAS_OVERHEAD.plus(FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD);
 const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
     SOURCE_FLAGS.Uniswap_V2 |
     SOURCE_FLAGS.SushiSwap |
@@ -610,8 +611,11 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
     ) {
         // Multiplex multi-hop fill
         return TX_BASE_GAS.plus(25e3);
+    } else if (sourceFlags & SOURCE_FLAGS.MultiHop) {
+        // Multihop.
+        return TRANSFORM_ERC20_GAS_OVERHEAD.plus(FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD.times(2));
     } else {
-        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
+        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD.plus(FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD);
     }
 };
 
