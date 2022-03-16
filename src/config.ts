@@ -505,7 +505,6 @@ const EXCLUDED_SOURCES = (() => {
             );
         case ChainId.Ropsten:
             const supportedRopstenSources = new Set([
-                ERC20BridgeSource.Kyber,
                 ERC20BridgeSource.Native,
                 ERC20BridgeSource.SushiSwap,
                 ERC20BridgeSource.Uniswap,

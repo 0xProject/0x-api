@@ -126,11 +126,11 @@ export class SlippageModelManager {
         const maxSlippageInBps = new BigNumber(maxSlippageRate * ONE_IN_BASE_POINTS);
         let expectedSlippage: BigNumber = new BigNumber(0);
         sources.forEach((source) => {
-            if (source.proportion.isGreaterThan(0)) {
+            if (source.proportion > 0) {
                 const slippageModel = this._getCachedModel(buyToken, sellToken, source.name);
                 if (slippageModel !== undefined) {
-                    const token0Amount = source.proportion.times(
-                        slippageModel.token0 === buyToken.toLowerCase() ? buyAmount : sellAmount,
+                    const token0Amount = new BigNumber(source.proportion).times(
+                        slippageModel.token0 === buyToken.toLowerCase() ? buyAmount : sellAmount
                     );
 
                     const expectedSlippageOfSource = calculateExpectedSlippageForModel(
@@ -138,7 +138,7 @@ export class SlippageModelManager {
                         maxSlippageInBps,
                         slippageModel,
                     );
-                    expectedSlippage = expectedSlippage.plus(source.proportion.times(expectedSlippageOfSource));
+                    expectedSlippage = expectedSlippage.plus(expectedSlippageOfSource.times(source.proportion));
                 }
             }
         });
