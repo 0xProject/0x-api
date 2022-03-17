@@ -1,10 +1,8 @@
 // tslint:disable:max-file-line-count
 import { isAPIError, isRevertError } from '@0x/api-utils';
 import { ERC20BridgeSource, RfqRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
-import {
-    NATIVE_FEE_TOKEN_BY_CHAIN_ID,
-    SELL_SOURCE_FILTER_BY_CHAIN_ID,
-} from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
+import { SELL_SOURCE_FILTER_BY_CHAIN_ID } from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
+import { ETH_TOKEN_ADDRESS } from '@0x/protocol-utils';
 import {
     findTokenAddressOrThrow,
     getTokenMetadataIfExists,
@@ -427,12 +425,12 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     const isNativeBuy = isNativeSymbolOrAddress(buyTokenRaw, CHAIN_ID);
     // NOTE: Internally all Native token (like ETH) trades are for their wrapped equivalent (ie WETH), we just wrap/unwrap automatically
     const sellToken = findTokenAddressOrThrowApiError(
-        isNativeSell ? NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID] : sellTokenRaw,
+        isNativeSell ? ETH_TOKEN_ADDRESS : sellTokenRaw,
         'sellToken',
         CHAIN_ID,
     ).toLowerCase();
     const buyToken = findTokenAddressOrThrowApiError(
-        isNativeBuy ? NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID] : buyTokenRaw,
+        isNativeBuy ? ETH_TOKEN_ADDRESS : buyTokenRaw,
         'buyToken',
         CHAIN_ID,
     ).toLowerCase();
