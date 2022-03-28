@@ -31,6 +31,7 @@ import {
     HEALTHCHECK_PATH,
     METRICS_PATH,
     NULL_ADDRESS,
+    ONE_HOUR_MS,
     ONE_MINUTE_MS,
     ORDERBOOK_PATH,
     QUOTE_ORDER_EXPIRATION_BUFFER_MS,
@@ -78,6 +79,7 @@ export interface Integrator {
     plp: boolean;
     rfqm: boolean;
     rfqt: boolean;
+    slippageModel?: boolean;
 }
 export type IntegratorsAcl = Integrator[];
 
@@ -231,6 +233,19 @@ export const ENABLE_RPC_REQUEST_COMPRESSION = _.isEmpty(process.env.ENABLE_RPC_R
           process.env.ENABLE_RPC_REQUEST_COMPRESSION,
           EnvVarType.Boolean,
       );
+
+// S3 bucket for slippage model file
+export const SLIPPAGE_MODEL_S3_BUCKET_NAME: string | undefined = _.isEmpty(process.env.SLIPPAGE_MODEL_S3_BUCKET_NAME)
+    ? undefined
+    : assertEnvVarType(
+          'SLIPPAGE_MODEL_S3_BUCKET_NAME',
+          process.env.SLIPPAGE_MODEL_S3_BUCKET_NAME,
+          EnvVarType.NonEmptyString,
+      );
+export const SLIPPAGE_MODEL_S3_FILE_NAME: string = `SlippageModel-${CHAIN_ID}.json`;
+export const SLIPPAGE_MODEL_S3_API_VERSION: string = '2006-03-01';
+export const SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_MS: number = ONE_HOUR_MS * 2;
+export const SLIPPAGE_MODEL_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
 
 export const ORDER_WATCHER_URL = _.isEmpty(process.env.ORDER_WATCHER_URL)
     ? 'http://127.0.0.1:8080'
@@ -482,7 +497,7 @@ const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [ERC20BridgeSource.MultiBridge];
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.KyberDmm];
         case ChainId.Kovan:
             return allERC20BridgeSources.filter(
                 (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
@@ -500,15 +515,15 @@ const EXCLUDED_SOURCES = (() => {
             ]);
             return allERC20BridgeSources.filter((s) => !supportedRopstenSources.has(s));
         case ChainId.BSC:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native, ERC20BridgeSource.KyberDmm];
         case ChainId.Polygon:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native, ERC20BridgeSource.KyberDmm];
         case ChainId.Avalanche:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native, ERC20BridgeSource.KyberDmm];
         case ChainId.Celo:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         case ChainId.Fantom:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
+            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native, ERC20BridgeSource.KyberDmm];
         case ChainId.Optimism:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
