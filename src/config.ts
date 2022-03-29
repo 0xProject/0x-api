@@ -823,7 +823,6 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
             assert.isString(name, value);
             const apiKeys = (value as string).split(',').filter((key) => !!key.trim());
             apiKeys.forEach((apiKey) => {
-                if (!apiKey) return;
                 const isValidUUID = validateUUID(apiKey);
                 if (!isValidUUID) {
                     throw new Error(`API Key ${apiKey} isn't UUID compliant`);
