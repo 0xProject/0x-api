@@ -7,6 +7,7 @@ import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from
 import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
 import { SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
+import { logger } from '../logger';
 import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
 import { OrderConfigResponse, SignedLimitOrder } from '../types';
@@ -72,7 +73,9 @@ export class SRAHandlers {
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
+        logger.info(`Start to validate schema.`);
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
+        logger.info(`Validated schema.`);
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;

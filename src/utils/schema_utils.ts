@@ -1,6 +1,7 @@
 import { AJV, SchemaValidator } from '@0x/json-schemas';
 
 import { ValidationError, ValidationErrorCodes, ValidationErrorItem } from '../errors';
+import { logger } from '../logger';
 import { schemas } from '../schemas';
 
 const schemaValidator = new SchemaValidator();
@@ -13,12 +14,16 @@ for (const schema of Object.values(schemas)) {
 export const schemaUtils = {
     validateSchema(instance: any, schema: object): void {
         const validationResult = schemaValidator.validate(instance, schema);
+
         if (!validationResult.errors || validationResult.errors.length === 0) {
+            logger.info(`Validation result has no error.`);
             return;
         } else {
-            const validationErrorItems = validationResult.errors.map((schemaValidationError) =>
-                schemaValidationErrorToValidationErrorItem(schemaValidationError),
-            );
+            logger.info(`Validation result has ${validationResult.errors.length} errors.`);
+            const validationErrorItems = validationResult.errors.map((schemaValidationError) => {
+                logger.info(`Error: ${schemaValidationError}`);
+                return schemaValidationErrorToValidationErrorItem(schemaValidationError);
+            });
             throw new ValidationError(validationErrorItems);
         }
     },
@@ -72,6 +77,7 @@ function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject:
             reason: schemaValidationErrorObject.message || '',
         };
     } else {
+        logger.info(`Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);
         throw new Error(`Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);
     }
 }
