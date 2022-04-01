@@ -73,9 +73,9 @@ export class SRAHandlers {
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
-        logger.info(`Start to validate schema.`);
+        logger.info({}, `Start to validate schema.`);
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
-        logger.info(`Validated schema.`);
+        logger.info({}, `Validated schema.`);
         const signedOrder = unmarshallOrder(req.body);
         if (WHITELISTED_TOKENS !== '*') {
             const allowedTokens: string[] = WHITELISTED_TOKENS;

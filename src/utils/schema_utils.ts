@@ -16,12 +16,12 @@ export const schemaUtils = {
         const validationResult = schemaValidator.validate(instance, schema);
 
         if (!validationResult.errors || validationResult.errors.length === 0) {
-            logger.info(`Validation result has no error.`);
+            logger.info({}, `Validation result has no error.`);
             return;
         } else {
-            logger.info(`Validation result has ${validationResult.errors.length} errors.`);
+            logger.info({}, `Validation result has ${validationResult.errors.length} errors.`);
             const validationErrorItems = validationResult.errors.map((schemaValidationError) => {
-                logger.info(`Error: ${schemaValidationError}`);
+                logger.info({}, `Error: ${schemaValidationError}`);
                 return schemaValidationErrorToValidationErrorItem(schemaValidationError);
             });
             throw new ValidationError(validationErrorItems);
@@ -77,7 +77,7 @@ function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject:
             reason: schemaValidationErrorObject.message || '',
         };
     } else {
-        logger.info(`Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);
+        logger.info({}, `Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);
         throw new Error(`Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);
     }
 }
