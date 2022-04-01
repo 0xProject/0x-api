@@ -77,16 +77,25 @@ export class SRAHandlers {
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
         logger.info({}, `Validated schema.`);
         const signedOrder = unmarshallOrder(req.body);
+        logger.info({}, `unmarshallOrder done`);
+        logger.info({}, `WHITELISTED_TOKENS: ${WHITELISTED_TOKENS}`);
+        logger.info({}, `shouldSkipConfirmation: ${shouldSkipConfirmation}`);
         if (WHITELISTED_TOKENS !== '*') {
+            logger.info({}, `Start validate token whitelisting.`);
             const allowedTokens: string[] = WHITELISTED_TOKENS;
             validateAssetTokenOrThrow(allowedTokens, signedOrder.makerToken, 'makerToken');
             validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
         }
         if (shouldSkipConfirmation) {
+            logger.info({}, `Skip confirmation. Return.`);
             res.status(HttpStatus.OK).send();
         }
+
+        logger.info({}, `Before adding order.`);
         await this._orderBook.addOrderAsync(signedOrder);
+        logger.info({}, `After adding order.`);
         if (!shouldSkipConfirmation) {
+            logger.info({}, `Confirmed. Return.`);
             res.status(HttpStatus.OK).send();
         }
     }

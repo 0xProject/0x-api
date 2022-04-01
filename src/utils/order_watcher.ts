@@ -3,6 +3,7 @@ import axios from 'axios';
 
 import { ORDER_WATCHER_URL } from '../config';
 import { ValidationError } from '../errors';
+import { logger } from '../logger';
 import { SignedLimitOrder } from '../types';
 
 export interface OrderWatcherInterface {
@@ -20,7 +21,9 @@ export class OrderWatcher implements OrderWatcherInterface {
                 timeout: 1000,
             });
         } catch (err) {
+            logger.info({}, `Failed to post to order watcher.`);
             if (err.response.data) {
+                logger.info({}, `Validation error: ${err.response.data}`);
                 throw new ValidationError(err.response.data.validationErrors);
             } else if (err.request) {
                 throw new InternalServerError('failed to submit order to order-watcher');
