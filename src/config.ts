@@ -42,6 +42,8 @@ import { parseUtils } from './utils/parse_utils';
 import { schemaUtils } from './utils/schema_utils';
 
 const SHOULD_USE_RUST_ROUTER = process.env.RUST_ROUTER === 'true';
+// Log level for pino.js
+export const LOG_LEVEL: string = 'info';
 
 // tslint:disable:no-bitwise
 
@@ -168,11 +170,6 @@ export const RFQ_MAKER_CONFIGS: RfqMakerConfig[] = (() => {
         throw new Error(`RFQ_MAKER_CONFIGS was defined but is not valid JSON per the schema: ${e}`);
     }
 })();
-
-// Log level for pino.js
-export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
-    ? 'info'
-    : assertEnvVarType('LOG_LEVEL', process.env.LOG_LEVEL, EnvVarType.NonEmptyString);
 
 // Network port to listen on
 export const HTTP_PORT = _.isEmpty(process.env.HTTP_PORT)
