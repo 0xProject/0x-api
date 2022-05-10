@@ -21,7 +21,7 @@ export const isRolledOut = ({ message, threshold }: { message: string; threshold
     // Grab the first byte
     const firstByte = hash.substring(0, 2);
 
-    // Represent the threshold as a byte, where
+    // Represent the threshold as a byte: convert the value [0, 1) to the range [0, 255], but as hex: [00, ff]
     // tslint:disable-next-line: custom-no-magic-numbers
     const thresholdByte = Math.floor(Math.min(threshold, 1) * 256).toString(16);
 
