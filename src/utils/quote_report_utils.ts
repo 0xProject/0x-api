@@ -76,7 +76,7 @@ const omitFillData = (source: QuoteReportEntry) => {
  * @returns timestamp used when the unique identifier is generated
  */
 const getTimestampFromUniqueId = (decodedUniqueId: string): number => {
-    return parseInt(decodedUniqueId.slice(11), 10);
+    return parseInt(decodedUniqueId.slice(decodedUniqueId.indexOf('-') + 1), 10);
 };
 
 export const quoteReportUtils = {
