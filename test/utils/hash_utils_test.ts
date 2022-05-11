@@ -5,7 +5,7 @@ import { expect } from '@0x/contracts-test-utils';
 
 import { isHashSmallEnough } from '../../src/utils/hash_utils';
 
-describe.only('isRolledOut', () => {
+describe('isRolledOut', () => {
     it('should give a consistent result for the same message', () => {
         const message = 'hello world';
         const threshold = 0.5;
@@ -24,7 +24,7 @@ describe.only('isRolledOut', () => {
         let rolloutCount = 0;
 
         for (let i = 0; i < population; i++) {
-            if (isHashSmallEnough({ message: i.toString(), threshold })) {
+            if (isHashSmallEnough({ message: i, threshold })) {
                 rolloutCount++;
             }
         }
