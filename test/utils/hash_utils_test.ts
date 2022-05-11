@@ -3,16 +3,16 @@
 
 import { expect } from '@0x/contracts-test-utils';
 
-import { isRolledOut } from '../../src/utils/rollout_utils';
+import { isHashSmallEnough } from '../../src/utils/hash_utils';
 
-describe('isRolledOut', () => {
+describe.only('isRolledOut', () => {
     it('should give a consistent result for the same message', () => {
         const message = 'hello world';
         const threshold = 0.5;
 
-        const first = isRolledOut({ message, threshold });
-        const second = isRolledOut({ message, threshold });
-        const third = isRolledOut({ message, threshold });
+        const first = isHashSmallEnough({ message, threshold });
+        const second = isHashSmallEnough({ message, threshold });
+        const third = isHashSmallEnough({ message, threshold });
 
         expect(first).to.eq(second);
         expect(second).to.eq(third);
@@ -24,11 +24,11 @@ describe('isRolledOut', () => {
         let rolloutCount = 0;
 
         for (let i = 0; i < population; i++) {
-            if (isRolledOut({ message: i.toString(), threshold })) {
+            if (isHashSmallEnough({ message: i.toString(), threshold })) {
                 rolloutCount++;
             }
         }
-        expect(rolloutCount).to.eq(98); // approximately 100
+        expect(rolloutCount).to.eq(102); // approximately 100
     });
 
     it('should roll out for 100%', () => {
@@ -37,7 +37,7 @@ describe('isRolledOut', () => {
         let rolloutCount = 0;
 
         for (let i = 0; i < population; i++) {
-            if (isRolledOut({ message: i.toString(), threshold })) {
+            if (isHashSmallEnough({ message: i.toString(), threshold })) {
                 rolloutCount++;
             }
         }
