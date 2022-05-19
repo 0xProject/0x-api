@@ -1160,14 +1160,8 @@
     isomorphic-fetch "^2.2.1"
     typescript "^3.8.3"
 
-"@balancer-labs/sor@^0.3.0":
-  version "0.3.3"
-  resolved "https://registry.yarnpkg.com/@balancer-labs/sor/-/sor-0.3.3.tgz#726a589094e4b9d25116cde5a1c0e154f132713e"
-  dependencies:
-    bignumber.js "^9.0.0"
-    isomorphic-fetch "^2.2.1"
-
 "@balancer-labs/sor@^4.0.0-beta.6", "sorV2@npm:@balancer-labs/sor":
+  name sorV2
   version "4.0.0-beta.6"
   resolved "https://registry.yarnpkg.com/@balancer-labs/sor/-/sor-4.0.0-beta.6.tgz#1ee214b49184702ff10c73bfdd2e7c9b58be2950"
   integrity sha512-tdnBIUf+NlHulMvCSh2FguE59z7o863mjtp6oWxz1PF3G5L3V4TCF39FrIho+z2/+J2iPqMXNBWRnF7luOBIDw==
