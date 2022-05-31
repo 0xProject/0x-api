@@ -508,19 +508,29 @@ export class SwapService {
                     sellToken,
                     apiSwapQuote.buyAmount,
                     apiSwapQuote.sellAmount,
-                    slippagePercentage ?? 0,
                     apiSwapQuote.sources,
+                    slippagePercentage ?? 0.0005,
                 );
             } else {
-                apiSwapQuote.expectedSlippage = new BigNumber(0);
+                apiSwapQuote.expectedSlippage = null;
             }
 
             if (marketSide === MarketOperation.Sell) {
-                apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(apiSwapQuote.expectedSlippage.plus(1));
+                if (apiSwapQuote.expectedSlippage === null) {
+                    apiSwapQuote.expectedBuyAmount = null;
+                } else {
+                    apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(
+                        apiSwapQuote.expectedSlippage.times(-1).plus(1),
+                    );
+                }
             } else {
-                apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount.times(
-                    apiSwapQuote.expectedSlippage.times(-1).plus(1),
-                );
+                if (apiSwapQuote.expectedSlippage === null) {
+                    apiSwapQuote.expectedBuyAmount = null;
+                } else {
+                    apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount.times(
+                        apiSwapQuote.expectedSlippage.plus(1),
+                    );
+                }
             }
         }
 
