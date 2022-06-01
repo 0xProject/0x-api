@@ -79,7 +79,7 @@ const createSlippageModelCache = (slippageModelFileContent: string, logLabels: {
  */
 const calculateExpectedSlippageForModel = (
     token0Amount: BigNumber,
-    maxSlippageRate: number,
+    maxSlippageRate: BigNumber,
     slippageModel: SlippageModel,
 ): BigNumber | null => {
     const volumeUsd = token0Amount.times(slippageModel.token0PriceInUsd);
@@ -90,9 +90,9 @@ const calculateExpectedSlippageForModel = (
     }
 
     const volumeTerm = volumeUsd.times(slippageModel.volumeCoefficient);
-    const slippageTerm = new BigNumber(maxSlippageRate * ONE_IN_BASE_POINTS).times(slippageModel.slippageCoefficient);
+    const slippageTerm = maxSlippageRate.times(ONE_IN_BASE_POINTS).times(slippageModel.slippageCoefficient);
     const expectedSlippage = slippageTerm.plus(volumeTerm).plus(slippageModel.intercept).times(-1);
-    return expectedSlippage.gt(maxSlippageRate) ? new BigNumber(maxSlippageRate) : expectedSlippage;
+    return expectedSlippage.gt(maxSlippageRate) ? maxSlippageRate : expectedSlippage;
 };
 
 /**
@@ -153,7 +153,7 @@ export class SlippageModelManager {
 
                     const expectedSlippageOfSource = calculateExpectedSlippageForModel(
                         token0Amount.times(source.proportion),
-                        maxSlippageRate,
+                        new BigNumber(maxSlippageRate),
                         slippageModel,
                     );
 
