@@ -23,7 +23,7 @@ const SLIPPAGE_MODEL_FILE_STALE = new Counter({
     labelNames: ['bucket', 'fileName'],
 });
 
-interface SlippageModel {
+export interface SlippageModel {
     token0: string;
     token1: string;
     source: string;
@@ -141,7 +141,7 @@ export class SlippageModelManager {
         }
 
         let expectedSlippage: BigNumber = new BigNumber(0);
-        sources.forEach((source) => {
+        for (let source of sources) {
             if (source.proportion.isGreaterThan(0)) {
                 const slippageModel = slippageModelCacheForPair.get(source.name) || null;
                 if (slippageModel === null) {
@@ -166,7 +166,7 @@ export class SlippageModelManager {
                     expectedSlippage = expectedSlippage.plus(source.proportion.times(expectedSlippageOfSource));
                 }
             }
-        });
+        }
         return expectedSlippage;
     }
 

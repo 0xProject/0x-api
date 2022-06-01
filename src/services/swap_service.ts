@@ -523,7 +523,7 @@ export class SwapService {
                 } else {
                     apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(
                         apiSwapQuote.expectedSlippage.plus(1),
-                    );
+                    ).integerValue();
                 }
             } else {
                 if (apiSwapQuote.expectedSlippage === null) {
@@ -531,7 +531,7 @@ export class SwapService {
                 } else {
                     apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount.times(
                         apiSwapQuote.expectedSlippage.times(-1).plus(1),
-                    );
+                    ).integerValue();
                 }
             }
         }
