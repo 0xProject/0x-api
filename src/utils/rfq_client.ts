@@ -51,6 +51,7 @@ export class RfqClient implements IRfqClient {
             }
 
             const priceResponse = response.data as RfqClientV1PriceResponse;
+            logger.info({ priceResponse }, 'RFQt v1 price response');
             return priceResponse;
         } catch (error) {
             logger.error({ errorMessage: error.message }, 'Encountered an error fetching for /rfqt/v1/prices');
@@ -96,7 +97,9 @@ export class RfqClient implements IRfqClient {
                 };
             }
 
-            return response.data as RfqClientV1QuoteResponse;
+            const quoteResponse = response.data as RfqClientV1QuoteResponse;
+            logger.info({ quoteReesponse: quoteResponse }, 'RFQt v1 quote response');
+            return quoteResponse;
         } catch (error) {
             logger.error({ errorMessage: error.message }, 'Encountered an error fetching for /rfqt/v1/quotes');
             return {
