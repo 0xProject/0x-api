@@ -141,7 +141,7 @@ export class SlippageModelManager {
         }
 
         let expectedSlippage: BigNumber = new BigNumber(0);
-        for (let source of sources) {
+        for (const source of sources) {
             if (source.proportion.isGreaterThan(0)) {
                 const slippageModel = slippageModelCacheForPair.get(source.name) || null;
                 if (slippageModel === null) {

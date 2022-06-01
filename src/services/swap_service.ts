@@ -521,17 +521,17 @@ export class SwapService {
                 if (apiSwapQuote.expectedSlippage === null) {
                     apiSwapQuote.expectedBuyAmount = null;
                 } else {
-                    apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount.times(
-                        apiSwapQuote.expectedSlippage.plus(1),
-                    ).integerValue();
+                    apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount
+                        .times(apiSwapQuote.expectedSlippage.plus(1))
+                        .integerValue();
                 }
             } else {
                 if (apiSwapQuote.expectedSlippage === null) {
                     apiSwapQuote.expectedBuyAmount = null;
                 } else {
-                    apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount.times(
-                        apiSwapQuote.expectedSlippage.times(-1).plus(1),
-                    ).integerValue();
+                    apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount
+                        .times(apiSwapQuote.expectedSlippage.times(-1).plus(1))
+                        .integerValue();
                 }
             }
         }
