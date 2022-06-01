@@ -265,8 +265,6 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     extendedQuoteReportSources?: ExtendedQuoteReportSources;
     priceComparisonsReport?: PriceComparisonsReport;
     expectedSlippage?: BigNumber | null;
-    expectedBuyAmount?: BigNumber | null;
-    expectedSellAmount?: BigNumber | null;
     blockNumber: number | undefined;
 }
 

@@ -82,8 +82,6 @@ import { serviceUtils } from '../utils/service_utils';
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
 
-const DEFAULT_SLIPPAGE_PERCENTAGE = 0.0005; // Default slippage rate if no `slippagePercentage` is specified by users
-
 export class SwapService {
     private readonly _provider: SupportedProvider;
     private readonly _fakeTaker: FakeTakerContract;
@@ -511,28 +509,10 @@ export class SwapService {
                     apiSwapQuote.buyAmount,
                     apiSwapQuote.sellAmount,
                     apiSwapQuote.sources,
-                    slippagePercentage ?? DEFAULT_SLIPPAGE_PERCENTAGE,
+                    slippagePercentage!,
                 );
             } else {
                 apiSwapQuote.expectedSlippage = null;
-            }
-
-            if (marketSide === MarketOperation.Sell) {
-                if (apiSwapQuote.expectedSlippage === null) {
-                    apiSwapQuote.expectedBuyAmount = null;
-                } else {
-                    apiSwapQuote.expectedBuyAmount = apiSwapQuote.buyAmount
-                        .times(apiSwapQuote.expectedSlippage.plus(1))
-                        .integerValue();
-                }
-            } else {
-                if (apiSwapQuote.expectedSlippage === null) {
-                    apiSwapQuote.expectedBuyAmount = null;
-                } else {
-                    apiSwapQuote.expectedSellAmount = apiSwapQuote.sellAmount
-                        .times(apiSwapQuote.expectedSlippage.times(-1).plus(1))
-                        .integerValue();
-                }
             }
         }
 
