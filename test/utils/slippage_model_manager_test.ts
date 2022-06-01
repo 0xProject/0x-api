@@ -40,8 +40,8 @@ describe('SlippageModelManager', () => {
             token1: weth,
             source: 'source 2',
             slippageCoefficient: -0.0000004,
-            volumeCoefficient: -0.000000003,
-            intercept: -0.0001,
+            volumeCoefficient: -0.000000002,
+            intercept: -0.00001,
             token0PriceInUsd: 0.000001,
         },
     ];
@@ -145,7 +145,7 @@ describe('SlippageModelManager', () => {
             );
 
             // Then
-            expect(expectedSlippage).to.deep.equal(new BigNumber(-0.000205));
+            expect(expectedSlippage).to.deep.equal(new BigNumber(-0.000185));
         });
         it('should return null if pair is not supported', async () => {
             // Given

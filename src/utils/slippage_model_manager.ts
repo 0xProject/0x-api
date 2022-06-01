@@ -153,7 +153,7 @@ export class SlippageModelManager {
                     );
 
                     const expectedSlippageOfSource = calculateExpectedSlippageForModel(
-                        token0Amount.times(source.proportion),
+                        token0Amount,
                         new BigNumber(maxSlippageRate),
                         slippageModel,
                     );
