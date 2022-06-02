@@ -135,12 +135,6 @@ export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
                 .execute();
         }
         logger.info({ takerFillableAmounts }, 'Rfqt V1 taker fillable amounts');
-        takerFillableAmounts.forEach((v) => {
-            logger.info(
-                { methods: Object.getOwnPropertyNames(Object.getPrototypeOf(v)) },
-                'Rfqt v1 properties on the takerFillableAmounts',
-            );
-        });
         return takerFillableAmounts;
     }
 
