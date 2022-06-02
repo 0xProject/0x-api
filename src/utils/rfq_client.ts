@@ -38,29 +38,13 @@ export class RfqClient implements IRfqClient {
      */
     public async getV1PricesAsync(request: RfqClientV1PriceRequest): Promise<RfqClientV1PriceResponse> {
         try {
-            const response = await this._axiosInstance.post(
-                `${this._rfqApiUrl}/rfqt/v1/prices`,
-                {
-                    altRfqAssetOfferings: request.altRfqAssetOfferings,
-                    assetFillAmount: request.assetFillAmount,
-                    chainId: request.chainId,
-                    comparisonPrice: request.comparisonPrice,
-                    integratorId: request.integratorId,
-                    intentOnFilling: request.intentOnFilling,
-                    makerToken: request.makerToken,
-                    marketOperation: request.marketOperation,
-                    takerAddress: request.takerAddress,
-                    takerToken: request.takerToken,
-                    txOrigin: request.txOrigin,
+            const response = await this._axiosInstance.post(`${this._rfqApiUrl}/rfqt/v1/prices`, request, {
+                // tslint:disable-next-line: custom-no-magic-numbers
+                timeout: RFQT_REQUEST_MAX_RESPONSE_MS + 150,
+                headers: {
+                    '0x-chain-id': request.chainId,
                 },
-                {
-                    // tslint:disable-next-line: custom-no-magic-numbers
-                    timeout: RFQT_REQUEST_MAX_RESPONSE_MS + 150,
-                    headers: {
-                        '0x-chain-id': request.chainId,
-                    },
-                },
-            );
+            });
 
             if (response.status !== OK) {
                 logger.warn({ request }, 'Unable to get RFQt v1 prices');
@@ -85,29 +69,13 @@ export class RfqClient implements IRfqClient {
      */
     public async getV1QuotesAsync(request: RfqClientV1QuoteRequest): Promise<RfqClientV1QuoteResponse> {
         try {
-            const response = await this._axiosInstance.post(
-                `${this._rfqApiUrl}/rfqt/v1/quotes`,
-                {
-                    altRfqAssetOfferings: request.altRfqAssetOfferings,
-                    assetFillAmount: request.assetFillAmount,
-                    chainId: request.chainId,
-                    comparisonPrice: request.comparisonPrice,
-                    integratorId: request.integratorId,
-                    intentOnFilling: request.intentOnFilling,
-                    makerToken: request.makerToken,
-                    marketOperation: request.marketOperation,
-                    takerAddress: request.takerAddress,
-                    takerToken: request.takerToken,
-                    txOrigin: request.txOrigin,
+            const response = await this._axiosInstance.post(`${this._rfqApiUrl}/rfqt/v1/quotes`, request, {
+                // tslint:disable-next-line: custom-no-magic-numbers
+                timeout: RFQT_REQUEST_MAX_RESPONSE_MS + 150,
+                headers: {
+                    '0x-chain-id': request.chainId,
                 },
-                {
-                    // tslint:disable-next-line: custom-no-magic-numbers
-                    timeout: RFQT_REQUEST_MAX_RESPONSE_MS + 150,
-                    headers: {
-                        '0x-chain-id': request.chainId,
-                    },
-                },
-            );
+            });
 
             if (response.status !== OK) {
                 logger.warn({ request }, 'Unable to get RFQt v1 quotes');
