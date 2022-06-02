@@ -13,6 +13,7 @@ import { OK } from 'http-status-codes';
 import { RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { logger } from '../logger';
 
+// A mapper function to return a serialized RfqOrder into one with BigNumbers
 const toRfqOrder = (obj: any): RfqOrder => {
     return new RfqOrder({
         makerToken: obj.makerToken,
@@ -53,9 +54,7 @@ export class RfqClient implements IRfqClient {
                 };
             }
 
-            const priceResponse = response.data as RfqClientV1PriceResponse;
-            logger.info({ priceResponse }, 'RFQt v1 price response');
-            return priceResponse;
+            return response.data as RfqClientV1PriceResponse;
         } catch (error) {
             logger.error({ errorMessage: error.message }, 'Encountered an error fetching for /rfqt/v1/prices');
             return {
@@ -84,7 +83,6 @@ export class RfqClient implements IRfqClient {
                 };
             }
 
-            logger.info({ quoteResponse: response.data }, 'RFQt v1 quote response');
             const updatedQuotes = response.data?.quotes.map((q: any) => {
                 return {
                     signature: q.signature,
