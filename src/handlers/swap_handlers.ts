@@ -361,7 +361,6 @@ export class SwapHandlers {
                 { errorMessage: e.message },
                 'WIP - encountered an error during a call to swap quoter (message)',
             );
-            logger.info({ stack: e.stack }, 'WIP - encountered an error during a call to swap quoter (stack)');
             logger.info({ error: e }, 'WIP - encountered an error during a call to swap quoter (error)');
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {
