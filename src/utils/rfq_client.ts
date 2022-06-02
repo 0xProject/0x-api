@@ -5,11 +5,30 @@ import {
     RfqClientV1QuoteRequest,
     RfqClientV1QuoteResponse,
 } from '@0x/asset-swapper';
+import { RfqOrder } from '@0x/protocol-utils';
+import { BigNumber } from '@0x/utils';
 import { AxiosInstance } from 'axios';
 import { OK } from 'http-status-codes';
 
 import { RFQT_REQUEST_MAX_RESPONSE_MS } from '../config';
 import { logger } from '../logger';
+
+const toRfqOrder = (obj: any): RfqOrder => {
+    return new RfqOrder({
+        makerToken: obj.makerToken,
+        takerToken: obj.takerToken,
+        makerAmount: new BigNumber(obj.makerAmount),
+        takerAmount: new BigNumber(obj.takerAmount),
+        maker: obj.maker,
+        taker: obj.taker,
+        chainId: obj.chainId,
+        verifyingContract: obj.verifyingContract,
+        txOrigin: obj.txOrigin,
+        pool: obj.pool,
+        salt: new BigNumber(obj.salt),
+        expiry: new BigNumber(obj.expiry),
+    });
+};
 
 export class RfqClient implements IRfqClient {
     constructor(private readonly _rfqApiUrl: string, private readonly _axiosInstance: AxiosInstance) {}
@@ -97,9 +116,17 @@ export class RfqClient implements IRfqClient {
                 };
             }
 
-            const quoteResponse = response.data as RfqClientV1QuoteResponse;
-            logger.info({ quoteReesponse: quoteResponse }, 'RFQt v1 quote response');
-            return quoteResponse;
+            logger.info({ quoteResponse: response.data }, 'RFQt v1 quote response');
+            const updatedQuotes = response.data?.quotes.map((q: any) => {
+                return {
+                    signature: q.signature,
+                    makerUri: q.makerUri,
+                    order: toRfqOrder(q.order),
+                };
+            });
+            return {
+                quotes: updatedQuotes,
+            };
         } catch (error) {
             logger.error({ errorMessage: error.message }, 'Encountered an error fetching for /rfqt/v1/quotes');
             return {
