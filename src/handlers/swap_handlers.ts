@@ -48,7 +48,6 @@ import {
     ValidationErrorCodes,
     ValidationErrorReasons,
 } from '../errors';
-import { logger } from '../logger';
 import { schemas } from '../schemas';
 import { SwapService } from '../services/swap_service';
 import { GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
@@ -357,11 +356,6 @@ export class SwapHandlers {
             }
             return swapQuote;
         } catch (e) {
-            logger.info(
-                { errorMessage: e.message },
-                'WIP - encountered an error during a call to swap quoter (message)',
-            );
-            logger.info({ error: e }, 'WIP - encountered an error during a call to swap quoter (error)');
             // If this is already a transformed error then just re-throw
             if (isAPIError(e)) {
                 throw e;
