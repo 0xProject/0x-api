@@ -134,7 +134,6 @@ export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
                 .onConflict(`("token_address", "maker_address") DO NOTHING`)
                 .execute();
         }
-        logger.info({ takerFillableAmounts }, 'Rfqt V1 taker fillable amounts');
         return takerFillableAmounts;
     }
 
