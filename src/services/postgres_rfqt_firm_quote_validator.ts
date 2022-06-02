@@ -72,7 +72,6 @@ export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
     // tslint:disable-next-line: prefer-function-over-method
     public async getRfqtTakerFillableAmountsAsync(quotes: RfqOrderFields[]): Promise<BigNumber[]> {
         // TODO: Handle error on query
-        logger.info({ quotes }, 'Rfqt V1 filtering quotes through the firm quote validator');
 
         // Ensure that all quotes have the same exact maker token.
         const uniqueMakerTokens = new Set(quotes.map((quote) => quote.makerToken.toLowerCase()));
