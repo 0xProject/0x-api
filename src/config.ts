@@ -504,14 +504,13 @@ const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Kyber];
+            return [ERC20BridgeSource.MultiBridge];
         case ChainId.Kovan:
             return allERC20BridgeSources.filter(
                 (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
             );
         case ChainId.Ropsten:
             const supportedRopstenSources = new Set([
-                ERC20BridgeSource.Kyber,
                 ERC20BridgeSource.Native,
                 ERC20BridgeSource.SushiSwap,
                 ERC20BridgeSource.Uniswap,
