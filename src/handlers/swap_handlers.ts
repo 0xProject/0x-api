@@ -181,6 +181,7 @@ export class SwapHandlers {
                         blockNumber: quote.blockNumber,
                         slippage: undefined,
                         estimatedGas: quote.estimatedGas,
+                        estimatedPriceImpact: quote.estimatedPriceImpact ? quote.estimatedPriceImpact : undefined,
                     },
                     req.log,
                 );
@@ -203,6 +204,7 @@ export class SwapHandlers {
                         blockNumber: quote.blockNumber,
                         slippage: params.slippagePercentage,
                         estimatedGas: quote.estimatedGas,
+                        estimatedPriceImpact: quote.estimatedPriceImpact ? quote.estimatedPriceImpact : undefined,
                     },
                     true,
                     kafkaProducer,
@@ -294,6 +296,7 @@ export class SwapHandlers {
                     slippage: params.slippagePercentage,
                     blockNumber: quote.blockNumber,
                     estimatedGas: quote.estimatedGas,
+                    estimatedPriceImpact: quote.estimatedPriceImpact ? quote.estimatedPriceImpact : undefined,
                 },
                 false,
                 kafkaProducer,

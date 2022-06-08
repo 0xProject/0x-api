@@ -26,6 +26,7 @@ interface QuoteReportLogOptionsBase {
     slippage: number | undefined;
     blockNumber: number | undefined;
     estimatedGas: BigNumber;
+    estimatedPriceImpact?: BigNumber;
 }
 interface QuoteReportForTakerTxn extends QuoteReportLogOptionsBase {
     quoteReport: QuoteReport;
@@ -148,6 +149,7 @@ export const quoteReportUtils = {
                 sourcesDelivered: logOpts.quoteReportSources.sourcesDelivered?.map(jsonifyFillData),
                 blockNumber: logOpts.blockNumber,
                 estimatedGas: logOpts.estimatedGas.toString(),
+                estimatedPriceImpact: logOpts.estimatedPriceImpact?.toString()
             };
             kafkaProducer
                 .send({
