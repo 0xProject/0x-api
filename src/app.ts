@@ -35,6 +35,7 @@ import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
 import { SwapService } from './services/swap_service';
 import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
+import { getCurvePools } from './utils/curve-automation/curve_automation';
 import {
     HttpServiceConfig,
     MetaTransactionDailyLimiterConfig,
@@ -162,6 +163,8 @@ export async function getDefaultAppDependenciesAsync(
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
     const connection = await getDBConnectionAsync();
 
+    //retrieve all curve pools with MetaData
+    //let curvePools = getCurvePools();
     let kafkaClient: Kafka | undefined;
     if (config.kafkaBrokers !== undefined) {
         kafkaClient = new Kafka({
@@ -251,7 +254,6 @@ export async function getAppAsync(
 ): Promise<{ app: Express.Application; server: Server }> {
     const app = express();
     const { server } = await runHttpServiceAsync(dependencies, config, app);
-
     server.on('close', async () => {
         // Register a shutdown event listener.
         // TODO: More teardown logic should be added here. For example individual services should be torn down.
