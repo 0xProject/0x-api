@@ -164,7 +164,8 @@ export async function getDefaultAppDependenciesAsync(
     const connection = await getDBConnectionAsync();
 
     //retrieve all curve pools with MetaData
-    //let curvePools = getCurvePools();
+    // @ts-ignore
+    let curvePools = getCurvePools();
     let kafkaClient: Kafka | undefined;
     if (config.kafkaBrokers !== undefined) {
         kafkaClient = new Kafka({
