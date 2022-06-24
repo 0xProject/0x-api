@@ -140,7 +140,7 @@ export class SlippageModelManager {
                 continue;
             }
 
-            const singleSourceSlippage = this.calculateSingleSourceExpectedSlippage(
+            const singleSourceSlippage = this._calculateSingleSourceExpectedSlippage(
                 buyToken,
                 sellToken,
                 buyAmount,
@@ -157,7 +157,7 @@ export class SlippageModelManager {
         return expectedSlippage;
     }
 
-    private calculateSingleSourceExpectedSlippage(
+    private _calculateSingleSourceExpectedSlippage(
         buyToken: string,
         sellToken: string,
         buyAmount: BigNumber,
@@ -177,7 +177,7 @@ export class SlippageModelManager {
         }
 
         const slippageModel = slippageModelCacheForPair.get(source.name);
-        if (slippageModel == undefined) {
+        if (slippageModel === undefined) {
             return null;
         }
 
