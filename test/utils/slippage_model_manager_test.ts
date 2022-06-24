@@ -119,6 +119,78 @@ describe('SlippageModelManager', () => {
             // Then
             expect(expectedSlippage).to.deep.equal(new BigNumber(-0.03));
         });
+        it('should return 0 slippage when source is 0x (Native)', async () => {
+            // Given
+            const s3Client = createMockS3Client(slippageModels);
+            const slippageModelManager = new SlippageModelManager(s3Client);
+            await slippageModelManager.initializeAsync();
+
+            // When
+            const expectedSlippage = slippageModelManager.calculateExpectedSlippage(
+                usdc,
+                weth,
+                new BigNumber('100000000000'),
+                new BigNumber('1000000'),
+                [
+                    {
+                        name: '0x',
+                        proportion: new BigNumber(1),
+                    },
+                ],
+                0.03,
+            );
+
+            // Then
+            expect(expectedSlippage).to.deep.equal(new BigNumber(0));
+        });
+        it('should return 0 slippage when source is "Native"', async () => {
+            // Given
+            const s3Client = createMockS3Client(slippageModels);
+            const slippageModelManager = new SlippageModelManager(s3Client);
+            await slippageModelManager.initializeAsync();
+
+            // When
+            const expectedSlippage = slippageModelManager.calculateExpectedSlippage(
+                usdc,
+                weth,
+                new BigNumber('100000000000'),
+                new BigNumber('1000000'),
+                [
+                    {
+                        name: 'Native',
+                        proportion: new BigNumber(1),
+                    },
+                ],
+                0.03,
+            );
+
+            // Then
+            expect(expectedSlippage).to.deep.equal(new BigNumber(0));
+        });
+        it('should return 0 slippage when sole source is 0x (Native) even when the pair is not supported', async () => {
+            // Given
+            const s3Client = createMockS3Client(slippageModels);
+            const slippageModelManager = new SlippageModelManager(s3Client);
+            await slippageModelManager.initializeAsync();
+
+            // When
+            const expectedSlippage = slippageModelManager.calculateExpectedSlippage(
+                weth,
+                otherToken,
+                new BigNumber('100000000000'),
+                new BigNumber('1000000'),
+                [
+                    {
+                        name: '0x',
+                        proportion: new BigNumber(1),
+                    },
+                ],
+                0.03,
+            );
+
+            // Then
+            expect(expectedSlippage).to.deep.equal(new BigNumber(0));
+        });
         it('should return aggregated slippage if there are multiple sources', async () => {
             // Given
             const s3Client = createMockS3Client(slippageModels);
@@ -146,6 +218,34 @@ describe('SlippageModelManager', () => {
 
             // Then
             expect(expectedSlippage).to.deep.equal(new BigNumber(-0.000185));
+        });
+        it('should return aggregated slippage when there are multiple sources including 0x', async () => {
+            // Given
+            const s3Client = createMockS3Client(slippageModels);
+            const slippageModelManager = new SlippageModelManager(s3Client);
+            await slippageModelManager.initializeAsync();
+
+            // When
+            const expectedSlippage = slippageModelManager.calculateExpectedSlippage(
+                usdc,
+                weth,
+                new BigNumber('100000000000'),
+                new BigNumber('1000000'),
+                [
+                    {
+                        name: 'source 1',
+                        proportion: new BigNumber(0.5),
+                    },
+                    {
+                        name: '0x',
+                        proportion: new BigNumber(0.5),
+                    },
+                ],
+                0.03,
+            );
+
+            // Then
+            expect(expectedSlippage).to.deep.equal(new BigNumber(-0.00007));
         });
         it('should return null if pair is not supported', async () => {
             // Given
@@ -222,6 +322,30 @@ describe('SlippageModelManager', () => {
 
             // Then
             expect(expectedSlippage).to.deep.equal(null);
+        });
+        it('should return 0 for 0x (Native) even if trade size is less than 10k USD', async () => {
+            // Given
+            const s3Client = createMockS3Client(slippageModels);
+            const slippageModelManager = new SlippageModelManager(s3Client);
+            await slippageModelManager.initializeAsync();
+
+            // When
+            const expectedSlippage = slippageModelManager.calculateExpectedSlippage(
+                usdc,
+                weth,
+                new BigNumber('999000000'),
+                new BigNumber('1000000'),
+                [
+                    {
+                        name: '0x',
+                        proportion: new BigNumber(1),
+                    },
+                ],
+                0.03,
+            );
+
+            // Then
+            expect(expectedSlippage).to.deep.equal(new BigNumber(0));
         });
     });
 });
