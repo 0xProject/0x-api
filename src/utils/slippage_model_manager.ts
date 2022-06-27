@@ -3,7 +3,6 @@ import { BigNumber } from '@0x/utils';
 import { Counter } from 'prom-client';
 
 import {
-    SLIPPAGE_MODEL_MINIMUM_APPLICABLE_VOLUME_USD,
     SLIPPAGE_MODEL_REFRESH_INTERVAL_MS,
     SLIPPAGE_MODEL_S3_BUCKET_NAME,
     SLIPPAGE_MODEL_S3_FILE_NAME,
@@ -84,12 +83,6 @@ const calculateExpectedSlippageForModel = (
     slippageModel: SlippageModel,
 ): BigNumber | null => {
     const volumeUsd = token0Amount.times(slippageModel.token0PriceInUsd);
-
-    // Volume is too small for a reasonable prediction
-    if (volumeUsd.lte(SLIPPAGE_MODEL_MINIMUM_APPLICABLE_VOLUME_USD)) {
-        return null;
-    }
-
     const volumeTerm = volumeUsd.times(slippageModel.volumeCoefficient);
     const slippageTerm = maxSlippageRate.times(ONE_IN_BASE_POINTS).times(slippageModel.slippageCoefficient);
     const expectedSlippage = BigNumber.sum(slippageTerm, volumeTerm, slippageModel.intercept);
