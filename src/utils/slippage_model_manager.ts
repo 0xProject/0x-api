@@ -87,7 +87,9 @@ const calculateExpectedSlippageForModel = (
     const slippageTerm = maxSlippageRate.times(ONE_IN_BASE_POINTS).times(slippageModel.slippageCoefficient);
     const expectedSlippage = BigNumber.sum(slippageTerm, volumeTerm, slippageModel.intercept);
     const expectedSlippageCap = maxSlippageRate.times(-1); // `maxSlippageRate` is specified with a positive number while `expectedSlippage` is normally negative.
-    return BigNumber.max(expectedSlippage, expectedSlippageCap);
+
+    // Return 0 if the expected slippage is positive since the model shouldn't predict a positive slippage.
+    return BigNumber.min(new BigNumber(0), BigNumber.max(expectedSlippage, expectedSlippageCap));
 };
 
 /**

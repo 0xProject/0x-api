@@ -122,6 +122,41 @@ describe('SlippageModelManager', () => {
             expect(expectedSlippage).to.deep.equal(new BigNumber(-0.00009025));
         });
 
+        it('should return 0 slippage if the expected slippage from the model is positive', async () => {
+            // Given
+            const s3Client = createMockS3Client([
+                {
+                    token0: usdc,
+                    token1: weth,
+                    source: 'positive intercept source',
+                    slippageCoefficient: -0.0000004,
+                    volumeCoefficient: -0.000000002,
+                    intercept: 1,
+                    token0PriceInUsd: 0.000001,
+                },
+            ]);
+            const slippageModelManager = new SlippageModelManager(s3Client);
+            await slippageModelManager.initializeAsync();
+
+            // When
+            const expectedSlippage = slippageModelManager.calculateExpectedSlippage(
+                usdc,
+                weth,
+                new BigNumber('100000000000'),
+                new BigNumber('1000000'),
+                [
+                    {
+                        name: 'positive intercept source',
+                        proportion: new BigNumber(1),
+                    },
+                ],
+                0.03,
+            );
+
+            // Then
+            expect(expectedSlippage).to.deep.equal(new BigNumber(0));
+        });
+
         it('should return capped expected slippage if volume is huge', async () => {
             // Given
             const s3Client = createMockS3Client(slippageModels);
