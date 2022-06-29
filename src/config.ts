@@ -223,7 +223,7 @@ export const DB_ORDERS_UPDATE_CHUNK_SIZE = 300;
 export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.UrlList);
 // Timeout in seconds to wait for an RPC request (default 5000)
 export const RPC_REQUEST_TIMEOUT = _.isEmpty(process.env.RPC_REQUEST_TIMEOUT)
-    ? 10000
+    ? 5000
     : assertEnvVarType('RPC_REQUEST_TIMEOUT', process.env.RPC_REQUEST_TIMEOUT, EnvVarType.Integer);
 
 // Prometheus shared metrics

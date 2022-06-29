@@ -44,8 +44,6 @@ import {
     RFQ_PROXY_PORT,
     SWAP_QUOTER_OPTS,
     UNWRAP_QUOTE_GAS,
-    UNWRAP_WETH_GAS,
-    WRAP_ETH_GAS,
     WRAP_QUOTE_GAS,
 } from '../config';
 import {
@@ -402,10 +400,7 @@ export class SwapService {
             },
         );
 
-        let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas)
-            .plus(affiliateFeeGasCost)
-            .plus(isETHSell ? WRAP_ETH_GAS : 0)
-            .plus(isETHBuy ? UNWRAP_WETH_GAS : 0);
+        let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(affiliateFeeGasCost);
 
         // Cannot eth_gasEstimate for /price when RFQ Native liquidity is included
         const isNativeIncluded = swapQuote.sourceBreakdown.Native !== undefined;
@@ -437,6 +432,8 @@ export class SwapService {
                         fauxGasEstimate,
                         realGasEstimate,
                         delta: realGasEstimate.minus(fauxGasEstimate),
+                        // tslint:disable-next-line:radix custom-no-magic-numbers
+                        accuracy: realGasEstimate.minus(fauxGasEstimate).dividedBy(realGasEstimate).toFixed(4),
                         buyToken,
                         sellToken,
                         sources: Object.keys(swapQuote.sourceBreakdown),
@@ -454,13 +451,7 @@ export class SwapService {
                 );
             }
         }
-        // If any sources can be undeterministic in gas costs, we add a buffer
-        const hasUndeterministicFills = swapQuote.orders.some((order) =>
-            [ERC20BridgeSource.Native, ERC20BridgeSource.MultiBridge].includes(order.source),
-        );
-        const undeterministicMultiplier = isQuote && hasUndeterministicFills ? GAS_LIMIT_BUFFER_MULTIPLIER : 1;
-        // Add a buffer to get the worst case gas estimate
-        const worstCaseGasEstimate = conservativeBestCaseGasEstimate.times(undeterministicMultiplier).integerValue();
+        const worstCaseGasEstimate = conservativeBestCaseGasEstimate;
         const { makerTokenDecimals, takerTokenDecimals } = swapQuote;
         const { price, guaranteedPrice } = SwapService._getSwapQuotePrice(
             buyAmount,

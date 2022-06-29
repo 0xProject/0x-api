@@ -38,8 +38,8 @@
         "prettier_target": "{.,test/**/*,integration-test/**/*,src/**/*,migrations/*}.{ts,tsx,json,md}"
     },
     "devDependencies": {
-        "@0x/contracts-erc20": "^3.3.31",
-        "@0x/contracts-test-utils": "^5.4.22",
+        "@0x/contracts-erc20": "^3.3.32",
+        "@0x/contracts-test-utils": "^5.4.23",
         "@0x/contracts-utils": "^4.8.12",
         "@0x/dev-utils": "^4.2.14",
         "@0x/tslint-config": "^4.1.4",
@@ -70,7 +70,7 @@
     "dependencies": {
         "@0x/api-utils": "^0.0.2",
         "@0x/assert": "^3.0.34",
-        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v16.61.0-286cc28efe",
+        "@0x/asset-swapper": "0xProject/gitpkg-registry#0x-asset-swapper-v16.62.1-c56b2b98a8",
         "@0x/contract-wrappers": "^13.20.4",
         "@0x/contracts-zero-ex": "^0.35.0",
         "@0x/json-schemas": "^6.4.4",
