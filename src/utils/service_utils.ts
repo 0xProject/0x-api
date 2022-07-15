@@ -3,8 +3,8 @@ import {
     ERC20BridgeSource,
     SELL_SOURCE_FILTER_BY_CHAIN_ID,
     SwapQuote,
-    SwapQuoteOrdersBreakdown,
     SwapQuoteMultiHopBreakdown,
+    SwapQuoteOrdersBreakdown,
 } from '@0x/asset-swapper';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
@@ -90,8 +90,8 @@ export const serviceUtils = {
                     proportion: 0,
                     tokenPath: [],
                     breakdown: {},
-                }
-            }
+                },
+            },
         );
 
         return Object.entries({ ...defaultSourceBreakdown, ...sourceBreakdown }).reduce<

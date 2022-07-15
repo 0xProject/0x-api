@@ -4,10 +4,8 @@ import {
     AltRfqMakerAssetOfferings,
     artifacts,
     AssetSwapperContractAddresses,
-    BlockParamLiteral,
     ChainId,
     ContractAddresses,
-    ERC20BridgeSource,
     FakeTakerContract,
     GetMarketOrdersRfqOpts,
     IdentityFillAdjustor,
@@ -71,7 +69,6 @@ import {
 } from '../types';
 import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
 import { isHashSmallEnough } from '../utils/hash_utils';
-import { marketDepthUtils } from '../utils/market_depth_utils';
 import { METRICS_PROXY } from '../utils/metrics_service';
 import { paginationUtils } from '../utils/pagination_utils';
 import { PairsManager } from '../utils/pairs_manager';
@@ -498,7 +495,9 @@ export class SwapService {
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
-            orders: (marketSide === MarketOperation.Sell ? swapQuote.hops : swapQuote.hops.slice().reverse()).map(h => h.orders).flat(1),
+            orders: (marketSide === MarketOperation.Sell ? swapQuote.hops : swapQuote.hops.slice().reverse())
+                .map((h) => h.orders)
+                .flat(1),
             allowanceTarget,
             decodedUniqueId,
             extendedQuoteReportSources,
@@ -606,6 +605,7 @@ export class SwapService {
         return { ...paginatedTokens, records: prices };
     }
 
+    // tslint:disable:prefer-function-over-method
     public async calculateMarketDepthAsync(params: CalaculateMarketDepthParams): Promise<{
         asks: { depth: BucketedPriceDepth[] };
         bids: { depth: BucketedPriceDepth[] };

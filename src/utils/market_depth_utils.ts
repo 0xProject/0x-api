@@ -69,11 +69,7 @@ export const marketDepthUtils = {
                   );
         return sampleAmounts;
     },
-    sampleNativeOrders: (
-        path: DexSample[],
-        targetInput: BigNumber,
-        side: MarketOperation,
-    ): BigNumber => {
+    sampleNativeOrders: (path: DexSample[], targetInput: BigNumber, side: MarketOperation): BigNumber => {
         let sortedPath = path.sort((a, b) => b.output.dividedBy(b.input).comparedTo(a.output.dividedBy(a.input)));
         sortedPath = side === MarketOperation.Sell ? sortedPath : sortedPath.reverse();
         let totalOutput = ZERO;
@@ -104,11 +100,7 @@ export const marketDepthUtils = {
         // We should now have [1, 10, 100] sample amounts
         const sampleAmounts = marketDepthUtils.getSampleAmountsFromDepthSide(depthSide);
         const nativeSamples = sampleAmounts.map((a) => {
-            const sample = marketDepthUtils.sampleNativeOrders(
-                depthSide[nativeIndexIfExists] as DexSample[],
-                a,
-                side,
-            );
+            const sample = marketDepthUtils.sampleNativeOrders(depthSide[nativeIndexIfExists] as DexSample[], a, side);
             const input = a;
             const output = sample;
             return {

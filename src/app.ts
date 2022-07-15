@@ -2,15 +2,12 @@
 require('./apm');
 
 import {
-    artifacts,
     AssetSwapperContractAddresses,
     ChainId,
     ContractAddresses,
-    ERC20BridgeSamplerContract,
     getContractAddressesForChainOrThrow,
     SupportedProvider,
 } from '@0x/asset-swapper';
-import { Web3Wrapper } from '@0x/dev-utils';
 import { S3 } from 'aws-sdk';
 import axios from 'axios';
 import * as express from 'express';
@@ -73,10 +70,7 @@ export interface AppDependencies {
     rateLimiter?: MetaTransactionRateLimiter;
 }
 
-async function deploySamplerContractAsync(
-    provider: SupportedProvider,
-    chainId: ChainId,
-): Promise<any> {
+async function deploySamplerContractAsync(provider: SupportedProvider, chainId: ChainId): Promise<any> {
     throw new Error('No implementado');
 }
 

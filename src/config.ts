@@ -3,7 +3,6 @@ import { assert } from '@0x/assert';
 import {
     BlockParamLiteral,
     ChainId,
-    DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
     ERC20BridgeSource,
     LiquidityProviderRegistry,
     OrderPrunerPermittedFeeTypes,
@@ -41,8 +40,6 @@ import { schemas } from './schemas';
 import { HttpServiceConfig, MetaTransactionRateLimitConfig } from './types';
 import { parseUtils } from './utils/parse_utils';
 import { schemaUtils } from './utils/schema_utils';
-
-const SHOULD_USE_RUST_ROUTER = process.env.RUST_ROUTER === 'true';
 
 // tslint:disable:no-bitwise
 
@@ -483,8 +480,11 @@ export const KAFKA_TOPIC_QUOTE_REPORT: string = _.isEmpty(process.env.KAFKA_TOPI
     ? undefined
     : assertEnvVarType('KAFKA_TOPIC_QUOTE_REPORT', process.env.KAFKA_TOPIC_QUOTE_REPORT, EnvVarType.NonEmptyString);
 
-export const SAMPLER_SERVICE_RPC_URL: string =
-    assertEnvVarType('SAMPLER_SERVICE_RPC_URL', process.env.SAMPLER_SERVICE_RPC_URL, EnvVarType.Url);
+export const SAMPLER_SERVICE_RPC_URL: string = assertEnvVarType(
+    'SAMPLER_SERVICE_RPC_URL',
+    process.env.SAMPLER_SERVICE_RPC_URL,
+    EnvVarType.Url,
+);
 
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;

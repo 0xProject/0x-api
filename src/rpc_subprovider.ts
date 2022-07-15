@@ -1,11 +1,12 @@
 import { assert } from '@0x/assert';
 import { Callback, ErrorCallback, JSONRPCRequestPayloadWithMethod, Subprovider } from '@0x/subproviders';
 import { StatusCodes } from '@0x/types';
+import { Http } from '@status/codes';
+import fetch, { AxiosResponse } from 'axios';
 import { JSONRPCRequestPayload } from 'ethereum-types';
 import * as http from 'http';
 import * as https from 'https';
 import JsonRpcError = require('json-rpc-error');
-import fetch, { AxiosResponse } from 'axios';
 import { Counter, Histogram, Summary } from 'prom-client';
 import { gzip } from 'zlib';
 
@@ -113,7 +114,7 @@ export class RPCSubprovider extends Subprovider {
         }
 
         const text = await response.data;
-        if (response.status != 200) {
+        if (response.status !== Http.Ok) {
             ETH_RPC_REQUEST_ERROR.labels(finalPayload.method!).inc();
             const statusCode = response.status;
             switch (statusCode) {

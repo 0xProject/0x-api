@@ -15,6 +15,7 @@ import * as _ from 'lodash';
 import { CHAIN_ID } from '../config';
 import { logger } from '../logger';
 import { SourceComparison } from '../types';
+
 import { SlippageModelManager } from './slippage_model_manager';
 
 // NOTE: Our internal Uniswap gas usage may be lower than the Uniswap UI usage

@@ -1695,6 +1695,11 @@
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/@sqltools/formatter/-/formatter-1.2.2.tgz#9390a8127c0dcba61ebd7fdcc748655e191bdd68"
 
+"@status/codes@^1.6.2":
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/@status/codes/-/codes-1.6.2.tgz#a2ddc14f69b1437f46f2fc3f8d7327209837ca7e"
+  integrity sha512-0UevXlMxX5W3q7PXo7PvNXaDUaZOBnmlZX4ms1OEkDBioQnR1iILHsFq5qPJbqFuTPbODXuOcuwYAh/b+477fA==
+
 "@szmarczak/http-timer@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@szmarczak/http-timer/-/http-timer-1.1.2.tgz#b1665e2c461a2cd92f4c1bbf50d5454de0d4b421"
