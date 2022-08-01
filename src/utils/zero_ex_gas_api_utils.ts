@@ -29,7 +29,8 @@ const getGasInfoAsync = async () => {
     return previousGasInfo;
 };
 
-export const ethGasStationUtils = {
+export const zeroExGasApiUtils = {
+    /** @returns gas price in wei. */
     getGasPriceOrThrowAsync: async (txConfirmationSpeed: 'fast' | 'fastest' = 'fast'): Promise<BigNumber> => {
         const gasInfo = await getGasInfoAsync();
         return new BigNumber(gasInfo!.result[txConfirmationSpeed]);
