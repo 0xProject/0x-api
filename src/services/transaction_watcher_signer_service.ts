@@ -17,10 +17,10 @@ import {
 import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates, TransactionWatcherSignerServiceConfig, TransactionWatcherSignerStatus } from '../types';
-import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
 import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { Signer } from '../utils/signer';
 import { utils } from '../utils/utils';
+import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
 
 const SIGNER_ADDRESS_LABEL = 'signer_address';
 const TRANSACTION_STATUS_LABEL = 'status';

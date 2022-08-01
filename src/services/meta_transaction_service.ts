@@ -47,10 +47,10 @@ import {
     TransactionStates,
     TransactionWatcherSignerStatus,
 } from '../types';
-import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
 import { quoteReportUtils } from '../utils/quote_report_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
+import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
 
 const WETHToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
 
