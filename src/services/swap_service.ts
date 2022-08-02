@@ -813,4 +813,3 @@ export class SwapService {
     }
 }
 
-// tslint:disable:max-file-line-count
