@@ -461,4 +461,3 @@ export enum OrderEventEndState {
     // future.
     StoppedWatching = 'STOPPED_WATCHING',
 }
-
