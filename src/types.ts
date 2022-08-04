@@ -433,22 +433,6 @@ export interface TokenMetadataOptionalSymbol {
     decimals: number;
     tokenAddress: string;
 }
-export interface CalaculateMarketDepthParams {
-    buyToken: string;
-    sellToken: string;
-    sellAmount: BigNumber;
-    numSamples: number;
-    sampleDistributionBase: number;
-    excludedSources?: ERC20BridgeSource[];
-    includedSources?: ERC20BridgeSource[];
-}
-
-export interface BucketedPriceDepth {
-    cumulative: BigNumber;
-    price: BigNumber;
-    bucket: number;
-    bucketTotal: BigNumber;
-}
 
 export enum OrderEventEndState {
     // The order was successfully validated and added to the Mesh node. The order is now being watched and any changes to
@@ -477,5 +461,3 @@ export enum OrderEventEndState {
     // future.
     StoppedWatching = 'STOPPED_WATCHING',
 }
-
-// tslint:disable-line:max-file-line-count

@@ -1,6 +1,5 @@
 import { BigNumber } from '@0x/utils';
 
-// tslint:disable:custom-no-magic-numbers
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const NULL_BYTES = '0x';
 export const ZRX_DECIMALS = 18;
@@ -60,7 +59,7 @@ export const SRA_DOCS_URL = 'https://0x.org/docs/api#sra';
 export const META_TRANSACTION_DOCS_URL = 'https://0x.org/docs/api#meta_transaction';
 
 // Meta Transactions
-export const DEFAULT_ETH_GAS_STATION_API_URL = 'https://ethgasstation.api.0x.org/api/ethgasAPI.json';
+export const DEFAULT_ZERO_EX_GAS_API_URL = 'https://gas.api.0x.org/source/median';
 export const UNSTICKING_TRANSACTION_GAS_MULTIPLIER = 1.1;
 export const ETH_TRANSFER_GAS_LIMIT = 21000;
 export const TX_HASH_RESPONSE_WAIT_TIME_MS = ONE_SECOND_MS * 100;
@@ -78,11 +77,6 @@ export const ETH_DECIMALS = 18;
 export const GWEI_DECIMALS = 9;
 export const META_TXN_MIN_SIGNER_ETH_BALANCE = 0.1;
 export const SIGNER_STATUS_DB_KEY = 'signer_status';
-
-// Market Depth
-export const MARKET_DEPTH_MAX_SAMPLES = 50;
-export const MARKET_DEPTH_DEFAULT_DISTRIBUTION = 1.05;
-export const MARKET_DEPTH_END_PRICE_SLIPPAGE_PERC = 20;
 
 // Logging
 export const NUMBER_SOURCES_PER_LOG_LINE = 12;

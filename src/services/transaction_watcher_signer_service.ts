@@ -17,10 +17,10 @@ import {
 import { KeyValueEntity, TransactionEntity } from '../entities';
 import { logger } from '../logger';
 import { TransactionStates, TransactionWatcherSignerServiceConfig, TransactionWatcherSignerStatus } from '../types';
-import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { isRateLimitedMetaTransactionResponse, MetaTransactionRateLimiter } from '../utils/rate-limiters';
 import { Signer } from '../utils/signer';
 import { utils } from '../utils/utils';
+import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
 
 const SIGNER_ADDRESS_LABEL = 'signer_address';
 const TRANSACTION_STATUS_LABEL = 'status';
@@ -283,7 +283,6 @@ export class TransactionWatcherSignerService {
                         takerAddress: tx.takerAddress,
                         // NOTE: to not leak full keys we log only the part of
                         // the API key that was rate limited.
-                        // tslint:disable-next-line:custom-no-magic-numbers
                         apiKey: tx.apiKey!.substring(0, 8),
                     });
                     tx.status = TransactionStates.Cancelled;
@@ -384,8 +383,8 @@ export class TransactionWatcherSignerService {
         if (stuckTransactions.length === 0) {
             return;
         }
-        const gasStationPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
-        const targetGasPrice = gasStationPrice.multipliedBy(this._config.unstickGasMultiplier);
+        const fastGasPrice = await zeroExGasApiUtils.getGasPriceOrThrowAsync();
+        const targetGasPrice = fastGasPrice.multipliedBy(this._config.unstickGasMultiplier);
         for (const tx of stuckTransactions) {
             if (tx.from === undefined) {
                 logger.error({
@@ -508,7 +507,7 @@ export class TransactionWatcherSignerService {
         if (!this._config.isSigningEnabled) {
             return false;
         }
-        const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
+        const currentFastGasPrice = await zeroExGasApiUtils.getGasPriceOrThrowAsync();
         const isCurrentGasPriceBelowMax = Web3Wrapper.toUnitAmount(currentFastGasPrice, GWEI_DECIMALS).lt(
             this._config.maxGasPriceGwei,
         );
@@ -544,7 +543,7 @@ export class TransactionWatcherSignerService {
                 {},
             ),
             gasPrice: Web3Wrapper.toUnitAmount(
-                await ethGasStationUtils.getGasPriceOrThrowAsync(),
+                await zeroExGasApiUtils.getGasPriceOrThrowAsync(),
                 GWEI_DECIMALS,
             ).toNumber(),
             maxGasPrice: this._config.maxGasPriceGwei.toNumber(),
@@ -553,4 +552,3 @@ export class TransactionWatcherSignerService {
         await this._kvRepository.save(statusKV!);
     }
 }
-// tslint:disable-line:max-file-line-count

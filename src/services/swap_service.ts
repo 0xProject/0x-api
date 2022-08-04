@@ -7,7 +7,6 @@ import {
     BlockParamLiteral,
     ChainId,
     ContractAddresses,
-    ERC20BridgeSource,
     FakeTakerContract,
     GetMarketOrdersRfqOpts,
     IdentityFillAdjustor,
@@ -60,18 +59,14 @@ import { GasEstimationError, InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
 import {
     AffiliateFee,
-    BucketedPriceDepth,
-    CalaculateMarketDepthParams,
     GetSwapQuoteParams,
     GetSwapQuoteResponse,
     Price,
     SwapQuoteResponsePartialTransaction,
     TokenMetadata,
-    TokenMetadataOptionalSymbol,
 } from '../types';
 import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
 import { isHashSmallEnough } from '../utils/hash_utils';
-import { marketDepthUtils } from '../utils/market_depth_utils';
 import { METRICS_PROXY } from '../utils/metrics_service';
 import { paginationUtils } from '../utils/pagination_utils';
 import { PairsManager } from '../utils/pairs_manager';
@@ -132,10 +127,8 @@ export class SwapService {
         // 0.99187 -> 0.812%
         const estimatedPriceImpactPercentage = new BigNumber(1)
             .minus(actualPriceToEstimatedPriceRatio)
-            // tslint:disable:custom-no-magic-numbers
             .times(100)
             .decimalPlaces(4, BigNumber.ROUND_CEIL);
-        // tslint:enable:custom-no-magic-numbers
 
         // In theory, price impact should always be positive
         // the sellTokenToEthRate and buyTokenToEthRate are calculated
@@ -291,7 +284,6 @@ export class SwapService {
         // means all integrators will be enabled.
 
         if (shouldEnableRfqt) {
-            // tslint:disable-next-line:custom-no-magic-numbers
             const altRfqAssetOfferings = await this._getAltMarketOfferingsAsync(1500);
 
             _rfqt = {
@@ -354,7 +346,6 @@ export class SwapService {
         const rfqClient = isHashSmallEnough({
             message:
                 `${assetSwapperOpts.rfqt?.txOrigin}-${sellToken}-${buyToken}-${amount}-${marketSide}`.toLowerCase(),
-            // tslint:disable-next-line: custom-no-magic-numbers
             threshold: RFQ_CLIENT_ROLLOUT_PERCENT / 100,
         })
             ? this._rfqClient
@@ -432,7 +423,6 @@ export class SwapService {
                         fauxGasEstimate,
                         realGasEstimate,
                         delta: realGasEstimate.minus(fauxGasEstimate),
-                        // tslint:disable-next-line:radix custom-no-magic-numbers
                         accuracy: realGasEstimate.minus(fauxGasEstimate).dividedBy(realGasEstimate).toFixed(4),
                         buyToken,
                         sellToken,
@@ -608,82 +598,6 @@ export class SwapService {
             prices.push({ ...wethData, symbol: 'ETH' });
         }
         return { ...paginatedTokens, records: prices };
-    }
-
-    public async calculateMarketDepthAsync(params: CalaculateMarketDepthParams): Promise<{
-        asks: { depth: BucketedPriceDepth[] };
-        bids: { depth: BucketedPriceDepth[] };
-        buyToken: TokenMetadataOptionalSymbol;
-        sellToken: TokenMetadataOptionalSymbol;
-    }> {
-        const {
-            buyToken: buyToken,
-            sellToken: sellToken,
-            sellAmount,
-            numSamples,
-            sampleDistributionBase,
-            excludedSources,
-            includedSources,
-        } = params;
-
-        const marketDepth = await this._swapQuoter.getBidAskLiquidityForMakerTakerAssetPairAsync(
-            buyToken,
-            sellToken,
-            sellAmount,
-            {
-                numSamples,
-                excludedSources: [
-                    ...(excludedSources || []),
-                    ERC20BridgeSource.MultiBridge,
-                    ERC20BridgeSource.MultiHop,
-                ],
-                includedSources,
-                sampleDistributionBase,
-            },
-        );
-
-        const maxEndSlippagePercentage = 20;
-        const scalePriceByDecimals = (priceDepth: BucketedPriceDepth[]) =>
-            priceDepth.map((b) => ({
-                ...b,
-                price: b.price.times(
-                    new BigNumber(10).pow(marketDepth.takerTokenDecimals - marketDepth.makerTokenDecimals),
-                ),
-            }));
-        const askDepth = scalePriceByDecimals(
-            marketDepthUtils.calculateDepthForSide(
-                marketDepth.asks,
-                MarketOperation.Sell,
-                numSamples * 2,
-                sampleDistributionBase,
-                maxEndSlippagePercentage,
-            ),
-        );
-        const bidDepth = scalePriceByDecimals(
-            marketDepthUtils.calculateDepthForSide(
-                marketDepth.bids,
-                MarketOperation.Buy,
-                numSamples * 2,
-                sampleDistributionBase,
-                maxEndSlippagePercentage,
-            ),
-        );
-        return {
-            // We're buying buyToken and SELLING sellToken (DAI) (50k)
-            // Price goes from HIGH to LOW
-            asks: { depth: askDepth },
-            // We're BUYING sellToken (DAI) (50k) and selling buyToken
-            // Price goes from LOW to HIGH
-            bids: { depth: bidDepth },
-            buyToken: {
-                tokenAddress: buyToken,
-                decimals: marketDepth.makerTokenDecimals,
-            },
-            sellToken: {
-                tokenAddress: sellToken,
-                decimals: marketDepth.takerTokenDecimals,
-            },
-        };
     }
 
     private async _getSwapQuoteForNativeWrappedAsync(
@@ -878,7 +792,6 @@ export class SwapService {
                     return {};
                 }
                 // refresh cache every 6 hours
-                // tslint:disable-next-line:custom-no-magic-numbers
             }, ONE_MINUTE_MS * 360);
         }
 
@@ -899,5 +812,3 @@ export class SwapService {
         }
     }
 }
-
-// tslint:disable:max-file-line-count

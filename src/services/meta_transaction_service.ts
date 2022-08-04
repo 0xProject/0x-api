@@ -47,10 +47,10 @@ import {
     TransactionStates,
     TransactionWatcherSignerStatus,
 } from '../types';
-import { ethGasStationUtils } from '../utils/gas_station_utils';
 import { quoteReportUtils } from '../utils/quote_report_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { utils } from '../utils/utils';
+import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
 
 const WETHToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
 
@@ -199,9 +199,8 @@ export class MetaTransactionService {
             throw new Error('mtx expirationTimeSeconds in less than 60 seconds from now');
         }
 
-        // Make sure gasPrice is not 3X the current fast EthGasStation gas price
-        const currentFastGasPrice = await ethGasStationUtils.getGasPriceOrThrowAsync();
-        // tslint:disable-next-line:custom-no-magic-numbers
+        // Make sure gasPrice is not 3X the current fast gas price
+        const currentFastGasPrice = await zeroExGasApiUtils.getGasPriceOrThrowAsync();
         if (currentFastGasPrice.lt(gasPrice) && gasPrice.minus(currentFastGasPrice).gte(currentFastGasPrice.times(3))) {
             throw new Error('Gas price too high');
         }
@@ -456,4 +455,3 @@ function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: (Sig
     ).length;
     return gasPrice.times(nativeOrderCount).times(PROTOCOL_FEE_MULTIPLIER);
 }
-// tslint:disable-next-line: max-file-line-count
