@@ -8,7 +8,8 @@
     "scripts": {
         "clean": "shx rm -rf lib",
         "pre_build": "run-s compile contracts:gen generate_contract_wrappers contracts:copy",
-        "build": "tsc -p tsconfig.json",
+        "build": "yarn pre_build && tsc -p tsconfig.json",
+        "build:ts": "tsc -b",
         "compile": "sol-compiler",
         "db:migrate": "./node_modules/.bin/typeorm migration:run --config ./lib/src/ormconfig.js ",
         "db:migration:create": "./node_modules/.bin/typeorm migration:create --config ./lib/src/ormconfig.js ",
