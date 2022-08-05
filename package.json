@@ -37,6 +37,7 @@
         "start:service:swap_http": "node -r dotenv/config lib/src/runners/http_swap_service_runner.js",
         "start:service:transaction_watcher": "node -r dotenv/config lib/src/runners/transaction_watcher_signer_service_runner.js",
         "start:service:rfq_maker_balance_cache": "node -r dotenv/config lib/src/runners/rfq_maker_balance_cache_runner.js",
+        "sampler-size": "jq .compilerOutput.evm.deployedBytecode.object  -- test/generated-artifacts/ERC20BridgeSampler.json | echo $(( $(wc -c) / 2 - 1 ))",
         "lint": "tslint --project . --format stylish && yarn prettier:ci"
     },
     "config": {
