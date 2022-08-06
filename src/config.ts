@@ -525,6 +525,8 @@ const EXCLUDED_SOURCES = (() => {
             ]);
             return allERC20BridgeSources.filter((s) => !supportedRopstenSources.has(s));
         case ChainId.BSC:
+        case ChainId.Goerli:
+        case ChainId.PolygonMumbai:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         case ChainId.Polygon:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
