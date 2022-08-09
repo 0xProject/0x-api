@@ -6,7 +6,7 @@
     "author": "Francesco Agosti <francesco@0x.org>",
     "license": "Apache-2.0",
     "scripts": {
-        "clean": "shx rm -rf lib",
+        "clean": "shx rm -rf lib test/generated-artifacts test/generated-wrappers generated-artifacts generated-wrappers",
         "pre_build": "run-s compile contracts:gen generate_contract_wrappers contracts:copy",
         "build": "yarn pre_build && tsc -p tsconfig.json",
         "build:ts": "tsc -b",
