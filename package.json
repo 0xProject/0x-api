@@ -90,7 +90,7 @@
         "@0x/order-utils": "^10.4.28",
         "@0x/protocol-utils": "11.16.1",
         "@0x/quote-server": "^8.0.0",
-        "@0x/subproviders": "~6.5.4",
+        "@0x/subproviders": "^6.6.5",
         "@0x/token-metadata": "^0.1.17",
         "@0x/types": "^3.3.6",
         "@0x/utils": "^6.5.3",
