@@ -1,4 +1,3 @@
-// tslint:disable:max-file-line-count
 import { assert } from '@0x/assert';
 import {
     BlockParamLiteral,
@@ -25,7 +24,6 @@ import {
     DEFAULT_EXPECTED_MINED_SEC,
     DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     DEFAULT_LOCAL_POSTGRES_URI,
-    DEFAULT_LOCAL_REDIS_URI,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     DEFAULT_ZERO_EX_GAS_API_URL,
@@ -312,8 +310,6 @@ export const POSTGRES_READ_REPLICA_URIS: string[] | undefined = _.isEmpty(proces
     ? undefined
     : assertEnvVarType('POSTGRES_READ_REPLICA_URIS', process.env.POSTGRES_READ_REPLICA_URIS, EnvVarType.UrlList);
 
-export const REDIS_URI = _.isEmpty(process.env.REDIS_URI) ? DEFAULT_LOCAL_REDIS_URI : process.env.REDIS_URI;
-
 // Should the logger include time field in the output logs, defaults to true.
 export const LOGGER_INCLUDE_TIMESTAMP = _.isEmpty(process.env.LOGGER_INCLUDE_TIMESTAMP)
     ? DEFAULT_LOGGER_INCLUDE_TIMESTAMP
@@ -525,20 +521,19 @@ const EXCLUDED_SOURCES = (() => {
                 ERC20BridgeSource.Mooniswap,
             ]);
             return allERC20BridgeSources.filter((s) => !supportedRopstenSources.has(s));
+        case ChainId.Ganache:
+            return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
         case ChainId.BSC:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         case ChainId.Polygon:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         case ChainId.Avalanche:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         case ChainId.Celo:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         case ChainId.Fantom:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         case ChainId.Optimism:
+        case ChainId.Goerli:
+        case ChainId.PolygonMumbai:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
-            return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
+            throw new Error(`Excluded sources not specified for ${CHAIN_ID}`);
     }
 })();
 

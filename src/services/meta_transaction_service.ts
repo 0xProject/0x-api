@@ -254,7 +254,6 @@ export class MetaTransactionService {
             gasPrice: gasPrice.toString(),
             value: protocolFee.toString(),
             to: callTarget,
-            chainId: CHAIN_ID,
             // NOTE we arent returning nonce and from fields back to the user
             nonce: '',
             from: '',
@@ -455,4 +454,3 @@ function calculateProtocolFeeRequiredForOrders(gasPrice: BigNumber, orders: (Sig
     ).length;
     return gasPrice.times(nativeOrderCount).times(PROTOCOL_FEE_MULTIPLIER);
 }
-// tslint:disable-next-line: max-file-line-count
