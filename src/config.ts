@@ -371,8 +371,6 @@ export const RFQM_MAKER_ASSET_OFFERINGS = resolveEnvVar<RfqMakerAssetOfferings>(
     {},
 );
 
-export const META_TX_MIN_GAS_PRICE_MULTIPLIER = 0.75;
-export const META_TX_MAX_GAS_PRICE_MULTIPLIER = 1.25;
 export const META_TX_EXPIRATION_BUFFER_MS = TEN_MINUTES_MS;
 
 // tslint:disable-next-line:boolean-naming

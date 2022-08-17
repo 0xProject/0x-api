@@ -6,11 +6,12 @@ import { Server } from 'http';
 
 import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
 import { defaultHttpServiceConfig } from '../config';
-import { ORDERBOOK_PATH, SRA_PATH, SWAP_PATH } from '../constants';
+import { META_TRANSACTION_PATH, ORDERBOOK_PATH, SRA_PATH, SWAP_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
+import { createMetaTransactionRouter } from '../routers/meta_transaction_router';
 import { createOrderBookRouter } from '../routers/orderbook_router';
 import { createSRARouter } from '../routers/sra_router';
 import { createSwapRouter } from '../routers/swap_router';
@@ -78,6 +79,13 @@ export async function runHttpServiceAsync(
 
     // OrderBook http service
     app.use(ORDERBOOK_PATH, createOrderBookRouter(dependencies.orderBookService));
+
+    // metatxn http service
+    if (dependencies.metaTransactionService) {
+        app.use(META_TRANSACTION_PATH, createMetaTransactionRouter(dependencies.metaTransactionService));
+    } else {
+        logger.error(`API running without meta transactions service`);
+    }
 
     // swap/quote http service
     if (dependencies.swapService) {

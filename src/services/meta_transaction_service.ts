@@ -5,12 +5,7 @@ import { ExchangeProxyMetaTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 
-import {
-    CHAIN_ID,
-    META_TX_EXPIRATION_BUFFER_MS,
-    META_TX_MAX_GAS_PRICE_MULTIPLIER,
-    META_TX_MIN_GAS_PRICE_MULTIPLIER,
-} from '../config';
+import { CHAIN_ID, META_TX_EXPIRATION_BUFFER_MS } from '../config';
 import { NULL_ADDRESS, ONE_GWEI, ONE_SECOND_MS, ZERO } from '../constants';
 import {
     CalculateMetaTransactionQuoteParams,
@@ -108,13 +103,13 @@ export class MetaTransactionService {
     private _generateExchangeProxyMetaTransaction(
         callData: string,
         takerAddress: string,
-        gasPrice: BigNumber,
+        _gasPrice: BigNumber,
         protocolFee: BigNumber,
     ): ExchangeProxyMetaTransaction {
         return {
             callData,
-            minGasPrice: gasPrice.times(META_TX_MIN_GAS_PRICE_MULTIPLIER).dividedToIntegerBy(1),
-            maxGasPrice: gasPrice.times(META_TX_MAX_GAS_PRICE_MULTIPLIER).dividedToIntegerBy(1),
+            minGasPrice: new BigNumber(1),
+            maxGasPrice: new BigNumber(2).pow(32), // high value 0x100000000
             expirationTimeSeconds: createExpirationTime(),
             salt: generatePseudoRandomSalt(),
             signer: takerAddress,
