@@ -1,6 +1,4 @@
 // tslint:disable-next-line:ordered-imports no-var-requires
-require('./apm');
-
 import {
     artifacts,
     AssetSwapperContractAddresses,
@@ -23,6 +21,7 @@ import {
     ORDER_WATCHER_KAFKA_TOPIC,
     RFQT_TX_ORIGIN_BLACKLIST,
     RFQ_API_URL,
+    SENTRY_ENABLED,
     SLIPPAGE_MODEL_S3_API_VERSION,
     WEBSOCKET_ORDER_UPDATES_PATH,
 } from './config';
@@ -35,25 +34,11 @@ import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
 import { SwapService } from './services/swap_service';
-import { TransactionWatcherSignerService } from './services/transaction_watcher_signer_service';
-import {
-    HttpServiceConfig,
-    MetaTransactionDailyLimiterConfig,
-    MetaTransactionRollingLimiterConfig,
-    WebsocketSRAOpts,
-} from './types';
+import { HttpServiceConfig, WebsocketSRAOpts } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
 import { ConfigManager } from './utils/config_manager';
 import { OrderWatcher } from './utils/order_watcher';
 import { PairsManager } from './utils/pairs_manager';
-import {
-    AvailableRateLimiter,
-    DatabaseKeysUsedForRateLimiter,
-    MetaTransactionDailyLimiter,
-    MetaTransactionRateLimiter,
-    MetaTransactionRollingLimiter,
-} from './utils/rate-limiters';
-import { MetaTransactionComposableLimiter } from './utils/rate-limiters/meta_transaction_composable_rate_limiter';
 import { RfqClient } from './utils/rfq_client';
 import { RfqDynamicBlacklist } from './utils/rfq_dyanmic_blacklist';
 import { RfqMakerDbUtils } from './utils/rfq_maker_db_utils';
@@ -69,8 +54,7 @@ export interface AppDependencies {
     metaTransactionService?: MetaTransactionService;
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
-    transactionWatcherService?: TransactionWatcherSignerService;
-    rateLimiter?: MetaTransactionRateLimiter;
+    hasSentry?: boolean;
 }
 
 async function deploySamplerContractAsync(
@@ -173,11 +157,6 @@ export async function getDefaultAppDependenciesAsync(
         logger.warn(`skipping kafka client creation because no kafkaBrokers were passed in`);
     }
 
-    let rateLimiter: MetaTransactionRateLimiter | undefined;
-    if (config.metaTxnRateLimiters !== undefined) {
-        rateLimiter = createMetaTransactionRateLimiterFromConfig(connection, config);
-    }
-
     const orderBookService = new OrderBookService(connection, new OrderWatcher());
 
     const rfqtFirmQuoteValidator = new PostgresRfqtFirmQuoteValidator(
@@ -215,17 +194,19 @@ export async function getDefaultAppDependenciesAsync(
             slippageModelManager,
             rfqClient,
         );
-        metaTransactionService = createMetaTxnServiceFromSwapService(
-            provider,
-            connection,
-            swapService,
-            contractAddresses,
-        );
+        metaTransactionService = createMetaTxnServiceFromSwapService(swapService, contractAddresses);
     } catch (err) {
         logger.error(err.stack);
     }
 
     const websocketOpts = { path: WEBSOCKET_ORDER_UPDATES_PATH, kafkaTopic: ORDER_WATCHER_KAFKA_TOPIC };
+    const hasSentry: boolean = SENTRY_ENABLED;
+
+    if (hasSentry) {
+        logger.info('sentry enabled');
+    } else {
+        logger.info('sentry disabled');
+    }
 
     return {
         contractAddresses,
@@ -236,7 +217,7 @@ export async function getDefaultAppDependenciesAsync(
         metaTransactionService,
         provider,
         websocketOpts,
-        rateLimiter,
+        hasSentry,
     };
 }
 
@@ -261,54 +242,12 @@ export async function getAppAsync(
     return { app, server };
 }
 
-function createMetaTransactionRateLimiterFromConfig(
-    dbConnection: Connection,
-    config: HttpServiceConfig,
-): MetaTransactionRateLimiter {
-    const rateLimiterConfigEntries = Object.entries(config.metaTxnRateLimiters!);
-    const configuredRateLimiters = rateLimiterConfigEntries
-        .map((entries) => {
-            const [dbField, rateLimiters] = entries;
-
-            return Object.entries(rateLimiters!).map((rateLimiterEntry) => {
-                const [limiterType, value] = rateLimiterEntry;
-                switch (limiterType) {
-                    case AvailableRateLimiter.Daily: {
-                        const dailyConfig = value as MetaTransactionDailyLimiterConfig;
-                        return new MetaTransactionDailyLimiter(
-                            dbField as DatabaseKeysUsedForRateLimiter,
-                            dbConnection,
-                            dailyConfig,
-                        );
-                    }
-                    case AvailableRateLimiter.Rolling: {
-                        const rollingConfig = value as MetaTransactionRollingLimiterConfig;
-                        return new MetaTransactionRollingLimiter(
-                            dbField as DatabaseKeysUsedForRateLimiter,
-                            dbConnection,
-                            rollingConfig,
-                        );
-                    }
-                    default:
-                        throw new Error('unknown rate limiter type');
-                }
-            });
-        })
-        .reduce((prev, cur) => {
-            return prev.concat(...cur);
-        }, []);
-    return new MetaTransactionComposableLimiter(configuredRateLimiters);
-}
-
 /**
- * Instantiates MetaTransactionService using the provided OrderBookService,
- * ethereum RPC provider and db connection.
+ * Instantiates a MetaTransactionService
  */
 export function createMetaTxnServiceFromSwapService(
-    provider: SupportedProvider,
-    dbConnection: Connection,
     swapService: SwapService,
     contractAddresses: ContractAddresses,
 ): MetaTransactionService {
-    return new MetaTransactionService(provider, dbConnection, swapService, contractAddresses);
+    return new MetaTransactionService(swapService, contractAddresses);
 }

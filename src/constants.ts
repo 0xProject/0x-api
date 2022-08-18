@@ -9,7 +9,6 @@ export const ZERO = new BigNumber(0);
 export const ONE = new BigNumber(1);
 export const MAX_TOKEN_SUPPLY_POSSIBLE = new BigNumber(2).pow(256);
 export const DEFAULT_LOCAL_POSTGRES_URI = 'postgres://api:api@localhost/api';
-export const DEFAULT_LOCAL_REDIS_URI = 'redis://localhost';
 export const DEFAULT_LOGGER_INCLUDE_TIMESTAMP = true;
 export const ONE_SECOND_MS = 1000;
 export const ONE_MINUTE_MS = ONE_SECOND_MS * 60;
@@ -58,25 +57,10 @@ export const SWAP_DOCS_URL = 'https://0x.org/docs/api#swap';
 export const SRA_DOCS_URL = 'https://0x.org/docs/api#sra';
 export const META_TRANSACTION_DOCS_URL = 'https://0x.org/docs/api#meta_transaction';
 
-// Meta Transactions
 export const DEFAULT_ZERO_EX_GAS_API_URL = 'https://gas.api.0x.org/source/median';
-export const UNSTICKING_TRANSACTION_GAS_MULTIPLIER = 1.1;
-export const ETH_TRANSFER_GAS_LIMIT = 21000;
-export const TX_HASH_RESPONSE_WAIT_TIME_MS = ONE_SECOND_MS * 100;
-export const SUBMITTED_TX_DB_POLLING_INTERVAL_MS = 200;
-export const PUBLIC_ADDRESS_FOR_ETH_CALLS = '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B';
 
-// TransactionWatcher
-// The expected time of a transaction to be mined according to ETHGasStation
-// "Fast" gas price estimations multiplied by a safety margin.
-export const DEFAULT_EXPECTED_MINED_SEC = 120 * 1.5;
-export const TX_WATCHER_POLLING_INTERVAL_MS = ONE_SECOND_MS * 5;
-export const NUMBER_OF_BLOCKS_UNTIL_CONFIRMED = 3;
-export const TX_WATCHER_UPDATE_METRICS_INTERVAL_MS = ONE_SECOND_MS * 30;
 export const ETH_DECIMALS = 18;
 export const GWEI_DECIMALS = 9;
-export const META_TXN_MIN_SIGNER_ETH_BALANCE = 0.1;
-export const SIGNER_STATUS_DB_KEY = 'signer_status';
 
 // Logging
 export const NUMBER_SOURCES_PER_LOG_LINE = 12;
