@@ -223,7 +223,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
             //ERC20BridgeSource.Synapse,
-            //ERC20BridgeSource.SushiSwap,
+            ERC20BridgeSource.SushiSwap,
             //ERC20BridgeSource.Balancer,
             //ERC20BridgeSource.Curve,
             //ERC20BridgeSource.GMX,
@@ -383,7 +383,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
             //ERC20BridgeSource.Synapse,
-            //ERC20BridgeSource.SushiSwap,
+            ERC20BridgeSource.SushiSwap,
             //ERC20BridgeSource.Balancer,
             //ERC20BridgeSource.Curve,
             //ERC20BridgeSource.GMX,
@@ -413,7 +413,7 @@ export const FEE_QUOTE_SOURCES_BY_CHAIN_ID = valueByChainId<ERC20BridgeSource[]>
         [ChainId.Fantom]: [ERC20BridgeSource.SpiritSwap, ERC20BridgeSource.SpookySwap, ERC20BridgeSource.SushiSwap],
         [ChainId.Celo]: [ERC20BridgeSource.UbeSwap, ERC20BridgeSource.SushiSwap],
         [ChainId.Optimism]: [ERC20BridgeSource.UniswapV3],
-        [ChainId.Arbitrum]: [ERC20BridgeSource.UniswapV3], //, ERC20BridgeSource.SushiSwap],
+        [ChainId.Arbitrum]: [ERC20BridgeSource.UniswapV3, ERC20BridgeSource.SushiSwap],
     },
     [],
 );
@@ -1957,6 +1957,7 @@ export const SUSHISWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
         [ChainId.Avalanche]: '0x1b02da8cb0d097eb8d57a175b88c7d8b47997506',
         [ChainId.Fantom]: '0x1b02da8cb0d097eb8d57a175b88c7d8b47997506',
         [ChainId.Celo]: '0x1421bde4b10e8dd459b3bcb598810b1337d56842',
+        [ChainId.Arbitrum]: '0x1b02da8cb0d097eb8d57a175b88c7d8b47997506',
     },
     NULL_ADDRESS,
 );
@@ -2248,6 +2249,10 @@ export const UNISWAPV3_CONFIG_BY_CHAIN_ID = valueByChainId(
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Optimism]: {
+            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            router: '0xe592427a0aece92de3edee1f18e0157c05861564',
+        },
+        [ChainId.Arbitrum]: {
             quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
