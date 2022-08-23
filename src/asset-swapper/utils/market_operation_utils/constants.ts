@@ -226,7 +226,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.BalancerV2,
             ERC20BridgeSource.Curve,
-            //ERC20BridgeSource.GMX,
+            ERC20BridgeSource.GMX,
             //ERC20BridgeSource.Dodo,
         ]),
     },
@@ -386,7 +386,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.BalancerV2,
             ERC20BridgeSource.Curve,
-            //ERC20BridgeSource.GMX,
+            ERC20BridgeSource.GMX,
             //ERC20BridgeSource.Dodo,
         ]),
     },
@@ -2430,6 +2430,7 @@ export const SPOOKYSWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
 export const GMX_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     {
         [ChainId.Avalanche]: '0x5f719c2f1095f7b9fc68a68e35b51194f4b6abe8',
+        [ChainId.Arbitrum]: '0xabbc5f99639c9b6bcb58544ddf04efa6802f4064',
     },
     NULL_ADDRESS,
 );
@@ -2437,6 +2438,7 @@ export const GMX_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
 export const GMX_READER_BY_CHAIN_ID = valueByChainId<string>(
     {
         [ChainId.Avalanche]: '0x67b789d48c926006f5132bfce4e976f0a7a63d5d',
+        [ChainId.Arbitrum]: '0x22199a49a999c351ef7927602cfb187ec3cae489',
     },
     NULL_ADDRESS,
 );
@@ -2444,6 +2446,7 @@ export const GMX_READER_BY_CHAIN_ID = valueByChainId<string>(
 export const GMX_VAULT_BY_CHAIN_ID = valueByChainId<string>(
     {
         [ChainId.Avalanche]: '0x9ab2de34a33fb459b538c43f251eb825645e8595',
+        [ChainId.Arbitrum]: '0x489ee077994b6658eafa855c308275ead8097c4a',
     },
     NULL_ADDRESS,
 );
