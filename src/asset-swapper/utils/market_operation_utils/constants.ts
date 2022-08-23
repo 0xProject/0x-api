@@ -222,7 +222,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
-            //ERC20BridgeSource.Synapse,
+            ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
             //ERC20BridgeSource.Balancer,
             //ERC20BridgeSource.Curve,
@@ -382,7 +382,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
-            //ERC20BridgeSource.Synapse,
+            ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
             //ERC20BridgeSource.Balancer,
             //ERC20BridgeSource.Curve,
@@ -835,7 +835,7 @@ export const SYNAPSE_AVALANCHE_POOLS = {
 
 export const SYNAPSE_ARBITRUM_POOLS = {
     nUSDLP: '0x0db3fe3b770c95a0b99d1ed6f2627933466c0dd8',
-    nETHLP: '0xd70a52248e546a3b260849386410c7170c7bd1e9',
+    nETHLP: '0x1c3fe783a7c06bfabd124f2708f5cc51fa42e102',
 };
 
 export const BELT_POOLS = {
@@ -1769,6 +1769,27 @@ export const SYNAPSE_AVALANCHE_INFOS: { [name: string]: CurveInfo } = {
         buyQuoteFunctionSelector: CurveFunctionSelectors.None,
         poolAddress: SYNAPSE_AVALANCHE_POOLS.nETHLP,
         tokens: [AVALANCHE_TOKENS.nETH, AVALANCHE_TOKENS.aWETH],
+        metaTokens: undefined,
+        gasSchedule: 140e3,
+    },
+};
+
+export const SYNAPSE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
+    [SYNAPSE_ARBITRUM_POOLS.nUSDLP]: {
+        exchangeFunctionSelector: CurveFunctionSelectors.swap,
+        sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
+        buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+        poolAddress: SYNAPSE_ARBITRUM_POOLS.nUSDLP,
+        tokens: [ARBITRUM_TOKENS.nUSD, ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT, ARBITRUM_TOKENS.MIM],
+        metaTokens: undefined,
+        gasSchedule: 140e3,
+    },
+    [SYNAPSE_ARBITRUM_POOLS.nETHLP]: {
+        exchangeFunctionSelector: CurveFunctionSelectors.swap,
+        sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
+        buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+        poolAddress: SYNAPSE_ARBITRUM_POOLS.nETHLP,
+        tokens: [ARBITRUM_TOKENS.nETH, ARBITRUM_TOKENS.WETH],
         metaTokens: undefined,
         gasSchedule: 140e3,
     },
