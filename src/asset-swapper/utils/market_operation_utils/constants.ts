@@ -224,7 +224,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.UniswapV3,
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
-            //ERC20BridgeSource.Balancer,
+            ERC20BridgeSource.BalancerV2,
             //ERC20BridgeSource.Curve,
             //ERC20BridgeSource.GMX,
             //ERC20BridgeSource.Dodo,
@@ -384,7 +384,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.UniswapV3,
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
-            //ERC20BridgeSource.Balancer,
+            ERC20BridgeSource.BalancerV2,
             //ERC20BridgeSource.Curve,
             //ERC20BridgeSource.GMX,
             //ERC20BridgeSource.Dodo,
@@ -2210,6 +2210,8 @@ export const BALANCER_V2_VAULT_ADDRESS_BY_CHAIN = valueByChainId<string>(
     {
         [ChainId.Mainnet]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
         [ChainId.Polygon]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
+        [ChainId.Arbitrum]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
+
     },
     NULL_ADDRESS,
 );
@@ -2243,6 +2245,7 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
     {
         [ChainId.Mainnet]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2',
         [ChainId.Polygon]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-polygon-v2',
+        [ChainId.Arbitrum]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-arbitrum-v2',
     },
     null,
 );
