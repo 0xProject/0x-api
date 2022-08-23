@@ -227,7 +227,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.BalancerV2,
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.GMX,
-            //ERC20BridgeSource.Dodo,
+            ERC20BridgeSource.Dodo,
         ]),
     },
     new SourceFilters([]),
@@ -387,7 +387,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.BalancerV2,
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.GMX,
-            //ERC20BridgeSource.Dodo,
+            ERC20BridgeSource.Dodo,
         ]),
     },
     new SourceFilters([]),
@@ -2117,6 +2117,11 @@ export const DODOV2_FACTORIES_BY_CHAIN_ID = valueByChainId<string[]>(
             '0x95e887adf9eaa22cc1c6e3cb7f07adc95b4b25a8', // Private Pool
             '0x79887f65f83bdf15bcc8736b5e5bcdb48fb8fe13', // Vending Machine
             '0x43c49f8dd240e1545f147211ec9f917376ac1e87', // Stability Pool
+        ],
+        [ChainId.Arbitrum]: [
+            '0xa6cf3d163358af376ec5e8b7cc5e102a05fde63d', // Private Pool
+            '0xda4c4411c55b0785e501332354a036c04833b72b', // Vending Machine
+            '0xc8fe2440744dcd733246a4db14093664defd5a53', // Stability Pool
         ],
     },
     [] as string[],
