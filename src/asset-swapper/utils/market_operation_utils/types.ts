@@ -16,14 +16,6 @@ import { TokenAdjacencyGraph } from '../token_adjacency_graph';
 import { SourceFilters } from './source_filters';
 
 /**
- * Order domain keys: chainId and exchange
- */
-export interface OrderDomain {
-    chainId: number;
-    exchangeAddress: string;
-}
-
-/**
  * Common exception messages thrown by aggregation logic.
  */
 export enum AggregationError {
