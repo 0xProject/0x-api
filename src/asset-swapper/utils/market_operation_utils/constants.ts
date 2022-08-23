@@ -225,7 +225,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.BalancerV2,
-            //ERC20BridgeSource.Curve,
+            ERC20BridgeSource.Curve,
             //ERC20BridgeSource.GMX,
             //ERC20BridgeSource.Dodo,
         ]),
@@ -385,7 +385,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.BalancerV2,
-            //ERC20BridgeSource.Curve,
+            ERC20BridgeSource.Curve,
             //ERC20BridgeSource.GMX,
             //ERC20BridgeSource.Dodo,
         ]),
@@ -790,6 +790,10 @@ export const CURVE_V2_FANTOM_POOLS = {
 
 export const CURVE_OPTIMISM_POOLS = {
     tri: '0x1337bedc9d22ecbe766df105c9623922a27963ec',
+};
+
+export const CURVE_ARBITRUM_POOLS = {
+    tri: '0x960ea3e3c7fb317332d990873d354e18d7645590',
 };
 
 export const SADDLE_POOLS = {
@@ -1601,6 +1605,14 @@ export const CURVE_OPTIMISM_INFOS: { [name: string]: CurveInfo } = {
     [CURVE_OPTIMISM_POOLS.tri]: createCurveExchangePool({
         tokens: [OPTIMISM_TOKENS.DAI, OPTIMISM_TOKENS.USDC, OPTIMISM_TOKENS.USDT],
         pool: CURVE_OPTIMISM_POOLS.tri,
+        gasSchedule: 150e3,
+    }),
+};
+
+export const CURVE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
+    [CURVE_ARBITRUM_POOLS.tri]: createCurveExchangePool({
+        tokens: [ARBITRUM_TOKENS.WBTC, OPTIMISM_TOKENS.WETH, OPTIMISM_TOKENS.USDT],
+        pool: CURVE_ARBITRUM_POOLS.tri,
         gasSchedule: 150e3,
     }),
 };
