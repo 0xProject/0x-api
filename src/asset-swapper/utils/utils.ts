@@ -9,14 +9,6 @@ import { ZERO_AMOUNT } from './market_operation_utils/constants';
 
 // tslint:disable: no-unnecessary-type-assertion completed-docs
 
-export function numberPercentageToEtherTokenAmountPercentage(percentage: number): BigNumber {
-    return Web3Wrapper.toBaseUnitAmount(constants.ONE_AMOUNT, constants.ETHER_TOKEN_DECIMALS).multipliedBy(percentage);
-}
-
-export function getAdjustedTakerAmountFromFees<T extends LimitOrderFields>(order: T): BigNumber {
-    return order.takerAmount.plus(order.takerTokenFeeAmount);
-}
-
 /**
  * Given an amount of taker asset, calculate the the amount of maker asset
  * @param order The order
