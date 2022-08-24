@@ -1,8 +1,6 @@
 import { CommonOrderFields, FillQuoteTransformerOrderType, LimitOrderFields } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
-import { Web3Wrapper } from '@0x/web3-wrapper';
 
-import { constants } from '../constants';
 import { NativeOrderFillableAmountFields, SignedNativeOrder } from '../types';
 
 import { ZERO_AMOUNT } from './market_operation_utils/constants';
