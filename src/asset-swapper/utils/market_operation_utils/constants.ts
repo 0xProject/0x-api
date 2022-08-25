@@ -686,7 +686,6 @@ export const ARBITRUM_TOKENS = {
     nUSD: '0x2913E812Cf0dcCA30FB28E6Cac3d2DCFF4497688',
     MIM: '0xFEa7a6a0B346362BF88A9e4A88416B77a57D6c2A',
     WBTC: '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
-
 };
 
 export const GEIST_FANTOM_POOLS = {
@@ -994,12 +993,7 @@ export const DEFAULT_INTERMEDIATE_TOKENS_BY_CHAIN_ID = valueByChainId<string[]>(
             OPTIMISM_TOKENS.nETH,
             OPTIMISM_TOKENS.sWETH,
         ],
-        [ChainId.Arbitrum]: [
-            ARBITRUM_TOKENS.USDC,
-            ARBITRUM_TOKENS.USDT,
-            ARBITRUM_TOKENS.WETH,
-            ARBITRUM_TOKENS.WBTC,
-        ],
+        [ChainId.Arbitrum]: [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT, ARBITRUM_TOKENS.WETH, ARBITRUM_TOKENS.WBTC],
     },
     [],
 );
@@ -2229,7 +2223,6 @@ export const BALANCER_V2_VAULT_ADDRESS_BY_CHAIN = valueByChainId<string>(
         [ChainId.Mainnet]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
         [ChainId.Polygon]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
         [ChainId.Arbitrum]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
-
     },
     NULL_ADDRESS,
 );
