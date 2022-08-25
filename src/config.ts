@@ -488,6 +488,7 @@ const EXCLUDED_SOURCES = (() => {
         case ChainId.Optimism:
         case ChainId.Goerli:
         case ChainId.PolygonMumbai:
+        case ChainId.ArbitrumRinkeby:
         case ChainId.Arbitrum:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
