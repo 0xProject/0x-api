@@ -995,7 +995,7 @@ export const DEFAULT_INTERMEDIATE_TOKENS_BY_CHAIN_ID = valueByChainId<string[]>(
             OPTIMISM_TOKENS.sWETH,
         ],
         [ChainId.Arbitrum]: [
-            ARBITRUM_TOKENS.USDC, 
+            ARBITRUM_TOKENS.USDC,
             ARBITRUM_TOKENS.USDT,
             ARBITRUM_TOKENS.WETH,
             ARBITRUM_TOKENS.WBTC,

@@ -159,7 +159,7 @@ export function getCurveInfosForPair(chainId: ChainId, takerToken: string, maker
                         (c.tokens.includes(t) &&
                             [makerToken, takerToken].filter((v) => c.metaTokens?.includes(v)).length > 0),
                 ),
-            );    
+            );
         default:
             return [];
     }
