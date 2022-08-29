@@ -86,7 +86,6 @@ export class SwapHandlers {
         const message = `This is the root of the Swap API. Visit ${SWAP_DOCS_URL} for details about this API.`;
         res.status(HttpStatus.OK).send({ message });
     }
-    // tslint:disable-next-line:prefer-function-over-method
     public static getTokens(_req: express.Request, res: express.Response): void {
         const tokens = TokenMetadatasForChains.map((tm) => ({
             symbol: tm.symbol,
@@ -234,7 +233,6 @@ export class SwapHandlers {
         res.status(HttpStatus.OK).send(response);
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public async getQuotePriceAsync(req: express.Request, res: express.Response): Promise<void> {
         const params = parseSwapQuoteRequestParams(req, 'price');
         const quote = await this._getSwapQuoteAsync({ ...params }, req);
@@ -462,7 +460,6 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     }
 
     // Parse sources
-    // tslint:disable-next-line: boolean-naming
     const { excludedSources, includedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
         {
             excludedSources: req.query.excludedSources as string | undefined,

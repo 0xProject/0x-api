@@ -243,7 +243,6 @@ export class SamplerOperations {
             source: ERC20BridgeSource.Native,
             contract: this._samplerContract,
             function: this._samplerContract.getLimitOrderFillableTakerAssetAmounts,
-            // tslint:disable-next-line:no-unnecessary-type-assertion
             params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
@@ -263,7 +262,6 @@ export class SamplerOperations {
             source: ERC20BridgeSource.Native,
             contract: this._samplerContract,
             function: this._samplerContract.getLimitOrderFillableMakerAssetAmounts,
-            // tslint:disable-next-line:no-unnecessary-type-assertion
             params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
@@ -1127,7 +1125,6 @@ export class SamplerOperations {
         });
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public getAaveV2SellQuotes(
         aaveInfo: AaveV2Info,
         makerToken: string,
@@ -1141,7 +1138,6 @@ export class SamplerOperations {
         });
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public getAaveV2BuyQuotes(
         aaveInfo: AaveV2Info,
         makerToken: string,
@@ -1155,7 +1151,6 @@ export class SamplerOperations {
         });
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public getGeistSellQuotes(
         geistInfo: GeistInfo,
         makerToken: string,
@@ -1169,7 +1164,6 @@ export class SamplerOperations {
         });
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public getGeistBuyQuotes(
         geistInfo: GeistInfo,
         makerToken: string,

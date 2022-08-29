@@ -107,7 +107,6 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             takerToken: order.takerToken,
             makerAmount: order.makerAmount,
             takerAmount: order.takerAmount,
-            // tslint:disable-next-line:no-object-literal-type-assertion
             fill: {} as Fill<NativeFillData>,
             ...optimizerFields,
         };

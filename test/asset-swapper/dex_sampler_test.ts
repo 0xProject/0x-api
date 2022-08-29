@@ -530,4 +530,3 @@ describe('DexSampler tests', () => {
         });
     });
 });
-// tslint:disable-next-line: max-file-line-count

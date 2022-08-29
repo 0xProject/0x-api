@@ -731,7 +731,6 @@ describe('MarketOperationUtils tests', () => {
                     },
                 );
                 expect(result.optimizedOrders.length).to.eql(1);
-                // tslint:disable-next-line:no-unnecessary-type-assertion
                 expect(requestedComparisonPrice!.toString()).to.eql('320');
                 expect(result.optimizedOrders[0].makerAmount.toString()).to.eql('321000000');
                 expect(result.optimizedOrders[0].takerAmount.toString()).to.eql('1000000000000000000');
@@ -1202,7 +1201,6 @@ describe('MarketOperationUtils tests', () => {
                 ).to.eql(liquidityProviderAddress);
 
                 // // TODO (xianny): decode bridge data in v4 format
-                // // tslint:disable-next-line:no-unnecessary-type-assertion
                 // const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(
                 //     result[0].makerAssetData,
                 // ) as ERC20BridgeAssetData;
@@ -1625,4 +1623,3 @@ describe('MarketOperationUtils tests', () => {
         });
     });
 });
-// tslint:disable-next-line: max-file-line-count

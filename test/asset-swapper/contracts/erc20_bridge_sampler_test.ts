@@ -76,7 +76,6 @@
 //         }
 //         // HACK(dorothy-zbornak): Linter will complain about the addition not being
 //         // between two numbers, even though they are.
-//         // tslint:disable-next-line restrict-plus-operands
 //         return new BigNumber(getPackedHash(token)).mod(MAX_DECIMALS - MIN_DECIMALS).toNumber() + MIN_DECIMALS;
 //     }
 //
@@ -284,7 +283,6 @@
 //             const expected = orders.map(getDeterministicFillableTakerAssetAmount);
 //             const actual = await testContract
 //                 .getLimitOrderFillableTakerAssetAmounts(
-//                     // tslint:disable-next-line:no-unnecessary-type-assertion
 //                     orders.map(o => o.order as LimitOrderFields),
 //                     orders.map(o => o.signature),
 //                     NULL_ADDRESS,
@@ -305,7 +303,6 @@
 //             const expected = orders.map(getDeterministicFillableMakerAssetAmount);
 //             const actual = await testContract
 //                 .getLimitOrderFillableMakerAssetAmounts(
-//                     // tslint:disable-next-line:no-unnecessary-type-assertion
 //                     orders.map(o => o.order as LimitOrderFields),
 //                     orders.map(o => o.signature),
 //                     NULL_ADDRESS,
@@ -829,7 +826,6 @@
 //             const calls = [
 //                 testContract
 //                     .getLimitOrderFillableTakerAssetAmounts(
-//                         // tslint:disable-next-line:no-unnecessary-type-assertion
 //                         orders.map(o => o.order as LimitOrderFields),
 //                         orders.map(o => o.signature),
 //                         NULL_ADDRESS,
@@ -855,7 +851,6 @@
 //             const calls = [
 //                 testContract
 //                     .getLimitOrderFillableTakerAssetAmounts(
-//                         // tslint:disable-next-line:no-unnecessary-type-assertion
 //                         orders[0].map(o => o.order as LimitOrderFields),
 //                         orders[0].map(o => o.signature),
 //                         NULL_ADDRESS,
@@ -863,7 +858,6 @@
 //                     .getABIEncodedTransactionData(),
 //                 testContract
 //                     .getLimitOrderFillableMakerAssetAmounts(
-//                         // tslint:disable-next-line:no-unnecessary-type-assertion
 //                         orders[1].map(o => o.order as LimitOrderFields),
 //                         orders[1].map(o => o.signature),
 //                         NULL_ADDRESS,
@@ -890,7 +884,6 @@
 //                         .batchCall([
 //                             testContract
 //                                 .getLimitOrderFillableTakerAssetAmounts(
-//                                     // tslint:disable-next-line:no-unnecessary-type-assertion
 //                                     orders.map(o => o.order as LimitOrderFields),
 //                                     orders.map(o => o.signature),
 //                                     NULL_ADDRESS,
@@ -917,7 +910,6 @@
 //         });
 //
 //         it('sampleTwoHopSell', async () => {
-//             // tslint:disable-next-line no-unnecessary-type-assertion
 //             const sellAmount = _.last(getSampleAmounts(TAKER_TOKEN))!;
 //             const uniswapV2FirstHopPath = [TAKER_TOKEN, INTERMEDIATE_TOKEN];
 //             const uniswapV2FirstHop = testContract
@@ -948,7 +940,6 @@
 //             expect(buyAmount, 'Two hop buy amount').to.bignumber.equal(expectedBuyAmount);
 //         });
 //         it('sampleTwoHopBuy', async () => {
-//             // tslint:disable-next-line no-unnecessary-type-assertion
 //             const buyAmount = _.last(getSampleAmounts(MAKER_TOKEN))!;
 //             const uniswapV2FirstHopPath = [TAKER_TOKEN, INTERMEDIATE_TOKEN];
 //             const uniswapV2FirstHop = testContract

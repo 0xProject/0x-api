@@ -22,7 +22,6 @@ export class SamplerNoOperation<TFillData extends FillData = FillData> implement
         this._callback = opts.callback;
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public encodeCall(): string {
         return NULL_BYTES;
     }

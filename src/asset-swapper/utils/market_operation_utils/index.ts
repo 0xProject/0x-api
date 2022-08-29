@@ -492,7 +492,6 @@ export class MarketOperationUtils {
 
         const augmentedRfqtIndicativeQuotes: NativeOrderWithFillableAmounts[] = rfqtIndicativeQuotes.map(
             (q) =>
-                // tslint:disable-next-line: no-object-literal-type-assertion
                 ({
                     order: { ...new RfqOrder({ ...q }) },
                     signature: INVALID_SIGNATURE,

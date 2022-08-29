@@ -2798,7 +2798,6 @@ export const DEFAULT_FEE_SCHEDULE: Required<FeeSchedule> = Object.keys(DEFAULT_G
         };
     };
     return acc;
-    // tslint:disable-next-line:no-object-literal-type-assertion
 }, {} as Required<FeeSchedule>);
 
 export const DEFAULT_FEE_ESTIMATE = { gas: 0, fee: ZERO_AMOUNT };

@@ -583,7 +583,6 @@ function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, assertions: Par
         // Only have 0x liquidity for now.
         expect(quoteResponse.sources).to.be.eql(liquiditySources0xOnly);
     } catch (err) {
-        // tslint:disable-next-line:no-console
         console.log(`should return a valid quote matching ${assertions}`);
     }
 }

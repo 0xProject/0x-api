@@ -56,7 +56,6 @@ export abstract class Orderbook {
         takerToken: string,
         pruneFn?: (o: SignedNativeOrder) => boolean,
     ): Promise<SignedNativeOrder[][]>;
-    // tslint:disable-next-line:prefer-function-over-method
     public async destroyAsync(): Promise<void> {
         return;
     }
@@ -380,7 +379,6 @@ export class SwapQuoter {
         if (!rfqt) {
             return rfqt;
         }
-        // tslint:disable-next-line: boolean-naming
         const { integrator, nativeExclusivelyRFQ, intentOnFilling, txOrigin } = rfqt;
         // If RFQ-T is enabled and `nativeExclusivelyRFQ` is set, then `ERC20BridgeSource.Native` should
         // never be excluded.
@@ -428,7 +426,6 @@ export class SwapQuoter {
         return rfqt;
     }
 }
-// tslint:disable-next-line: max-file-line-count
 
 // begin formatting and report generation functions
 function createSwapQuote(

@@ -363,7 +363,6 @@ function expectEqualQuoteReportEntries(
                 'fillableTakerFeeAmount',
             ]) as LimitOrderFields;
             expect(actualEntry.fillData.order).to.eql(
-                // tslint:disable-next-line:no-unnecessary-type-assertion
                 (expectedEntry.fillData as NativeFillData).order,
                 `${variableName} incorrect at index ${idx}`,
             );

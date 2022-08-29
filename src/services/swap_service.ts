@@ -302,7 +302,6 @@ export class SwapService {
         const shouldGenerateQuoteReport = rfqt && rfqt.intentOnFilling;
 
         let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
-        // tslint:disable-next-line:prefer-conditional-expression
         if (
             isMetaTransaction ||
             shouldSellEntireBalance ||
