@@ -61,8 +61,8 @@ import {
 } from './constants';
 import { CurveInfo, ERC20BridgeSource, PlatypusInfo } from './types';
 
-// tslint:disable-next-line: completed-docs ban-types
-export function isValidAddress(address: string | string): address is string {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function isValidAddress(address: string | String): address is string {
     return (typeof address === 'string' || address instanceof String) && address.toString() !== NULL_ADDRESS;
 }
 
