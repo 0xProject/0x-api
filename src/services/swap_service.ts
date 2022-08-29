@@ -266,7 +266,6 @@ export class SwapService {
             affiliateFee,
             includePriceComparisons,
             skipValidation,
-            // tslint:enable:boolean-naming
             shouldSellEntireBalance,
             enableSlippageProtection,
         } = params;

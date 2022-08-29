@@ -122,7 +122,6 @@ export interface PoolsCacheMap {
     [ERC20BridgeSource.Beethovenx]: PoolsCache;
 }
 
-
 /**
  * Composable operations that can be batched in a single transaction,
  * for use with `DexOrderSampler.executeAsync()`.
@@ -822,7 +821,7 @@ export class SamplerOperations {
                     secondHopOps.map((op) => op.encodeCall()),
                     sellAmount,
                 ],
-                fillData: { intermediateToken } as MultiHopFillData, // tslint:disable-line:no-object-literal-type-assertion
+                fillData: { intermediateToken } as MultiHopFillData,
                 callback: (callResults: string, fillData: MultiHopFillData): BigNumber[] => {
                     const [firstHop, secondHop, buyAmount] = this._samplerContract.getABIDecodedReturnData<
                         [HopInfo, HopInfo, BigNumber]
@@ -885,7 +884,7 @@ export class SamplerOperations {
                     secondHopOps.map((op) => op.encodeCall()),
                     buyAmount,
                 ],
-                fillData: { intermediateToken } as MultiHopFillData, // tslint:disable-line:no-object-literal-type-assertion
+                fillData: { intermediateToken } as MultiHopFillData,
                 callback: (callResults: string, fillData: MultiHopFillData): BigNumber[] => {
                     const [firstHop, secondHop, sellAmount] = this._samplerContract.getABIDecodedReturnData<
                         [HopInfo, HopInfo, BigNumber]
@@ -2204,4 +2203,3 @@ export class SamplerOperations {
         };
     }
 }
-// tslint:disable max-file-line-count

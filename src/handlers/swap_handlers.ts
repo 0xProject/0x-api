@@ -395,7 +395,6 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     // Whether the entire callers balance should be sold, used for contracts where the
     // amount available is non-deterministic
     const shouldSellEntireBalance = req.query.shouldSellEntireBalance === 'true' ? true : false;
-    // tslint:enable:boolean-naming
 
     // Parse tokens and eth wrap/unwraps
     const sellTokenRaw = req.query.sellToken as string;

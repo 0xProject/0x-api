@@ -199,7 +199,6 @@ describe(SUITE_NAME, () => {
                     }
                     // Otherwise, succeeded
                     console.log(indent, color('checkmark', `${symbols.ok}`), color('pass', description));
-                    // tslint:enable:no-console
                 };
             }
 

@@ -125,7 +125,6 @@ export enum CurveFunctionSelectors {
     swap = '0x91695586', // swap(uint8,uint8,uint256,uint256,uint256)
     calculateSwap = '0xa95b089f', // calculateSwap(uint8,uint8,uint256)
 }
-// tslint:enable: enum-naming
 
 /**
  * Configuration info on a Curve pool.

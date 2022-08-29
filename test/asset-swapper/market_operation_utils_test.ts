@@ -126,7 +126,6 @@ const mockPoolsCache = new MockPoolsCache((_takerToken: string, _makerToken: str
         },
     ];
 });
-// tslint:enable:custom-no-magic-numbers
 
 describe('MarketOperationUtils tests', () => {
     const CHAIN_ID = ChainId.Mainnet;

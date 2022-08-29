@@ -349,12 +349,12 @@ export class SwapQuoter {
     private readonly _limitOrderPruningFn = (limitOrder: SignedNativeOrder) => {
         const order = new LimitOrder(limitOrder.order);
         const isOpenOrder = order.taker === constants.NULL_ADDRESS;
-        const willOrderExpire = order.willExpire(this.expiryBufferMs / constants.ONE_SECOND_MS); // tslint:disable-line:boolean-naming
+        const willOrderExpire = order.willExpire(this.expiryBufferMs / constants.ONE_SECOND_MS);
         const isFeeTypeAllowed =
             this.permittedOrderFeeTypes.has(OrderPrunerPermittedFeeTypes.NoFees) &&
             order.takerTokenFeeAmount.eq(constants.ZERO_AMOUNT);
         return isOpenOrder && !willOrderExpire && isFeeTypeAllowed;
-    }; // tslint:disable-line:semicolon
+    };
 
     private _isIntegratorIdWhitelisted(integratorId: string | undefined): boolean {
         if (!integratorId) {
