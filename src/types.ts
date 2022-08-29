@@ -283,7 +283,7 @@ export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
 }
 
 // GET /swap/price
-export type GetSwapPriceResponse = BasePriceResponse
+export type GetSwapPriceResponse = BasePriceResponse;
 
 // GET /swap/prices
 export interface Price {
@@ -299,7 +299,7 @@ export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
 }
 
 // GET /meta_transaction/price
-export type GetMetaTransactionPriceResponse = BasePriceResponse
+export type GetMetaTransactionPriceResponse = BasePriceResponse;
 
 // Request params
 export interface GetTransactionRequestParams extends SwapQuoteParamsBase {
