@@ -9,7 +9,6 @@ import { createBridgeOrder, createNativeOptimizedOrder, CreateOrderFromPathOpts,
 import { getCompleteRate, getRate } from './rate_utils';
 import { ERC20BridgeSource, ExchangeProxyOverhead, Fill, NativeFillData, OptimizedMarketOrder } from './types';
 
-
 export interface PathSize {
     input: BigNumber;
     output: BigNumber;

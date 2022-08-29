@@ -5,7 +5,6 @@ import { NativeOrderFillableAmountFields, SignedNativeOrder } from '../types';
 
 import { ZERO_AMOUNT } from './market_operation_utils/constants';
 
-
 /**
  * Given an amount of taker asset, calculate the the amount of maker asset
  * @param order The order

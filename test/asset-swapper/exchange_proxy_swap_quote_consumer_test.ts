@@ -43,7 +43,6 @@ const expect = chai.expect;
 const { NULL_ADDRESS } = constants;
 const { MAX_UINT256, ZERO_AMOUNT } = contractConstants;
 
-
 describe('ExchangeProxySwapQuoteConsumer', () => {
     const CHAIN_ID = 1;
     const TAKER_TOKEN = randomAddress();

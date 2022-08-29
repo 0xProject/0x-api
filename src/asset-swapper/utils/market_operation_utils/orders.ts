@@ -44,7 +44,6 @@ import {
     WOOFiFillData,
 } from './types';
 
-
 export interface CreateOrderFromPathOpts {
     side: MarketOperation;
     inputToken: string;

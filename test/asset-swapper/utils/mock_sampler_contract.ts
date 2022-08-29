@@ -65,7 +65,6 @@ interface Handlers {
     sampleBuysFromLiquidityProvider: SampleSellsLPHandler;
 }
 
-
 export class MockSamplerContract extends ERC20BridgeSamplerContract {
     private readonly _handlers: Partial<Handlers> = {};
 

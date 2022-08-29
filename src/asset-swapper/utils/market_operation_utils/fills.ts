@@ -6,7 +6,6 @@ import { MarketOperation, NativeOrderWithFillableAmounts } from '../../types';
 import { DEFAULT_FEE_ESTIMATE, POSITIVE_INF, SOURCE_FLAGS } from './constants';
 import { DexSample, ERC20BridgeSource, FeeSchedule, Fill } from './types';
 
-
 /**
  * Converts the ETH value to an amount in output tokens.
  *

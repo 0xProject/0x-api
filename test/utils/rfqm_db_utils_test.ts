@@ -1,4 +1,3 @@
-
 import { expect } from '@0x/contracts-test-utils';
 import { RfqOrder } from '@0x/protocol-utils';
 

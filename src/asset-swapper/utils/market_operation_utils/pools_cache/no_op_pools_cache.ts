@@ -1,6 +1,5 @@
 import { Pool, PoolsCache } from './pools_cache';
 
-
 export class NoOpPoolsCache implements PoolsCache {
     public async getFreshPoolsForPairAsync(
         _takerToken: string,

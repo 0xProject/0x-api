@@ -59,7 +59,6 @@ import {
     OptimizerResultWithReport,
 } from './types';
 
-
 export class MarketOperationUtils {
     private readonly _sellSources: SourceFilters;
     private readonly _buySources: SourceFilters;
@@ -860,4 +859,3 @@ export class MarketOperationUtils {
             .forEach((cache) => cache?.getFreshPoolsForPairAsync(takerToken, makerToken));
     }
 }
-

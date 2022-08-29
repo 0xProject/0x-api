@@ -38,7 +38,6 @@ import {
     WOOFiFillData,
 } from './types';
 
-
 export const ONE_ETHER = new BigNumber(1e18);
 export const POSITIVE_INF = new BigNumber('Infinity');
 export const ZERO_AMOUNT = new BigNumber(0);

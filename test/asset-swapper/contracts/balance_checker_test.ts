@@ -6,7 +6,6 @@ import * as _ from 'lodash';
 import { artifacts } from '../../artifacts';
 import { BalanceCheckerContract } from '../../wrappers';
 
-
 const ETH_ADDRESS = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 
 blockchainTests.resets('BalanceChecker contract', (env) => {

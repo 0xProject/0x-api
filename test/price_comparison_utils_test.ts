@@ -1,4 +1,3 @@
-
 import { expect } from '@0x/contracts-test-utils';
 import { getTokenMetadataIfExists } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';

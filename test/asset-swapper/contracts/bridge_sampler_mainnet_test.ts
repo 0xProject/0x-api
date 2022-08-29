@@ -7,7 +7,6 @@ import { ERC20BridgeSamplerContract } from '../../wrappers';
 
 export const VB = '0x6cc5f688a315f3dc28a7781717a9a798a59fda7b';
 
-
 blockchainTests.skip('Mainnet Sampler Tests', (env) => {
     let testContract: ERC20BridgeSamplerContract;
     const fakeSamplerAddress = '0x1111111111111111111111111111111111111111';

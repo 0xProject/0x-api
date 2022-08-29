@@ -16,7 +16,6 @@ import {
     MultiHopFillData,
 } from './types';
 
-
 /**
  * Returns the fee-adjusted rate of a two-hop quote. Returns zero if the
  * quote falls short of the target input.
