@@ -43,7 +43,6 @@ const expect = chai.expect;
 const { NULL_ADDRESS } = constants;
 const { MAX_UINT256, ZERO_AMOUNT } = contractConstants;
 
-// tslint:disable: custom-no-magic-numbers
 
 describe('ExchangeProxySwapQuoteConsumer', () => {
     const CHAIN_ID = 1;

@@ -162,7 +162,6 @@ export interface TokenMetadata {
     tokenAddress: string;
 }
 
-// tslint:disable:enum-naming
 export enum FeeParamTypes {
     POSITIVE_SLIPPAGE = 'POSITIVE_SLIPPAGE',
     FIXED = 'FIXED',

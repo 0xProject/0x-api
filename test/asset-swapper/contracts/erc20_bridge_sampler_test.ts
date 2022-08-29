@@ -15,7 +15,6 @@
 // import { artifacts } from '../../artifacts';
 // import { DummyLiquidityProviderContract, TestERC20BridgeSamplerContract } from '../../wrappers';
 //
-// // tslint:disable: custom-no-magic-numbers
 //
 // const { NULL_ADDRESS } = constants;
 // // HACK(dorothy-zbornak): Disabled because these tests are flakey and all this logic is moving to

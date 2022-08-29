@@ -122,7 +122,6 @@ export interface PoolsCacheMap {
     [ERC20BridgeSource.Beethovenx]: PoolsCache;
 }
 
-// tslint:disable:no-inferred-empty-object-type no-unbound-method
 
 /**
  * Composable operations that can be batched in a single transaction,

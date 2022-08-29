@@ -264,7 +264,6 @@ export class SwapService {
             rfqt,
             affiliateAddress,
             affiliateFee,
-            // tslint:disable:boolean-naming
             includePriceComparisons,
             skipValidation,
             // tslint:enable:boolean-naming

@@ -59,7 +59,6 @@ import {
     OptimizerResultWithReport,
 } from './types';
 
-// tslint:disable:boolean-naming
 
 export class MarketOperationUtils {
     private readonly _sellSources: SourceFilters;
@@ -862,4 +861,3 @@ export class MarketOperationUtils {
     }
 }
 
-// tslint:disable: max-file-line-count

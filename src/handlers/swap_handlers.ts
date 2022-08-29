@@ -377,7 +377,6 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     const { takerAddress, affiliateAddress } = req.query;
 
     // Parse boolean params and defaults
-    // tslint:disable:boolean-naming
 
     // The /quote and /price endpoints should have different default behavior on skip validation
     const defaultSkipValidation = endpoint === 'quote' ? false : true;
@@ -513,7 +512,6 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     const affiliateFee = parseUtils.parseAffiliateFeeOptions(req);
     const integrator = integratorId ? getIntegratorByIdOrThrow(integratorId) : undefined;
 
-    // tslint:disable:boolean-naming
     const enableSlippageProtection = parseOptionalBooleanParam(
         req.query.enableSlippageProtection as string,
         DEFAULT_ENABLE_SLIPPAGE_PROTECTION,

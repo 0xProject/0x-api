@@ -61,7 +61,6 @@ export abstract class Orderbook {
     }
 }
 
-// tslint:disable:max-classes-per-file
 export class SwapQuoter {
     public readonly provider: ZeroExProvider;
     public readonly orderbook: Orderbook;

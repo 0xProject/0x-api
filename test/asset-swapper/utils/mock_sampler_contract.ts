@@ -65,7 +65,6 @@ interface Handlers {
     sampleBuysFromLiquidityProvider: SampleSellsLPHandler;
 }
 
-// tslint:disable: no-unbound-method
 
 export class MockSamplerContract extends ERC20BridgeSamplerContract {
     private readonly _handlers: Partial<Handlers> = {};

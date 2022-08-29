@@ -42,7 +42,6 @@ import { schemaUtils } from './utils/schema_utils';
 
 const SHOULD_USE_RUST_ROUTER = process.env.RUST_ROUTER === 'true';
 
-// tslint:disable:no-bitwise
 
 enum EnvVarType {
     AddressList,

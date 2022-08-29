@@ -1,4 +1,3 @@
-// tslint:disable: no-unbound-method
 import { ChainId, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import {
     assertRoughlyEquals,
@@ -114,7 +113,6 @@ class MockPoolsCache extends AbstractPoolsCache {
 }
 
 // Return some pool so that sampling functions are called for Balancer and BalancerV2
-// tslint:disable:custom-no-magic-numbers
 const mockPoolsCache = new MockPoolsCache((_takerToken: string, _makerToken: string) => {
     return [
         {
@@ -130,7 +128,6 @@ const mockPoolsCache = new MockPoolsCache((_takerToken: string, _makerToken: str
 });
 // tslint:enable:custom-no-magic-numbers
 
-// tslint:disable: custom-no-magic-numbers promise-function-async
 describe('MarketOperationUtils tests', () => {
     const CHAIN_ID = ChainId.Mainnet;
     const contractAddresses = {

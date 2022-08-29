@@ -1,5 +1,3 @@
-// tslint:disable:custom-no-magic-numbers
-// tslint:disable:no-object-literal-type-assertion
 import { FillQuoteTransformerOrderType, LimitOrder, LimitOrderFields, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber, hexUtils } from '@0x/utils';
 import * as chai from 'chai';

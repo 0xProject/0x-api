@@ -38,7 +38,6 @@ import {
     WOOFiFillData,
 } from './types';
 
-// tslint:disable: no-bitwise
 
 export const ONE_ETHER = new BigNumber(1e18);
 export const POSITIVE_INF = new BigNumber('Infinity');
