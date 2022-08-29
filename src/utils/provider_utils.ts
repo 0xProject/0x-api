@@ -6,8 +6,8 @@ import { RPCSubprovider } from '../rpc_subprovider';
 export const providerUtils = {
     createWeb3Provider: (
         rpcHost: string,
-        timeout: number = 5000,
-        shouldCompressRequest: boolean = false,
+        timeout = 5000,
+        shouldCompressRequest = false,
     ): SupportedProvider => {
         const providerEngine = new Web3ProviderEngine();
         providerEngine.addProvider(new RPCSubprovider(rpcHost, timeout, shouldCompressRequest));

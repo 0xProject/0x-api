@@ -29,7 +29,7 @@
         "contracts:copy": "contracts-gen copy",
         "generate_contract_wrappers": "abi-gen --debug --abis  ${npm_package_config_abis} --output test/generated-wrappers --backend ethers",
         "watch": "tsc -w",
-        "fix": "yarn prettier",
+        "fix": "eslint --fix src test && yarn prettier",
         "prettier": "prettier --write ${npm_package_config_prettier_target} --config .prettierrc",
         "prettier:ci": "prettier --list-different ${npm_package_config_prettier_target} --config .prettierrc",
         "start": "node -r dotenv/config lib/src/index.js",

@@ -99,8 +99,8 @@ blockchainTests.resets('NativeOrderSampler contract', (env) => {
 
     async function fundMakerAsync(
         order: LimitOrderFields,
-        balanceScaling: number = 1,
-        allowanceScaling: number = 1,
+        balanceScaling = 1,
+        allowanceScaling = 1,
     ): Promise<void> {
         const token = makerToken;
         let amount = order.makerAmount;
