@@ -1,8 +1,8 @@
 import { FillQuoteTransformerOrderType, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as _ from 'lodash';
-import { logger } from '../../../logger';
 
+import { logger } from '../../../logger';
 import { DEFAULT_INFO_LOGGER, INVALID_SIGNATURE } from '../../constants';
 import {
     AltRfqMakerAssetOfferings,
