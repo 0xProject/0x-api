@@ -743,7 +743,7 @@ export class MarketOperationUtils {
                               })
                           ).quotes.map((quote) => {
                               logger.info({ ...quote, txOrigin: rfqt.txOrigin }, 'results from RFQ Client');
-                              // HACK: use set the signature on quoteRequestor for future lookup (i.e. in Quote Report)
+                              // HACK: set the signature on quoteRequestor for future lookup (i.e. in Quote Report)
                               rfqt.quoteRequestor?.setMakerUriForSignature(quote.signature, quote.makerUri);
                               return toSignedNativeOrder(quote);
                           })
