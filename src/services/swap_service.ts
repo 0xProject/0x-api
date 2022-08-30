@@ -1,3 +1,13 @@
+import { WETH9Contract } from '@0x/contract-wrappers';
+import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
+import { getTokenMetadataIfExists, TokenMetadatasForChains } from '@0x/token-metadata';
+import { MarketOperation, PaginatedCollection } from '@0x/types';
+import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
+import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
+import axios from 'axios';
+import { SupportedProvider } from 'ethereum-types';
+import * as _ from 'lodash';
+
 import {
     AffiliateFeeAmount,
     AffiliateFeeType,
@@ -20,17 +30,7 @@ import {
     SwapQuoteRequestOpts,
     SwapQuoterOpts,
     ZERO_AMOUNT,
-} from '@0x/asset-swapper';
-import { WETH9Contract } from '@0x/contract-wrappers';
-import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
-import { getTokenMetadataIfExists, TokenMetadatasForChains } from '@0x/token-metadata';
-import { MarketOperation, PaginatedCollection } from '@0x/types';
-import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
-import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
-import axios from 'axios';
-import { SupportedProvider } from 'ethereum-types';
-import * as _ from 'lodash';
-
+} from '../asset-swapper';
 import {
     ALT_RFQ_MM_API_KEY,
     ALT_RFQ_MM_ENDPOINT,
@@ -73,7 +73,6 @@ import { PairsManager } from '../utils/pairs_manager';
 import { createResultCache } from '../utils/result_cache';
 import { RfqClient } from '../utils/rfq_client';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
-import { SAMPLER_METRICS } from '../utils/sampler_metrics';
 import { serviceUtils } from '../utils/service_utils';
 import { SlippageModelFillAdjustor } from '../utils/slippage_model_fill_adjustor';
 import { SlippageModelManager } from '../utils/slippage_model_manager';
@@ -265,10 +264,8 @@ export class SwapService {
             rfqt,
             affiliateAddress,
             affiliateFee,
-            // tslint:disable:boolean-naming
             includePriceComparisons,
             skipValidation,
-            // tslint:enable:boolean-naming
             shouldSellEntireBalance,
             enableSlippageProtection,
         } = params;
@@ -303,7 +300,6 @@ export class SwapService {
         const shouldGenerateQuoteReport = rfqt && rfqt.intentOnFilling;
 
         let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
-        // tslint:disable-next-line:prefer-conditional-expression
         if (
             isMetaTransaction ||
             shouldSellEntireBalance ||
@@ -324,7 +320,6 @@ export class SwapService {
             rfqt: _rfqt,
             shouldGenerateQuoteReport,
             shouldIncludePriceComparisonsReport: !!includePriceComparisons,
-            samplerMetrics: SAMPLER_METRICS,
             fillAdjustor:
                 enableSlippageProtection && this.slippageModelManager
                     ? new SlippageModelFillAdjustor(

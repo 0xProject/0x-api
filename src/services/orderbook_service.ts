@@ -1,8 +1,8 @@
-import { LimitOrder } from '@0x/asset-swapper';
 import { LimitOrderFields } from '@0x/protocol-utils';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
+import { LimitOrder } from '../asset-swapper';
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
@@ -35,7 +35,6 @@ export class OrderBookService {
             return orderUtils.deserializeOrderToSRAOrder(signedOrderEntity as Required<SignedOrderV4Entity>);
         }
     }
-    // tslint:disable-next-line:prefer-function-over-method
     public async getOrderBookAsync(
         page: number,
         perPage: number,
@@ -70,7 +69,6 @@ export class OrderBookService {
         };
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public async getOrdersAsync(
         page: number,
         perPage: number,

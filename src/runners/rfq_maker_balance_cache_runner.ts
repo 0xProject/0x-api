@@ -1,6 +1,4 @@
 import { createMetricsRouter, MetricsService } from '@0x/api-utils';
-import { BalanceCheckerContract } from '@0x/asset-swapper';
-import { artifacts } from '@0x/asset-swapper/lib/src/artifacts';
 import { BlockParamLiteral, SupportedProvider, Web3Wrapper } from '@0x/dev-utils';
 import { BigNumber, logUtils } from '@0x/utils';
 import * as delay from 'delay';
@@ -9,6 +7,8 @@ import * as _ from 'lodash';
 import { Gauge, Summary } from 'prom-client';
 import { Connection } from 'typeorm';
 
+import { artifacts } from '../artifacts';
+import { BalanceCheckerContract } from '../asset-swapper';
 import * as defaultConfig from '../config';
 import { METRICS_PATH, ONE_SECOND_MS, RFQ_ALLOWANCE_TARGET, RFQ_FIRM_QUOTE_CACHE_EXPIRY } from '../constants';
 import { getDBConnectionAsync } from '../db_connection';
@@ -111,6 +111,7 @@ async function runRfqBalanceCacheAsync(
 
     const workerId = _.uniqueId('rfqw_');
     let lastBlockSeen = -1;
+    // eslint-disable-next-line no-constant-condition
     while (true) {
         if (blockRequestErrors >= MAX_REQUEST_ERRORS) {
             throw new Error(`too many bad Web3 requests to fetch blocks (reached limit of ${MAX_REQUEST_ERRORS})`);

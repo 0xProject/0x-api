@@ -1,5 +1,3 @@
-// tslint:disable:max-file-line-count
-import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ChainId, ERC20BridgeSource, LimitOrderFields } from '@0x/asset-swapper';
 import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { assertRoughlyEquals, expect, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
@@ -13,11 +11,8 @@ import * as _ from 'lodash';
 import 'mocha';
 import supertest from 'supertest';
 
-// Force reload of the app avoid variables being polluted between test suites
-// Warning: You probably don't want to move this
-delete require.cache[require.resolve('../src/app')];
-
 import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ChainId, ERC20BridgeSource, LimitOrderFields } from '../src/asset-swapper';
 import * as config from '../src/config';
 import { AFFILIATE_FEE_TRANSFORMER_GAS, GAS_LIMIT_BUFFER_MULTIPLIER, SWAP_PATH } from '../src/constants';
 import { getDBConnectionAsync } from '../src/db_connection';
@@ -47,6 +42,10 @@ import { liquiditySources0xOnly } from './utils/mocks';
 import { MockOrderWatcher } from './utils/mock_order_watcher';
 import { getRandomSignedLimitOrderAsync } from './utils/orders';
 
+// Force reload of the app avoid variables being polluted between test suites
+// Warning: You probably don't want to move this
+delete require.cache[require.resolve('../src/app')];
+
 const SUITE_NAME = 'Swap API';
 const EXCLUDED_SOURCES = BUY_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources.filter(
     (s) => s !== ERC20BridgeSource.Native,
@@ -66,7 +65,7 @@ describe(SUITE_NAME, () => {
     let accounts: string[];
     let takerAddress: string;
     let makerAdddress: string;
-    const invalidTakerAddress: string = '0x0000000000000000000000000000000000000001';
+    const invalidTakerAddress = '0x0000000000000000000000000000000000000001';
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
@@ -583,7 +582,6 @@ function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, assertions: Par
         // Only have 0x liquidity for now.
         expect(quoteResponse.sources).to.be.eql(liquiditySources0xOnly);
     } catch (err) {
-        // tslint:disable-next-line:no-console
         console.log(`should return a valid quote matching ${assertions}`);
     }
 }

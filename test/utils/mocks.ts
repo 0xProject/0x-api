@@ -1,5 +1,6 @@
-import { MarketOperation, RfqOrderFields, SwapQuote } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS, NULL_BYTES } from '@0x/utils';
+
+import { MarketOperation, RfqOrderFields, SwapQuote } from '../../src/asset-swapper';
 
 export const rfqtIndicativeQuoteResponse = {
     makerAmount: '100000000000000000',
@@ -59,7 +60,7 @@ const bestCaseQuoteInfo = {
 
 export const randomSellQuote: SwapQuote = {
     gasPrice: new BigNumber('201111549'),
-    type: MarketOperation.Sell as MarketOperation.Sell, // tslint:disable-line:no-unnecessary-type-assertion
+    type: MarketOperation.Sell as MarketOperation.Sell,
     makerToken: '0xb9302bbc853c3e3480a1eefc2bb6bf4cdca809e6',
     takerToken: '0x5471a5833768d1151d34701eba1c9123d1ba2f8a',
     orders: [],

@@ -1,5 +1,4 @@
-import { FillQuoteTransformerOrderType, Orderbook, SignedNativeOrder } from '@0x/asset-swapper';
-
+import { FillQuoteTransformerOrderType, Orderbook, SignedNativeOrder } from '../asset-swapper';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../constants';
 import { OrderBookService } from '../services/orderbook_service';
 import { SRAOrder } from '../types';
@@ -43,7 +42,6 @@ export class AssetSwapperOrderbook extends Orderbook {
         );
         return groupedByMakerToken;
     }
-    // tslint:disable-next-line:prefer-function-over-method
     public async destroyAsync(): Promise<void> {
         return;
     }

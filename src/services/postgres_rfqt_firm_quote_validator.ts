@@ -1,9 +1,9 @@
-import { BigNumber, RfqFirmQuoteValidator, RfqOrderFields } from '@0x/asset-swapper';
 import * as _ from 'lodash';
 import { Counter, Summary } from 'prom-client';
 import { In } from 'typeorm';
 import { Repository } from 'typeorm/repository/Repository';
 
+import { BigNumber, RfqFirmQuoteValidator, RfqOrderFields } from '../asset-swapper';
 import { ONE_MINUTE_MS, ZERO } from '../constants';
 import { MakerBalanceChainCacheEntity } from '../entities/MakerBalanceChainCacheEntity';
 import { logger } from '../logger';
@@ -69,7 +69,6 @@ export class PostgresRfqtFirmQuoteValidator implements RfqFirmQuoteValidator {
         this._workerId = _.uniqueId('rfqw_');
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     public async getRfqtTakerFillableAmountsAsync(quotes: RfqOrderFields[]): Promise<BigNumber[]> {
         // TODO: Handle error on query
 

@@ -1,8 +1,8 @@
-import { ERC20BridgeSource, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '@0x/asset-swapper';
 import { isNativeSymbolOrAddress } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import { Counter } from 'prom-client';
 
+import { ERC20BridgeSource, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '../asset-swapper';
 import {
     CHAIN_ID,
     SLIPPAGE_MODEL_REFRESH_INTERVAL_MS,
@@ -41,7 +41,10 @@ type SlippageModelCache = Map<string, SlippageModelCacheForPair>;
 /**
  * Create an in-memory cache for all slippage models loaded from file.
  */
-const createSlippageModelCache = (slippageModelFileContent: string, logLabels: {}): SlippageModelCache => {
+const createSlippageModelCache = (
+    slippageModelFileContent: string,
+    logLabels: Record<string, unknown>,
+): SlippageModelCache => {
     const slippageModelList: SlippageModel[] = JSON.parse(slippageModelFileContent);
     schemaUtils.validateSchema(slippageModelList, schemas.slippageModelFileSchema);
     const cache: SlippageModelCache = new Map();
