@@ -346,7 +346,16 @@ export class SwapService {
         const rfqClient = useRfqClient ? this._rfqClient : undefined;
 
         logger.info(
-            { useRfqClient, sellToken, buyToken, sellAmount, buyAmount, rfqt: _rfqt, RFQ_CLIENT_ROLLOUT_PERCENT },
+            {
+                isRfqClientDefined: this._rfqClient !== undefined,
+                useRfqClient,
+                sellToken,
+                buyToken,
+                sellAmount,
+                buyAmount,
+                rfqt: _rfqt,
+                RFQ_CLIENT_ROLLOUT_PERCENT,
+            },
             'debug: useRfqClient',
         );
 
