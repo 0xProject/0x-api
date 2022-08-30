@@ -118,4 +118,20 @@ describe(SUITE_NAME, () => {
             gasCost: POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS,
         });
     });
+    it('returns the correct amounts if gasless', () => {
+        const affiliateFee = {
+            feeType: AffiliateFeeType.GaslessFee,
+            recipient: randomAddress(),
+            buyTokenPercentageFee: 0.01,
+            sellTokenPercentageFee: 0,
+        };
+        const costInfo = serviceUtils.getAffiliateFeeAmounts(randomSellQuote, affiliateFee);
+        expect(costInfo).to.deep.equal({
+            buyTokenFeeAmount: randomSellQuote.gasPrice
+              .times(randomSellQuote.bestCaseQuoteInfo.gas)
+              .times(affiliateFee.buyTokenPercentageFee),
+            sellTokenFeeAmount: ZERO,
+            gasCost: ZERO,
+        });
+    });
 });
