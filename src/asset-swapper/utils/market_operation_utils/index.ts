@@ -2,7 +2,6 @@ import { FillQuoteTransformerOrderType, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as _ from 'lodash';
 
-import { logger } from '../../../logger';
 import { SAMPLER_METRICS } from '../../../utils/sampler_metrics';
 import { DEFAULT_INFO_LOGGER, INVALID_SIGNATURE } from '../../constants';
 import {
@@ -744,7 +743,7 @@ export class MarketOperationUtils {
                                   txOrigin: rfqt.txOrigin,
                               })
                           ).quotes.map((quote) => {
-                              logger.info({ ...quote, txOrigin: rfqt.txOrigin }, 'results from RFQ Client');
+                              DEFAULT_INFO_LOGGER({ ...quote, txOrigin: rfqt.txOrigin }, 'results from RFQ Client');
                               // HACK: set the signature on quoteRequestor for future lookup (i.e. in Quote Report)
                               rfqt.quoteRequestor?.setMakerUriForSignature(quote.signature, quote.makerUri);
                               return toSignedNativeOrder(quote);
