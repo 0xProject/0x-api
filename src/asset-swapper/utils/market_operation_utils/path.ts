@@ -9,8 +9,6 @@ import { createBridgeOrder, createNativeOptimizedOrder, CreateOrderFromPathOpts,
 import { getCompleteRate, getRate } from './rate_utils';
 import { ERC20BridgeSource, ExchangeProxyOverhead, Fill, NativeFillData, OptimizedMarketOrder } from './types';
 
-// tslint:disable: prefer-for-of no-bitwise completed-docs
-
 export interface PathSize {
     input: BigNumber;
     output: BigNumber;
@@ -32,7 +30,7 @@ export const DEFAULT_PATH_PENALTY_OPTS: PathPenaltyOpts = {
 
 export class Path {
     public orders?: OptimizedMarketOrder[];
-    public sourceFlags: bigint = BigInt(0);
+    public sourceFlags = BigInt(0);
     protected _size: PathSize = { input: ZERO_AMOUNT, output: ZERO_AMOUNT };
     protected _adjustedSize: PathSize = { input: ZERO_AMOUNT, output: ZERO_AMOUNT };
 

@@ -42,8 +42,6 @@ import { schemaUtils } from './utils/schema_utils';
 
 const SHOULD_USE_RUST_ROUTER = process.env.RUST_ROUTER === 'true';
 
-// tslint:disable:no-bitwise
-
 enum EnvVarType {
     AddressList,
     StringList,
@@ -244,8 +242,8 @@ export const SLIPPAGE_MODEL_S3_BUCKET_NAME: string | undefined = _.isEmpty(proce
           process.env.SLIPPAGE_MODEL_S3_BUCKET_NAME,
           EnvVarType.NonEmptyString,
       );
-export const SLIPPAGE_MODEL_S3_FILE_NAME: string = `SlippageModel-${CHAIN_ID}.json`;
-export const SLIPPAGE_MODEL_S3_API_VERSION: string = '2006-03-01';
+export const SLIPPAGE_MODEL_S3_FILE_NAME = `SlippageModel-${CHAIN_ID}.json`;
+export const SLIPPAGE_MODEL_S3_API_VERSION = '2006-03-01';
 export const SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_MS: number = ONE_HOUR_MS * 2;
 export const SLIPPAGE_MODEL_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
 
@@ -374,7 +372,6 @@ export const RFQM_MAKER_ASSET_OFFERINGS = resolveEnvVar<RfqMakerAssetOfferings>(
 
 export const META_TX_EXPIRATION_BUFFER_MS = TEN_MINUTES_MS;
 
-// tslint:disable-next-line:boolean-naming
 export const RFQT_REQUEST_MAX_RESPONSE_MS: number = _.isEmpty(process.env.RFQT_REQUEST_MAX_RESPONSE_MS)
     ? 600
     : assertEnvVarType('RFQT_REQUEST_MAX_RESPONSE_MS', process.env.RFQT_REQUEST_MAX_RESPONSE_MS, EnvVarType.Integer);
@@ -390,7 +387,6 @@ export const SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS: string[] =
           );
 
 // Whether or not prometheus metrics should be enabled.
-// tslint:disable-next-line:boolean-naming
 export const ENABLE_PROMETHEUS_METRICS: boolean = _.isEmpty(process.env.ENABLE_PROMETHEUS_METRICS)
     ? false
     : assertEnvVarType('ENABLE_PROMETHEUS_METRICS', process.env.ENABLE_PROMETHEUS_METRICS, EnvVarType.Boolean);
@@ -416,7 +412,6 @@ export const KAFKA_TOPIC_QUOTE_REPORT: string = _.isEmpty(process.env.KAFKA_TOPI
     ? undefined
     : assertEnvVarType('KAFKA_TOPIC_QUOTE_REPORT', process.env.KAFKA_TOPIC_QUOTE_REPORT, EnvVarType.NonEmptyString);
 
-// tslint:disable-next-line:boolean-naming
 export const SENTRY_ENABLED: boolean = _.isEmpty(process.env.SENTRY_ENABLED)
     ? false
     : assertEnvVarType('SENTRY_ENABLED', process.env.SENTRY_ENABLED, EnvVarType.Boolean);
@@ -462,12 +457,15 @@ const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [ERC20BridgeSource.MultiBridge];
+            return [
+                ERC20BridgeSource.MultiBridge,
+                ERC20BridgeSource.Balancer, // Causing an issue -- removed until triaged and fixed.
+            ];
         case ChainId.Kovan:
             return allERC20BridgeSources.filter(
                 (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
             );
-        case ChainId.Ropsten:
+        case ChainId.Ropsten: {
             const supportedRopstenSources = new Set([
                 ERC20BridgeSource.Native,
                 ERC20BridgeSource.SushiSwap,
@@ -478,6 +476,7 @@ const EXCLUDED_SOURCES = (() => {
                 ERC20BridgeSource.Mooniswap,
             ]);
             return allERC20BridgeSources.filter((s) => !supportedRopstenSources.has(s));
+        }
         case ChainId.Ganache:
             return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
         case ChainId.BSC:
@@ -488,6 +487,8 @@ const EXCLUDED_SOURCES = (() => {
         case ChainId.Optimism:
         case ChainId.Goerli:
         case ChainId.PolygonMumbai:
+        case ChainId.ArbitrumRinkeby:
+        case ChainId.Arbitrum:
             return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
         default:
             throw new Error(`Excluded sources not specified for ${CHAIN_ID}`);
@@ -724,13 +725,14 @@ function resolveEnvVar<T>(envVar: string, envVarType: EnvVarType, fallback: T): 
 function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): any {
     let returnValue;
     switch (expectedType) {
-        case EnvVarType.Port:
+        case EnvVarType.Port: {
             returnValue = parseInt(value, 10);
             const isWithinRange = returnValue >= 0 && returnValue <= 65535;
             if (isNaN(returnValue) || !isWithinRange) {
                 throw new Error(`${name} must be between 0 to 65535, found ${value}.`);
             }
             return returnValue;
+        }
         case EnvVarType.ChainId:
         case EnvVarType.KeepAliveTimeout:
         case EnvVarType.Integer:
@@ -751,11 +753,12 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
         case EnvVarType.Url:
             assert.isUri(name, value);
             return value;
-        case EnvVarType.UrlList:
+        case EnvVarType.UrlList: {
             assert.isString(name, value);
             const urlList = (value as string).split(',');
             urlList.forEach((url, i) => assert.isUri(`${name}[${i}]`, url));
             return urlList;
+        }
         case EnvVarType.Boolean:
             return value === 'true';
         case EnvVarType.UnitAmount:
@@ -764,15 +767,17 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 throw new Error(`${name} must be valid number greater than 0.`);
             }
             return returnValue;
-        case EnvVarType.AddressList:
+        case EnvVarType.AddressList: {
             assert.isString(name, value);
             const addressList = (value as string).split(',').map((a) => a.toLowerCase());
             addressList.forEach((a, i) => assert.isETHAddressHex(`${name}[${i}]`, a));
             return addressList;
-        case EnvVarType.StringList:
+        }
+        case EnvVarType.StringList: {
             assert.isString(name, value);
             const stringList = (value as string).split(',');
             return stringList;
+        }
         case EnvVarType.WhitelistAllTokens:
             return '*';
         case EnvVarType.NonEmptyString:
@@ -781,7 +786,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 throw new Error(`${name} must be supplied`);
             }
             return value;
-        case EnvVarType.APIKeys:
+        case EnvVarType.APIKeys: {
             assert.isString(name, value);
             const apiKeys = (value as string).split(',').filter((key) => !!key.trim());
             apiKeys.forEach((apiKey) => {
@@ -791,12 +796,13 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 }
             });
             return apiKeys;
-        case EnvVarType.JsonStringList:
+        }
+        case EnvVarType.JsonStringList: {
             assert.isString(name, value);
             return JSON.parse(value);
-        case EnvVarType.RfqMakerAssetOfferings:
+        }
+        case EnvVarType.RfqMakerAssetOfferings: {
             const offerings: RfqMakerAssetOfferings = JSON.parse(value);
-            // tslint:disable-next-line:forin
             for (const makerEndpoint in offerings) {
                 assert.isWebUri('market maker endpoint', makerEndpoint);
 
@@ -823,9 +829,9 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 });
             }
             return offerings;
-        case EnvVarType.LiquidityProviderRegistry:
+        }
+        case EnvVarType.LiquidityProviderRegistry: {
             const registry: LiquidityProviderRegistry = JSON.parse(value);
-            // tslint:disable-next-line:forin
             for (const liquidityProvider in registry) {
                 assert.isETHAddressHex('liquidity provider address', liquidityProvider);
 
@@ -838,7 +844,7 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 // assert.isNumber(`gas cost for liquidity provider ${liquidityProvider}`, gasCost);
             }
             return registry;
-
+        }
         default:
             throw new Error(`Unrecognised EnvVarType: ${expectedType} encountered for variable ${name}.`);
     }

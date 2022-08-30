@@ -12,7 +12,7 @@ import { BatchedOperation, LiquidityProviderRegistry } from './types';
 /**
  * Generate sample amounts up to `maxFillAmount`.
  */
-export function getSampleAmounts(maxFillAmount: BigNumber, numSamples: number, expBase: number = 1): BigNumber[] {
+export function getSampleAmounts(maxFillAmount: BigNumber, numSamples: number, expBase = 1): BigNumber[] {
     const distribution = [...Array<BigNumber>(numSamples)].map((_v, i) => new BigNumber(expBase).pow(i));
     const distributionSum = BigNumber.sum(...distribution);
     const stepSizes = distribution.map((d) => d.div(distributionSum));
@@ -190,7 +190,6 @@ export class DexOrderSampler extends SamplerOperations {
         // Return the parsed results.
         let rawCallResultsIdx = 0;
         return callDatas.map((callData, i) => {
-            // tslint:disable-next-line:boolean-naming
             const { data, success } =
                 callData !== NULL_BYTES ? rawCallResults[rawCallResultsIdx++] : { success: true, data: NULL_BYTES };
             return success ? ops[i].handleCallResults(data) : ops[i].handleRevert(data);

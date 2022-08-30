@@ -76,7 +76,6 @@ export class RPCSubprovider extends Subprovider {
      * @param _next Callback to call if this subprovider decides not to handle the request
      * @param end Callback to call if subprovider handled the request and wants to pass back the request.
      */
-    // tslint:disable-next-line:prefer-function-over-method async-suffix
     public async handleRequest(payload: JSONRPCRequestPayload, _next: Callback, end: ErrorCallback): Promise<void> {
         const finalPayload = Subprovider._createFinalPayload(payload);
         const headers = new Headers({
@@ -121,12 +120,13 @@ export class RPCSubprovider extends Subprovider {
                 case StatusCodes.MethodNotAllowed:
                     end(new JsonRpcError.MethodNotFound());
                     return;
-                case StatusCodes.GatewayTimeout:
+                case StatusCodes.GatewayTimeout: {
                     const errMsg =
                         'Gateway timeout. The request took too long to process. This can happen when querying logs over too wide a block range.';
                     const err = new Error(errMsg);
                     end(new JsonRpcError.InternalError(err));
                     return;
+                }
                 default:
                     end(new JsonRpcError.InternalError(text));
                     return;

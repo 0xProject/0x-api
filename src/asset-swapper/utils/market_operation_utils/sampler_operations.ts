@@ -122,8 +122,6 @@ export interface PoolsCacheMap {
     [ERC20BridgeSource.Beethovenx]: PoolsCache;
 }
 
-// tslint:disable:no-inferred-empty-object-type no-unbound-method
-
 /**
  * Composable operations that can be batched in a single transaction,
  * for use with `DexOrderSampler.executeAsync()`.
@@ -243,7 +241,6 @@ export class SamplerOperations {
             source: ERC20BridgeSource.Native,
             contract: this._samplerContract,
             function: this._samplerContract.getLimitOrderFillableTakerAssetAmounts,
-            // tslint:disable-next-line:no-unnecessary-type-assertion
             params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
@@ -263,7 +260,6 @@ export class SamplerOperations {
             source: ERC20BridgeSource.Native,
             contract: this._samplerContract,
             function: this._samplerContract.getLimitOrderFillableMakerAssetAmounts,
-            // tslint:disable-next-line:no-unnecessary-type-assertion
             params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
@@ -825,7 +821,7 @@ export class SamplerOperations {
                     secondHopOps.map((op) => op.encodeCall()),
                     sellAmount,
                 ],
-                fillData: { intermediateToken } as MultiHopFillData, // tslint:disable-line:no-object-literal-type-assertion
+                fillData: { intermediateToken } as MultiHopFillData,
                 callback: (callResults: string, fillData: MultiHopFillData): BigNumber[] => {
                     const [firstHop, secondHop, buyAmount] = this._samplerContract.getABIDecodedReturnData<
                         [HopInfo, HopInfo, BigNumber]
@@ -888,7 +884,7 @@ export class SamplerOperations {
                     secondHopOps.map((op) => op.encodeCall()),
                     buyAmount,
                 ],
-                fillData: { intermediateToken } as MultiHopFillData, // tslint:disable-line:no-object-literal-type-assertion
+                fillData: { intermediateToken } as MultiHopFillData,
                 callback: (callResults: string, fillData: MultiHopFillData): BigNumber[] => {
                     const [firstHop, secondHop, sellAmount] = this._samplerContract.getABIDecodedReturnData<
                         [HopInfo, HopInfo, BigNumber]
@@ -1127,7 +1123,6 @@ export class SamplerOperations {
         });
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public getAaveV2SellQuotes(
         aaveInfo: AaveV2Info,
         makerToken: string,
@@ -1141,7 +1136,6 @@ export class SamplerOperations {
         });
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public getAaveV2BuyQuotes(
         aaveInfo: AaveV2Info,
         makerToken: string,
@@ -1155,7 +1149,6 @@ export class SamplerOperations {
         });
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public getGeistSellQuotes(
         geistInfo: GeistInfo,
         makerToken: string,
@@ -1169,7 +1162,6 @@ export class SamplerOperations {
         });
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public getGeistBuyQuotes(
         geistInfo: GeistInfo,
         makerToken: string,
@@ -1564,7 +1556,7 @@ export class SamplerOperations {
                     case ERC20BridgeSource.BiSwap:
                     case ERC20BridgeSource.MDex:
                     case ERC20BridgeSource.KnightSwap:
-                    case ERC20BridgeSource.MeshSwap:
+                    case ERC20BridgeSource.MeshSwap: {
                         const uniLikeRouter = uniswapV2LikeRouterAddress(this.chainId, source);
                         if (!isValidAddress(uniLikeRouter)) {
                             return [];
@@ -1573,12 +1565,14 @@ export class SamplerOperations {
                             [takerToken, makerToken],
                             ...intermediateTokens.map((t) => [takerToken, t, makerToken]),
                         ].map((path) => this.getUniswapV2SellQuotes(uniLikeRouter, path, takerFillAmounts, source));
-                    case ERC20BridgeSource.KyberDmm:
+                    }
+                    case ERC20BridgeSource.KyberDmm: {
                         const kyberDmmRouter = KYBER_DMM_ROUTER_BY_CHAIN_ID[this.chainId];
                         if (!isValidAddress(kyberDmmRouter)) {
                             return [];
                         }
                         return this.getKyberDmmSellQuotes(kyberDmmRouter, [takerToken, makerToken], takerFillAmounts);
+                    }
                     case ERC20BridgeSource.Curve:
                     case ERC20BridgeSource.CurveV2:
                     case ERC20BridgeSource.Nerve:
@@ -1709,12 +1703,13 @@ export class SamplerOperations {
                             takerToken,
                             takerFillAmounts,
                         );
-                    case ERC20BridgeSource.MakerPsm:
+                    case ERC20BridgeSource.MakerPsm: {
                         const psmInfo = MAKER_PSM_INFO_BY_CHAIN_ID[this.chainId];
                         if (!isValidAddress(psmInfo.psmAddress)) {
                             return [];
                         }
                         return this.getMakerPsmSellQuotes(psmInfo, makerToken, takerToken, takerFillAmounts);
+                    }
                     case ERC20BridgeSource.UniswapV3: {
                         const { quoter, router } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId];
                         if (!isValidAddress(router) || !isValidAddress(quoter)) {
@@ -1906,7 +1901,7 @@ export class SamplerOperations {
                     case ERC20BridgeSource.BiSwap:
                     case ERC20BridgeSource.MDex:
                     case ERC20BridgeSource.KnightSwap:
-                    case ERC20BridgeSource.MeshSwap:
+                    case ERC20BridgeSource.MeshSwap: {
                         const uniLikeRouter = uniswapV2LikeRouterAddress(this.chainId, source);
                         if (!isValidAddress(uniLikeRouter)) {
                             return [];
@@ -1915,12 +1910,14 @@ export class SamplerOperations {
                             [takerToken, makerToken],
                             ...intermediateTokens.map((t) => [takerToken, t, makerToken]),
                         ].map((path) => this.getUniswapV2BuyQuotes(uniLikeRouter, path, makerFillAmounts, source));
-                    case ERC20BridgeSource.KyberDmm:
+                    }
+                    case ERC20BridgeSource.KyberDmm: {
                         const kyberDmmRouter = KYBER_DMM_ROUTER_BY_CHAIN_ID[this.chainId];
                         if (!isValidAddress(kyberDmmRouter)) {
                             return [];
                         }
                         return this.getKyberDmmBuyQuotes(kyberDmmRouter, [takerToken, makerToken], makerFillAmounts);
+                    }
                     case ERC20BridgeSource.Curve:
                     case ERC20BridgeSource.CurveV2:
                     case ERC20BridgeSource.Nerve:
@@ -2051,12 +2048,13 @@ export class SamplerOperations {
                         // Unimplemented
                         // return this.getBancorBuyQuotes(makerToken, takerToken, makerFillAmounts);
                         return [];
-                    case ERC20BridgeSource.MakerPsm:
+                    case ERC20BridgeSource.MakerPsm: {
                         const psmInfo = MAKER_PSM_INFO_BY_CHAIN_ID[this.chainId];
                         if (!isValidAddress(psmInfo.psmAddress)) {
                             return [];
                         }
                         return this.getMakerPsmBuyQuotes(psmInfo, makerToken, takerToken, makerFillAmounts);
+                    }
                     case ERC20BridgeSource.UniswapV3: {
                         const { quoter, router } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId];
                         if (!isValidAddress(router) || !isValidAddress(quoter)) {
@@ -2211,4 +2209,3 @@ export class SamplerOperations {
         };
     }
 }
-// tslint:disable max-file-line-count

@@ -1,5 +1,3 @@
-// tslint:disable:custom-no-magic-numbers
-// tslint:disable:no-object-literal-type-assertion
 import { FillQuoteTransformerOrderType, LimitOrder, LimitOrderFields, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber, hexUtils } from '@0x/utils';
 import * as chai from 'chai';
@@ -350,7 +348,7 @@ describe('generateQuoteReport', async () => {
 function expectEqualQuoteReportEntries(
     actual: QuoteReportEntry[],
     expected: QuoteReportEntry[],
-    variableName: string = 'quote report entries',
+    variableName = 'quote report entries',
 ): void {
     expect(actual.length).to.eql(expected.length);
     actual.forEach((actualEntry, idx) => {
@@ -363,7 +361,6 @@ function expectEqualQuoteReportEntries(
                 'fillableTakerFeeAmount',
             ]) as LimitOrderFields;
             expect(actualEntry.fillData.order).to.eql(
-                // tslint:disable-next-line:no-unnecessary-type-assertion
                 (expectedEntry.fillData as NativeFillData).order,
                 `${variableName} incorrect at index ${idx}`,
             );

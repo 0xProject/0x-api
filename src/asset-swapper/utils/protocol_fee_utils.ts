@@ -18,7 +18,7 @@ export class ProtocolFeeUtils {
     private readonly _zeroExGasApiUrl: string;
     private readonly _gasPriceHeart: any;
     private _gasPriceEstimation: BigNumber = constants.ZERO_AMOUNT;
-    private _errorCount: number = 0;
+    private _errorCount = 0;
 
     public static getInstance(
         gasPricePollingIntervalInMs: number,
@@ -65,7 +65,6 @@ export class ProtocolFeeUtils {
         this._initializeHeartBeat();
     }
 
-    // tslint:disable-next-line: prefer-function-over-method
     private async _getGasPriceFromGasStationOrThrowAsync(): Promise<BigNumber> {
         try {
             const res = await fetch(this._zeroExGasApiUrl);

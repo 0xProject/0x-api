@@ -85,7 +85,6 @@ export enum ERC20BridgeSource {
     Pangolin = 'Pangolin',
     TraderJoe = 'TraderJoe',
     Platypus = 'Platypus',
-    // tslint:disable: enum-naming
     GMX = 'GMX',
     // Celo only
     UbeSwap = 'UbeSwap',
@@ -101,7 +100,6 @@ export enum ERC20BridgeSource {
     Velodrome = 'Velodrome',
 }
 
-// tslint:disable: enum-naming
 /**
  * Curve contract function selectors.
  */
@@ -127,7 +125,6 @@ export enum CurveFunctionSelectors {
     swap = '0x91695586', // swap(uint8,uint8,uint256,uint256,uint256)
     calculateSwap = '0xa95b089f', // calculateSwap(uint8,uint8,uint256)
 }
-// tslint:enable: enum-naming
 
 /**
  * Configuration info on a Curve pool.
@@ -181,6 +178,7 @@ export interface GeistInfo {
 }
 
 // Internal `fillData` field for `Fill` objects.
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface FillData {}
 
 // `FillData` for native fills. Represents a single native order
@@ -546,40 +544,9 @@ export interface GetMarketOrdersOpts {
     gasPrice: BigNumber;
 
     /**
-     * Sampler metrics for recording data on the sampler service and operations
-     */
-    samplerMetrics?: SamplerMetrics;
-
-    /**
      * Adjusts fills individual fills based on caller supplied criteria
      */
     fillAdjustor: FillAdjustor;
-}
-
-export interface SamplerMetrics {
-    /**
-     * Logs the gas information performed during a sampler call.
-     *
-     * @param data.gasBefore The gas remaining measured before any operations have been performed
-     * @param data.gasAfter The gas remaining measured after all operations have been performed
-     */
-    logGasDetails(data: { gasBefore: BigNumber; gasAfter: BigNumber }): void;
-
-    /**
-     * Logs the block number
-     *
-     * @param blockNumber block number of the sampler call
-     */
-    logBlockNumber(blockNumber: BigNumber): void;
-
-    /**
-     * Logs the routing timings
-     *
-     * @param data.router The router type (neon-router or js)
-     * @param data.type The type of timing being recorded (e.g total timing, all sources timing or vip timing)
-     * @param data.timingMs The timing in milliseconds
-     */
-    logRouterDetails(data: { router: 'neon-router' | 'js'; type: 'all' | 'vip' | 'total'; timingMs: number }): void;
 }
 
 /**
@@ -652,7 +619,6 @@ export interface GenerateOptimizedOrdersOpts {
     shouldBatchBridgeOrders?: boolean;
     gasPrice: BigNumber;
     neonRouterNumSamples: number;
-    samplerMetrics?: SamplerMetrics;
     fillAdjustor: FillAdjustor;
 }
 

@@ -162,12 +162,10 @@ export interface TokenMetadata {
     tokenAddress: string;
 }
 
-// tslint:disable:enum-naming
 export enum FeeParamTypes {
     POSITIVE_SLIPPAGE = 'POSITIVE_SLIPPAGE',
     FIXED = 'FIXED',
 }
-// tslint:enable:enum-naming
 
 export interface AffiliateFeeAmounts {
     gasCost: BigNumber;
@@ -283,7 +281,7 @@ export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
 }
 
 // GET /swap/price
-export interface GetSwapPriceResponse extends BasePriceResponse {}
+export type GetSwapPriceResponse = BasePriceResponse;
 
 // GET /swap/prices
 export interface Price {
@@ -299,7 +297,7 @@ export interface GetMetaTransactionQuoteResponse extends BasePriceResponse {
 }
 
 // GET /meta_transaction/price
-export interface GetMetaTransactionPriceResponse extends BasePriceResponse {}
+export type GetMetaTransactionPriceResponse = BasePriceResponse;
 
 // Request params
 export interface GetTransactionRequestParams extends SwapQuoteParamsBase {

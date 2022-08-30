@@ -3,6 +3,7 @@ import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as _ from 'lodash';
 
 import { logger } from '../../../logger';
+import { SAMPLER_METRICS } from '../../../utils/sampler_metrics';
 import { DEFAULT_INFO_LOGGER, INVALID_SIGNATURE } from '../../constants';
 import {
     AltRfqMakerAssetOfferings,
@@ -58,8 +59,6 @@ import {
     OptimizerResult,
     OptimizerResultWithReport,
 } from './types';
-
-// tslint:disable:boolean-naming
 
 export class MarketOperationUtils {
     private readonly _sellSources: SourceFilters;
@@ -207,8 +206,8 @@ export class MarketOperationUtils {
         ] = await Promise.all([samplerPromise]);
 
         // Log the gas metrics
-        _opts.samplerMetrics?.logGasDetails({ gasBefore, gasAfter });
-        _opts.samplerMetrics?.logBlockNumber(blockNumber);
+        SAMPLER_METRICS.logGasDetails({ side: 'sell', gasBefore, gasAfter });
+        SAMPLER_METRICS.logBlockNumber(blockNumber);
 
         // Filter out any invalid two hop quotes where we couldn't find a route
         const twoHopQuotes = rawTwoHopQuotes.filter(
@@ -270,6 +269,7 @@ export class MarketOperationUtils {
         // Call the sampler contract.
         const samplerPromise = this._sampler.executeAsync(
             this._sampler.getBlockNumber(),
+            this._sampler.getGasLeft(),
             this._sampler.getTokenDecimals([makerToken, takerToken]),
             // Get native order fillable amounts.
             this._sampler.getLimitOrderFillableMakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
@@ -298,6 +298,7 @@ export class MarketOperationUtils {
                 makerAmount,
             ),
             this._sampler.isAddressContract(txOrigin),
+            this._sampler.getGasLeft(),
         );
 
         // Refresh the cached pools asynchronously if required
@@ -306,6 +307,7 @@ export class MarketOperationUtils {
         const [
             [
                 blockNumber,
+                gasBefore,
                 tokenDecimals,
                 orderFillableMakerAmounts,
                 ethToMakerAssetRate,
@@ -313,8 +315,12 @@ export class MarketOperationUtils {
                 dexQuotes,
                 rawTwoHopQuotes,
                 isTxOriginContract,
+                gasAfter,
             ],
         ] = await Promise.all([samplerPromise]);
+
+        SAMPLER_METRICS.logGasDetails({ side: 'buy', gasBefore, gasAfter });
+        SAMPLER_METRICS.logBlockNumber(blockNumber);
 
         // Filter out any invalid two hop quotes where we couldn't find a route
         const twoHopQuotes = rawTwoHopQuotes.filter(
@@ -485,7 +491,6 @@ export class MarketOperationUtils {
 
         const augmentedRfqtIndicativeQuotes: NativeOrderWithFillableAmounts[] = rfqtIndicativeQuotes.map(
             (q) =>
-                // tslint:disable-next-line: no-object-literal-type-assertion
                 ({
                     order: { ...new RfqOrder({ ...q }) },
                     signature: INVALID_SIGNATURE,
@@ -509,8 +514,7 @@ export class MarketOperationUtils {
         const makerAmountPerEth = side === MarketOperation.Sell ? outputAmountPerEth : inputAmountPerEth;
 
         // Find the optimal path using Rust router if enabled, otherwise fallback to JS Router
-        let optimalPath: Path | undefined;
-        optimalPath = findOptimalPathFromSamples(
+        const optimalPath = findOptimalPathFromSamples(
             side,
             dexQuotes,
             [...nativeOrders, ...augmentedRfqtIndicativeQuotes],
@@ -520,7 +524,6 @@ export class MarketOperationUtils {
             this._sampler.chainId,
             opts.neonRouterNumSamples,
             opts.fillAdjustor,
-            opts.samplerMetrics,
         );
 
         const optimalPathAdjustedRate = optimalPath ? optimalPath.adjustedRate() : ZERO_AMOUNT;
@@ -582,7 +585,6 @@ export class MarketOperationUtils {
             exchangeProxyOverhead: _opts.exchangeProxyOverhead,
             gasPrice: _opts.gasPrice,
             neonRouterNumSamples: _opts.neonRouterNumSamples,
-            samplerMetrics: _opts.samplerMetrics,
             fillAdjustor: _opts.fillAdjustor,
         };
 
@@ -836,14 +838,14 @@ export class MarketOperationUtils {
         }
 
         // Always compute the Extended Quote Report
-        let extendedQuoteReportSources: ExtendedQuoteReportSources | undefined;
-        extendedQuoteReportSources = MarketOperationUtils._computeExtendedQuoteReportSources(
-            _opts.rfqt ? _opts.rfqt.quoteRequestor : undefined,
-            marketSideLiquidity,
-            amount,
-            optimizerResult,
-            wholeOrderPrice,
-        );
+        const extendedQuoteReportSources: ExtendedQuoteReportSources | undefined =
+            MarketOperationUtils._computeExtendedQuoteReportSources(
+                _opts.rfqt ? _opts.rfqt.quoteRequestor : undefined,
+                marketSideLiquidity,
+                amount,
+                optimizerResult,
+                wholeOrderPrice,
+            );
 
         let priceComparisonsReport: PriceComparisonsReport | undefined;
         if (_opts.shouldIncludePriceComparisonsReport) {
@@ -862,5 +864,3 @@ export class MarketOperationUtils {
             .forEach((cache) => cache?.getFreshPoolsForPairAsync(takerToken, makerToken));
     }
 }
-
-// tslint:disable: max-file-line-count

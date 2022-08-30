@@ -19,8 +19,6 @@ import { TestNativeOrderSamplerContract } from '../../wrappers';
 
 const { NULL_BYTES, ZERO_AMOUNT } = constants;
 
-// tslint:disable: custom-no-magic-numbers
-
 blockchainTests.resets('NativeOrderSampler contract', (env) => {
     let testContract: TestNativeOrderSamplerContract;
     let makerToken: string;
@@ -97,11 +95,7 @@ blockchainTests.resets('NativeOrderSampler contract', (env) => {
         };
     }
 
-    async function fundMakerAsync(
-        order: LimitOrderFields,
-        balanceScaling: number = 1,
-        allowanceScaling: number = 1,
-    ): Promise<void> {
+    async function fundMakerAsync(order: LimitOrderFields, balanceScaling = 1, allowanceScaling = 1): Promise<void> {
         const token = makerToken;
         let amount = order.makerAmount;
         amount = amount.times(getLimitOrderFillableTakerAmount(order).div(BigNumber.max(1, order.takerAmount)));
