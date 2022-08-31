@@ -767,6 +767,7 @@ export const CURVE_FANTOM_POOLS = {
     twoPool: '0x27e611fd27b276acbd5ffd632e5eaebec9761e40',
     ren: '0x3ef6a01a0f81d6046290f3e2a8c5b843e738e604',
     tri_v2: '0x2dd7c9371965472e5a5fd28fbe165007c61439e1',
+    geist: '0x0fa949783947bf6c1b171db13aeacbb488845b3f',
     FRAX_twoPool: '0x7a656b342e14f745e2b164890e88017e27ae7320',
 };
 
