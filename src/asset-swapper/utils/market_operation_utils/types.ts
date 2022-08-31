@@ -50,7 +50,6 @@ export enum ERC20BridgeSource {
     KyberDmm = 'KyberDMM',
     Component = 'Component',
     Saddle = 'Saddle',
-    XSigma = 'xSigma',
     UniswapV3 = 'Uniswap_V3',
     CurveV2 = 'Curve_V2',
     Lido = 'Lido',

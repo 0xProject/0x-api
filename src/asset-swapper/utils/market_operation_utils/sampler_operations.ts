@@ -1549,7 +1549,6 @@ export class SamplerOperations {
                     case ERC20BridgeSource.Belt:
                     case ERC20BridgeSource.Ellipsis:
                     case ERC20BridgeSource.Saddle:
-                    case ERC20BridgeSource.XSigma:
                     case ERC20BridgeSource.FirebirdOneSwap:
                     case ERC20BridgeSource.IronSwap:
                     case ERC20BridgeSource.ACryptos:
@@ -1886,7 +1885,6 @@ export class SamplerOperations {
                     case ERC20BridgeSource.Belt:
                     case ERC20BridgeSource.Ellipsis:
                     case ERC20BridgeSource.Saddle:
-                    case ERC20BridgeSource.XSigma:
                     case ERC20BridgeSource.FirebirdOneSwap:
                     case ERC20BridgeSource.IronSwap:
                     case ERC20BridgeSource.ACryptos:

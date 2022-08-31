@@ -55,7 +55,6 @@ import {
     UBESWAP_ROUTER_BY_CHAIN_ID,
     UNISWAPV2_ROUTER_BY_CHAIN_ID,
     WAULTSWAP_ROUTER_BY_CHAIN_ID,
-    XSIGMA_MAINNET_INFOS,
     YOSHI_ROUTER_BY_CHAIN_ID,
 } from './constants';
 import { CurveInfo, ERC20BridgeSource, PlatypusInfo } from './types';
@@ -361,19 +360,6 @@ export function getIronSwapInfosForPair(chainId: ChainId, takerToken: string, ma
     );
 }
 
-export function getXSigmaInfosForPair(chainId: ChainId, takerToken: string, makerToken: string): CurveInfo[] {
-    if (chainId !== ChainId.Mainnet) {
-        return [];
-    }
-    return Object.values(XSIGMA_MAINNET_INFOS).filter((c) =>
-        [makerToken, takerToken].every(
-            (t) =>
-                (c.tokens.includes(t) && c.metaTokens === undefined) ||
-                (c.tokens.includes(t) && [makerToken, takerToken].filter((v) => c.metaTokens?.includes(v)).length > 0),
-        ),
-    );
-}
-
 export function getAcryptosInfosForPair(chainId: ChainId, takerToken: string, makerToken: string): CurveInfo[] {
     if (chainId !== ChainId.BSC) {
         return [];
@@ -444,7 +430,6 @@ export function getCurveLikeInfosForPair(
         | ERC20BridgeSource.Ellipsis
         | ERC20BridgeSource.Saddle
         | ERC20BridgeSource.IronSwap
-        | ERC20BridgeSource.XSigma
         | ERC20BridgeSource.FirebirdOneSwap
         | ERC20BridgeSource.ACryptos
         | ERC20BridgeSource.MobiusMoney,
@@ -471,9 +456,6 @@ export function getCurveLikeInfosForPair(
             break;
         case ERC20BridgeSource.Saddle:
             pools = getSaddleInfosForPair(chainId, takerToken, makerToken);
-            break;
-        case ERC20BridgeSource.XSigma:
-            pools = getXSigmaInfosForPair(chainId, takerToken, makerToken);
             break;
         case ERC20BridgeSource.FirebirdOneSwap:
             pools = getFirebirdOneSwapInfosForPair(chainId, takerToken, makerToken);
