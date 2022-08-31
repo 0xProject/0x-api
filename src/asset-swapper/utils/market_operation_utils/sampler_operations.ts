@@ -1541,7 +1541,6 @@ export class SamplerOperations {
                     case ERC20BridgeSource.PancakeSwapV2:
                     case ERC20BridgeSource.BakerySwap:
                     case ERC20BridgeSource.ApeSwap:
-                    case ERC20BridgeSource.CheeseSwap:
                     case ERC20BridgeSource.QuickSwap:
                     case ERC20BridgeSource.Dfyn:
                     case ERC20BridgeSource.WaultSwap:
@@ -1886,7 +1885,6 @@ export class SamplerOperations {
                     case ERC20BridgeSource.PancakeSwapV2:
                     case ERC20BridgeSource.BakerySwap:
                     case ERC20BridgeSource.ApeSwap:
-                    case ERC20BridgeSource.CheeseSwap:
                     case ERC20BridgeSource.QuickSwap:
                     case ERC20BridgeSource.Dfyn:
                     case ERC20BridgeSource.WaultSwap:

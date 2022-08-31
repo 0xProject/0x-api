@@ -7,7 +7,6 @@ import {
     BAKERYSWAP_ROUTER_BY_CHAIN_ID,
     BELT_BSC_INFOS,
     BISWAP_ROUTER_BY_CHAIN_ID,
-    CHEESESWAP_ROUTER_BY_CHAIN_ID,
     COMPONENT_POOLS_BY_CHAIN_ID,
     CRYPTO_COM_ROUTER_BY_CHAIN_ID,
     CURVE_ARBITRUM_INFOS,
@@ -508,7 +507,6 @@ export function uniswapV2LikeRouterAddress(
         | ERC20BridgeSource.PancakeSwapV2
         | ERC20BridgeSource.BakerySwap
         | ERC20BridgeSource.ApeSwap
-        | ERC20BridgeSource.CheeseSwap
         | ERC20BridgeSource.QuickSwap
         | ERC20BridgeSource.Dfyn
         | ERC20BridgeSource.WaultSwap
@@ -540,8 +538,6 @@ export function uniswapV2LikeRouterAddress(
             return BAKERYSWAP_ROUTER_BY_CHAIN_ID[chainId];
         case ERC20BridgeSource.ApeSwap:
             return APESWAP_ROUTER_BY_CHAIN_ID[chainId];
-        case ERC20BridgeSource.CheeseSwap:
-            return CHEESESWAP_ROUTER_BY_CHAIN_ID[chainId];
         case ERC20BridgeSource.QuickSwap:
             return QUICKSWAP_ROUTER_BY_CHAIN_ID[chainId];
         case ERC20BridgeSource.Dfyn:
