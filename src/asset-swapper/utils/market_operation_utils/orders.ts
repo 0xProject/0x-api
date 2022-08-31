@@ -19,7 +19,6 @@ import {
     Fill,
     FillData,
     FinalUniswapV3FillData,
-    GeistFillData,
     GenericRouterFillData,
     GMXFillData,
     KyberDmmFillData,
@@ -183,8 +182,6 @@ export function getErc20BridgeSourceToBridgeSource(source: ERC20BridgeSource): s
             return encodeBridgeSourceId(BridgeProtocol.AaveV2, 'AaveV2');
         case ERC20BridgeSource.Compound:
             return encodeBridgeSourceId(BridgeProtocol.Compound, 'Compound');
-        case ERC20BridgeSource.Geist:
-            return encodeBridgeSourceId(BridgeProtocol.AaveV2, 'Geist');
         case ERC20BridgeSource.MobiusMoney:
             return encodeBridgeSourceId(BridgeProtocol.Nerve, 'MobiusMoney');
         case ERC20BridgeSource.BiSwap:
@@ -371,11 +368,6 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             bridgeData = encoder.encode([compoundFillData.cToken]);
             break;
         }
-        case ERC20BridgeSource.Geist: {
-            const geistFillData = (order as OptimizedMarketBridgeOrder<GeistFillData>).fillData;
-            bridgeData = encoder.encode([geistFillData.lendingPool, geistFillData.gToken]);
-            break;
-        }
         case ERC20BridgeSource.GMX: {
             const gmxFillData = (order as OptimizedMarketBridgeOrder<GMXFillData>).fillData;
             bridgeData = encoder.encode([
@@ -541,7 +533,6 @@ export const BRIDGE_ENCODERS: {
     [ERC20BridgeSource.Lido]: AbiEncoder.create('(address,address)'),
     [ERC20BridgeSource.AaveV2]: AbiEncoder.create('(address,address)'),
     [ERC20BridgeSource.Compound]: AbiEncoder.create('(address)'),
-    [ERC20BridgeSource.Geist]: AbiEncoder.create('(address,address)'),
     [ERC20BridgeSource.Velodrome]: AbiEncoder.create('(address,bool)'),
     [ERC20BridgeSource.Synthetix]: AbiEncoder.create('(address,bytes32,bytes32)'),
     [ERC20BridgeSource.WOOFi]: AbiEncoder.create('(address)'),

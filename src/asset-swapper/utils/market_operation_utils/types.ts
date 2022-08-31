@@ -94,7 +94,6 @@ export enum ERC20BridgeSource {
     Beethovenx = 'Beethovenx',
     MorpheusSwap = 'MorpheusSwap',
     Yoshi = 'Yoshi',
-    Geist = 'Geist',
     // Optimism
     Velodrome = 'Velodrome',
 }
@@ -167,12 +166,6 @@ export interface BalancerV2PoolInfo {
 export interface AaveV2Info {
     lendingPool: string;
     aToken: string;
-    underlyingToken: string;
-}
-
-export interface GeistInfo {
-    lendingPool: string;
-    gToken: string;
     underlyingToken: string;
 }
 
@@ -329,13 +322,6 @@ export interface CompoundFillData extends FillData {
     cToken: string;
     takerToken: string;
     makerToken: string;
-}
-
-export interface GeistFillData extends FillData {
-    lendingPool: string;
-    gToken: string;
-    underlyingToken: string;
-    takerToken: string;
 }
 
 export interface PlatypusInfo {

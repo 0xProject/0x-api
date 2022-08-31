@@ -21,7 +21,6 @@ import {
     FillData,
     FinalUniswapV3FillData,
     GasSchedule,
-    GeistFillData,
     GetMarketOrdersOpts,
     isFinalUniswapV3FillData,
     LidoFillData,
@@ -194,7 +193,6 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Beethovenx,
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.CurveV2,
-            ERC20BridgeSource.Geist,
             ERC20BridgeSource.MorpheusSwap,
             ERC20BridgeSource.SpiritSwap,
             ERC20BridgeSource.SpookySwap,
@@ -353,7 +351,6 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Beethovenx,
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.CurveV2,
-            ERC20BridgeSource.Geist,
             ERC20BridgeSource.MorpheusSwap,
             ERC20BridgeSource.SpiritSwap,
             ERC20BridgeSource.SpookySwap,
@@ -684,10 +681,6 @@ export const ARBITRUM_TOKENS = {
     WBTC: '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
 };
 
-export const GEIST_FANTOM_POOLS = {
-    lendingPool: '0x9fad24f572045c7869117160a571b2e50b10d068',
-};
-
 export const CURVE_POOLS = {
     compound: '0xa2b47e3d5c44877cca798226b7b8118f9bfb7a56', // 0.Compound
     // 1.USDT is dead
@@ -776,7 +769,6 @@ export const CURVE_FANTOM_POOLS = {
     twoPool: '0x27e611fd27b276acbd5ffd632e5eaebec9761e40',
     ren: '0x3ef6a01a0f81d6046290f3e2a8c5b843e738e604',
     tri_v2: '0x2dd7c9371965472e5a5fd28fbe165007c61439e1',
-    geist: '0x0fa949783947bf6c1b171db13aeacbb488845b3f',
     FRAX_twoPool: '0x7a656b342e14f745e2b164890e88017e27ae7320',
 };
 
@@ -1566,16 +1558,6 @@ export const CURVE_FANTOM_INFOS: { [name: string]: CurveInfo } = {
         tokens: [FANTOM_TOKENS.MIM, FANTOM_TOKENS.fUSDT, FANTOM_TOKENS.USDC],
         pool: CURVE_FANTOM_POOLS.tri_v2,
         gasSchedule: 176e3,
-    }),
-    ['geist_exchangeunderlying']: createCurveExchangeUnderlyingPool({
-        tokens: [FANTOM_TOKENS.DAI, FANTOM_TOKENS.USDC, FANTOM_TOKENS.fUSDT],
-        pool: CURVE_FANTOM_POOLS.geist,
-        gasSchedule: 850e3,
-    }),
-    ['geist_exchange']: createCurveExchangePool({
-        tokens: [FANTOM_TOKENS.gDAI, FANTOM_TOKENS.gUSDC, FANTOM_TOKENS.gfUSDT],
-        pool: CURVE_FANTOM_POOLS.geist,
-        gasSchedule: 150e3,
     }),
     [CURVE_FANTOM_POOLS.FRAX_twoPool]: createCurveMetaTwoPoolFantom({
         tokens: [FANTOM_TOKENS.FRAX],
@@ -2663,10 +2645,6 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
         const aaveFillData = fillData as AaveV2FillData;
         // NOTE: The Aave deposit method is more expensive than the withdraw
         return aaveFillData.takerToken === aaveFillData.underlyingToken ? 400e3 : 300e3;
-    },
-    [ERC20BridgeSource.Geist]: (fillData?: FillData) => {
-        const geistFillData = fillData as GeistFillData;
-        return geistFillData.takerToken === geistFillData.underlyingToken ? 400e3 : 300e3;
     },
     [ERC20BridgeSource.Compound]: (fillData?: FillData) => {
         // NOTE: cETH is handled differently than other cTokens
