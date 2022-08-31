@@ -122,16 +122,17 @@ describe(SUITE_NAME, () => {
         const affiliateFee = {
             feeType: AffiliateFeeType.GaslessFee,
             recipient: randomAddress(),
-            buyTokenPercentageFee: 0.01,
+            buyTokenPercentageFee: 0,
             sellTokenPercentageFee: 0,
         };
         const costInfo = serviceUtils.getAffiliateFeeAmounts(randomSellQuote, affiliateFee);
         expect(costInfo).to.deep.equal({
             buyTokenFeeAmount: randomSellQuote.gasPrice
-              .times(randomSellQuote.bestCaseQuoteInfo.gas)
-              .times(affiliateFee.buyTokenPercentageFee),
+              .times(randomSellQuote.worstCaseQuoteInfo.gas)
+              .times(randomSellQuote.worstCaseQuoteInfo.makerAmount)
+              .integerValue(BigNumber.ROUND_DOWN),
             sellTokenFeeAmount: ZERO,
-            gasCost: ZERO,
+            gasCost: AFFILIATE_FEE_TRANSFORMER_GAS,
         });
     });
 });
