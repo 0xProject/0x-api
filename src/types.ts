@@ -166,6 +166,7 @@ export interface TokenMetadata {
 export enum FeeParamTypes {
     POSITIVE_SLIPPAGE = 'POSITIVE_SLIPPAGE',
     FIXED = 'FIXED',
+    GASLESS_FEE = 'GASLESS_FEE',
 }
 // tslint:enable:enum-naming
 

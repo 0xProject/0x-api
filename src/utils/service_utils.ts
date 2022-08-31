@@ -114,6 +114,18 @@ export const serviceUtils = {
             };
         }
 
+        if (fee.feeType === AffiliateFeeType.GaslessFee) {
+          const buyTokenFeeAmount = quote.worstCaseQuoteInfo.makerAmount
+            .times(quote.gasPrice)
+            .times(quote.worstCaseQuoteInfo.gas)
+            .integerValue(BigNumber.ROUND_DOWN);
+          return {
+            sellTokenFeeAmount: ZERO,
+            buyTokenFeeAmount,
+            gasCost: AFFILIATE_FEE_TRANSFORMER_GAS,
+          }
+        }
+
         const minBuyAmount = quote.worstCaseQuoteInfo.makerAmount;
         const buyTokenFeeAmount = minBuyAmount
             .times(fee.buyTokenPercentageFee)
