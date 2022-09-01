@@ -55,6 +55,35 @@ The transaction watcher ensures that the data being served is present and up-to-
 -   [Node.js](https://nodejs.org/en/download/) > v8.x
 -   [Yarn](https://yarnpkg.com/en/) > v1.x
 -   [Docker](https://www.docker.com/products/docker-desktop) > 19.x
+-   Running [Kafka Service](https://hevodata.com/blog/how-to-install-kafka-on-ubuntu/)
+-   Running [Order Watcher Service](https://github.com/divaprotocol/0x-rs)
+
+#### Service execution order
+
+1. Running Kafka service
+    ```
+    sudo systemctl start kafka.service
+    ```
+
+2. Running Docker service
+    ```
+    cd 0x-api-fork && docker-compose up --build
+    ```
+
+3. Running Block watcher service
+    ```
+    cd 0x-rs && cd block-watcher && cargo run
+    ```
+
+4. Running Order watcher service
+    ```
+    cd 0x-rs && cd order-watcher && cargo Run
+    ```
+
+5. Running Node service
+    ```
+    cd 0x-api-fork && yarn dev
+    ```
 
 #### Developing
 
@@ -62,30 +91,32 @@ To get a local development version of `0x-api` running:
 
 1. Clone the repo.
 
-2. Create an `.env` file and copy the content from the `.env_example` file. Defaults are defined in `config.ts`/`config.js`. The bash environment takes precedence over the `.env` file. If you run `source .env`, changes to the `.env` file will have no effect until you unset the colliding variables.
+2. Create an `.env` file and copy the content from the `.env_example` file. Defaults are defined in `config.ts`/`config.js`. The bash environment takes precedence over the `.env` file. If you run `source .env`, changes to the `.env` file will have no effect until you unset the colliding variables. Sample variables of the `.env` file are in the `.env.example` file.
 
 | Environment Variable                   | Default                                                         | Description                                                                                                                                                                            |
 | -------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CHAIN_ID`                             | Required. No default.                                           | The chain id you'd like your API to run on (e.g: `1` -> mainnet, `42` -> Kovan, `3` -> Ropsten, `1337` -> Ganache). Defaults to `42` in the API, but required for `docker-compose up`. |
 | `ETHEREUM_RPC_URL`                     | Required. No default.                                           | The URL used to issue JSON RPC requests. Use `http://localhost:8545` to use the local ganache instance.                                                                                  |
+| `HTTP_PORT`                      | Default: `3000`                                                 | The port of this service.                                                                                                                               |
 | `LIQUIDITY_POOL_REGISTRY_ADDRESS`      | Optional. No default                                            | The Ethereum address of a Liquidity Provider registry. If unspecified, no Liquidity Provider is used.                                                                                  |
-| `POSTGRES_URI`                         | Required. Default for dev: `postgresql://api:api@localhost/api` | A URI of a running postgres instance. By default, the API will create all necessary tables. A default instance is spun up in `docker-compose up`                                       |
+| `POSTGRES_URI`                         | Required. Default: `postgres://api:api@localhost/api` | A URI of a running postgres instance. By default, the API will create all necessary tables. A default instance is spun up in `docker-compose up`                                       |
 | `POSTGRES_READ_REPLICA_URIS`           | Optional. No default                                            | A comma separated list of URIs of running postgres read replica instances.                                                                                                             |
-| `FEE_RECIPIENT_ADDRESS`                | `0x0000000000000000000000000000000000000000`                    | The Ethereum address which should be specified as the fee recipient in orders your API accepts.                                                                                        |
+| `FEE_RECIPIENT_ADDRESS`                | Default: `0x0000000000000000000000000000000000000000`                    | The Ethereum address which should be specified as the fee recipient in orders your API accepts.                                                                                        |
 | `MAKER_FEE_ASSET_DATA`                 | `0x`                                                            | The maker fee token asset data for created 0x orders.                                                                                                                                  |
 | `TAKER_FEE_ASSET_DATA`                 | `0x`                                                            | The taker fee token asset data for created 0x orders.                                                                                                                                  |
 | `MAKER_FEE_UNIT_AMOUNT`                | `0`                                                             | The flat maker fee amount you'd like to receive for filled orders hosted by you.                                                                                                       |
 | `TAKER_FEE_UNIT_AMOUNT`                | `0`                                                             | The flat taker fee amount you'd like to receive for filled orders hosted by you.                                                                                                       |
-| `WHITELIST_ALL_TOKENS`                 | `false`                                                         | A boolean determining whether all tokens should be allowed to be posted.                                                                                                               |
-| `SWAP_IGNORED_ADDRESSES`               | `[]`                                                            | A comma separated list of addresses to ignore. These addresses are persisted but not used in any `/swap/*` endpoints                                                                   |
-| `META_TXN_SUBMIT_WHITELISTED_API_KEYS` | `[]`                                                            | A comma separated list of whitelisted 0x API keys that can use the meta-txn /submit endpoint.                                                                                          |
-| `META_TXN_RELAY_PRIVATE_KEYS`          | `[]`                                                            | A comma separated list of meta-txn relay sender private keys managed by the TransactionWatcherSignerService.                                                                           |
-| `META_TXN_SIGNING_ENABLED`             | `true`                                                          | A boolean determining whether the meta-txn signs and submits transactions .                                                                                                            |
-| `META_TXN_MAX_GAS_PRICE_GWEI`          | `50`                                                            | The maximum gas price (in gwei) the meta-txn service will submit a transaction at. If the gas price of the network exceeds this value then the meta-txn service will be disabled.      |
-| `META_TXN_RELAY_EXPECTED_MINED_SEC`    | Default: `120`                                                  | The expected time for a meta-txn to be included in a block.                                                                                                                            |
+| `WHITELIST_ALL_TOKENS`                 | Default: `false`                                                         | A boolean determining whether all tokens should be allowed to be posted.                                                                                                               |
+| `SWAP_IGNORED_ADDRESSES`               | Default: `[]`                                                            | A comma separated list of addresses to ignore. These addresses are persisted but not used in any `/swap/*` endpoints                                                                   |
+| `META_TXN_SUBMIT_WHITELISTED_API_KEYS` | Default: `[]`                                                            | A comma separated list of whitelisted 0x API keys that can use the meta-txn /submit endpoint.                                                                                          |
+| `META_TXN_RELAY_PRIVATE_KEYS`          | Default: `[]`                                                            | A comma separated list of meta-txn relay sender private keys managed by the TransactionWatcherSignerService.                                                                           |
+| `META_TXN_SIGNING_ENABLED`             | Default: `true`                                                          | A boolean determining whether the meta-txn signs and submits transactions .                                                                                                            |
+| `META_TXN_MAX_GAS_PRICE_GWEI`          | Default: `50`                                                            | The maximum gas price (in gwei) the meta-txn service will submit a transaction at. If the gas price of the network exceeds this value then the meta-txn service will be disabled.      |
+| `META_TXN_RELAY_EXPECTED_MINED_SEC`    | Default: `180`                                                  | The expected time for a meta-txn to be included in a block.                                                                                                                            |
 | `ENABLE_PROMETHEUS_METRICS`            | Default: `false`                                                | A boolean determining whether to enable prometheus monitoring.                                                                                                                         |
-| `PROMETHEUS_PORT`                      | Default: `8080`                                                 | The port from which prometheus metrics should be served.                                                                                                                               |
-| `KAFKA_BROKERS`                        | Optional. No default.                                           | A comma separated list of Kafka broker servers                                                                                                                                         |
+| `PROMETHEUS_PORT`                      | Default: `9998`                                                 | The port from which prometheus metrics should be served.                                                                                                                               |
+| `ETH_GAS_STATION_API_URL`                      | Default: `https://gas.api.0x.org/source/median?output=eth_gas_station`                                                 | The url to get gas limit data.                                                                                                                               |
+| `KAFKA_BROKERS`                        | Optional. Default: `localhost:9092`                                           | A comma separated list of Kafka broker servers                                                                                                                                         |
 | `KAFKA_TOPIC_QUOTE_REPORT`             | Optional. No default                                            | The name of the Kafka topic to publish quote reports on. Setting this and `KAFKA_BROKERS` enable publirhing.                                                                           |
 
 3. Install the dependencies:
