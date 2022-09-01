@@ -173,7 +173,9 @@ describe('MarketOperationUtils tests', () => {
         ];
         const requestor = TypeMoq.Mock.ofType(QuoteRequestor, TypeMoq.MockBehavior.Loose, true);
         requestor.setup((r) => r.getMakerUriForSignature(TypeMoq.It.isValue(SIGNATURE))).returns(() => MAKER_URI);
-        requestor.setup((r) => r.setMakerUriForSignature(TypeMoq.It.isAny(), TypeMoq.It.isAny())).returns(() => {});
+        requestor
+            .setup((r) => r.setMakerUriForSignature(TypeMoq.It.isAny(), TypeMoq.It.isAny()))
+            .returns(() => undefined);
         if (type === 'firm') {
             requestor
                 .setup((r) => r.requestRfqtFirmQuotesAsync(...args))
