@@ -73,6 +73,7 @@
         "chai-bignumber": "^3.0.0",
         "dirty-chai": "^2.0.1",
         "env-cmd": "^10.1.0",
+        "ethereumjs-vm": "^4.2.0",
         "make-promises-safe": "^5.1.0",
         "mocha": "^6.2.2",
         "msw": "^0.44.2",

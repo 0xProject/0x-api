@@ -10,6 +10,7 @@ import {
 } from '@0x/contracts-test-utils';
 import { FillQuoteTransformerOrderType, LimitOrder, RfqOrder, SignatureType } from '@0x/protocol-utils';
 import { BigNumber, hexUtils, NULL_BYTES } from '@0x/utils';
+import { BigNumber as BigLabNumber } from 'balancer-labs-sor-v1/dist/utils/bignumber';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Pool } from 'balancer-labs-sor-v1/dist/types';
 import * as _ from 'lodash';
@@ -119,12 +120,12 @@ const mockPoolsCache = new MockPoolsCache((_takerToken: string, _makerToken: str
     return [
         {
             id: '0xe4b2554b622cc342ac7d6dc19b594553577941df000200000000000000000003',
-            balanceIn: new BigNumber('13655.491506618973154788'),
-            balanceOut: new BigNumber('8217005.926472'),
-            weightIn: new BigNumber('0.5'),
-            weightOut: new BigNumber('0.5'),
-            swapFee: new BigNumber('0.008'),
-            spotPrice: new BigNumber(596.92685),
+            balanceIn: new BigLabNumber('13655.491506618973154788'),
+            balanceOut: new BigLabNumber('8217005.926472'),
+            weightIn: new BigLabNumber('0.5'),
+            weightOut: new BigLabNumber('0.5'),
+            swapFee: new BigLabNumber('0.008'),
+            spotPrice: new BigLabNumber(596.92685),
         },
     ];
 });
