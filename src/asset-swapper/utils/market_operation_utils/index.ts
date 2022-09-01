@@ -691,6 +691,7 @@ export class MarketOperationUtils {
                     rfqQuoteType: 'indicative',
                     deltaTime,
                 });
+
                 // Re-run optimizer with the new indicative quote
                 if (indicativeQuotes.length > 0) {
                     // Attach the indicative quotes to the market side liquidity
@@ -742,6 +743,7 @@ export class MarketOperationUtils {
                               rfqt.quoteRequestor?.setMakerUriForSignature(quote.signature, quote.makerUri);
                               return toSignedNativeOrder(quote);
                           });
+
                 const deltaTime = new Date().getTime() - timeStart;
                 DEFAULT_INFO_LOGGER({
                     rfqQuoteType: 'firm',
