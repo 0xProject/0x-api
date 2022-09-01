@@ -129,7 +129,7 @@ describe(SUITE_NAME, () => {
         expect(costInfo).to.deep.equal({
             buyTokenFeeAmount: randomSellQuote.gasPrice
               .times(randomSellQuote.worstCaseQuoteInfo.gas)
-              .times(randomSellQuote.worstCaseQuoteInfo.makerAmount)
+              .times(randomSellQuote.makerAmountPerEth)
               .integerValue(BigNumber.ROUND_DOWN),
             sellTokenFeeAmount: ZERO,
             gasCost: AFFILIATE_FEE_TRANSFORMER_GAS,

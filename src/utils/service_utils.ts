@@ -115,7 +115,7 @@ export const serviceUtils = {
         }
 
         if (fee.feeType === AffiliateFeeType.GaslessFee) {
-          const buyTokenFeeAmount = quote.worstCaseQuoteInfo.makerAmount
+          const buyTokenFeeAmount = quote.makerAmountPerEth
             .times(quote.gasPrice)
             .times(quote.worstCaseQuoteInfo.gas)
             .integerValue(BigNumber.ROUND_DOWN);
