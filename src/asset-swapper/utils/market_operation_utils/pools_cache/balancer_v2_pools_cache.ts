@@ -14,6 +14,7 @@ import { AbstractPoolsCache, CacheValue, PoolsCache } from './pools_cache';
 
 const BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN = new Map<ChainId, string>([
     [ChainId.Fantom, 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx'],
+    [ChainId.Optimism, 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx-optimism'],
 ]);
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
