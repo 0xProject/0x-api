@@ -341,14 +341,14 @@ export function getSaddleInfosForPair(chainId: ChainId, takerToken: string, make
         [ChainId.Mainnet]: SADDLE_MAINNET_INFOS,
         [ChainId.Optimism]: SADDLE_OPTIMISM_INFOS,
         [ChainId.Arbitrum]: SADDLE_ARBITRUM_INFOS,
-    } as Partial<Record<ChainId, {[name: string]: CurveInfo}>>;
+    } as Partial<Record<ChainId, { [name: string]: CurveInfo }>>;
     const saddleChainInfos = chainToInfosMap[chainId];
     if (!saddleChainInfos) return [];
-    return Object.values(saddleChainInfos).filter(c =>
+    return Object.values(saddleChainInfos).filter((c) =>
         [makerToken, takerToken].every(
-            t =>
+            (t) =>
                 (c.tokens.includes(t) && c.metaTokens === undefined) ||
-                (c.tokens.includes(t) && [makerToken, takerToken].filter(v => c.metaTokens?.includes(v)).length > 0),
+                (c.tokens.includes(t) && [makerToken, takerToken].filter((v) => c.metaTokens?.includes(v)).length > 0),
         ),
     );
 }

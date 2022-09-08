@@ -123,7 +123,6 @@ export enum CurveFunctionSelectors {
     calculateSwap = '0xa95b089f', // calculateSwap(uint8,uint8,uint256)
     calculateSwapUnderlying = '0x75d8e3e4', // calculateSwapUnderlying(uint8,uint8,uint256)
     swapUnderlying = '0x78e0fae8', // swapUnderlying(uint8,uint8,uint256,uint256,uint256)
-
 }
 
 /**
