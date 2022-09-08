@@ -47,7 +47,7 @@ export class MetaTransactionHandlers {
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
         // parse query params
         const params = parseGetTransactionRequestParams(req);
-        if (params.slippagePercentage && params.slippagePercentage < 0.1) {
+        if (params.slippagePercentage && params.slippagePercentage < 0.001) {
           throw new ValidationError([{
             field: 'slippagePercentage',
             code: ValidationErrorCodes.MinSlippageTooLow,
