@@ -193,7 +193,6 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.MorpheusSwap,
-            ERC20BridgeSource.Saddle,
             ERC20BridgeSource.SpiritSwap,
             ERC20BridgeSource.SpookySwap,
             ERC20BridgeSource.SushiSwap,
@@ -223,7 +222,6 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.BalancerV2,
             ERC20BridgeSource.Curve,
-            ERC20BridgeSource.Saddle,
             ERC20BridgeSource.GMX,
             ERC20BridgeSource.Dodo,
         ]),
@@ -353,7 +351,6 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.MorpheusSwap,
-            ERC20BridgeSource.Saddle,
             ERC20BridgeSource.SpiritSwap,
             ERC20BridgeSource.SpookySwap,
             ERC20BridgeSource.SushiSwap,
@@ -381,7 +378,6 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.UniswapV3,
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
-            ERC20BridgeSource.Saddle,
             ERC20BridgeSource.BalancerV2,
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.GMX,
@@ -807,11 +803,7 @@ export const SADDLE_MAINNET_POOLS = {
     usx: '0x2bff1b48cc01284416e681b099a0cddca0231d72',
 
     // metaswaps
-    wcusdMetaPoolV3: '0xb62222b941e9b652be3632eea062cb0ff66b1d1c',
     susdMetaPoolV3: '0x4568727f50c7246ded8c39214ed6ff3c157f080d',
-    tbtcMetaPoolV3: '0xfa9ed0309bf79eb84c847819f0b3cb84f6d351af',
-    fraxUsdtMetaPool: '0xc765cd3d015626244ad63b5fb63a97c5634643b9',
-    fraxUsxMetaPool: '0x1dcb69a2b9148c641a43f731fcee123e2be30bab',
     fraxAlusdMetaPool: '0xfb516cf3710fc6901f2266aaeb8834cf5e4e9558',
     fraxSusdMetaPool: '0x69baa0d7c2e864b74173922ca069ac79d3be1556',
 };
@@ -819,25 +811,12 @@ export const SADDLE_MAINNET_POOLS = {
 export const SADDLE_OPTIMISM_POOLS = {
     // swaps
     fraxBP: '0xf6c2e0adc659007ba7c48446f5a4e4e94dfe08b5',
-
-    // metaswaps
-    fraxUsdtMetaPool: '0xa9a84238098dc3d1529228e6c74dbe7ebdf117a5',
-    fraxSusdMetaPool: '0x250184dddec6d38e28ac12b481c9016867226e9d',
 };
 
 export const SADDLE_ARBITRUM_POOLS = {
     // swaps
     arbUSDPoolV2: '0xfeea4d1bacb0519e8f952460a70719944fe56ee0',
     fraxBP: '0x401afbc31ad2a3bc0ed8960d63efcdea749b4849',
-};
-
-export const SADDLE_FANTOM_POOLS = {
-    // swaps
-    ftmUSDPool: '0xbea9f78090bdb9e662d8cb301a00ad09a5b756e9',
-
-    // metaswaps
-    fraxUsdtMetaPool: '0xdb5c5a6162115ce9a188e7d773c4d011f421bbe5',
-    fraxAlusdMetaPool: '0x4e1484607760118ebe2ab07c0c71f1b4d9671e01',
 };
 
 export const IRONSWAP_POOLS = {
@@ -1701,17 +1680,17 @@ export const SADDLE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
     [SADDLE_MAINNET_POOLS.susdMetaPoolV3]: createSaddleMetaSwapPool({
         tokens: [MAINNET_TOKENS.sUSD, MAINNET_TOKENS.DAI, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT],
         pool: SADDLE_MAINNET_POOLS.susdMetaPoolV3,
-        gasSchedule: 230e3,
+        gasSchedule: 370e3,
     }),
     [SADDLE_MAINNET_POOLS.fraxAlusdMetaPool]: createSaddleMetaSwapPool({
         tokens: [MAINNET_TOKENS.alUSD, MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX],
         pool: SADDLE_MAINNET_POOLS.fraxAlusdMetaPool,
-        gasSchedule: 230e3,
+        gasSchedule: 320e3,
     }),
     [SADDLE_MAINNET_POOLS.fraxSusdMetaPool]: createSaddleMetaSwapPool({
         tokens: [MAINNET_TOKENS.sUSD, MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX],
         pool: SADDLE_MAINNET_POOLS.fraxSusdMetaPool,
-        gasSchedule: 230e3,
+        gasSchedule: 370e3,
     }),
 };
 
@@ -1734,7 +1713,7 @@ export const SADDLE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
         pool: SADDLE_ARBITRUM_POOLS.arbUSDPoolV2,
         gasSchedule: 150e3,
     }),
-}
+};
 
 export const IRONSWAP_POLYGON_INFOS: { [name: string]: CurveInfo } = {
     [IRONSWAP_POOLS.is3usd]: {
