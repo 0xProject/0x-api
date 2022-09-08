@@ -2613,7 +2613,6 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
             }
         }
 
-
         return gas;
     },
     [ERC20BridgeSource.Lido]: (fillData?: FillData) => {
