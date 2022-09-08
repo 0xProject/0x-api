@@ -205,6 +205,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Saddle,
             ERC20BridgeSource.Velodrome,
             ERC20BridgeSource.Synthetix,
+            ERC20BridgeSource.Beethovenx,
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
@@ -357,6 +358,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Saddle,
             ERC20BridgeSource.Velodrome,
             ERC20BridgeSource.Synthetix,
+            ERC20BridgeSource.Beethovenx,
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
@@ -2329,6 +2331,7 @@ export const BALANCER_V2_VAULT_ADDRESS_BY_CHAIN = valueByChainId<string>(
 export const BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN = valueByChainId<string>(
     {
         [ChainId.Fantom]: '0x20dd72ed959b6147912c2e529f0a0c651c33c9ce',
+        [ChainId.Optimism]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
     },
     NULL_ADDRESS,
 );
