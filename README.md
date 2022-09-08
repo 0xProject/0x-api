@@ -136,6 +136,23 @@ $ docker-compose up
 $ yarn dev
 ```
 
+#### Developing on Foundry
+
+Install Foundry if needed.
+
+Initialize git submodule:
+
+```sh
+git submodule update --init --recursive
+```
+
+Compile using `forge`
+
+```
+cd contracts
+forge build
+```
+
 ## Testing
 
 Run `yarn test`. It's really that easy :)
