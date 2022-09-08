@@ -21,9 +21,7 @@ contract GMXSampler is SamplerUtils, ApproximateBuys {
         uint256 numSamples = takerTokenAmounts.length;
         makerTokenAmounts = new uint256[](numSamples);
         for (uint256 i = 0; i < numSamples; i++) {
-            try IGMX(reader).getMaxAmountIn(IVault(vault), path[0], path[1]) returns (
-                uint256 maxAmountIn
-            ) {
+            try IGMX(reader).getMaxAmountIn(IVault(vault), path[0], path[1]) returns (uint256 maxAmountIn) {
                 // Break early if GMX does not have enough liquidity to perform the swap
                 if (takerTokenAmounts[i] > maxAmountIn) {
                     break;
@@ -45,7 +43,6 @@ contract GMXSampler is SamplerUtils, ApproximateBuys {
                 // Swallow failures, leaving all results as zero.
                 break;
             }
-            
         }
     }
 
