@@ -303,8 +303,6 @@ export interface FinalUniswapV3FillData extends Omit<UniswapV3FillData, 'pathAmo
     // The uniswap-encoded path that can fll the maximum input amount.
     uniswapPath: string;
     gasUsed: number;
-    //only used for gas estimation
-    chainId: ChainId;
 }
 
 export interface LidoFillData extends FillData {
