@@ -40,7 +40,6 @@ import {
     QUICKSWAP_ROUTER_BY_CHAIN_ID,
     SADDLE_MAINNET_INFOS,
     SADDLE_OPTIMISM_INFOS,
-    SADDLE_FANTOM_INFOS,
     SADDLE_ARBITRUM_INFOS,
     SHELL_POOLS_BY_CHAIN_ID,
     SHIBASWAP_ROUTER_BY_CHAIN_ID,
@@ -340,7 +339,6 @@ export function getEllipsisInfosForPair(chainId: ChainId, takerToken: string, ma
 export function getSaddleInfosForPair(chainId: ChainId, takerToken: string, makerToken: string): CurveInfo[] {
     const chainToInfosMap = {
         [ChainId.Mainnet]: SADDLE_MAINNET_INFOS,
-        [ChainId.Fantom]: SADDLE_FANTOM_INFOS,
         [ChainId.Optimism]: SADDLE_OPTIMISM_INFOS,
         [ChainId.Arbitrum]: SADDLE_ARBITRUM_INFOS,
     } as Partial<Record<ChainId, {[name: string]: CurveInfo}>>;

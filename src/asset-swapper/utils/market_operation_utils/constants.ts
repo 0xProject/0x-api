@@ -1688,19 +1688,9 @@ export const SADDLE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
         pool: SADDLE_MAINNET_POOLS.alETH,
         gasSchedule: 200e3,
     }),
-    [SADDLE_MAINNET_POOLS['4Pool']]: createSaddleSwapPool({
-        tokens: [MAINNET_TOKENS.DAI, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT, MAINNET_TOKENS.FRAX],
-        pool: SADDLE_MAINNET_POOLS['4Pool'],
-        gasSchedule: 150e3,
-    }),
     [SADDLE_MAINNET_POOLS.fraxBP]: createSaddleSwapPool({
         tokens: [MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX],
         pool: SADDLE_MAINNET_POOLS.fraxBP,
-        gasSchedule: 150e3,
-    }),
-    [SADDLE_MAINNET_POOLS.frax3Pool]: createSaddleSwapPool({
-        tokens: [MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT, MAINNET_TOKENS.FRAX],
-        pool: SADDLE_MAINNET_POOLS.frax3Pool,
         gasSchedule: 150e3,
     }),
     [SADDLE_MAINNET_POOLS.usx]: createSaddleSwapPool({
@@ -1708,29 +1698,9 @@ export const SADDLE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
         pool: SADDLE_MAINNET_POOLS.usx,
         gasSchedule: 150e3,
     }),
-    [SADDLE_MAINNET_POOLS.wcusdMetaPoolV3]: createSaddleMetaSwapPool({
-        tokens: [MAINNET_TOKENS.WCUSD, MAINNET_TOKENS.DAI, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT],
-        pool: SADDLE_MAINNET_POOLS.wcusdMetaPoolV3,
-        gasSchedule: 230e3,
-    }),
     [SADDLE_MAINNET_POOLS.susdMetaPoolV3]: createSaddleMetaSwapPool({
         tokens: [MAINNET_TOKENS.sUSD, MAINNET_TOKENS.DAI, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT],
         pool: SADDLE_MAINNET_POOLS.susdMetaPoolV3,
-        gasSchedule: 230e3,
-    }),
-    [SADDLE_MAINNET_POOLS.tbtcMetaPoolV3]: createSaddleMetaSwapPool({
-        tokens: [MAINNET_TOKENS.tBTCv2, MAINNET_TOKENS.WBTC, MAINNET_TOKENS.RenBTC, MAINNET_TOKENS.sBTC],
-        pool: SADDLE_MAINNET_POOLS.tbtcMetaPoolV3,
-        gasSchedule: 230e3,
-    }),
-    [SADDLE_MAINNET_POOLS.fraxUsdtMetaPool]: createSaddleMetaSwapPool({
-        tokens: [MAINNET_TOKENS.USDT, MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX],
-        pool: SADDLE_MAINNET_POOLS.fraxUsdtMetaPool,
-        gasSchedule: 230e3,
-    }),
-    [SADDLE_MAINNET_POOLS.fraxUsxMetaPool]: createSaddleMetaSwapPool({
-        tokens: [MAINNET_TOKENS.USX, MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX],
-        pool: SADDLE_MAINNET_POOLS.fraxUsxMetaPool,
         gasSchedule: 230e3,
     }),
     [SADDLE_MAINNET_POOLS.fraxAlusdMetaPool]: createSaddleMetaSwapPool({
@@ -1750,34 +1720,6 @@ export const SADDLE_OPTIMISM_INFOS: { [name: string]: CurveInfo } = {
         tokens: [OPTIMISM_TOKENS.USDC, OPTIMISM_TOKENS.FRAX],
         pool: SADDLE_OPTIMISM_POOLS.fraxBP,
         gasSchedule: 150e3,
-    }),
-    [SADDLE_OPTIMISM_POOLS.fraxSusdMetaPool]: createSaddleMetaSwapPool({
-        tokens: [OPTIMISM_TOKENS.sUSD, OPTIMISM_TOKENS.USDC, OPTIMISM_TOKENS.FRAX],
-        pool: SADDLE_OPTIMISM_POOLS.fraxSusdMetaPool,
-        gasSchedule: 230e3,
-    }),
-    [SADDLE_OPTIMISM_POOLS.fraxUsdtMetaPool]: createSaddleMetaSwapPool({
-        tokens: [OPTIMISM_TOKENS.USDT, OPTIMISM_TOKENS.USDC, OPTIMISM_TOKENS.FRAX],
-        pool: SADDLE_OPTIMISM_POOLS.fraxSusdMetaPool,
-        gasSchedule: 230e3,
-    }),
-};
-
-export const SADDLE_FANTOM_INFOS: { [name: string]: CurveInfo } = {
-    [SADDLE_FANTOM_POOLS.ftmUSDPool]: createSaddleSwapPool({
-        tokens: [OPTIMISM_TOKENS.USDC, OPTIMISM_TOKENS.FRAX],
-        pool: SADDLE_FANTOM_POOLS.ftmUSDPool,
-        gasSchedule: 150e3,
-    }),
-    [SADDLE_FANTOM_POOLS.fraxUsdtMetaPool]: createSaddleMetaSwapPool({
-        tokens: [FANTOM_TOKENS.USDT, FANTOM_TOKENS.USDC, FANTOM_TOKENS.FRAX],
-        pool: SADDLE_FANTOM_POOLS.fraxUsdtMetaPool,
-        gasSchedule: 230e3,
-    }),
-    [SADDLE_FANTOM_POOLS.fraxAlusdMetaPool]: createSaddleMetaSwapPool({
-        tokens: [FANTOM_TOKENS.alUSD, FANTOM_TOKENS.USDC, FANTOM_TOKENS.FRAX],
-        pool: SADDLE_FANTOM_POOLS.fraxAlusdMetaPool,
-        gasSchedule: 230e3,
     }),
 };
 
