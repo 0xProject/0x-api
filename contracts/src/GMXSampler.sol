@@ -13,7 +13,7 @@ contract GMXSampler is SamplerUtils, ApproximateBuys {
     }
 
     function sampleSellsFromGMX(
-        address reader,
+        IGMX reader,
         address vault,
         address[] memory path,
         uint256[] memory takerTokenAmounts
@@ -26,17 +26,17 @@ contract GMXSampler is SamplerUtils, ApproximateBuys {
                 if (takerTokenAmounts[i] > maxAmountIn) {
                     break;
                 }
-                try IGMX(reader).getAmountOut(IVault(vault), path[0], path[1], takerTokenAmounts[i]) returns (
-                    uint256 amountAfterFees,
-                    uint256 feeAmount
-                ) {
-                    makerTokenAmounts[i] = amountAfterFees;
-                    // Break early if there are 0 amounts
-                    if (makerTokenAmounts[i] == 0) {
-                        break;
-                    }
-                } catch (bytes memory) {
-                    // Swallow failures, leaving all results as zero.
+            } catch (bytes memory) {
+                // Swallow failures, leaving all results as zero.
+                break;
+            }
+            try IGMX(reader).getAmountOut(IVault(vault), path[0], path[1], takerTokenAmounts[i]) returns (
+                uint256 amountAfterFees,
+                uint256 feeAmount
+            ) {
+                makerTokenAmounts[i] = amountAfterFees;
+                // Break early if there are 0 amounts
+                if (makerTokenAmounts[i] == 0) {
                     break;
                 }
             } catch (bytes memory) {
@@ -47,7 +47,7 @@ contract GMXSampler is SamplerUtils, ApproximateBuys {
     }
 
     function sampleBuysFromGMX(
-        address reader,
+        IGMX reader,
         address vault,
         address[] memory path,
         uint256[] memory makerTokenAmounts
@@ -58,8 +58,8 @@ contract GMXSampler is SamplerUtils, ApproximateBuys {
         return
             _sampleApproximateBuys(
                 ApproximateBuyQuoteOpts({
-                    makerTokenData: abi.encode(reader, vault, invertBuyPath),
-                    takerTokenData: abi.encode(reader, vault, path),
+                    makerTokenData: abi.encode(address(reader), vault, invertBuyPath),
+                    takerTokenData: abi.encode(address(reader), vault, path),
                     getSellQuoteCallback: _sampleSellForApproximateBuyFromGMX
                 }),
                 makerTokenAmounts
