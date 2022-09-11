@@ -568,8 +568,10 @@ export const POLYGON_TOKENS = {
 export const AVALANCHE_TOKENS = {
     WAVAX: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',
     WETH: '0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab',
+    // bridged WBTC from Ethereum WBTC.e
     WBTC: '0x50b7545627a5162f82a992c33b87adc75187b218',
-    BTC: '0x152b9d0FdC40C096757F570A51E494bd4b943E50',
+    // bridged BTC from Bitcoin BTC.b
+    BTC: '0x152b9d0fdc40c096757f570a51e494bd4b943e50',
     DAI: '0xd586e7f844cea2f87f50152665bcbc2c279d8d70',
     // bridged USDC
     USDC: '0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664',
