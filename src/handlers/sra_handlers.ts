@@ -72,8 +72,9 @@ export class SRAHandlers {
     }
     public async pricesAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+        const createdBy = (req.query.createdBy as string).toLowerCase();
         const graphUrl = (req.query.graphUrl as string).toLowerCase();
-        const priceResponse = await this._orderBook.getPricesAsync(page, perPage, graphUrl);
+        const priceResponse = await this._orderBook.getPricesAsync(page, perPage, createdBy, graphUrl);
         res.status(HttpStatus.OK).send(priceResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {

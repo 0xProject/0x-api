@@ -75,10 +75,11 @@ export class OrderBookService {
     public async getPricesAsync(
         page: number,
         perPage: number,
+        createdBy: string,
         graphUrl: string,
     ): Promise<any> {
         const result: any[] = [];
-        const res = await fetchPoolLists(graphUrl, page, perPage);
+        const res = await fetchPoolLists(graphUrl, page, createdBy, perPage);
         const pools: any[] = []
         res.map((pool: any) => {
             pools.push({
