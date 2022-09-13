@@ -126,11 +126,6 @@ export interface OrderbookResponse {
     asks: PaginatedCollection<SRAOrder>;
 }
 
-export interface PricesRequest {
-    longToken: string;
-    shortToken: string;
-}
-
 export interface OrderConfigRequestPayload {
     maker: string;
     taker: string;

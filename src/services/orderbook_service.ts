@@ -12,7 +12,7 @@ import { ONE_SECOND_MS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder, PricesRequest } from '../types';
+import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder, OrderbookRequest } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
@@ -74,24 +74,14 @@ export class OrderBookService {
     public async getPricesAsync(
         page: number,
         perPage: number,
-        pools: PricesRequest[],
+        pools: OrderbookRequest[],
     ): Promise<any> {
         const result: any[] = [];
         await Promise.all(pools.map(async (pool) => {
-            let priceResponse = await this.getOrderBookAsync(1, 10, pool.longToken, pool.shortToken);
+            let priceResponse = await this.getOrderBookAsync(1, 10, pool.baseToken, pool.quoteToken);
             result.push({
-                longToken: pool.longToken,
-                shortToken: pool.shortToken,
-                type: "long",
-                bid: priceResponse.bids.records[0],
-                ask: priceResponse.asks.records[0]
-            })
-
-            priceResponse = await this.getOrderBookAsync(1, 10, pool.shortToken, pool.longToken);
-            result.push({
-                longToken: pool.longToken,
-                shortToken: pool.shortToken,
-                type: "short",
+                baseToken: pool.baseToken,
+                quoteToken: pool.quoteToken,
                 bid: priceResponse.bids.records[0],
                 ask: priceResponse.asks.records[0]
             })
