@@ -67,16 +67,16 @@ const queryPools = (
     }
   `
 
-export const fetchPoolLists = async (graphUrl: string, page: number, createdBy: string, pageSize: number) => {
-    const result = await request(
-        graphUrl,
-        queryPools(
-            Math.max(page, 0) * pageSize,
-            pageSize,
-            createdBy,
-            ''
-        )
+export const fetchPoolLists = async (page: number, pageSize: number, createdBy: string, graphUrl: string) => {
+  const result = await request(
+    graphUrl,
+    queryPools(
+      Math.max(page, 0) * pageSize,
+      pageSize,
+      createdBy,
+      undefined
     )
+  )
 
-    return result.pools
+  return result.pools;
 }

@@ -79,7 +79,7 @@ export class OrderBookService {
         graphUrl: string,
     ): Promise<any> {
         const result: any[] = [];
-        const res = await fetchPoolLists(graphUrl, page, createdBy, perPage);
+        const res = await fetchPoolLists(page, perPage, createdBy, graphUrl);
         const pools: any[] = []
         res.map((pool: any) => {
             pools.push({
