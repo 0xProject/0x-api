@@ -12,7 +12,7 @@ import { ONE_SECOND_MS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
+import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder, PricesRequest } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
@@ -68,6 +68,36 @@ export class OrderBookService {
             bids: paginatedBidApiOrders,
             asks: paginatedAskApiOrders,
         };
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getPricesAsync(
+        page: number,
+        perPage: number,
+        pools: PricesRequest[],
+    ): Promise<any> {
+        const result: any[] = [];
+        await Promise.all(pools.map(async (pool) => {
+            let priceResponse = await this.getOrderBookAsync(1, 10, pool.longToken, pool.shortToken);
+            result.push({
+                longToken: pool.longToken,
+                shortToken: pool.shortToken,
+                type: "long",
+                bid: priceResponse.bids.records[0],
+                ask: priceResponse.asks.records[0]
+            })
+
+            priceResponse = await this.getOrderBookAsync(1, 10, pool.shortToken, pool.longToken);
+            result.push({
+                longToken: pool.longToken,
+                shortToken: pool.shortToken,
+                type: "short",
+                bid: priceResponse.bids.records[0],
+                ask: priceResponse.asks.records[0]
+            })
+        }))
+        
+        return paginationUtils.paginate(result, page, perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method

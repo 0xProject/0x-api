@@ -70,6 +70,13 @@ export class SRAHandlers {
         const orderbookResponse = await this._orderBook.getOrderBookAsync(page, perPage, baseToken, quoteToken);
         res.status(HttpStatus.OK).send(orderbookResponse);
     }
+    public async pricesAsync(req: express.Request, res: express.Response): Promise<void> {
+        const page = req.body.page;
+        const perPage = req.body.perPage;
+        const pools = req.body.pools;
+        const priceResponse = await this._orderBook.getPricesAsync(page, perPage, pools);
+        res.status(HttpStatus.OK).send(priceResponse);
+    }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
