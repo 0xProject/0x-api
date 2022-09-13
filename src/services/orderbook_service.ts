@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
 import { LimitOrder } from '../asset-swapper';
+import { fetchPoolLists } from '../asset-swapper/utils/market_operation_utils/pools_cache/pool_list_cache';
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
@@ -12,7 +13,7 @@ import { ONE_SECOND_MS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder, OrderbookRequest } from '../types';
+import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
@@ -74,9 +75,22 @@ export class OrderBookService {
     public async getPricesAsync(
         page: number,
         perPage: number,
-        pools: OrderbookRequest[],
+        graphUrl: string,
     ): Promise<any> {
         const result: any[] = [];
+        const res = await fetchPoolLists(graphUrl, page, perPage);
+        const pools: any[] = []
+        res.map((pool: any) => {
+            pools.push({
+                baseToken: pool.longToken.id,
+                quoteToken: pool.collateralToken.id,
+            });
+
+            pools.push({
+                baseToken: pool.shortToken.id,
+                quoteToken: pool.collateralToken.id,
+            })
+        })
         await Promise.all(pools.map(async (pool) => {
             let priceResponse = await this.getOrderBookAsync(1, 10, pool.baseToken, pool.quoteToken);
             result.push({
