@@ -101,8 +101,8 @@ export class OrderBookService {
                 ask: priceResponse.asks.records[0]
             })
         }))
-        
-        return paginationUtils.paginate(result, page, perPage);
+
+        return paginationUtils.paginate(result, page + 1, perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
