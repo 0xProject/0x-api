@@ -77,6 +77,8 @@ export class OrderBookService {
         perPage: number,
         createdBy: string,
         graphUrl: string,
+        threshold: number,
+        best: number
     ): Promise<any> {
         const result: any[] = [];
         const res = await fetchPoolLists(page, perPage, createdBy, graphUrl);
@@ -93,12 +95,38 @@ export class OrderBookService {
             })
         })
         await Promise.all(pools.map(async (pool) => {
-            let priceResponse = await this.getOrderBookAsync(1, 10, pool.baseToken, pool.quoteToken);
+            let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
+            let count = 0;
+            const limit = best === 0 ? priceResponse.bids.records.length : best;
+            const bids = [];
+            const asks = [];
+
+            const bidRecords = priceResponse.bids.records.filter((bid) => Number(bid.metaData.remainingFillableTakerAmount.toString()) > threshold)
+            const askRecords = priceResponse.asks.records.filter((ask) => Number(ask.metaData.remainingFillableTakerAmount.toString()) > threshold)
+
+            while(count < limit) {
+                bids.push({
+                    makerAmount: bidRecords[count].order.makerAmount,
+                    takerAmount: bidRecords[count].order.takerAmount,
+                    maker: bidRecords[count].order.maker,
+                    remainingFillableTakerAmount: bidRecords[count].metaData.remainingFillableTakerAmount
+                });
+
+                asks.push({
+                    makerAmount: askRecords[count].order.makerAmount,
+                    takerAmount: askRecords[count].order.takerAmount,
+                    maker: askRecords[count].order.maker,
+                    remainingFillableTakerAmount: askRecords[count].metaData.remainingFillableTakerAmount
+                })
+
+                count++;
+            }
+
             result.push({
                 baseToken: pool.baseToken,
                 quoteToken: pool.quoteToken,
-                bid: priceResponse.bids.records[0],
-                ask: priceResponse.asks.records[0]
+                bid: bids,
+                ask: asks,
             })
         }))
 

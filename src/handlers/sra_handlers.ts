@@ -74,7 +74,9 @@ export class SRAHandlers {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const createdBy = (req.query.createdBy as string).toLowerCase();
         const graphUrl = (req.query.graphUrl as string).toLowerCase();
-        const priceResponse = await this._orderBook.getPricesAsync(page, perPage, createdBy, graphUrl);
+        const threshold: number = Number((req.query.threshold as string)) | 0;
+        const best: number = Number((req.query.best as string)) | 0;
+        const priceResponse = await this._orderBook.getPricesAsync(page, perPage, createdBy, graphUrl, threshold, best);
         res.status(HttpStatus.OK).send(priceResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
