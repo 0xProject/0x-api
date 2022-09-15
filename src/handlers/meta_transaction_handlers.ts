@@ -47,13 +47,6 @@ export class MetaTransactionHandlers {
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema as any);
         // parse query params
         const params = parseGetTransactionRequestParams(req);
-        if (params.slippagePercentage && params.slippagePercentage < 0.001) {
-          throw new ValidationError([{
-            field: 'slippagePercentage',
-            code: ValidationErrorCodes.MinSlippageTooLow,
-            reason: ValidationErrorReasons.MinSlippageTooLow,
-          }])
-        }
         const { buyTokenAddress, sellTokenAddress } = params;
         const isETHBuy = isNativeSymbolOrAddress(buyTokenAddress, CHAIN_ID);
 
@@ -229,6 +222,13 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
                 reason: ValidationErrorReasons.PercentageOutOfRange,
             },
         ]);
+    }
+    if (slippagePercentage < 0.001) {
+      throw new ValidationError([{
+        field: 'slippagePercentage',
+        code: ValidationErrorCodes.MinSlippageTooLow,
+        reason: ValidationErrorReasons.MinSlippageTooLow,
+      }])
     }
 
     // Note: no RFQT config is passed through here so RFQT is excluded
