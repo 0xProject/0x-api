@@ -96,15 +96,17 @@ export class OrderBookService {
         })
         await Promise.all(pools.map(async (pool) => {
             let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
-            let count = 0;
-            const limit = best === 0 ? priceResponse.bids.records.length : best;
-            const bids = [];
-            const asks = [];
 
             const bidRecords = priceResponse.bids.records.filter((bid) => Number(bid.metaData.remainingFillableTakerAmount.toString()) > threshold)
             const askRecords = priceResponse.asks.records.filter((ask) => Number(ask.metaData.remainingFillableTakerAmount.toString()) > threshold)
 
-            while(count < limit) {
+            const bidLimit = best === 0 ? Math.min(1, bidRecords.length) : Math.min(best, bidRecords.length);
+            const askLimit = best === 0 ? Math.min(1, askRecords.length) : Math.min(best, askRecords.length);
+            const bids = [];
+            const asks = [];
+
+            let count = 0;
+            while(count < bidLimit) {
                 bids.push({
                     makerAmount: bidRecords[count].order.makerAmount,
                     takerAmount: bidRecords[count].order.takerAmount,
@@ -112,6 +114,11 @@ export class OrderBookService {
                     remainingFillableTakerAmount: bidRecords[count].metaData.remainingFillableTakerAmount
                 });
 
+                count++;
+            }
+
+            count = 0;
+            while(count < askLimit) {
                 asks.push({
                     makerAmount: askRecords[count].order.makerAmount,
                     takerAmount: askRecords[count].order.takerAmount,

@@ -72,7 +72,7 @@ export class SRAHandlers {
     }
     public async pricesAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const createdBy = (req.query.createdBy as string).toLowerCase();
+        const createdBy = req.query.createdBy === undefined ? "" : (req.query.createdBy as string).toLowerCase();
         const graphUrl = (req.query.graphUrl as string).toLowerCase();
         const threshold: number = Number((req.query.threshold as string)) | 0;
         const best: number = Number((req.query.best as string)) | 0;
