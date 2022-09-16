@@ -97,8 +97,8 @@ export class OrderBookService {
         await Promise.all(pools.map(async (pool) => {
             let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
 
-            const bidRecords = priceResponse.bids.records.filter((bid) => Number(bid.metaData.remainingFillableTakerAmount.toString()) > threshold)
-            const askRecords = priceResponse.asks.records.filter((ask) => Number(ask.metaData.remainingFillableTakerAmount.toString()) > threshold)
+            const bidRecords = priceResponse.bids.records.filter((bid) => Number(bid.metaData.remainingFillableTakerAmount.toString()) >= threshold)
+            const askRecords = priceResponse.asks.records.filter((ask) => Number(ask.metaData.remainingFillableTakerAmount.toString()) >= threshold)
 
             const bidLimit = best === 0 ? Math.min(1, bidRecords.length) : Math.min(best, bidRecords.length);
             const askLimit = best === 0 ? Math.min(1, askRecords.length) : Math.min(best, askRecords.length);
@@ -108,10 +108,17 @@ export class OrderBookService {
             let count = 0;
             while(count < bidLimit) {
                 bids.push({
-                    makerAmount: bidRecords[count].order.makerAmount,
-                    takerAmount: bidRecords[count].order.takerAmount,
-                    maker: bidRecords[count].order.maker,
-                    remainingFillableTakerAmount: bidRecords[count].metaData.remainingFillableTakerAmount
+                    order: {
+                        makerAmount: bidRecords[count].order.makerAmount,
+                        takerAmount: bidRecords[count].order.takerAmount,
+                        maker: bidRecords[count].order.maker,
+                        taker: bidRecords[count].order.taker,
+                        takerTokenFeeAmount: bidRecords[count].order.takerTokenFeeAmount,
+                        feeRecipient: bidRecords[count].order.feeRecipient,
+                    },
+                    metaData: {
+                        remainingFillableTakerAmount: bidRecords[count].metaData.remainingFillableTakerAmount
+                    }
                 });
 
                 count++;
@@ -120,10 +127,17 @@ export class OrderBookService {
             count = 0;
             while(count < askLimit) {
                 asks.push({
-                    makerAmount: askRecords[count].order.makerAmount,
-                    takerAmount: askRecords[count].order.takerAmount,
-                    maker: askRecords[count].order.maker,
-                    remainingFillableTakerAmount: askRecords[count].metaData.remainingFillableTakerAmount
+                    order: {
+                        makerAmount: askRecords[count].order.makerAmount,
+                        takerAmount: askRecords[count].order.takerAmount,
+                        maker: askRecords[count].order.maker,
+                        taker: askRecords[count].order.taker,
+                        takerTokenFeeAmount: askRecords[count].order.takerTokenFeeAmount,
+                        feeRecipient: askRecords[count].order.feeRecipient,
+                    },
+                    metaData: {
+                        remainingFillableTakerAmount: askRecords[count].metaData.remainingFillableTakerAmount
+                    }
                 })
 
                 count++;
