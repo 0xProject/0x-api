@@ -2643,7 +2643,7 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     [ERC20BridgeSource.DodoV2]: (_fillData?: FillData) => {
         const { chainId } = _fillData as DODOFillData;
         if (chainId === ChainId.Arbitrum) {
-            return 350e3;
+            return 200e3;
         } else {
             return 100e3;
         }
