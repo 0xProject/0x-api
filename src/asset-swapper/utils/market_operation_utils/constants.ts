@@ -1,5 +1,5 @@
 import { ChainId, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { FillQuoteTransformerOrderType } from '@0x/protocol-utils';
+import { ETH_TOKEN_ADDRESS, FillQuoteTransformerOrderType } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { formatBytes32String, parseBytes32String } from '@ethersproject/strings';
 
@@ -2571,6 +2571,10 @@ const uniswapV2CloneGasSchedule = (fillData?: FillData) => {
     // TODO: Different base cost if to/from ETH.
     let gas = 90e3;
     const path = (fillData as UniswapV2FillData).tokenAddressPath;
+    let chainId = (fillData as UniswapV2FillData).chainId;
+    if(chainId === ChainId.Arbitrum) {
+        gas += 207e3;
+    } 
     if (path.length > 2) {
         gas += (path.length - 2) * 60e3; // +60k for each hop.
     }

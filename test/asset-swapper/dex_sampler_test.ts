@@ -289,6 +289,8 @@ describe('DexSampler tests', () => {
                     NULL_ADDRESS,
                     [expectedMakerToken, expectedTakerToken],
                     expectedTakerFillAmounts,
+                    ERC20BridgeSource.UniswapV2,
+                    ChainId.Ropsten
                 ),
             );
             expect(fillableAmounts).to.deep.eq(expectedMakerFillAmounts);

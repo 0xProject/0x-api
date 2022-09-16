@@ -227,6 +227,7 @@ export interface BalancerV2BatchSwapFillData extends FillData {
 export interface UniswapV2FillData extends FillData {
     tokenAddressPath: string[];
     router: string;
+    chainId: ChainId;
 }
 
 export interface ShellFillData extends FillData {
