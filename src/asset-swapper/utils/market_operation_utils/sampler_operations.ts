@@ -1012,6 +1012,7 @@ export class SamplerOperations {
                 >('sampleSellsFromDODOV2', callResults);
                 fillData.isSellBase = isSellBase;
                 fillData.poolAddress = pool;
+                fillData.chainId = this.chainId;
                 return samples;
             },
         });
@@ -1035,6 +1036,7 @@ export class SamplerOperations {
                 >('sampleSellsFromDODOV2', callResults);
                 fillData.isSellBase = isSellBase;
                 fillData.poolAddress = pool;
+                fillData.chainId = this.chainId;
                 return samples;
             },
         });

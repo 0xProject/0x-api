@@ -251,6 +251,7 @@ export interface DODOFillData extends FillData {
     poolAddress: string;
     isSellBase: boolean;
     helperAddress: string;
+    chainId : ChainId;
 }
 
 export interface GenericRouterFillData extends FillData {

@@ -2640,7 +2640,14 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
         // sell quote requires additional calculation and overhead
         return isSellBase ? 180e3 : 300e3;
     },
-    [ERC20BridgeSource.DodoV2]: (_fillData?: FillData) => 100e3,
+    [ERC20BridgeSource.DodoV2]: (_fillData?: FillData) => {
+        const { chainId } = _fillData as DODOFillData;
+        if (chainId === ChainId.Arbitrum) {
+            return 350e3;
+        } else {
+            return 100e3;
+        }
+    },
     [ERC20BridgeSource.Bancor]: (fillData?: FillData) => {
         let gas = 200e3;
         const path = (fillData as BancorFillData).path;
