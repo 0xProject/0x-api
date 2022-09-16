@@ -218,12 +218,12 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
-            ERC20BridgeSource.Synapse,
+            //ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
-            ERC20BridgeSource.BalancerV2,
-            ERC20BridgeSource.Curve,
+            //ERC20BridgeSource.BalancerV2,
+            ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.GMX,
-            ERC20BridgeSource.Dodo,
+            //ERC20BridgeSource.Dodo,
         ]),
     },
     new SourceFilters([]),
@@ -376,12 +376,12 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
-            ERC20BridgeSource.Synapse,
+            //ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
-            ERC20BridgeSource.BalancerV2,
-            ERC20BridgeSource.Curve,
+            //ERC20BridgeSource.BalancerV2,
+            ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.GMX,
-            ERC20BridgeSource.Dodo,
+            //ERC20BridgeSource.Dodo,
         ]),
     },
     new SourceFilters([]),
@@ -2571,10 +2571,10 @@ const uniswapV2CloneGasSchedule = (fillData?: FillData) => {
     // TODO: Different base cost if to/from ETH.
     let gas = 90e3;
     const path = (fillData as UniswapV2FillData).tokenAddressPath;
-    let chainId = (fillData as UniswapV2FillData).chainId;
-    if(chainId === ChainId.Arbitrum) {
+    const chainId = (fillData as UniswapV2FillData).chainId;
+    if (chainId === ChainId.Arbitrum) {
         gas += 207e3;
-    } 
+    }
     if (path.length > 2) {
         gas += (path.length - 2) * 60e3; // +60k for each hop.
     }

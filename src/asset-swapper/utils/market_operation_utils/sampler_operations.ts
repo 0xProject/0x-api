@@ -347,9 +347,8 @@ export class SamplerOperations {
         tokenAddressPath: string[],
         takerFillAmounts: BigNumber[],
         source: ERC20BridgeSource = ERC20BridgeSource.UniswapV2,
-        chainId: ChainId
-    ): SourceQuoteOperation<UniswapV2FillData > {
-
+        chainId: ChainId,
+    ): SourceQuoteOperation<UniswapV2FillData> {
         return new SamplerContractOperation({
             source,
             fillData: { tokenAddressPath, router, chainId },
@@ -364,11 +363,11 @@ export class SamplerOperations {
         tokenAddressPath: string[],
         makerFillAmounts: BigNumber[],
         source: ERC20BridgeSource = ERC20BridgeSource.UniswapV2,
-        chainId: ChainId
+        chainId: ChainId,
     ): SourceQuoteOperation<UniswapV2FillData> {
         return new SamplerContractOperation({
             source,
-            fillData: { tokenAddressPath, router , chainId},
+            fillData: { tokenAddressPath, router, chainId },
             contract: this._samplerContract,
             function: this._samplerContract.sampleBuysFromUniswapV2,
             params: [router, tokenAddressPath, makerFillAmounts],
@@ -1537,7 +1536,9 @@ export class SamplerOperations {
                         return [
                             [takerToken, makerToken],
                             ...intermediateTokens.map((t) => [takerToken, t, makerToken]),
-                        ].map((path) => this.getUniswapV2SellQuotes(uniLikeRouter, path, takerFillAmounts, source, this.chainId));
+                        ].map((path) =>
+                            this.getUniswapV2SellQuotes(uniLikeRouter, path, takerFillAmounts, source, this.chainId),
+                        );
                     }
                     case ERC20BridgeSource.KyberDmm: {
                         const kyberDmmRouter = KYBER_DMM_ROUTER_BY_CHAIN_ID[this.chainId];
@@ -1873,7 +1874,9 @@ export class SamplerOperations {
                         return [
                             [takerToken, makerToken],
                             ...intermediateTokens.map((t) => [takerToken, t, makerToken]),
-                        ].map((path) => this.getUniswapV2BuyQuotes(uniLikeRouter, path, makerFillAmounts, source, this.chainId));
+                        ].map((path) =>
+                            this.getUniswapV2BuyQuotes(uniLikeRouter, path, makerFillAmounts, source, this.chainId),
+                        );
                     }
                     case ERC20BridgeSource.KyberDmm: {
                         const kyberDmmRouter = KYBER_DMM_ROUTER_BY_CHAIN_ID[this.chainId];
