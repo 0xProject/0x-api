@@ -70,13 +70,32 @@ export class SRAHandlers {
         const orderbookResponse = await this._orderBook.getOrderBookAsync(page, perPage, baseToken, quoteToken);
         res.status(HttpStatus.OK).send(orderbookResponse);
     }
-    public async pricesAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async orderbookPricesAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const createdBy = req.query.createdBy === undefined ? "" : (req.query.createdBy as string).toLowerCase();
         const graphUrl = (req.query.graphUrl as string).toLowerCase();
+        const createdBy = req.query.createdBy === undefined ? "" : (req.query.createdBy as string).toLowerCase();
+        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
+        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
+        const feeRecipient = req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
+        const makerAmount: number = Number((req.query.makerAmount as string)) | 0;
+        const takerAmount: number = Number((req.query.takerAmount as string)) | 0;
+        const takerTokenFeeAmount: number = Number((req.query.takerTokenFeeAmount as string)) | 0;
         const threshold: number = Number((req.query.threshold as string)) | 0;
         const best: number = Number((req.query.best as string)) | 0;
-        const priceResponse = await this._orderBook.getPricesAsync(page, perPage, createdBy, graphUrl, threshold, best);
+        const priceResponse = await this._orderBook.getPricesAsync({
+            page,
+            perPage,
+            graphUrl,
+            createdBy,
+            maker,
+            taker,
+            feeRecipient,
+            makerAmount,
+            takerAmount,
+            takerTokenFeeAmount,
+            threshold,
+            best,
+        });
         res.status(HttpStatus.OK).send(priceResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {

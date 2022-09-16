@@ -15,7 +15,7 @@ export function createOrderBookRouter(orderBook: OrderBookService): express.Rout
     /**
      * GET Price endpoint retrieves the prices by order hash.
      */
-    router.get('/prices', asyncHandler(handlers.pricesAsync.bind(handlers)));
+    router.get('/prices', asyncHandler(handlers.orderbookPricesAsync.bind(handlers)));
     /**
      * GET Orders endpoint retrieves a list of orders given query parameters.
      */

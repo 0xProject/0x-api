@@ -9,11 +9,11 @@ import {
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
 } from '../config';
-import { ONE_SECOND_MS } from '../constants';
+import { ONE_SECOND_MS, NULL_ADDRESS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
+import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder, OrderbookPriceRequest } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
@@ -71,17 +71,36 @@ export class OrderBookService {
         };
     }
 
+    public checkBidsOrAsks = (order: SRAOrder, req: OrderbookPriceRequest) => {
+        if (req.maker !== NULL_ADDRESS && order.order.maker.toLowerCase() !== req.maker) {
+            return false;
+        }
+        if (req.taker !== NULL_ADDRESS && order.order.taker.toLowerCase() !== req.taker) {
+            return false;
+        }
+        if (req.feeRecipient !== NULL_ADDRESS && order.order.feeRecipient.toLowerCase() !== req.feeRecipient) {
+            return false;
+        }
+        if (req.makerAmount !== 0 && Number(order.order.makerAmount.toString()) !== req.makerAmount) {
+            return false;
+        }
+        if (req.takerAmount !== 0 && Number(order.order.takerAmount.toString()) !== req.takerAmount) {
+            return false;
+        }
+        if (req.takerTokenFeeAmount !== 0 && Number(order.order.takerTokenFeeAmount.toString()) !== req.takerTokenFeeAmount) {
+            return false;
+        }
+        if (Number(order.metaData.remainingFillableTakerAmount.toString()) < req.threshold) {
+            return false;
+        }
+
+        return true;
+    }
+
     // tslint:disable-next-line:prefer-function-over-method
-    public async getPricesAsync(
-        page: number,
-        perPage: number,
-        createdBy: string,
-        graphUrl: string,
-        threshold: number,
-        best: number
-    ): Promise<any> {
+    public async getPricesAsync(req: OrderbookPriceRequest): Promise<any> {
         const result: any[] = [];
-        const res = await fetchPoolLists(page, perPage, createdBy, graphUrl);
+        const res = await fetchPoolLists(req.page, req.perPage, req.createdBy, req.graphUrl);
         const pools: any[] = []
         res.map((pool: any) => {
             pools.push({
@@ -97,11 +116,11 @@ export class OrderBookService {
         await Promise.all(pools.map(async (pool) => {
             let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
 
-            const bidRecords = priceResponse.bids.records.filter((bid) => Number(bid.metaData.remainingFillableTakerAmount.toString()) >= threshold)
-            const askRecords = priceResponse.asks.records.filter((ask) => Number(ask.metaData.remainingFillableTakerAmount.toString()) >= threshold)
+            const bidRecords = priceResponse.bids.records.filter((bid) => this.checkBidsOrAsks(bid, req))
+            const askRecords = priceResponse.asks.records.filter((ask) => this.checkBidsOrAsks(ask, req))
 
-            const bidLimit = best === 0 ? Math.min(1, bidRecords.length) : Math.min(best, bidRecords.length);
-            const askLimit = best === 0 ? Math.min(1, askRecords.length) : Math.min(best, askRecords.length);
+            const bidLimit = req.best === 0 ? Math.min(1, bidRecords.length) : Math.min(req.best, bidRecords.length);
+            const askLimit = req.best === 0 ? Math.min(1, askRecords.length) : Math.min(req.best, askRecords.length);
             const bids = [];
             const asks = [];
 
@@ -151,7 +170,7 @@ export class OrderBookService {
             })
         }))
 
-        return paginationUtils.paginate(result, page + 1, perPage);
+        return paginationUtils.paginate(result, req.page + 1, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
