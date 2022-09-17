@@ -22,6 +22,8 @@ import {
     FinalUniswapV3FillData,
     GasSchedule,
     GetMarketOrdersOpts,
+    GMXFillData,
+    GMXFillDataWithChainId,
     isFinalUniswapV3FillData,
     LidoFillData,
     LidoInfo,
@@ -33,6 +35,7 @@ import {
     PsmInfo,
     SynthetixFillData,
     UniswapV2FillData,
+    UniswapV2FillDataWithChainId,
     UniswapV3FillData,
     WOOFiFillData,
 } from './types';
@@ -2568,15 +2571,27 @@ export const VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID = valueByChainId<ERC20BridgeSo
 );
 
 const uniswapV2CloneGasSchedule = (fillData?: FillData) => {
+    const uniV2FillData = fillData as UniswapV2FillData | UniswapV2FillDataWithChainId;
     // TODO: Different base cost if to/from ETH.
     let gas = 90e3;
-    const path = (fillData as UniswapV2FillData).tokenAddressPath;
-    const chainId = (fillData as UniswapV2FillData).chainId;
+    const path = (uniV2FillData as UniswapV2FillData).tokenAddressPath;
+    const chainId = (uniV2FillData as UniswapV2FillDataWithChainId).chainId;
     if (chainId === ChainId.Arbitrum) {
-        gas += 207e3;
+        gas += 650e3;
     }
     if (path.length > 2) {
         gas += (path.length - 2) * 60e3; // +60k for each hop.
+    }
+    return gas;
+};
+
+const gmxGasSchedule = (fillData?: FillData) => {
+    const gmxFillData = fillData as GMXFillData | GMXFillDataWithChainId;
+
+    let gas = 450e3;
+    const chainId = (gmxFillData as GMXFillDataWithChainId).chainId;
+    if (chainId === ChainId.Arbitrum) {
+        gas += 400e3;
     }
     return gas;
 };
@@ -2666,7 +2681,7 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
         const uniFillData = fillData as UniswapV3FillData | FinalUniswapV3FillData;
         // NOTE: This base value was heuristically chosen by looking at how much it generally
         // underestimated gas usage
-        const base = uniFillData.chainId == ChainId.Arbitrum ? 208e3 : 34e3; // 34k base
+        const base = uniFillData.chainId == ChainId.Arbitrum ? 900e3 : 34e3; // 34k base
         let gas = base;
         if (isFinalUniswapV3FillData(uniFillData)) {
             gas += uniFillData.gasUsed;
@@ -2796,7 +2811,7 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     //
     [ERC20BridgeSource.Pangolin]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.TraderJoe]: uniswapV2CloneGasSchedule,
-    [ERC20BridgeSource.GMX]: () => 400e3,
+    [ERC20BridgeSource.GMX]: gmxGasSchedule,
     [ERC20BridgeSource.Platypus]: () => 450e3,
 
     //

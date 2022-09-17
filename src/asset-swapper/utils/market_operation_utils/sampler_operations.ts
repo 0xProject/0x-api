@@ -80,6 +80,7 @@ import {
     FeeSchedule,
     GenericRouterFillData,
     GMXFillData,
+    GMXFillDataWithChainId,
     HopInfo,
     KyberDmmFillData,
     LidoFillData,
@@ -1184,10 +1185,11 @@ export class SamplerOperations {
         vault: string,
         tokenAddressPath: string[],
         takerFillAmounts: BigNumber[],
-    ): SourceQuoteOperation<GMXFillData> {
+        chainId: ChainId
+    ): SourceQuoteOperation<GMXFillDataWithChainId> {
         return new SamplerContractOperation({
             source: ERC20BridgeSource.GMX,
-            fillData: { router, reader, vault, tokenAddressPath },
+            fillData: { router, reader, vault, tokenAddressPath, chainId },
             contract: this._samplerContract,
             function: this._samplerContract.sampleSellsFromGMX,
             params: [reader, vault, tokenAddressPath, takerFillAmounts],
@@ -1199,10 +1201,11 @@ export class SamplerOperations {
         vault: string,
         tokenAddressPath: string[],
         makerFillAmounts: BigNumber[],
-    ): SourceQuoteOperation<GMXFillData> {
+        chainId: ChainId
+    ): SourceQuoteOperation<GMXFillDataWithChainId> {
         return new SamplerContractOperation({
             source: ERC20BridgeSource.GMX,
-            fillData: { router, reader, vault, tokenAddressPath },
+            fillData: { router, reader, vault, tokenAddressPath, chainId },
             contract: this._samplerContract,
             function: this._samplerContract.sampleBuysFromGMX,
             params: [reader, vault, tokenAddressPath, makerFillAmounts],
@@ -1743,6 +1746,7 @@ export class SamplerOperations {
                             GMX_VAULT_BY_CHAIN_ID[this.chainId],
                             [takerToken, makerToken],
                             takerFillAmounts,
+                            this.chainId
                         );
                     }
                     case ERC20BridgeSource.Platypus: {
@@ -2075,6 +2079,7 @@ export class SamplerOperations {
                             GMX_VAULT_BY_CHAIN_ID[this.chainId],
                             [takerToken, makerToken],
                             makerFillAmounts,
+                            this.chainId
                         );
                     }
                     case ERC20BridgeSource.Platypus: {
