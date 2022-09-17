@@ -1185,7 +1185,7 @@ export class SamplerOperations {
         vault: string,
         tokenAddressPath: string[],
         takerFillAmounts: BigNumber[],
-        chainId: ChainId
+        chainId: ChainId,
     ): SourceQuoteOperation<GMXFillDataWithChainId> {
         return new SamplerContractOperation({
             source: ERC20BridgeSource.GMX,
@@ -1201,7 +1201,7 @@ export class SamplerOperations {
         vault: string,
         tokenAddressPath: string[],
         makerFillAmounts: BigNumber[],
-        chainId: ChainId
+        chainId: ChainId,
     ): SourceQuoteOperation<GMXFillDataWithChainId> {
         return new SamplerContractOperation({
             source: ERC20BridgeSource.GMX,
@@ -1746,7 +1746,7 @@ export class SamplerOperations {
                             GMX_VAULT_BY_CHAIN_ID[this.chainId],
                             [takerToken, makerToken],
                             takerFillAmounts,
-                            this.chainId
+                            this.chainId,
                         );
                     }
                     case ERC20BridgeSource.Platypus: {
@@ -2079,7 +2079,7 @@ export class SamplerOperations {
                             GMX_VAULT_BY_CHAIN_ID[this.chainId],
                             [takerToken, makerToken],
                             makerFillAmounts,
-                            this.chainId
+                            this.chainId,
                         );
                     }
                     case ERC20BridgeSource.Platypus: {
