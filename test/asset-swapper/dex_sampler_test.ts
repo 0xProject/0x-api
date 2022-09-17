@@ -392,6 +392,7 @@ describe('DexSampler tests', () => {
                             return {
                                 router: uniswapV2Router,
                                 tokenAddressPath: [expectedTakerToken, expectedMakerToken],
+                                chainId: ChainId.Mainnet
                             };
                         }
                         // TODO jacob pass through
@@ -410,6 +411,7 @@ describe('DexSampler tests', () => {
                     fillData: {
                         router: uniswapV2Router,
                         tokenAddressPath: [expectedTakerToken, wethAddress, expectedMakerToken],
+                        chainId: ChainId.Mainnet
                     },
                 })),
             ];
@@ -472,6 +474,7 @@ describe('DexSampler tests', () => {
                             return {
                                 router: uniswapV2Router,
                                 tokenAddressPath: [expectedTakerToken, expectedMakerToken],
+                                chainId: ChainId.Mainnet
                             };
                         }
                         if (s === ERC20BridgeSource.Uniswap) {
@@ -489,6 +492,7 @@ describe('DexSampler tests', () => {
                     fillData: {
                         router: uniswapV2Router,
                         tokenAddressPath: [expectedTakerToken, wethAddress, expectedMakerToken],
+                        chainId: ChainId.Mainnet
                     },
                 })),
             ];
