@@ -152,10 +152,10 @@ export function getCurveInfosForPair(chainId: ChainId, takerToken: string, maker
 }
 
 export function getCurveV2InfosForPair(chainId: ChainId, takerToken: string, makerToken: string): CurveInfo[] {
-    const filterTokenInfos = function(CURVE_V2_CHAIN_INFOS: { [name: string]: CurveInfo } ): CurveInfo[] {
+    const filterTokenInfos = function (CURVE_V2_CHAIN_INFOS: { [name: string]: CurveInfo }): CurveInfo[] {
         return Object.values(CURVE_V2_CHAIN_INFOS).filter((c) =>
             [makerToken, takerToken].every(
-                (t) => 
+                (t) =>
                     (c.tokens.includes(t) && c.metaTokens === undefined) ||
                     (c.tokens.includes(t) &&
                         [makerToken, takerToken].filter((v) => c.metaTokens?.includes(v)).length > 0),
