@@ -190,11 +190,13 @@ function parseRequestParams(req: express.Request): MetaTransactionQuoteRequestPa
         ]);
     }
     if (slippagePercentage < 0.001) {
-      throw new ValidationError([{
-        field: 'slippagePercentage',
-        code: ValidationErrorCodes.ValueOutOfRange,
-        reason: ValidationErrorReasons.MinSlippageTooLow,
-      }])
+        throw new ValidationError([
+            {
+                field: 'slippagePercentage',
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: ValidationErrorReasons.MinSlippageTooLow,
+            },
+        ]);
     }
 
     // Note: no RFQT config is passed through here so RFQT is excluded
