@@ -1,5 +1,5 @@
 import { ChainId, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import { FillQuoteTransformerOrderType } from '@0x/protocol-utils';
+import { ETH_TOKEN_ADDRESS, FillQuoteTransformerOrderType } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { formatBytes32String, parseBytes32String } from '@ethersproject/strings';
 
@@ -22,6 +22,8 @@ import {
     FinalUniswapV3FillData,
     GasSchedule,
     GetMarketOrdersOpts,
+    GMXFillData,
+    GMXFillDataWithChainId,
     isFinalUniswapV3FillData,
     LidoFillData,
     LidoInfo,
@@ -33,6 +35,7 @@ import {
     PsmInfo,
     SynthetixFillData,
     UniswapV2FillData,
+    UniswapV2FillDataWithChainId,
     UniswapV3FillData,
     WOOFiFillData,
 } from './types';
@@ -212,17 +215,19 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.MultiHop,
+            ERC20BridgeSource.Saddle,
             ERC20BridgeSource.Velodrome,
             ERC20BridgeSource.Synthetix,
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
-            ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
-            ERC20BridgeSource.BalancerV2,
-            ERC20BridgeSource.Curve,
+            //ERC20BridgeSource.BalancerV2,
+            // ERC20BridgeSource.Synapse, // TODO: re-enable once fixed.
+            ERC20BridgeSource.SushiSwap,
+            ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.GMX,
-            ERC20BridgeSource.Dodo,
+            //ERC20BridgeSource.Dodo,
         ]),
     },
     new SourceFilters([]),
@@ -369,17 +374,18 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.MultiHop,
+            ERC20BridgeSource.Saddle,
             ERC20BridgeSource.Velodrome,
             ERC20BridgeSource.Synthetix,
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
-            ERC20BridgeSource.Synapse,
             ERC20BridgeSource.SushiSwap,
-            ERC20BridgeSource.BalancerV2,
-            ERC20BridgeSource.Curve,
+            //ERC20BridgeSource.BalancerV2,
+            // ERC20BridgeSource.Synapse, // TODO: re-enable once fixed.
+            ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.GMX,
-            ERC20BridgeSource.Dodo,
+            //ERC20BridgeSource.Dodo,
         ]),
     },
     new SourceFilters([]),
@@ -440,6 +446,8 @@ export const MAINNET_TOKENS = {
     USDN: '0x674c6ad92fd080e4004b2312b45f796a192d27a0',
     dUSD: '0x5bc25f649fc4e26069ddf4cf4010f9f706c23831',
     USDP: '0x1456688345527be1f37e9e627da0837d6f08c925',
+    USX: '0x0a5e677a6a24b2f1a2bf4f3bffc443231d2fdec8',
+    WCUSD: '0xad3e3fc59dff318beceaab7d00eb4f68b1ecf195',
     // Bitcoins
     WBTC: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
     RenBTC: '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d',
@@ -564,7 +572,10 @@ export const POLYGON_TOKENS = {
 export const AVALANCHE_TOKENS = {
     WAVAX: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',
     WETH: '0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab',
+    // bridged WBTC from Ethereum WBTC.e
     WBTC: '0x50b7545627a5162f82a992c33b87adc75187b218',
+    // bridged BTC from Bitcoin BTC.b
+    BTCb: '0x152b9d0fdc40c096757f570a51e494bd4b943e50',
     DAI: '0xd586e7f844cea2f87f50152665bcbc2c279d8d70',
     // bridged USDC
     USDC: '0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664',
@@ -646,6 +657,8 @@ export const FANTOM_TOKENS = {
     gCRV: '0x690754a168b022331caa2467207c61919b3f8a98',
     gMIM: '0xc664fc7b8487a3e10824cda768c1d239f2403bbe',
     WOO: '0x6626c47c00f1d87902fc13eecfac3ed06d5e8d8a',
+    USDT: '0x049d68029688eabf473097a2fc38ef61633a3c7a',
+    alUSD: '0xb67fa6defce4042070eb1ae1511dcd6dcc6a532e',
 };
 
 export const OPTIMISM_TOKENS = {
@@ -653,6 +666,7 @@ export const OPTIMISM_TOKENS = {
     USDC: '0x7f5c764cbc14f9669b88837ca1490cca17c31607',
     USDT: '0x94b008aa00579c1307b0ef2c499ad98a8ce58e58',
     DAI: '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1',
+    FRAX: '0x2e3d870790dc77a83dd1d18184acc7439a53f475',
     WBTC: '0x68f180fcce6836688e9084f035309e29bf0a2095',
     nETH: '0x809dc529f07651bd43a172e8db6f4a7a0d771036',
     sWETH: '0x121ab82b49b2bc4c7901ca46b8277962b4350204',
@@ -672,11 +686,13 @@ export const OPTIMISM_TOKENS = {
 export const ARBITRUM_TOKENS = {
     USDT: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
     USDC: '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8',
-    nETH: '0x3ea9b0ab55f34Fb188824Ee288CeaEfC63cf908e',
-    WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-    nUSD: '0x2913E812Cf0dcCA30FB28E6Cac3d2DCFF4497688',
-    MIM: '0xFEa7a6a0B346362BF88A9e4A88416B77a57D6c2A',
+    FRAX: '0x17fc002b466eec40dae837fc4be5c67993ddbd6f',
+    nETH: '0x3ea9b0ab55f34fb188824ee288ceaefc63cf908e',
+    WETH: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
+    nUSD: '0x2913e812cf0dcca30fb28e6cac3d2dcff4497688',
+    MIM: '0xfea7a6a0b346362bf88a9e4a88416b77a57d6c2a',
     WBTC: '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
+    VST: '0x64343594ab9b56e99087bfa6f2335db24c2d1f17',
 };
 
 export const CURVE_POOLS = {
@@ -779,15 +795,40 @@ export const CURVE_OPTIMISM_POOLS = {
     tri: '0x1337bedc9d22ecbe766df105c9623922a27963ec',
 };
 
-export const CURVE_ARBITRUM_POOLS = {
+export const CURVE_V2_ARBITRUM_POOLS = {
     tri: '0x960ea3e3c7fb317332d990873d354e18d7645590',
+    twoPool: '0x7f90122bf0700f9e7e1f688fe926940e8839f353',
+    vstFrax: '0x59bf0545fca0e5ad48e13da269facd2e8c886ba4',
+    MIM: '0x30df229cefa463e991e29d42db0bae2e122b2ac7',
+    fraxBP: '0xc9b8a3fdecb9d5b218d02555a8baf332e5b740d5',
 };
 
-export const SADDLE_POOLS = {
+export const SADDLE_MAINNET_POOLS = {
+    // swaps
     stablesV2: '0xaCb83E0633d6605c5001e2Ab59EF3C745547C8C7',
     bitcoinsV2: '0xdf3309771d2BF82cb2B6C56F9f5365C8bD97c4f2',
     alETH: '0xa6018520eaacc06c30ff2e1b3ee2c7c22e64196a',
     d4: '0xc69ddcd4dfef25d8a793241834d4cc4b3668ead6',
+    '4Pool': '0x101cd330d088634b6f64c2eb4276e63bf1bbfde3',
+    fraxBP: '0x13cc34aa8037f722405285ad2c82fe570bfa2bdc',
+    frax3Pool: '0x8caea59f3bf1f341f89c51607e4919841131e47a',
+    usx: '0x2bff1b48cc01284416e681b099a0cddca0231d72',
+
+    // metaswaps
+    susdMetaPoolV3: '0x4568727f50c7246ded8c39214ed6ff3c157f080d',
+    fraxAlusdMetaPool: '0xfb516cf3710fc6901f2266aaeb8834cf5e4e9558',
+    fraxSusdMetaPool: '0x69baa0d7c2e864b74173922ca069ac79d3be1556',
+};
+
+export const SADDLE_OPTIMISM_POOLS = {
+    // swaps
+    fraxBP: '0xf6c2e0adc659007ba7c48446f5a4e4e94dfe08b5',
+};
+
+export const SADDLE_ARBITRUM_POOLS = {
+    // swaps
+    arbUSDPoolV2: '0xfeea4d1bacb0519e8f952460a70719944fe56ee0',
+    fraxBP: '0x401afbc31ad2a3bc0ed8960d63efcdea749b4849',
 };
 
 export const IRONSWAP_POOLS = {
@@ -886,7 +927,7 @@ export const WOOFI_SUPPORTED_TOKENS = new Set([
     BSC_TOKENS.BTCB,
     AVALANCHE_TOKENS.nUSDC,
     AVALANCHE_TOKENS.WAVAX,
-    AVALANCHE_TOKENS.WBTC,
+    AVALANCHE_TOKENS.BTCb,
     AVALANCHE_TOKENS.WETH,
     AVALANCHE_TOKENS.WOO,
     FANTOM_TOKENS.USDC,
@@ -976,7 +1017,14 @@ export const DEFAULT_INTERMEDIATE_TOKENS_BY_CHAIN_ID = valueByChainId<string[]>(
             OPTIMISM_TOKENS.nETH,
             OPTIMISM_TOKENS.sWETH,
         ],
-        [ChainId.Arbitrum]: [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT, ARBITRUM_TOKENS.WETH, ARBITRUM_TOKENS.WBTC],
+        [ChainId.Arbitrum]: [
+            ARBITRUM_TOKENS.USDC,
+            ARBITRUM_TOKENS.USDT,
+            ARBITRUM_TOKENS.WETH,
+            ARBITRUM_TOKENS.WBTC,
+            ARBITRUM_TOKENS.FRAX,
+            ARBITRUM_TOKENS.MIM,
+        ],
     },
     [],
 );
@@ -1084,6 +1132,7 @@ const CURVE_TRI_BTC_POOL_TOKEN = [MAINNET_TOKENS.RenBTC, MAINNET_TOKENS.WBTC, MA
 const CURVE_POLYGON_ATRICRYPTO_UNDERLYING_TOKENS = [POLYGON_TOKENS.DAI, POLYGON_TOKENS.USDC, POLYGON_TOKENS.USDT];
 const CURVE_POLYGON_ATRICRYPTO_TOKENS = [POLYGON_TOKENS.amDAI, POLYGON_TOKENS.amUSDC, POLYGON_TOKENS.amUSDT];
 const CURVE_FANTOM_TWO_POOL_TOKENS = [FANTOM_TOKENS.DAI, FANTOM_TOKENS.USDC];
+const CURVE_ARBITRUM_TWO_POOL_TOKENS = [FANTOM_TOKENS.USDC, FANTOM_TOKENS.USDT];
 
 const createCurveExchangePool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange,
@@ -1135,6 +1184,16 @@ const createCurveMetaTwoPoolFantom = (info: { tokens: string[]; pool: string; ga
     gasSchedule: info.gasSchedule,
 });
 
+const createCurveMetaTwoPoolArbitrum = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+    exchangeFunctionSelector: CurveFunctionSelectors.exchange,
+    sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy,
+    buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+    tokens: [...info.tokens, ...CURVE_ARBITRUM_TWO_POOL_TOKENS],
+    metaTokens: info.tokens,
+    poolAddress: info.pool,
+    gasSchedule: info.gasSchedule,
+});
+
 const createCurveExchangeV2Pool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_v2,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_v2,
@@ -1164,6 +1223,7 @@ const createCurveFactoryCryptoExchangePool = (info: { tokens: string[]; pool: st
     poolAddress: info.pool,
     gasSchedule: info.gasSchedule,
 });
+
 const MOBIUSMONEY_CELO_SHARED: CurveInfo = {
     exchangeFunctionSelector: CurveFunctionSelectors.swap,
     sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
@@ -1577,12 +1637,33 @@ export const CURVE_OPTIMISM_INFOS: { [name: string]: CurveInfo } = {
     }),
 };
 
-export const CURVE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
-    [CURVE_ARBITRUM_POOLS.tri]: createCurveExchangePool({
-        tokens: [ARBITRUM_TOKENS.WBTC, OPTIMISM_TOKENS.WETH, OPTIMISM_TOKENS.USDT],
-        pool: CURVE_ARBITRUM_POOLS.tri,
-        gasSchedule: 150e3,
+export const CURVE_V2_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
+    [CURVE_V2_ARBITRUM_POOLS.tri]: createCurveExchangeV2Pool({
+        tokens: [ARBITRUM_TOKENS.USDT, ARBITRUM_TOKENS.WBTC, ARBITRUM_TOKENS.WETH],
+        pool: CURVE_V2_ARBITRUM_POOLS.tri,
+        gasSchedule: 600e3,
     }),
+    [CURVE_V2_ARBITRUM_POOLS.twoPool]: createCurveExchangePool({
+        tokens: [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT],
+        pool: CURVE_V2_ARBITRUM_POOLS.twoPool,
+        gasSchedule: 400e3,
+    }),
+    //to do resolve curve pools function selector issues
+    // [CURVE_V2_ARBITRUM_POOLS.MIM]: createCurveMetaTwoPoolArbitrum({
+    //     tokens: [ARBITRUM_TOKENS.MIM],
+    //     pool: CURVE_V2_ARBITRUM_POOLS.MIM,
+    //     gasSchedule: 700e3,
+    // }),
+    // [CURVE_V2_ARBITRUM_POOLS.fraxBP]: createCurveExchangeV2Pool({
+    //     tokens: [ARBITRUM_TOKENS.FRAX, ARBITRUM_TOKENS.USDC],
+    //     pool: CURVE_V2_ARBITRUM_POOLS.fraxBP,
+    //     gasSchedule: 700e3,
+    // }),
+    // [CURVE_V2_ARBITRUM_POOLS.vstFrax]: createCurveExchangeV2Pool({
+    //     tokens: [ARBITRUM_TOKENS.VST, ARBITRUM_TOKENS.FRAX],
+    //     pool: CURVE_V2_ARBITRUM_POOLS.vstFrax,
+    //     gasSchedule: 700e3,
+    // }),
 };
 
 export const BELT_BSC_INFOS: { [name: string]: CurveInfo } = {
@@ -1601,44 +1682,89 @@ export const ELLIPSIS_BSC_INFOS: { [name: string]: CurveInfo } = {
     }),
 };
 
+const createSaddleSwapPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+    exchangeFunctionSelector: CurveFunctionSelectors.swap,
+    sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
+    buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+    tokens: info.tokens,
+    metaTokens: undefined,
+    poolAddress: info.pool,
+    gasSchedule: info.gasSchedule,
+});
+
+const createSaddleMetaSwapPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+    exchangeFunctionSelector: CurveFunctionSelectors.swapUnderlying,
+    sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwapUnderlying,
+    buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+    tokens: info.tokens,
+    metaTokens: [info.tokens[0]],
+    poolAddress: info.pool,
+    gasSchedule: info.gasSchedule,
+});
+
 // Curve-like sources using custom selectors
 export const SADDLE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
-    [SADDLE_POOLS.stablesV2]: {
-        exchangeFunctionSelector: CurveFunctionSelectors.swap,
-        sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
-        buyQuoteFunctionSelector: CurveFunctionSelectors.None,
-        poolAddress: SADDLE_POOLS.stablesV2,
+    [SADDLE_MAINNET_POOLS.stablesV2]: createSaddleSwapPool({
         tokens: [MAINNET_TOKENS.DAI, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT],
-        metaTokens: undefined,
+        pool: SADDLE_MAINNET_POOLS.stablesV2,
         gasSchedule: 150e3,
-    },
-    [SADDLE_POOLS.bitcoinsV2]: {
-        exchangeFunctionSelector: CurveFunctionSelectors.swap,
-        sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
-        buyQuoteFunctionSelector: CurveFunctionSelectors.None,
-        poolAddress: SADDLE_POOLS.bitcoinsV2,
+    }),
+    [SADDLE_MAINNET_POOLS.bitcoinsV2]: createSaddleSwapPool({
         tokens: [MAINNET_TOKENS.WBTC, MAINNET_TOKENS.RenBTC, MAINNET_TOKENS.sBTC],
-        metaTokens: undefined,
+        pool: SADDLE_MAINNET_POOLS.bitcoinsV2,
         gasSchedule: 150e3,
-    },
-    [SADDLE_POOLS.alETH]: {
-        exchangeFunctionSelector: CurveFunctionSelectors.swap,
-        sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
-        buyQuoteFunctionSelector: CurveFunctionSelectors.None,
-        poolAddress: SADDLE_POOLS.alETH,
+    }),
+    [SADDLE_MAINNET_POOLS.alETH]: createSaddleSwapPool({
         tokens: [MAINNET_TOKENS.WETH, MAINNET_TOKENS.alETH, MAINNET_TOKENS.sETH],
-        metaTokens: undefined,
+        pool: SADDLE_MAINNET_POOLS.alETH,
         gasSchedule: 200e3,
-    },
-    [SADDLE_POOLS.d4]: {
-        exchangeFunctionSelector: CurveFunctionSelectors.swap,
-        sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
-        buyQuoteFunctionSelector: CurveFunctionSelectors.None,
-        poolAddress: SADDLE_POOLS.d4,
-        tokens: [MAINNET_TOKENS.alUSD, MAINNET_TOKENS.FEI, MAINNET_TOKENS.FRAX, MAINNET_TOKENS.LUSD],
-        metaTokens: undefined,
+    }),
+    [SADDLE_MAINNET_POOLS.fraxBP]: createSaddleSwapPool({
+        tokens: [MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX],
+        pool: SADDLE_MAINNET_POOLS.fraxBP,
         gasSchedule: 150e3,
-    },
+    }),
+    [SADDLE_MAINNET_POOLS.usx]: createSaddleSwapPool({
+        tokens: [MAINNET_TOKENS.USDC, MAINNET_TOKENS.USX],
+        pool: SADDLE_MAINNET_POOLS.usx,
+        gasSchedule: 150e3,
+    }),
+    [SADDLE_MAINNET_POOLS.susdMetaPoolV3]: createSaddleMetaSwapPool({
+        tokens: [MAINNET_TOKENS.sUSD, MAINNET_TOKENS.DAI, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT],
+        pool: SADDLE_MAINNET_POOLS.susdMetaPoolV3,
+        gasSchedule: 370e3,
+    }),
+    [SADDLE_MAINNET_POOLS.fraxAlusdMetaPool]: createSaddleMetaSwapPool({
+        tokens: [MAINNET_TOKENS.alUSD, MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX],
+        pool: SADDLE_MAINNET_POOLS.fraxAlusdMetaPool,
+        gasSchedule: 320e3,
+    }),
+    [SADDLE_MAINNET_POOLS.fraxSusdMetaPool]: createSaddleMetaSwapPool({
+        tokens: [MAINNET_TOKENS.sUSD, MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX],
+        pool: SADDLE_MAINNET_POOLS.fraxSusdMetaPool,
+        gasSchedule: 370e3,
+    }),
+};
+
+export const SADDLE_OPTIMISM_INFOS: { [name: string]: CurveInfo } = {
+    [SADDLE_OPTIMISM_POOLS.fraxBP]: createSaddleSwapPool({
+        tokens: [OPTIMISM_TOKENS.USDC, OPTIMISM_TOKENS.FRAX],
+        pool: SADDLE_OPTIMISM_POOLS.fraxBP,
+        gasSchedule: 150e3,
+    }),
+};
+
+export const SADDLE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
+    [SADDLE_ARBITRUM_POOLS.fraxBP]: createSaddleSwapPool({
+        tokens: [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.FRAX],
+        pool: SADDLE_ARBITRUM_POOLS.fraxBP,
+        gasSchedule: 150e3,
+    }),
+    [SADDLE_ARBITRUM_POOLS.arbUSDPoolV2]: createSaddleSwapPool({
+        tokens: [ARBITRUM_TOKENS.FRAX, ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT],
+        pool: SADDLE_ARBITRUM_POOLS.arbUSDPoolV2,
+        gasSchedule: 150e3,
+    }),
 };
 
 export const IRONSWAP_POLYGON_INFOS: { [name: string]: CurveInfo } = {
@@ -2494,11 +2620,27 @@ export const VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID = valueByChainId<ERC20BridgeSo
 );
 
 const uniswapV2CloneGasSchedule = (fillData?: FillData) => {
+    const uniV2FillData = fillData as UniswapV2FillData | UniswapV2FillDataWithChainId;
     // TODO: Different base cost if to/from ETH.
     let gas = 90e3;
-    const path = (fillData as UniswapV2FillData).tokenAddressPath;
+    const path = (uniV2FillData as UniswapV2FillData).tokenAddressPath;
+    const chainId = (uniV2FillData as UniswapV2FillDataWithChainId).chainId;
+    if (chainId === ChainId.Arbitrum) {
+        gas += 650e3;
+    }
     if (path.length > 2) {
         gas += (path.length - 2) * 60e3; // +60k for each hop.
+    }
+    return gas;
+};
+
+const gmxGasSchedule = (fillData?: FillData) => {
+    const gmxFillData = fillData as GMXFillData | GMXFillDataWithChainId;
+
+    let gas = 450e3;
+    const chainId = (gmxFillData as GMXFillDataWithChainId).chainId;
+    if (chainId === ChainId.Arbitrum) {
+        gas += 400e3;
     }
     return gas;
 };
@@ -2588,7 +2730,7 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
         const uniFillData = fillData as UniswapV3FillData | FinalUniswapV3FillData;
         // NOTE: This base value was heuristically chosen by looking at how much it generally
         // underestimated gas usage
-        const base = 34e3; // 34k base
+        const base = uniFillData.chainId == ChainId.Arbitrum ? 900e3 : 34e3; // 34k base
         let gas = base;
         if (isFinalUniswapV3FillData(uniFillData)) {
             gas += uniFillData.gasUsed;
@@ -2718,7 +2860,7 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     //
     [ERC20BridgeSource.Pangolin]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.TraderJoe]: uniswapV2CloneGasSchedule,
-    [ERC20BridgeSource.GMX]: () => 450e3,
+    [ERC20BridgeSource.GMX]: gmxGasSchedule,
     [ERC20BridgeSource.Platypus]: () => 450e3,
 
     //
