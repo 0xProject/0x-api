@@ -226,7 +226,7 @@ const parseGetTransactionRequestParams = (req: express.Request): GetTransactionR
     if (slippagePercentage < 0.001) {
       throw new ValidationError([{
         field: 'slippagePercentage',
-        code: ValidationErrorCodes.MinSlippageTooLow,
+        code: ValidationErrorCodes.ValueOutOfRange,
         reason: ValidationErrorReasons.MinSlippageTooLow,
       }])
     }
