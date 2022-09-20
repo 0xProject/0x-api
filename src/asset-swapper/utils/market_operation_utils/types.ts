@@ -3,7 +3,7 @@ import {
     FillQuoteTransformerLimitOrderInfo,
     FillQuoteTransformerOrderType,
     FillQuoteTransformerRfqOrderInfo,
-    FillQuoteTransformerOtcOrderInfo
+    FillQuoteTransformerOtcOrderInfo,
 } from '@0x/protocol-utils';
 import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
