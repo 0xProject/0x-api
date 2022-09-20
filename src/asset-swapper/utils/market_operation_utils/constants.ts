@@ -221,7 +221,6 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.SushiSwap,
             //ERC20BridgeSource.BalancerV2,
             // ERC20BridgeSource.Synapse, // TODO: re-enable once fixed.
-            ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.GMX,
             //ERC20BridgeSource.Dodo,
