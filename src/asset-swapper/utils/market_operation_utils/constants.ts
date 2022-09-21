@@ -1880,9 +1880,9 @@ export const SYNAPSE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
         sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
         buyQuoteFunctionSelector: CurveFunctionSelectors.None,
         poolAddress: SYNAPSE_ARBITRUM_POOLS.nUSDLP,
-        tokens: [ARBITRUM_TOKENS.nUSD, ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT, ARBITRUM_TOKENS.MIM],
+        tokens: [ARBITRUM_TOKENS.nUSD, ARBITRUM_TOKENS.MIM, ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT],
         metaTokens: undefined,
-        gasSchedule: 140e3,
+        gasSchedule: 200e3,
     },
     [SYNAPSE_ARBITRUM_POOLS.nETHLP]: {
         exchangeFunctionSelector: CurveFunctionSelectors.swap,
