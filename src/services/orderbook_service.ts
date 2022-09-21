@@ -75,7 +75,7 @@ export class OrderBookService {
         };
     }
 
-    public checkBidsOrAsks = (order: SRAOrder, req: OrderbookPriceRequest, tokens: string[], decimals: number[]) => {
+    public checkBidsOrAsks = (order: SRAOrder, req: OrderbookPriceRequest, tokens: string[], decimals: string[]): boolean => {
         if (req.maker !== NULL_ADDRESS && order.order.maker.toLowerCase() !== req.maker) {
             return false;
         }
@@ -86,21 +86,24 @@ export class OrderBookService {
             return false;
         }
         if (req.makerAmount !== 0) {
-            const tokenIndex = tokens.indexOf(order.order.makerToken)
-            if (Number(order.order.makerAmount.toString()) * decimals[tokenIndex] !== req.makerAmount) {
+            const tokenIndex = tokens.indexOf(order.order.makerToken);
+            if (Number(order.order.makerAmount.toString()) !== 10 ** Number(decimals[tokenIndex]) * req.makerAmount) {
                 return false;
             }
         }
         if (req.takerAmount !== 0) {
-            const tokenIndex = tokens.indexOf(order.order.takerToken)
-            if (Number(order.order.takerAmount.toString()) * decimals[tokenIndex] !== req.takerAmount) {
+            const tokenIndex = tokens.indexOf(order.order.takerToken);
+            if (Number(order.order.takerAmount.toString()) !== 10 ** Number(decimals[tokenIndex]) * req.takerAmount) {
                 return false;
             }
         }
-        if (req.takerTokenFeeAmount !== 0 && Number(order.order.takerTokenFeeAmount.toString()) !== req.takerTokenFeeAmount) {
-            return false;
+        if (req.takerTokenFeeAmount !== 0) {
+            const tokenIndex = tokens.indexOf(order.order.takerToken);
+            if (Number(order.order.takerTokenFeeAmount.toString()) !== 10 ** Number(decimals[tokenIndex]) * req.takerTokenFeeAmount) {
+                return false;
+            }
         }
-        if (Number(order.metaData.remainingFillableTakerAmount.toString()) < req.threshold) {
+        if (req.threshold !== 0 && Number(order.metaData.remainingFillableTakerAmount.toString()) < req.threshold) {
             return false;
         }
 
@@ -127,7 +130,6 @@ export class OrderBookService {
         const bids: any[] = [];
         const asks: any[] = [];
         const tokens: string[] = [];
-        const decimals: number[] = [];
 
         // Get all tokens list
         await Promise.all(pools.map(async (pool) => {
@@ -137,8 +139,6 @@ export class OrderBookService {
             asks.push(priceResponse.asks);
 
             priceResponse.bids.records.map((bid: SRAOrder) => {
-                console.log("bid.order.makerToken: ", bid.order.makerToken)
-                console.log("tokens.indexOf(bid.order.makerToken): ", tokens.indexOf(bid.order.makerToken))
                 if (tokens.indexOf(bid.order.makerToken) === -1) {
                     tokens.push(bid.order.makerToken);
                 }
@@ -159,9 +159,7 @@ export class OrderBookService {
         // Get tokens decimals
         const web3 = new Web3(new Web3.providers.HttpProvider(ETHEREUM_RPC_URL[0]));
         const contract = new web3.eth.Contract(artifacts.BalanceChecker.compilerOutput.abi, BALANCE_CHECKER_CONTRACT);
-        const decimalsRes: any = await contract.methods.decimals(tokens).call();
-
-        console.log('decimalsRes: ', decimalsRes);
+        const decimals: any = await contract.methods.decimals(tokens).call();
 
         for (let i = 0; i < pools.length; i++) {
             const bidRecords = bids[i].records.filter((bid: SRAOrder) => this.checkBidsOrAsks(bid, req, tokens, decimals));
@@ -193,8 +191,8 @@ export class OrderBookService {
             }
 
             count = 0;
-            while(count < filterAsks.length) {
-                asks.push({
+            while(count < askRecords.length) {
+                filterAsks.push({
                     order: {
                         makerAmount: askRecords[count].order.makerAmount,
                         takerAmount: askRecords[count].order.takerAmount,
@@ -214,8 +212,8 @@ export class OrderBookService {
             result.push({
                 baseToken: pools[i].baseToken,
                 quoteToken: pools[i].quoteToken,
-                bid: bids,
-                ask: asks,
+                bid: filterBids,
+                ask: filterAsks,
             })
         }
 
