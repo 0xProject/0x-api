@@ -458,6 +458,8 @@ export const WRAP_ETH_GAS = UNWRAP_WETH_GAS;
 export const UNWRAP_QUOTE_GAS = TX_BASE_GAS.plus(UNWRAP_WETH_GAS);
 export const WRAP_QUOTE_GAS = UNWRAP_QUOTE_GAS;
 
+export const BALANCE_CHECKER_CONTRACT = '0x6F9b7892a6272880905E90DC5AcD1F56dF222FbE';
+
 const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {

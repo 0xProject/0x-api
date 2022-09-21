@@ -71,7 +71,7 @@ export const fetchPoolLists = async (page: number, pageSize: number, createdBy: 
   const result = await request(
     graphUrl,
     queryPools(
-      Math.max(page, 0) * pageSize,
+      Math.max(page - 1, 0) * pageSize,
       pageSize,
       createdBy,
       undefined

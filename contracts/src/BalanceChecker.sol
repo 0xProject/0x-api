@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
+
+// Source: https://github.com/0xProject/protocol/blob/24397c51a8c7bf704948c8fc6874843bccd5d244/packages/asset-swapper/contracts/src/BalanceChecker.sol#L69-L92
+
 /*
 
   Copyright 2020 ZeroEx Intl.
@@ -30,6 +33,9 @@ abstract contract IToken {
     /// @param _spender The address of the account able to transfer the tokens
     /// @return Amount of remaining tokens allowed to spent
     function allowance(address _owner, address _spender) public virtual view returns (uint256);
+
+    function decimals() public virtual view returns (uint8);
+
 }
 
 contract BalanceChecker {
@@ -119,5 +125,19 @@ contract BalanceChecker {
         return addrAllowances;
     }
 
+    function decimals(address[] calldata tokens) external view returns (uint256[] memory) {
+
+        uint256[] memory tokenDecimals = new uint256[](tokens.length);
+
+        for(uint i = 0; i < tokens.length; i++) {
+            if (tokens[i] != address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
+                tokenDecimals[i] = IToken(tokens[i]).decimals();
+            } else {
+                tokenDecimals[i] = 18; // ETH decimals
+            }
+        }
+
+        return tokenDecimals;
+    }
 
 }
