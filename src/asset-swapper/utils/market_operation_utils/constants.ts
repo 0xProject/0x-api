@@ -1760,12 +1760,12 @@ export const SADDLE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
     [SADDLE_ARBITRUM_POOLS.fraxBP]: createSaddleSwapPool({
         tokens: [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.FRAX],
         pool: SADDLE_ARBITRUM_POOLS.fraxBP,
-        gasSchedule: 150e3,
+        gasSchedule: 200e3,
     }),
     [SADDLE_ARBITRUM_POOLS.arbUSDPoolV2]: createSaddleSwapPool({
         tokens: [ARBITRUM_TOKENS.FRAX, ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT],
         pool: SADDLE_ARBITRUM_POOLS.arbUSDPoolV2,
-        gasSchedule: 150e3,
+        gasSchedule: 200e3,
     }),
 };
 
