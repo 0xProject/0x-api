@@ -1660,11 +1660,11 @@ export const CURVE_V2_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
         pool: CURVE_V2_ARBITRUM_POOLS.fraxBP,
         gasSchedule: 200e3,
     }),
-    // [CURVE_V2_ARBITRUM_POOLS.vstFrax]: createCurveExchangeV2Pool({
-    //     tokens: [ARBITRUM_TOKENS.VST, ARBITRUM_TOKENS.FRAX],
-    //     pool: CURVE_V2_ARBITRUM_POOLS.vstFrax,
-    //     gasSchedule: 700e3,
-    // }),
+    [CURVE_V2_ARBITRUM_POOLS.vstFrax]: createCurveExchangePool({
+        tokens: [ARBITRUM_TOKENS.VST, ARBITRUM_TOKENS.FRAX],
+        pool: CURVE_V2_ARBITRUM_POOLS.vstFrax,
+        gasSchedule: 200e3,
+    }),
 };
 
 export const BELT_BSC_INFOS: { [name: string]: CurveInfo } = {
