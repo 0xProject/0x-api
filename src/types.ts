@@ -131,14 +131,10 @@ export interface OrderbookPriceRequest {
     perPage: number;
     graphUrl: string;
     createdBy: string;
-    maker: string;
     taker: string;
     feeRecipient: string;
-    makerAmount: number;
-    takerAmount: number;
-    takerTokenFeeAmount: number;
+    takerTokenFee: number;
     threshold: number;
-    best: number;
 }
 
 export interface OrderConfigRequestPayload {

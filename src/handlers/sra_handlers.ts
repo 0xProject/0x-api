@@ -74,27 +74,19 @@ export class SRAHandlers {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const graphUrl = (req.query.graphUrl as string).toLowerCase();
         const createdBy = req.query.createdBy === undefined ? "" : (req.query.createdBy as string).toLowerCase();
-        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
         const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
         const feeRecipient = req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
-        const makerAmount: number = Number((req.query.makerAmount as string)) | 0;
-        const takerAmount: number = Number((req.query.takerAmount as string)) | 0;
-        const takerTokenFeeAmount: number = Number((req.query.takerTokenFeeAmount as string)) | 0;
+        const takerTokenFee: number = Number((req.query.takerTokenFeeAmount as string)) | 0;
         const threshold: number = Number((req.query.threshold as string)) | 0;
-        const best: number = Number((req.query.best as string)) | 0;
         const priceResponse = await this._orderBook.getPricesAsync({
             page,
             perPage,
             graphUrl,
             createdBy,
-            maker,
             taker,
             feeRecipient,
-            makerAmount,
-            takerAmount,
-            takerTokenFeeAmount,
+            takerTokenFee,
             threshold,
-            best,
         });
         res.status(HttpStatus.OK).send(priceResponse);
     }

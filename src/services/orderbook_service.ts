@@ -1,5 +1,4 @@
 import { LimitOrderFields } from '@0x/protocol-utils';
-const Web3 = require('web3');
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
@@ -9,10 +8,7 @@ import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
-    ETHEREUM_RPC_URL,
-    BALANCE_CHECKER_CONTRACT
 } from '../config';
-import { artifacts } from '../artifacts';
 import { ONE_SECOND_MS, NULL_ADDRESS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
@@ -75,31 +71,15 @@ export class OrderBookService {
         };
     }
 
-    public checkBidsOrAsks = (order: SRAOrder, req: OrderbookPriceRequest, tokens: string[], decimals: string[]): boolean => {
-        if (req.maker !== NULL_ADDRESS && order.order.maker.toLowerCase() !== req.maker) {
-            return false;
-        }
-        if (req.taker !== NULL_ADDRESS) {
+    public checkBidsOrAsks = (order: SRAOrder, req: OrderbookPriceRequest): boolean => {
+        if (req.taker !== NULL_ADDRESS && req.taker !== order.order.taker) {
             return false;
         }
         if (req.feeRecipient !== NULL_ADDRESS && order.order.feeRecipient.toLowerCase() !== req.feeRecipient) {
             return false;
         }
-        if (req.makerAmount !== 0) {
-            const tokenIndex = tokens.indexOf(order.order.makerToken);
-            if (Number(order.order.makerAmount.toString()) !== 10 ** Number(decimals[tokenIndex]) * req.makerAmount) {
-                return false;
-            }
-        }
-        if (req.takerAmount !== 0) {
-            const tokenIndex = tokens.indexOf(order.order.takerToken);
-            if (Number(order.order.takerAmount.toString()) !== 10 ** Number(decimals[tokenIndex]) * req.takerAmount) {
-                return false;
-            }
-        }
-        if (req.takerTokenFeeAmount !== 0) {
-            const tokenIndex = tokens.indexOf(order.order.takerToken);
-            if (Number(order.order.takerTokenFeeAmount.toString()) !== 10 ** Number(decimals[tokenIndex]) * req.takerTokenFeeAmount) {
+        if (req.takerTokenFee !== 0) {
+            if (Number(order.order.takerTokenFeeAmount.toString()) !== Number(order.order.takerAmount) * req.takerTokenFee / 100000) {
                 return false;
             }
         }
@@ -156,17 +136,14 @@ export class OrderBookService {
             })
         }))
 
-        // Get tokens decimals
-        const web3 = new Web3(new Web3.providers.HttpProvider(ETHEREUM_RPC_URL[0]));
-        const contract = new web3.eth.Contract(artifacts.BalanceChecker.compilerOutput.abi, BALANCE_CHECKER_CONTRACT);
-        const decimals: any = await contract.methods.decimals(tokens).call();
+        // // Get tokens decimals
+        // const web3 = new Web3(new Web3.providers.HttpProvider(ETHEREUM_RPC_URL[0]));
+        // const contract = new web3.eth.Contract(artifacts.BalanceChecker.compilerOutput.abi, BALANCE_CHECKER_CONTRACT);
+        // const decimals: any = await contract.methods.decimals(tokens).call();
 
         for (let i = 0; i < pools.length; i++) {
-            const bidRecords = bids[i].records.filter((bid: SRAOrder) => this.checkBidsOrAsks(bid, req, tokens, decimals));
-            const askRecords = asks[i].records.filter((ask: SRAOrder) => this.checkBidsOrAsks(ask, req, tokens, decimals));
-
-            // const bidLimit = req.best === 0 ? Math.min(1, bidRecords.length) : Math.min(req.best, bidRecords.length);
-            // const askLimit = req.best === 0 ? Math.min(1, askRecords.length) : Math.min(req.best, askRecords.length);
+            const bidRecords = bids[i].records.filter((bid: SRAOrder) => this.checkBidsOrAsks(bid, req));
+            const askRecords = asks[i].records.filter((ask: SRAOrder) => this.checkBidsOrAsks(ask, req));
 
             const filterBids = [];
             const filterAsks = [];
@@ -175,10 +152,12 @@ export class OrderBookService {
             while(count < bidRecords.length) {
                 filterBids.push({
                     order: {
-                        makerAmount: bidRecords[count].order.makerAmount,
-                        takerAmount: bidRecords[count].order.takerAmount,
                         maker: bidRecords[count].order.maker,
                         taker: bidRecords[count].order.taker,
+                        makerToken: bidRecords[count].order.makerToken,
+                        takerToken: bidRecords[count].order.takerToken,
+                        makerAmount: bidRecords[count].order.makerAmount,
+                        takerAmount: bidRecords[count].order.takerAmount,
                         takerTokenFeeAmount: bidRecords[count].order.takerTokenFeeAmount,
                         feeRecipient: bidRecords[count].order.feeRecipient,
                     },
@@ -194,10 +173,12 @@ export class OrderBookService {
             while(count < askRecords.length) {
                 filterAsks.push({
                     order: {
-                        makerAmount: askRecords[count].order.makerAmount,
-                        takerAmount: askRecords[count].order.takerAmount,
                         maker: askRecords[count].order.maker,
                         taker: askRecords[count].order.taker,
+                        makerToken: askRecords[count].order.makerToken,
+                        takerToken: askRecords[count].order.takerToken,
+                        makerAmount: askRecords[count].order.makerAmount,
+                        takerAmount: askRecords[count].order.takerAmount,
                         takerTokenFeeAmount: askRecords[count].order.takerTokenFeeAmount,
                         feeRecipient: askRecords[count].order.feeRecipient,
                     },
