@@ -1,5 +1,6 @@
 import { LimitOrderFields } from '@0x/protocol-utils';
-// import { BigNumber } from '@0x/utils';
+import { BigNumber } from '@0x/utils';
+import { getAddress } from '@ethersproject/address';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
@@ -9,13 +10,13 @@ import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
-    // defaultHttpServiceConfig
+    defaultHttpServiceConfig
 } from '../config';
 import {
     ONE_SECOND_MS,
     NULL_ADDRESS,
-    // BALANCE_CHECKER_ADDRESS,
-    // BALANCE_CHECKER_GAS_LIMIT,
+    BALANCE_CHECKER_ADDRESS,
+    BALANCE_CHECKER_GAS_LIMIT,
     DIVA_GOVERNANCE_ADDRESS
 } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
@@ -32,7 +33,7 @@ import {
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
-// import { providerUtils } from '../utils/provider_utils';
+import { providerUtils } from '../utils/provider_utils';
 
 export class OrderBookService {
     private readonly _connection: Connection;
@@ -89,7 +90,9 @@ export class OrderBookService {
 
     public checkBidsOrAsks = (
         order: SRAOrder,
-        req: OrderbookPriceRequest
+        req: OrderbookPriceRequest,
+        tokens: string[],
+        decimals: BigNumber[]
     ): boolean => {
         const takerTokenFeeAmountExpected = order.order.takerAmount.multipliedBy(req.takerTokenFee / 100000);
 
@@ -113,11 +116,31 @@ export class OrderBookService {
                 return false;
             }
         }
-        if (req.threshold !== 0 && Number(order.metaData.remainingFillableTakerAmount.toString()) < req.threshold) {
-            return false;
+        if (req.threshold !== 0) {
+            const realAmount = this.getRealAmount(
+                order.metaData.remainingFillableTakerAmount,
+                order.order.takerToken,
+                tokens,
+                decimals
+            );
+            if (realAmount < Number(req.threshold)) {
+                return false;
+            }
         }
 
         return true;
+    }
+
+    public getRealAmount = (
+        amount: BigNumber,
+        tokenAddress: string,
+        tokens: string[],
+        decimals: BigNumber[]
+    ): number => {
+        const decimal: number = Number(decimals[tokens.indexOf(tokenAddress)].toString());
+        const realAmount: number = Number(amount.div(Math.pow(10, decimal)));
+
+        return realAmount;
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -166,28 +189,28 @@ export class OrderBookService {
             })
         }));
 
-        // const provider = providerUtils.createWeb3Provider(
-        //     defaultHttpServiceConfig.ethereumRpcUrl,
-        //     defaultHttpServiceConfig.rpcRequestTimeout,
-        //     defaultHttpServiceConfig.shouldCompressRequest,
-        // );
+        const provider = providerUtils.createWeb3Provider(
+            defaultHttpServiceConfig.ethereumRpcUrl,
+            defaultHttpServiceConfig.rpcRequestTimeout,
+            defaultHttpServiceConfig.shouldCompressRequest,
+        );
 
-        // const balanceCheckerContractInterface = new BalanceCheckerContract(
-        //     BALANCE_CHECKER_ADDRESS,
-        //     provider,
-        //     { gas: BALANCE_CHECKER_GAS_LIMIT }
-        // );
+        const balanceCheckerContractInterface = new BalanceCheckerContract(
+            BALANCE_CHECKER_ADDRESS,
+            provider,
+            { gas: BALANCE_CHECKER_GAS_LIMIT }
+        );
 
-        // const decimals: BigNumber[] = await balanceCheckerContractInterface
-        //     .decimals(tokens)
-        //     .callAsync();
+        const decimals: BigNumber[] = await balanceCheckerContractInterface
+            .decimals(tokens)
+            .callAsync();
 
         for (let i = 0; i < pools.length; i++) {
-            const bidRecords = bids[i].records.filter(
-                (bid: SRAOrder) => this.checkBidsOrAsks(bid, req)
+            const bidRecords: SRAOrder[] = bids[i].records.filter(
+                (bid: SRAOrder) => this.checkBidsOrAsks(bid, req, tokens, decimals)
             );
-            const askRecords = asks[i].records.filter(
-                (ask: SRAOrder) => this.checkBidsOrAsks(ask, req)
+            const askRecords: SRAOrder[] = asks[i].records.filter(
+                (ask: SRAOrder) => this.checkBidsOrAsks(ask, req, tokens, decimals)
             );
 
             const filterBids = [];
@@ -197,17 +220,37 @@ export class OrderBookService {
             while(count < bidRecords.length) {
                 filterBids.push({
                     order: {
-                        maker: bidRecords[count].order.maker,
-                        taker: bidRecords[count].order.taker,
-                        makerToken: bidRecords[count].order.makerToken,
-                        takerToken: bidRecords[count].order.takerToken,
-                        makerAmount: bidRecords[count].order.makerAmount,
-                        takerAmount: bidRecords[count].order.takerAmount,
-                        takerTokenFeeAmount: bidRecords[count].order.takerTokenFeeAmount,
-                        feeRecipient: bidRecords[count].order.feeRecipient,
+                        maker: getAddress(bidRecords[count].order.maker),
+                        taker: getAddress(bidRecords[count].order.taker),
+                        makerToken: getAddress(bidRecords[count].order.makerToken),
+                        takerToken: getAddress(bidRecords[count].order.takerToken),
+                        makerAmount: this.getRealAmount(
+                            bidRecords[count].order.makerAmount,
+                            bidRecords[count].order.makerToken,
+                            tokens,
+                            decimals
+                        ),
+                        takerAmount: this.getRealAmount(
+                            bidRecords[count].order.takerAmount,
+                            bidRecords[count].order.takerToken,
+                            tokens,
+                            decimals
+                        ),
+                        takerTokenFeeAmount: this.getRealAmount(
+                            bidRecords[count].order.takerTokenFeeAmount,
+                            bidRecords[count].order.takerToken,
+                            tokens,
+                            decimals
+                        ),
+                        feeRecipient: getAddress(bidRecords[count].order.feeRecipient),
                     },
                     metaData: {
-                        remainingFillableTakerAmount: bidRecords[count].metaData.remainingFillableTakerAmount
+                        remainingFillableTakerAmount: this.getRealAmount(
+                            bidRecords[count].metaData.remainingFillableTakerAmount,
+                            bidRecords[count].order.takerToken,
+                            tokens,
+                            decimals
+                        )
                     }
                 });
 
@@ -218,17 +261,37 @@ export class OrderBookService {
             while(count < askRecords.length) {
                 filterAsks.push({
                     order: {
-                        maker: askRecords[count].order.maker,
-                        taker: askRecords[count].order.taker,
-                        makerToken: askRecords[count].order.makerToken,
-                        takerToken: askRecords[count].order.takerToken,
-                        makerAmount: askRecords[count].order.makerAmount,
-                        takerAmount: askRecords[count].order.takerAmount,
-                        takerTokenFeeAmount: askRecords[count].order.takerTokenFeeAmount,
-                        feeRecipient: askRecords[count].order.feeRecipient,
+                        maker: getAddress(askRecords[count].order.maker),
+                        taker: getAddress(askRecords[count].order.taker),
+                        makerToken: getAddress(askRecords[count].order.makerToken),
+                        takerToken: getAddress(askRecords[count].order.takerToken),
+                        makerAmount: this.getRealAmount(
+                            askRecords[count].order.makerAmount,
+                            askRecords[count].order.makerToken,
+                            tokens,
+                            decimals
+                        ),
+                        takerAmount: this.getRealAmount(
+                            askRecords[count].order.takerAmount,
+                            askRecords[count].order.takerToken,
+                            tokens,
+                            decimals
+                        ),
+                        takerTokenFeeAmount: this.getRealAmount(
+                            askRecords[count].order.takerTokenFeeAmount,
+                            askRecords[count].order.takerToken,
+                            tokens,
+                            decimals
+                        ),
+                        feeRecipient: getAddress(askRecords[count].order.feeRecipient),
                     },
                     metaData: {
-                        remainingFillableTakerAmount: askRecords[count].metaData.remainingFillableTakerAmount
+                        remainingFillableTakerAmount: this.getRealAmount(
+                            askRecords[count].metaData.remainingFillableTakerAmount,
+                            askRecords[count].order.takerToken,
+                            tokens,
+                            decimals
+                        )
                     }
                 })
 
