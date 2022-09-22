@@ -1650,17 +1650,16 @@ export const CURVE_V2_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
         pool: CURVE_V2_ARBITRUM_POOLS.twoPool,
         gasSchedule: 400e3,
     }),
-    //to do resolve curve pools function selector issues
     [CURVE_V2_ARBITRUM_POOLS.MIM]: createCurveMetaTwoPoolArbitrum({
         tokens: [ARBITRUM_TOKENS.MIM],
         pool: CURVE_V2_ARBITRUM_POOLS.MIM,
         gasSchedule: 400e3,
     }),
-    // [CURVE_V2_ARBITRUM_POOLS.fraxBP]: createCurveExchangeV2Pool({
-    //     tokens: [ARBITRUM_TOKENS.FRAX, ARBITRUM_TOKENS.USDC],
-    //     pool: CURVE_V2_ARBITRUM_POOLS.fraxBP,
-    //     gasSchedule: 700e3,
-    // }),
+    [CURVE_V2_ARBITRUM_POOLS.fraxBP]: createCurveExchangePool({
+        tokens: [ARBITRUM_TOKENS.FRAX, ARBITRUM_TOKENS.USDC],
+        pool: CURVE_V2_ARBITRUM_POOLS.fraxBP,
+        gasSchedule: 200e3,
+    }),
     // [CURVE_V2_ARBITRUM_POOLS.vstFrax]: createCurveExchangeV2Pool({
     //     tokens: [ARBITRUM_TOKENS.VST, ARBITRUM_TOKENS.FRAX],
     //     pool: CURVE_V2_ARBITRUM_POOLS.vstFrax,
