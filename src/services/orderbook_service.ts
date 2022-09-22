@@ -1,22 +1,38 @@
 import { LimitOrderFields } from '@0x/protocol-utils';
+// import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
-import { LimitOrder } from '../asset-swapper';
+import { LimitOrder, BalanceCheckerContract } from '../asset-swapper';
 import { fetchPoolLists } from '../asset-swapper/utils/market_operation_utils/pools_cache/pool_list_cache';
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
+    // defaultHttpServiceConfig
 } from '../config';
-import { ONE_SECOND_MS, NULL_ADDRESS } from '../constants';
+import {
+    ONE_SECOND_MS,
+    NULL_ADDRESS,
+    // BALANCE_CHECKER_ADDRESS,
+    // BALANCE_CHECKER_GAS_LIMIT,
+    DIVA_GOVERNANCE_ADDRESS
+} from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder, OrderbookPriceRequest } from '../types';
+import {
+    OrderbookResponse,
+    OrderEventEndState,
+    PaginatedCollection,
+    SignedLimitOrder,
+    SRAOrder,
+    OrderbookPriceRequest
+} from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
+// import { providerUtils } from '../utils/provider_utils';
 
 export class OrderBookService {
     private readonly _connection: Connection;
@@ -71,7 +87,19 @@ export class OrderBookService {
         };
     }
 
-    public checkBidsOrAsks = (order: SRAOrder, req: OrderbookPriceRequest): boolean => {
+    public checkBidsOrAsks = (
+        order: SRAOrder,
+        req: OrderbookPriceRequest
+    ): boolean => {
+        const takerTokenFeeAmountExpected = order.order.takerAmount.multipliedBy(req.takerTokenFee / 100000);
+
+        if (order.order.taker === NULL_ADDRESS && // Ensure that orders are fillable by anyone and not reserved for a specific address
+            order.order.feeRecipient === DIVA_GOVERNANCE_ADDRESS.toLowerCase() && // Ensure that the feeRecipient is DIVA Governance address
+            (order.order.takerTokenFeeAmount.lte(takerTokenFeeAmountExpected.minus(1)) ||
+            order.order.takerTokenFeeAmount.gte(takerTokenFeeAmountExpected.plus(1)))
+        ) {
+            return false;
+        }
         if (req.taker !== NULL_ADDRESS && req.taker !== order.order.taker) {
             return false;
         }
@@ -79,7 +107,9 @@ export class OrderBookService {
             return false;
         }
         if (req.takerTokenFee !== 0) {
-            if (Number(order.order.takerTokenFeeAmount.toString()) !== Number(order.order.takerAmount) * req.takerTokenFee / 100000) {
+            if (order.order.takerTokenFeeAmount.lte(takerTokenFeeAmountExpected.minus(1)) ||
+                order.order.takerTokenFeeAmount.gte(takerTokenFeeAmountExpected.plus(1))
+            ) {
                 return false;
             }
         }
@@ -134,16 +164,31 @@ export class OrderBookService {
                     tokens.push(ask.order.takerToken);
                 }
             })
-        }))
+        }));
 
-        // // Get tokens decimals
-        // const web3 = new Web3(new Web3.providers.HttpProvider(ETHEREUM_RPC_URL[0]));
-        // const contract = new web3.eth.Contract(artifacts.BalanceChecker.compilerOutput.abi, BALANCE_CHECKER_CONTRACT);
-        // const decimals: any = await contract.methods.decimals(tokens).call();
+        // const provider = providerUtils.createWeb3Provider(
+        //     defaultHttpServiceConfig.ethereumRpcUrl,
+        //     defaultHttpServiceConfig.rpcRequestTimeout,
+        //     defaultHttpServiceConfig.shouldCompressRequest,
+        // );
+
+        // const balanceCheckerContractInterface = new BalanceCheckerContract(
+        //     BALANCE_CHECKER_ADDRESS,
+        //     provider,
+        //     { gas: BALANCE_CHECKER_GAS_LIMIT }
+        // );
+
+        // const decimals: BigNumber[] = await balanceCheckerContractInterface
+        //     .decimals(tokens)
+        //     .callAsync();
 
         for (let i = 0; i < pools.length; i++) {
-            const bidRecords = bids[i].records.filter((bid: SRAOrder) => this.checkBidsOrAsks(bid, req));
-            const askRecords = asks[i].records.filter((ask: SRAOrder) => this.checkBidsOrAsks(ask, req));
+            const bidRecords = bids[i].records.filter(
+                (bid: SRAOrder) => this.checkBidsOrAsks(bid, req)
+            );
+            const askRecords = asks[i].records.filter(
+                (ask: SRAOrder) => this.checkBidsOrAsks(ask, req)
+            );
 
             const filterBids = [];
             const filterAsks = [];
@@ -193,8 +238,8 @@ export class OrderBookService {
             result.push({
                 baseToken: pools[i].baseToken,
                 quoteToken: pools[i].quoteToken,
-                bid: filterBids,
-                ask: filterAsks,
+                bid: filterBids.length !== 0 ? filterBids[0] : {},
+                ask: filterAsks.length !== 0 ? filterAsks[0] : {},
             })
         }
 
