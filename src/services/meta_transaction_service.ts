@@ -5,10 +5,10 @@ import { BigNumber } from '@0x/utils';
 import { Kafka, Producer } from 'kafkajs';
 import * as _ from 'lodash';
 
-import { ContractAddresses } from '../asset-swapper';
+import { AffiliateFeeType, ContractAddresses } from '../asset-swapper';
 import { CHAIN_ID, KAFKA_BROKERS, META_TX_EXPIRATION_BUFFER_MS } from '../config';
 import { AFFILIATE_DATA_SELECTOR, NULL_ADDRESS, ONE_GWEI, ONE_SECOND_MS, ZERO } from '../constants';
-import { MetaTransactionQuoteParams, GetSwapQuoteResponse, QuoteBase, MetaTransactionQuoteResponse } from '../types';
+import { MetaTransactionQuoteParams, GetSwapQuoteResponse, QuoteBase, MetaTransactionQuoteResponse, AffiliateFee } from '../types';
 import { quoteReportUtils } from '../utils/quote_report_utils';
 import { SwapService } from './swap_service';
 
@@ -115,6 +115,13 @@ export class MetaTransactionService {
         params: MetaTransactionQuoteParams,
         endpoint: 'price' | 'quote',
     ): Promise<MetaTransactionQuoteResult> {
+        const affiliateFee: AffiliateFee = {
+            feeType: AffiliateFeeType.GaslessFee,
+            // TODO: what address do we need to use? 
+            recipient: '0xd00d00caca000000000000000000000000001337',
+            sellTokenPercentageFee: 0,
+            buyTokenPercentageFee: 0,
+        }
         const quoteParams = {
             ...params,
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
@@ -126,6 +133,7 @@ export class MetaTransactionService {
             sellToken: params.sellTokenAddress,
             shouldSellEntireBalance: false,
             skipValidation: true,
+            affiliateFee,
         };
 
         const quote = await this._swapService.calculateSwapQuoteAsync(quoteParams);
