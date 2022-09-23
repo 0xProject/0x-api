@@ -116,16 +116,17 @@ export class OrderBookService {
                 return false;
             }
         }
-        if (req.threshold !== 0) {
-            const realAmount = this.getRealAmount(
-                order.metaData.remainingFillableTakerAmount,
-                order.order.takerToken,
-                tokens,
-                decimals
-            );
-            if (realAmount < Number(req.threshold)) {
-                return false;
-            }
+        if (req.threshold !== 0 && order.metaData.remainingFillableTakerAmount.lte(req.threshold)) {
+            return false;
+            // const realAmount = this.getRealAmount(
+            //     order.metaData.remainingFillableTakerAmount,
+            //     order.order.takerToken,
+            //     tokens,
+            //     decimals
+            // );
+            // if (realAmount < Number(req.threshold)) {
+            //     return false;
+            // }
         }
 
         return true;
@@ -224,33 +225,14 @@ export class OrderBookService {
                         taker: getAddress(bidRecords[count].order.taker),
                         makerToken: getAddress(bidRecords[count].order.makerToken),
                         takerToken: getAddress(bidRecords[count].order.takerToken),
-                        makerAmount: this.getRealAmount(
-                            bidRecords[count].order.makerAmount,
-                            bidRecords[count].order.makerToken,
-                            tokens,
-                            decimals
-                        ),
-                        takerAmount: this.getRealAmount(
-                            bidRecords[count].order.takerAmount,
-                            bidRecords[count].order.takerToken,
-                            tokens,
-                            decimals
-                        ),
-                        takerTokenFeeAmount: this.getRealAmount(
-                            bidRecords[count].order.takerTokenFeeAmount,
-                            bidRecords[count].order.takerToken,
-                            tokens,
-                            decimals
-                        ),
+                        makerAmount: bidRecords[count].order.makerAmount,
+                        takerAmount: bidRecords[count].order.takerAmount,
+                        takerTokenFeeAmount: bidRecords[count].order.takerTokenFeeAmount,
                         feeRecipient: getAddress(bidRecords[count].order.feeRecipient),
+                        expiry: bidRecords[count].order.expiry,
                     },
                     metaData: {
-                        remainingFillableTakerAmount: this.getRealAmount(
-                            bidRecords[count].metaData.remainingFillableTakerAmount,
-                            bidRecords[count].order.takerToken,
-                            tokens,
-                            decimals
-                        )
+                        remainingFillableTakerAmount: bidRecords[count].metaData.remainingFillableTakerAmount,
                     }
                 });
 
@@ -265,33 +247,14 @@ export class OrderBookService {
                         taker: getAddress(askRecords[count].order.taker),
                         makerToken: getAddress(askRecords[count].order.makerToken),
                         takerToken: getAddress(askRecords[count].order.takerToken),
-                        makerAmount: this.getRealAmount(
-                            askRecords[count].order.makerAmount,
-                            askRecords[count].order.makerToken,
-                            tokens,
-                            decimals
-                        ),
-                        takerAmount: this.getRealAmount(
-                            askRecords[count].order.takerAmount,
-                            askRecords[count].order.takerToken,
-                            tokens,
-                            decimals
-                        ),
-                        takerTokenFeeAmount: this.getRealAmount(
-                            askRecords[count].order.takerTokenFeeAmount,
-                            askRecords[count].order.takerToken,
-                            tokens,
-                            decimals
-                        ),
+                        makerAmount: askRecords[count].order.makerAmount,
+                        takerAmount: askRecords[count].order.takerAmount,
+                        takerTokenFeeAmount: askRecords[count].order.takerTokenFeeAmount,
                         feeRecipient: getAddress(askRecords[count].order.feeRecipient),
+                        expiry: askRecords[count].order.expiry,
                     },
                     metaData: {
-                        remainingFillableTakerAmount: this.getRealAmount(
-                            askRecords[count].metaData.remainingFillableTakerAmount,
-                            askRecords[count].order.takerToken,
-                            tokens,
-                            decimals
-                        )
+                        remainingFillableTakerAmount: askRecords[count].metaData.remainingFillableTakerAmount,
                     }
                 })
 
@@ -299,8 +262,8 @@ export class OrderBookService {
             }
 
             result.push({
-                baseToken: pools[i].baseToken,
-                quoteToken: pools[i].quoteToken,
+                baseToken: getAddress(pools[i].baseToken),
+                quoteToken: getAddress(pools[i].quoteToken),
                 bid: filterBids.length !== 0 ? filterBids[0] : {},
                 ask: filterAsks.length !== 0 ? filterAsks[0] : {},
             })
