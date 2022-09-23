@@ -94,7 +94,8 @@ export class OrderBookService {
         tokens: string[],
         decimals: BigNumber[]
     ): boolean => {
-        const takerTokenFeeAmountExpected = order.order.takerAmount.multipliedBy(req.takerTokenFee / 100000); // 1 is 0.001% and the actual amount is token fee / 100000, so we divided it by 100000
+        // 1 is 0.001% and the actual amount is token fee / 100000, so we divided it by 100000
+        const takerTokenFeeAmountExpected = order.order.takerAmount.multipliedBy(new BigNumber(req.takerTokenFee / 100000));
 
         if (order.order.taker === NULL_ADDRESS && // Ensure that orders are fillable by anyone and not reserved for a specific address
             order.order.feeRecipient === DIVA_GOVERNANCE_ADDRESS.toLowerCase() && // Ensure that the feeRecipient is DIVA Governance address
@@ -111,7 +112,8 @@ export class OrderBookService {
         }
         if (req.takerTokenFee !== 0) {
             const takerTokenDecimal = decimals[tokens.indexOf(order.order.takerToken)];
-            const toleranceTakerTokenFeeAmount = Math.pow(10, Number(takerTokenDecimal.toString()));
+            const toleranceTakerTokenFeeAmount = new BigNumber(Math.pow(10, Number(takerTokenDecimal.toString())));
+
             if (order.order.takerTokenFeeAmount.lte(takerTokenFeeAmountExpected.minus(toleranceTakerTokenFeeAmount)) ||
                 order.order.takerTokenFeeAmount.gte(takerTokenFeeAmountExpected.plus(toleranceTakerTokenFeeAmount))
             ) {
@@ -146,6 +148,18 @@ export class OrderBookService {
 
     // tslint:disable-next-line:prefer-function-over-method
     public async getPricesAsync(req: OrderbookPriceRequest): Promise<any> {
+        const provider = providerUtils.createWeb3Provider(
+            defaultHttpServiceConfig.ethereumRpcUrl,
+            defaultHttpServiceConfig.rpcRequestTimeout,
+            defaultHttpServiceConfig.shouldCompressRequest,
+        );
+
+        const balanceCheckerContractInterface = new BalanceCheckerContract(
+            BALANCE_CHECKER_ADDRESS,
+            provider,
+            { gas: BALANCE_CHECKER_GAS_LIMIT }
+        );
+
         const result: any[] = [];
         const res = await fetchPoolLists(req.page, req.perPage, req.createdBy, req.graphUrl);
         let pools: any[] = [];
@@ -166,50 +180,57 @@ export class OrderBookService {
         // Get all tokens list
         await Promise.all(pools.map(async (pool) => {
             let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
-            pool.bids = (priceResponse.bids);
-            pool.asks = (priceResponse.asks);
 
-            priceResponse.bids.records.map((bid: SRAOrder) => {
+            pool.bids = priceResponse.bids.records;
+            pool.asks = priceResponse.asks.records;
+
+            pool.bids.map((bid: SRAOrder) => {
                 if (tokens.indexOf(bid.order.makerToken) === -1) {
                     tokens.push(bid.order.makerToken);
                 }
                 if (tokens.indexOf(bid.order.takerToken) === -1) {
                     tokens.push(bid.order.takerToken);
                 }
-            })
-            priceResponse.asks.records.map((ask: SRAOrder) => {
+            });
+
+            pool.asks.map((ask: SRAOrder) => {
                 if (tokens.indexOf(ask.order.makerToken) === -1) {
                     tokens.push(ask.order.makerToken);
                 }
                 if (tokens.indexOf(ask.order.takerToken) === -1) {
                     tokens.push(ask.order.takerToken);
                 }
-            })
+            });
         }));
 
-        const provider = providerUtils.createWeb3Provider(
-            defaultHttpServiceConfig.ethereumRpcUrl,
-            defaultHttpServiceConfig.rpcRequestTimeout,
-            defaultHttpServiceConfig.shouldCompressRequest,
-        );
+        let decimals: BigNumber[] = [];
 
-        const balanceCheckerContractInterface = new BalanceCheckerContract(
-            BALANCE_CHECKER_ADDRESS,
-            provider,
-            { gas: BALANCE_CHECKER_GAS_LIMIT }
-        );
+        const tokensChunks = tokens.reduce((resultArray: string[][], item: string, index: number) => {
+            const batchIndex = Math.floor(index / 400);
+            if (!resultArray[batchIndex]) {
+                resultArray[batchIndex] = [];
+            }
+            resultArray[batchIndex].push(item);
 
-        const decimals: BigNumber[] = await balanceCheckerContractInterface
-            .decimals(tokens)
-            .callAsync();
+            return resultArray;
+        }, []);
 
+        await Promise.all(tokensChunks.map(async (tokenArray: string[]) => {
+            const res: BigNumber[] = await balanceCheckerContractInterface
+                .decimals(tokenArray)
+                .callAsync();
+
+            decimals = decimals.concat(res);
+        }));
+
+        // Get best bid and ask
         for (let i = 0; i < pools.length; i++) {
             let filterBid = {};
             let count = 0;
-            if (pools[i].bids.records.length !== 0) {
-                while(count < pools[i].bids.records.length) {
-                    if (this.checkBidsOrAsks(pools[i].bids.records[count], req, tokens, decimals)) {
-                        filterBid = this.getBidOrAskFormat(pools[i].bids.records[count]);
+            if (pools[i].bids.length !== 0) {
+                while(count < pools[i].bids.length) {
+                    if (this.checkBidsOrAsks(pools[i].bids[count], req, tokens, decimals)) {
+                        filterBid = this.getBidOrAskFormat(pools[i].bids[count]);
                         break;
                     }
                     count++;
@@ -218,10 +239,10 @@ export class OrderBookService {
 
             let filterAsk = {};
             count = 0;
-            if (pools[i].asks.records.length !== 0) {
-                while(count < pools[i].asks.records.length) {
-                    if (this.checkBidsOrAsks(pools[i].asks.records[count], req, tokens, decimals)) {
-                        filterAsk = this.getBidOrAskFormat(pools[i].asks.records[count]);
+            if (pools[i].asks.length !== 0) {
+                while(count < pools[i].asks.length) {
+                    if (this.checkBidsOrAsks(pools[i].asks[count], req, tokens, decimals)) {
+                        filterAsk = this.getBidOrAskFormat(pools[i].asks[count]);
                         break;
                     }
                     count++;
