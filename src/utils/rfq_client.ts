@@ -130,8 +130,7 @@ export class RfqClient {
     public async getV2PricesAsync(request: RfqtV2Request): Promise<RfqtV2Prices> {
         // Short circuit if not rolled out
         if (!RfqClient.isRolledOut(request)) {
-            // return [];
-            logger.info({ RFQ_CLIENT_ROLLOUT_PERCENT }, 'DEBUG: Short circuiting getting v2 prices');
+            return [];
         }
 
         try {
@@ -169,8 +168,7 @@ export class RfqClient {
     public async getV2QuotesAsync(request: RfqtV2Request): Promise<RfqtV2Quotes> {
         // Short circuit if not rolled out
         if (!RfqClient.isRolledOut(request)) {
-            // return [];
-            logger.info({ RFQ_CLIENT_ROLLOUT_PERCENT }, 'DEBUG: Short circuiting getting v2 quotes');
+            return [];
         }
         try {
             const response = await this._axiosInstance.post(`${this._rfqApiUrl}/internal/rfqt/v2quotes`, request, {
