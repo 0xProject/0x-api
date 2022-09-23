@@ -125,16 +125,23 @@ export class OrderBookService {
         return true;
     }
 
-    public getRealAmount = (
-        amount: BigNumber,
-        tokenAddress: string,
-        tokens: string[],
-        decimals: BigNumber[]
-    ): number => {
-        const decimal: number = Number(decimals[tokens.indexOf(tokenAddress)].toString());
-        const realAmount: number = Number(amount.div(Math.pow(10, decimal)));
-
-        return realAmount;
+    public getBidOrAskFormat = (record: SRAOrder) => {
+        return {
+            order: {
+                maker: getAddress(record.order.maker),
+                taker: getAddress(record.order.taker),
+                makerToken: getAddress(record.order.makerToken),
+                takerToken: getAddress(record.order.takerToken),
+                makerAmount: record.order.makerAmount,
+                takerAmount: record.order.takerAmount,
+                takerTokenFeeAmount: record.order.takerTokenFeeAmount,
+                feeRecipient: getAddress(record.order.feeRecipient),
+                expiry: record.order.expiry,
+            },
+            metaData: {
+                remainingFillableTakerAmount: record.metaData.remainingFillableTakerAmount,
+            }
+        }
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -154,8 +161,6 @@ export class OrderBookService {
             })
         })
 
-        const bids: any[] = [];
-        const asks: any[] = [];
         const tokens: string[] = [];
 
         // Get all tokens list
@@ -199,65 +204,35 @@ export class OrderBookService {
             .callAsync();
 
         for (let i = 0; i < pools.length; i++) {
-            const bidRecords: SRAOrder[] = pools[i].bids.records.filter(
-                (bid: SRAOrder) => this.checkBidsOrAsks(bid, req, tokens, decimals)
-            );
-            const askRecords: SRAOrder[] = pools[i].asks.records.filter(
-                (ask: SRAOrder) => this.checkBidsOrAsks(ask, req, tokens, decimals)
-            );
-
-            const filterBids = [];
-            const filterAsks = [];
-
+            let filterBid = {};
             let count = 0;
-            while(count < bidRecords.length) {
-                filterBids.push({
-                    order: {
-                        maker: getAddress(bidRecords[count].order.maker),
-                        taker: getAddress(bidRecords[count].order.taker),
-                        makerToken: getAddress(bidRecords[count].order.makerToken),
-                        takerToken: getAddress(bidRecords[count].order.takerToken),
-                        makerAmount: bidRecords[count].order.makerAmount,
-                        takerAmount: bidRecords[count].order.takerAmount,
-                        takerTokenFeeAmount: bidRecords[count].order.takerTokenFeeAmount,
-                        feeRecipient: getAddress(bidRecords[count].order.feeRecipient),
-                        expiry: bidRecords[count].order.expiry,
-                    },
-                    metaData: {
-                        remainingFillableTakerAmount: bidRecords[count].metaData.remainingFillableTakerAmount,
+            if (pools[i].bids.records.length !== 0) {
+                while(count < pools[i].bids.records.length) {
+                    if (this.checkBidsOrAsks(pools[i].bids.records[count], req, tokens, decimals)) {
+                        filterBid = this.getBidOrAskFormat(pools[i].bids.records[count]);
+                        break;
                     }
-                });
-
-                count++;
+                    count++;
+                }
             }
 
+            let filterAsk = {};
             count = 0;
-            while(count < askRecords.length) {
-                filterAsks.push({
-                    order: {
-                        maker: getAddress(askRecords[count].order.maker),
-                        taker: getAddress(askRecords[count].order.taker),
-                        makerToken: getAddress(askRecords[count].order.makerToken),
-                        takerToken: getAddress(askRecords[count].order.takerToken),
-                        makerAmount: askRecords[count].order.makerAmount,
-                        takerAmount: askRecords[count].order.takerAmount,
-                        takerTokenFeeAmount: askRecords[count].order.takerTokenFeeAmount,
-                        feeRecipient: getAddress(askRecords[count].order.feeRecipient),
-                        expiry: askRecords[count].order.expiry,
-                    },
-                    metaData: {
-                        remainingFillableTakerAmount: askRecords[count].metaData.remainingFillableTakerAmount,
+            if (pools[i].asks.records.length !== 0) {
+                while(count < pools[i].asks.records.length) {
+                    if (this.checkBidsOrAsks(pools[i].asks.records[count], req, tokens, decimals)) {
+                        filterAsk = this.getBidOrAskFormat(pools[i].asks.records[count]);
+                        break;
                     }
-                })
-
-                count++;
+                    count++;
+                }
             }
 
             result.push({
                 baseToken: getAddress(pools[i].baseToken),
                 quoteToken: getAddress(pools[i].quoteToken),
-                bid: filterBids.length !== 0 ? filterBids[0] : {},
-                ask: filterAsks.length !== 0 ? filterAsks[0] : {},
+                bid: filterBid,
+                ask: filterAsk,
             })
         }
 
