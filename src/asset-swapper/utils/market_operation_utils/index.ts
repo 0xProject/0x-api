@@ -668,12 +668,26 @@ export class MarketOperationUtils {
                 // An indicative quote is being requested, and indicative quotes price-aware enabled
                 // Make the RFQT request and then re-run the sampler if new orders come back.
 
-                const indicativeQuotes =
+                const [v1Prices, v2Prices] =
                     rfqt.rfqClient === undefined
-                        ? []
-                        : ((
-                              await rfqt.rfqClient.getV1PricesAsync({
-                                  altRfqAssetOfferings: filteredOfferings,
+                        ? [[], []]
+                        : await Promise.all([
+                              rfqt.rfqClient
+                                  .getV1PricesAsync({
+                                      altRfqAssetOfferings: filteredOfferings,
+                                      assetFillAmount: amount,
+                                      chainId: this._sampler.chainId,
+                                      comparisonPrice: wholeOrderPrice,
+                                      integratorId: rfqt.integrator.integratorId,
+                                      intentOnFilling: rfqt.intentOnFilling,
+                                      makerToken,
+                                      marketOperation: side,
+                                      takerAddress: rfqt.takerAddress,
+                                      takerToken,
+                                      txOrigin: rfqt.txOrigin,
+                                  })
+                                  .then((res) => res.prices),
+                              rfqt.rfqClient.getV2PricesAsync({
                                   assetFillAmount: amount,
                                   chainId: this._sampler.chainId,
                                   comparisonPrice: wholeOrderPrice,
@@ -684,8 +698,14 @@ export class MarketOperationUtils {
                                   takerAddress: rfqt.takerAddress,
                                   takerToken,
                                   txOrigin: rfqt.txOrigin,
-                              })
-                          ).prices as V4RFQIndicativeQuoteMM[]);
+                              }),
+                          ]);
+
+                if (v2Prices.length > 0) {
+                    DEFAULT_INFO_LOGGER({ v2Prices }, 'v2Prices from RFQ Client');
+                }
+
+                const indicativeQuotes = v1Prices as V4RFQIndicativeQuoteMM[];
                 const deltaTime = new Date().getTime() - timeStart;
                 DEFAULT_INFO_LOGGER({
                     rfqQuoteType: 'indicative',
@@ -720,12 +740,27 @@ export class MarketOperationUtils {
             } else {
                 // A firm quote is being requested, and firm quotes price-aware enabled.
                 // Ensure that `intentOnFilling` is enabled and make the request.
-                const firmQuotes =
+
+                const [v1Quotes, v2Quotes] =
                     rfqt.rfqClient === undefined
-                        ? []
-                        : (
-                              await rfqt.rfqClient.getV1QuotesAsync({
-                                  altRfqAssetOfferings: filteredOfferings,
+                        ? [[], []]
+                        : await Promise.all([
+                              rfqt.rfqClient
+                                  .getV1QuotesAsync({
+                                      altRfqAssetOfferings: filteredOfferings,
+                                      assetFillAmount: amount,
+                                      chainId: this._sampler.chainId,
+                                      comparisonPrice: wholeOrderPrice,
+                                      integratorId: rfqt.integrator.integratorId,
+                                      intentOnFilling: rfqt.intentOnFilling,
+                                      makerToken,
+                                      marketOperation: side,
+                                      takerAddress: rfqt.takerAddress,
+                                      takerToken,
+                                      txOrigin: rfqt.txOrigin,
+                                  })
+                                  .then((res) => res.quotes),
+                              rfqt.rfqClient.getV2QuotesAsync({
                                   assetFillAmount: amount,
                                   chainId: this._sampler.chainId,
                                   comparisonPrice: wholeOrderPrice,
@@ -736,13 +771,19 @@ export class MarketOperationUtils {
                                   takerAddress: rfqt.takerAddress,
                                   takerToken,
                                   txOrigin: rfqt.txOrigin,
-                              })
-                          ).quotes.map((quote) => {
-                              DEFAULT_INFO_LOGGER({ ...quote, txOrigin: rfqt.txOrigin }, 'results from RFQ Client');
-                              // HACK: set the signature on quoteRequestor for future lookup (i.e. in Quote Report)
-                              rfqt.quoteRequestor?.setMakerUriForSignature(quote.signature, quote.makerUri);
-                              return toSignedNativeOrder(quote);
-                          });
+                              }),
+                          ]);
+
+                if (v2Quotes.length > 0) {
+                    DEFAULT_INFO_LOGGER({ v2Quotes }, 'v2Quotes from RFQ Client');
+                }
+
+                const firmQuotes = v1Quotes.map((quote) => {
+                    DEFAULT_INFO_LOGGER({ ...quote, txOrigin: rfqt.txOrigin }, 'results from RFQ Client');
+                    // HACK: set the signature on quoteRequestor for future lookup (i.e. in Quote Report)
+                    rfqt.quoteRequestor?.setMakerUriForSignature(quote.signature, quote.makerUri);
+                    return toSignedNativeOrder(quote);
+                });
 
                 const deltaTime = new Date().getTime() - timeStart;
                 DEFAULT_INFO_LOGGER({

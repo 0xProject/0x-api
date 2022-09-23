@@ -1,7 +1,41 @@
-import { RfqOrder, Signature } from '@0x/protocol-utils';
+import { OtcOrder, RfqOrder, Signature } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 
 import { AltRfqMakerAssetOfferings } from '../types';
+
+export interface RfqtV2Request {
+    assetFillAmount: BigNumber;
+    chainId: number;
+    comparisonPrice: BigNumber | undefined;
+    integratorId: string;
+    intentOnFilling: boolean;
+    makerToken: string;
+    marketOperation: 'Sell' | 'Buy';
+    takerAddress: string;
+    takerToken: string;
+    txOrigin: string;
+}
+
+export type RfqtV2Prices = {
+    expiry: BigNumber;
+    makerAddress: string;
+    makerAmount: BigNumber;
+    makerId: string;
+    makerToken: string;
+    makerUri: string;
+    takerAmount: BigNumber;
+    takerToken: string;
+}[];
+
+export type RfqtV2Quotes = {
+    fillableMakerAmount: BigNumber;
+    fillableTakerAmount: BigNumber;
+    fillableTakerFeeAmount: BigNumber;
+    makerId: string;
+    makerUri: string;
+    order: OtcOrder;
+    signature: Signature;
+}[];
 
 export interface RfqClientV1PriceRequest {
     altRfqAssetOfferings: AltRfqMakerAssetOfferings | undefined;
