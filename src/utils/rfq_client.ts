@@ -183,7 +183,7 @@ export class RfqClient {
                 return [];
             }
 
-            const updatedQuotes: RfqtV2Quotes = response.data?.map((q: any) => {
+            const quotes: RfqtV2Quotes = response.data?.map((q: any) => {
                 return {
                     fillableMakerAmount: new BigNumber(q.fillableMakerAmount),
                     fillableTakerAmount: new BigNumber(q.fillableTakerAmount),
@@ -194,7 +194,7 @@ export class RfqClient {
                     order: toOtcOrder(q.order),
                 };
             });
-            return updatedQuotes;
+            return quotes;
         } catch (error) {
             logger.error({ errorMessage: error.message }, 'Encountered an error fetching for /internal/rfqt/v2/quotes');
             return [];
