@@ -9,7 +9,6 @@ import {
 } from '@0x/contracts-test-utils';
 import { FillQuoteTransformerOrderType, LimitOrder, RfqOrder, SignatureType } from '@0x/protocol-utils';
 import { BigNumber, hexUtils, NULL_BYTES } from '@0x/utils';
-import { Web3Wrapper } from '@0x/web3-wrapper';
 import { Pool } from 'balancer-labs-sor-v1/dist/types';
 import * as _ from 'lodash';
 import * as TypeMoq from 'typemoq';
@@ -19,7 +18,6 @@ import {
     QuoteRequestor,
     RfqClientV1Price,
     RfqClientV1Quote,
-    RfqRequestOpts,
     SignedNativeOrder,
     TokenAdjacencyGraph,
 } from '../../src/asset-swapper';
@@ -653,7 +651,7 @@ describe('MarketOperationUtils tests', () => {
                             rfqClient: {
                                 getV1PricesAsync: rfqClient.object.getV1PricesAsync,
                                 getV1QuotesAsync: rfqClient.object.getV1QuotesAsync,
-                            },
+                            } as any,
                             quoteRequestor: {} as any,
                         },
                     },
@@ -706,7 +704,7 @@ describe('MarketOperationUtils tests', () => {
                             rfqClient: {
                                 getV1PricesAsync: rfqClient.object.getV1PricesAsync,
                                 getV1QuotesAsync: rfqClient.object.getV1QuotesAsync,
-                            },
+                            } as any,
                             quoteRequestor: {
                                 getMakerUriForSignature: requestor.object.getMakerUriForSignature,
                             } as any,
@@ -775,7 +773,7 @@ describe('MarketOperationUtils tests', () => {
                             rfqClient: {
                                 getV1PricesAsync: rfqClient.object.getV1PricesAsync,
                                 getV1QuotesAsync: rfqClient.object.getV1QuotesAsync,
-                            },
+                            } as any,
                             quoteRequestor: {
                                 setMakerUriForSignature: requestor.object.setMakerUriForSignature,
                                 getMakerUriForSignature: requestor.object.getMakerUriForSignature,
@@ -843,7 +841,7 @@ describe('MarketOperationUtils tests', () => {
                             rfqClient: {
                                 getV1PricesAsync: rfqClient.object.getV1PricesAsync,
                                 getV1QuotesAsync: rfqClient.object.getV1QuotesAsync,
-                            },
+                            } as any,
                             quoteRequestor: {
                                 setMakerUriForSignature: requestor.object.setMakerUriForSignature,
                                 getMakerUriForSignature: requestor.object.getMakerUriForSignature,

@@ -463,7 +463,6 @@ export interface AltFirmQuoteResponse extends AltBaseRfqResponse {
 export interface RfqtV2Request {
     assetFillAmount: BigNumber;
     chainId: number;
-    comparisonPrice: BigNumber | undefined;
     integratorId: string;
     intentOnFilling: boolean;
     makerToken: string;

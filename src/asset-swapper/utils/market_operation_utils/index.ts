@@ -690,7 +690,6 @@ export class MarketOperationUtils {
                               rfqt.rfqClient.getV2PricesAsync({
                                   assetFillAmount: amount,
                                   chainId: this._sampler.chainId,
-                                  comparisonPrice: wholeOrderPrice,
                                   integratorId: rfqt.integrator.integratorId,
                                   intentOnFilling: rfqt.intentOnFilling,
                                   makerToken,
@@ -701,9 +700,7 @@ export class MarketOperationUtils {
                               }),
                           ]);
 
-                if (v2Prices.length > 0) {
-                    DEFAULT_INFO_LOGGER({ v2Prices }, 'v2Prices from RFQ Client');
-                }
+                DEFAULT_INFO_LOGGER({ v2Prices, isEmpty: v2Prices?.length === 0 }, 'v2Prices from RFQ Client');
 
                 const indicativeQuotes = v1Prices as V4RFQIndicativeQuoteMM[];
                 const deltaTime = new Date().getTime() - timeStart;
@@ -763,7 +760,6 @@ export class MarketOperationUtils {
                               rfqt.rfqClient.getV2QuotesAsync({
                                   assetFillAmount: amount,
                                   chainId: this._sampler.chainId,
-                                  comparisonPrice: wholeOrderPrice,
                                   integratorId: rfqt.integrator.integratorId,
                                   intentOnFilling: rfqt.intentOnFilling,
                                   makerToken,
@@ -774,9 +770,7 @@ export class MarketOperationUtils {
                               }),
                           ]);
 
-                if (v2Quotes.length > 0) {
-                    DEFAULT_INFO_LOGGER({ v2Quotes }, 'v2Quotes from RFQ Client');
-                }
+                DEFAULT_INFO_LOGGER({ v2Quotes, isEmpty: v2Quotes?.length === 0 }, 'v2Quotes from RFQ Client');
 
                 const firmQuotes = v1Quotes.map((quote) => {
                     DEFAULT_INFO_LOGGER({ ...quote, txOrigin: rfqt.txOrigin }, 'results from RFQ Client');

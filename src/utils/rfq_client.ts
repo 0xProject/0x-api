@@ -142,7 +142,7 @@ export class RfqClient {
             });
 
             if (response.status !== OK) {
-                logger.warn({ request }, 'Unable to get RFQt v1 prices');
+                logger.warn({ request }, 'Unable to get RFQt v2 prices');
                 return [];
             }
 
@@ -179,7 +179,7 @@ export class RfqClient {
             });
 
             if (response.status !== OK) {
-                logger.warn({ request }, 'Unable to get RFQt v1 quotes');
+                logger.warn({ request }, 'Unable to get RFQt v2 quotes');
                 return [];
             }
 
