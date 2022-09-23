@@ -110,8 +110,10 @@ export class OrderBookService {
             return false;
         }
         if (req.takerTokenFee !== 0) {
-            if (order.order.takerTokenFeeAmount.lte(takerTokenFeeAmountExpected.minus(1)) ||
-                order.order.takerTokenFeeAmount.gte(takerTokenFeeAmountExpected.plus(1))
+            const takerTokenDecimal = decimals[tokens.indexOf(order.order.takerToken)];
+            const toleranceTakerTokenFeeAmount = Math.pow(10, Number(takerTokenDecimal.toString()));
+            if (order.order.takerTokenFeeAmount.lte(takerTokenFeeAmountExpected.minus(toleranceTakerTokenFeeAmount)) ||
+                order.order.takerTokenFeeAmount.gte(takerTokenFeeAmountExpected.plus(toleranceTakerTokenFeeAmount))
             ) {
                 return false;
             }
@@ -148,7 +150,7 @@ export class OrderBookService {
     public async getPricesAsync(req: OrderbookPriceRequest): Promise<any> {
         const result: any[] = [];
         const res = await fetchPoolLists(req.page, req.perPage, req.createdBy, req.graphUrl);
-        const pools: any[] = [];
+        let pools: any[] = [];
         res.map((pool: any) => {
             pools.push({
                 baseToken: pool.longToken.id,
@@ -168,9 +170,8 @@ export class OrderBookService {
         // Get all tokens list
         await Promise.all(pools.map(async (pool) => {
             let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
-
-            bids.push(priceResponse.bids);
-            asks.push(priceResponse.asks);
+            pool.bids = (priceResponse.bids);
+            pool.asks = (priceResponse.asks);
 
             priceResponse.bids.records.map((bid: SRAOrder) => {
                 if (tokens.indexOf(bid.order.makerToken) === -1) {
@@ -207,10 +208,10 @@ export class OrderBookService {
             .callAsync();
 
         for (let i = 0; i < pools.length; i++) {
-            const bidRecords: SRAOrder[] = bids[i].records.filter(
+            const bidRecords: SRAOrder[] = pools[i].bids.records.filter(
                 (bid: SRAOrder) => this.checkBidsOrAsks(bid, req, tokens, decimals)
             );
-            const askRecords: SRAOrder[] = asks[i].records.filter(
+            const askRecords: SRAOrder[] = pools[i].asks.records.filter(
                 (ask: SRAOrder) => this.checkBidsOrAsks(ask, req, tokens, decimals)
             );
 
