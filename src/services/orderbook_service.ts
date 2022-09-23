@@ -94,7 +94,7 @@ export class OrderBookService {
         tokens: string[],
         decimals: BigNumber[]
     ): boolean => {
-        const takerTokenFeeAmountExpected = order.order.takerAmount.multipliedBy(req.takerTokenFee / 100000);
+        const takerTokenFeeAmountExpected = order.order.takerAmount.multipliedBy(req.takerTokenFee / 100000); // 1 is 0.001% and the actual amount is token fee / 100000, so we divided it by 100000
 
         if (order.order.taker === NULL_ADDRESS && // Ensure that orders are fillable by anyone and not reserved for a specific address
             order.order.feeRecipient === DIVA_GOVERNANCE_ADDRESS.toLowerCase() && // Ensure that the feeRecipient is DIVA Governance address
@@ -103,7 +103,7 @@ export class OrderBookService {
         ) {
             return false;
         }
-        if (req.taker !== NULL_ADDRESS && req.taker !== order.order.taker) {
+        if (req.taker !== NULL_ADDRESS && req.taker !== order.order.taker.toLowerCase()) {
             return false;
         }
         if (req.feeRecipient !== NULL_ADDRESS && order.order.feeRecipient.toLowerCase() !== req.feeRecipient) {
@@ -120,15 +120,6 @@ export class OrderBookService {
         }
         if (req.threshold !== 0 && order.metaData.remainingFillableTakerAmount.lte(req.threshold)) {
             return false;
-            // const realAmount = this.getRealAmount(
-            //     order.metaData.remainingFillableTakerAmount,
-            //     order.order.takerToken,
-            //     tokens,
-            //     decimals
-            // );
-            // if (realAmount < Number(req.threshold)) {
-            //     return false;
-            // }
         }
 
         return true;
