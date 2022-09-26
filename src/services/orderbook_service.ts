@@ -4,19 +4,16 @@ import { getAddress } from '@ethersproject/address';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
-import { LimitOrder, BalanceCheckerContract } from '../asset-swapper';
+import { LimitOrder } from '../asset-swapper';
 import { fetchPoolLists } from '../asset-swapper/utils/market_operation_utils/pools_cache/pool_list_cache';
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
-    defaultHttpServiceConfig
 } from '../config';
 import {
     ONE_SECOND_MS,
     NULL_ADDRESS,
-    BALANCE_CHECKER_ADDRESS,
-    BALANCE_CHECKER_GAS_LIMIT,
     DIVA_GOVERNANCE_ADDRESS
 } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
@@ -33,7 +30,6 @@ import {
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
-import { providerUtils } from '../utils/provider_utils';
 
 export class OrderBookService {
     private readonly _connection: Connection;
@@ -88,12 +84,7 @@ export class OrderBookService {
         };
     }
 
-    public checkBidsOrAsks = (
-        order: SRAOrder,
-        req: OrderbookPriceRequest,
-        tokens: string[],
-        decimals: BigNumber[]
-    ): boolean => {
+    public checkBidsOrAsks = (order: SRAOrder,req: OrderbookPriceRequest): boolean => {
         // 1 is 0.001% and the actual amount is token fee / 100000, so we divided it by 100000
         const takerTokenFeeAmountExpected = order.order.takerAmount.multipliedBy(new BigNumber(req.takerTokenFee / 100000));
 
@@ -111,8 +102,7 @@ export class OrderBookService {
             return false;
         }
         if (req.takerTokenFee !== 0) {
-            const takerTokenDecimal = decimals[tokens.indexOf(order.order.takerToken)];
-            const toleranceTakerTokenFeeAmount = new BigNumber(Math.pow(10, Number(takerTokenDecimal.toString())));
+            const toleranceTakerTokenFeeAmount = new BigNumber(1);
 
             if (order.order.takerTokenFeeAmount.lte(takerTokenFeeAmountExpected.minus(toleranceTakerTokenFeeAmount)) ||
                 order.order.takerTokenFeeAmount.gte(takerTokenFeeAmountExpected.plus(toleranceTakerTokenFeeAmount))
@@ -148,18 +138,6 @@ export class OrderBookService {
 
     // tslint:disable-next-line:prefer-function-over-method
     public async getPricesAsync(req: OrderbookPriceRequest): Promise<any> {
-        const provider = providerUtils.createWeb3Provider(
-            defaultHttpServiceConfig.ethereumRpcUrl,
-            defaultHttpServiceConfig.rpcRequestTimeout,
-            defaultHttpServiceConfig.shouldCompressRequest,
-        );
-
-        const balanceCheckerContractInterface = new BalanceCheckerContract(
-            BALANCE_CHECKER_ADDRESS,
-            provider,
-            { gas: BALANCE_CHECKER_GAS_LIMIT }
-        );
-
         const result: any[] = [];
         const res = await fetchPoolLists(req.page, req.perPage, req.createdBy, req.graphUrl);
         let pools: any[] = [];
@@ -175,52 +153,11 @@ export class OrderBookService {
             })
         })
 
-        const tokens: string[] = [];
-
         // Get all tokens list
         await Promise.all(pools.map(async (pool) => {
             let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
-
             pool.bids = priceResponse.bids.records;
             pool.asks = priceResponse.asks.records;
-
-            pool.bids.map((bid: SRAOrder) => {
-                if (tokens.indexOf(bid.order.makerToken) === -1) {
-                    tokens.push(bid.order.makerToken);
-                }
-                if (tokens.indexOf(bid.order.takerToken) === -1) {
-                    tokens.push(bid.order.takerToken);
-                }
-            });
-
-            pool.asks.map((ask: SRAOrder) => {
-                if (tokens.indexOf(ask.order.makerToken) === -1) {
-                    tokens.push(ask.order.makerToken);
-                }
-                if (tokens.indexOf(ask.order.takerToken) === -1) {
-                    tokens.push(ask.order.takerToken);
-                }
-            });
-        }));
-
-        let decimals: BigNumber[] = [];
-
-        const tokensChunks = tokens.reduce((resultArray: string[][], item: string, index: number) => {
-            const batchIndex = Math.floor(index / 400);
-            if (!resultArray[batchIndex]) {
-                resultArray[batchIndex] = [];
-            }
-            resultArray[batchIndex].push(item);
-
-            return resultArray;
-        }, []);
-
-        await Promise.all(tokensChunks.map(async (tokenArray: string[]) => {
-            const res: BigNumber[] = await balanceCheckerContractInterface
-                .decimals(tokenArray)
-                .callAsync();
-
-            decimals = decimals.concat(res);
         }));
 
         // Get best bid and ask
@@ -229,7 +166,7 @@ export class OrderBookService {
             let count = 0;
             if (pools[i].bids.length !== 0) {
                 while(count < pools[i].bids.length) {
-                    if (this.checkBidsOrAsks(pools[i].bids[count], req, tokens, decimals)) {
+                    if (this.checkBidsOrAsks(pools[i].bids[count], req)) {
                         filterBid = this.getBidOrAskFormat(pools[i].bids[count]);
                         break;
                     }
@@ -241,7 +178,7 @@ export class OrderBookService {
             count = 0;
             if (pools[i].asks.length !== 0) {
                 while(count < pools[i].asks.length) {
-                    if (this.checkBidsOrAsks(pools[i].asks[count], req, tokens, decimals)) {
+                    if (this.checkBidsOrAsks(pools[i].asks[count], req)) {
                         filterAsk = this.getBidOrAskFormat(pools[i].asks[count]);
                         break;
                     }
