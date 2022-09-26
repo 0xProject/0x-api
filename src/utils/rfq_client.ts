@@ -146,8 +146,6 @@ export class RfqClient {
                 return [];
             }
 
-            // return response.data as RfqtV2Prices;
-
             return response.data?.map((q: any) => {
                 return {
                     ...q,
@@ -182,6 +180,8 @@ export class RfqClient {
                 logger.warn({ request }, 'Unable to get RFQt v2 quotes');
                 return [];
             }
+
+            logger.info({ response: response.data }, 'DEBUG: here is the response from RFQ API');
 
             const quotes: RfqtV2Quotes = response.data?.map((q: any) => {
                 return {
