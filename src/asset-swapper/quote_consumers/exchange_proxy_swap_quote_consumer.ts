@@ -502,9 +502,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
             if (sellTokenFeeAmount.isGreaterThan(0)) {
               throw new Error('Affiliate fees denominated in sell token are not yet supported');
             }
-        } else if (feeType === AffiliateFeeType.GaslessFee && feeRecipient !== NULL_ADDRESS) {
-          console.log('REMOVE ME');
-        }
+        } 
 
         // Return any unspent sell tokens.
         const payTakerTokens = [sellToken];
