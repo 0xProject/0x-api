@@ -146,7 +146,7 @@ export class RfqClient {
                 return [];
             }
 
-            return response.data?.map((q: any) => {
+            return response.data?.prices?.map((q: any) => {
                 return {
                     ...q,
                     expiry: new BigNumber(q.expiry),
@@ -183,7 +183,7 @@ export class RfqClient {
 
             logger.info({ response: response.data }, 'DEBUG: here is the response from RFQ API');
 
-            const quotes: RfqtV2Quotes = response.data?.map((q: any) => {
+            const quotes: RfqtV2Quotes = response.data?.quotes?.map((q: any) => {
                 return {
                     fillableMakerAmount: new BigNumber(q.fillableMakerAmount),
                     fillableTakerAmount: new BigNumber(q.fillableTakerAmount),
