@@ -221,11 +221,12 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.UniswapV3,
             ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.BalancerV2,
-            // ERC20BridgeSource.Synapse, // TODO: re-enable once fixed.
+            ERC20BridgeSource.Synapse,
             ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.GMX,
             ERC20BridgeSource.MultiHop,
             //ERC20BridgeSource.Dodo,
+            ERC20BridgeSource.Saddle,
         ]),
     },
     new SourceFilters([]),
@@ -381,11 +382,12 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.UniswapV3,
             ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.BalancerV2,
-            // ERC20BridgeSource.Synapse, // TODO: re-enable once fixed.
+            ERC20BridgeSource.Synapse,
             ERC20BridgeSource.CurveV2,
             ERC20BridgeSource.GMX,
             ERC20BridgeSource.MultiHop,
             //ERC20BridgeSource.Dodo,
+            ERC20BridgeSource.Saddle,
         ]),
     },
     new SourceFilters([]),
@@ -867,7 +869,7 @@ export const SYNAPSE_AVALANCHE_POOLS = {
 
 export const SYNAPSE_ARBITRUM_POOLS = {
     nUSDLP: '0x0db3fe3b770c95a0b99d1ed6f2627933466c0dd8',
-    nETHLP: '0x1c3fe783a7c06bfabd124f2708f5cc51fa42e102',
+    nETHLP: '0xa067668661c84476afcdc6fa5d758c4c01c34352',
 };
 
 export const BELT_POOLS = {
@@ -1101,6 +1103,8 @@ export const DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID = valueByChainId<TokenAdj
     TokenAdjacencyGraph.getEmptyGraph(),
 );
 
+// TODO (rhinodavid): this constant is being used for reasons other than fees
+// (see swap_handlers). Needs to be rethought or at least renamed.
 export const NATIVE_FEE_TOKEN_BY_CHAIN_ID = valueByChainId<string>(
     {
         [ChainId.Mainnet]: getContractAddressesForChainOrThrow(ChainId.Mainnet).etherToken,
@@ -1132,7 +1136,7 @@ const CURVE_TRI_BTC_POOL_TOKEN = [MAINNET_TOKENS.RenBTC, MAINNET_TOKENS.WBTC, MA
 const CURVE_POLYGON_ATRICRYPTO_UNDERLYING_TOKENS = [POLYGON_TOKENS.DAI, POLYGON_TOKENS.USDC, POLYGON_TOKENS.USDT];
 const CURVE_POLYGON_ATRICRYPTO_TOKENS = [POLYGON_TOKENS.amDAI, POLYGON_TOKENS.amUSDC, POLYGON_TOKENS.amUSDT];
 const CURVE_FANTOM_TWO_POOL_TOKENS = [FANTOM_TOKENS.DAI, FANTOM_TOKENS.USDC];
-const CURVE_ARBITRUM_TWO_POOL_TOKENS = [FANTOM_TOKENS.USDC, FANTOM_TOKENS.USDT];
+const CURVE_ARBITRUM_TWO_POOL_TOKENS = [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT];
 
 const createCurveExchangePool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange,
@@ -1185,8 +1189,8 @@ const createCurveMetaTwoPoolFantom = (info: { tokens: string[]; pool: string; ga
 });
 
 const createCurveMetaTwoPoolArbitrum = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
-    exchangeFunctionSelector: CurveFunctionSelectors.exchange,
-    sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy,
+    exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying,
+    sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
     tokens: [...info.tokens, ...CURVE_ARBITRUM_TWO_POOL_TOKENS],
     metaTokens: info.tokens,
@@ -1648,22 +1652,21 @@ export const CURVE_V2_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
         pool: CURVE_V2_ARBITRUM_POOLS.twoPool,
         gasSchedule: 400e3,
     }),
-    //to do resolve curve pools function selector issues
-    // [CURVE_V2_ARBITRUM_POOLS.MIM]: createCurveMetaTwoPoolArbitrum({
-    //     tokens: [ARBITRUM_TOKENS.MIM],
-    //     pool: CURVE_V2_ARBITRUM_POOLS.MIM,
-    //     gasSchedule: 700e3,
-    // }),
-    // [CURVE_V2_ARBITRUM_POOLS.fraxBP]: createCurveExchangeV2Pool({
-    //     tokens: [ARBITRUM_TOKENS.FRAX, ARBITRUM_TOKENS.USDC],
-    //     pool: CURVE_V2_ARBITRUM_POOLS.fraxBP,
-    //     gasSchedule: 700e3,
-    // }),
-    // [CURVE_V2_ARBITRUM_POOLS.vstFrax]: createCurveExchangeV2Pool({
-    //     tokens: [ARBITRUM_TOKENS.VST, ARBITRUM_TOKENS.FRAX],
-    //     pool: CURVE_V2_ARBITRUM_POOLS.vstFrax,
-    //     gasSchedule: 700e3,
-    // }),
+    [CURVE_V2_ARBITRUM_POOLS.MIM]: createCurveMetaTwoPoolArbitrum({
+        tokens: [ARBITRUM_TOKENS.MIM],
+        pool: CURVE_V2_ARBITRUM_POOLS.MIM,
+        gasSchedule: 400e3,
+    }),
+    [CURVE_V2_ARBITRUM_POOLS.fraxBP]: createCurveExchangePool({
+        tokens: [ARBITRUM_TOKENS.FRAX, ARBITRUM_TOKENS.USDC],
+        pool: CURVE_V2_ARBITRUM_POOLS.fraxBP,
+        gasSchedule: 200e3,
+    }),
+    [CURVE_V2_ARBITRUM_POOLS.vstFrax]: createCurveExchangePool({
+        tokens: [ARBITRUM_TOKENS.VST, ARBITRUM_TOKENS.FRAX],
+        pool: CURVE_V2_ARBITRUM_POOLS.vstFrax,
+        gasSchedule: 200e3,
+    }),
 };
 
 export const BELT_BSC_INFOS: { [name: string]: CurveInfo } = {
@@ -1758,12 +1761,12 @@ export const SADDLE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
     [SADDLE_ARBITRUM_POOLS.fraxBP]: createSaddleSwapPool({
         tokens: [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.FRAX],
         pool: SADDLE_ARBITRUM_POOLS.fraxBP,
-        gasSchedule: 150e3,
+        gasSchedule: 200e3,
     }),
     [SADDLE_ARBITRUM_POOLS.arbUSDPoolV2]: createSaddleSwapPool({
         tokens: [ARBITRUM_TOKENS.FRAX, ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT],
         pool: SADDLE_ARBITRUM_POOLS.arbUSDPoolV2,
-        gasSchedule: 150e3,
+        gasSchedule: 200e3,
     }),
 };
 
@@ -1878,9 +1881,9 @@ export const SYNAPSE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
         sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
         buyQuoteFunctionSelector: CurveFunctionSelectors.None,
         poolAddress: SYNAPSE_ARBITRUM_POOLS.nUSDLP,
-        tokens: [ARBITRUM_TOKENS.nUSD, ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT, ARBITRUM_TOKENS.MIM],
+        tokens: [ARBITRUM_TOKENS.nUSD, ARBITRUM_TOKENS.MIM, ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT],
         metaTokens: undefined,
-        gasSchedule: 140e3,
+        gasSchedule: 200e3,
     },
     [SYNAPSE_ARBITRUM_POOLS.nETHLP]: {
         exchangeFunctionSelector: CurveFunctionSelectors.swap,
@@ -1889,7 +1892,7 @@ export const SYNAPSE_ARBITRUM_INFOS: { [name: string]: CurveInfo } = {
         poolAddress: SYNAPSE_ARBITRUM_POOLS.nETHLP,
         tokens: [ARBITRUM_TOKENS.nETH, ARBITRUM_TOKENS.WETH],
         metaTokens: undefined,
-        gasSchedule: 140e3,
+        gasSchedule: 175e3,
     },
 };
 
