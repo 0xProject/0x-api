@@ -85,6 +85,9 @@ export const ONE_IN_BASE_POINTS = 10000;
 // Whether Slippage Protect is enabled by default
 export const DEFAULT_ENABLE_SLIPPAGE_PROTECTION = true;
 
+// Exchange Proxy Address
+export const EXCHANGE_PROXY_ADDRESS = "0xf91bb752490473b8342a3e964e855b9f9a2a668e";
+
 // Balance Checker Address
 export const BALANCE_CHECKER_ADDRESS = "0x6F9b7892a6272880905E90DC5AcD1F56dF222FbE";
 export const BALANCE_CHECKER_GAS_LIMIT = 10000000;

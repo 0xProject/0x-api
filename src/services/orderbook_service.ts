@@ -4,17 +4,21 @@ import { getAddress } from '@ethersproject/address';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
-import { LimitOrder } from '../asset-swapper';
+import { LimitOrder, BalanceCheckerContract } from '../asset-swapper';
 import { fetchPoolLists } from '../asset-swapper/utils/market_operation_utils/pools_cache/pool_list_cache';
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
+    defaultHttpServiceConfig,
 } from '../config';
 import {
     ONE_SECOND_MS,
     NULL_ADDRESS,
-    DIVA_GOVERNANCE_ADDRESS
+    DIVA_GOVERNANCE_ADDRESS,
+    BALANCE_CHECKER_ADDRESS,
+    BALANCE_CHECKER_GAS_LIMIT,
+    EXCHANGE_PROXY_ADDRESS,
 } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
@@ -30,6 +34,7 @@ import {
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
+import { providerUtils } from '../utils/provider_utils';
 
 export class OrderBookService {
     private readonly _connection: Connection;
@@ -110,7 +115,9 @@ export class OrderBookService {
                 return false;
             }
         }
-        if (req.threshold !== 0 && order.metaData.remainingFillableTakerAmount.lte(req.threshold)) {
+        if ((req.threshold !== 0 && order.metaData.remainingFillableTakerAmount.lte(req.threshold)) ||
+            order.metaData.remainingFillableTakerAmount.lte(0)
+        ) {
             return false;
         }
 
@@ -136,6 +143,81 @@ export class OrderBookService {
         }
     }
 
+    public getMakerInfo = (records: SRAOrder[]) => {
+        let makers: string[] = records.map((data) => {
+            return data.order.maker
+        });
+        let makerTokens: string[] = records.map((data) => {
+            return data.order.makerToken
+        });
+
+        return {
+            makers,
+            makerTokens,
+        }
+    }
+
+    public getFillableOrder = (
+        makers: string[],
+        makerTokens: string[],
+        minOfBalancesOrAllowances: BigNumber[],
+        order: SRAOrder,
+    ) => {
+        const remainingFillableMakerAmount = order.order.makerAmount
+            .multipliedBy(new BigNumber(order.metaData.remainingFillableTakerAmount))
+            .div(order.order.takerAmount);
+        let makerIndex: number = -1;
+
+        makers.map((maker: string, index: number) => {
+            if (maker.toLowerCase() === order.order.maker.toLowerCase() &&
+                makerTokens[index].toLowerCase() === order.order.makerToken.toLowerCase()) {
+                makerIndex = index;
+            }
+        });
+
+        const remainingMakerMinOfBalancesOrAllowances = minOfBalancesOrAllowances[makerIndex];
+
+        if (remainingMakerMinOfBalancesOrAllowances.gt(0)) {
+            let remainingFillableTakerAmount = order.metaData.remainingFillableTakerAmount;
+            if (remainingFillableMakerAmount.gt(remainingMakerMinOfBalancesOrAllowances)) {
+                remainingFillableTakerAmount =
+                    remainingMakerMinOfBalancesOrAllowances
+                    .multipliedBy(order.order.takerAmount)
+                    .div(order.order.makerAmount);
+            }
+
+            minOfBalancesOrAllowances[makerIndex] =
+                minOfBalancesOrAllowances[makerIndex].minus(remainingFillableMakerAmount);
+
+
+            const extendedOrder = {
+                ...order,
+                metaData: {
+                    ...order.metaData,
+                    remainingFillableTakerAmount: remainingFillableTakerAmount,
+                }
+            }
+
+            return {
+                extendedOrder,
+                minOfBalancesOrAllowances,
+            }
+        } else {
+            const extendedOrder =  {
+                ...order,
+                metaData: {
+                    ...order.metaData,
+                    remainingFillableTakerAmount: new BigNumber(-1),
+                }
+            }
+
+            return {
+                extendedOrder,
+                minOfBalancesOrAllowances,
+            }
+        }
+    }
+
     // tslint:disable-next-line:prefer-function-over-method
     public async getPricesAsync(req: OrderbookPriceRequest): Promise<any> {
         const result: any[] = [];
@@ -153,12 +235,67 @@ export class OrderBookService {
             })
         })
 
+        let makers: string[] = [];
+        let makerTokens: string[] = [];
+
         // Get all tokens list
         await Promise.all(pools.map(async (pool) => {
             let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
             pool.bids = priceResponse.bids.records;
             pool.asks = priceResponse.asks.records;
+
+            const bidMakerInfo = this.getMakerInfo(pool.bids)
+            makers = makers.concat(bidMakerInfo.makers);
+            makerTokens = makerTokens.concat(bidMakerInfo.makerTokens);
+
+            const askMakerInfo = this.getMakerInfo(pool.asks)
+            makers = makers.concat(askMakerInfo.makers);
+            makerTokens = makerTokens.concat(askMakerInfo.makerTokens);
         }));
+
+        // Get fillable orders
+        const makersChunks = makers.reduce((resultArray: string[][], item, index) => {
+            const batchIndex = Math.floor(index / 400)
+            if (!resultArray[batchIndex]) {
+                resultArray[batchIndex] = []
+            }
+            resultArray[batchIndex].push(item);
+            return resultArray;
+        }, []);
+
+        const makersTokensChunks = makerTokens.reduce((resultArray: string[][], item, index) => {
+            const batchIndex = Math.floor(index / 400)
+            if (!resultArray[batchIndex]) {
+                resultArray[batchIndex] = []
+            }
+            resultArray[batchIndex].push(item);
+            return resultArray;
+        }, []);
+
+        const provider = providerUtils.createWeb3Provider(
+            defaultHttpServiceConfig.ethereumRpcUrl,
+            defaultHttpServiceConfig.rpcRequestTimeout,
+            defaultHttpServiceConfig.shouldCompressRequest,
+        );
+
+        const balanceCheckerContractInterface = new BalanceCheckerContract(
+            BALANCE_CHECKER_ADDRESS,
+            provider,
+            { gas: BALANCE_CHECKER_GAS_LIMIT }
+        );
+
+        const checkRes = await Promise.all(makersChunks.map((makersChunk: string[], index: number) => {
+            return balanceCheckerContractInterface
+                .getMinOfBalancesOrAllowances(makersChunk, makersTokensChunks[index], EXCHANGE_PROXY_ADDRESS)
+                .callAsync();
+        }));
+
+        let minOfBalancesOrAllowances: BigNumber[] = [];
+        checkRes.map((data: BigNumber[]) => {
+            minOfBalancesOrAllowances = minOfBalancesOrAllowances.concat(data);
+        });
+
+
 
         // Get best bid and ask
         for (let i = 0; i < pools.length; i++) {
@@ -166,7 +303,16 @@ export class OrderBookService {
             let count = 0;
             if (pools[i].bids.length !== 0) {
                 while(count < pools[i].bids.length) {
-                    if (this.checkBidsOrAsks(pools[i].bids[count], req)) {
+                    const fillableOrder = this.getFillableOrder(
+                        makers,
+                        makerTokens,
+                        minOfBalancesOrAllowances,
+                        pools[i].bids[count]
+                    );
+
+                    minOfBalancesOrAllowances = fillableOrder.minOfBalancesOrAllowances;
+
+                    if (this.checkBidsOrAsks(fillableOrder.extendedOrder, req)) {
                         filterBid = this.getBidOrAskFormat(pools[i].bids[count]);
                         break;
                     }
@@ -178,7 +324,15 @@ export class OrderBookService {
             count = 0;
             if (pools[i].asks.length !== 0) {
                 while(count < pools[i].asks.length) {
-                    if (this.checkBidsOrAsks(pools[i].asks[count], req)) {
+                    const fillableOrder = this.getFillableOrder(
+                        makers,
+                        makerTokens,
+                        minOfBalancesOrAllowances,
+                        pools[i].asks[count]
+                    );
+
+                    minOfBalancesOrAllowances = fillableOrder.minOfBalancesOrAllowances;
+                    if (this.checkBidsOrAsks(fillableOrder.extendedOrder, req)) {
                         filterAsk = this.getBidOrAskFormat(pools[i].asks[count]);
                         break;
                     }
