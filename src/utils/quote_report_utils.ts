@@ -1,6 +1,4 @@
-import type { PinoLogger } from '@0x/api-utils';
 import { Producer } from 'kafkajs';
-import _ = require('lodash');
 
 import {
     BigNumber,
@@ -33,7 +31,7 @@ interface ExtendedQuoteReportForTakerTxn extends QuoteReportLogOptionsBase {
 interface ExtendedQuoteReportForGaslessSwapAmm extends QuoteReportLogOptionsBase {
     quoteReportSources: ExtendedQuoteReportSources;
     submissionBy: 'gaslessSwapAmm';
-    decodedUniqueId: string;
+    ammQuoteUniqueId?: string;
 }
 
 export interface WrappedSignedNativeOrderMM {
@@ -67,6 +65,7 @@ export function publishQuoteReport(
 ): void {
     if (kafkaProducer && KAFKA_TOPIC_QUOTE_REPORT) {
         const extendedQuoteReport: ExtendedQuoteReport = {
+            ammQuoteUniqueId: logOpts.submissionBy === 'gaslessSwapAmm' ? logOpts.ammQuoteUniqueId : undefined,
             quoteId: logOpts.quoteId,
             taker: logOpts.taker,
             timestamp:
@@ -79,10 +78,7 @@ export function publishQuoteReport(
             sellTokenAddress: logOpts.sellTokenAddress,
             integratorId: logOpts.integratorId,
             slippageBips: logOpts.slippage ? logOpts.slippage * BIPS_IN_INT : undefined,
-            decodedUniqueId:
-                logOpts.submissionBy === 'taker' || logOpts.submissionBy === 'gaslessSwapAmm'
-                    ? logOpts.decodedUniqueId
-                    : undefined,
+            decodedUniqueId: logOpts.submissionBy === 'taker' ? logOpts.decodedUniqueId : undefined,
             sourcesConsidered: logOpts.quoteReportSources.sourcesConsidered.map(jsonifyFillData),
             sourcesDelivered: logOpts.quoteReportSources.sourcesDelivered?.map(jsonifyFillData),
             blockNumber: logOpts.blockNumber,

@@ -90,6 +90,7 @@ export interface ExtendedQuoteReportSources {
 }
 
 export interface ExtendedQuoteReport {
+    ammQuoteUniqueId?: string;
     quoteId?: string;
     taker?: string;
     timestamp: number;
