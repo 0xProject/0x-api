@@ -603,7 +603,6 @@ function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {
                 tokenAddressPath: fd.tokenAddressPath,
                 uniswapPath,
                 gasUsed,
-                chainId: fd.chainId,
             };
             return finalFillData;
         }
