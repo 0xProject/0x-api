@@ -240,9 +240,10 @@ export class OrderBookService {
 
         // Get all tokens list
         await Promise.all(pools.map(async (pool) => {
-            let priceResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
-            pool.bids = priceResponse.bids.records;
-            pool.asks = priceResponse.asks.records;
+            const bidResponse = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
+            const askResponse = await this.getOrderBookAsync(1, 1000, pool.quoteToken, pool.baseToken);
+            pool.bids = bidResponse.bids.records;
+            pool.asks = askResponse.bids.records;
 
             const bidMakerInfo = this.getMakerInfo(pool.bids)
             makers = makers.concat(bidMakerInfo.makers);
@@ -294,8 +295,6 @@ export class OrderBookService {
         checkRes.map((data: BigNumber[]) => {
             minOfBalancesOrAllowances = minOfBalancesOrAllowances.concat(data);
         });
-
-
 
         // Get best bid and ask
         for (let i = 0; i < pools.length; i++) {
