@@ -135,7 +135,7 @@ export class RfqClient {
 
         try {
             const response = await this._axiosInstance.post(`${this._rfqApiUrl}/internal/rfqt/v2/prices`, request, {
-                timeout: RFQT_REQUEST_MAX_RESPONSE_MS + 150,
+                timeout: RFQT_REQUEST_MAX_RESPONSE_MS * 2,
                 headers: {
                     '0x-chain-id': request.chainId,
                 },
@@ -170,7 +170,7 @@ export class RfqClient {
         }
         try {
             const response = await this._axiosInstance.post(`${this._rfqApiUrl}/internal/rfqt/v2/quotes`, request, {
-                timeout: RFQT_REQUEST_MAX_RESPONSE_MS + 150,
+                timeout: RFQT_REQUEST_MAX_RESPONSE_MS * 2,
                 headers: {
                     '0x-chain-id': request.chainId,
                 },
