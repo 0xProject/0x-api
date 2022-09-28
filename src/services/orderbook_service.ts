@@ -347,7 +347,7 @@ export class OrderBookService {
             })
         }
 
-        return paginationUtils.paginate(result, req.page, req.perPage);
+        return paginationUtils.paginate(result, 1, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method

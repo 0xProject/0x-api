@@ -1,4 +1,5 @@
-import { gql, request } from 'graphql-request';
+import { request } from 'graphql-request';
+import gql from 'graphql-tag'
 
 const queryPools = (
     skip: number,
@@ -71,7 +72,7 @@ export const fetchPoolLists = async (page: number, pageSize: number, createdBy: 
   const result = await request(
     graphUrl,
     queryPools(
-      Math.max(page - 1, 0) * pageSize,
+      (Math.max(page - 1, 0) * pageSize) / 2,
       pageSize,
       createdBy,
       undefined
