@@ -181,8 +181,6 @@ export class RfqClient {
                 return [];
             }
 
-            logger.info({ response: response.data }, 'DEBUG: here is the response from RFQ API');
-
             const quotes: RfqtV2Quotes = response.data?.quotes?.map((q: any) => {
                 return {
                     fillableMakerAmount: new BigNumber(q.fillableMakerAmount),
