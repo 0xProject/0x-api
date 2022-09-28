@@ -52,7 +52,7 @@ import { estimateArbitrumL1CalldataGasCost } from '../utils/l2_gas_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
-import { quoteReportUtils } from '../utils/quote_report_utils';
+import { publishQuoteReport } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
 import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
@@ -173,47 +173,29 @@ export class SwapHandlers {
                     // makers: quote.orders.map(order => order.makerAddress),
                 },
             });
-            if (quote.quoteReport && params.rfqt && params.rfqt.intentOnFilling) {
-                quoteReportUtils.logQuoteReport(
-                    {
-                        quoteReport: quote.quoteReport,
-                        submissionBy: 'taker',
-                        decodedUniqueId: quote.decodedUniqueId,
-                        buyTokenAddress: quote.buyTokenAddress,
-                        sellTokenAddress: quote.sellTokenAddress,
-                        buyAmount: params.buyAmount,
-                        sellAmount: params.sellAmount,
-                        integratorId: params.integrator?.integratorId,
-                        blockNumber: quote.blockNumber,
-                        slippage: undefined,
-                        estimatedGas: quote.estimatedGas,
-                    },
-                    req.log,
-                );
-            }
+        }
 
-            if (quote.extendedQuoteReportSources && kafkaProducer) {
-                const quoteId = getQuoteIdFromSwapQuote(quote);
-                quoteReportUtils.publishQuoteReport(
-                    {
-                        quoteId,
-                        taker: params.takerAddress,
-                        quoteReportSources: quote.extendedQuoteReportSources,
-                        submissionBy: 'taker',
-                        decodedUniqueId: quote.decodedUniqueId,
-                        buyTokenAddress: quote.buyTokenAddress,
-                        sellTokenAddress: quote.sellTokenAddress,
-                        buyAmount: params.buyAmount,
-                        sellAmount: params.sellAmount,
-                        integratorId: params.integrator?.integratorId,
-                        blockNumber: quote.blockNumber,
-                        slippage: params.slippagePercentage,
-                        estimatedGas: quote.estimatedGas,
-                    },
-                    true,
-                    kafkaProducer,
-                );
-            }
+        if (quote.extendedQuoteReportSources && kafkaProducer) {
+            const quoteId = getQuoteIdFromSwapQuote(quote);
+            publishQuoteReport(
+                {
+                    quoteId,
+                    taker: params.takerAddress,
+                    quoteReportSources: quote.extendedQuoteReportSources,
+                    submissionBy: 'taker',
+                    decodedUniqueId: quote.decodedUniqueId,
+                    buyTokenAddress: quote.buyTokenAddress,
+                    sellTokenAddress: quote.sellTokenAddress,
+                    buyAmount: params.buyAmount,
+                    sellAmount: params.sellAmount,
+                    integratorId: params.integrator?.integratorId,
+                    blockNumber: quote.blockNumber,
+                    slippage: params.slippagePercentage,
+                    estimatedGas: quote.estimatedGas,
+                },
+                true,
+                kafkaProducer,
+            );
         }
         const response = _.omit(
             {
@@ -306,7 +288,7 @@ export class SwapHandlers {
 
         if (quote.extendedQuoteReportSources && kafkaProducer) {
             const quoteId = getQuoteIdFromSwapQuote(quote);
-            quoteReportUtils.publishQuoteReport(
+            publishQuoteReport(
                 {
                     quoteId,
                     taker: params.takerAddress,
