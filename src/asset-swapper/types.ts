@@ -4,6 +4,7 @@ import {
     FillQuoteTransformerOrderType,
     LimitOrderFields,
     OtcOrder,
+    OtcOrderFields,
     RfqOrder,
     RfqOrderFields,
     Signature,
@@ -34,11 +35,14 @@ export interface OrderPrunerOpts {
 
 export interface SignedOrder<T> {
     order: T;
-    type: FillQuoteTransformerOrderType.Limit | FillQuoteTransformerOrderType.Rfq;
+    type: FillQuoteTransformerOrderType.Limit | FillQuoteTransformerOrderType.Rfq | FillQuoteTransformerOrderType.Otc;
     signature: Signature;
 }
 
-export type SignedNativeOrder = SignedOrder<LimitOrderFields> | SignedOrder<RfqOrderFields>;
+export type SignedNativeOrder =
+    | SignedOrder<LimitOrderFields>
+    | SignedOrder<RfqOrderFields>
+    | SignedOrder<OtcOrderFields>;
 export type NativeOrderWithFillableAmounts = SignedNativeOrder & NativeOrderFillableAmountFields;
 
 /**
@@ -472,7 +476,7 @@ export interface RfqtV2Request {
     txOrigin: string;
 }
 
-export type RfqtV2Prices = {
+export type RfqtV2Price = {
     expiry: BigNumber;
     makerAddress: string;
     makerAmount: BigNumber;
@@ -481,9 +485,9 @@ export type RfqtV2Prices = {
     makerUri: string;
     takerAmount: BigNumber;
     takerToken: string;
-}[];
+};
 
-export type RfqtV2Quotes = {
+export type RfqtV2Quote = {
     fillableMakerAmount: BigNumber;
     fillableTakerAmount: BigNumber;
     fillableTakerFeeAmount: BigNumber;
@@ -491,7 +495,7 @@ export type RfqtV2Quotes = {
     makerUri: string;
     order: OtcOrder;
     signature: Signature;
-}[];
+};
 
 export interface RfqClientV1PriceRequest {
     altRfqAssetOfferings: AltRfqMakerAssetOfferings | undefined;
