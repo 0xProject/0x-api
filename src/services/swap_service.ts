@@ -442,7 +442,6 @@ export class SwapService {
             marketSide,
         );
 
-        console.debug('submissionFee', buyTokenFeeAmount);
         const apiSwapQuote: GetSwapQuoteResponse = {
             chainId: CHAIN_ID,
             price,
@@ -462,7 +461,6 @@ export class SwapService {
             sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellToken,
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
-            // TODO: do we need/want to actually return this? 
             sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
             orders: swapQuote.orders,
             allowanceTarget,
