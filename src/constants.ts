@@ -94,7 +94,10 @@ export const BALANCE_CHECKER_GAS_LIMIT = 10000000;
 
 // Diva Governance Address
 export const DIVA_GOVERNANCE_ADDRESS =
-  "0xBb0F479895915F80f6fEb5BABcb0Ad39a0D7eF4E" // creator of pools on Main Markets page and trading fee recipient
+  "0xBb0F479895915F80f6fEb5BABcb0Ad39a0D7eF4E"; // creator of pools on Main Markets page and trading fee recipient
 
 // Trading Fee
-export const TRADING_FEE = 0.01 // 1%
+export const TRADING_FEE = 0.01; // 1%
+
+// The limit of array length that can send by parameter of smart contract function
+export const ARRAY_LIMIT_LENGTH = 400;

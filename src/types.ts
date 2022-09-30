@@ -384,3 +384,30 @@ export enum OrderEventEndState {
     // future.
     StoppedWatching = 'STOPPED_WATCHING',
 }
+
+export interface OrderbookPriceResponse {
+	order?: {
+		maker: string // maker address of order
+		taker: string // taker address of order
+		makerToken: string // makerToken address of order
+		takerToken: string // takerToken address of order
+		makerAmount: BigNumber // makerAmount of order
+		takerAmount: BigNumber // takerAmount of order
+		takerTokenFeeAmount: BigNumber // takerToken fee amount of order
+		feeRecipient: string // fee recipient address
+		expiry: BigNumber // order expire time
+	}
+	metaData?: {
+		remainingFillableTakerAmount: BigNumber // remaining fillable taker amount of order
+	}
+}
+
+export interface MakerInfoType {
+    makers: string[], // maker address array
+    makerTokens: string[], // makerToken address array
+}
+
+export interface FillableOrderType {
+    extendedOrder: SRAOrder, // fillable order
+    minOfBalancesOrAllowances: BigNumber[], // min balances or allowances of maker
+}
