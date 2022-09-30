@@ -509,6 +509,8 @@ export const MAINNET_TOKENS = {
     agEUR: '0x1a7e4e63778b4f12a199c062f3efdd288afcbce8',
     ibEUR: '0x96e61422b6a9ba0e068b6c5add4ffabc6a4aae27',
     YFI: '0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e',
+    // Cronos (Crypto.com)
+    CRO: '0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b',
 };
 
 export const BSC_TOKENS = {
