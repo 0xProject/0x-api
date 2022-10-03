@@ -73,7 +73,7 @@ export const fetchPoolLists = async (page: number, pageSize: number, createdBy: 
     graphUrl,
     queryPools(
       (Math.max(page - 1, 0) * pageSize) / 2, // Because there are 2 rows (long and short) in the table for every pool
-      pageSize,
+      pageSize / 2, // Because there are 2 rows (long and short) in the table for every pool
       createdBy,
       undefined
     )

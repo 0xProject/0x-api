@@ -430,9 +430,7 @@ export class OrderBookService {
                 pool.baseToken,
                 pool.quoteToken
             );
-            // const bidApiOrders = await this.getOrderBookAsync(1, 1000, pool.baseToken, pool.quoteToken);
-            // // Get ask list using pool's baseToken and quoteToken
-            // const askApiOrders = await this.getOrderBookAsync(1, 1000, pool.quoteToken, pool.baseToken);
+            // Get ask list using pool's baseToken and quoteToken
             pool.bids = bidApiOrders;
             pool.asks = askApiOrders;
 
