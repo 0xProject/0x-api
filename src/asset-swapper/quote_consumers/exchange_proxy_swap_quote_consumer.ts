@@ -480,7 +480,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                 minBuyAmount = BigNumber.max(0, minBuyAmount.minus(buyTokenFeeAmount));
             }
             if (sellTokenFeeAmount.isGreaterThan(0)) {
-              throw new Error('Affiliate fees denominated in sell token are not yet supported');
+                throw new Error('Affiliate fees denominated in sell token are not yet supported');
             }
         } else if (feeType === AffiliateFeeType.GaslessFee && feeRecipient !== NULL_ADDRESS) {
             if (buyTokenFeeAmount.isGreaterThan(0)) {
@@ -500,9 +500,9 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                 minBuyAmount = BigNumber.max(0, minBuyAmount.minus(buyTokenFeeAmount));
             }
             if (sellTokenFeeAmount.isGreaterThan(0)) {
-              throw new Error('Affiliate fees denominated in sell token are not yet supported');
+                throw new Error('Affiliate fees denominated in sell token are not yet supported');
             }
-        } 
+        }
 
         // Return any unspent sell tokens.
         const payTakerTokens = [sellToken];
