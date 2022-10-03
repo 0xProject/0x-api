@@ -4,7 +4,7 @@ import { BigNumber } from '@0x/utils';
 import { Kafka, Producer } from 'kafkajs';
 
 import { ContractAddresses, AffiliateFeeType, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '../asset-swapper';
-import { CHAIN_ID, GAS_REIMBURSEMENT_ADDRESS, KAFKA_BROKERS, META_TX_EXPIRATION_BUFFER_MS } from '../config';
+import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, KAFKA_BROKERS, META_TX_EXPIRATION_BUFFER_MS } from '../config';
 import { AFFILIATE_DATA_SELECTOR, NULL_ADDRESS, ONE_GWEI, ONE_SECOND_MS, ZERO } from '../constants';
 import {
     MetaTransactionQuoteParams,
@@ -122,7 +122,7 @@ export class MetaTransactionService {
         const affiliateFee: AffiliateFee = {
             feeType: AffiliateFeeType.GaslessFee,
             // TODO: what address do we need to use?
-            recipient: GAS_REIMBURSEMENT_ADDRESS,
+            recipient: FEE_RECIPIENT_ADDRESS,
             sellTokenPercentageFee: 0,
             buyTokenPercentageFee: 0,
         };

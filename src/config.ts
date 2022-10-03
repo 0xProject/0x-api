@@ -281,10 +281,6 @@ export const FEE_RECIPIENT_ADDRESS = _.isEmpty(process.env.FEE_RECIPIENT_ADDRESS
     ? NULL_ADDRESS
     : assertEnvVarType('FEE_RECIPIENT_ADDRESS', process.env.FEE_RECIPIENT_ADDRESS, EnvVarType.ETHAddressHex);
 
-export const GAS_REIMBURSEMENT_ADDRESS = _.isEmpty(process.env.GAS_REIMBURSEMENT_ADDRESS)
-    ? NULL_ADDRESS
-    : assertEnvVarType('GAS_REIMBURSEMENT_ADDRESS', process.env.GAS_REIMBURSEMENT_ADDRESS, EnvVarType.ETHAddressHex);
-
 // A flat fee that should be charged to the order taker
 export const TAKER_FEE_UNIT_AMOUNT = _.isEmpty(process.env.TAKER_FEE_UNIT_AMOUNT)
     ? new BigNumber(0)
