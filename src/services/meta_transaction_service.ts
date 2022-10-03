@@ -6,7 +6,13 @@ import { Kafka, Producer } from 'kafkajs';
 import { ContractAddresses, AffiliateFeeType, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '../asset-swapper';
 import { CHAIN_ID, KAFKA_BROKERS, META_TX_EXPIRATION_BUFFER_MS } from '../config';
 import { AFFILIATE_DATA_SELECTOR, NULL_ADDRESS, ONE_GWEI, ONE_SECOND_MS, ZERO } from '../constants';
-import { MetaTransactionQuoteParams, GetSwapQuoteResponse, QuoteBase, MetaTransactionQuoteResponse, AffiliateFee } from '../types';
+import {
+    MetaTransactionQuoteParams,
+    GetSwapQuoteResponse,
+    QuoteBase,
+    MetaTransactionQuoteResponse,
+    AffiliateFee,
+} from '../types';
 import { publishQuoteReport } from '../utils/quote_report_utils';
 import { SwapService } from './swap_service';
 
@@ -115,11 +121,11 @@ export class MetaTransactionService {
 
         const affiliateFee: AffiliateFee = {
             feeType: AffiliateFeeType.GaslessFee,
-            // TODO: what address do we need to use? 
+            // TODO: what address do we need to use?
             recipient: '0xd00d00caca000000000000000000000000001337',
             sellTokenPercentageFee: 0,
             buyTokenPercentageFee: 0,
-        }
+        };
         const quoteParams = {
             ...params,
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically

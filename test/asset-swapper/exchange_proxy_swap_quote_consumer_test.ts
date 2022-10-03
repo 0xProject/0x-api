@@ -359,49 +359,47 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
                 { token: MAKER_TOKEN, amount: affiliateFee.buyTokenFeeAmount, recipient: affiliateFee.recipient },
             ]);
         });
-        it('Appends an affiliate fee transformer if conversion to native token is known', async () => { 
-          const quote = getRandomSellQuote();
-          quote.takerAmountPerEth = new BigNumber(0.5);
-          const affiliateFee = {
-              recipient: randomAddress(),
-              buyTokenFeeAmount: getRandomAmount(), 
-              sellTokenFeeAmount: ZERO,
-              feeType: AffiliateFeeType.GaslessFee,
-          };
-          const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
-              extensionContractOpts: { affiliateFee },
-          });
-          const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
-          expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
-              consumer.transformerNonces.affiliateFeeTransformer,
-          );
-          const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
-          expect(affiliateFeeTransformerData.fees).to.deep.equal([
-              { token: MAKER_TOKEN, amount: affiliateFee.buyTokenFeeAmount, recipient: affiliateFee.recipient },
-          ]);
-
+        it('Appends an affiliate fee transformer if conversion to native token is known', async () => {
+            const quote = getRandomSellQuote();
+            quote.takerAmountPerEth = new BigNumber(0.5);
+            const affiliateFee = {
+                recipient: randomAddress(),
+                buyTokenFeeAmount: getRandomAmount(),
+                sellTokenFeeAmount: ZERO,
+                feeType: AffiliateFeeType.GaslessFee,
+            };
+            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+                extensionContractOpts: { affiliateFee },
+            });
+            const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
+            expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
+                consumer.transformerNonces.affiliateFeeTransformer,
+            );
+            const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
+            expect(affiliateFeeTransformerData.fees).to.deep.equal([
+                { token: MAKER_TOKEN, amount: affiliateFee.buyTokenFeeAmount, recipient: affiliateFee.recipient },
+            ]);
         });
-        it('Appends an affiliate fee transformer if conversion to native token is unknown of 0.1%', async () => { 
-          const quote = getRandomSellQuote();
-          quote.takerAmountPerEth = new BigNumber(0);
-          const affiliateFee = {
-              recipient: randomAddress(),
-              buyTokenFeeAmount: getRandomAmount(), 
-              sellTokenFeeAmount: ZERO,
-              feeType: AffiliateFeeType.GaslessFee,
-          };
-          const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
-              extensionContractOpts: { affiliateFee },
-          });
-          const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
-          expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
-              consumer.transformerNonces.affiliateFeeTransformer,
-          );
-          const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
-          expect(affiliateFeeTransformerData.fees).to.deep.equal([
-              { token: MAKER_TOKEN, amount: affiliateFee.buyTokenFeeAmount, recipient: affiliateFee.recipient },
-          ]);
-
+        it('Appends an affiliate fee transformer if conversion to native token is unknown of 0.1%', async () => {
+            const quote = getRandomSellQuote();
+            quote.takerAmountPerEth = new BigNumber(0);
+            const affiliateFee = {
+                recipient: randomAddress(),
+                buyTokenFeeAmount: getRandomAmount(),
+                sellTokenFeeAmount: ZERO,
+                feeType: AffiliateFeeType.GaslessFee,
+            };
+            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+                extensionContractOpts: { affiliateFee },
+            });
+            const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
+            expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
+                consumer.transformerNonces.affiliateFeeTransformer,
+            );
+            const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
+            expect(affiliateFeeTransformerData.fees).to.deep.equal([
+                { token: MAKER_TOKEN, amount: affiliateFee.buyTokenFeeAmount, recipient: affiliateFee.recipient },
+            ]);
         });
         it('Appends a positive slippage affiliate fee transformer after the fill if the positive slippage fee feeType is specified', async () => {
             const quote = getRandomSellQuote();

@@ -128,9 +128,9 @@ describe(SUITE_NAME, () => {
         const costInfo = serviceUtils.getAffiliateFeeAmounts(randomSellQuote, affiliateFee);
         expect(costInfo).to.deep.equal({
             buyTokenFeeAmount: randomSellQuote.gasPrice
-              .times(randomSellQuote.worstCaseQuoteInfo.gas)
-              .times(randomSellQuote.makerAmountPerEth)
-              .integerValue(BigNumber.ROUND_DOWN),
+                .times(randomSellQuote.worstCaseQuoteInfo.gas)
+                .times(randomSellQuote.makerAmountPerEth)
+                .integerValue(BigNumber.ROUND_DOWN),
             sellTokenFeeAmount: ZERO,
             gasCost: AFFILIATE_FEE_TRANSFORMER_GAS,
         });
