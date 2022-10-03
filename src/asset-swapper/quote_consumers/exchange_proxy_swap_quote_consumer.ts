@@ -352,8 +352,6 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
             !requiresTransformERC20(optsWithDefaults)
         ) {
             const otcOrdersData = quote.orders.map((o) => o.fillData as NativeOtcOrderFillData);
-            const fillAmountPerOrder = generateFillAmounts(sellAmount, quote);
-            // grab the amount to fill on each OtcOrder (if more than 1, fallback to multiplexBatchFill)
 
             let callData;
             // if we have more than one otc order we want to batch fill them,
@@ -367,12 +365,12 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                 // if the otc orders makerToken is the native asset
                 if (isToETH) {
                     callData = this._exchangeProxy
-                        .fillOtcOrderForEth(otcOrdersData[0].order, otcOrdersData[0].signature, fillAmountPerOrder[0])
+                        .fillOtcOrderForEth(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
                         .getABIEncodedTransactionData();
                 } else {
                     // if the otc order contains 2 erc20 tokens
                     callData = this._exchangeProxy
-                        .fillOtcOrder(otcOrdersData[0].order, otcOrdersData[0].signature, fillAmountPerOrder[0])
+                        .fillOtcOrder(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
                         .getABIEncodedTransactionData();
                 }
                 return {
