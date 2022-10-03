@@ -84,3 +84,20 @@ export const ONE_IN_BASE_POINTS = 10000;
 
 // Whether Slippage Protect is enabled by default
 export const DEFAULT_ENABLE_SLIPPAGE_PROTECTION = true;
+
+// Exchange Proxy Address
+export const EXCHANGE_PROXY_ADDRESS = "0xf91bb752490473b8342a3e964e855b9f9a2a668e";
+
+// Balance Checker Address
+export const BALANCE_CHECKER_ADDRESS = "0x6F9b7892a6272880905E90DC5AcD1F56dF222FbE";
+export const BALANCE_CHECKER_GAS_LIMIT = 10000000;
+
+// Diva Governance Address
+export const DIVA_GOVERNANCE_ADDRESS =
+  "0xBb0F479895915F80f6fEb5BABcb0Ad39a0D7eF4E"; // creator of pools on Main Markets page and trading fee recipient
+
+// Trading Fee
+export const TRADING_FEE = 0.01; // 1%
+
+// The limit of array length that can send by parameter of smart contract function
+export const ARRAY_LIMIT_LENGTH = 400;

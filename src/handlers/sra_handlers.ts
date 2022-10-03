@@ -70,6 +70,26 @@ export class SRAHandlers {
         const orderbookResponse = await this._orderBook.getOrderBookAsync(page, perPage, baseToken, quoteToken);
         res.status(HttpStatus.OK).send(orderbookResponse);
     }
+    public async orderbookPricesAsync(req: express.Request, res: express.Response): Promise<void> {
+        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+        const graphUrl = (req.query.graphUrl as string).toLowerCase();
+        const createdBy = req.query.createdBy === undefined ? "" : (req.query.createdBy as string).toLowerCase();
+        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
+        const feeRecipient = req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
+        const takerTokenFee: number = Number((req.query.takerTokenFee as string)) | 0;
+        const threshold: number = Number((req.query.threshold as string)) | 0;
+        const priceResponse = await this._orderBook.getPricesAsync({
+            page,
+            perPage,
+            graphUrl,
+            createdBy,
+            taker,
+            feeRecipient,
+            takerTokenFee,
+            threshold,
+        });
+        res.status(HttpStatus.OK).send(priceResponse);
+    }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
