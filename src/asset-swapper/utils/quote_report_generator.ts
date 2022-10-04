@@ -11,8 +11,6 @@ import {
     FillData,
     MultiHopFillData,
     NativeFillData,
-    NativeLimitOrderFillData,
-    NativeRfqOrderFillData,
     RawQuotes,
 } from './market_operation_utils/types';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from './quote_requestor';
