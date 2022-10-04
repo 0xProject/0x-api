@@ -783,14 +783,3 @@ function slipNonNativeOrders(quote: MarketSellSwapQuote | MarketBuySwapQuote): O
 function getMaxQuoteSlippageRate(quote: MarketBuySwapQuote | MarketSellSwapQuote): number {
     return quote.worstCaseQuoteInfo.slippage;
 }
-
-function generateFillAmounts(sellAmount: BigNumber, quote: MarketBuySwapQuote | MarketSellSwapQuote): BigNumber[] {
-    let remaining = sellAmount;
-    const fillAmounts = [];
-    for (const o of quote.orders) {
-        const fillAmount = BigNumber.min(o.takerAmount, remaining);
-        fillAmounts.push(fillAmount);
-        remaining = remaining.minus(fillAmount);
-    }
-    return fillAmounts;
-}
