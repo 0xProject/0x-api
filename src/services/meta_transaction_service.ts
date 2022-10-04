@@ -121,7 +121,6 @@ export class MetaTransactionService {
 
         const affiliateFee: AffiliateFee = {
             feeType: AffiliateFeeType.GaslessFee,
-            // TODO: what address do we need to use?
             recipient: FEE_RECIPIENT_ADDRESS,
             sellTokenPercentageFee: 0,
             buyTokenPercentageFee: 0,
