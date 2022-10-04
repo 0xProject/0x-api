@@ -219,12 +219,14 @@ export interface SourceComparison {
     expectedSlippage: BigNumber | null;
 }
 
-export interface AffiliateFee {
-    feeType: AffiliateFeeType;
-    recipient: string;
-    sellTokenPercentageFee: number;
-    buyTokenPercentageFee: number;
-}
+export type AffiliateFee =
+    | { feeType: AffiliateFeeType.GaslessFee; recipient: string }
+    | {
+          feeType: AffiliateFeeType.None | AffiliateFeeType.PercentageFee | AffiliateFeeType.PositiveSlippageFee;
+          recipient: string;
+          sellTokenPercentageFee: number;
+          buyTokenPercentageFee: number;
+      };
 
 interface SwapQuoteParamsBase {
     sellAmount?: BigNumber;

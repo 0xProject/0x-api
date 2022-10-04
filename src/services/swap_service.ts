@@ -73,6 +73,15 @@ import { SlippageModelFillAdjustor } from '../utils/slippage_model_fill_adjustor
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
 
+const getBuyTokenPercentageFeeOrZero = (affiliateFee: AffiliateFee) => {
+    switch (affiliateFee.feeType) {
+        case AffiliateFeeType.GaslessFee:
+            return 0;
+        default:
+            return affiliateFee.buyTokenPercentageFee;
+    }
+};
+
 export class SwapService {
     private readonly _provider: SupportedProvider;
     private readonly _fakeTaker: FakeTakerContract;
@@ -150,7 +159,9 @@ export class SwapService {
         const unitTakerAmount = Web3Wrapper.toUnitAmount(totalTakerAmount, sellTokenDecimals);
         const guaranteedUnitMakerAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAmount, buyTokenDecimals);
         const guaranteedUnitTakerAmount = Web3Wrapper.toUnitAmount(guaranteedTotalTakerAmount, sellTokenDecimals);
-        const affiliateFeeUnitMakerAmount = guaranteedUnitMakerAmount.times(affiliateFee.buyTokenPercentageFee);
+        const affiliateFeeUnitMakerAmount = guaranteedUnitMakerAmount.times(
+            getBuyTokenPercentageFeeOrZero(affiliateFee),
+        );
 
         const isSelling = buyAmount === undefined;
         // NOTE: In order to not communicate a price better than the actual quote we
@@ -314,7 +325,7 @@ export class SwapService {
         const amount =
             marketSide === MarketOperation.Sell
                 ? sellAmount
-                : buyAmount!.times(affiliateFee.buyTokenPercentageFee + 1).integerValue(BigNumber.ROUND_DOWN);
+                : buyAmount!.times(getBuyTokenPercentageFeeOrZero(affiliateFee) + 1).integerValue(BigNumber.ROUND_DOWN);
 
         // Fetch the Swap quote
         const swapQuote = await this._swapQuoter.getSwapQuoteAsync(

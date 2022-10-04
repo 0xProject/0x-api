@@ -122,8 +122,6 @@ export class MetaTransactionService {
         const affiliateFee: AffiliateFee = {
             feeType: AffiliateFeeType.GaslessFee,
             recipient: FEE_RECIPIENT_ADDRESS,
-            sellTokenPercentageFee: 0,
-            buyTokenPercentageFee: 0,
         };
         const quoteParams = {
             ...params,
