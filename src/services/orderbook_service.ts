@@ -68,7 +68,7 @@ export class OrderBookService {
      public filterOrder = (order: SRAOrder,req: OrderbookPriceRequest): boolean => {
         // 1 is 0.001% and the actual amount is token fee / 100000, so we divided it by 100000
         // filter by taker token fee
-        if (req.takerTokenFee !== 0) {
+        if (req.takerTokenFee !== -1) {
             const takerTokenFeeAmountExpected = order.order.takerAmount.multipliedBy(new BigNumber(req.takerTokenFee / 100000));
 
             if (order.order.taker === NULL_ADDRESS && // Ensure that orders are fillable by anyone and not reserved for a specific address
