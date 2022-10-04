@@ -354,7 +354,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
             const otcOrdersData = quote.orders.map((o) => o.fillData as NativeOtcOrderFillData);
 
             let callData;
-            // if we have more than one otc order we want to batch fill them,
+            // if we have more than one otc order we want to batch fill them through multiplex
             if (quote.orders.length === 1) {
                 // if the otc orders takerToken is the native asset
                 if (isFromETH) {
@@ -782,15 +782,4 @@ function slipNonNativeOrders(quote: MarketSellSwapQuote | MarketBuySwapQuote): O
 
 function getMaxQuoteSlippageRate(quote: MarketBuySwapQuote | MarketSellSwapQuote): number {
     return quote.worstCaseQuoteInfo.slippage;
-}
-
-function generateFillAmounts(sellAmount: BigNumber, quote: MarketBuySwapQuote | MarketSellSwapQuote): BigNumber[] {
-    let remaining = sellAmount;
-    const fillAmounts = [];
-    for (const o of quote.orders) {
-        const fillAmount = BigNumber.min(o.takerAmount, remaining);
-        fillAmounts.push(fillAmount);
-        remaining = remaining.minus(fillAmount);
-    }
-    return fillAmounts;
 }
