@@ -1,6 +1,7 @@
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { constants as contractConstants, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
 import {
+    CommonOrderFields,
     decodeAffiliateFeeTransformerData,
     decodeFillQuoteTransformerData,
     decodePayTakerTransformerData,
@@ -12,6 +13,8 @@ import {
     FillQuoteTransformerSide,
     getTransformerAddress,
     LimitOrderFields,
+    OtcOrder,
+    OtcOrderFields,
 } from '@0x/protocol-utils';
 import { AbiEncoder, BigNumber, hexUtils } from '@0x/utils';
 import * as chai from 'chai';
@@ -32,6 +35,7 @@ import {
     NativeFillData,
     OptimizedLimitOrder,
     OptimizedMarketOrder,
+    OptimizedOtcOrder,
 } from '../../src/asset-swapper/utils/market_operation_utils/types';
 
 import { chaiSetup } from './utils/chai_setup';
@@ -88,10 +92,24 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
         };
     }
 
-    function getRandomOptimizedMarketOrder(
-        optimizerFields?: Partial<OptimizedLimitOrder>,
-        orderFields?: Partial<LimitOrderFields>,
-    ): OptimizedLimitOrder {
+    function getRandomOtcOrder(orderFields?: Partial<OtcOrderFields>): OtcOrderFields {
+        const nowMs = new BigNumber(Date.now());
+        return {
+            chainId: CHAIN_ID,
+            verifyingContract: contractAddresses.exchangeProxy,
+            expiryAndNonce: OtcOrder.encodeExpiryAndNonce(nowMs, new BigNumber(0), nowMs),
+            maker: randomAddress(),
+            makerAmount: getRandomAmount(),
+            takerAmount: getRandomAmount(),
+            taker: NULL_ADDRESS,
+            txOrigin: NULL_ADDRESS,
+            makerToken: MAKER_TOKEN,
+            takerToken: TAKER_TOKEN,
+            ...orderFields,
+        };
+    }
+
+    function getRandomOptimizedMarketOrder(orderFields?: Partial<CommonOrderFields>): OptimizedLimitOrder {
         const order = getRandomOrder(orderFields);
         return {
             source: ERC20BridgeSource.Native,
@@ -106,12 +124,35 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             makerAmount: order.makerAmount,
             takerAmount: order.takerAmount,
             fill: {} as Fill<NativeFillData>,
-            ...optimizerFields,
         };
     }
 
-    function getRandomQuote(side: MarketOperation): MarketBuySwapQuote | MarketSellSwapQuote {
-        const order = getRandomOptimizedMarketOrder();
+    function getRandomOptimizedMarketOtcOrder(orderFields?: Partial<CommonOrderFields>): OptimizedOtcOrder {
+        const order = getRandomOtcOrder(orderFields);
+        return {
+            source: ERC20BridgeSource.Native,
+            fillData: {
+                order,
+                signature: getRandomSignature(),
+                maxTakerTokenFillAmount: order.takerAmount,
+            },
+            type: FillQuoteTransformerOrderType.Otc,
+            makerToken: order.makerToken,
+            takerToken: order.takerToken,
+            makerAmount: order.makerAmount,
+            takerAmount: order.takerAmount,
+            fill: {} as Fill<NativeFillData>,
+        };
+    }
+
+    function getRandomQuote(
+        side: MarketOperation,
+        type: FillQuoteTransformerOrderType = FillQuoteTransformerOrderType.Limit,
+    ): MarketBuySwapQuote | MarketSellSwapQuote {
+        const order =
+            type === FillQuoteTransformerOrderType.Limit
+                ? getRandomOptimizedMarketOrder()
+                : getRandomOptimizedMarketOtcOrder();
         const makerTokenFillAmount = order.makerAmount;
         const takerTokenFillAmount = order.takerAmount;
         return {
@@ -154,19 +195,23 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
         return {
             ...getRandomQuote(side),
             orders: [
-                getRandomOptimizedMarketOrder({ makerToken: INTERMEDIATE_TOKEN }, { makerToken: INTERMEDIATE_TOKEN }),
-                getRandomOptimizedMarketOrder({ takerToken: INTERMEDIATE_TOKEN }, { takerToken: INTERMEDIATE_TOKEN }),
+                getRandomOptimizedMarketOrder({ makerToken: INTERMEDIATE_TOKEN }),
+                getRandomOptimizedMarketOrder({ takerToken: INTERMEDIATE_TOKEN }),
             ],
             isTwoHop: true,
         } as any;
     }
 
-    function getRandomSellQuote(): MarketSellSwapQuote {
-        return getRandomQuote(MarketOperation.Sell) as MarketSellSwapQuote;
+    function getRandomSellQuote(
+        type: FillQuoteTransformerOrderType = FillQuoteTransformerOrderType.Limit,
+    ): MarketSellSwapQuote {
+        return getRandomQuote(MarketOperation.Sell, type) as MarketSellSwapQuote;
     }
 
-    function getRandomBuyQuote(): MarketBuySwapQuote {
-        return getRandomQuote(MarketOperation.Buy) as MarketBuySwapQuote;
+    function getRandomBuyQuote(
+        type: FillQuoteTransformerOrderType = FillQuoteTransformerOrderType.Limit,
+    ): MarketBuySwapQuote {
+        return getRandomQuote(MarketOperation.Buy, type) as MarketBuySwapQuote;
     }
 
     type PlainOrder = Exclude<LimitOrderFields, ['chainId', 'exchangeAddress']>;
@@ -193,6 +238,40 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
                 ) as PlainOrder,
         );
     }
+
+    const fillOtcOrderEncoder = AbiEncoder.createMethod('fillOtcOrder', [
+        {
+            components: [
+                { internalType: 'contract IERC20TokenV06', name: 'makerToken', type: 'address' },
+                { internalType: 'contract IERC20TokenV06', name: 'takerToken', type: 'address' },
+                { internalType: 'uint128', name: 'makerAmount', type: 'uint128' },
+                { internalType: 'uint128', name: 'takerAmount', type: 'uint128' },
+                { internalType: 'address', name: 'maker', type: 'address' },
+                { internalType: 'address', name: 'taker', type: 'address' },
+                { internalType: 'address', name: 'txOrigin', type: 'address' },
+                { internalType: 'uint256', name: 'expiryAndNonce', type: 'uint256' },
+            ],
+            internalType: 'struct LibNativeOrder.OtcOrder',
+            name: 'order',
+            type: 'tuple',
+        },
+        {
+            components: [
+                {
+                    internalType: 'enum LibSignature.SignatureType',
+                    name: 'signatureType',
+                    type: 'uint8',
+                },
+                { internalType: 'uint8', name: 'v', type: 'uint8' },
+                { internalType: 'bytes32', name: 'r', type: 'bytes32' },
+                { internalType: 'bytes32', name: 's', type: 'bytes32' },
+            ],
+            internalType: 'struct LibSignature.Signature',
+            name: 'makerSignature',
+            type: 'tuple',
+        },
+        { internalType: 'uint128', name: 'takerTokenFillAmount', type: 'uint128' },
+    ]);
 
     const transformERC20Encoder = AbiEncoder.createMethod('transformERC20', [
         { type: 'address', name: 'inputToken' },
@@ -508,6 +587,18 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             const payTakerTransformerData = decodePayTakerTransformerData(callArgs.transformations[1].data);
             expect(payTakerTransformerData.amounts).to.deep.eq([]);
             expect(payTakerTransformerData.tokens).to.deep.eq([TAKER_TOKEN, ETH_TOKEN_ADDRESS]);
+        });
+
+        it('can produce a sell quote for OtcOrders', async () => {
+            const quote = getRandomSellQuote(FillQuoteTransformerOrderType.Otc);
+            const callInfo = await consumer.getCalldataOrThrowAsync(quote);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const callArgs = fillOtcOrderEncoder.decode(callInfo.calldataHexString) as any;
+            expect(callInfo.calldataHexString.substring(0, 10)).to.eq('0xdac748d4');
+            expect(callArgs.order.takerToken).to.eq(TAKER_TOKEN);
+            expect(callArgs.order.makerToken).to.eq(MAKER_TOKEN);
+            expect(callArgs.order.takerAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.totalTakerAmount);
+            expect(callArgs.order.makerAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.makerAmount);
         });
     });
 });
