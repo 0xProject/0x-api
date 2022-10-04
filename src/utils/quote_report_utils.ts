@@ -34,6 +34,7 @@ interface ExtendedQuoteReportForGaslessSwapAmm extends QuoteReportLogOptionsBase
     quoteReportSources: ExtendedQuoteReportSources;
     submissionBy: 'gaslessSwapAmm';
     decodedUniqueId: string;
+    ammQuoteUniqueId?: string;
 }
 
 export interface WrappedSignedNativeOrderMM {
@@ -83,6 +84,7 @@ export function publishQuoteReport(
                 logOpts.submissionBy === 'taker' || logOpts.submissionBy === 'gaslessSwapAmm'
                     ? logOpts.decodedUniqueId
                     : undefined,
+            ammQuoteUniqueId: logOpts.submissionBy === 'gaslessSwapAmm' ? logOpts.ammQuoteUniqueId : undefined,
             sourcesConsidered: logOpts.quoteReportSources.sourcesConsidered.map(jsonifyFillData),
             sourcesDelivered: logOpts.quoteReportSources.sourcesDelivered?.map(jsonifyFillData),
             blockNumber: logOpts.blockNumber,

@@ -101,6 +101,7 @@ export interface ExtendedQuoteReport {
     slippageBips?: number;
     zeroExTransactionHash?: string;
     decodedUniqueId?: string;
+    ammQuoteUniqueId?: string;
     sourcesConsidered: ExtendedQuoteReportIndexedEntryOutbound[];
     sourcesDelivered: ExtendedQuoteReportIndexedEntryOutbound[] | undefined;
     blockNumber: number | undefined;
