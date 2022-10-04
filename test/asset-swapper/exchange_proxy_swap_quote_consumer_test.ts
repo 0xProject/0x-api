@@ -191,13 +191,26 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
         };
     }
 
-    function getRandomTwoHopQuote(side: MarketOperation): MarketBuySwapQuote | MarketSellSwapQuote {
+    function getRandomTwoHopQuote(
+        side: MarketOperation,
+        types: (FillQuoteTransformerOrderType.Limit | FillQuoteTransformerOrderType.Otc)[] = [
+            FillQuoteTransformerOrderType.Limit,
+            FillQuoteTransformerOrderType.Limit,
+        ],
+    ): MarketBuySwapQuote | MarketSellSwapQuote {
+        const orderFieldsArr: Partial<CommonOrderFields>[] = [
+            { makerToken: INTERMEDIATE_TOKEN }, // notice that the first order's maker token is the intermediate
+            { takerToken: INTERMEDIATE_TOKEN },
+        ];
         return {
             ...getRandomQuote(side),
-            orders: [
-                getRandomOptimizedMarketOrder({ makerToken: INTERMEDIATE_TOKEN }),
-                getRandomOptimizedMarketOrder({ takerToken: INTERMEDIATE_TOKEN }),
-            ],
+            orders: orderFieldsArr.map((orderFields, idx) => {
+                if (types[idx] === FillQuoteTransformerOrderType.Otc) {
+                    return getRandomOptimizedMarketOtcOrder(orderFields);
+                } else if (types[idx] === FillQuoteTransformerOrderType.Limit) {
+                    return getRandomOptimizedMarketOrder(orderFields);
+                }
+            }),
             isTwoHop: true,
         } as any;
     }
@@ -587,6 +600,58 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             const payTakerTransformerData = decodePayTakerTransformerData(callArgs.transformations[1].data);
             expect(payTakerTransformerData.amounts).to.deep.eq([]);
             expect(payTakerTransformerData.tokens).to.deep.eq([TAKER_TOKEN, ETH_TOKEN_ADDRESS]);
+        });
+
+        it('Uses two `FillQuoteTransformer`s if given a mixed two-hop (Otc, Limit) sell quote', async () => {
+            const quote = getRandomTwoHopQuote(MarketOperation.Sell, [
+                FillQuoteTransformerOrderType.Otc,
+                FillQuoteTransformerOrderType.Limit,
+            ]) as MarketSellSwapQuote;
+            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+                extensionContractOpts: { isTwoHop: true },
+            });
+            const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
+            expect(callArgs.inputToken).to.eq(TAKER_TOKEN);
+            expect(callArgs.outputToken).to.eq(MAKER_TOKEN);
+            expect(callArgs.inputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.totalTakerAmount);
+            expect(callArgs.minOutputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.makerAmount);
+            expect(callArgs.transformations).to.be.length(3);
+            expect(
+                callArgs.transformations[0].deploymentNonce.toNumber() ===
+                    consumer.transformerNonces.fillQuoteTransformer,
+            );
+            expect(
+                callArgs.transformations[1].deploymentNonce.toNumber() ===
+                    consumer.transformerNonces.fillQuoteTransformer,
+            );
+            expect(
+                callArgs.transformations[2].deploymentNonce.toNumber() ===
+                    consumer.transformerNonces.payTakerTransformer,
+            );
+            const [firstHopOrder, secondHopOrder] = quote.orders;
+            const firstHopFillQuoteTransformerData = decodeFillQuoteTransformerData(callArgs.transformations[0].data);
+            expect(firstHopFillQuoteTransformerData.side).to.eq(FillQuoteTransformerSide.Sell);
+            expect(firstHopFillQuoteTransformerData.fillAmount).to.bignumber.eq(firstHopOrder.takerAmount);
+            // First order is an otc order
+            expect(firstHopFillQuoteTransformerData.otcOrders).to.deep.eq(cleanOrders([firstHopOrder]));
+            expect(firstHopFillQuoteTransformerData.otcOrders.map((o) => o.signature)).to.deep.eq([
+                (firstHopOrder as OptimizedLimitOrder).fillData.signature,
+            ]);
+            expect(firstHopFillQuoteTransformerData.sellToken).to.eq(TAKER_TOKEN);
+            expect(firstHopFillQuoteTransformerData.buyToken).to.eq(INTERMEDIATE_TOKEN);
+            const secondHopFillQuoteTransformerData = decodeFillQuoteTransformerData(callArgs.transformations[1].data);
+            expect(secondHopFillQuoteTransformerData.side).to.eq(FillQuoteTransformerSide.Sell);
+            expect(secondHopFillQuoteTransformerData.fillAmount).to.bignumber.eq(contractConstants.MAX_UINT256);
+            // Second order is a limit order
+            expect(secondHopFillQuoteTransformerData.limitOrders).to.deep.eq(cleanOrders([secondHopOrder]));
+            expect(secondHopFillQuoteTransformerData.limitOrders.map((o) => o.signature)).to.deep.eq([
+                (secondHopOrder as OptimizedLimitOrder).fillData.signature,
+            ]);
+            expect(secondHopFillQuoteTransformerData.sellToken).to.eq(INTERMEDIATE_TOKEN);
+            expect(secondHopFillQuoteTransformerData.buyToken).to.eq(MAKER_TOKEN);
+            const payTakerTransformerData = decodePayTakerTransformerData(callArgs.transformations[2].data);
+            expect(payTakerTransformerData.amounts).to.deep.eq([]);
+            expect(payTakerTransformerData.tokens).to.deep.eq([TAKER_TOKEN, INTERMEDIATE_TOKEN, ETH_TOKEN_ADDRESS]);
         });
 
         it('can produce a sell quote for OtcOrders', async () => {
