@@ -76,8 +76,8 @@ export class SRAHandlers {
         const createdBy = req.query.createdBy === undefined ? "" : (req.query.createdBy as string).toLowerCase();
         const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
         const feeRecipient = req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
-        const takerTokenFee: number = Number((req.query.takerTokenFee as string)) | 0;
-        const threshold: number = Number((req.query.threshold as string)) | 0;
+        const takerTokenFee: number = req.query.takerTokenFee === undefined ? -1 : Number((req.query.takerTokenFee as string));
+        const threshold: number = req.query.threshold === undefined ? -1 : Number((req.query.threshold as string));
         const priceResponse = await this._orderBook.getPricesAsync({
             page,
             perPage,
