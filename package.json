@@ -40,7 +40,7 @@
         "start:service:meta_transaction_http": "node -r dotenv/config lib/src/runners/http_meta_transaction_service_runner.js",
         "start:service:rfq_maker_balance_cache": "node -r dotenv/config lib/src/runners/rfq_maker_balance_cache_runner.js",
         "sampler-size": "jq .compilerOutput.evm.deployedBytecode.object  -- test/generated-artifacts/ERC20BridgeSampler.json | echo $(( $(wc -c) / 2 - 1 ))",
-        "lint": "eslint src test integration-test --max-warnings 257 && yarn prettier:ci"
+        "lint": "eslint src test integration-test --max-warnings 190 && yarn prettier:ci"
     },
     "config": {
         "prettier_target": "{.,test/**/*,integration-test/**/*,src/**/*,migrations/*,contracts/**/*}.{ts,tsx,sol,json,md}",
@@ -57,7 +57,7 @@
         "@0x/dev-utils": "^5.0.0",
         "@0x/sol-compiler": "^4.8.2",
         "@0x/typescript-typings": "^5.3.1",
-        "@sentry/types": "^7.9.0",
+        "@sentry/types": "^7.14.0",
         "@types/express": "^4.17.1",
         "@types/lodash": "^4.14.137",
         "@types/mocha": "^5.2.7",
@@ -92,7 +92,7 @@
         "typescript": "^4.6.3"
     },
     "dependencies": {
-        "@0x/api-utils": "^0.0.2",
+        "@0x/api-utils": "^0.0.3",
         "@0x/assert": "^3.0.35",
         "@0x/base-contract": "^7.0.0",
         "@0x/contract-addresses": "^6.23.4",
@@ -117,8 +117,8 @@
         "@ethersproject/hdnode": "^5.2.0",
         "@ethersproject/providers": "^5.0.4",
         "@ethersproject/strings": "^5.0.10",
-        "@sentry/node": "^7.9.0",
-        "@sentry/tracing": "^7.9.0",
+        "@sentry/node": "^7.14.0",
+        "@sentry/tracing": "^7.14.0",
         "aws-sdk": "^2.908.0",
         "axios": "^0.21.1",
         "balancer-labs-sor-v1": "npm:@balancer-labs/sor@0.3.2",
