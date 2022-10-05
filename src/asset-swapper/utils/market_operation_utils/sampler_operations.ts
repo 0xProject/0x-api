@@ -1523,6 +1523,7 @@ export class SamplerOperations {
                     case ERC20BridgeSource.MorpheusSwap:
                     case ERC20BridgeSource.BiSwap:
                     case ERC20BridgeSource.MDex:
+                    case ERC20BridgeSource.Dystopia:
                     case ERC20BridgeSource.KnightSwap:
                     case ERC20BridgeSource.MeshSwap: {
                         const uniLikeRouter = uniswapV2LikeRouterAddress(this.chainId, source);
@@ -1859,6 +1860,7 @@ export class SamplerOperations {
                     case ERC20BridgeSource.MorpheusSwap:
                     case ERC20BridgeSource.BiSwap:
                     case ERC20BridgeSource.MDex:
+                    case ERC20BridgeSource.Dystopia:
                     case ERC20BridgeSource.KnightSwap:
                     case ERC20BridgeSource.MeshSwap: {
                         const uniLikeRouter = uniswapV2LikeRouterAddress(this.chainId, source);

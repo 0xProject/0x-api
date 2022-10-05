@@ -173,6 +173,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.MeshSwap,
             ERC20BridgeSource.WOOFi,
+            ERC20BridgeSource.Dystopia,
         ]),
         [ChainId.Avalanche]: new SourceFilters([
             ERC20BridgeSource.MultiHop,
@@ -334,6 +335,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.MeshSwap,
             ERC20BridgeSource.WOOFi,
+            ERC20BridgeSource.Dystopia,
         ]),
         [ChainId.Avalanche]: new SourceFilters([
             ERC20BridgeSource.MultiHop,
@@ -408,7 +410,7 @@ export const FEE_QUOTE_SOURCES_BY_CHAIN_ID = valueByChainId<ERC20BridgeSource[]>
         [ChainId.Ropsten]: [ERC20BridgeSource.UniswapV2, ERC20BridgeSource.SushiSwap],
         [ChainId.Goerli]: [ERC20BridgeSource.UniswapV2, ERC20BridgeSource.SushiSwap],
         [ChainId.PolygonMumbai]: [ERC20BridgeSource.UniswapV3],
-        [ChainId.Polygon]: [ERC20BridgeSource.QuickSwap, ERC20BridgeSource.SushiSwap, ERC20BridgeSource.UniswapV3],
+        [ChainId.Polygon]: [ERC20BridgeSource.QuickSwap, ERC20BridgeSource.SushiSwap, ERC20BridgeSource.UniswapV3, ERC20BridgeSource.Dystopia],
         [ChainId.Avalanche]: [ERC20BridgeSource.Pangolin, ERC20BridgeSource.TraderJoe, ERC20BridgeSource.SushiSwap],
         [ChainId.Fantom]: [ERC20BridgeSource.SpiritSwap, ERC20BridgeSource.SpookySwap, ERC20BridgeSource.SushiSwap],
         [ChainId.Celo]: [ERC20BridgeSource.UbeSwap, ERC20BridgeSource.SushiSwap],
@@ -2098,6 +2100,13 @@ export const SHIBASWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     NULL_ADDRESS,
 );
 
+export const DYSTOPIA_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
+    {
+        [ChainId.Polygon]: '0xbe75dd16d029c6b32b7ad57a0fd9c1c20dd2862e',
+    },
+    NULL_ADDRESS,
+);
+
 export const MSTABLE_POOLS_BY_CHAIN_ID = valueByChainId(
     {
         [ChainId.Mainnet]: {
@@ -2671,6 +2680,7 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     [ERC20BridgeSource.BiSwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.MDex]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.KnightSwap]: uniswapV2CloneGasSchedule,
+    [ERC20BridgeSource.Dystopia]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Balancer]: () => 120e3,
     [ERC20BridgeSource.BalancerV2]: (fillData?: FillData) => {
         return 100e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 50e3;

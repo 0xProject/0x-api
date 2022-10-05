@@ -20,6 +20,7 @@ import {
     CURVE_V2_MAINNET_INFOS,
     CURVE_V2_POLYGON_INFOS,
     DFYN_ROUTER_BY_CHAIN_ID,
+    DYSTOPIA_ROUTER_BY_CHAIN_ID,
     ELLIPSIS_BSC_INFOS,
     FIREBIRDONESWAP_BSC_INFOS,
     FIREBIRDONESWAP_POLYGON_INFOS,
@@ -483,6 +484,7 @@ export function uniswapV2LikeRouterAddress(
         | ERC20BridgeSource.BiSwap
         | ERC20BridgeSource.Yoshi
         | ERC20BridgeSource.MDex
+        | ERC20BridgeSource.Dystopia
         | ERC20BridgeSource.KnightSwap
         | ERC20BridgeSource.MeshSwap,
 ): string {
@@ -529,6 +531,8 @@ export function uniswapV2LikeRouterAddress(
             return MESHSWAP_ROUTER_BY_CHAIN_ID[chainId];
         case ERC20BridgeSource.MDex:
             return MDEX_ROUTER_BY_CHAIN_ID[chainId];
+        case ERC20BridgeSource.Dystopia:
+            return DYSTOPIA_ROUTER_BY_CHAIN_ID[chainId];
         case ERC20BridgeSource.KnightSwap:
             return KNIGHTSWAP_ROUTER_BY_CHAIN_ID[chainId];
         default:
