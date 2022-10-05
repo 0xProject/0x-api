@@ -68,20 +68,10 @@ import { PairsManager } from '../utils/pairs_manager';
 import { createResultCache } from '../utils/result_cache';
 import { RfqClient } from '../utils/rfq_client';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
-import { serviceUtils } from '../utils/service_utils';
+import { serviceUtils, getBuyTokenPercentageFeeOrZero } from '../utils/service_utils';
 import { SlippageModelFillAdjustor } from '../utils/slippage_model_fill_adjustor';
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
-
-const getBuyTokenPercentageFeeOrZero = (affiliateFee: AffiliateFee) => {
-    switch (affiliateFee.feeType) {
-        case AffiliateFeeType.GaslessFee:
-        case AffiliateFeeType.PositiveSlippageFee:
-            return 0;
-        default:
-            return affiliateFee.buyTokenPercentageFee;
-    }
-};
 
 export class SwapService {
     private readonly _provider: SupportedProvider;

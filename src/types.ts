@@ -220,9 +220,9 @@ export interface SourceComparison {
 }
 
 export type AffiliateFee =
-    | { feeType: AffiliateFeeType.GaslessFee | AffiliateFeeType.PositiveSlippageFee; recipient: string }
+    | { feeType: AffiliateFeeType.GaslessFee ; recipient: string }
     | {
-          feeType: AffiliateFeeType.None | AffiliateFeeType.PercentageFee;
+          feeType: AffiliateFeeType.None | AffiliateFeeType.PercentageFee | AffiliateFeeType.PositiveSlippageFee
           recipient: string;
           sellTokenPercentageFee: number;
           buyTokenPercentageFee: number;

@@ -22,6 +22,16 @@ import { AffiliateFee, AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource 
 
 import { numberUtils } from './number_utils';
 
+export const getBuyTokenPercentageFeeOrZero = (affiliateFee: AffiliateFee) => {
+    switch (affiliateFee.feeType) {
+        case AffiliateFeeType.GaslessFee:
+        // case AffiliateFeeType.PositiveSlippageFee:
+            return 0;
+        default:
+            return affiliateFee.buyTokenPercentageFee;
+    }
+};
+
 export const serviceUtils = {
     attributeCallData(
         data: string,
