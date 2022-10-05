@@ -76,6 +76,7 @@ import { utils } from '../utils/utils';
 const getBuyTokenPercentageFeeOrZero = (affiliateFee: AffiliateFee) => {
     switch (affiliateFee.feeType) {
         case AffiliateFeeType.GaslessFee:
+        case AffiliateFeeType.PositiveSlippageFee:
             return 0;
         default:
             return affiliateFee.buyTokenPercentageFee;
