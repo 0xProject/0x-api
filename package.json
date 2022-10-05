@@ -40,7 +40,7 @@
         "start:service:meta_transaction_http": "node -r dotenv/config lib/src/runners/http_meta_transaction_service_runner.js",
         "start:service:rfq_maker_balance_cache": "node -r dotenv/config lib/src/runners/rfq_maker_balance_cache_runner.js",
         "sampler-size": "jq .compilerOutput.evm.deployedBytecode.object  -- test/generated-artifacts/ERC20BridgeSampler.json | echo $(( $(wc -c) / 2 - 1 ))",
-        "lint": "eslint src test integration-test --max-warnings 256 && yarn prettier:ci"
+        "lint": "eslint src test integration-test --max-warnings 190 && yarn prettier:ci"
     },
     "config": {
         "prettier_target": "{.,test/**/*,integration-test/**/*,src/**/*,migrations/*,contracts/**/*}.{ts,tsx,sol,json,md}",
@@ -92,7 +92,7 @@
         "typescript": "^4.6.3"
     },
     "dependencies": {
-        "@0x/api-utils": "^0.0.2",
+        "@0x/api-utils": "^0.0.3",
         "@0x/assert": "^3.0.35",
         "@0x/base-contract": "^7.0.0",
         "@0x/contract-addresses": "^6.23.4",
@@ -102,7 +102,7 @@
         "@0x/json-schemas": "^6.4.4",
         "@0x/neon-router": "^0.3.5",
         "@0x/order-utils": "^10.4.28",
-        "@0x/protocol-utils": "^11.16.4",
+        "@0x/protocol-utils": "^11.16.7",
         "@0x/quote-server": "^8.0.0",
         "@0x/subproviders": "^7.0.0",
         "@0x/token-metadata": "^0.2.1",
