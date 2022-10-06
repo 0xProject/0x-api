@@ -1,5 +1,5 @@
 import { WETH9Contract } from '@0x/contract-wrappers';
-import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
+import { ETH_TOKEN_ADDRESS, FillQuoteTransformerOrderType, RevertError } from '@0x/protocol-utils';
 import { getTokenMetadataIfExists, TokenMetadatasForChains } from '@0x/token-metadata';
 import { MarketOperation, PaginatedCollection } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
@@ -362,7 +362,9 @@ export class SwapService {
         // Cannot eth_gasEstimate for /price when RFQ Native liquidity is included
         const isNativeIncluded = swapQuote.sourceBreakdown.Native !== undefined;
         const isQuote = endpoint === 'quote';
-        const canEstimateGas = isQuote || !isNativeIncluded;
+        const canEstimateGas =
+            (isQuote && swapQuote.orders.every((o) => o.type !== FillQuoteTransformerOrderType.Otc)) ||
+            !isNativeIncluded;
 
         // If the taker address is provided we can provide a more accurate gas estimate
         // using eth_gasEstimate
