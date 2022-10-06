@@ -38,6 +38,10 @@ import {
     SWAP_DOCS_URL,
 } from '../constants';
 import {
+    constants
+} from '../asset-swapper/constants';
+
+import {
     InternalServerError,
     RevertAPIError,
     ValidationError,
@@ -55,7 +59,7 @@ import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { publishQuoteReport } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { serviceUtils } from '../utils/service_utils';
-import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
+import { ProtocolFeeUtils } from '../asset-swapper';
 
 let kafkaProducer: Producer | undefined;
 if (KAFKA_BROKERS !== undefined) {
@@ -332,13 +336,13 @@ export class SwapHandlers {
 
             // Add additional L1 gas cost.
             if (CHAIN_ID === ChainId.Arbitrum) {
-                const gasPrices = await zeroExGasApiUtils.getGasPricesOrDefault({
-                    fast: 100_000_000, // 0.1 gwei in wei
-                });
+                const utils = ProtocolFeeUtils.getInstance(
+                    constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS
+                );
+                const gasPrice = await utils.getGasPriceEstimationOrThrowAsync();
                 const l1GasCostEstimate = new BigNumber(
                     estimateArbitrumL1CalldataGasCost({
-                        l2GasPrice: gasPrices.fast,
-                        l1CalldataPricePerUnit: gasPrices.l1CalldataPricePerUnit,
+                        l2GasPrice: gasPrice.toNumber(),
                         calldata: swapQuote.data,
                     }),
                 );
