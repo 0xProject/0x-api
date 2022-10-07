@@ -25,7 +25,7 @@ import { numberUtils } from './number_utils';
 export const getBuyTokenPercentageFeeOrZero = (affiliateFee: AffiliateFee) => {
     switch (affiliateFee.feeType) {
         case AffiliateFeeType.GaslessFee:
-        // case AffiliateFeeType.PositiveSlippageFee:
+        case AffiliateFeeType.PositiveSlippageFee:
             return 0;
         default:
             return affiliateFee.buyTokenPercentageFee;
@@ -138,8 +138,8 @@ export const serviceUtils = {
 
         const minBuyAmount = quote.worstCaseQuoteInfo.makerAmount;
         const buyTokenFeeAmount = minBuyAmount
-            .times(fee.buyTokenPercentageFee)
-            .dividedBy(fee.buyTokenPercentageFee + 1)
+            .times(getBuyTokenPercentageFeeOrZero(fee))
+            .dividedBy(getBuyTokenPercentageFeeOrZero(fee) + 1)
             .integerValue(BigNumber.ROUND_DOWN);
         return {
             sellTokenFeeAmount: ZERO,
