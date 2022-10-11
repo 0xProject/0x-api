@@ -204,7 +204,6 @@ export class MarketOperationUtils {
             ],
         ] = await Promise.all([samplerPromise]);
 
-        //TODO: how to log to grafana when outputAmountPerEth or inputAmountPerEth is 0/null/undefined
         if (outputAmountPerEth === ZERO_AMOUNT) {
             DEFAULT_INFO_LOGGER({ token: makerToken }, 'output conversion to native token is zero');
         }
