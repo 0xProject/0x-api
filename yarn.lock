@@ -809,23 +809,30 @@
     "@babel/helper-validator-identifier" "^7.18.6"
     to-fast-properties "^2.0.0"
 
-"@balancer-labs/sdk@0.1.6":
-  version "0.1.6"
-  resolved "https://registry.yarnpkg.com/@balancer-labs/sdk/-/sdk-0.1.6.tgz#1a6f0aacfada7b0afbdf02259ef40ed37d3ecbcb"
-  integrity sha512-r9s7Y2XJks+8V53kqwaqHDAETipgFSEQxI7TFHYigoOtWp/sUaZnlu0kDMv3NuDvya0+t9gp5a0VxbztLwcn+g==
+"@balancer-labs/sdk@^0.1.27":
+  version "0.1.27"
+  resolved "https://registry.yarnpkg.com/@balancer-labs/sdk/-/sdk-0.1.27.tgz#b41ef3e82cfc2d057d7df3f239329531464fd045"
+  integrity sha512-JSkQZZUmMSCskCJP/Ic+sWT0GZ4wK0iRTopSxpsdRo5HuE2/uGmItnyi8kS5Gx84rPkn8fSLhvanbWgP6+HxQQ==
   dependencies:
-    "@balancer-labs/sor" "^4.0.0-beta.2"
+    "@balancer-labs/sor" "^4.0.1-beta.5"
+    "@balancer-labs/typechain" "^1.0.0"
     axios "^0.24.0"
     graphql "^15.6.1"
     graphql-request "^3.5.0"
+    json-to-graphql-query "^2.2.4"
     lodash "^4.17.21"
 
-"@balancer-labs/sor@^4.0.0-beta.2":
-  version "4.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/@balancer-labs/sor/-/sor-4.0.0-beta.6.tgz#1ee214b49184702ff10c73bfdd2e7c9b58be2950"
-  integrity sha512-tdnBIUf+NlHulMvCSh2FguE59z7o863mjtp6oWxz1PF3G5L3V4TCF39FrIho+z2/+J2iPqMXNBWRnF7luOBIDw==
+"@balancer-labs/sor@^4.0.1-beta.5":
+  version "4.0.1-beta.5"
+  resolved "https://registry.yarnpkg.com/@balancer-labs/sor/-/sor-4.0.1-beta.5.tgz#a65efd0cbfbf9ce41694387f9c89e617f5c3d07a"
+  integrity sha512-HRww8+5MtV+cTNiAVgpeEBAHCFrsXApibkkKZxB9Lazv5imhM/f0/RYDie+I9S+p57m82njQOr1L0k5MSUSrPw==
   dependencies:
     isomorphic-fetch "^2.2.1"
+
+"@balancer-labs/typechain@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@balancer-labs/typechain/-/typechain-1.0.0.tgz#823eb13b9e166f7b50334c9d70d9ade81344f5c9"
+  integrity sha512-/fWxh4UgmHxtRt5e1anVeF8COo6FBNF28X8bd0/55SIdRDyaW7TMC7K4Jbuy58IcaERmEqi089lABlEgoeiWTQ==
 
 "@bancor/sdk@0.2.9":
   version "0.2.9"
@@ -2966,6 +2973,7 @@ axios@^0.21.1:
 axios@^0.24.0:
   version "0.24.0"
   resolved "https://registry.yarnpkg.com/axios/-/axios-0.24.0.tgz#804e6fa1e4b9c5288501dd9dff56a7a0940d20d6"
+  integrity sha512-Q6cWsys88HoPgAaFAVUb0WpPk0O8iTeisR9IMqy9G8AbO4NlpVknrnQS03zzF9PGAWgO3cgletO3VjV/P7VztA==
   dependencies:
     follow-redirects "^1.14.4"
 
@@ -6432,10 +6440,15 @@ flow-stoplight@^1.0.0:
   resolved "https://registry.yarnpkg.com/flow-stoplight/-/flow-stoplight-1.0.0.tgz#4a292c5bcff8b39fa6cc0cb1a853d86f27eeff7b"
   integrity sha512-rDjbZUKpN8OYhB0IE/vY/I8UWO/602IIJEU/76Tv4LvYnwHCk0BCsvz4eRr9n+FQcri7L5cyaXOo0+/Kh4HisA==
 
-follow-redirects@^1.12.1, follow-redirects@^1.14.0, follow-redirects@^1.14.4:
+follow-redirects@^1.12.1, follow-redirects@^1.14.0:
   version "1.15.1"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.1.tgz#0ca6a452306c9b276e4d3127483e29575e207ad5"
   integrity sha512-yLAMQs+k0b2m7cVxpS1VKJVvoz7SS9Td1zss3XRwXj+ZDH00RJgnuLx7E44wx02kQLrdM3aOOy+FpzS7+8OizA==
+
+follow-redirects@^1.14.4:
+  version "1.15.2"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.2.tgz#b460864144ba63f2681096f274c4e57026da2c13"
+  integrity sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==
 
 for-each@^0.3.3, for-each@~0.3.3:
   version "0.3.3"
@@ -7921,6 +7934,11 @@ json-stringify-safe@~5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/json-stringify-safe/-/json-stringify-safe-5.0.1.tgz#1296a2d58fd45f19a0f6ce01d65701e2c735b6eb"
   integrity sha512-ZClg6AaYvamvYEE82d3Iyd3vSSIjQ+odgjaTzRuO3s7toCdFKczob2i0zCh7JE8kWn17yvAWhUVxvqGwUalsRA==
+
+json-to-graphql-query@^2.2.4:
+  version "2.2.4"
+  resolved "https://registry.yarnpkg.com/json-to-graphql-query/-/json-to-graphql-query-2.2.4.tgz#ada9cfdbb9bf38589fd2661e1588d1edd0a882cc"
+  integrity sha512-vNvsOKDSlEqYCzejI1xHS9Hm738dSnG4Upy09LUGqyybZXSIIb7NydDphB/6WxW2EEVpPU4JeU/Yo63Nw9dEJg==
 
 json5@^0.5.1:
   version "0.5.1"
