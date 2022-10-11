@@ -3,6 +3,7 @@ import { BigNumber } from '@0x/utils';
 import { getAddress } from '@ethersproject/address';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
+import * as WebSocket from 'ws';
 
 import { LimitOrder, BalanceCheckerContract } from '../asset-swapper';
 import { fetchPoolLists } from '../asset-swapper/utils/market_operation_utils/pools_cache/pool_list_cache';
@@ -11,6 +12,7 @@ import {
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
     defaultHttpServiceConfig,
+    WEBSOCKET_PORT,
 } from '../config';
 import {
     ONE_SECOND_MS,
@@ -20,6 +22,9 @@ import {
     BALANCE_CHECKER_GAS_LIMIT,
     EXCHANGE_PROXY_ADDRESS,
     ARRAY_LIMIT_LENGTH,
+    DEFAULT_PAGE,
+    DEFAULT_PER_PAGE,
+
 } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
@@ -39,6 +44,8 @@ import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
 import { providerUtils } from '../utils/provider_utils';
+
+const wss = new WebSocket.Server({ port: WEBSOCKET_PORT });
 
 export class OrderBookService {
     private readonly _connection: Connection;
@@ -503,7 +510,7 @@ export class OrderBookService {
             })
         }
 
-        return paginationUtils.paginate(result, 1, req.perPage);
+        return paginationUtils.paginate(result, DEFAULT_PAGE, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -640,12 +647,52 @@ export class OrderBookService {
     }
     public async addOrderAsync(signedOrder: SignedLimitOrder): Promise<void> {
         await this._orderWatcher.postOrdersAsync([signedOrder]);
+        const result = await this.getOrderBookAsync(
+            DEFAULT_PAGE,
+            DEFAULT_PER_PAGE,
+            signedOrder.takerToken,
+            signedOrder.makerToken
+        );
+
+        wss.clients.forEach((client) => {
+            client.send(JSON.stringify([result]));
+        });
     }
     public async addOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void> {
         await this._orderWatcher.postOrdersAsync(signedOrders);
+        const result: OrderbookResponse[] = [];
+        await Promise.all(signedOrders.map(async (signedOrder) => {
+            result.push(
+                await this.getOrderBookAsync(
+                    DEFAULT_PAGE,
+                    DEFAULT_PER_PAGE,
+                    signedOrder.takerToken,
+                    signedOrder.makerToken
+                )
+            )
+        }));
+
+        wss.clients.forEach((client) => {
+            client.send(JSON.stringify(result));
+        });
     }
     public async addPersistentOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void> {
         await this._orderWatcher.postOrdersAsync(signedOrders);
+        const result: OrderbookResponse[] = [];
+        await Promise.all(signedOrders.map(async (signedOrder) => {
+            result.push(
+                await this.getOrderBookAsync(
+                    DEFAULT_PAGE,
+                    DEFAULT_PER_PAGE,
+                    signedOrder.takerToken,
+                    signedOrder.makerToken
+                )
+            )
+        }));
+
+        wss.clients.forEach((client) => {
+            client.send(JSON.stringify(result));
+        });
 
         // Figure out which orders were accepted by looking for them in the database.
         const hashes = signedOrders.map((o) => {
