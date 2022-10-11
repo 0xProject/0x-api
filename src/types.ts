@@ -385,29 +385,33 @@ export enum OrderEventEndState {
     StoppedWatching = 'STOPPED_WATCHING',
 }
 
+interface OrderbookPriceOrder {
+    maker: string; // maker address of order
+    taker: string; // taker address of order
+    makerToken: string; // makerToken address of order
+    takerToken: string; // takerToken address of order
+    makerAmount: BigNumber; // makerAmount of order
+    takerAmount: BigNumber; // takerAmount of order
+    takerTokenFeeAmount: BigNumber; // takerToken fee amount of order
+    feeRecipient: string; // fee recipient address
+    expiry: BigNumber; // order expire time
+}
+
+interface OrderbookPriceMetadata {
+    remainingFillableTakerAmount: BigNumber;
+}
+
 export interface OrderbookPriceResponse {
-	order?: {
-		maker: string // maker address of order
-		taker: string // taker address of order
-		makerToken: string // makerToken address of order
-		takerToken: string // takerToken address of order
-		makerAmount: BigNumber // makerAmount of order
-		takerAmount: BigNumber // takerAmount of order
-		takerTokenFeeAmount: BigNumber // takerToken fee amount of order
-		feeRecipient: string // fee recipient address
-		expiry: BigNumber // order expire time
-	}
-	metaData?: {
-		remainingFillableTakerAmount: BigNumber // remaining fillable taker amount of order
-	}
+    order?: OrderbookPriceOrder;
+    metaData?: OrderbookPriceMetadata;
 }
 
 export interface MakerInfoType {
-    makers: string[], // maker address array
-    makerTokens: string[], // makerToken address array
+    makers: string[]; // maker address array
+    makerTokens: string[]; // makerToken address array
 }
 
 export interface FillableOrderType {
-    extendedOrder: SRAOrder, // fillable order
-    minOfBalancesOrAllowances: BigNumber[], // min balances or allowances of maker
+    extendedOrder: SRAOrder; // fillable order
+    minOfBalancesOrAllowances: BigNumber[]; // min balances or allowances of maker
 }

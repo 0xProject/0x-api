@@ -1,5 +1,5 @@
 import { request } from 'graphql-request';
-import gql from 'graphql-tag'
+import gql from 'graphql-tag';
 
 const queryPools = (
     skip: number,
@@ -11,7 +11,7 @@ const queryPools = (
       pools(first: ${pageSize}, skip: ${skip},
         orderDirection: desc,
         orderBy: createdAt,
-        where: { 
+        where: {
           createdBy_contains: "${createdBy}"
           statusFinalReferenceValue_not: "Confirmed"
           dataProvider_contains: "${dataProvider}"
@@ -66,7 +66,7 @@ const queryPools = (
         }
       }
     }
-  `
+  `;
 
 export const fetchPoolLists = async (page: number, pageSize: number, createdBy: string, graphUrl: string) => {
   const result = await request(
@@ -77,7 +77,7 @@ export const fetchPoolLists = async (page: number, pageSize: number, createdBy: 
       createdBy,
       undefined
     )
-  )
+  );
 
   return result.pools;
-}
+};

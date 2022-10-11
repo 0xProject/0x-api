@@ -73,7 +73,7 @@ export class SRAHandlers {
     public async orderbookPricesAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const graphUrl = (req.query.graphUrl as string).toLowerCase();
-        const createdBy = req.query.createdBy === undefined ? "" : (req.query.createdBy as string).toLowerCase();
+        const createdBy = req.query.createdBy === undefined ? '' : (req.query.createdBy as string).toLowerCase();
         const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
         const feeRecipient = req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
         const takerTokenFee: number = req.query.takerTokenFee === undefined ? -1 : Number((req.query.takerTokenFee as string));
