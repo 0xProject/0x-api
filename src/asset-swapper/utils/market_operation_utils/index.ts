@@ -204,10 +204,10 @@ export class MarketOperationUtils {
             ],
         ] = await Promise.all([samplerPromise]);
 
-        if (outputAmountPerEth === ZERO_AMOUNT) {
+        if (outputAmountPerEth.isZero()) {
             DEFAULT_INFO_LOGGER({ token: makerToken }, 'output conversion to native token is zero');
         }
-        if (inputAmountPerEth === ZERO_AMOUNT) {
+        if (inputAmountPerEth.isZero()) {
             DEFAULT_INFO_LOGGER({ token: takerToken }, 'input conversion to native token is zero');
         }
 
