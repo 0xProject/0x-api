@@ -428,6 +428,10 @@ export const SENTRY_TRACES_SAMPLE_RATE: number = _.isEmpty(process.env.SENTRY_TR
     ? 0.1
     : assertEnvVarType('SENTRY_TRACES_SAMPLE_RATE', process.env.SENTRY_TRACES_SAMPLE_RATE, EnvVarType.Float);
 
+export const GASLESS_SWAP_FEE_ENABLED: boolean = _.isEmpty(process.env.GASLESS_SWAP_FEE_ENABLED)
+    ? false
+    : assertEnvVarType('GASLESS_SWAP_FEE_ENABLED', process.env.GASLESS_SWAP_FEE_ENABLED, EnvVarType.Boolean);
+
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
 // Default ERC20 token precision
@@ -458,18 +462,6 @@ const EXCLUDED_SOURCES = (() => {
             return allERC20BridgeSources.filter(
                 (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
             );
-        case ChainId.Ropsten: {
-            const supportedRopstenSources = new Set([
-                ERC20BridgeSource.Native,
-                ERC20BridgeSource.SushiSwap,
-                ERC20BridgeSource.Uniswap,
-                ERC20BridgeSource.UniswapV2,
-                ERC20BridgeSource.UniswapV3,
-                ERC20BridgeSource.Curve,
-                ERC20BridgeSource.Mooniswap,
-            ]);
-            return allERC20BridgeSources.filter((s) => !supportedRopstenSources.has(s));
-        }
         case ChainId.Ganache:
             return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
         case ChainId.BSC:
@@ -494,8 +486,6 @@ const EXCLUDED_FEE_SOURCES = (() => {
             return [];
         case ChainId.Kovan:
             return [ERC20BridgeSource.Uniswap];
-        case ChainId.Ropsten:
-            return [];
         case ChainId.BSC:
             return [ERC20BridgeSource.Uniswap];
         case ChainId.Polygon:
