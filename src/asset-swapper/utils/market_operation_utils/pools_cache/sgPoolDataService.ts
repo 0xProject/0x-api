@@ -1,6 +1,6 @@
 import { ChainId } from '@0x/contract-addresses';
 import { logUtils } from '@0x/utils';
-import { PoolDataService, SubgraphPoolBase } from '@balancer-labs/sdk';
+import { PoolDataService, SubgraphPoolBase } from '@balancer-labs/sor';
 import { gql, request } from 'graphql-request';
 
 const queryWithLinear = gql`
