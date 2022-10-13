@@ -56,16 +56,6 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
         vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
         weth: '0xdFCeA9088c8A88A76FF74892C1457C17dfeef9C1',
     },
-    [ChainId.Rinkeby]: {
-        chainId: ChainId.Rinkeby,
-        vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
-        weth: '0xdFCeA9088c8A88A76FF74892C1457C17dfeef9C1',
-    },
-    [ChainId.Ropsten]: {
-        chainId: ChainId.Ropsten,
-        vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
-        weth: '0xdFCeA9088c8A88A76FF74892C1457C17dfeef9C1',
-    },
     // TO DO - Get details for Optimism and Fantom from Daniel to add
 };
 
