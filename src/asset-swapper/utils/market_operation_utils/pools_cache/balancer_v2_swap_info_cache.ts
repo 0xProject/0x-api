@@ -76,7 +76,6 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
         vault: '0x20dd72ed959b6147912c2e529f0a0c651c33c9ce',
         weth: '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83',
     },
-    // TO DO - Get details for Optimism and Fantom from Daniel to add
 };
 
 class MockTokenPriceService implements TokenPriceService {
