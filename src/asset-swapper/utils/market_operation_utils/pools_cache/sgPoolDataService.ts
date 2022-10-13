@@ -7,7 +7,7 @@ const queryWithLinear = gql`
     query fetchTopPoolsWithLinear($maxPoolsFetched: Int!) {
         pools: pools(
             first: $maxPoolsFetched
-            where: { swapEnabled: true, totalShares_gt: "0" }
+            where: { swapEnabled: true, totalShares_not_in: ["0", "0.000000000001"] }
             orderBy: totalLiquidity
             orderDirection: desc
         ) {

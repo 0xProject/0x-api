@@ -12,10 +12,6 @@ import { parsePoolData } from './balancer_sor_v2';
 import { NoOpPoolsCache } from './no_op_pools_cache';
 import { AbstractPoolsCache, CacheValue, PoolsCache } from './pools_cache';
 
-const BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN = new Map<ChainId, string>([
-    [ChainId.Fantom, 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx'],
-]);
-
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 interface BalancerPoolResponse {
@@ -29,15 +25,6 @@ interface BalancerPoolResponse {
 }
 
 export class BalancerV2PoolsCache extends AbstractPoolsCache {
-    public static createBeethovenXPoolCache(chainId: ChainId): PoolsCache {
-        const subgraphUrl = BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN.get(chainId);
-        if (subgraphUrl === undefined) {
-            return new NoOpPoolsCache();
-        }
-
-        return new BalancerV2PoolsCache(subgraphUrl);
-    }
-
     private static _parseSubgraphPoolData(pool: any, takerToken: string, makerToken: string): Pool {
         const tToken = pool.tokens.find((t: any) => t.address === takerToken);
         const mToken = pool.tokens.find((t: any) => t.address === makerToken);
