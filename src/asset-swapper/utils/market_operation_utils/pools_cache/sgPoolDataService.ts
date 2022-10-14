@@ -11,33 +11,33 @@ const queryWithLinear = gql`
             orderBy: totalLiquidity
             orderDirection: desc
         ) {
-          id
-          address
-          poolType
-          swapFee
-          totalShares
-          tokens {
+            id
             address
-            balance
-            decimals
-            weight
-            priceRate
-          }
-          tokensList
-          totalWeight
-          amp
-          expiryTime
-          unitSeconds
-          principalToken
-          baseToken
-          swapEnabled
-          wrappedIndex
-          mainIndex
-          lowerTarget
-          upperTarget
-          sqrtAlpha
-          sqrtBeta
-          root3Alpha
+            poolType
+            swapFee
+            totalShares
+            tokens {
+                address
+                balance
+                decimals
+                weight
+                priceRate
+            }
+            tokensList
+            totalWeight
+            amp
+            expiryTime
+            unitSeconds
+            principalToken
+            baseToken
+            swapEnabled
+            wrappedIndex
+            mainIndex
+            lowerTarget
+            upperTarget
+            sqrtAlpha
+            sqrtBeta
+            root3Alpha
         }
     }
 `;

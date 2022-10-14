@@ -10,9 +10,9 @@ import {
     SwapTypes,
     SorConfig,
     TokenPriceService,
-    SOR
+    SOR,
 } from '@balancer-labs/sor';
-import { JsonRpcProvider } from '@ethersproject/providers'
+import { JsonRpcProvider } from '@ethersproject/providers';
 
 import { DEFAULT_WARNING_LOGGER } from '../../../constants';
 import { LogFunction } from '../../../types';
@@ -24,11 +24,11 @@ import { SubgraphPoolDataService } from './sgPoolDataService';
 
 const ONE_DAY_MS = 24 * 60 * 60 * ONE_SECOND_MS;
 
-type BalancerChains = Exclude<ChainId, ChainId.ArbitrumRinkeby | ChainId.Avalanche | ChainId.BSC | ChainId.Celo | ChainId.Fantom | ChainId.Ganache | ChainId.PolygonMumbai | ChainId.Optimism>;
+type BalancerChains = ChainId.Mainnet | ChainId.Polygon | ChainId.Arbitrum | ChainId.Goerli;
 
 const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
     [ChainId.Mainnet]: {
-        chainId: ChainId.Mainnet, //1
+        chainId: ChainId.Mainnet,
         vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
         weth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
         wETHwstETH: {
@@ -37,26 +37,20 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
         },
     },
     [ChainId.Polygon]: {
-        chainId: ChainId.Polygon, //137
+        chainId: ChainId.Polygon,
         vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
         weth: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
     },
     [ChainId.Arbitrum]: {
-        chainId: ChainId.Arbitrum, //42161
+        chainId: ChainId.Arbitrum,
         vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
         weth: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
     },
     [ChainId.Goerli]: {
-        chainId: ChainId.Goerli, //5
+        chainId: ChainId.Goerli,
         vault: '0x65748E8287Ce4B9E6D83EE853431958851550311',
         weth: '0x9A1000D492d40bfccbc03f413A48F5B6516Ec0Fd',
     },
-    [ChainId.Kovan]: {
-        chainId: ChainId.Kovan,
-        vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
-        weth: '0xdFCeA9088c8A88A76FF74892C1457C17dfeef9C1',
-    },
-    // TO DO - Get details for Optimism and Fantom from Daniel to add
 };
 
 class MockTokenPriceService implements TokenPriceService {
@@ -87,7 +81,7 @@ export class BalancerV2SwapInfoCache extends SwapInfoCache {
             provider,
             SOR_CONFIG[chainId as BalancerChains],
             this._poolDataService,
-            new MockTokenPriceService()
+            new MockTokenPriceService(),
         );
 
         // The RouteProposer finds paths between a token pair using direct/multihop/linearPool routes
