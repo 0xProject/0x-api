@@ -33,7 +33,6 @@ import {
     MakerInfoType,
     OrderbookPriceRequest,
     OrderbookPriceResponse,
-    OrderbookRequest,
     OrderbookResponse,
     OrderEventEndState,
     PaginatedCollection,
