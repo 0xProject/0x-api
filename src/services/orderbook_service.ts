@@ -33,6 +33,7 @@ import {
     MakerInfoType,
     OrderbookPriceRequest,
     OrderbookPriceResponse,
+    OrderbookRequest,
     OrderbookResponse,
     OrderEventEndState,
     PaginatedCollection,
@@ -250,7 +251,7 @@ export class OrderBookService {
         baseToken: string,
         quoteToken: string,
     ): Promise<OrderbookResponse> {
-        const {bidApiOrders, askApiOrders} = await this.getSignedOrderEntities(baseToken, quoteToken);
+        const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntities(baseToken, quoteToken);
 
         let makers: string[] = []; // maker address array
         let makerTokens: string[] = []; // maker token address array
@@ -402,7 +403,7 @@ export class OrderBookService {
         // Get all tokens list
         await Promise.all(pools.map(async (pool) => {
             // Get bid list using pool's baseToken and quoteToken
-            const {bidApiOrders, askApiOrders} = await this.getSignedOrderEntities(
+            const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntities(
                 pool.baseToken,
                 pool.quoteToken
             );
@@ -588,6 +589,7 @@ export class OrderBookService {
         const paginatedApiOrders = paginationUtils.paginateSerialize(allOrders, total, page, perPage);
         return paginatedApiOrders;
     }
+
     public async getBatchOrdersAsync(
         page: number,
         perPage: number,
@@ -610,18 +612,34 @@ export class OrderBookService {
         const paginatedApiOrders = paginationUtils.paginate(fresh, page, perPage);
         return paginatedApiOrders;
     }
+
     constructor(connection: Connection, orderWatcher: OrderWatcherInterface) {
         this._connection = connection;
         this._orderWatcher = orderWatcher;
     }
+
     public async addOrderAsync(signedOrder: SignedLimitOrder): Promise<void> {
         await this._orderWatcher.postOrdersAsync([signedOrder]);
         // After creating this order, we get the updated bid and ask information for the pool.
-        const result = await this.getOrderBookAsync(
-            DEFAULT_PAGE,
-            DEFAULT_PER_PAGE,
-            signedOrder.takerToken,
-            signedOrder.makerToken
+        const result: any[] = [];
+        result.push(signedOrder.poolId);
+
+        result.push(
+            await this.getOrderBookAsync(
+                DEFAULT_PAGE,
+                DEFAULT_PER_PAGE,
+                signedOrder.makerToken,
+                signedOrder.takerToken,
+            )
+        );
+
+        result.push(
+            await this.getOrderBookAsync(
+                DEFAULT_PAGE,
+                DEFAULT_PER_PAGE,
+                signedOrder.takerToken,
+                signedOrder.makerToken,
+            )
         );
 
         // Send the data using websocket to every clients
@@ -629,19 +647,32 @@ export class OrderBookService {
             client.send(JSON.stringify([result]));
         });
     }
+
     public async addOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void> {
         await this._orderWatcher.postOrdersAsync(signedOrders);
         // After creating these orders, we get the updated bid and ask information for the pool.
-        const result: OrderbookResponse[] = [];
+        const result: any[] = [];
         await Promise.all(signedOrders.map(async (signedOrder) => {
-            result.push(
-                await this.getOrderBookAsync(
-                    DEFAULT_PAGE,
-                    DEFAULT_PER_PAGE,
-                    signedOrder.takerToken,
-                    signedOrder.makerToken
-                )
-            );
+            const isExists = result.filter((item) => item[0] === signedOrder.poolId);
+
+            if (isExists.length === 0) {
+                result.push(
+                    [
+                        await this.getOrderBookAsync(
+                            DEFAULT_PAGE,
+                            DEFAULT_PER_PAGE,
+                            signedOrder.makerToken,
+                            signedOrder.takerToken,
+                        ),
+                        await this.getOrderBookAsync(
+                            DEFAULT_PAGE,
+                            DEFAULT_PER_PAGE,
+                            signedOrder.takerToken,
+                            signedOrder.makerToken
+                        ),
+                    ]
+                );
+            }
         }));
 
         // Send the data using websocket to every clients
@@ -649,19 +680,32 @@ export class OrderBookService {
             client.send(JSON.stringify(result));
         });
     }
+
     public async addPersistentOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void> {
         await this._orderWatcher.postOrdersAsync(signedOrders);
         // After creating these orders, we get the updated bid and ask information for the pool.
-        const result: OrderbookResponse[] = [];
+        const result: any[] = [];
         await Promise.all(signedOrders.map(async (signedOrder) => {
-            result.push(
-                await this.getOrderBookAsync(
-                    DEFAULT_PAGE,
-                    DEFAULT_PER_PAGE,
-                    signedOrder.takerToken,
-                    signedOrder.makerToken
-                )
-            );
+            const isExists = result.filter((item) => item[0] === signedOrder.poolId);
+
+            if (isExists.length === 0) {
+                result.push(
+                    [
+                        await this.getOrderBookAsync(
+                            DEFAULT_PAGE,
+                            DEFAULT_PER_PAGE,
+                            signedOrder.makerToken,
+                            signedOrder.takerToken,
+                        ),
+                        await this.getOrderBookAsync(
+                            DEFAULT_PAGE,
+                            DEFAULT_PER_PAGE,
+                            signedOrder.takerToken,
+                            signedOrder.makerToken
+                        ),
+                    ]
+                );
+            }
         }));
 
         // Send the data using websocket to every clients
