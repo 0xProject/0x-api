@@ -26,7 +26,14 @@ const ONE_DAY_MS = 24 * 60 * 60 * ONE_SECOND_MS;
 
 type BalancerChains = ChainId.Mainnet | ChainId.Polygon | ChainId.Arbitrum | ChainId.Goerli;
 
-const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
+interface ExtendedSorConfig extends SorConfig {
+    wETHwstETH?:{
+        id: string;
+        address: string;
+    };
+}
+
+const SOR_CONFIG: Record<BalancerChains, ExtendedSorConfig> = {
     [ChainId.Mainnet]: {
         chainId: ChainId.Mainnet,
         vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
