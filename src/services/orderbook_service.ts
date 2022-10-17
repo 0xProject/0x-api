@@ -623,7 +623,6 @@ export class OrderBookService {
         const result: any[] = [];
         result.push({
             poolId: signedOrder.poolId,
-            isBuy: signedOrder.isBuy,
             first: await this.getOrderBookAsync(
                 DEFAULT_PAGE,
                 DEFAULT_PER_PAGE,
@@ -654,7 +653,6 @@ export class OrderBookService {
             if (isExists.length === 0) {
                 result.push({
                     poolId: signedOrder.poolId,
-                    isBuy: signedOrder.isBuy,
                     first: await this.getOrderBookAsync(
                         DEFAULT_PAGE,
                         DEFAULT_PER_PAGE,
@@ -687,7 +685,6 @@ export class OrderBookService {
             if (isExists.length === 0) {
                 result.push({
                     poolId: signedOrder.poolId,
-                    isBuy: signedOrder.isBuy,
                     first: await this.getOrderBookAsync(
                         DEFAULT_PAGE,
                         DEFAULT_PER_PAGE,

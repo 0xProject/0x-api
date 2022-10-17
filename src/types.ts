@@ -38,7 +38,6 @@ export interface PaginatedCollection<T> {
 export interface SignedLimitOrder extends LimitOrderFields {
     signature: Signature;
     poolId?: number;
-    isBuy?: boolean;
 }
 
 /** BEGIN SRA TYPES */
