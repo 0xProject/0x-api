@@ -24,7 +24,7 @@ import { SubgraphPoolDataService } from './sgPoolDataService';
 
 const ONE_DAY_MS = 24 * 60 * 60 * ONE_SECOND_MS;
 
-type BalancerChains = ChainId.Mainnet | ChainId.Polygon | ChainId.Arbitrum | ChainId.Goerli;
+type BalancerChains = ChainId.Mainnet | ChainId.Polygon | ChainId.Arbitrum | ChainId.Goerli | ChainId.Optimism;
 
 const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
     [ChainId.Mainnet]: {
@@ -50,6 +50,11 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
         chainId: ChainId.Goerli,
         vault: '0x65748E8287Ce4B9E6D83EE853431958851550311',
         weth: '0x9A1000D492d40bfccbc03f413A48F5B6516Ec0Fd',
+    },
+    [ChainId.Optimism]: {
+        chainId: ChainId.Optimism,
+        vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
+        weth: '0x4200000000000000000000000000000000000006',
     },
 };
 
