@@ -102,7 +102,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.Synthetix,
             ERC20BridgeSource.AaveV2,
-             // TODO: Explore adding compound as a source
+            // TODO: Explore adding compound as a source
             // ERC20BridgeSource.Compound,
         ]),
         [ChainId.Kovan]: new SourceFilters([ERC20BridgeSource.Native]),
