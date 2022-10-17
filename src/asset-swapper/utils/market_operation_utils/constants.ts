@@ -254,7 +254,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.Synthetix,
             // TODO: enable after FQT has been redeployed on Ethereum mainnet
-            // ERC20BridgeSource.AaveV2,
+            ERC20BridgeSource.AaveV2,
             // ERC20BridgeSource.Compound,
         ]),
         [ChainId.Goerli]: new SourceFilters([
