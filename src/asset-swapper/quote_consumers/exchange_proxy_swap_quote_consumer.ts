@@ -132,6 +132,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
 
         const sellToken = quote.takerToken;
         const buyToken = quote.makerToken;
+
         // Take the bounds from the worst case
         const sellAmount = BigNumber.max(
             quote.bestCaseQuoteInfo.totalTakerAmount,
@@ -372,8 +373,6 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
         // Create a WETH wrapper if coming from ETH.
         // Don't add the wethTransformer to CELO. There is no wrap/unwrap logic for CELO.
         if (isFromETH && this.chainId !== ChainId.Celo) {
-
-            console.log("TRANSFORMER NONCE", this.transformerNonces.fillQuoteTransformer);
             transforms.push({
                 deploymentNonce: this.transformerNonces.wethTransformer,
                 data: encodeWethTransformerData({
