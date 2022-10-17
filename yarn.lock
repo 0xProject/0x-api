@@ -124,15 +124,15 @@
   resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.23.2.tgz#2c5567161ebf44918be1f5eafd78eebefb2ce490"
   integrity sha512-ry5CShC4Gi32J9V5f3d21vPajdNAeN6MuUoiJZmL4uE4vpGv34MC/BgwTWnyjyHDQon/XqHoW7+HGjChWSfkaA==
 
-"@0x/contract-addresses@^6.25.0":
-  version "6.25.0"
-  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.25.0.tgz#bb0d138d40924244482336153317f0e8a5d42b0a"
-  integrity sha512-0Kr2sMupS2wNqWLvWg8fnBdOHWwLKjhsIlazUBkDpQWyNOO/eI/bwoxwMOmxf0hVSmSL5/Vn1bulltLBdKIWww==
-
 "@0x/contract-addresses@^6.24.0":
   version "6.24.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.24.0.tgz#18fc1fc62d4b120f4bad80d1e82fd9f13195eb0f"
   integrity sha512-aCVa/Z3ONmdlK+WWwhyOw/lqsYH5ER0IK/GA3t7bywANLhFhhHV6VfrQFg4Gsrc9VY1qJRbDG6jkRyW7N5ZODg==
+
+"@0x/contract-addresses@^6.25.0":
+  version "6.25.0"
+  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.25.0.tgz#bb0d138d40924244482336153317f0e8a5d42b0a"
+  integrity sha512-0Kr2sMupS2wNqWLvWg8fnBdOHWwLKjhsIlazUBkDpQWyNOO/eI/bwoxwMOmxf0hVSmSL5/Vn1bulltLBdKIWww==
 
 "@0x/contract-wrappers@^13.17.4", "@0x/contract-wrappers@^13.18.5":
   version "13.18.5"
@@ -163,27 +163,6 @@
     ethereum-types "^3.7.1"
     ethers "~4.0.4"
 
-"@0x/contract-wrappers@^13.22.6":
-  version "13.22.6"
-  resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.22.6.tgz#72858843977a9b37b3f1c6142b98fa85895728a0"
-  integrity sha512-dLdSHxQSd0ZQHoNha1dzH+j5gBE4AuTMD72yiu3wSEXK9frJD529+Qo3DLp64esdph3DKyOj43zZfQZ0VBhhCQ==
-  dependencies:
-    "@0x/assert" "^3.0.35"
-    "@0x/base-contract" "^7.0.0"
-    "@0x/contract-addresses" "^6.25.0"
-    "@0x/json-schemas" "^6.4.4"
-    "@0x/types" "^3.3.6"
-    "@0x/utils" "^7.0.0"
-    "@0x/web3-wrapper" "^8.0.0"
-    ethereum-types "^3.7.1"
-    ethers "~4.0.4"
-
-<<<<<<< HEAD
-"@0x/contracts-erc20@^3.3.47":
-  version "3.3.47"
-  resolved "https://registry.yarnpkg.com/@0x/contracts-erc20/-/contracts-erc20-3.3.47.tgz#ba83b09e89a872a725020e05be03c6220e90effe"
-  integrity sha512-lrMbk/j68nT1id+WAPIbieyn/w8yDDIaa7C8i54SR2mB9IGzqhT8DviGfi4Wii/lkZcFucFG9ngkwdX7X54yEg==
-=======
 "@0x/contract-wrappers@^13.22.5":
   version "13.22.5"
   resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.22.5.tgz#a5867fcba91f0494b141b63bde532804b2be5e31"
@@ -199,11 +178,25 @@
     ethereum-types "^3.7.1"
     ethers "~4.0.4"
 
-"@0x/contracts-erc20@^3.3.37":
-  version "3.3.37"
-  resolved "https://registry.yarnpkg.com/@0x/contracts-erc20/-/contracts-erc20-3.3.37.tgz#05fcea32f8533df6b55428ee9584008f2957b286"
-  integrity sha512-icfQ6sP79Z6fBVHivflP6ZxiJuKRXCts1zPwq6UnbQN8UEMlCVX1SJzu7RumWExW0tIu7NJg6hi/kgiIJTKWFw==
->>>>>>> parent of 180387d (Revert "feat: rfqtv2 calldata generation (#979)" (#1007))
+"@0x/contract-wrappers@^13.22.6":
+  version "13.22.6"
+  resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.22.6.tgz#72858843977a9b37b3f1c6142b98fa85895728a0"
+  integrity sha512-dLdSHxQSd0ZQHoNha1dzH+j5gBE4AuTMD72yiu3wSEXK9frJD529+Qo3DLp64esdph3DKyOj43zZfQZ0VBhhCQ==
+  dependencies:
+    "@0x/assert" "^3.0.35"
+    "@0x/base-contract" "^7.0.0"
+    "@0x/contract-addresses" "^6.25.0"
+    "@0x/json-schemas" "^6.4.4"
+    "@0x/types" "^3.3.6"
+    "@0x/utils" "^7.0.0"
+    "@0x/web3-wrapper" "^8.0.0"
+    ethereum-types "^3.7.1"
+    ethers "~4.0.4"
+
+"@0x/contracts-erc20@^3.3.47":
+  version "3.3.47"
+  resolved "https://registry.yarnpkg.com/@0x/contracts-erc20/-/contracts-erc20-3.3.47.tgz#ba83b09e89a872a725020e05be03c6220e90effe"
+  integrity sha512-lrMbk/j68nT1id+WAPIbieyn/w8yDDIaa7C8i54SR2mB9IGzqhT8DviGfi4Wii/lkZcFucFG9ngkwdX7X54yEg==
   dependencies:
     "@0x/base-contract" "^7.0.0"
     ethers "~4.0.4"
@@ -393,12 +386,6 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-<<<<<<< HEAD
-"@0x/protocol-utils@^11.16.14":
-  version "11.16.14"
-  resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-11.16.14.tgz#3071f2eb9cfbc5490789018a35902aabaaaf1d3d"
-  integrity sha512-kL4bnGV+cWSWjCbVB7cvdazScxEmKhZsPLhO5DgDw153vxyKLkMXv3ae0snLZ5P0jnHwSen9BzIcysxeGIq0yg==
-=======
 "@0x/protocol-utils@^11.16.12":
   version "11.16.12"
   resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-11.16.12.tgz#ca7b2561e4f57624820e212aa9924c24cdbb7d0a"
@@ -417,11 +404,10 @@
     ethers "~4.0.4"
     lodash "^4.17.11"
 
-"@0x/protocol-utils@^11.16.4":
-  version "11.16.4"
-  resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-11.16.4.tgz#5250f5cd6d567e4aba820b1e17c170c466d2ad4c"
-  integrity sha512-u5oG0hZEjTpFkvuRevE1klt0yR1yyYMEA6+QKQcjQB1jigAKJBZkXmRFV5PuueXVrNGwCJaBR2MwhoxAVxuGZg==
->>>>>>> parent of 180387d (Revert "feat: rfqtv2 calldata generation (#979)" (#1007))
+"@0x/protocol-utils@^11.16.14":
+  version "11.16.14"
+  resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-11.16.14.tgz#3071f2eb9cfbc5490789018a35902aabaaaf1d3d"
+  integrity sha512-kL4bnGV+cWSWjCbVB7cvdazScxEmKhZsPLhO5DgDw153vxyKLkMXv3ae0snLZ5P0jnHwSen9BzIcysxeGIq0yg==
   dependencies:
     "@0x/assert" "^3.0.35"
     "@0x/contract-addresses" "^6.25.0"
@@ -2506,15 +2492,6 @@
     debug "^4.3.4"
 
 "@typescript-eslint/parser@^5.38.0":
-<<<<<<< HEAD
-  version "5.40.0"
-  resolved "https://registry.yarnpkg.com/@typescript-eslint/parser/-/parser-5.40.0.tgz#432bddc1fe9154945660f67c1ba6d44de5014840"
-  integrity sha512-Ah5gqyX2ySkiuYeOIDg7ap51/b63QgWZA7w6AHtFrag7aH0lRQPbLzUjk0c9o5/KZ6JRkTTDKShL4AUrQa6/hw==
-  dependencies:
-    "@typescript-eslint/scope-manager" "5.40.0"
-    "@typescript-eslint/types" "5.40.0"
-    "@typescript-eslint/typescript-estree" "5.40.0"
-=======
   version "5.39.0"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/parser/-/parser-5.39.0.tgz#93fa0bc980a3a501e081824f6097f7ca30aaa22b"
   integrity sha512-PhxLjrZnHShe431sBAGHaNe6BDdxAASDySgsBCGxcBecVCi8NQWxQZMcizNA4g0pN51bBAn/FUfkWG3SDVcGlA==
@@ -2522,7 +2499,6 @@
     "@typescript-eslint/scope-manager" "5.39.0"
     "@typescript-eslint/types" "5.39.0"
     "@typescript-eslint/typescript-estree" "5.39.0"
->>>>>>> parent of 180387d (Revert "feat: rfqtv2 calldata generation (#979)" (#1007))
     debug "^4.3.4"
 
 "@typescript-eslint/scope-manager@5.35.1":
@@ -2533,15 +2509,6 @@
     "@typescript-eslint/types" "5.35.1"
     "@typescript-eslint/visitor-keys" "5.35.1"
 
-<<<<<<< HEAD
-"@typescript-eslint/scope-manager@5.40.0":
-  version "5.40.0"
-  resolved "https://registry.yarnpkg.com/@typescript-eslint/scope-manager/-/scope-manager-5.40.0.tgz#d6ea782c8e3a2371ba3ea31458dcbdc934668fc4"
-  integrity sha512-d3nPmjUeZtEWRvyReMI4I1MwPGC63E8pDoHy0BnrYjnJgilBD3hv7XOiETKLY/zTwI7kCnBDf2vWTRUVpYw0Uw==
-  dependencies:
-    "@typescript-eslint/types" "5.40.0"
-    "@typescript-eslint/visitor-keys" "5.40.0"
-=======
 "@typescript-eslint/scope-manager@5.39.0":
   version "5.39.0"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/scope-manager/-/scope-manager-5.39.0.tgz#873e1465afa3d6c78d8ed2da68aed266a08008d0"
@@ -2549,7 +2516,6 @@
   dependencies:
     "@typescript-eslint/types" "5.39.0"
     "@typescript-eslint/visitor-keys" "5.39.0"
->>>>>>> parent of 180387d (Revert "feat: rfqtv2 calldata generation (#979)" (#1007))
 
 "@typescript-eslint/type-utils@5.35.1":
   version "5.35.1"
@@ -2565,17 +2531,10 @@
   resolved "https://registry.yarnpkg.com/@typescript-eslint/types/-/types-5.35.1.tgz#af355fe52a0cc88301e889bc4ada72f279b63d61"
   integrity sha512-FDaujtsH07VHzG0gQ6NDkVVhi1+rhq0qEvzHdJAQjysN+LHDCKDKCBRlZFFE0ec0jKxiv0hN63SNfExy0KrbQQ==
 
-<<<<<<< HEAD
-"@typescript-eslint/types@5.40.0":
-  version "5.40.0"
-  resolved "https://registry.yarnpkg.com/@typescript-eslint/types/-/types-5.40.0.tgz#8de07e118a10b8f63c99e174a3860f75608c822e"
-  integrity sha512-V1KdQRTXsYpf1Y1fXCeZ+uhjW48Niiw0VGt4V8yzuaDTU8Z1Xl7yQDyQNqyAFcVhpYXIVCEuxSIWTsLDpHgTbw==
-=======
 "@typescript-eslint/types@5.39.0":
   version "5.39.0"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/types/-/types-5.39.0.tgz#f4e9f207ebb4579fd854b25c0bf64433bb5ed78d"
   integrity sha512-gQMZrnfEBFXK38hYqt8Lkwt8f4U6yq+2H5VDSgP/qiTzC8Nw8JO3OuSUOQ2qW37S/dlwdkHDntkZM6SQhKyPhw==
->>>>>>> parent of 180387d (Revert "feat: rfqtv2 calldata generation (#979)" (#1007))
 
 "@typescript-eslint/typescript-estree@5.35.1":
   version "5.35.1"
@@ -2590,15 +2549,6 @@
     semver "^7.3.7"
     tsutils "^3.21.0"
 
-<<<<<<< HEAD
-"@typescript-eslint/typescript-estree@5.40.0":
-  version "5.40.0"
-  resolved "https://registry.yarnpkg.com/@typescript-eslint/typescript-estree/-/typescript-estree-5.40.0.tgz#e305e6a5d65226efa5471ee0f12e0ffaab6d3075"
-  integrity sha512-b0GYlDj8TLTOqwX7EGbw2gL5EXS2CPEWhF9nGJiGmEcmlpNBjyHsTwbqpyIEPVpl6br4UcBOYlcI2FJVtJkYhg==
-  dependencies:
-    "@typescript-eslint/types" "5.40.0"
-    "@typescript-eslint/visitor-keys" "5.40.0"
-=======
 "@typescript-eslint/typescript-estree@5.39.0":
   version "5.39.0"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/typescript-estree/-/typescript-estree-5.39.0.tgz#c0316aa04a1a1f4f7f9498e3c13ef1d3dc4cf88b"
@@ -2606,7 +2556,6 @@
   dependencies:
     "@typescript-eslint/types" "5.39.0"
     "@typescript-eslint/visitor-keys" "5.39.0"
->>>>>>> parent of 180387d (Revert "feat: rfqtv2 calldata generation (#979)" (#1007))
     debug "^4.3.4"
     globby "^11.1.0"
     is-glob "^4.0.3"
@@ -2633,21 +2582,12 @@
     "@typescript-eslint/types" "5.35.1"
     eslint-visitor-keys "^3.3.0"
 
-<<<<<<< HEAD
-"@typescript-eslint/visitor-keys@5.40.0":
-  version "5.40.0"
-  resolved "https://registry.yarnpkg.com/@typescript-eslint/visitor-keys/-/visitor-keys-5.40.0.tgz#dd2d38097f68e0d2e1e06cb9f73c0173aca54b68"
-  integrity sha512-ijJ+6yig+x9XplEpG2K6FUdJeQGGj/15U3S56W9IqXKJqleuD7zJ2AX/miLezwxpd7ZxDAqO87zWufKg+RPZyQ==
-  dependencies:
-    "@typescript-eslint/types" "5.40.0"
-=======
 "@typescript-eslint/visitor-keys@5.39.0":
   version "5.39.0"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/visitor-keys/-/visitor-keys-5.39.0.tgz#8f41f7d241b47257b081ddba5d3ce80deaae61e2"
   integrity sha512-yyE3RPwOG+XJBLrhvsxAidUgybJVQ/hG8BhiJo0k8JSAYfk/CshVcxf0HwP4Jt7WZZ6vLmxdo1p6EyN3tzFTkg==
   dependencies:
     "@typescript-eslint/types" "5.39.0"
->>>>>>> parent of 180387d (Revert "feat: rfqtv2 calldata generation (#979)" (#1007))
     eslint-visitor-keys "^3.3.0"
 
 "@xmldom/xmldom@^0.7.5":
