@@ -2325,7 +2325,7 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
         [ChainId.Mainnet]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2',
         [ChainId.Polygon]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-polygon-v2',
         [ChainId.Arbitrum]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-arbitrum-v2',
-        [ChainId.Optimism]: 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx-v2-optimism',
+        [ChainId.Optimism]: 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx-optimism',
     },
     null,
 );
