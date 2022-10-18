@@ -101,8 +101,8 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.ShibaSwap,
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.Synthetix,
-            // TODO: enable after FQT has been redeployed on Ethereum mainnet
             ERC20BridgeSource.AaveV2,
+            // TODO: Explore adding compound as a source
             // ERC20BridgeSource.Compound,
         ]),
         [ChainId.Kovan]: new SourceFilters([ERC20BridgeSource.Native]),
@@ -253,8 +253,8 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.ShibaSwap,
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.Synthetix,
-            // TODO: enable after FQT has been redeployed on Ethereum mainnet
-            // ERC20BridgeSource.AaveV2,
+            ERC20BridgeSource.AaveV2,
+            // TODO: Explore adding compound as a source
             // ERC20BridgeSource.Compound,
         ]),
         [ChainId.Goerli]: new SourceFilters([
@@ -1101,7 +1101,11 @@ export const NATIVE_FEE_TOKEN_BY_CHAIN_ID = valueByChainId<string>(
 );
 
 export const NATIVE_FEE_TOKEN_AMOUNT_BY_CHAIN_ID = valueByChainId(
-    { [ChainId.Mainnet]: ONE_ETHER.times(0.1) },
+    {
+        [ChainId.Mainnet]: ONE_ETHER.times(0.1),
+        [ChainId.Optimism]: ONE_ETHER.times(0.1),
+        [ChainId.Arbitrum]: ONE_ETHER.times(0.1),
+    },
     ONE_ETHER,
 );
 
