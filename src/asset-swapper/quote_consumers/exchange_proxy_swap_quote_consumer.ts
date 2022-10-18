@@ -345,41 +345,41 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
         }
 
         // OTC orders
+        // if we have more than one otc order we want to batch fill them through multiplex
         if (
             [ChainId.Mainnet, ChainId.PolygonMumbai].includes(this.chainId) && // @todo goerli and polygon?
             quote.orders.every((o) => o.type === FillQuoteTransformerOrderType.Otc) &&
-            !requiresTransformERC20(optsWithDefaults)
+            !requiresTransformERC20(optsWithDefaults) &&
+            quote.orders.length === 1
         ) {
             const otcOrdersData = quote.orders.map((o) => o.fillData as NativeOtcOrderFillData);
 
             let callData;
-            // if we have more than one otc order we want to batch fill them through multiplex
-            if (quote.orders.length === 1) {
-                // if the otc orders takerToken is the native asset
-                if (isFromETH) {
-                    callData = this._exchangeProxy
-                        .fillOtcOrderWithEth(otcOrdersData[0].order, otcOrdersData[0].signature)
-                        .getABIEncodedTransactionData();
-                }
-                // if the otc orders makerToken is the native asset
-                if (isToETH) {
-                    callData = this._exchangeProxy
-                        .fillOtcOrderForEth(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
-                        .getABIEncodedTransactionData();
-                } else {
-                    // if the otc order contains 2 erc20 tokens
-                    callData = this._exchangeProxy
-                        .fillOtcOrder(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
-                        .getABIEncodedTransactionData();
-                }
-                return {
-                    calldataHexString: callData,
-                    ethAmount: isFromETH ? sellAmount : ZERO_AMOUNT,
-                    toAddress: this._exchangeProxy.address,
-                    allowanceTarget: this._exchangeProxy.address,
-                    gasOverhead: ZERO_AMOUNT,
-                };
+
+            // if the otc orders takerToken is the native asset
+            if (isFromETH) {
+                callData = this._exchangeProxy
+                    .fillOtcOrderWithEth(otcOrdersData[0].order, otcOrdersData[0].signature)
+                    .getABIEncodedTransactionData();
             }
+            // if the otc orders makerToken is the native asset
+            if (isToETH) {
+                callData = this._exchangeProxy
+                    .fillOtcOrderForEth(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
+                    .getABIEncodedTransactionData();
+            } else {
+                // if the otc order contains 2 erc20 tokens
+                callData = this._exchangeProxy
+                    .fillOtcOrder(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
+                    .getABIEncodedTransactionData();
+            }
+            return {
+                calldataHexString: callData,
+                ethAmount: isFromETH ? sellAmount : ZERO_AMOUNT,
+                toAddress: this._exchangeProxy.address,
+                allowanceTarget: this._exchangeProxy.address,
+                gasOverhead: ZERO_AMOUNT,
+            };
         }
 
         if (this.chainId === ChainId.Mainnet && isMultiplexBatchFillCompatible(quote, optsWithDefaults)) {
