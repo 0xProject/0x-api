@@ -16,7 +16,7 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 
 import { DEFAULT_WARNING_LOGGER } from '../../../constants';
 import { LogFunction } from '../../../types';
-import { BALANCER_V2_SUBGRAPH_URL_BY_CHAIN, ONE_SECOND_MS } from '../constants';
+import { BALANCER_V2_SUBGRAPH_URL_BY_CHAIN, BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN, ONE_SECOND_MS } from '../constants';
 import { BalancerSwapInfo, BalancerSwaps } from '../types';
 
 import { CacheValue, EMPTY_BALANCER_SWAPS, SwapInfoCache } from './pair_swaps_cache';
@@ -24,7 +24,7 @@ import { SubgraphPoolDataService } from './sgPoolDataService';
 
 const ONE_DAY_MS = 24 * 60 * 60 * ONE_SECOND_MS;
 
-type BalancerChains = ChainId.Mainnet | ChainId.Polygon | ChainId.Arbitrum | ChainId.Goerli;
+type BalancerChains = Exclude<ChainId, ChainId.ArbitrumRinkeby | ChainId.Avalanche | ChainId.BSC | ChainId.Celo | ChainId.Ganache | ChainId.PolygonMumbai | ChainId.Kovan>;
 
 const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
     [ChainId.Mainnet]: {
@@ -51,6 +51,16 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
         vault: '0x65748E8287Ce4B9E6D83EE853431958851550311',
         weth: '0x9A1000D492d40bfccbc03f413A48F5B6516Ec0Fd',
     },
+    [ChainId.Optimism]: {
+        chainId: ChainId.Optimism,
+        vault: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
+        weth: '0x4200000000000000000000000000000000000006',
+    },
+    [ChainId.Fantom]: {
+        chainId: ChainId.Fantom,
+        vault: '0x20dd72ed959b6147912c2e529f0a0c651c33c9ce',
+        weth: '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83',
+    },
 };
 
 class MockTokenPriceService implements TokenPriceService {
@@ -67,7 +77,7 @@ export class BalancerV2SwapInfoCache extends SwapInfoCache {
 
     constructor(
         chainId: ChainId,
-        subgraphUrl: string | null = BALANCER_V2_SUBGRAPH_URL_BY_CHAIN[chainId],
+        subgraphUrl: string | null = BALANCER_V2_SUBGRAPH_URL_BY_CHAIN[chainId] || BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN[chainId],
         private readonly _warningLogger: LogFunction = DEFAULT_WARNING_LOGGER,
         cache: { [key: string]: CacheValue } = {},
     ) {

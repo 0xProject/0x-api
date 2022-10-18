@@ -1619,7 +1619,7 @@ export class SamplerOperations {
                         }
 
                         const swaps = cache.getCachedSwapInfoForPair(takerToken, makerToken);
-                        const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId] || BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
+                        const vault = source === ERC20BridgeSource.BalancerV2 ? BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId] : BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
                         if (!swaps || vault === NULL_ADDRESS) {
                             return [];
                         }
@@ -1948,7 +1948,7 @@ export class SamplerOperations {
                         }
 
                         const swaps = cache.getCachedSwapInfoForPair(takerToken, makerToken);
-                        const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId] || BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
+                        const vault = source === ERC20BridgeSource.BalancerV2 ? BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId] : BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
                         if (!swaps || vault === NULL_ADDRESS) {
                             return [];
                         }
