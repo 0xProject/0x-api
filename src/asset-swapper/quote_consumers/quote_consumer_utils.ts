@@ -7,12 +7,8 @@ import {
 } from '../utils/market_operation_utils/orders';
 import {
     ERC20BridgeSource,
-    NativeLimitOrderFillData,
-    NativeRfqOrderFillData,
-    NativeOtcOrderFillData,
     OptimizedMarketBridgeOrder,
     OptimizedMarketOrder,
-    OptimizedMarketOrderBase,
     OptimizedOtcOrder,
     OptimizedRfqOrder,
     OptimizedLimitOrder,
