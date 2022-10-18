@@ -168,7 +168,7 @@ export function getErc20BridgeSourceToBridgeSource(source: ERC20BridgeSource): s
         case ERC20BridgeSource.UbeSwap:
             return encodeBridgeSourceId(BridgeProtocol.UniswapV2, 'UbeSwap');
         case ERC20BridgeSource.Beethovenx:
-            return encodeBridgeSourceId(BridgeProtocol.BalancerV2, 'Beethovenx');
+            return encodeBridgeSourceId(BridgeProtocol.BalancerV2Batch, 'Beethovenx');
         case ERC20BridgeSource.SpiritSwap:
             return encodeBridgeSourceId(BridgeProtocol.UniswapV2, 'SpiritSwap');
         case ERC20BridgeSource.SpookySwap:
@@ -245,6 +245,7 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             bridgeData = encoder.encode([balancerFillData.poolAddress]);
             break;
         }
+        case ERC20BridgeSource.Beethovenx:
         case ERC20BridgeSource.BalancerV2:
             {
                 const balancerV2FillData = (order as OptimizedMarketBridgeOrder<BalancerV2BatchSwapFillData>).fillData;
@@ -255,12 +256,12 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
                 ]);
             }
             break;
-        case ERC20BridgeSource.Beethovenx: {
-            const beethovenFillData = (order as OptimizedMarketBridgeOrder<BalancerV2FillData>).fillData;
-            const { vault, poolId } = beethovenFillData;
-            bridgeData = encoder.encode([vault, poolId]);
-            break;
-        }
+        // case ERC20BridgeSource.Beethovenx: {
+        //     const beethovenFillData = (order as OptimizedMarketBridgeOrder<BalancerV2FillData>).fillData;
+        //     const { vault, poolId } = beethovenFillData;
+        //     bridgeData = encoder.encode([vault, poolId]);
+        //     break;
+        // }
         case ERC20BridgeSource.Bancor: {
             const bancorFillData = (order as OptimizedMarketBridgeOrder<BancorFillData>).fillData;
             bridgeData = encoder.encode([bancorFillData.networkAddress, bancorFillData.path]);
@@ -512,7 +513,21 @@ export const BRIDGE_ENCODERS: {
         },
         { name: 'assets', type: 'address[]' },
     ]),
-    [ERC20BridgeSource.Beethovenx]: balancerV2Encoder,
+    [ERC20BridgeSource.Beethovenx]: AbiEncoder.create([
+        { name: 'vault', type: 'address' },
+        {
+            name: 'swapSteps',
+            type: 'tuple[]',
+            components: [
+                { name: 'poolId', type: 'bytes32' },
+                { name: 'assetInIndex', type: 'uint256' },
+                { name: 'assetOutIndex', type: 'uint256' },
+                { name: 'amount', type: 'uint256' },
+                { name: 'userData', type: 'bytes' },
+            ],
+        },
+        { name: 'assets', type: 'address[]' },
+    ]),
     [ERC20BridgeSource.UniswapV3]: AbiEncoder.create([
         { name: 'router', type: 'address' },
         { name: 'path', type: 'bytes' },
