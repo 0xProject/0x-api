@@ -113,6 +113,7 @@ export enum AffiliateFeeType {
     None,
     PercentageFee,
     PositiveSlippageFee,
+    GaslessFee,
 }
 
 export interface AffiliateFeeAmount {

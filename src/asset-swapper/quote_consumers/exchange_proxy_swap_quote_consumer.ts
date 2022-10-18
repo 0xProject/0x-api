@@ -134,7 +134,6 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
 
         const sellToken = quote.takerToken;
         const buyToken = quote.makerToken;
-
         // Take the bounds from the worst case
         const sellAmount = BigNumber.max(
             quote.bestCaseQuoteInfo.totalTakerAmount,
@@ -346,41 +345,41 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
         }
 
         // OTC orders
+        // if we have more than one otc order we want to batch fill them through multiplex
         if (
             [ChainId.Mainnet, ChainId.PolygonMumbai].includes(this.chainId) && // @todo goerli and polygon?
             quote.orders.every((o) => o.type === FillQuoteTransformerOrderType.Otc) &&
-            !requiresTransformERC20(optsWithDefaults)
+            !requiresTransformERC20(optsWithDefaults) &&
+            quote.orders.length === 1
         ) {
             const otcOrdersData = quote.orders.map((o) => o.fillData as NativeOtcOrderFillData);
 
             let callData;
-            // if we have more than one otc order we want to batch fill them through multiplex
-            if (quote.orders.length === 1) {
-                // if the otc orders takerToken is the native asset
-                if (isFromETH) {
-                    callData = this._exchangeProxy
-                        .fillOtcOrderWithEth(otcOrdersData[0].order, otcOrdersData[0].signature)
-                        .getABIEncodedTransactionData();
-                }
-                // if the otc orders makerToken is the native asset
-                if (isToETH) {
-                    callData = this._exchangeProxy
-                        .fillOtcOrderForEth(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
-                        .getABIEncodedTransactionData();
-                } else {
-                    // if the otc order contains 2 erc20 tokens
-                    callData = this._exchangeProxy
-                        .fillOtcOrder(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
-                        .getABIEncodedTransactionData();
-                }
-                return {
-                    calldataHexString: callData,
-                    ethAmount: isFromETH ? sellAmount : ZERO_AMOUNT,
-                    toAddress: this._exchangeProxy.address,
-                    allowanceTarget: this._exchangeProxy.address,
-                    gasOverhead: ZERO_AMOUNT,
-                };
+
+            // if the otc orders takerToken is the native asset
+            if (isFromETH) {
+                callData = this._exchangeProxy
+                    .fillOtcOrderWithEth(otcOrdersData[0].order, otcOrdersData[0].signature)
+                    .getABIEncodedTransactionData();
             }
+            // if the otc orders makerToken is the native asset
+            if (isToETH) {
+                callData = this._exchangeProxy
+                    .fillOtcOrderForEth(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
+                    .getABIEncodedTransactionData();
+            } else {
+                // if the otc order contains 2 erc20 tokens
+                callData = this._exchangeProxy
+                    .fillOtcOrder(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
+                    .getABIEncodedTransactionData();
+            }
+            return {
+                calldataHexString: callData,
+                ethAmount: isFromETH ? sellAmount : ZERO_AMOUNT,
+                toAddress: this._exchangeProxy.address,
+                allowanceTarget: this._exchangeProxy.address,
+                gasOverhead: ZERO_AMOUNT,
+            };
         }
 
         if (this.chainId === ChainId.Mainnet && isMultiplexBatchFillCompatible(quote, optsWithDefaults)) {
@@ -437,6 +436,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                     ...getFQTTransformerDataFromOptimizedOrders([firstHopOrder]),
                     refundReceiver: refundReceiver || NULL_ADDRESS,
                     fillAmount: shouldSellEntireBalance ? MAX_UINT256 : firstHopOrder.takerAmount,
+                    otcOrders: [],
                 }),
             });
             transforms.push({
@@ -448,6 +448,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                     ...getFQTTransformerDataFromOptimizedOrders([secondHopOrder]),
                     refundReceiver: refundReceiver || NULL_ADDRESS,
                     fillAmount: MAX_UINT256,
+                    otcOrders: [],
                 }),
             });
         } else {
@@ -461,6 +462,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                     ...getFQTTransformerDataFromOptimizedOrders(slippedOrders),
                     refundReceiver: refundReceiver || NULL_ADDRESS,
                     fillAmount: !isBuyQuote(quote) && shouldSellEntireBalance ? MAX_UINT256 : fillAmount,
+                    otcOrders: [],
                 }),
             });
         }
@@ -503,6 +505,26 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
             gasOverhead = POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS;
         } else if (feeType === AffiliateFeeType.PercentageFee && feeRecipient !== NULL_ADDRESS) {
             // This transformer pays affiliate fees.
+            if (buyTokenFeeAmount.isGreaterThan(0)) {
+                transforms.push({
+                    deploymentNonce: this.transformerNonces.affiliateFeeTransformer,
+                    data: encodeAffiliateFeeTransformerData({
+                        fees: [
+                            {
+                                token: isToETH ? ETH_TOKEN_ADDRESS : buyToken,
+                                amount: buyTokenFeeAmount,
+                                recipient: feeRecipient,
+                            },
+                        ],
+                    }),
+                });
+                // Adjust the minimum buy amount by the fee.
+                minBuyAmount = BigNumber.max(0, minBuyAmount.minus(buyTokenFeeAmount));
+            }
+            if (sellTokenFeeAmount.isGreaterThan(0)) {
+                throw new Error('Affiliate fees denominated in sell token are not yet supported');
+            }
+        } else if (feeType === AffiliateFeeType.GaslessFee && feeRecipient !== NULL_ADDRESS) {
             if (buyTokenFeeAmount.isGreaterThan(0)) {
                 transforms.push({
                     deploymentNonce: this.transformerNonces.affiliateFeeTransformer,
@@ -641,6 +663,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                         ...getFQTTransformerDataFromOptimizedOrders(quote.orders.slice(i)),
                         refundReceiver: NULL_ADDRESS,
                         fillAmount: MAX_UINT256,
+                        otcOrders: [],
                     });
                     const transformations = [
                         { deploymentNonce: this.transformerNonces.fillQuoteTransformer, data: fqtData },
