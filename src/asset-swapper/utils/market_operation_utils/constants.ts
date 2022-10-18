@@ -2329,6 +2329,14 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
     null,
 );
 
+export const BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
+    {
+        [ChainId.Fantom]: 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx',
+        [ChainId.Optimism]: 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx-optimism',
+    },
+    null,
+);
+
 export const UNISWAPV3_CONFIG_BY_CHAIN_ID = valueByChainId(
     {
         [ChainId.Mainnet]: {
@@ -2833,8 +2841,9 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     [ERC20BridgeSource.SpiritSwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.SpookySwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Yoshi]: uniswapV2CloneGasSchedule,
-    [ERC20BridgeSource.Beethovenx]: () => 100e3,
-
+    [ERC20BridgeSource.Beethovenx]: (fillData?: FillData) => {
+        return 100e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 50e3;
+    },
     //
     // Optimism
     //
