@@ -256,12 +256,6 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
                 ]);
             }
             break;
-        // case ERC20BridgeSource.Beethovenx: {
-        //     const beethovenFillData = (order as OptimizedMarketBridgeOrder<BalancerV2FillData>).fillData;
-        //     const { vault, poolId } = beethovenFillData;
-        //     bridgeData = encoder.encode([vault, poolId]);
-        //     break;
-        // }
         case ERC20BridgeSource.Bancor: {
             const bancorFillData = (order as OptimizedMarketBridgeOrder<BancorFillData>).fillData;
             bridgeData = encoder.encode([bancorFillData.networkAddress, bancorFillData.path]);
