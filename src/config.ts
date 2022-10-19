@@ -180,6 +180,11 @@ export const HTTP_PORT = _.isEmpty(process.env.HTTP_PORT)
     ? 3000
     : assertEnvVarType('HTTP_PORT', process.env.HTTP_PORT, EnvVarType.Port);
 
+// Websocket port to listen on
+export const WEBSOCKET_PORT = _.isEmpty(process.env.WEBSOCKET_PORT)
+    ? 9000
+    : assertEnvVarType('WEBSOCKET_PORT', process.env.WEBSOCKET_PORT, EnvVarType.Port);
+
 // Network port for the healthcheck service at /healthz, if not provided, it uses the HTTP_PORT value.
 export const HEALTHCHECK_HTTP_PORT = _.isEmpty(process.env.HEALTHCHECK_HTTP_PORT)
     ? HTTP_PORT

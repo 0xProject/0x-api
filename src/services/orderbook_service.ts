@@ -3,42 +3,48 @@ import { BigNumber } from '@0x/utils';
 import { getAddress } from '@ethersproject/address';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
+import * as WebSocket from 'ws';
 
-import { LimitOrder, BalanceCheckerContract } from '../asset-swapper';
+import { BalanceCheckerContract, LimitOrder } from '../asset-swapper';
 import { fetchPoolLists } from '../asset-swapper/utils/market_operation_utils/pools_cache/pool_list_cache';
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
+    defaultHttpServiceConfig,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
-    defaultHttpServiceConfig,
+    WEBSOCKET_PORT,
 } from '../config';
 import {
-    ONE_SECOND_MS,
-    NULL_ADDRESS,
-    DIVA_GOVERNANCE_ADDRESS,
+    ARRAY_LIMIT_LENGTH,
     BALANCE_CHECKER_ADDRESS,
     BALANCE_CHECKER_GAS_LIMIT,
+    DEFAULT_PAGE,
+    DEFAULT_PER_PAGE,
+    DIVA_GOVERNANCE_ADDRESS,
     EXCHANGE_PROXY_ADDRESS,
-    ARRAY_LIMIT_LENGTH,
+    NULL_ADDRESS,
+    ONE_SECOND_MS,
 } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
 import {
+    FillableOrderType,
+    MakerInfoType,
+    OrderbookPriceRequest,
+    OrderbookPriceResponse,
     OrderbookResponse,
     OrderEventEndState,
     PaginatedCollection,
     SignedLimitOrder,
     SRAOrder,
-    OrderbookPriceRequest,
-    OrderbookPriceResponse,
-    MakerInfoType,
-    FillableOrderType,
 } from '../types';
 import { orderUtils } from '../utils/order_utils';
 import { OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
 import { providerUtils } from '../utils/provider_utils';
+
+const wss = new WebSocket.Server({ port: WEBSOCKET_PORT });
 
 export class OrderBookService {
     private readonly _connection: Connection;
@@ -59,13 +65,8 @@ export class OrderBookService {
         }
     }
 
-    /**
-     * The function to filter the order
-     * @param {SRAOrder} order
-     * @param {OrderbookPriceRequest} req
-     * @returns {boolean}
-     */
-     public filterOrder = (order: SRAOrder,req: OrderbookPriceRequest): boolean => {
+    // tslint:disable-next-line:prefer-function-over-method
+    public filterOrder = (order: SRAOrder, req: OrderbookPriceRequest): boolean => {
         // 1 is 0.001% and the actual amount is token fee / 100000, so we divided it by 100000
         // filter by taker token fee
         if (req.takerTokenFee !== -1) {
@@ -104,11 +105,7 @@ export class OrderBookService {
         return true;
     }
 
-    /**
-     * The function to format best bid & ask data type
-     * @param {SRAOrder} record
-     * @returns {OrderbookPriceResponse}
-     */
+    // tslint:disable-next-line:prefer-function-over-method
     public getBidOrAskFormat = (record: SRAOrder): OrderbookPriceResponse => {
         return {
             order: {
@@ -125,52 +122,41 @@ export class OrderBookService {
             metaData: {
                 remainingFillableTakerAmount: record.metaData.remainingFillableTakerAmount,
             }
-        }
+        };
     }
 
-    /**
-     * The function to get maker address array and makerToken array
-     * @param {SRAOrder[]} records
-     * @returns {MakerInfoType}
-     */
+   // tslint:disable-next-line:prefer-function-over-method
     public getMakerInfo = (records: SRAOrder[]): MakerInfoType => {
         // maker address array
-        let makers: string[] = records.map((data) => {
-            return data.order.maker
+        const makers: string[] = records.map((data) => {
+            return data.order.maker;
         });
         // makerToken array
-        let makerTokens: string[] = records.map((data) => {
-            return data.order.makerToken
+        const makerTokens: string[] = records.map((data) => {
+            return data.order.makerToken;
         });
 
         return {
             makers,
             makerTokens,
-        }
+        };
     }
 
-    /**
-     * The function to get the fillable order from order data
-     * @param {string[]} makers // maker address array
-     * @param {string[]} makerTokens // maker token address array
-     * @param {BigNumber[]} minOfBalancesOrAllowances // min balances or allowances of every makers about every makerTokens
-     * @param {SRAOrder} order // order data
-     * @returns {FillableOrderType}
-     */
+    // tslint:disable-next-line:prefer-function-over-method
     public getFillableOrder = (
         makers: string[],
         makerTokens: string[],
         minOfBalancesOrAllowances: BigNumber[],
         order: SRAOrder,
     ): FillableOrderType => {
-		// Calculate remainingFillableMakerAmount using remainingFillableTakerAmount, makerAmount and takerAmount information received from 0x api
-    	// This new variable is compared to the maker's maker token balance and allowance to assess fillability.
+    // Calculate remainingFillableMakerAmount using remainingFillableTakerAmount, makerAmount and takerAmount information received from 0x api
+        // This new variable is compared to the maker's maker token balance and allowance to assess fillability.
         const remainingFillableMakerAmount = order.order.makerAmount
             .multipliedBy(new BigNumber(order.metaData.remainingFillableTakerAmount))
             .div(order.order.takerAmount);
         let makerIndex: number = -1;
 
-		// Find the index
+    // Find the index
         makers.map((maker: string, index: number) => {
             if (maker.toLowerCase() === order.order.maker.toLowerCase() &&
                 makerTokens[index].toLowerCase() === order.order.makerToken.toLowerCase()) {
@@ -178,15 +164,15 @@ export class OrderBookService {
             }
         });
 
-		// Get minimum of maker's maker token balance and allowance and include it as a new field in order metaData.
-		// Note that remainingMakerMinOfBalancesOrAllowances is the minimum of full makerAllowance and balance for the first (best) order
-		// and then decreases for the following orders as the remainingFillableMakerAmount gets reduced.
+    // Get minimum of maker's maker token balance and allowance and include it as a new field in order metaData.
+    // Note that remainingMakerMinOfBalancesOrAllowances is the minimum of full makerAllowance and balance for the first (best) order
+    // and then decreases for the following orders as the remainingFillableMakerAmount gets reduced.
         const remainingMakerMinOfBalancesOrAllowances = minOfBalancesOrAllowances[makerIndex];
 
         if (remainingMakerMinOfBalancesOrAllowances.gt(0)) {
             let remainingFillableTakerAmount = order.metaData.remainingFillableTakerAmount;
-			// remainingFillableMakerAmount is the minimum of remainingMakerMinOfBalancesOrAllowances and remainingFillableMakerAmount implied by remainingFillableTakerAmount.
-      		// If remainingMakerMinOfBalancesOrAllowances < remainingFillableMakerAmount, then remainingFillableTakerAmount needs to be reduced as well.
+    // remainingFillableMakerAmount is the minimum of remainingMakerMinOfBalancesOrAllowances and remainingFillableMakerAmount implied by remainingFillableTakerAmount.
+    // If remainingMakerMinOfBalancesOrAllowances < remainingFillableMakerAmount, then remainingFillableTakerAmount needs to be reduced as well.
             if (remainingFillableMakerAmount.gt(remainingMakerMinOfBalancesOrAllowances)) {
                 remainingFillableTakerAmount =
                     remainingMakerMinOfBalancesOrAllowances
@@ -201,39 +187,34 @@ export class OrderBookService {
                 ...order,
                 metaData: {
                     ...order.metaData,
-                    remainingFillableTakerAmount: remainingFillableTakerAmount,
+                    remainingFillableTakerAmount,
                 }
-            }
+            };
 
             return {
                 extendedOrder,
                 minOfBalancesOrAllowances,
-            }
-		// If makerAllowance is lower than remainingFillabelMakerAmount, then remainingFillableTakerAmount needs to be reduced
-        // e.g., if remainingTakerFillableAmount = 1 and implied remainingTakerFillableAmount = 500 but remainingMakerMinOfBalancesOrAllowances = 100
+            };
+    // If makerAllowance is lower than remainingFillabelMakerAmount, then remainingFillableTakerAmount needs to be reduced
+    // e.g., if remainingTakerFillableAmount = 1 and implied remainingTakerFillableAmount = 500 but remainingMakerMinOfBalancesOrAllowances = 100
         // then new remainingTakerFillableAmount = 1 * 100 / 500 = 1/5 = 0 -> gets filtered out from the orderbook automatically
         } else {
             const extendedOrder =  {
                 ...order,
                 metaData: {
                     ...order.metaData,
-                    remainingFillableTakerAmount: new BigNumber(0), // If 
+                    remainingFillableTakerAmount: new BigNumber(0),
                 }
-            }
+            };
 
             return {
                 extendedOrder,
                 minOfBalancesOrAllowances,
-            }
+            };
         }
     }
 
-    /**
-     * A function to get bids and asks from database
-     * @param {string} baseToken
-     * @param {string} quoteToken 
-     * @returns 
-     */
+    // tslint:disable-next-line:prefer-function-over-method
     public getSignedOrderEntities = async (baseToken: string, quoteToken: string) => {
         const orderEntities = await this._connection.manager.find(SignedOrderV4Entity, {
             where: {
@@ -259,7 +240,7 @@ export class OrderBookService {
         return {
             bidApiOrders,
             askApiOrders,
-        }
+        };
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -269,18 +250,18 @@ export class OrderBookService {
         baseToken: string,
         quoteToken: string,
     ): Promise<OrderbookResponse> {
-        const {bidApiOrders, askApiOrders} = await this.getSignedOrderEntities(baseToken, quoteToken);
+        const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntities(baseToken, quoteToken);
 
         let makers: string[] = []; // maker address array
         let makerTokens: string[] = []; // maker token address array
-    
+
         // Get maker address array and makerToken address array of bid
-        const bidMakerInfo = this.getMakerInfo(bidApiOrders)
+        const bidMakerInfo = this.getMakerInfo(bidApiOrders);
         makers = makers.concat(bidMakerInfo.makers);
         makerTokens = makerTokens.concat(bidMakerInfo.makerTokens);
 
         // Get maker address array and makerToken address array of ask
-        const askMakerInfo = this.getMakerInfo(askApiOrders)
+        const askMakerInfo = this.getMakerInfo(askApiOrders);
         makers = makers.concat(askMakerInfo.makers);
         makerTokens = makerTokens.concat(askMakerInfo.makerTokens);
 
@@ -290,13 +271,13 @@ export class OrderBookService {
         const req: OrderbookPriceRequest = {
             page,
             perPage,
-            graphUrl: "",
-            createdBy: "",
+            graphUrl: '',
+            createdBy: '',
             taker: NULL_ADDRESS,
             feeRecipient: NULL_ADDRESS,
-            takerTokenFee: 0,
+            takerTokenFee: -1,
             threshold: 0,
-        }
+        };
         const resultBids: SRAOrder[] = [];
         const resultAsks: SRAOrder[] = [];
 
@@ -342,12 +323,7 @@ export class OrderBookService {
         };
     }
 
-    /**
-     * A function to get minOfBalancesOrAllowances using makers and makerTokens
-     * @param {string[]} makers // maker address array
-     * @param {string[]} makerTokens // makerToken address array
-     * @returns {BigNumber[]}
-     */
+    // tslint:disable-next-line:prefer-function-over-method
     public getMinOfBalancesOrAllowances = async (
         makers: string[],
         makerTokens: string[]
@@ -355,9 +331,9 @@ export class OrderBookService {
         // The limit on the length of an array that can be sent as a parameter of smart contract function is 400.
         // Generate makers chunks
         const makersChunks = makers.reduce((resultArray: string[][], item, index) => {
-            const batchIndex = Math.floor(index / ARRAY_LIMIT_LENGTH)
+            const batchIndex = Math.floor(index / ARRAY_LIMIT_LENGTH);
             if (!resultArray[batchIndex]) {
-                resultArray[batchIndex] = []
+                resultArray[batchIndex] = [];
             }
             resultArray[batchIndex].push(item);
             return resultArray;
@@ -365,9 +341,9 @@ export class OrderBookService {
 
         // Generate maker tokens chunks
         const makersTokensChunks = makerTokens.reduce((resultArray: string[][], item, index) => {
-            const batchIndex = Math.floor(index / ARRAY_LIMIT_LENGTH)
+            const batchIndex = Math.floor(index / ARRAY_LIMIT_LENGTH);
             if (!resultArray[batchIndex]) {
-                resultArray[batchIndex] = []
+                resultArray[batchIndex] = [];
             }
             resultArray[batchIndex].push(item);
             return resultArray;
@@ -407,7 +383,7 @@ export class OrderBookService {
         const result: any[] = [];
         // Get list of pools using Graphql query
         const res = await fetchPoolLists(req.page, req.perPage, req.createdBy, req.graphUrl);
-        let pools: any[] = []; // pools list
+        const pools: any[] = []; // pools list
         res.map((pool: any) => {
             pools.push({
                 baseToken: pool.longToken.id,
@@ -417,8 +393,8 @@ export class OrderBookService {
             pools.push({
                 baseToken: pool.shortToken.id,
                 quoteToken: pool.collateralToken.id,
-            })
-        })
+            });
+        });
 
         let makers: string[] = []; // maker address array
         let makerTokens: string[] = []; // maker token address array
@@ -426,7 +402,7 @@ export class OrderBookService {
         // Get all tokens list
         await Promise.all(pools.map(async (pool) => {
             // Get bid list using pool's baseToken and quoteToken
-            const {bidApiOrders, askApiOrders} = await this.getSignedOrderEntities(
+            const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntities(
                 pool.baseToken,
                 pool.quoteToken
             );
@@ -435,12 +411,12 @@ export class OrderBookService {
             pool.asks = askApiOrders;
 
             // Get maker address array and makerToken address array of bid
-            const bidMakerInfo = this.getMakerInfo(pool.bids)
+            const bidMakerInfo = this.getMakerInfo(pool.bids);
             makers = makers.concat(bidMakerInfo.makers);
             makerTokens = makerTokens.concat(bidMakerInfo.makerTokens);
 
             // Get maker address array and makerToken address array of ask
-            const askMakerInfo = this.getMakerInfo(pool.asks)
+            const askMakerInfo = this.getMakerInfo(pool.asks);
             makers = makers.concat(askMakerInfo.makers);
             makerTokens = makerTokens.concat(askMakerInfo.makerTokens);
         }));
@@ -448,24 +424,24 @@ export class OrderBookService {
         let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowances(makers, makerTokens);
 
         // Get best bid and ask
-        for (let i = 0; i < pools.length; i++) {
+        for (const pool of pools) {
             let bestBid = {}; // best bid
             let count = 0;
-            if (pools[i].bids.length !== 0) {
-                while(count < pools[i].bids.length) {
+            if (pool.bids.length !== 0) {
+                while (count < pool.bids.length) {
                     // Get fillable of bid
                     const fillableOrder = this.getFillableOrder(
                         makers,
                         makerTokens,
                         minOfBalancesOrAllowances,
-                        pools[i].bids[count]
+                        pool.bids[count]
                     );
 
                     minOfBalancesOrAllowances = fillableOrder.minOfBalancesOrAllowances;
 
                     // Filtering the bid
                     if (this.filterOrder(fillableOrder.extendedOrder, req)) {
-                        bestBid = this.getBidOrAskFormat(pools[i].bids[count]);
+                        bestBid = this.getBidOrAskFormat(pool.bids[count]);
                         break;
                     }
                     count++;
@@ -474,21 +450,21 @@ export class OrderBookService {
 
             let bestAsk = {}; // best ask
             count = 0;
-            if (pools[i].asks.length !== 0) {
-                while(count < pools[i].asks.length) {
+            if (pool.asks.length !== 0) {
+                while (count < pool.asks.length) {
                     // Get fillable of ask
                     const fillableOrder = this.getFillableOrder(
                         makers,
                         makerTokens,
                         minOfBalancesOrAllowances,
-                        pools[i].asks[count]
+                        pool.asks[count]
                     );
 
                     minOfBalancesOrAllowances = fillableOrder.minOfBalancesOrAllowances;
 
                     // Filtering the ask
                     if (this.filterOrder(fillableOrder.extendedOrder, req)) {
-                        bestAsk = this.getBidOrAskFormat(pools[i].asks[count]);
+                        bestAsk = this.getBidOrAskFormat(pool.asks[count]);
                         break;
                     }
                     count++;
@@ -496,14 +472,14 @@ export class OrderBookService {
             }
 
             result.push({
-                baseToken: getAddress(pools[i].baseToken), // baseToken of pool
-                quoteToken: getAddress(pools[i].quoteToken), // quoteToken of pool
+                baseToken: getAddress(pool.baseToken), // baseToken of pool
+                quoteToken: getAddress(pool.quoteToken), // quoteToken of pool
                 bid: bestBid, // best bid of pool
                 ask: bestAsk, // best ask of pool
-            })
+            });
         }
 
-        return paginationUtils.paginate(result, 1, req.perPage);
+        return paginationUtils.paginate(result, DEFAULT_PAGE, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -612,6 +588,7 @@ export class OrderBookService {
         const paginatedApiOrders = paginationUtils.paginateSerialize(allOrders, total, page, perPage);
         return paginatedApiOrders;
     }
+
     public async getBatchOrdersAsync(
         page: number,
         perPage: number,
@@ -634,18 +611,100 @@ export class OrderBookService {
         const paginatedApiOrders = paginationUtils.paginate(fresh, page, perPage);
         return paginatedApiOrders;
     }
+
     constructor(connection: Connection, orderWatcher: OrderWatcherInterface) {
         this._connection = connection;
         this._orderWatcher = orderWatcher;
     }
+
     public async addOrderAsync(signedOrder: SignedLimitOrder): Promise<void> {
         await this._orderWatcher.postOrdersAsync([signedOrder]);
+        // After creating this order, we get the updated bid and ask information for the pool.
+        const result: any[] = [];
+        result.push({
+            poolId: signedOrder.poolId,
+            first: await this.getOrderBookAsync(
+                DEFAULT_PAGE,
+                DEFAULT_PER_PAGE,
+                signedOrder.makerToken,
+                signedOrder.takerToken,
+            ),
+            second: await this.getOrderBookAsync(
+                DEFAULT_PAGE,
+                DEFAULT_PER_PAGE,
+                signedOrder.takerToken,
+                signedOrder.makerToken,
+            ),
+        });
+
+        // Send the data using websocket to every clients
+        wss.clients.forEach((client) => {
+            client.send(JSON.stringify(result));
+        });
     }
+
     public async addOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void> {
         await this._orderWatcher.postOrdersAsync(signedOrders);
+        // After creating these orders, we get the updated bid and ask information for the pool.
+        const result: any[] = [];
+        await Promise.all(signedOrders.map(async (signedOrder) => {
+            const isExists = result.filter((item) => item[0] === signedOrder.poolId);
+
+            if (isExists.length === 0) {
+                result.push({
+                    poolId: signedOrder.poolId,
+                    first: await this.getOrderBookAsync(
+                        DEFAULT_PAGE,
+                        DEFAULT_PER_PAGE,
+                        signedOrder.makerToken,
+                        signedOrder.takerToken,
+                    ),
+                    second: await this.getOrderBookAsync(
+                        DEFAULT_PAGE,
+                        DEFAULT_PER_PAGE,
+                        signedOrder.takerToken,
+                        signedOrder.makerToken,
+                    ),
+                });
+            }
+        }));
+
+        // Send the data using websocket to every clients
+        wss.clients.forEach((client) => {
+            client.send(JSON.stringify(result));
+        });
     }
+
     public async addPersistentOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void> {
         await this._orderWatcher.postOrdersAsync(signedOrders);
+        // After creating these orders, we get the updated bid and ask information for the pool.
+        const result: any[] = [];
+        await Promise.all(signedOrders.map(async (signedOrder) => {
+            const isExists = result.filter((item) => item[0] === signedOrder.poolId);
+
+            if (isExists.length === 0) {
+                result.push({
+                    poolId: signedOrder.poolId,
+                    first: await this.getOrderBookAsync(
+                        DEFAULT_PAGE,
+                        DEFAULT_PER_PAGE,
+                        signedOrder.makerToken,
+                        signedOrder.takerToken,
+                    ),
+                    second: await this.getOrderBookAsync(
+                        DEFAULT_PAGE,
+                        DEFAULT_PER_PAGE,
+                        signedOrder.takerToken,
+                        signedOrder.makerToken,
+                    ),
+                });
+            }
+        }));
+
+        // Send the data using websocket to every clients
+        wss.clients.forEach((client) => {
+            client.send(JSON.stringify(result));
+        });
 
         // Figure out which orders were accepted by looking for them in the database.
         const hashes = signedOrders.map((o) => {

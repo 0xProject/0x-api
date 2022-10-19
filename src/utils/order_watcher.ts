@@ -20,7 +20,7 @@ export class OrderWatcher implements OrderWatcherInterface {
                 timeout: 1000,
             });
         } catch (err) {
-            if (err.response.data) {
+            if (err.response !== undefined && err.response.data) {
                 throw new ValidationError(err.response.data.validationErrors);
             } else if (err.request) {
                 throw new InternalServerError('failed to submit order to order-watcher');
