@@ -5,7 +5,7 @@ import * as isValidUUID from 'uuid-validate';
 
 import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
 import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
-import { SignedOrderV4Entity } from '../entities';
+import { SignedOfferEntity, SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
@@ -126,7 +126,25 @@ export class SRAHandlers {
             res.status(HttpStatus.OK).send();
         }
     }
+    public async offersAsync(req: express.Request, res: express.Response): Promise<void> {
+        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+        const offersResponse = await this._orderBook.getOffersAsync(page, perPage);
 
+        res.status(HttpStatus.OK).send(offersResponse);
+    }
+    public async getOfferByOfferHashAsync(req: express.Request, res: express.Response): Promise<void> {
+        const offerResponse = await this._orderBook.getOfferByOfferHashAsync(req.params.offerHash);
+
+        res.status(HttpStatus.OK).send(offerResponse);
+    }
+    public async postOfferAsync(req: express.Request, res: express.Response): Promise<void> {
+        schemaUtils.validateSchema(req.body, schemas.sraOffersQuerySchema);
+
+        const signedOfferEntity = new SignedOfferEntity(req.body);
+        const offersResponse = await this._orderBook.postOfferAsync(signedOfferEntity);
+
+        res.status(HttpStatus.OK).send(offersResponse);
+    }
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         const apiKey = req.header('0x-api-key');

@@ -25,7 +25,12 @@ import {
     NULL_ADDRESS,
     ONE_SECOND_MS,
 } from '../constants';
-import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
+import {
+    AddSignedOfferLiquidityEntity,
+    PersistentSignedOrderV4Entity,
+    SignedOfferEntity,
+    SignedOrderV4Entity,
+} from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
 import {
@@ -36,6 +41,7 @@ import {
     OrderbookResponse,
     OrderEventEndState,
     PaginatedCollection,
+    SignedLimitOffer,
     SignedLimitOrder,
     SRAOrder,
 } from '../types';
@@ -49,9 +55,13 @@ const wss = new WebSocket.Server({ port: WEBSOCKET_PORT });
 export class OrderBookService {
     private readonly _connection: Connection;
     private readonly _orderWatcher: OrderWatcherInterface;
+
+    // tslint:disable-next-line:prefer-function-over-method
     public static isAllowedPersistentOrders(apiKey: string): boolean {
         return SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS.includes(apiKey);
     }
+
+    // tslint:disable-next-line:prefer-function-over-method
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<SRAOrder | undefined> {
         let signedOrderEntity;
         signedOrderEntity = await this._connection.manager.findOne(SignedOrderV4Entity, orderHash);
@@ -589,6 +599,7 @@ export class OrderBookService {
         return paginatedApiOrders;
     }
 
+    // tslint:disable-next-line:prefer-function-over-method
     public async getBatchOrdersAsync(
         page: number,
         perPage: number,
@@ -612,11 +623,13 @@ export class OrderBookService {
         return paginatedApiOrders;
     }
 
+
     constructor(connection: Connection, orderWatcher: OrderWatcherInterface) {
         this._connection = connection;
         this._orderWatcher = orderWatcher;
     }
 
+    // tslint:disable-next-line:prefer-function-over-method
     public async addOrderAsync(signedOrder: SignedLimitOrder): Promise<void> {
         await this._orderWatcher.postOrdersAsync([signedOrder]);
         // After creating this order, we get the updated bid and ask information for the pool.
@@ -643,6 +656,7 @@ export class OrderBookService {
         });
     }
 
+    // tslint:disable-next-line:prefer-function-over-method
     public async addOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void> {
         await this._orderWatcher.postOrdersAsync(signedOrders);
         // After creating these orders, we get the updated bid and ask information for the pool.
@@ -675,6 +689,7 @@ export class OrderBookService {
         });
     }
 
+    // tslint:disable-next-line:prefer-function-over-method
     public async addPersistentOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void> {
         await this._orderWatcher.postOrdersAsync(signedOrders);
         // After creating these orders, we get the updated bid and ask information for the pool.
@@ -722,5 +737,50 @@ export class OrderBookService {
         await this._connection
             .getRepository(PersistentSignedOrderV4Entity)
             .save(addedOrders, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getOffersAsync(page: number, perPage: number): Promise<any> {
+        const signedOfferEntities = await this._connection.manager.find(SignedOfferEntity);
+        const apiOffers: SignedLimitOffer[] =
+            (signedOfferEntities as Required<SignedOfferEntity[]>).map(orderUtils.deserializeOffer);
+
+        return paginationUtils.paginate(apiOffers, page, perPage);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getOfferByOfferHashAsync(offerHash: string): Promise<any> {
+        const signedOfferEntity =
+            await this._connection.manager.findOne(SignedOfferEntity, offerHash);
+
+        return orderUtils.deserializeOffer(signedOfferEntity as Required<SignedOfferEntity>);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async postOfferAsync(signedOfferEntity: SignedOfferEntity): Promise<any> {
+        await this._connection.getRepository(SignedOfferEntity).insert(signedOfferEntity);
+
+        return signedOfferEntity.offerHash;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getAddSignedOffersAsync(page: number, perPage: number): Promise<any> {
+        const addOfferLiquidityEntities =
+            await this._connection.manager.find(AddSignedOfferLiquidityEntity);
+
+        return paginationUtils.paginate(addOfferLiquidityEntities, page, perPage);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getAddSignedOfferByOfferHashAsync(offerHash: string): Promise<any> {
+        const signedOfferLiquidityEntity =
+            await this._connection.manager.findOne(AddSignedOfferLiquidityEntity, offerHash);
+
+        return signedOfferLiquidityEntity;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async postAddSignedOfferAsync(): Promise<any> {
+        return 'postAddSignedOfferAsync Okay';
     }
 }

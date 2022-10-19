@@ -4,11 +4,12 @@ import { BigNumber } from '@0x/utils';
 
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, SRA_ORDER_EXPIRATION_BUFFER_SECONDS, TAKER_FEE_UNIT_AMOUNT } from '../config';
 import { NULL_ADDRESS, ONE_SECOND_MS } from '../constants';
-import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
+import { PersistentSignedOrderV4Entity, SignedOfferEntity, SignedOrderV4Entity } from '../entities';
 import {
     OrderConfigRequestPayload,
     OrderConfigResponse,
     OrderEventEndState,
+    SignedLimitOffer,
     SignedLimitOrder,
     SRAOrder,
     SRAOrderMetaData,
@@ -104,6 +105,33 @@ export const orderUtils = {
             pool: signedOrderEntity.pool,
         };
         return signedOrder;
+    },
+    deserializeOffer: (
+        signedOfferEntity: SignedOfferEntity,
+    ): SignedLimitOffer => {
+        const signedOffer: SignedLimitOffer = {
+            offerHash: signedOfferEntity.offerHash as string,
+            maker: signedOfferEntity.maker as string,
+            taker: signedOfferEntity.taker as string,
+            makerCollateralAmount: signedOfferEntity.makerCollateralAmount as string,
+            takerCollateralAmount: signedOfferEntity.takerCollateralAmount as string,
+            makerDirection: signedOfferEntity.makerDirection as string,
+            offerExpiry: signedOfferEntity.offerExpiry as string,
+            minimumTakerFillAmount: signedOfferEntity.minimumTakerFillAmount as string,
+            referenceAsset: signedOfferEntity.referenceAsset as string,
+            expiryTime: signedOfferEntity.expiryTime as string,
+            floor: signedOfferEntity.floor as string,
+            inflection: signedOfferEntity.inflection as string,
+            cap: signedOfferEntity.cap as string,
+            gradient: signedOfferEntity.gradient as string,
+            collateralToken: signedOfferEntity.collateralToken as string,
+            dataProvider: signedOfferEntity.dataProvider as string,
+            capacity: signedOfferEntity.capacity as string,
+            permissionedERC721Token: signedOfferEntity.permissionedERC721Token as string,
+            salt: signedOfferEntity.salt as string,
+            signature: JSON.parse(signedOfferEntity.signature as string)
+        };
+        return signedOffer;
     },
     deserializeOrderToSRAOrder: (
         signedOrderEntity: Required<SignedOrderV4Entity> | Required<PersistentSignedOrderV4Entity>,

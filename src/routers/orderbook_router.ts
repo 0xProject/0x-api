@@ -46,5 +46,17 @@ export function createOrderBookRouter(orderBook: OrderBookService): express.Rout
      * GET Order endpoint retrieves the order by order hash.
      */
     router.get('/order/:orderHash', asyncHandler(handlers.getOrderByHashAsync.bind(handlers)));
+    /**
+     * GET Offer endpoint retrieves the offer by offer hash.
+     */
+    router.get('/offer/:offerHash', asyncHandler(handlers.getOfferByOfferHashAsync.bind(handlers)));
+    /**
+     * GET Offers endpoint retrieves a list of offers given query parameters.
+     */
+    router.get('/offers', asyncHandler(handlers.offersAsync.bind(handlers)));
+    /**
+     * POST Offer endpoint submits an offer to the Relayer.
+     */
+    router.post('/offer', asyncHandler(handlers.postOfferAsync.bind(handlers)));
     return router;
 }

@@ -13,7 +13,25 @@ export class AddV4SignedOrdersAndPesistentSignedOrders1614606729940 implements M
         await queryRunner.query(`DROP INDEX "persistent_signed_orders_taker_asset_data"`);
         await queryRunner.query(`DROP INDEX "persistent_signed_orders_fee_recipient_address"`);
         await queryRunner.query(
-            `CREATE TABLE "signed_orders_v4" ("hash" character varying NOT NULL, "maker_token" character varying NOT NULL, "taker_token" character varying NOT NULL, "maker_amount" character varying NOT NULL, "taker_amount" character varying NOT NULL, "maker" character varying NOT NULL, "taker" character varying NOT NULL, "pool" character varying NOT NULL, "expiry" character varying NOT NULL, "salt" character varying NOT NULL, "verifying_contract" character varying NOT NULL, "taker_token_fee_amount" character varying NOT NULL, "sender" character varying NOT NULL, "fee_recipient" character varying NOT NULL, "signature" character varying NOT NULL, "remaining_fillable_taker_asset_amount" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_714e263c3ab18702fd2b7dcc81d" PRIMARY KEY ("hash"))`,
+            `CREATE TABLE "signed_orders_v4" (
+                "hash" character varying NOT NULL,
+                "maker_token" character varying NOT NULL,
+                "taker_token" character varying NOT NULL,
+                "maker_amount" character varying NOT NULL,
+                "taker_amount" character varying NOT NULL,
+                "maker" character varying NOT NULL,
+                "taker" character varying NOT NULL,
+                "pool" character varying NOT NULL,
+                "expiry" character varying NOT NULL,
+                "salt" character varying NOT NULL,
+                "verifying_contract" character varying NOT NULL,
+                "taker_token_fee_amount" character varying NOT NULL,
+                "sender" character varying NOT NULL,
+                "fee_recipient" character varying NOT NULL,
+                "signature" character varying NOT NULL,
+                "remaining_fillable_taker_asset_amount" character varying NOT NULL,
+                "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                CONSTRAINT "PK_714e263c3ab18702fd2b7dcc81d" PRIMARY KEY ("hash"))`,
         );
         await queryRunner.query(`CREATE INDEX "IDX_76bc9b369586c456c859954985" ON "signed_orders_v4" ("maker_token") `);
         await queryRunner.query(`CREATE INDEX "IDX_54df2445e48dc18c0b2a527c09" ON "signed_orders_v4" ("taker_token") `);
@@ -28,7 +46,26 @@ export class AddV4SignedOrdersAndPesistentSignedOrders1614606729940 implements M
             `CREATE TYPE "persistent_signed_orders_v4_state_enum" AS ENUM('ADDED', 'FILLED', 'FULLY_FILLED', 'CANCELLED', 'EXPIRED', 'INVALID', 'UNEXPIRED', 'UNFUNDED', 'FILLABILITY_INCREASED', 'STOPPED_WATCHING')`,
         );
         await queryRunner.query(
-            `CREATE TABLE "persistent_signed_orders_v4" ("hash" character varying NOT NULL, "maker_token" character varying NOT NULL, "taker_token" character varying NOT NULL, "maker_amount" character varying NOT NULL, "taker_amount" character varying NOT NULL, "maker" character varying NOT NULL, "taker" character varying NOT NULL, "pool" character varying NOT NULL, "expiry" character varying NOT NULL, "salt" character varying NOT NULL, "verifying_contract" character varying NOT NULL, "taker_token_fee_amount" character varying NOT NULL, "sender" character varying NOT NULL, "fee_recipient" character varying NOT NULL, "signature" character varying NOT NULL, "remaining_fillable_taker_asset_amount" character varying NOT NULL, "state" "persistent_signed_orders_v4_state_enum" NOT NULL DEFAULT 'ADDED', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_e4d7a1964eb56734463b19681fa" PRIMARY KEY ("hash"))`,
+            `CREATE TABLE "persistent_signed_orders_v4" (
+                "hash" character varying NOT NULL,
+                "maker_token" character varying NOT NULL,
+                "taker_token" character varying NOT NULL,
+                "maker_amount" character varying NOT NULL,
+                "taker_amount" character varying NOT NULL,
+                "maker" character varying NOT NULL,
+                "taker" character varying NOT NULL,
+                "pool" character varying NOT NULL,
+                "expiry" character varying NOT NULL,
+                "salt" character varying NOT NULL,
+                "verifying_contract" character varying NOT NULL,
+                "taker_token_fee_amount" character varying NOT NULL,
+                "sender" character varying NOT NULL,
+                "fee_recipient" character varying NOT NULL,
+                "signature" character varying NOT NULL,
+                "remaining_fillable_taker_asset_amount" character varying NOT NULL,
+                "state" "persistent_signed_orders_v4_state_enum" NOT NULL DEFAULT 'ADDED',
+                "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                CONSTRAINT "PK_e4d7a1964eb56734463b19681fa" PRIMARY KEY ("hash"))`,
         );
         await queryRunner.query(
             `CREATE INDEX "IDX_3bd8111c0502847f405082b582" ON "persistent_signed_orders_v4" ("maker_token") `,

@@ -12,3 +12,5 @@ export { RfqmTransactionSubmissionEntity } from './RfqmTransactionSubmissionEnti
 export { SignedOrderV4Entity } from './SignedOrderV4Entity';
 export { TransactionEntityOpts } from './types';
 export { OrderWatcherSignedOrderEntity } from './OrderWatcherSignedOrderEntity';
+export { SignedOfferEntity } from './SignedOfferEntity';
+export { AddSignedOfferLiquidityEntity } from './AddSignedOfferLiquidityEntity';

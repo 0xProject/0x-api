@@ -40,6 +40,29 @@ export interface SignedLimitOrder extends LimitOrderFields {
     poolId?: number;
 }
 
+export interface SignedLimitOffer {
+    offerHash: string;
+    maker: string;
+    taker: string;
+    makerCollateralAmount: string;
+    takerCollateralAmount: string;
+    makerDirection: string;
+    offerExpiry: string;
+    minimumTakerFillAmount: string;
+    referenceAsset: string;
+    expiryTime: string;
+    floor: string;
+    inflection: string;
+    cap: string;
+    gradient: string;
+    collateralToken: string;
+    dataProvider: string;
+    capacity: string;
+    permissionedERC721Token: string;
+    salt: string;
+    signature: Signature;
+}
+
 /** BEGIN SRA TYPES */
 
 export interface WebsocketSRAOpts {
