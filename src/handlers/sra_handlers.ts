@@ -5,7 +5,7 @@ import * as isValidUUID from 'uuid-validate';
 
 import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
 import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
-import { SignedOfferEntity, SignedOrderV4Entity } from '../entities';
+import { SignedOfferEntity, SignedOfferLiquidityEntity, SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
@@ -132,18 +132,53 @@ export class SRAHandlers {
 
         res.status(HttpStatus.OK).send(offersResponse);
     }
-    public async getOfferByOfferHashAsync(req: express.Request, res: express.Response): Promise<void> {
-        const offerResponse = await this._orderBook.getOfferByOfferHashAsync(req.params.offerHash);
+    public async getOfferByOfferHashAsync(
+        req: express.Request,
+        res: express.Response
+    ): Promise<void> {
+        const offerResponse =
+            await this._orderBook.getOfferByOfferHashAsync(req.params.offerHash);
 
         res.status(HttpStatus.OK).send(offerResponse);
     }
     public async postOfferAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, schemas.sraOffersQuerySchema);
+        schemaUtils.validateSchema(req.body, schemas.sraOfferLiquiditySchema);
 
         const signedOfferEntity = new SignedOfferEntity(req.body);
         const offersResponse = await this._orderBook.postOfferAsync(signedOfferEntity);
 
         res.status(HttpStatus.OK).send(offersResponse);
+    }
+    public async offerLiquiditiesAsync(
+        req: express.Request,
+        res: express.Response
+    ): Promise<void> {
+        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+        const offerLiquiditiesResponse =
+            await this._orderBook.offerLiquiditiesAsync(page, perPage);
+
+        res.status(HttpStatus.OK).send(offerLiquiditiesResponse);
+    }
+    public async getOfferLiquidityByOfferHashAsync(
+        req: express.Request,
+        res: express.Response
+    ): Promise<void> {
+        const offerLiquidityResponse =
+            await this._orderBook.getOfferLiquidityByOfferHashAsync(req.params.offerHash);
+
+        res.status(HttpStatus.OK).send(offerLiquidityResponse);
+    }
+    public async postOfferLiquidityAsync(
+        req: express.Request,
+        res: express.Response
+    ): Promise<void> {
+        schemaUtils.validateSchema(req.body, schemas.sraOfferLiquiditySchema);
+
+        const signedOfferLiquidityEntity = new SignedOfferLiquidityEntity(req.body);
+        const offerLiquidityResponse =
+            await this._orderBook.postOfferLiquidityAsync(signedOfferLiquidityEntity);
+
+        res.status(HttpStatus.OK).send(offerLiquidityResponse);
     }
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';

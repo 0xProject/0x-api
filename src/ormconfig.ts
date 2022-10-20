@@ -2,7 +2,6 @@ import { ConnectionOptions } from 'typeorm';
 
 import { POSTGRES_READ_REPLICA_URIS, POSTGRES_URI } from './config';
 import {
-    AddSignedOfferLiquidityEntity,
     BlockedAddressEntity,
     KeyValueEntity,
     MakerBalanceChainCacheEntity,
@@ -16,16 +15,17 @@ import {
     RfqmTransactionSubmissionEntity,
     RfqmWorkerHeartbeatEntity,
     SignedOfferEntity,
+    SignedOfferLiquidityEntity,
     SignedOrderV4Entity,
 } from './entities';
 
 const entities = [
-    AddSignedOfferLiquidityEntity,
     BlockedAddressEntity,
     PersistentSignedOrderEntity,
     KeyValueEntity,
     MakerBalanceChainCacheEntity,
     SignedOfferEntity,
+    SignedOfferLiquidityEntity,
     SignedOrderV4Entity,
     PersistentSignedOrderV4Entity,
     RfqMakerPairs,

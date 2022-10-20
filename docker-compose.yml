@@ -5,12 +5,12 @@ services:
     container_name: postgres_container
     image: postgres
     environment:
-      POSTGRES_USER: api
-      POSTGRES_PASSWORD: api
-      POSTGRES_DB: api
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: diva-api
       PGDATA: /data/postgres
     volumes:
-       - postgres:/data/postgres
+      - postgres:/data/postgres
     ports:
       - "5432:5432"
     networks:
@@ -22,4 +22,4 @@ networks:
     driver: bridge
 
 volumes:
-    postgres:
+  postgres:

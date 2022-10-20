@@ -13,7 +13,7 @@ export class AddV4SignedOrdersAndPesistentSignedOrders1614606729940 implements M
         await queryRunner.query(`DROP INDEX "persistent_signed_orders_taker_asset_data"`);
         await queryRunner.query(`DROP INDEX "persistent_signed_orders_fee_recipient_address"`);
         await queryRunner.query(
-            `CREATE TABLE "signed_orders_v4" (
+            `CREATE TABLE IF NOT EXISTS "signed_orders_v4" (
                 "hash" character varying NOT NULL,
                 "maker_token" character varying NOT NULL,
                 "taker_token" character varying NOT NULL,
@@ -46,7 +46,7 @@ export class AddV4SignedOrdersAndPesistentSignedOrders1614606729940 implements M
             `CREATE TYPE "persistent_signed_orders_v4_state_enum" AS ENUM('ADDED', 'FILLED', 'FULLY_FILLED', 'CANCELLED', 'EXPIRED', 'INVALID', 'UNEXPIRED', 'UNFUNDED', 'FILLABILITY_INCREASED', 'STOPPED_WATCHING')`,
         );
         await queryRunner.query(
-            `CREATE TABLE "persistent_signed_orders_v4" (
+            `CREATE TABLE IF NOT EXISTS "persistent_signed_orders_v4" (
                 "hash" character varying NOT NULL,
                 "maker_token" character varying NOT NULL,
                 "taker_token" character varying NOT NULL,

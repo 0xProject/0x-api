@@ -1,7 +1,7 @@
 import { PrimaryColumn, ViewColumn, ViewEntity } from 'typeorm';
 
 @ViewEntity({
-    name: 'add_signed_offer_liquidity',
+    name: 'signed_offer_liquidities',
     materialized: true,
     synchronize: false,
 })
@@ -42,9 +42,6 @@ class ValidSignedOffer {
     @ViewColumn({ name: 'actual_taker_fillable_amount' })
     public actualTakerFillableAmount?: string;
 
-    @ViewColumn({ name: 'created_at' })
-    public createdAt?: string;
-
     constructor(
         opts: {
             offerHash?: string;
@@ -65,4 +62,4 @@ class ValidSignedOffer {
     }
 }
 
-export { ValidSignedOffer as AddSignedOfferLiquidityEntity };
+export { ValidSignedOffer as SignedOfferLiquidityEntity };

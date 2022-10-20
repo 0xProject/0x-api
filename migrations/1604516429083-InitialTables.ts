@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class InitialTables1604516429083 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<any> {
         await queryRunner.query(
-            `CREATE TABLE "signed_orders" (
+            `CREATE TABLE IF NOT EXISTS "signed_orders" (
                 "hash" character varying NOT NULL,
                 "sender_address" character varying NOT NULL,
                 "maker_address" character varying NOT NULL,
@@ -25,7 +25,7 @@ export class InitialTables1604516429083 implements MigrationInterface {
                 CONSTRAINT "PK_a3cad7b4fbb8b4111368a152d8f" PRIMARY KEY ("hash"))`,
         );
         await queryRunner.query(
-            `CREATE TABLE "signed_offers" (
+            `CREATE TABLE IF NOT EXISTS "signed_offers" (
                 "offer_hash" character varying NOT NULL,
                 "maker" character varying NOT NULL,
                 "taker" character varying NOT NULL,
@@ -49,7 +49,23 @@ export class InitialTables1604516429083 implements MigrationInterface {
                 CONSTRAINT "PK_9dwmad8elvup9wognw95fhqa48h" PRIMARY KEY ("offer_hash"))`,
         );
         await queryRunner.query(
-            `CREATE TABLE "transactions" (
+            `CREATE TABLE IF NOT EXISTS "signed_offer_liquidities" (
+                "offer_hash" character varying NOT NULL,
+                "maker" character varying NOT NULL,
+                "taker" character varying NOT NULL,
+                "maker_collateral_amount" character varying NOT NULL,
+                "taker_collateral_amount" character varying NOT NULL,
+                "maker_direction" character varying NOT NULL,
+                "offer_expiry" character varying NOT NULL,
+                "minimum_taker_fill_amount" character varying NOT NULL,
+                "pool_id" character varying NOT NULL,
+                "salt" character varying NOT NULL,
+                "signature" character varying NOT NULL,
+                "actual_taker_fillable_amount" character varying NOT NULL,
+                CONSTRAINT "PK_2nhf194jgyh71jh48sl34u7k492" PRIMARY KEY ("offer_hash"))`,
+        );
+        await queryRunner.query(
+            `CREATE TABLE IF NOT EXISTS "transactions" (
                 "ref_hash" character varying NOT NULL,
                 "data" character varying,
                 "to" character varying NOT NULL,
@@ -73,7 +89,7 @@ export class InitialTables1604516429083 implements MigrationInterface {
                 CONSTRAINT "PK_32e851f3e63df13fdcc61545423" PRIMARY KEY ("ref_hash"))`,
         );
         await queryRunner.query(
-            `CREATE TABLE "kv_store" (
+            `CREATE TABLE IF NOT EXISTS "kv_store" (
                 "key" character varying NOT NULL,
                 "value" character varying,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),

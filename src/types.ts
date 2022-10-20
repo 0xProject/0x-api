@@ -63,6 +63,20 @@ export interface SignedLimitOffer {
     signature: Signature;
 }
 
+export interface SignedLimitOfferLiquidity {
+    offerHash: string;
+    maker: string;
+    taker: string;
+    makerCollateralAmount: string;
+    takerCollateralAmount: string;
+    makerDirection: string;
+    offerExpiry: string;
+    minimumTakerFillAmount: string;
+    salt: string;
+    actualTakerFillableAmount: string;
+    signature: Signature;
+}
+
 /** BEGIN SRA TYPES */
 
 export interface WebsocketSRAOpts {
