@@ -1382,12 +1382,7 @@ export class SamplerOperations {
         if (makerToken.toLowerCase() === nativeToken.toLowerCase()) {
             return SamplerOperations.constant(new BigNumber(1));
         }
-        const subOps = this._getSellQuoteOperations(
-            sources,
-            makerToken,
-            nativeToken,
-            [nativeFillAmount],
-        );
+        const subOps = this._getSellQuoteOperations(sources, makerToken, nativeToken, [nativeFillAmount]);
         return this._createBatch(
             subOps,
             (samples: BigNumber[][]) => {
