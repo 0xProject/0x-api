@@ -1387,7 +1387,6 @@ export class SamplerOperations {
             makerToken,
             nativeToken,
             [nativeFillAmount],
-            TokenAdjacencyGraph.getEmptyGraph(),
         );
         return this._createBatch(
             subOps,
