@@ -563,7 +563,6 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     sampleDistributionBase: SAMPLE_DISTRIBUTION_BASE,
     neonRouterNumSamples: NEON_ROUTER_NUM_SAMPLES,
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
-    runLimit: 2 ** 8,
     shouldGenerateQuoteReport: true,
 };
 

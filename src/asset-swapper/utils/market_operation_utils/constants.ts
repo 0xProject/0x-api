@@ -2855,7 +2855,6 @@ export const DEFAULT_FEE_SCHEDULE: Required<FeeSchedule> = Object.keys(DEFAULT_G
 export const DEFAULT_FEE_ESTIMATE = { gas: 0, fee: ZERO_AMOUNT };
 
 export const DEFAULT_GET_MARKET_ORDERS_OPTS: Omit<GetMarketOrdersOpts, 'gasPrice'> = {
-    runLimit: 2 ** 15,
     excludedSources: [],
     excludedFeeSources: [],
     includedSources: [],
