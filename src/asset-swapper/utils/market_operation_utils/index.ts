@@ -187,7 +187,7 @@ export class MarketOperationUtils {
         );
 
         // Refresh the cached pools asynchronously if required
-        void this._refreshPoolCacheIfRequiredAsync(takerToken, makerToken);
+        this._refreshPoolCacheIfRequiredAsync(takerToken, makerToken);
 
         const [
             blockNumber,
@@ -306,7 +306,7 @@ export class MarketOperationUtils {
         );
 
         // Refresh the cached pools asynchronously if required
-        void this._refreshPoolCacheIfRequiredAsync(takerToken, makerToken);
+        this._refreshPoolCacheIfRequiredAsync(takerToken, makerToken);
 
         const [
             blockNumber,
