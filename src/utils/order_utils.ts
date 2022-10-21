@@ -148,6 +148,7 @@ export const orderUtils = {
             offerExpiry: signedOfferEntity.offerExpiry as string,
             minimumTakerFillAmount: signedOfferEntity.minimumTakerFillAmount as string,
             salt: signedOfferEntity.salt as string,
+            poolId: signedOfferEntity.poolId as string,
             actualTakerFillableAmount: signedOfferEntity.actualTakerFillableAmount as string,
             signature: JSON.parse(signedOfferEntity.signature as string),
         };

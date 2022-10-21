@@ -22,6 +22,27 @@ export enum OrderWatcherLifeCycleEvents {
     PersistentUpdated,
 }
 
+export interface OffersFilterType {
+    page: number;
+    perPage: number;
+    maker: string;
+    taker: string;
+    makerDirection: string;
+    referenceAsset: string;
+    collateralToken: string;
+    dataProvider: string;
+    permissionedERC721Token: string;
+}
+
+export interface OffersLiquidityFilterType {
+    page: number;
+    perPage: number;
+    maker: string;
+    taker: string;
+    makerDirection: string;
+    poolId: string;
+}
+
 export interface OrdersByLifecycleEvents {
     added: SRAOrder[];
     removed: SRAOrder[];
@@ -73,6 +94,7 @@ export interface SignedLimitOfferLiquidity {
     offerExpiry: string;
     minimumTakerFillAmount: string;
     salt: string;
+    poolId: string;
     actualTakerFillableAmount: string;
     signature: Signature;
 }

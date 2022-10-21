@@ -4,7 +4,7 @@ import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
 import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
-import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
+import { NULL_ADDRESS, NULL_TEXT, SRA_DOCS_URL, ZERO } from '../constants';
 import { SignedOfferEntity, SignedOfferLiquidityEntity, SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas';
@@ -130,7 +130,34 @@ export class SRAHandlers {
     }
     public async offersAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const offersResponse = await this._orderBook.getOffersAsync(page, perPage);
+        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
+        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
+        const makerDirection =
+            req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
+        const referenceAsset =
+            req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
+        const collateralToken =
+            req.query.collateralToken === undefined
+                ? NULL_ADDRESS
+                : (req.query.collateralToken as string).toLowerCase();
+        const dataProvider =
+            req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
+        const permissionedERC721Token =
+            req.query.permissionedERC721Token === undefined
+                ? NULL_ADDRESS
+                : (req.query.permissionedERC721Token as string).toLowerCase();
+
+        const offersResponse = await this._orderBook.getOffersAsync({
+            page,
+            perPage,
+            maker,
+            taker,
+            makerDirection,
+            referenceAsset,
+            collateralToken,
+            dataProvider,
+            permissionedERC721Token,
+        });
 
         res.status(HttpStatus.OK).send(offersResponse);
     }
@@ -149,7 +176,20 @@ export class SRAHandlers {
     }
     public async offerLiquiditiesAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const offerLiquiditiesResponse = await this._orderBook.offerLiquiditiesAsync(page, perPage);
+        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
+        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
+        const makerDirection =
+            req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
+        const poolId = req.query.poolId === undefined ? NULL_TEXT : (req.query.poolId as string);
+
+        const offerLiquiditiesResponse = await this._orderBook.offerLiquiditiesAsync({
+            page,
+            perPage,
+            maker,
+            taker,
+            makerDirection,
+            poolId,
+        });
 
         res.status(HttpStatus.OK).send(offerLiquiditiesResponse);
     }

@@ -2,6 +2,7 @@ import { BigNumber } from '@0x/utils';
 
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const NULL_BYTES = '0x';
+export const NULL_TEXT = '';
 export const ZRX_DECIMALS = 18;
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_PER_PAGE = 1000;
