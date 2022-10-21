@@ -2861,7 +2861,7 @@ export const DEFAULT_GET_MARKET_ORDERS_OPTS: Omit<GetMarketOrdersOpts, 'gasPrice
     bridgeSlippage: 0.005,
     maxFallbackSlippage: 0.05,
     numSamples: 13,
-    sampleDistributionBase: 1.05,
+    sampleDistributionBase: 1,
     feeSchedule: DEFAULT_FEE_SCHEDULE,
     gasSchedule: DEFAULT_GAS_SCHEDULE,
     exchangeProxyOverhead: () => ZERO_AMOUNT,
