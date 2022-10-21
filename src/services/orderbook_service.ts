@@ -833,7 +833,7 @@ export class OrderBookService {
             offerHash,
         );
 
-        return signedOfferLiquidityEntity;
+        return orderUtils.deserializeOfferLiquidity(signedOfferLiquidityEntity as Required<SignedOfferLiquidityEntity>);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
