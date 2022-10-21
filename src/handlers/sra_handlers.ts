@@ -75,9 +75,11 @@ export class SRAHandlers {
         const graphUrl = (req.query.graphUrl as string).toLowerCase();
         const createdBy = req.query.createdBy === undefined ? '' : (req.query.createdBy as string).toLowerCase();
         const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
-        const feeRecipient = req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
-        const takerTokenFee: number = req.query.takerTokenFee === undefined ? -1 : Number((req.query.takerTokenFee as string));
-        const threshold: number = req.query.threshold === undefined ? -1 : Number((req.query.threshold as string));
+        const feeRecipient =
+            req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
+        const takerTokenFee: number =
+            req.query.takerTokenFee === undefined ? -1 : Number(req.query.takerTokenFee as string);
+        const threshold: number = req.query.threshold === undefined ? -1 : Number(req.query.threshold as string);
         const priceResponse = await this._orderBook.getPricesAsync({
             page,
             perPage,
@@ -132,12 +134,8 @@ export class SRAHandlers {
 
         res.status(HttpStatus.OK).send(offersResponse);
     }
-    public async getOfferByOfferHashAsync(
-        req: express.Request,
-        res: express.Response
-    ): Promise<void> {
-        const offerResponse =
-            await this._orderBook.getOfferByOfferHashAsync(req.params.offerHash);
+    public async getOfferByOfferHashAsync(req: express.Request, res: express.Response): Promise<void> {
+        const offerResponse = await this._orderBook.getOfferByOfferHashAsync(req.params.offerHash);
 
         res.status(HttpStatus.OK).send(offerResponse);
     }
@@ -149,34 +147,22 @@ export class SRAHandlers {
 
         res.status(HttpStatus.OK).send(offersResponse);
     }
-    public async offerLiquiditiesAsync(
-        req: express.Request,
-        res: express.Response
-    ): Promise<void> {
+    public async offerLiquiditiesAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const offerLiquiditiesResponse =
-            await this._orderBook.offerLiquiditiesAsync(page, perPage);
+        const offerLiquiditiesResponse = await this._orderBook.offerLiquiditiesAsync(page, perPage);
 
         res.status(HttpStatus.OK).send(offerLiquiditiesResponse);
     }
-    public async getOfferLiquidityByOfferHashAsync(
-        req: express.Request,
-        res: express.Response
-    ): Promise<void> {
-        const offerLiquidityResponse =
-            await this._orderBook.getOfferLiquidityByOfferHashAsync(req.params.offerHash);
+    public async getOfferLiquidityByOfferHashAsync(req: express.Request, res: express.Response): Promise<void> {
+        const offerLiquidityResponse = await this._orderBook.getOfferLiquidityByOfferHashAsync(req.params.offerHash);
 
         res.status(HttpStatus.OK).send(offerLiquidityResponse);
     }
-    public async postOfferLiquidityAsync(
-        req: express.Request,
-        res: express.Response
-    ): Promise<void> {
+    public async postOfferLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
         schemaUtils.validateSchema(req.body, schemas.sraOfferLiquiditySchema);
 
         const signedOfferLiquidityEntity = new SignedOfferLiquidityEntity(req.body);
-        const offerLiquidityResponse =
-            await this._orderBook.postOfferLiquidityAsync(signedOfferLiquidityEntity);
+        const offerLiquidityResponse = await this._orderBook.postOfferLiquidityAsync(signedOfferLiquidityEntity);
 
         res.status(HttpStatus.OK).send(offerLiquidityResponse);
     }

@@ -93,8 +93,7 @@ export const BALANCE_CHECKER_ADDRESS = '0x6F9b7892a6272880905E90DC5AcD1F56dF222F
 export const BALANCE_CHECKER_GAS_LIMIT = 10000000;
 
 // Diva Governance Address
-export const DIVA_GOVERNANCE_ADDRESS =
-  '0xBb0F479895915F80f6fEb5BABcb0Ad39a0D7eF4E'; // creator of pools on Main Markets page and trading fee recipient
+export const DIVA_GOVERNANCE_ADDRESS = '0xBb0F479895915F80f6fEb5BABcb0Ad39a0D7eF4E'; // creator of pools on Main Markets page and trading fee recipient
 
 // Trading Fee
 export const TRADING_FEE = 0.01; // 1%

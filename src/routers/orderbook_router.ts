@@ -49,7 +49,10 @@ export function createOrderBookRouter(orderBook: OrderBookService): express.Rout
     /**
      * GET Offer endpoint retrieves the offer by offer hash.
      */
-    router.get('/offer_create_contingent_pool/:offerHash', asyncHandler(handlers.getOfferByOfferHashAsync.bind(handlers)));
+    router.get(
+        '/offer_create_contingent_pool/:offerHash',
+        asyncHandler(handlers.getOfferByOfferHashAsync.bind(handlers)),
+    );
     /**
      * GET Offers endpoint retrieves a list of offers given query parameters.
      */
@@ -61,7 +64,10 @@ export function createOrderBookRouter(orderBook: OrderBookService): express.Rout
     /**
      * GET Offer liquidity endpoint retrieves the AddOfferLiquidity by offer hash.
      */
-    router.get('/offer_add_liquidity/:offerHash', asyncHandler(handlers.getOfferLiquidityByOfferHashAsync.bind(handlers)));
+    router.get(
+        '/offer_add_liquidity/:offerHash',
+        asyncHandler(handlers.getOfferLiquidityByOfferHashAsync.bind(handlers)),
+    );
     /**
      * GET Offer liquidity endpoint retrieves a list of AddOfferLiquidity given query parameters.
      */

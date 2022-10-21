@@ -1,56 +1,56 @@
 {
-  "id": "/sraOfferLiquiditySchema",
-  "type": "object",
-  "properties": {
-		"offerHash": {
-			"$ref": "/hexSchema"
-		},
-		"maker": {
-			"$ref": "/addressSchema"
-		},
-		"taker": {
-			"$ref": "/addressSchema"
-		},
-		"makerCollateralAmount": {
-			"type": "string"
-		},
-		"takerCollateralAmount": {
-			"type": "string"
-		},
-		"makerDirection": {
-			"enum": [true, false]
-		},
-		"offerExpiry": {
-			"type": "string"
-		},
-		"minimumTakerFillAmount": {
-			"type": "string"
-		},
-		"poolId": {
-			"type": "string"
-		},
-		"salt": {
-			"type": "string"
-		},
-		"actualTakerFillableAmount": {
-			"type": "string"
-		},
-		"signature": {
-			"type": "object",
-			"properties": {
-					"signatureType": {
-							"type": "number"
-					},
-					"v": {
-							"type": "number"
-					},
-					"s": {
-							"type": "string"
-					},
-					"r": {
-							"type": "string"
-					}
-			}
-	}
-	}
+    "id": "/sraOfferLiquiditySchema",
+    "type": "object",
+    "properties": {
+        "offerHash": {
+            "$ref": "/hexSchema"
+        },
+        "maker": {
+            "$ref": "/addressSchema"
+        },
+        "taker": {
+            "$ref": "/addressSchema"
+        },
+        "makerCollateralAmount": {
+            "type": "string"
+        },
+        "takerCollateralAmount": {
+            "type": "string"
+        },
+        "makerDirection": {
+            "enum": [true, false]
+        },
+        "offerExpiry": {
+            "type": "string"
+        },
+        "minimumTakerFillAmount": {
+            "type": "string"
+        },
+        "poolId": {
+            "type": "string"
+        },
+        "salt": {
+            "type": "string"
+        },
+        "actualTakerFillableAmount": {
+            "type": "string"
+        },
+        "signature": {
+            "type": "object",
+            "properties": {
+                "signatureType": {
+                    "type": "number"
+                },
+                "v": {
+                    "type": "number"
+                },
+                "s": {
+                    "type": "string"
+                },
+                "r": {
+                    "type": "string"
+                }
+            }
+        }
+    }
 }

@@ -1,12 +1,7 @@
 import { request } from 'graphql-request';
 import gql from 'graphql-tag';
 
-const queryPools = (
-    skip: number,
-    pageSize: number,
-    createdBy = '',
-    dataProvider = ''
-  ) => gql`
+const queryPools = (skip: number, pageSize: number, createdBy = '', dataProvider = '') => gql`
     {
       pools(first: ${pageSize}, skip: ${skip},
         orderDirection: desc,
@@ -69,15 +64,15 @@ const queryPools = (
   `;
 
 export const fetchPoolLists = async (page: number, pageSize: number, createdBy: string, graphUrl: string) => {
-  const result = await request(
-    graphUrl,
-    queryPools(
-      (Math.max(page - 1, 0) * pageSize) / 2, // Because there are 2 rows (long and short) in the table for every pool
-      pageSize / 2, // Because there are 2 rows (long and short) in the table for every pool
-      createdBy,
-      undefined
-    )
-  );
+    const result = await request(
+        graphUrl,
+        queryPools(
+            (Math.max(page - 1, 0) * pageSize) / 2, // Because there are 2 rows (long and short) in the table for every pool
+            pageSize / 2, // Because there are 2 rows (long and short) in the table for every pool
+            createdBy,
+            undefined,
+        ),
+    );
 
-  return result.pools;
+    return result.pools;
 };
