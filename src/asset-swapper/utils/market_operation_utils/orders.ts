@@ -581,7 +581,6 @@ export function createNativeOptimizedOrder(
             return { ...base, type: FillQuoteTransformerOrderType.Otc, fillData: fillData as NativeOtcOrderFillData };
         case FillQuoteTransformerOrderType.Bridge:
             throw new Error('BridgeOrder is not a Native Order');
-
         default:
             ((_x: never) => {
                 throw new Error('unreachable');
