@@ -27,7 +27,7 @@ const MULTIPLEX_BATCH_FILL_SOURCES = [
  */
 export function isMultiplexBatchFillCompatible(quote: SwapQuote, opts: ExchangeProxyContractOpts): boolean {
     // Temporarily avoid Multiplex for OtcOrder types
-    if (quote.orders.every((o) => o.type === FillQuoteTransformerOrderType.Otc)) {
+    if (quote.orders.some((o) => o.type === FillQuoteTransformerOrderType.Otc)) {
         return false;
     }
     if (requiresTransformERC20(opts)) {
@@ -57,7 +57,7 @@ const MULTIPLEX_MULTIHOP_FILL_SOURCES = [
  */
 export function isMultiplexMultiHopFillCompatible(quote: SwapQuote, opts: ExchangeProxyContractOpts): boolean {
     // Temporarily avoid Multiplex for OtcOrder types
-    if (quote.orders.every((o) => o.type === FillQuoteTransformerOrderType.Otc)) {
+    if (quote.orders.some((o) => o.type === FillQuoteTransformerOrderType.Otc)) {
         return false;
     }
     if (requiresTransformERC20(opts)) {
