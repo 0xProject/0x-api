@@ -3,7 +3,7 @@ import { ExchangeProxyMetaTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Kafka, Producer } from 'kafkajs';
 
-import { ContractAddresses, AffiliateFeeType, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '../asset-swapper';
+import { ContractAddresses, AffiliateFeeType, NATIVE_FEE_TOKEN_BY_CHAIN_ID, ERC20BridgeSource } from '../asset-swapper';
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, KAFKA_BROKERS, META_TX_EXPIRATION_BUFFER_MS } from '../config';
 import { AFFILIATE_DATA_SELECTOR, NULL_ADDRESS, ONE_GWEI, ONE_SECOND_MS, ZERO } from '../constants';
 import {
@@ -48,7 +48,7 @@ export class MetaTransactionService {
     }
 
     public async getMetaTransactionQuoteAsync(
-        params: MetaTransactionQuoteParams,
+        params: Omit<MetaTransactionQuoteParams, 'affiliateFee' | 'excludedSources'>,
     ): Promise<MetaTransactionQuoteResponse> {
         const quote = await this._getMetaTransactionQuoteAsync(params, 'quote');
 
@@ -114,7 +114,7 @@ export class MetaTransactionService {
     }
 
     private async _getMetaTransactionQuoteAsync(
-        params: MetaTransactionQuoteParams,
+        params: Omit<MetaTransactionQuoteParams, 'affiliateFee' | 'excludedSources'>,
         endpoint: 'price' | 'quote',
     ): Promise<MetaTransactionQuoteResult> {
         const wrappedNativeToken = NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID];
@@ -137,7 +137,10 @@ export class MetaTransactionService {
             affiliateFee,
         };
 
-        const quote = await this._swapService.calculateSwapQuoteAsync(quoteParams);
+        // Since MetaTransaction service is an internal-only service, this won't
+        // be set in the request
+        const excludedSources: ERC20BridgeSource[] = [];
+        const quote = await this._swapService.calculateSwapQuoteAsync({ ...quoteParams, excludedSources });
 
         // Quote Report
         if (endpoint === 'quote' && quote.extendedQuoteReportSources && kafkaProducer) {

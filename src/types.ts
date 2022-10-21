@@ -332,7 +332,7 @@ export interface MetaTransactionQuoteParams extends SwapQuoteParamsBase {
     integratorId: string;
     isETHBuy: boolean;
     isETHSell: boolean;
-    quoteUniqueId?: string; // ID to use for the quote report `decodedUniqueId`
+    quoteUniqueId?: string | null; // ID to use for the quote report `decodedUniqueId`
     sellTokenAddress: string;
     takerAddress: string;
 }
