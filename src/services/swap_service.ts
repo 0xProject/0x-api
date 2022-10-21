@@ -1,5 +1,5 @@
 import { WETH9Contract } from '@0x/contract-wrappers';
-import { ETH_TOKEN_ADDRESS, FillQuoteTransformerOrderType, RevertError } from '@0x/protocol-utils';
+import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
 import { getTokenMetadataIfExists, TokenMetadatasForChains } from '@0x/token-metadata';
 import { MarketOperation, PaginatedCollection } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
