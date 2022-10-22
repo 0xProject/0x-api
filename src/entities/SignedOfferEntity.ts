@@ -66,6 +66,12 @@ export class SignedOfferEntity {
     @ViewColumn()
     public signature?: string;
 
+    @ViewColumn({ name: 'chain_id' })
+    public chainId?: string;
+
+    @ViewColumn({ name: 'verifying_contract' })
+    public verifyingContract?: string;
+
     constructor(
         opts: {
             offerHash?: string;
@@ -88,6 +94,8 @@ export class SignedOfferEntity {
             permissionedERC721Token?: string;
             salt?: string;
             signature?: string;
+            chainId?: string;
+            verifyingContract?: string;
         } = {},
     ) {
         Object.assign(this, opts);

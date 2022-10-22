@@ -46,6 +46,8 @@ export class InitialTables1604516429083 implements MigrationInterface {
                 "permissioned_token" character varying NOT NULL,
                 "salt" character varying NOT NULL,
                 "signature" character varying NOT NULL,
+                "chain_id" character varying NOT NULL,
+                "verifying_contract" character varying NOT NULL,
                 CONSTRAINT "PK_9dwmad8elvup9wognw95fhqa48h" PRIMARY KEY ("offer_hash"))`,
         );
         await queryRunner.query(

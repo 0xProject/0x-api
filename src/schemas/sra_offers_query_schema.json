@@ -59,6 +59,12 @@
         "salt": {
             "type": "string"
         },
+        "chainId": {
+            "type": "string"
+        },
+        "verifyingContract": {
+            "type": "string"
+        },
         "signature": {
             "type": "object",
             "properties": {
