@@ -153,6 +153,8 @@ export const orderUtils = {
             poolId: signedOfferEntity.poolId as string,
             actualTakerFillableAmount: signedOfferEntity.actualTakerFillableAmount as string,
             signature: JSON.parse(signedOfferEntity.signature as string),
+            chainId: JSON.parse(signedOfferEntity.chainId as string),
+            verifyingContract: JSON.parse(signedOfferEntity.verifyingContract as string),
         };
         return signedOffer;
     },

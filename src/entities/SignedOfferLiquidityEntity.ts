@@ -39,6 +39,12 @@ class ValidSignedOffer {
     @ViewColumn()
     public signature?: string;
 
+    @ViewColumn({ name: 'chain_id' })
+    public chainId?: string;
+
+    @ViewColumn({ name: 'verifying_contract' })
+    public verifyingContract?: string;
+
     @ViewColumn({ name: 'actual_taker_fillable_amount' })
     public actualTakerFillableAmount?: string;
 
@@ -56,6 +62,8 @@ class ValidSignedOffer {
             salt?: string;
             actualTakerFillableAmount?: string;
             signature?: string;
+            chainId?: string;
+            verifyingContract?: string;
         } = {},
     ) {
         Object.assign(this, opts);

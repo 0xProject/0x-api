@@ -32,6 +32,12 @@
         "salt": {
             "type": "string"
         },
+        "chainId": {
+            "type": "string"
+        },
+        "verifyingContract": {
+            "type": "string"
+        },
         "actualTakerFillableAmount": {
             "type": "string"
         },

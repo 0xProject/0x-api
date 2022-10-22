@@ -63,6 +63,8 @@ export class InitialTables1604516429083 implements MigrationInterface {
                 "pool_id" character varying NOT NULL,
                 "salt" character varying NOT NULL,
                 "signature" character varying NOT NULL,
+                "chain_id" character varying NOT NULL,
+                "verifying_contract" character varying NOT NULL,
                 "actual_taker_fillable_amount" character varying NOT NULL,
                 CONSTRAINT "PK_2nhf194jgyh71jh48sl34u7k492" PRIMARY KEY ("offer_hash"))`,
         );
