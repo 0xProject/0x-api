@@ -1705,6 +1705,7 @@ export class SamplerOperations {
                         const lidoInfo = LIDO_INFO_BY_CHAIN[this.chainId];
                         return this.getLidoSellQuotes(lidoInfo, makerToken, takerToken, takerFillAmounts);
                     }
+                    case ERC20BridgeSource.AaveV3:
                     case ERC20BridgeSource.AaveV2: {
                         if (!this.aaveReservesCache) {
                             return [];
@@ -2050,6 +2051,7 @@ export class SamplerOperations {
                         const lidoInfo = LIDO_INFO_BY_CHAIN[this.chainId];
                         return this.getLidoBuyQuotes(lidoInfo, makerToken, takerToken, makerFillAmounts);
                     }
+                    case ERC20BridgeSource.AaveV3:
                     case ERC20BridgeSource.AaveV2: {
                         if (!this.aaveReservesCache) {
                             return [];

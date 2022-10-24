@@ -162,6 +162,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.MeshSwap,
             ERC20BridgeSource.WOOFi,
+            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Avalanche]: new SourceFilters([
             ERC20BridgeSource.MultiHop,
@@ -176,6 +177,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.GMX,
             ERC20BridgeSource.Platypus,
             ERC20BridgeSource.WOOFi,
+            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Fantom]: new SourceFilters([
             ERC20BridgeSource.MultiHop,
@@ -189,6 +191,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.Yoshi,
             ERC20BridgeSource.WOOFi,
+            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Celo]: new SourceFilters([
             ERC20BridgeSource.UbeSwap,
@@ -205,6 +208,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Saddle,
             ERC20BridgeSource.Velodrome,
             ERC20BridgeSource.Synthetix,
+            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
@@ -216,6 +220,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.MultiHop,
             //ERC20BridgeSource.Dodo,
             ERC20BridgeSource.Saddle,
+            ERC20BridgeSource.AaveV3,
         ]),
     },
     new SourceFilters([]),
@@ -314,6 +319,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.MeshSwap,
             ERC20BridgeSource.WOOFi,
+            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Avalanche]: new SourceFilters([
             ERC20BridgeSource.MultiHop,
@@ -328,6 +334,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.GMX,
             ERC20BridgeSource.Platypus,
             ERC20BridgeSource.WOOFi,
+            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Fantom]: new SourceFilters([
             ERC20BridgeSource.MultiHop,
@@ -341,6 +348,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.Yoshi,
             ERC20BridgeSource.WOOFi,
+            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Celo]: new SourceFilters([
             ERC20BridgeSource.UbeSwap,
@@ -357,6 +365,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Saddle,
             ERC20BridgeSource.Velodrome,
             ERC20BridgeSource.Synthetix,
+            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
             ERC20BridgeSource.UniswapV3,
@@ -368,6 +377,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.MultiHop,
             //ERC20BridgeSource.Dodo,
             ERC20BridgeSource.Saddle,
+            ERC20BridgeSource.AaveV3,
         ]),
     },
     new SourceFilters([]),
@@ -2729,6 +2739,10 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
         }
     },
     [ERC20BridgeSource.AaveV2]: (fillData?: FillData) => {
+        const aaveFillData = fillData as AaveV2FillData;
+        // NOTE: The Aave deposit method is more expensive than the withdraw
+        return aaveFillData.takerToken === aaveFillData.underlyingToken ? 400e3 : 300e3;
+    },[ERC20BridgeSource.AaveV3]: (fillData?: FillData) => {
         const aaveFillData = fillData as AaveV2FillData;
         // NOTE: The Aave deposit method is more expensive than the withdraw
         return aaveFillData.takerToken === aaveFillData.underlyingToken ? 400e3 : 300e3;
