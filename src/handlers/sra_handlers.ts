@@ -4,8 +4,8 @@ import * as HttpStatus from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
 import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
-import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
-import { SignedOrderV4Entity } from '../entities';
+import { NULL_ADDRESS, NULL_TEXT, SRA_DOCS_URL, ZERO } from '../constants';
+import { OfferAddLiquidityEntity, OfferCreateContingentPoolEntity, SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
@@ -75,9 +75,11 @@ export class SRAHandlers {
         const graphUrl = (req.query.graphUrl as string).toLowerCase();
         const createdBy = req.query.createdBy === undefined ? '' : (req.query.createdBy as string).toLowerCase();
         const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
-        const feeRecipient = req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
-        const takerTokenFee: number = req.query.takerTokenFee === undefined ? -1 : Number((req.query.takerTokenFee as string));
-        const threshold: number = req.query.threshold === undefined ? -1 : Number((req.query.threshold as string));
+        const feeRecipient =
+            req.query.feeRecipient === undefined ? NULL_ADDRESS : (req.query.feeRecipient as string).toLowerCase();
+        const takerTokenFee: number =
+            req.query.takerTokenFee === undefined ? -1 : Number(req.query.takerTokenFee as string);
+        const threshold: number = req.query.threshold === undefined ? -1 : Number(req.query.threshold as string);
         const priceResponse = await this._orderBook.getPricesAsync({
             page,
             perPage,
@@ -126,7 +128,87 @@ export class SRAHandlers {
             res.status(HttpStatus.OK).send();
         }
     }
+    public async offerCreateContingentPoolsAsync(req: express.Request, res: express.Response): Promise<void> {
+        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
+        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
+        const makerDirection =
+            req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
+        const referenceAsset =
+            req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
+        const collateralToken =
+            req.query.collateralToken === undefined
+                ? NULL_ADDRESS
+                : (req.query.collateralToken as string).toLowerCase();
+        const dataProvider =
+            req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
+        const permissionedERC721Token =
+            req.query.permissionedERC721Token === undefined
+                ? NULL_ADDRESS
+                : (req.query.permissionedERC721Token as string).toLowerCase();
 
+        const response = await this._orderBook.offerCreateContingentPoolsAsync({
+            page,
+            perPage,
+            maker,
+            taker,
+            makerDirection,
+            referenceAsset,
+            collateralToken,
+            dataProvider,
+            permissionedERC721Token,
+        });
+
+        res.status(HttpStatus.OK).send(response);
+    }
+    public async getOfferCreateContingentPoolByOfferHashAsync(
+        req: express.Request,
+        res: express.Response,
+    ): Promise<void> {
+        const response = await this._orderBook.getOfferCreateContingentPoolByOfferHashAsync(req.params.offerHash);
+
+        res.status(HttpStatus.OK).send(response);
+    }
+    public async postOfferCreateContingentPoolAsync(req: express.Request, res: express.Response): Promise<void> {
+        schemaUtils.validateSchema(req.body, schemas.sraOfferCreateContingentPoolSchema);
+
+        const offerCreateContingentPoolEntity = new OfferCreateContingentPoolEntity(req.body);
+        const response = await this._orderBook.postOfferCreateContingentPoolAsync(offerCreateContingentPoolEntity);
+
+        res.status(HttpStatus.OK).send(response);
+    }
+    public async offerAddLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
+        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
+        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
+        const makerDirection =
+            req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
+        const poolId = req.query.poolId === undefined ? NULL_TEXT : (req.query.poolId as string);
+
+        const response = await this._orderBook.offerAddLiquidityAsync({
+            page,
+            perPage,
+            maker,
+            taker,
+            makerDirection,
+            poolId,
+        });
+
+        res.status(HttpStatus.OK).send(response);
+    }
+    public async getOfferAddLiquidityByOfferHashAsync(req: express.Request, res: express.Response): Promise<void> {
+        const response = await this._orderBook.getOfferAddLiquidityByOfferHashAsync(req.params.offerHash);
+
+        res.status(HttpStatus.OK).send(response);
+    }
+    public async postOfferAddLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
+        schemaUtils.validateSchema(req.body, schemas.sraOfferAddLiquiditySchema);
+
+        const offerAddLiquidityEntity = new OfferAddLiquidityEntity(req.body);
+        const response = await this._orderBook.postOfferAddLiquidityAsync(offerAddLiquidityEntity);
+
+        res.status(HttpStatus.OK).send(response);
+    }
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         const apiKey = req.header('0x-api-key');

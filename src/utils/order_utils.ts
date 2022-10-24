@@ -4,8 +4,15 @@ import { BigNumber } from '@0x/utils';
 
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, SRA_ORDER_EXPIRATION_BUFFER_SECONDS, TAKER_FEE_UNIT_AMOUNT } from '../config';
 import { NULL_ADDRESS, ONE_SECOND_MS } from '../constants';
-import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import {
+    OfferAddLiquidityEntity,
+    OfferCreateContingentPoolEntity,
+    PersistentSignedOrderV4Entity,
+    SignedOrderV4Entity,
+} from '../entities';
+import {
+    OfferAddLiquidity,
+    OfferCreateContingentPool,
     OrderConfigRequestPayload,
     OrderConfigResponse,
     OrderEventEndState,
@@ -104,6 +111,54 @@ export const orderUtils = {
             pool: signedOrderEntity.pool,
         };
         return signedOrder;
+    },
+    deserializeOfferCreateContingentPool: (
+        offerCreateContingentPoolEntity: OfferCreateContingentPoolEntity,
+    ): OfferCreateContingentPool => {
+        const signedOffer: OfferCreateContingentPool = {
+            offerHash: offerCreateContingentPoolEntity.offerHash as string,
+            maker: offerCreateContingentPoolEntity.maker as string,
+            taker: offerCreateContingentPoolEntity.taker as string,
+            makerCollateralAmount: offerCreateContingentPoolEntity.makerCollateralAmount as string,
+            takerCollateralAmount: offerCreateContingentPoolEntity.takerCollateralAmount as string,
+            makerDirection: offerCreateContingentPoolEntity.makerDirection as string,
+            offerExpiry: offerCreateContingentPoolEntity.offerExpiry as string,
+            minimumTakerFillAmount: offerCreateContingentPoolEntity.minimumTakerFillAmount as string,
+            referenceAsset: offerCreateContingentPoolEntity.referenceAsset as string,
+            expiryTime: offerCreateContingentPoolEntity.expiryTime as string,
+            floor: offerCreateContingentPoolEntity.floor as string,
+            inflection: offerCreateContingentPoolEntity.inflection as string,
+            cap: offerCreateContingentPoolEntity.cap as string,
+            gradient: offerCreateContingentPoolEntity.gradient as string,
+            collateralToken: offerCreateContingentPoolEntity.collateralToken as string,
+            dataProvider: offerCreateContingentPoolEntity.dataProvider as string,
+            capacity: offerCreateContingentPoolEntity.capacity as string,
+            permissionedERC721Token: offerCreateContingentPoolEntity.permissionedERC721Token as string,
+            salt: offerCreateContingentPoolEntity.salt as string,
+            signature: JSON.parse(offerCreateContingentPoolEntity.signature as string),
+            chainId: Number(offerCreateContingentPoolEntity.chainId),
+            verifyingContract: offerCreateContingentPoolEntity.verifyingContract as string,
+        };
+        return signedOffer;
+    },
+    deserializeOfferAddLiquidity: (offerAddLiquidityEntity: OfferAddLiquidityEntity): OfferAddLiquidity => {
+        const signedOffer: OfferAddLiquidity = {
+            offerHash: offerAddLiquidityEntity.offerHash as string,
+            maker: offerAddLiquidityEntity.maker as string,
+            taker: offerAddLiquidityEntity.taker as string,
+            makerCollateralAmount: offerAddLiquidityEntity.makerCollateralAmount as string,
+            takerCollateralAmount: offerAddLiquidityEntity.takerCollateralAmount as string,
+            makerDirection: offerAddLiquidityEntity.makerDirection as string,
+            offerExpiry: offerAddLiquidityEntity.offerExpiry as string,
+            minimumTakerFillAmount: offerAddLiquidityEntity.minimumTakerFillAmount as string,
+            salt: offerAddLiquidityEntity.salt as string,
+            poolId: offerAddLiquidityEntity.poolId as string,
+            actualTakerFillableAmount: offerAddLiquidityEntity.actualTakerFillableAmount as string,
+            signature: JSON.parse(offerAddLiquidityEntity.signature as string),
+            chainId: Number(offerAddLiquidityEntity.chainId),
+            verifyingContract: offerAddLiquidityEntity.verifyingContract as string,
+        };
+        return signedOffer;
     },
     deserializeOrderToSRAOrder: (
         signedOrderEntity: Required<SignedOrderV4Entity> | Required<PersistentSignedOrderV4Entity>,

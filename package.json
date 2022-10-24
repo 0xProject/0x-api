@@ -16,7 +16,7 @@
         "db:migration:generate": "./node_modules/.bin/typeorm migration:generate --config ./lib/src/ormconfig.js ",
         "db:revert": "./node_modules/.bin/typeorm migration:revert --config ./lib/src/ormconfig.js ",
         "integration-test": "mocha --require source-map-support/register --require make-promises-safe 'lib/integration-test/**/*_test.js' --timeout 200000 --exit",
-        "test": "yarn test:rest && yarn test:asset-swapper && yarn test:rfqt",
+        "test": "yarn test:asset-swapper",
         "test:rest": "env-cmd -f ./test/test_env mocha --require source-map-support/register --require make-promises-safe 'lib/test/*/!(rfqt*)_test.js' 'lib/test/!(asset-swapper)/**/!(rfqt*)_test.js' --timeout 200000 --exit --bail",
         "test:rfqt": "env-cmd -f ./test/test_env mocha --require source-map-support/register --require make-promises-safe 'lib/test/**/rfqt_*.js' --timeout 200000 --exit --bail",
         "test:asset-swapper": "env-cmd -f ./test/test_env mocha --require source-map-support/register --require make-promises-safe 'lib/test/asset-swapper/**/*_test.js' --timeout 250000 --exit --bail",
@@ -30,8 +30,8 @@
         "generate_contract_wrappers": "abi-gen --debug --abis  ${npm_package_config_abis} --output test/generated-wrappers --backend ethers",
         "watch": "tsc -w",
         "fix": "tslint --project . --format stylish --fix && yarn prettier",
-        "prettier": "prettier --write ${npm_package_config_prettier_target} --config .prettierrc",
-        "prettier:ci": "prettier --list-different ${npm_package_config_prettier_target} --config .prettierrc",
+        "prettier": "prettier --write ${npm_package_config_prettier_target} --config .prettierrc.json",
+        "prettier:ci": "prettier --list-different ${npm_package_config_prettier_target} --config .prettierrc.json",
         "start": "node -r dotenv/config lib/src/index.js",
         "start:service:http": "node -r dotenv/config lib/src/runners/http_service_runner.js",
         "start:service:sra_http": "node -r dotenv/config lib/src/runners/http_sra_service_runner.js",
@@ -39,7 +39,7 @@
         "start:service:meta_transaction_http": "node -r dotenv/config lib/src/runners/http_meta_transaction_service_runner.js",
         "start:service:rfq_maker_balance_cache": "node -r dotenv/config lib/src/runners/rfq_maker_balance_cache_runner.js",
         "sampler-size": "jq .compilerOutput.evm.deployedBytecode.object  -- test/generated-artifacts/ERC20BridgeSampler.json | echo $(( $(wc -c) / 2 - 1 ))",
-        "lint": "tslint --project . --format stylish && yarn prettier:ci"
+        "lint": "tslint --project . --format stylish && yarn prettier"
     },
     "config": {
         "prettier_target": "{.,test/**/*,integration-test/**/*,src/**/*,migrations/*}.{ts,tsx,json,md}",

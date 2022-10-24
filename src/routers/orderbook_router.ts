@@ -46,5 +46,38 @@ export function createOrderBookRouter(orderBook: OrderBookService): express.Rout
      * GET Order endpoint retrieves the order by order hash.
      */
     router.get('/order/:orderHash', asyncHandler(handlers.getOrderByHashAsync.bind(handlers)));
+    /**
+     * GET OfferCreateContingentPool retrieves the OfferCreateContingentPool by offer hash.
+     */
+    router.get(
+        '/offer_create_contingent_pool/:offerHash',
+        asyncHandler(handlers.getOfferCreateContingentPoolByOfferHashAsync.bind(handlers)),
+    );
+    /**
+     * GET OfferCreateContingentPool retrieves a list of OfferCreateContingentPools given query parameters.
+     */
+    router.get('/offers_create_contingent_pool', asyncHandler(handlers.offerCreateContingentPoolsAsync.bind(handlers)));
+    /**
+     * POST OfferCreateContingentPool endpoint submits an OfferCreateContingentPool to the Relayer.
+     */
+    router.post(
+        '/offer_create_contingent_pool',
+        asyncHandler(handlers.postOfferCreateContingentPoolAsync.bind(handlers)),
+    );
+    /**
+     * GET OfferAddLiquidity endpoint retrieves the OfferAddLiquidity by offer hash.
+     */
+    router.get(
+        '/offer_add_liquidity/:offerHash',
+        asyncHandler(handlers.getOfferAddLiquidityByOfferHashAsync.bind(handlers)),
+    );
+    /**
+     * GET OfferAddLiquidity endpoint retrieves a list of OfferAddLiquidities given query parameters.
+     */
+    router.get('/offers_add_liquidity', asyncHandler(handlers.offerAddLiquidityAsync.bind(handlers)));
+    /**
+     * POST OfferAddLiquidity endpoint submits an OfferAddLiquidity to the Relayer.
+     */
+    router.post('/offer_add_liquidity', asyncHandler(handlers.postOfferAddLiquidityAsync.bind(handlers)));
     return router;
 }

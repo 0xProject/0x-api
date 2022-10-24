@@ -22,6 +22,27 @@ export enum OrderWatcherLifeCycleEvents {
     PersistentUpdated,
 }
 
+export interface OfferCreateContingentPoolFilterType {
+    page: number;
+    perPage: number;
+    maker: string;
+    taker: string;
+    makerDirection: string;
+    referenceAsset: string;
+    collateralToken: string;
+    dataProvider: string;
+    permissionedERC721Token: string;
+}
+
+export interface OfferAddLiquidityFilterType {
+    page: number;
+    perPage: number;
+    maker: string;
+    taker: string;
+    makerDirection: string;
+    poolId: string;
+}
+
 export interface OrdersByLifecycleEvents {
     added: SRAOrder[];
     removed: SRAOrder[];
@@ -38,6 +59,48 @@ export interface PaginatedCollection<T> {
 export interface SignedLimitOrder extends LimitOrderFields {
     signature: Signature;
     poolId?: number;
+}
+
+export interface OfferCreateContingentPool {
+    offerHash: string;
+    maker: string;
+    taker: string;
+    makerCollateralAmount: string;
+    takerCollateralAmount: string;
+    makerDirection: string;
+    offerExpiry: string;
+    minimumTakerFillAmount: string;
+    referenceAsset: string;
+    expiryTime: string;
+    floor: string;
+    inflection: string;
+    cap: string;
+    gradient: string;
+    collateralToken: string;
+    dataProvider: string;
+    capacity: string;
+    permissionedERC721Token: string;
+    salt: string;
+    signature: Signature;
+    chainId: number;
+    verifyingContract: string;
+}
+
+export interface OfferAddLiquidity {
+    offerHash: string;
+    maker: string;
+    taker: string;
+    makerCollateralAmount: string;
+    takerCollateralAmount: string;
+    makerDirection: string;
+    offerExpiry: string;
+    minimumTakerFillAmount: string;
+    salt: string;
+    poolId: string;
+    actualTakerFillableAmount: string;
+    signature: Signature;
+    chainId: number;
+    verifyingContract: string;
 }
 
 /** BEGIN SRA TYPES */

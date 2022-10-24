@@ -2,13 +2,14 @@ import { BigNumber } from '@0x/utils';
 
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const NULL_BYTES = '0x';
+export const NULL_TEXT = '';
 export const ZRX_DECIMALS = 18;
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_PER_PAGE = 1000;
 export const ZERO = new BigNumber(0);
 export const ONE = new BigNumber(1);
 export const MAX_TOKEN_SUPPLY_POSSIBLE = new BigNumber(2).pow(256);
-export const DEFAULT_LOCAL_POSTGRES_URI = 'postgres://api:api@localhost/api';
+export const DEFAULT_LOCAL_POSTGRES_URI = `postgres://${process.env.DATABASE_USER_NAME}:${process.env.DATABASE_USER_PASSWORD}@localhost/${process.env.DATABASE_NAME}`;
 export const DEFAULT_LOGGER_INCLUDE_TIMESTAMP = true;
 export const ONE_SECOND_MS = 1000;
 export const ONE_MINUTE_MS = ONE_SECOND_MS * 60;
@@ -93,8 +94,7 @@ export const BALANCE_CHECKER_ADDRESS = '0x6F9b7892a6272880905E90DC5AcD1F56dF222F
 export const BALANCE_CHECKER_GAS_LIMIT = 10000000;
 
 // Diva Governance Address
-export const DIVA_GOVERNANCE_ADDRESS =
-  '0xBb0F479895915F80f6fEb5BABcb0Ad39a0D7eF4E'; // creator of pools on Main Markets page and trading fee recipient
+export const DIVA_GOVERNANCE_ADDRESS = '0xBb0F479895915F80f6fEb5BABcb0Ad39a0D7eF4E'; // creator of pools on Main Markets page and trading fee recipient
 
 // Trading Fee
 export const TRADING_FEE = 0.01; // 1%
