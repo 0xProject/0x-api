@@ -13,7 +13,7 @@ import {
 } from '../../types';
 import { getAltMarketInfo } from '../alt_mm_implementation_utils';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from '../quote_requestor';
-import { toSignedNativeOrder } from '../rfq_client_mappers';
+import { toSignedNativeOrder, toSignedNativeOrderWithFillableAmounts } from '../rfq_client_mappers';
 import {
     getNativeAdjustedFillableAmountsFromMakerAmount,
     getNativeAdjustedFillableAmountsFromTakerAmount,
@@ -44,7 +44,7 @@ import {
 import { IdentityFillAdjustor } from './identity_fill_adjustor';
 import { getBestTwoHopQuote } from './multihop_utils';
 import { createOrdersFromTwoHopSample } from './orders';
-import { Path, PathPenaltyOpts } from './path';
+import { PathPenaltyOpts } from './path';
 import { findOptimalPathFromSamples } from './path_optimizer';
 import { DexOrderSampler, getSampleAmounts } from './sampler';
 import { SourceFilters } from './source_filters';
@@ -187,22 +187,20 @@ export class MarketOperationUtils {
         );
 
         // Refresh the cached pools asynchronously if required
-        void this._refreshPoolCacheIfRequiredAsync(takerToken, makerToken);
+        this._refreshPoolCacheIfRequiredAsync(takerToken, makerToken);
 
         const [
-            [
-                blockNumber,
-                gasBefore,
-                tokenDecimals,
-                orderFillableTakerAmounts,
-                outputAmountPerEth,
-                inputAmountPerEth,
-                dexQuotes,
-                rawTwoHopQuotes,
-                isTxOriginContract,
-                gasAfter,
-            ],
-        ] = await Promise.all([samplerPromise]);
+            blockNumber,
+            gasBefore,
+            tokenDecimals,
+            orderFillableTakerAmounts,
+            outputAmountPerEth,
+            inputAmountPerEth,
+            dexQuotes,
+            rawTwoHopQuotes,
+            isTxOriginContract,
+            gasAfter,
+        ] = await samplerPromise;
 
         if (outputAmountPerEth.isZero()) {
             DEFAULT_INFO_LOGGER({ token: makerToken }, 'output conversion to native token is zero');
@@ -308,22 +306,20 @@ export class MarketOperationUtils {
         );
 
         // Refresh the cached pools asynchronously if required
-        void this._refreshPoolCacheIfRequiredAsync(takerToken, makerToken);
+        this._refreshPoolCacheIfRequiredAsync(takerToken, makerToken);
 
         const [
-            [
-                blockNumber,
-                gasBefore,
-                tokenDecimals,
-                orderFillableMakerAmounts,
-                ethToMakerAssetRate,
-                ethToTakerAssetRate,
-                dexQuotes,
-                rawTwoHopQuotes,
-                isTxOriginContract,
-                gasAfter,
-            ],
-        ] = await Promise.all([samplerPromise]);
+            blockNumber,
+            gasBefore,
+            tokenDecimals,
+            orderFillableMakerAmounts,
+            ethToMakerAssetRate,
+            ethToTakerAssetRate,
+            dexQuotes,
+            rawTwoHopQuotes,
+            isTxOriginContract,
+            gasAfter,
+        ] = await samplerPromise;
 
         SAMPLER_METRICS.logGasDetails({ side: 'buy', gasBefore, gasAfter });
         SAMPLER_METRICS.logBlockNumber(blockNumber);
@@ -519,7 +515,7 @@ export class MarketOperationUtils {
         const takerAmountPerEth = side === MarketOperation.Sell ? inputAmountPerEth : outputAmountPerEth;
         const makerAmountPerEth = side === MarketOperation.Sell ? outputAmountPerEth : inputAmountPerEth;
 
-        // Find the optimal path using Rust router if enabled, otherwise fallback to JS Router
+        // Find the optimal path using Rust router.
         const optimalPath = findOptimalPathFromSamples(
             side,
             dexQuotes,
@@ -556,6 +552,8 @@ export class MarketOperationUtils {
 
         // If there is no optimal path AND we didn't return a MultiHop quote, then throw
         if (optimalPath === undefined) {
+            //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
+            DEFAULT_INFO_LOGGER({}, 'NoOptimalPath thrown in _generateOptimizedOrdersAsync');
             throw new Error(AggregationError.NoOptimalPath);
         }
 
@@ -599,11 +597,12 @@ export class MarketOperationUtils {
         }
 
         // Compute an optimized path for on-chain DEX and open-orderbook. This should not include RFQ liquidity.
-        const marketLiquidityFnAsync =
-            side === MarketOperation.Sell
-                ? this.getMarketSellLiquidityAsync.bind(this)
-                : this.getMarketBuyLiquidityAsync.bind(this);
-        const marketSideLiquidity: MarketSideLiquidity = await marketLiquidityFnAsync(nativeOrders, amount, _opts);
+        let marketSideLiquidity: MarketSideLiquidity;
+        if (side === MarketOperation.Sell) {
+            marketSideLiquidity = await this.getMarketSellLiquidityAsync(nativeOrders, amount, _opts);
+        } else {
+            marketSideLiquidity = await this.getMarketBuyLiquidityAsync(nativeOrders, amount, _opts);
+        }
 
         // Phase 1 Routing
         // We find an optimized path for ALL the DEX and open-orderbook liquidity
@@ -620,6 +619,8 @@ export class MarketOperationUtils {
             if (e.message !== AggregationError.NoOptimalPath) {
                 throw e;
             }
+            //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
+            DEFAULT_INFO_LOGGER({}, 'NoOptimalPath caught in phase 1 routing');
         }
 
         // Calculate a suggested price. For now, this is simply the overall price of the aggregation.
@@ -779,11 +780,16 @@ export class MarketOperationUtils {
 
                 DEFAULT_INFO_LOGGER({ v2Quotes, isEmpty: v2Quotes?.length === 0 }, 'v2Quotes from RFQ Client');
 
-                const firmQuotes = v1Quotes.map((quote) => {
-                    DEFAULT_INFO_LOGGER({ ...quote, txOrigin: rfqt.txOrigin }, 'results from RFQ Client');
+                const v1FirmQuotes = v1Quotes.map((quote) => {
                     // HACK: set the signature on quoteRequestor for future lookup (i.e. in Quote Report)
                     rfqt.quoteRequestor?.setMakerUriForSignature(quote.signature, quote.makerUri);
                     return toSignedNativeOrder(quote);
+                });
+
+                const v2QuotesWithOrderFillableAmounts = v2Quotes.map((quote) => {
+                    // HACK: set the signature on quoteRequestor for future lookup (i.e. in Quote Report)
+                    rfqt.quoteRequestor?.setMakerUriForSignature(quote.signature, quote.makerUri);
+                    return toSignedNativeOrderWithFillableAmounts(quote);
                 });
 
                 const deltaTime = new Date().getTime() - timeStart;
@@ -791,29 +797,34 @@ export class MarketOperationUtils {
                     rfqQuoteType: 'firm',
                     deltaTime,
                 });
-                if (firmQuotes.length > 0) {
+                if (v1FirmQuotes.length > 0 || v2QuotesWithOrderFillableAmounts.length > 0) {
                     // Compute the RFQ order fillable amounts. This is done by performing a "soft" order
                     // validation and by checking order balances that are monitored by our worker.
                     // If a firm quote validator does not exist, then we assume that all orders are valid.
-                    const rfqTakerFillableAmounts =
+                    const v1RfqTakerFillableAmounts =
                         rfqt.firmQuoteValidator === undefined
-                            ? firmQuotes.map((signedOrder) => signedOrder.order.takerAmount)
+                            ? v1FirmQuotes.map((signedOrder) => signedOrder.order.takerAmount)
                             : await rfqt.firmQuoteValidator.getRfqtTakerFillableAmountsAsync(
-                                  firmQuotes.map((q) => new RfqOrder(q.order)),
+                                  v1FirmQuotes.map((q) => new RfqOrder(q.order)),
                               );
 
-                    const quotesWithOrderFillableAmounts: NativeOrderWithFillableAmounts[] = firmQuotes.map(
+                    const v1QuotesWithOrderFillableAmounts: NativeOrderWithFillableAmounts[] = v1FirmQuotes.map(
                         (order, i) => ({
                             ...order,
-                            fillableTakerAmount: rfqTakerFillableAmounts[i],
+                            fillableTakerAmount: v1RfqTakerFillableAmounts[i],
                             // Adjust the maker amount by the available taker fill amount
                             fillableMakerAmount: getNativeAdjustedMakerFillAmount(
                                 order.order,
-                                rfqTakerFillableAmounts[i],
+                                v1RfqTakerFillableAmounts[i],
                             ),
                             fillableTakerFeeAmount: ZERO_AMOUNT,
                         }),
                     );
+
+                    const quotesWithOrderFillableAmounts = [
+                        ...v1QuotesWithOrderFillableAmounts,
+                        ...v2QuotesWithOrderFillableAmounts,
+                    ];
 
                     // Attach the firm RFQt quotes to the market side liquidity
                     marketSideLiquidity.quotes.nativeOrders = [
@@ -852,6 +863,8 @@ export class MarketOperationUtils {
         // At this point we should have at least one valid optimizer result, therefore we manually raise
         // `NoOptimalPath` if no optimizer result was ever set.
         if (optimizerResult === undefined) {
+            //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
+            DEFAULT_INFO_LOGGER({}, 'NoOptimalPath thrown in phase 2 routing');
             throw new Error(AggregationError.NoOptimalPath);
         }
 
