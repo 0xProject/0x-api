@@ -11,8 +11,6 @@ import {
     FillData,
     MultiHopFillData,
     NativeFillData,
-    NativeLimitOrderFillData,
-    NativeRfqOrderFillData,
     RawQuotes,
 } from './market_operation_utils/types';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from './quote_requestor';
@@ -107,6 +105,8 @@ export interface ExtendedQuoteReport {
     sourcesDelivered: ExtendedQuoteReportIndexedEntryOutbound[] | undefined;
     blockNumber: number | undefined;
     estimatedGas: string;
+    enableSlippageProtection?: boolean;
+    expectedSlippage?: string;
 }
 
 export interface PriceComparisonsReport {
@@ -338,7 +338,18 @@ export function multiHopSampleToReportSource(
 
 function _isNativeOrderFromCollapsedFill(cf: Fill): cf is Fill<NativeFillData> {
     const { type } = cf;
-    return type === FillQuoteTransformerOrderType.Limit || type === FillQuoteTransformerOrderType.Rfq;
+    switch (type) {
+        case FillQuoteTransformerOrderType.Limit:
+        case FillQuoteTransformerOrderType.Rfq:
+        case FillQuoteTransformerOrderType.Otc:
+            return true;
+        case FillQuoteTransformerOrderType.Bridge:
+            return false;
+        default:
+            ((_x: never) => {
+                throw new Error('unreachable');
+            })(type);
+    }
 }
 
 /**
@@ -347,7 +358,7 @@ function _isNativeOrderFromCollapsedFill(cf: Fill): cf is Fill<NativeFillData> {
  */
 export function nativeOrderToReportEntry(
     type: FillQuoteTransformerOrderType,
-    fillData: NativeLimitOrderFillData | NativeRfqOrderFillData,
+    fillData: NativeFillData,
     fillableAmount: BigNumber,
     comparisonPrice?: BigNumber | undefined,
     quoteRequestor?: QuoteRequestor,
