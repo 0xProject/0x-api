@@ -11,8 +11,8 @@ import {
     SignedOrderV4Entity,
 } from '../entities';
 import {
-    LimitOfferAddLiquidity,
-    LimitOfferCreateContingentPool,
+    OfferAddLiquidity,
+    OfferCreateContingentPool,
     OrderConfigRequestPayload,
     OrderConfigResponse,
     OrderEventEndState,
@@ -114,8 +114,8 @@ export const orderUtils = {
     },
     deserializeOfferCreateContingentPool: (
         offerCreateContingentPoolEntity: OfferCreateContingentPoolEntity,
-    ): LimitOfferCreateContingentPool => {
-        const signedOffer: LimitOfferCreateContingentPool = {
+    ): OfferCreateContingentPool => {
+        const signedOffer: OfferCreateContingentPool = {
             offerHash: offerCreateContingentPoolEntity.offerHash as string,
             maker: offerCreateContingentPoolEntity.maker as string,
             taker: offerCreateContingentPoolEntity.taker as string,
@@ -141,8 +141,8 @@ export const orderUtils = {
         };
         return signedOffer;
     },
-    deserializeOfferAddLiquidity: (offerAddLiquidityEntity: OfferAddLiquidityEntity): LimitOfferAddLiquidity => {
-        const signedOffer: LimitOfferAddLiquidity = {
+    deserializeOfferAddLiquidity: (offerAddLiquidityEntity: OfferAddLiquidityEntity): OfferAddLiquidity => {
+        const signedOffer: OfferAddLiquidity = {
             offerHash: offerAddLiquidityEntity.offerHash as string,
             maker: offerAddLiquidityEntity.maker as string,
             taker: offerAddLiquidityEntity.taker as string,

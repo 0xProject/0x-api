@@ -1,7 +1,7 @@
 import { PrimaryColumn, ViewColumn, ViewEntity } from 'typeorm';
 
 @ViewEntity({
-    name: 'offer_add_liquidities',
+    name: 'offer_add_liquidity',
     materialized: true,
     synchronize: false,
 })

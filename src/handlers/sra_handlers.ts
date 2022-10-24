@@ -202,7 +202,7 @@ export class SRAHandlers {
         res.status(HttpStatus.OK).send(response);
     }
     public async postOfferAddLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, schemas.sraofferAddLiquiditySchema);
+        schemaUtils.validateSchema(req.body, schemas.sraOfferAddLiquiditySchema);
 
         const offerAddLiquidityEntity = new OfferAddLiquidityEntity(req.body);
         const response = await this._orderBook.postOfferAddLiquidityAsync(offerAddLiquidityEntity);

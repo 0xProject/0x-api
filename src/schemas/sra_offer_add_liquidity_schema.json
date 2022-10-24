@@ -1,5 +1,5 @@
 {
-    "id": "/sraofferAddLiquiditySchema",
+    "id": "/sraOfferAddLiquiditySchema",
     "type": "object",
     "properties": {
         "offerHash": {

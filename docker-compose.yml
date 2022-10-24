@@ -5,9 +5,9 @@ services:
     container_name: postgres_container
     image: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: diva-api
+      POSTGRES_USER: ${DATABASE_USER_NAME}
+      POSTGRES_PASSWORD: ${DATABASE_USER_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
       PGDATA: /data/postgres
     volumes:
       - postgres:/data/postgres

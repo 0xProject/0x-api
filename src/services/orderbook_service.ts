@@ -36,10 +36,10 @@ import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '.
 import { alertOnExpiredOrders } from '../logger';
 import {
     FillableOrderType,
-    LimitOfferAddLiquidity,
-    LimitOfferCreateContingentPool,
     MakerInfoType,
+    OfferAddLiquidity,
     OfferAddLiquidityFilterType,
+    OfferCreateContingentPool,
     OfferCreateContingentPoolFilterType,
     OrderbookPriceRequest,
     OrderbookPriceResponse,
@@ -744,12 +744,12 @@ export class OrderBookService {
     // tslint:disable-next-line:prefer-function-over-method
     public async offerCreateContingentPoolsAsync(req: OfferCreateContingentPoolFilterType): Promise<any> {
         const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
-        const apiEntities: LimitOfferCreateContingentPool[] = (
+        const apiEntities: OfferCreateContingentPool[] = (
             offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
         ).map(orderUtils.deserializeOfferCreateContingentPool);
 
-        const filterEntities: LimitOfferCreateContingentPool[] = apiEntities.filter(
-            (apiEntity: LimitOfferCreateContingentPool) => {
+        const filterEntities: OfferCreateContingentPool[] = apiEntities.filter(
+            (apiEntity: OfferCreateContingentPool) => {
                 if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() === req.maker) {
                     return false;
                 }
@@ -812,11 +812,11 @@ export class OrderBookService {
     // tslint:disable-next-line:prefer-function-over-method
     public async offerAddLiquidityAsync(req: OfferAddLiquidityFilterType): Promise<any> {
         const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
-        const apiEntities: LimitOfferAddLiquidity[] = (
-            offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>
-        ).map(orderUtils.deserializeOfferAddLiquidity);
+        const apiEntities: OfferAddLiquidity[] = (offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>).map(
+            orderUtils.deserializeOfferAddLiquidity,
+        );
 
-        const filterEntities: LimitOfferAddLiquidity[] = apiEntities.filter((apiEntity: LimitOfferAddLiquidity) => {
+        const filterEntities: OfferAddLiquidity[] = apiEntities.filter((apiEntity: OfferAddLiquidity) => {
             if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() === req.maker) {
                 return false;
             }
