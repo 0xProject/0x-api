@@ -82,7 +82,7 @@ export interface SignedLimitOffer {
     permissionedERC721Token: string;
     salt: string;
     signature: Signature;
-    chainId: string;
+    chainId: number;
     verifyingContract: string;
 }
 
@@ -99,7 +99,7 @@ export interface SignedLimitOfferLiquidity {
     poolId: string;
     actualTakerFillableAmount: string;
     signature: Signature;
-    chainId: string;
+    chainId: number;
     verifyingContract: string;
 }
 

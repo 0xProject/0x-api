@@ -134,8 +134,8 @@ export const orderUtils = {
             permissionedERC721Token: signedOfferEntity.permissionedERC721Token as string,
             salt: signedOfferEntity.salt as string,
             signature: JSON.parse(signedOfferEntity.signature as string),
-            chainId: JSON.parse(signedOfferEntity.chainId as string),
-            verifyingContract: JSON.parse(signedOfferEntity.verifyingContract as string),
+            chainId: Number(signedOfferEntity.chainId),
+            verifyingContract: signedOfferEntity.verifyingContract as string,
         };
         return signedOffer;
     },
@@ -153,8 +153,8 @@ export const orderUtils = {
             poolId: signedOfferEntity.poolId as string,
             actualTakerFillableAmount: signedOfferEntity.actualTakerFillableAmount as string,
             signature: JSON.parse(signedOfferEntity.signature as string),
-            chainId: JSON.parse(signedOfferEntity.chainId as string),
-            verifyingContract: JSON.parse(signedOfferEntity.verifyingContract as string),
+            chainId: Number(signedOfferEntity.chainId),
+            verifyingContract: signedOfferEntity.verifyingContract as string,
         };
         return signedOffer;
     },

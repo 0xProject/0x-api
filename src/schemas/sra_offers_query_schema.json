@@ -60,7 +60,7 @@
             "type": "string"
         },
         "chainId": {
-            "type": "string"
+            "type": "number"
         },
         "verifyingContract": {
             "type": "string"

@@ -40,7 +40,7 @@ class ValidSignedOffer {
     public signature?: string;
 
     @ViewColumn({ name: 'chain_id' })
-    public chainId?: string;
+    public chainId?: number;
 
     @ViewColumn({ name: 'verifying_contract' })
     public verifyingContract?: string;
@@ -62,7 +62,7 @@ class ValidSignedOffer {
             salt?: string;
             actualTakerFillableAmount?: string;
             signature?: string;
-            chainId?: string;
+            chainId?: number;
             verifyingContract?: string;
         } = {},
     ) {
