@@ -5,6 +5,8 @@ import {
     BlockedAddressEntity,
     KeyValueEntity,
     MakerBalanceChainCacheEntity,
+    OfferAddLiquidityEntity,
+    OfferCreateContingentPoolEntity,
     OrderWatcherSignedOrderEntity,
     PersistentSignedOrderEntity,
     PersistentSignedOrderV4Entity,
@@ -14,8 +16,6 @@ import {
     RfqmQuoteEntity,
     RfqmTransactionSubmissionEntity,
     RfqmWorkerHeartbeatEntity,
-    SignedOfferEntity,
-    SignedOfferLiquidityEntity,
     SignedOrderV4Entity,
 } from './entities';
 
@@ -24,8 +24,8 @@ const entities = [
     PersistentSignedOrderEntity,
     KeyValueEntity,
     MakerBalanceChainCacheEntity,
-    SignedOfferEntity,
-    SignedOfferLiquidityEntity,
+    OfferAddLiquidityEntity,
+    OfferCreateContingentPoolEntity,
     SignedOrderV4Entity,
     PersistentSignedOrderV4Entity,
     RfqMakerPairs,

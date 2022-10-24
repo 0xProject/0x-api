@@ -1,11 +1,11 @@
 import { PrimaryColumn, ViewColumn, ViewEntity } from 'typeorm';
 
 @ViewEntity({
-    name: 'signed_offers',
+    name: 'offer_create_contingent_pools',
     materialized: true,
     synchronize: false,
 })
-export class SignedOfferEntity {
+export class OfferCreateContingentPoolEntity {
     @PrimaryColumn({ name: 'offer_hash' })
     public offerHash?: string;
 

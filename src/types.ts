@@ -22,7 +22,7 @@ export enum OrderWatcherLifeCycleEvents {
     PersistentUpdated,
 }
 
-export interface OffersFilterType {
+export interface OfferCreateContingentPoolFilterType {
     page: number;
     perPage: number;
     maker: string;
@@ -34,7 +34,7 @@ export interface OffersFilterType {
     permissionedERC721Token: string;
 }
 
-export interface OffersLiquidityFilterType {
+export interface OfferAddLiquidityFilterType {
     page: number;
     perPage: number;
     maker: string;
@@ -61,7 +61,7 @@ export interface SignedLimitOrder extends LimitOrderFields {
     poolId?: number;
 }
 
-export interface SignedLimitOffer {
+export interface LimitOfferCreateContingentPool {
     offerHash: string;
     maker: string;
     taker: string;
@@ -86,7 +86,7 @@ export interface SignedLimitOffer {
     verifyingContract: string;
 }
 
-export interface SignedLimitOfferLiquidity {
+export interface LimitOfferAddLiquidity {
     offerHash: string;
     maker: string;
     taker: string;

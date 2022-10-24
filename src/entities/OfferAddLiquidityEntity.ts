@@ -1,11 +1,11 @@
 import { PrimaryColumn, ViewColumn, ViewEntity } from 'typeorm';
 
 @ViewEntity({
-    name: 'signed_offer_liquidities',
+    name: 'offer_add_liquidities',
     materialized: true,
     synchronize: false,
 })
-class ValidSignedOffer {
+export class OfferAddLiquidityEntity {
     @PrimaryColumn({ name: 'offer_hash' })
     public offerHash?: string;
 
@@ -69,5 +69,3 @@ class ValidSignedOffer {
         Object.assign(this, opts);
     }
 }
-
-export { ValidSignedOffer as SignedOfferLiquidityEntity };

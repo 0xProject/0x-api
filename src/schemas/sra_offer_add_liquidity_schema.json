@@ -1,5 +1,5 @@
 {
-    "id": "/sraOffersQuerySchema",
+    "id": "/sraofferAddLiquiditySchema",
     "type": "object",
     "properties": {
         "offerHash": {
@@ -26,35 +26,8 @@
         "minimumTakerFillAmount": {
             "type": "string"
         },
-        "referenceAsset": {
+        "poolId": {
             "type": "string"
-        },
-        "expiryTime": {
-            "type": "string"
-        },
-        "floor": {
-            "type": "string"
-        },
-        "inflection": {
-            "type": "string"
-        },
-        "cap": {
-            "type": "string"
-        },
-        "gradient": {
-            "type": "string"
-        },
-        "collateralToken": {
-            "$ref": "/addressSchema"
-        },
-        "dataProvider": {
-            "$ref": "/addressSchema"
-        },
-        "capacity": {
-            "type": "string"
-        },
-        "permissionedERC721Token": {
-            "$ref": "/addressSchema"
         },
         "salt": {
             "type": "string"
@@ -63,6 +36,9 @@
             "type": "number"
         },
         "verifyingContract": {
+            "type": "string"
+        },
+        "actualTakerFillableAmount": {
             "type": "string"
         },
         "signature": {

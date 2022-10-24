@@ -5,7 +5,7 @@ import * as isValidUUID from 'uuid-validate';
 
 import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
 import { NULL_ADDRESS, NULL_TEXT, SRA_DOCS_URL, ZERO } from '../constants';
-import { SignedOfferEntity, SignedOfferLiquidityEntity, SignedOrderV4Entity } from '../entities';
+import { OfferAddLiquidityEntity, OfferCreateContingentPoolEntity, SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas';
 import { OrderBookService } from '../services/orderbook_service';
@@ -128,7 +128,7 @@ export class SRAHandlers {
             res.status(HttpStatus.OK).send();
         }
     }
-    public async offersAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async offerCreateContingentPoolsAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
         const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
@@ -147,7 +147,7 @@ export class SRAHandlers {
                 ? NULL_ADDRESS
                 : (req.query.permissionedERC721Token as string).toLowerCase();
 
-        const offersResponse = await this._orderBook.getOffersAsync({
+        const response = await this._orderBook.offerCreateContingentPoolsAsync({
             page,
             perPage,
             maker,
@@ -159,22 +159,25 @@ export class SRAHandlers {
             permissionedERC721Token,
         });
 
-        res.status(HttpStatus.OK).send(offersResponse);
+        res.status(HttpStatus.OK).send(response);
     }
-    public async getOfferByOfferHashAsync(req: express.Request, res: express.Response): Promise<void> {
-        const offerResponse = await this._orderBook.getOfferByOfferHashAsync(req.params.offerHash);
+    public async getOfferCreateContingentPoolByOfferHashAsync(
+        req: express.Request,
+        res: express.Response,
+    ): Promise<void> {
+        const response = await this._orderBook.getOfferCreateContingentPoolByOfferHashAsync(req.params.offerHash);
 
-        res.status(HttpStatus.OK).send(offerResponse);
+        res.status(HttpStatus.OK).send(response);
     }
-    public async postOfferAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, schemas.sraOfferLiquiditySchema);
+    public async postOfferCreateContingentPoolAsync(req: express.Request, res: express.Response): Promise<void> {
+        schemaUtils.validateSchema(req.body, schemas.sraOfferCreateContingentPoolSchema);
 
-        const signedOfferEntity = new SignedOfferEntity(req.body);
-        const offersResponse = await this._orderBook.postOfferAsync(signedOfferEntity);
+        const offerCreateContingentPoolEntity = new OfferCreateContingentPoolEntity(req.body);
+        const response = await this._orderBook.postOfferCreateContingentPoolAsync(offerCreateContingentPoolEntity);
 
-        res.status(HttpStatus.OK).send(offersResponse);
+        res.status(HttpStatus.OK).send(response);
     }
-    public async offerLiquiditiesAsync(req: express.Request, res: express.Response): Promise<void> {
+    public async offerAddLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
         const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
@@ -182,7 +185,7 @@ export class SRAHandlers {
             req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
         const poolId = req.query.poolId === undefined ? NULL_TEXT : (req.query.poolId as string);
 
-        const offerLiquiditiesResponse = await this._orderBook.offerLiquiditiesAsync({
+        const response = await this._orderBook.offerAddLiquidityAsync({
             page,
             perPage,
             maker,
@@ -191,20 +194,20 @@ export class SRAHandlers {
             poolId,
         });
 
-        res.status(HttpStatus.OK).send(offerLiquiditiesResponse);
+        res.status(HttpStatus.OK).send(response);
     }
-    public async getOfferLiquidityByOfferHashAsync(req: express.Request, res: express.Response): Promise<void> {
-        const offerLiquidityResponse = await this._orderBook.getOfferLiquidityByOfferHashAsync(req.params.offerHash);
+    public async getOfferAddLiquidityByOfferHashAsync(req: express.Request, res: express.Response): Promise<void> {
+        const response = await this._orderBook.getOfferAddLiquidityByOfferHashAsync(req.params.offerHash);
 
-        res.status(HttpStatus.OK).send(offerLiquidityResponse);
+        res.status(HttpStatus.OK).send(response);
     }
-    public async postOfferLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.body, schemas.sraOfferLiquiditySchema);
+    public async postOfferAddLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
+        schemaUtils.validateSchema(req.body, schemas.sraofferAddLiquiditySchema);
 
-        const signedOfferLiquidityEntity = new SignedOfferLiquidityEntity(req.body);
-        const offerLiquidityResponse = await this._orderBook.postOfferLiquidityAsync(signedOfferLiquidityEntity);
+        const offerAddLiquidityEntity = new OfferAddLiquidityEntity(req.body);
+        const response = await this._orderBook.postOfferAddLiquidityAsync(offerAddLiquidityEntity);
 
-        res.status(HttpStatus.OK).send(offerLiquidityResponse);
+        res.status(HttpStatus.OK).send(response);
     }
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';

@@ -5,17 +5,17 @@ import { BigNumber } from '@0x/utils';
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, SRA_ORDER_EXPIRATION_BUFFER_SECONDS, TAKER_FEE_UNIT_AMOUNT } from '../config';
 import { NULL_ADDRESS, ONE_SECOND_MS } from '../constants';
 import {
+    OfferAddLiquidityEntity,
+    OfferCreateContingentPoolEntity,
     PersistentSignedOrderV4Entity,
-    SignedOfferEntity,
-    SignedOfferLiquidityEntity,
     SignedOrderV4Entity,
 } from '../entities';
 import {
+    LimitOfferAddLiquidity,
+    LimitOfferCreateContingentPool,
     OrderConfigRequestPayload,
     OrderConfigResponse,
     OrderEventEndState,
-    SignedLimitOffer,
-    SignedLimitOfferLiquidity,
     SignedLimitOrder,
     SRAOrder,
     SRAOrderMetaData,
@@ -112,49 +112,51 @@ export const orderUtils = {
         };
         return signedOrder;
     },
-    deserializeOffer: (signedOfferEntity: SignedOfferEntity): SignedLimitOffer => {
-        const signedOffer: SignedLimitOffer = {
-            offerHash: signedOfferEntity.offerHash as string,
-            maker: signedOfferEntity.maker as string,
-            taker: signedOfferEntity.taker as string,
-            makerCollateralAmount: signedOfferEntity.makerCollateralAmount as string,
-            takerCollateralAmount: signedOfferEntity.takerCollateralAmount as string,
-            makerDirection: signedOfferEntity.makerDirection as string,
-            offerExpiry: signedOfferEntity.offerExpiry as string,
-            minimumTakerFillAmount: signedOfferEntity.minimumTakerFillAmount as string,
-            referenceAsset: signedOfferEntity.referenceAsset as string,
-            expiryTime: signedOfferEntity.expiryTime as string,
-            floor: signedOfferEntity.floor as string,
-            inflection: signedOfferEntity.inflection as string,
-            cap: signedOfferEntity.cap as string,
-            gradient: signedOfferEntity.gradient as string,
-            collateralToken: signedOfferEntity.collateralToken as string,
-            dataProvider: signedOfferEntity.dataProvider as string,
-            capacity: signedOfferEntity.capacity as string,
-            permissionedERC721Token: signedOfferEntity.permissionedERC721Token as string,
-            salt: signedOfferEntity.salt as string,
-            signature: JSON.parse(signedOfferEntity.signature as string),
-            chainId: Number(signedOfferEntity.chainId),
-            verifyingContract: signedOfferEntity.verifyingContract as string,
+    deserializeOfferCreateContingentPool: (
+        offerCreateContingentPoolEntity: OfferCreateContingentPoolEntity,
+    ): LimitOfferCreateContingentPool => {
+        const signedOffer: LimitOfferCreateContingentPool = {
+            offerHash: offerCreateContingentPoolEntity.offerHash as string,
+            maker: offerCreateContingentPoolEntity.maker as string,
+            taker: offerCreateContingentPoolEntity.taker as string,
+            makerCollateralAmount: offerCreateContingentPoolEntity.makerCollateralAmount as string,
+            takerCollateralAmount: offerCreateContingentPoolEntity.takerCollateralAmount as string,
+            makerDirection: offerCreateContingentPoolEntity.makerDirection as string,
+            offerExpiry: offerCreateContingentPoolEntity.offerExpiry as string,
+            minimumTakerFillAmount: offerCreateContingentPoolEntity.minimumTakerFillAmount as string,
+            referenceAsset: offerCreateContingentPoolEntity.referenceAsset as string,
+            expiryTime: offerCreateContingentPoolEntity.expiryTime as string,
+            floor: offerCreateContingentPoolEntity.floor as string,
+            inflection: offerCreateContingentPoolEntity.inflection as string,
+            cap: offerCreateContingentPoolEntity.cap as string,
+            gradient: offerCreateContingentPoolEntity.gradient as string,
+            collateralToken: offerCreateContingentPoolEntity.collateralToken as string,
+            dataProvider: offerCreateContingentPoolEntity.dataProvider as string,
+            capacity: offerCreateContingentPoolEntity.capacity as string,
+            permissionedERC721Token: offerCreateContingentPoolEntity.permissionedERC721Token as string,
+            salt: offerCreateContingentPoolEntity.salt as string,
+            signature: JSON.parse(offerCreateContingentPoolEntity.signature as string),
+            chainId: Number(offerCreateContingentPoolEntity.chainId),
+            verifyingContract: offerCreateContingentPoolEntity.verifyingContract as string,
         };
         return signedOffer;
     },
-    deserializeOfferLiquidity: (signedOfferEntity: SignedOfferLiquidityEntity): SignedLimitOfferLiquidity => {
-        const signedOffer: SignedLimitOfferLiquidity = {
-            offerHash: signedOfferEntity.offerHash as string,
-            maker: signedOfferEntity.maker as string,
-            taker: signedOfferEntity.taker as string,
-            makerCollateralAmount: signedOfferEntity.makerCollateralAmount as string,
-            takerCollateralAmount: signedOfferEntity.takerCollateralAmount as string,
-            makerDirection: signedOfferEntity.makerDirection as string,
-            offerExpiry: signedOfferEntity.offerExpiry as string,
-            minimumTakerFillAmount: signedOfferEntity.minimumTakerFillAmount as string,
-            salt: signedOfferEntity.salt as string,
-            poolId: signedOfferEntity.poolId as string,
-            actualTakerFillableAmount: signedOfferEntity.actualTakerFillableAmount as string,
-            signature: JSON.parse(signedOfferEntity.signature as string),
-            chainId: Number(signedOfferEntity.chainId),
-            verifyingContract: signedOfferEntity.verifyingContract as string,
+    deserializeOfferAddLiquidity: (offerAddLiquidityEntity: OfferAddLiquidityEntity): LimitOfferAddLiquidity => {
+        const signedOffer: LimitOfferAddLiquidity = {
+            offerHash: offerAddLiquidityEntity.offerHash as string,
+            maker: offerAddLiquidityEntity.maker as string,
+            taker: offerAddLiquidityEntity.taker as string,
+            makerCollateralAmount: offerAddLiquidityEntity.makerCollateralAmount as string,
+            takerCollateralAmount: offerAddLiquidityEntity.takerCollateralAmount as string,
+            makerDirection: offerAddLiquidityEntity.makerDirection as string,
+            offerExpiry: offerAddLiquidityEntity.offerExpiry as string,
+            minimumTakerFillAmount: offerAddLiquidityEntity.minimumTakerFillAmount as string,
+            salt: offerAddLiquidityEntity.salt as string,
+            poolId: offerAddLiquidityEntity.poolId as string,
+            actualTakerFillableAmount: offerAddLiquidityEntity.actualTakerFillableAmount as string,
+            signature: JSON.parse(offerAddLiquidityEntity.signature as string),
+            chainId: Number(offerAddLiquidityEntity.chainId),
+            verifyingContract: offerAddLiquidityEntity.verifyingContract as string,
         };
         return signedOffer;
     },

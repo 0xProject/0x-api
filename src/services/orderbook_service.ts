@@ -27,25 +27,25 @@ import {
     ONE_SECOND_MS,
 } from '../constants';
 import {
+    OfferAddLiquidityEntity,
+    OfferCreateContingentPoolEntity,
     PersistentSignedOrderV4Entity,
-    SignedOfferEntity,
-    SignedOfferLiquidityEntity,
     SignedOrderV4Entity,
 } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
 import {
     FillableOrderType,
+    LimitOfferAddLiquidity,
+    LimitOfferCreateContingentPool,
     MakerInfoType,
-    OffersFilterType,
-    OffersLiquidityFilterType,
+    OfferAddLiquidityFilterType,
+    OfferCreateContingentPoolFilterType,
     OrderbookPriceRequest,
     OrderbookPriceResponse,
     OrderbookResponse,
     OrderEventEndState,
     PaginatedCollection,
-    SignedLimitOffer,
-    SignedLimitOfferLiquidity,
     SignedLimitOrder,
     SRAOrder,
 } from '../types';
@@ -742,80 +742,42 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public async getOffersAsync(req: OffersFilterType): Promise<any> {
-        const signedOfferEntities = await this._connection.manager.find(SignedOfferEntity);
-        const apiOffers: SignedLimitOffer[] = (signedOfferEntities as Required<SignedOfferEntity[]>).map(
-            orderUtils.deserializeOffer,
-        );
+    public async offerCreateContingentPoolsAsync(req: OfferCreateContingentPoolFilterType): Promise<any> {
+        const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
+        const apiEntities: LimitOfferCreateContingentPool[] = (
+            offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
+        ).map(orderUtils.deserializeOfferCreateContingentPool);
 
-        const filterOffers: SignedLimitOffer[] = apiOffers.filter((apiOffer: SignedLimitOffer) => {
-            if (req.maker !== NULL_ADDRESS && apiOffer.maker.toLocaleLowerCase() === req.maker) {
-                return false;
-            }
-            if (req.taker !== NULL_ADDRESS && apiOffer.taker.toLocaleLowerCase() !== req.taker) {
-                return false;
-            }
-            if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiOffer.makerDirection) {
-                return false;
-            }
-            if (req.referenceAsset !== NULL_TEXT && apiOffer.referenceAsset !== req.referenceAsset) {
-                return false;
-            }
-            if (
-                req.collateralToken !== NULL_ADDRESS &&
-                apiOffer.collateralToken.toLocaleLowerCase() !== req.collateralToken
-            ) {
-                return false;
-            }
-            if (req.dataProvider !== NULL_ADDRESS && apiOffer.dataProvider.toLocaleLowerCase() !== req.dataProvider) {
-                return false;
-            }
-            if (
-                req.permissionedERC721Token !== NULL_ADDRESS &&
-                apiOffer.permissionedERC721Token.toLocaleLowerCase() !== req.permissionedERC721Token
-            ) {
-                return false;
-            }
-
-            return true;
-        });
-
-        return paginationUtils.paginate(filterOffers, req.page, req.perPage);
-    }
-
-    // tslint:disable-next-line:prefer-function-over-method
-    public async getOfferByOfferHashAsync(offerHash: string): Promise<any> {
-        const signedOfferEntity = await this._connection.manager.findOne(SignedOfferEntity, offerHash);
-
-        return orderUtils.deserializeOffer(signedOfferEntity as Required<SignedOfferEntity>);
-    }
-
-    // tslint:disable-next-line:prefer-function-over-method
-    public async postOfferAsync(signedOfferEntity: SignedOfferEntity): Promise<any> {
-        await this._connection.getRepository(SignedOfferEntity).insert(signedOfferEntity);
-
-        return signedOfferEntity.offerHash;
-    }
-
-    // tslint:disable-next-line:prefer-function-over-method
-    public async offerLiquiditiesAsync(req: OffersLiquidityFilterType): Promise<any> {
-        const signedOfferLiquidityEntities = await this._connection.manager.find(SignedOfferLiquidityEntity);
-        const apiOfferLiquidities: SignedLimitOfferLiquidity[] = (
-            signedOfferLiquidityEntities as Required<SignedOfferLiquidityEntity[]>
-        ).map(orderUtils.deserializeOfferLiquidity);
-
-        const filterOfferLiquidities: SignedLimitOfferLiquidity[] = apiOfferLiquidities.filter(
-            (apiOfferLiquidity: SignedLimitOfferLiquidity) => {
-                if (req.maker !== NULL_ADDRESS && apiOfferLiquidity.maker.toLocaleLowerCase() === req.maker) {
+        const filterEntities: LimitOfferCreateContingentPool[] = apiEntities.filter(
+            (apiEntity: LimitOfferCreateContingentPool) => {
+                if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() === req.maker) {
                     return false;
                 }
-                if (req.taker !== NULL_ADDRESS && apiOfferLiquidity.taker.toLocaleLowerCase() !== req.taker) {
+                if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLocaleLowerCase() !== req.taker) {
                     return false;
                 }
-                if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiOfferLiquidity.makerDirection) {
+                if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
                     return false;
                 }
-                if (req.poolId !== NULL_TEXT && apiOfferLiquidity.poolId !== req.poolId) {
+                if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
+                    return false;
+                }
+                if (
+                    req.collateralToken !== NULL_ADDRESS &&
+                    apiEntity.collateralToken.toLocaleLowerCase() !== req.collateralToken
+                ) {
+                    return false;
+                }
+                if (
+                    req.dataProvider !== NULL_ADDRESS &&
+                    apiEntity.dataProvider.toLocaleLowerCase() !== req.dataProvider
+                ) {
+                    return false;
+                }
+                if (
+                    req.permissionedERC721Token !== NULL_ADDRESS &&
+                    apiEntity.permissionedERC721Token.toLocaleLowerCase() !== req.permissionedERC721Token
+                ) {
                     return false;
                 }
 
@@ -823,23 +785,68 @@ export class OrderBookService {
             },
         );
 
-        return paginationUtils.paginate(filterOfferLiquidities, req.page, req.perPage);
+        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public async getOfferLiquidityByOfferHashAsync(offerHash: string): Promise<any> {
-        const signedOfferLiquidityEntity = await this._connection.manager.findOne(
-            SignedOfferLiquidityEntity,
+    public async getOfferCreateContingentPoolByOfferHashAsync(offerHash: string): Promise<any> {
+        const offerCreateContingentPoolEntity = await this._connection.manager.findOne(
+            OfferCreateContingentPoolEntity,
             offerHash,
         );
 
-        return orderUtils.deserializeOfferLiquidity(signedOfferLiquidityEntity as Required<SignedOfferLiquidityEntity>);
+        return orderUtils.deserializeOfferCreateContingentPool(
+            offerCreateContingentPoolEntity as Required<OfferCreateContingentPoolEntity>,
+        );
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public async postOfferLiquidityAsync(signedOfferLiquidityEntity: SignedOfferLiquidityEntity): Promise<any> {
-        await this._connection.getRepository(SignedOfferLiquidityEntity).insert(signedOfferLiquidityEntity);
+    public async postOfferCreateContingentPoolAsync(
+        offerCreateContingentPoolEntity: OfferCreateContingentPoolEntity,
+    ): Promise<any> {
+        await this._connection.getRepository(OfferCreateContingentPoolEntity).insert(offerCreateContingentPoolEntity);
 
-        return signedOfferLiquidityEntity.offerHash;
+        return offerCreateContingentPoolEntity.offerHash;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async offerAddLiquidityAsync(req: OfferAddLiquidityFilterType): Promise<any> {
+        const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
+        const apiEntities: LimitOfferAddLiquidity[] = (
+            offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>
+        ).map(orderUtils.deserializeOfferAddLiquidity);
+
+        const filterEntities: LimitOfferAddLiquidity[] = apiEntities.filter((apiEntity: LimitOfferAddLiquidity) => {
+            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() === req.maker) {
+                return false;
+            }
+            if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLocaleLowerCase() !== req.taker) {
+                return false;
+            }
+            if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
+                return false;
+            }
+            if (req.poolId !== NULL_TEXT && apiEntity.poolId !== req.poolId) {
+                return false;
+            }
+
+            return true;
+        });
+
+        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getOfferAddLiquidityByOfferHashAsync(offerHash: string): Promise<any> {
+        const offerAddLiquidityEntity = await this._connection.manager.findOne(OfferAddLiquidityEntity, offerHash);
+
+        return orderUtils.deserializeOfferAddLiquidity(offerAddLiquidityEntity as Required<OfferAddLiquidityEntity>);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async postOfferAddLiquidityAsync(offerAddLiquidityEntity: OfferAddLiquidityEntity): Promise<any> {
+        await this._connection.getRepository(OfferAddLiquidityEntity).insert(offerAddLiquidityEntity);
+
+        return offerAddLiquidityEntity.offerHash;
     }
 }
