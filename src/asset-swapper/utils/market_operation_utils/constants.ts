@@ -2325,12 +2325,6 @@ export const BALANCER_V2_VAULT_ADDRESS_BY_CHAIN = valueByChainId<string>(
         [ChainId.Mainnet]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
         [ChainId.Polygon]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
         [ChainId.Arbitrum]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
-    },
-    NULL_ADDRESS,
-);
-
-export const BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN = valueByChainId<string>(
-    {
         [ChainId.Fantom]: '0x20dd72ed959b6147912c2e529f0a0c651c33c9ce',
         [ChainId.Optimism]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
     },
@@ -2890,10 +2884,11 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     [ERC20BridgeSource.SpookySwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Yoshi]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Beethovenx]: (fillData?: FillData) => {
-        if ((fillData as BalancerV2BatchSwapFillData).chainId === ChainId.Fantom) {
+        const balancerFillData = fillData as BalancerV2BatchSwapFillData;
+        if (balancerFillData.chainId === ChainId.Fantom) {
             return 125e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 50e3;
         }
-        return 305e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 100e3;
+        return 305e3 + (balancerFillData.swapSteps.length - 1) * 100e3;
     },
     //
     // Optimism
