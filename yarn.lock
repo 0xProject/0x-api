@@ -178,6 +178,21 @@
     ethereum-types "^3.7.1"
     ethers "~4.0.4"
 
+"@0x/contract-wrappers@^13.22.8":
+  version "13.22.8"
+  resolved "https://registry.yarnpkg.com/@0x/contract-wrappers/-/contract-wrappers-13.22.8.tgz#1aa1422b81010fb371a7ddfb406ccf39ea62f49c"
+  integrity sha512-3TblBkkeZyQgO++Eg67UyRxBY0HvP7f4PPajjJEqTh+VRy29zVrdYlZSCUuUWpcH3Vkf+CH4oDuMSBtYcMpg/Q==
+  dependencies:
+    "@0x/assert" "^3.0.35"
+    "@0x/base-contract" "^7.0.0"
+    "@0x/contract-addresses" "^7.1.0"
+    "@0x/json-schemas" "^6.4.4"
+    "@0x/types" "^3.3.6"
+    "@0x/utils" "^7.0.0"
+    "@0x/web3-wrapper" "^8.0.0"
+    ethereum-types "^3.7.1"
+    ethers "~4.0.4"
+
 "@0x/contracts-erc20@^3.3.47":
   version "3.3.47"
   resolved "https://registry.yarnpkg.com/@0x/contracts-erc20/-/contracts-erc20-3.3.47.tgz#ba83b09e89a872a725020e05be03c6220e90effe"
@@ -252,13 +267,13 @@
     bn.js "^4.11.8"
     ethereum-types "^3.7.1"
 
-"@0x/contracts-zero-ex@^0.37.7":
-  version "0.37.7"
-  resolved "https://registry.yarnpkg.com/@0x/contracts-zero-ex/-/contracts-zero-ex-0.37.7.tgz#5d616a823999a62287aa509f3163b9feff478700"
-  integrity sha512-pYMvT11ImZ33jU0x+qmm+kenptYfUKLJQyj9G3MYf7sRXUgxoRhftzZNGPzOHor8z4Gnq3EVZro/EKG5YD5buA==
+"@0x/contracts-zero-ex@^0.37.9":
+  version "0.37.9"
+  resolved "https://registry.yarnpkg.com/@0x/contracts-zero-ex/-/contracts-zero-ex-0.37.9.tgz#53ac70cf11d550b14025aaf5f09443adc4af66e8"
+  integrity sha512-3/Qqa5hl/ot9YscqKB53hNcq1Kd4xlDfumd5QS3oQWPZxNsk5XfKXPHhDz10F2GB0SLRl984fH2opRR7bLZnkg==
   dependencies:
     "@0x/base-contract" "^7.0.0"
-    "@0x/protocol-utils" "^11.16.14"
+    "@0x/protocol-utils" "^11.16.16"
     "@0x/subproviders" "^7.0.0"
     "@0x/types" "^3.3.6"
     "@0x/typescript-typings" "^5.3.1"
@@ -379,6 +394,24 @@
     "@0x/assert" "^3.0.35"
     "@0x/contract-addresses" "^6.25.0"
     "@0x/contract-wrappers" "^13.22.6"
+    "@0x/json-schemas" "^6.4.4"
+    "@0x/subproviders" "^7.0.0"
+    "@0x/utils" "^7.0.0"
+    "@0x/web3-wrapper" "^8.0.0"
+    "@typescript-eslint/parser" "^5.38.0"
+    chai "^4.0.1"
+    ethereumjs-util "^7.0.10"
+    ethers "~4.0.4"
+    lodash "^4.17.11"
+
+"@0x/protocol-utils@^11.16.16":
+  version "11.16.16"
+  resolved "https://registry.yarnpkg.com/@0x/protocol-utils/-/protocol-utils-11.16.16.tgz#63e5da36243e912f8fb28d443b531e3f020c99b4"
+  integrity sha512-wIvf5l+cwhECn7nKzEjygjdcKzNZ2SM9zTLgAGE9Ecgf6OCvq8sN/etsl3fzMrMrDN/lEaSgqXXGVXWc+q5FqA==
+  dependencies:
+    "@0x/assert" "^3.0.35"
+    "@0x/contract-addresses" "^7.1.0"
+    "@0x/contract-wrappers" "^13.22.8"
     "@0x/json-schemas" "^6.4.4"
     "@0x/subproviders" "^7.0.0"
     "@0x/utils" "^7.0.0"

@@ -28,7 +28,6 @@ import {
     BANCORV3_NETWORK_BY_CHAIN_ID,
     BANCORV3_NETWORK_INFO_BY_CHAIN_ID,
     BANCOR_REGISTRY_BY_CHAIN_ID,
-    BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN,
     COMPOUND_API_URL_BY_CHAIN_ID,
     DODOV1_CONFIG_BY_CHAIN_ID,
     DODOV2_FACTORIES_BY_CHAIN_ID,
@@ -154,7 +153,7 @@ export class SamplerOperations {
             ? poolsCaches
             : {
                   [ERC20BridgeSource.Beethovenx]:
-                      BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[chainId] === NULL_ADDRESS
+                      BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[chainId] === NULL_ADDRESS
                           ? undefined
                           : new BalancerV2SwapInfoCache(chainId),
                   [ERC20BridgeSource.Balancer]: BalancerPoolsCache.create(chainId),
@@ -1624,10 +1623,7 @@ export class SamplerOperations {
                         }
 
                         const swaps = cache.getCachedSwapInfoForPair(takerToken, makerToken);
-                        const vault =
-                            source === ERC20BridgeSource.BalancerV2
-                                ? BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId]
-                                : BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
+                        const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId];
                         if (!swaps || vault === NULL_ADDRESS) {
                             return [];
                         }
@@ -1950,16 +1946,23 @@ export class SamplerOperations {
                             );
                     case ERC20BridgeSource.Beethovenx:
                     case ERC20BridgeSource.BalancerV2: {
+                        if (
+                            this.chainId === ChainId.Optimism &&
+                            source === ERC20BridgeSource.Beethovenx &&
+                            (takerToken === OPTIMISM_TOKENS.OP || makerToken === OPTIMISM_TOKENS.OP)
+                        ) {
+                            // BeethovenX on Optimism is currently seeing some revert issues with the OP token
+                            // so we're going to blacklist the token until we can investigate.
+                            return [];
+                        }
+
                         const cache = this.poolsCaches[source];
                         if (!cache) {
                             return [];
                         }
 
                         const swaps = cache.getCachedSwapInfoForPair(takerToken, makerToken);
-                        const vault =
-                            source === ERC20BridgeSource.BalancerV2
-                                ? BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId]
-                                : BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
+                        const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId];
                         if (!swaps || vault === NULL_ADDRESS) {
                             return [];
                         }

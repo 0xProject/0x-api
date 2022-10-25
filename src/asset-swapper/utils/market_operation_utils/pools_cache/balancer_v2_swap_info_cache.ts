@@ -24,16 +24,13 @@ import { SubgraphPoolDataService } from './sgPoolDataService';
 
 const ONE_DAY_MS = 24 * 60 * 60 * ONE_SECOND_MS;
 
-type BalancerChains = Exclude<
-    ChainId,
-    | ChainId.ArbitrumRinkeby
-    | ChainId.Avalanche
-    | ChainId.BSC
-    | ChainId.Celo
-    | ChainId.Ganache
-    | ChainId.PolygonMumbai
-    | ChainId.Kovan
->;
+type BalancerChains =
+    | ChainId.Mainnet
+    | ChainId.Goerli
+    | ChainId.Polygon
+    | ChainId.Fantom
+    | ChainId.Optimism
+    | ChainId.Arbitrum;
 
 const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
     [ChainId.Mainnet]: {
