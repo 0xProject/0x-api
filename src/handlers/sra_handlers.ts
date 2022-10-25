@@ -216,7 +216,7 @@ export class SRAHandlers {
             ...req.body,
             referenceAsset: NULL_TEXT,
             collateralToken: NULL_ADDRESS,
-            dataProvider: NULL_ADDRESS
+            dataProvider: NULL_ADDRESS,
         });
         const response = await this._orderBook.postOfferAddLiquidityAsync(offerAddLiquidityEntity);
 

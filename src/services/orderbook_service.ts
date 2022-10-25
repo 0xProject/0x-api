@@ -861,7 +861,11 @@ export class OrderBookService {
         // Get provider to call web3 function
         const provider = new InfuraProvider(offerAddLiquidityEntity.chainId, INFURA_API_KEY);
         // Get DIVA contract to call web3 function
-        const divaContract = new Contract(offerAddLiquidityEntity.verifyingContract || NULL_ADDRESS, divaContractABI, provider);
+        const divaContract = new Contract(
+            offerAddLiquidityEntity.verifyingContract || NULL_ADDRESS,
+            divaContractABI,
+            provider,
+        );
         // Get parameters of pool using pool id
         const parameters = await divaContract.functions.getPoolParameters(offerAddLiquidityEntity.poolId);
         const referenceAsset = parameters[0].referenceAsset;
@@ -872,8 +876,8 @@ export class OrderBookService {
             ...offerAddLiquidityEntity,
             referenceAsset,
             collateralToken,
-            dataProvider
-        }
+            dataProvider,
+        };
         await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferAddLiquidityEntity);
 
         return offerAddLiquidityEntity.offerHash;
