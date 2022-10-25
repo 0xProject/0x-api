@@ -833,46 +833,20 @@ export class OrderBookService {
             if (req.poolId !== NULL_TEXT && apiEntity.poolId !== req.poolId) {
                 return false;
             }
+            if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
+                return false;
+            }
+            if (req.collateralToken !== NULL_ADDRESS && apiEntity.collateralToken !== req.collateralToken) {
+                return false;
+            }
+            if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider !== req.dataProvider) {
+                return false;
+            }
 
             return true;
         });
 
-        const resultEntities: OfferAddLiquidity[] = [];
-
-        await Promise.all(
-            filterEntities.map(async (filterEntity: OfferAddLiquidity) => {
-                let isFiltered = true;
-
-                if (
-                    req.referenceAsset !== NULL_TEXT ||
-                    req.collateralToken !== NULL_ADDRESS ||
-                    req.dataProvider !== NULL_ADDRESS
-                ) {
-                    const provider = new InfuraProvider(filterEntity.chainId, INFURA_API_KEY);
-                    const divaContract = new Contract(filterEntity.verifyingContract, divaContractABI, provider);
-                    const parameters = await divaContract.functions.getPoolParameters(filterEntity.poolId);
-                    const referenceAsset = parameters[0].referenceAsset;
-                    const collateralToken = parameters[0].collateralToken;
-                    const dataProvider = parameters[0].dataProvider;
-
-                    if (req.referenceAsset !== NULL_TEXT && referenceAsset !== req.referenceAsset) {
-                        isFiltered = false;
-                    }
-                    if (req.collateralToken !== NULL_ADDRESS && collateralToken !== req.collateralToken) {
-                        isFiltered = false;
-                    }
-                    if (req.dataProvider !== NULL_ADDRESS && dataProvider !== req.dataProvider) {
-                        isFiltered = false;
-                    }
-                }
-
-                if (isFiltered) {
-                    resultEntities.push(filterEntity);
-                }
-            }),
-        );
-
-        return paginationUtils.paginate(resultEntities, req.page, req.perPage);
+        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -884,7 +858,23 @@ export class OrderBookService {
 
     // tslint:disable-next-line:prefer-function-over-method
     public async postOfferAddLiquidityAsync(offerAddLiquidityEntity: OfferAddLiquidityEntity): Promise<any> {
-        await this._connection.getRepository(OfferAddLiquidityEntity).insert(offerAddLiquidityEntity);
+        // Get provider to call web3 function
+        const provider = new InfuraProvider(offerAddLiquidityEntity.chainId, INFURA_API_KEY);
+        // Get DIVA contract to call web3 function
+        const divaContract = new Contract(offerAddLiquidityEntity.verifyingContract || NULL_ADDRESS, divaContractABI, provider);
+        // Get parameters of pool using pool id
+        const parameters = await divaContract.functions.getPoolParameters(offerAddLiquidityEntity.poolId);
+        const referenceAsset = parameters[0].referenceAsset;
+        const collateralToken = parameters[0].collateralToken;
+        const dataProvider = parameters[0].dataProvider;
+
+        const fillableOfferAddLiquidityEntity: OfferAddLiquidityEntity = {
+            ...offerAddLiquidityEntity,
+            referenceAsset,
+            collateralToken,
+            dataProvider
+        }
+        await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferAddLiquidityEntity);
 
         return offerAddLiquidityEntity.offerHash;
     }

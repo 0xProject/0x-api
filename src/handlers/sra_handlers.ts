@@ -212,7 +212,12 @@ export class SRAHandlers {
     public async postOfferAddLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
         schemaUtils.validateSchema(req.body, schemas.sraOfferAddLiquiditySchema);
 
-        const offerAddLiquidityEntity = new OfferAddLiquidityEntity(req.body);
+        const offerAddLiquidityEntity = new OfferAddLiquidityEntity({
+            ...req.body,
+            referenceAsset: NULL_TEXT,
+            collateralToken: NULL_ADDRESS,
+            dataProvider: NULL_ADDRESS
+        });
         const response = await this._orderBook.postOfferAddLiquidityAsync(offerAddLiquidityEntity);
 
         res.status(HttpStatus.OK).send(response);

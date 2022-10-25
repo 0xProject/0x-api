@@ -36,9 +36,6 @@ export class OfferAddLiquidityEntity {
     @ViewColumn()
     public salt?: string;
 
-    @ViewColumn()
-    public signature?: string;
-
     @ViewColumn({ name: 'chain_id' })
     public chainId?: number;
 
@@ -47,6 +44,18 @@ export class OfferAddLiquidityEntity {
 
     @ViewColumn({ name: 'actual_taker_fillable_amount' })
     public actualTakerFillableAmount?: string;
+
+    @ViewColumn({ name: 'reference_asset' })
+    public referenceAsset?: string;
+
+    @ViewColumn({ name: 'collateral_token' })
+    public collateralToken?: string;
+
+    @ViewColumn({ name: 'data_provider' })
+    public dataProvider?: string;
+
+    @ViewColumn()
+    public signature?: string;
 
     constructor(
         opts: {
@@ -61,9 +70,12 @@ export class OfferAddLiquidityEntity {
             poolId?: string;
             salt?: string;
             actualTakerFillableAmount?: string;
-            signature?: string;
             chainId?: number;
             verifyingContract?: string;
+            referenceAsset?: string;
+            collateralToken?: string;
+            dataProvider?: string;
+            signature?: string;
         } = {},
     ) {
         Object.assign(this, opts);

@@ -154,9 +154,12 @@ export const orderUtils = {
             salt: offerAddLiquidityEntity.salt as string,
             poolId: offerAddLiquidityEntity.poolId as string,
             actualTakerFillableAmount: offerAddLiquidityEntity.actualTakerFillableAmount as string,
-            signature: JSON.parse(offerAddLiquidityEntity.signature as string),
             chainId: Number(offerAddLiquidityEntity.chainId),
             verifyingContract: offerAddLiquidityEntity.verifyingContract as string,
+            referenceAsset: offerAddLiquidityEntity.referenceAsset as string,
+            collateralToken: offerAddLiquidityEntity.collateralToken as string,
+            dataProvider: offerAddLiquidityEntity.dataProvider as string,
+            signature: JSON.parse(offerAddLiquidityEntity.signature as string),
         };
         return signedOffer;
     },

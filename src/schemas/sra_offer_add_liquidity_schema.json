@@ -41,6 +41,15 @@
         "actualTakerFillableAmount": {
             "type": "string"
         },
+        "referenceAsset": {
+            "type": "string"
+        },
+        "collateralToken": {
+            "$ref": "/addressSchema"
+        },
+        "dataProvider": {
+            "$ref": "/addressSchema"
+        },
         "signature": {
             "type": "object",
             "properties": {
