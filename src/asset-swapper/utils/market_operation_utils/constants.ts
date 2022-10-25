@@ -2847,7 +2847,7 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     [ERC20BridgeSource.SpookySwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Yoshi]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Beethovenx]: (fillData?: FillData) => {
-        if ((fillData as BalancerV2BatchSwapFillData).chainId = ChainId.Fantom) {
+        if ((fillData as BalancerV2BatchSwapFillData).chainId === ChainId.Fantom) {
             return 125e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 50e3;
         }
         return 305e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 100e3;
