@@ -658,6 +658,7 @@ export const OPTIMISM_TOKENS = {
     WBTC: '0x68f180fcce6836688e9084f035309e29bf0a2095',
     nETH: '0x809dc529f07651bd43a172e8db6f4a7a0d771036',
     sWETH: '0x121ab82b49b2bc4c7901ca46b8277962b4350204',
+    OP: '0x4200000000000000000000000000000000000042',
     // Synthetix synths:
     sAAVE: '0x00b8d5a5e1ac97cb4341c4bc4367443c8776e8d9',
     sAVAX: '0xb2b42b231c68cbb0b4bf2ffebf57782fd97d3da4',
@@ -2889,7 +2890,7 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     [ERC20BridgeSource.SpookySwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Yoshi]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Beethovenx]: (fillData?: FillData) => {
-        return 450e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 50e3;
+        return 305e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 100e3;
     },
     //
     // Optimism
