@@ -157,6 +157,8 @@ export class MetaTransactionService {
                     blockNumber: quote.blockNumber,
                     slippage: params.slippagePercentage,
                     estimatedGas: quote.estimatedGas,
+                    enableSlippageProtection: false,
+                    expectedSlippage: quote.expectedSlippage,
                 },
                 true,
                 kafkaProducer,

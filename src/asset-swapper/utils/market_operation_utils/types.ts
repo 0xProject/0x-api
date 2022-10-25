@@ -3,6 +3,7 @@ import {
     FillQuoteTransformerLimitOrderInfo,
     FillQuoteTransformerOrderType,
     FillQuoteTransformerRfqOrderInfo,
+    FillQuoteTransformerOtcOrderInfo,
 } from '@0x/protocol-utils';
 import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
@@ -177,7 +178,8 @@ export interface FillData {}
 // `FillData` for native fills. Represents a single native order
 export type NativeRfqOrderFillData = FillQuoteTransformerRfqOrderInfo;
 export type NativeLimitOrderFillData = FillQuoteTransformerLimitOrderInfo;
-export type NativeFillData = NativeRfqOrderFillData | NativeLimitOrderFillData;
+export type NativeOtcOrderFillData = FillQuoteTransformerOtcOrderInfo;
+export type NativeFillData = NativeRfqOrderFillData | NativeLimitOrderFillData | NativeOtcOrderFillData;
 
 // Represents an individual DEX sample from the sampler contract
 export interface DexSample<TFillData extends FillData = FillData> {
@@ -416,13 +418,18 @@ export interface OptimizedRfqOrder extends OptimizedMarketOrderBase<NativeRfqOrd
     type: FillQuoteTransformerOrderType.Rfq;
 }
 
+export interface OptimizedOtcOrder extends OptimizedMarketOrderBase<NativeOtcOrderFillData> {
+    type: FillQuoteTransformerOrderType.Otc;
+}
+
 /**
  * Optimized orders to fill.
  */
 export type OptimizedMarketOrder =
     | OptimizedMarketBridgeOrder<FillData>
     | OptimizedMarketOrderBase<NativeLimitOrderFillData>
-    | OptimizedMarketOrderBase<NativeRfqOrderFillData>;
+    | OptimizedMarketOrderBase<NativeRfqOrderFillData>
+    | OptimizedMarketOrderBase<NativeOtcOrderFillData>;
 
 export interface GetMarketOrdersRfqOpts extends RfqRequestOpts {
     rfqClient?: RfqClient;
@@ -457,11 +464,6 @@ export interface GetMarketOrdersOpts {
      */
     includedSources: ERC20BridgeSource[];
     /**
-     * Complexity limit on the search algorithm, i.e., maximum number of
-     * nodes to visit. Default is 1024.
-     */
-    runLimit: number;
-    /**
      * When generating bridge orders, we use
      * sampled rate * (1 - bridgeSlippage)
      * as the rate for calculating maker/taker asset amounts.
@@ -485,7 +487,7 @@ export interface GetMarketOrdersOpts {
      * A value of 1 will result in evenly spaced samples.
      * > 1 will result in more samples at lower sizes.
      * < 1 will result in more samples at higher sizes.
-     * Default: 1.25.
+     * Default: 1
      */
     sampleDistributionBase: number;
     /**

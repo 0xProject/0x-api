@@ -39,6 +39,7 @@ import {
     ERC20BridgeSource,
     FinalUniswapV3FillData,
     LiquidityProviderFillData,
+    NativeOtcOrderFillData,
     NativeRfqOrderFillData,
     OptimizedMarketBridgeOrder,
     OptimizedMarketOrder,
@@ -46,6 +47,7 @@ import {
 } from '../utils/market_operation_utils/types';
 
 import {
+    multiplexOtcOrder,
     multiplexPlpEncoder,
     multiplexRfqEncoder,
     MultiplexSubcall,
@@ -342,6 +344,44 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
             };
         }
 
+        // OTC orders
+        // if we have more than one otc order we want to batch fill them through multiplex
+        if (
+            [ChainId.Mainnet, ChainId.PolygonMumbai].includes(this.chainId) && // @todo goerli and polygon?
+            quote.orders.every((o) => o.type === FillQuoteTransformerOrderType.Otc) &&
+            !requiresTransformERC20(optsWithDefaults) &&
+            quote.orders.length === 1
+        ) {
+            const otcOrdersData = quote.orders.map((o) => o.fillData as NativeOtcOrderFillData);
+
+            let callData;
+
+            // if the otc orders takerToken is the native asset
+            if (isFromETH) {
+                callData = this._exchangeProxy
+                    .fillOtcOrderWithEth(otcOrdersData[0].order, otcOrdersData[0].signature)
+                    .getABIEncodedTransactionData();
+            }
+            // if the otc orders makerToken is the native asset
+            if (isToETH) {
+                callData = this._exchangeProxy
+                    .fillOtcOrderForEth(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
+                    .getABIEncodedTransactionData();
+            } else {
+                // if the otc order contains 2 erc20 tokens
+                callData = this._exchangeProxy
+                    .fillOtcOrder(otcOrdersData[0].order, otcOrdersData[0].signature, sellAmount)
+                    .getABIEncodedTransactionData();
+            }
+            return {
+                calldataHexString: callData,
+                ethAmount: isFromETH ? sellAmount : ZERO_AMOUNT,
+                toAddress: this._exchangeProxy.address,
+                allowanceTarget: this._exchangeProxy.address,
+                gasOverhead: ZERO_AMOUNT,
+            };
+        }
+
         if (this.chainId === ChainId.Mainnet && isMultiplexBatchFillCompatible(quote, optsWithDefaults)) {
             return {
                 calldataHexString: this._encodeMultiplexBatchFillCalldata(
@@ -354,6 +394,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                 gasOverhead: ZERO_AMOUNT,
             };
         }
+
         if (this.chainId === ChainId.Mainnet && isMultiplexMultiHopFillCompatible(quote, optsWithDefaults)) {
             return {
                 calldataHexString: this._encodeMultiplexMultiHopFillCalldata(
@@ -396,7 +437,6 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                     ...getFQTTransformerDataFromOptimizedOrders([firstHopOrder]),
                     refundReceiver: refundReceiver || NULL_ADDRESS,
                     fillAmount: shouldSellEntireBalance ? MAX_UINT256 : firstHopOrder.takerAmount,
-                    otcOrders: [],
                 }),
             });
             transforms.push({
@@ -408,7 +448,6 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                     ...getFQTTransformerDataFromOptimizedOrders([secondHopOrder]),
                     refundReceiver: refundReceiver || NULL_ADDRESS,
                     fillAmount: MAX_UINT256,
-                    otcOrders: [],
                 }),
             });
         } else {
@@ -422,7 +461,6 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                     ...getFQTTransformerDataFromOptimizedOrders(slippedOrders),
                     refundReceiver: refundReceiver || NULL_ADDRESS,
                     fillAmount: !isBuyQuote(quote) && shouldSellEntireBalance ? MAX_UINT256 : fillAmount,
-                    otcOrders: [],
                 }),
             });
         }
@@ -557,19 +595,33 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
         for_loop: for (const [i, order] of quote.orders.entries()) {
             switch_statement: switch (order.source) {
                 case ERC20BridgeSource.Native:
-                    if (order.type !== FillQuoteTransformerOrderType.Rfq) {
+                    if (
+                        order.type !== FillQuoteTransformerOrderType.Rfq &&
+                        order.type !== FillQuoteTransformerOrderType.Otc
+                    ) {
                         // Should never happen because we check `isMultiplexBatchFillCompatible`
                         // before calling this function.
-                        throw new Error('Multiplex batch fill only supported for RFQ native orders');
+                        throw new Error('Multiplex batch fill only supported for RFQ native orders and OTC Orders');
                     }
-                    subcalls.push({
-                        id: MultiplexSubcall.Rfq,
-                        sellAmount: order.takerAmount,
-                        data: multiplexRfqEncoder.encode({
-                            order: order.fillData.order,
-                            signature: order.fillData.signature,
-                        }),
-                    });
+                    if (order.type !== FillQuoteTransformerOrderType.Otc) {
+                        subcalls.push({
+                            id: MultiplexSubcall.Rfq,
+                            sellAmount: order.takerAmount,
+                            data: multiplexRfqEncoder.encode({
+                                order: order.fillData.order,
+                                signature: order.fillData.signature,
+                            }),
+                        });
+                    } else {
+                        subcalls.push({
+                            id: MultiplexSubcall.Otc,
+                            sellAmount: order.takerAmount,
+                            data: multiplexOtcOrder.encode({
+                                order: order.fillData.order,
+                                signature: order.fillData.signature,
+                            }),
+                        });
+                    }
                     break switch_statement;
                 case ERC20BridgeSource.UniswapV2:
                 case ERC20BridgeSource.SushiSwap:
@@ -609,7 +661,6 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
                         ...getFQTTransformerDataFromOptimizedOrders(quote.orders.slice(i)),
                         refundReceiver: NULL_ADDRESS,
                         fillAmount: MAX_UINT256,
-                        otcOrders: [],
                     });
                     const transformations = [
                         { deploymentNonce: this.transformerNonces.fillQuoteTransformer, data: fqtData },
