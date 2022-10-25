@@ -489,7 +489,7 @@ export class SamplerOperations {
         }));
         return new SamplerContractOperation({
             source,
-            fillData: { vault, swapSteps: fillSwaps.swapSteps, assets: fillSwaps.assets },
+            fillData: { vault, swapSteps: fillSwaps.swapSteps, assets: fillSwaps.assets, chainId: this.chainId },
             contract: this._samplerContract,
             function: this._samplerContract.sampleMultihopSellsFromBalancerV2,
             params: [vault, quoteSwapSteps, quoteSwaps.assets, takerFillAmounts],
@@ -511,7 +511,7 @@ export class SamplerOperations {
         return new SamplerContractOperation({
             source,
             // NOTE: fillData is set up for sells but quote function is set up for buys.
-            fillData: { vault, swapSteps: fillSwaps.swapSteps, assets: fillSwaps.assets },
+            fillData: { vault, swapSteps: fillSwaps.swapSteps, assets: fillSwaps.assets, chainId: this.chainId },
             contract: this._samplerContract,
             function: this._samplerContract.sampleMultihopBuysFromBalancerV2,
             params: [vault, quoteSwapSteps, quoteSwaps.assets, makerFillAmounts],
