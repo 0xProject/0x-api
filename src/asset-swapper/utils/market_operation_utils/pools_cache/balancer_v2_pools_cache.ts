@@ -1,4 +1,3 @@
-import { ChainId } from '@0x/contract-addresses';
 import { BigNumber } from '@0x/utils';
 // import { parsePoolData } from '@balancer-labs'; // TODO - upgrade to v2
 import { Pool } from 'balancer-labs-sor-v1/dist/types';
@@ -9,8 +8,7 @@ import { LogFunction } from '../../../types';
 import { BALANCER_MAX_POOLS_FETCHED, BALANCER_TOP_POOLS_FETCHED } from '../constants';
 
 import { parsePoolData } from './balancer_sor_v2';
-import { NoOpPoolsCache } from './no_op_pools_cache';
-import { AbstractPoolsCache, CacheValue, PoolsCache } from './pools_cache';
+import { AbstractPoolsCache, CacheValue } from './pools_cache';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
