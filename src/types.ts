@@ -41,6 +41,9 @@ export interface OfferAddLiquidityFilterType {
     taker: string;
     makerDirection: string;
     poolId: string;
+    referenceAsset: string;
+    collateralToken: string;
+    dataProvider: string;
 }
 
 export interface OrdersByLifecycleEvents {

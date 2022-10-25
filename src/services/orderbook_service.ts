@@ -1,6 +1,8 @@
 import { LimitOrderFields } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { getAddress } from '@ethersproject/address';
+import { Contract } from '@ethersproject/contracts';
+import { InfuraProvider } from '@ethersproject/providers';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 import * as WebSocket from 'ws';
@@ -10,6 +12,7 @@ import { fetchPoolLists } from '../asset-swapper/utils/market_operation_utils/po
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     defaultHttpServiceConfig,
+    INFURA_API_KEY,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
     WEBSOCKET_PORT,
@@ -26,6 +29,7 @@ import {
     NULL_TEXT,
     ONE_SECOND_MS,
 } from '../constants';
+import * as divaContractABI from '../diva-abis/divaContractABI.json';
 import {
     OfferAddLiquidityEntity,
     OfferCreateContingentPoolEntity,
@@ -750,7 +754,7 @@ export class OrderBookService {
 
         const filterEntities: OfferCreateContingentPool[] = apiEntities.filter(
             (apiEntity: OfferCreateContingentPool) => {
-                if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() === req.maker) {
+                if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() !== req.maker) {
                     return false;
                 }
                 if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLocaleLowerCase() !== req.taker) {
@@ -817,7 +821,7 @@ export class OrderBookService {
         );
 
         const filterEntities: OfferAddLiquidity[] = apiEntities.filter((apiEntity: OfferAddLiquidity) => {
-            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() === req.maker) {
+            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() !== req.maker) {
                 return false;
             }
             if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLocaleLowerCase() !== req.taker) {
@@ -833,7 +837,42 @@ export class OrderBookService {
             return true;
         });
 
-        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+        const resultEntities: OfferAddLiquidity[] = [];
+
+        await Promise.all(
+            filterEntities.map(async (filterEntity: OfferAddLiquidity) => {
+                let isFiltered = true;
+
+                if (
+                    req.referenceAsset !== NULL_TEXT ||
+                    req.collateralToken !== NULL_ADDRESS ||
+                    req.dataProvider !== NULL_ADDRESS
+                ) {
+                    const provider = new InfuraProvider(filterEntity.chainId, INFURA_API_KEY);
+                    const divaContract = new Contract(filterEntity.verifyingContract, divaContractABI, provider);
+                    const parameters = await divaContract.functions.getPoolParameters(filterEntity.poolId);
+                    const referenceAsset = parameters[0].referenceAsset;
+                    const collateralToken = parameters[0].collateralToken;
+                    const dataProvider = parameters[0].dataProvider;
+
+                    if (req.referenceAsset !== NULL_TEXT && referenceAsset !== req.referenceAsset) {
+                        isFiltered = false;
+                    }
+                    if (req.collateralToken !== NULL_ADDRESS && collateralToken !== req.collateralToken) {
+                        isFiltered = false;
+                    }
+                    if (req.dataProvider !== NULL_ADDRESS && dataProvider !== req.dataProvider) {
+                        isFiltered = false;
+                    }
+                }
+
+                if (isFiltered) {
+                    resultEntities.push(filterEntity);
+                }
+            }),
+        );
+
+        return paginationUtils.paginate(resultEntities, req.page, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
