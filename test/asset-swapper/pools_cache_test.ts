@@ -2,10 +2,7 @@ import { ChainId } from '@0x/contract-addresses';
 import * as chai from 'chai';
 import 'mocha';
 
-import {
-    BalancerPoolsCache,
-    PoolsCache,
-} from '../../src/asset-swapper/utils/market_operation_utils/pools_cache';
+import { BalancerPoolsCache, PoolsCache } from '../../src/asset-swapper/utils/market_operation_utils/pools_cache';
 
 import { chaiSetup } from './utils/chai_setup';
 
@@ -42,5 +39,4 @@ describe('Pools Caches for Balancer-based sampling', () => {
             );
         });
     });
-
 });

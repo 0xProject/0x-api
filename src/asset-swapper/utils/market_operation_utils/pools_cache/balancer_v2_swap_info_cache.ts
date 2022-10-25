@@ -24,7 +24,16 @@ import { SubgraphPoolDataService } from './sgPoolDataService';
 
 const ONE_DAY_MS = 24 * 60 * 60 * ONE_SECOND_MS;
 
-type BalancerChains = Exclude<ChainId, ChainId.ArbitrumRinkeby | ChainId.Avalanche | ChainId.BSC | ChainId.Celo | ChainId.Ganache | ChainId.PolygonMumbai | ChainId.Kovan>;
+type BalancerChains = Exclude<
+    ChainId,
+    | ChainId.ArbitrumRinkeby
+    | ChainId.Avalanche
+    | ChainId.BSC
+    | ChainId.Celo
+    | ChainId.Ganache
+    | ChainId.PolygonMumbai
+    | ChainId.Kovan
+>;
 
 const SOR_CONFIG: Record<BalancerChains, SorConfig> = {
     [ChainId.Mainnet]: {
@@ -77,7 +86,8 @@ export class BalancerV2SwapInfoCache extends SwapInfoCache {
 
     constructor(
         chainId: ChainId,
-        subgraphUrl: string | null = BALANCER_V2_SUBGRAPH_URL_BY_CHAIN[chainId] || BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN[chainId],
+        subgraphUrl: string | null = BALANCER_V2_SUBGRAPH_URL_BY_CHAIN[chainId] ||
+            BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN[chainId],
         private readonly _warningLogger: LogFunction = DEFAULT_WARNING_LOGGER,
         cache: { [key: string]: CacheValue } = {},
     ) {

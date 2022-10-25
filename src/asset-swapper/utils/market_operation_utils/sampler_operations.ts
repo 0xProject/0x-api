@@ -58,7 +58,7 @@ import {
     ZERO_AMOUNT,
 } from './constants';
 import { getLiquidityProvidersForPair } from './liquidity_provider_utils';
-import { BalancerPoolsCache, BalancerV2PoolsCache, PoolsCache } from './pools_cache';
+import { BalancerPoolsCache, PoolsCache } from './pools_cache';
 import { BalancerV2SwapInfoCache } from './pools_cache/balancer_v2_swap_info_cache';
 import { SamplerContractOperation } from './sampler_contract_operation';
 import { SamplerNoOperation } from './sampler_no_operation';
@@ -153,10 +153,10 @@ export class SamplerOperations {
         this.poolsCaches = poolsCaches
             ? poolsCaches
             : {
-                  [ERC20BridgeSource.Beethovenx]: 
-                    BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[chainId] === NULL_ADDRESS
-                        ? undefined
-                        : new BalancerV2SwapInfoCache(chainId),
+                  [ERC20BridgeSource.Beethovenx]:
+                      BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[chainId] === NULL_ADDRESS
+                          ? undefined
+                          : new BalancerV2SwapInfoCache(chainId),
                   [ERC20BridgeSource.Balancer]: BalancerPoolsCache.create(chainId),
                   [ERC20BridgeSource.BalancerV2]:
                       BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[chainId] === NULL_ADDRESS
@@ -1609,11 +1609,14 @@ export class SamplerOperations {
                             );
                     case ERC20BridgeSource.Beethovenx:
                     case ERC20BridgeSource.BalancerV2: {
-                        if (this.chainId === ChainId.Optimism && source === ERC20BridgeSource.Beethovenx && 
-                            (takerToken === OPTIMISM_TOKENS.OP || makerToken === OPTIMISM_TOKENS.OP)) {
-                                // BeethovenX on Optimism is currently seeing some revert issues with the OP token
-                                // so we're going to blacklist the token until we can investigate.
-                                return [];
+                        if (
+                            this.chainId === ChainId.Optimism &&
+                            source === ERC20BridgeSource.Beethovenx &&
+                            (takerToken === OPTIMISM_TOKENS.OP || makerToken === OPTIMISM_TOKENS.OP)
+                        ) {
+                            // BeethovenX on Optimism is currently seeing some revert issues with the OP token
+                            // so we're going to blacklist the token until we can investigate.
+                            return [];
                         }
 
                         const cache = this.poolsCaches[source];
@@ -1622,7 +1625,10 @@ export class SamplerOperations {
                         }
 
                         const swaps = cache.getCachedSwapInfoForPair(takerToken, makerToken);
-                        const vault = source === ERC20BridgeSource.BalancerV2 ? BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId] : BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
+                        const vault =
+                            source === ERC20BridgeSource.BalancerV2
+                                ? BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId]
+                                : BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
                         if (!swaps || vault === NULL_ADDRESS) {
                             return [];
                         }
@@ -1951,7 +1957,10 @@ export class SamplerOperations {
                         }
 
                         const swaps = cache.getCachedSwapInfoForPair(takerToken, makerToken);
-                        const vault = source === ERC20BridgeSource.BalancerV2 ? BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId] : BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
+                        const vault =
+                            source === ERC20BridgeSource.BalancerV2
+                                ? BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId]
+                                : BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
                         if (!swaps || vault === NULL_ADDRESS) {
                             return [];
                         }
