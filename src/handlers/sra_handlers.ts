@@ -187,8 +187,11 @@ export class SRAHandlers {
         const referenceAsset =
             req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
         const collateralToken =
-            req.query.collateralToken === undefined ? NULL_ADDRESS : (req.query.collateralToken as string);
-        const dataProvider = req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string);
+            req.query.collateralToken === undefined
+                ? NULL_ADDRESS
+                : (req.query.collateralToken as string).toLowerCase();
+        const dataProvider =
+            req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
 
         const response = await this._orderBook.offerAddLiquidityAsync({
             page,
