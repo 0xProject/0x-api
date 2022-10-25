@@ -12,6 +12,7 @@ import {
     QuoteReport,
     RfqRequestOpts,
     Signature,
+    FeeData,
 } from './asset-swapper';
 import { Integrator } from './config';
 
@@ -250,6 +251,7 @@ export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransactio
     priceComparisonsReport?: PriceComparisonsReport;
     expectedSlippage?: BigNumber | null;
     blockNumber: number | undefined;
+    fees: FeeData[];
 }
 
 export interface SwapQuoteResponsePartialTransaction {

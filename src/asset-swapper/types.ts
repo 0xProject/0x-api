@@ -109,6 +109,13 @@ export interface SwapQuoteExecutionOpts extends SwapQuoteGetOutputOpts {
     gasLimit?: number;
 }
 
+export interface FeeData {
+    feeToken: string;
+    feeAmount: BigNumber;
+    destination: string;
+    kind: string;
+}
+
 export enum AffiliateFeeType {
     None,
     PercentageFee,

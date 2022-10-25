@@ -3,7 +3,7 @@ import { ExchangeProxyMetaTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { Kafka, Producer } from 'kafkajs';
 
-import { ContractAddresses, AffiliateFeeType, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '../asset-swapper';
+import { ContractAddresses, AffiliateFeeType, FeeData, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '../asset-swapper';
 import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, KAFKA_BROKERS, META_TX_EXPIRATION_BUFFER_MS } from '../config';
 import { AFFILIATE_DATA_SELECTOR, NULL_ADDRESS, ONE_GWEI, ONE_SECOND_MS, ZERO } from '../constants';
 import {
@@ -21,6 +21,7 @@ export interface MetaTransactionQuoteResult extends QuoteBase {
     callData: string;
     sellTokenAddress: string;
     taker: string;
+    fees: FeeData[];
 }
 
 let kafkaProducer: Producer | undefined;
@@ -71,6 +72,7 @@ export class MetaTransactionService {
             allowanceTarget: quote.allowanceTarget,
             sellTokenToEthRate: quote.sellTokenToEthRate,
             buyTokenToEthRate: quote.buyTokenToEthRate,
+            fees: quote.fees,
         };
 
         // Go through the Exchange Proxy.
@@ -183,6 +185,7 @@ export class MetaTransactionService {
             buyTokenAddress: params.buyTokenAddress,
             sellTokenAddress: params.sellTokenAddress,
             taker: params.takerAddress,
+            fees: quote.fees,
         };
     }
 }

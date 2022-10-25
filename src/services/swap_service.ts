@@ -18,6 +18,7 @@ import {
     ChainId,
     ContractAddresses,
     FakeTakerContract,
+    FeeData,
     GetMarketOrdersRfqOpts,
     IdentityFillAdjustor,
     NATIVE_FEE_TOKEN_BY_CHAIN_ID,
@@ -343,6 +344,17 @@ export class SwapService {
             sellTokenFeeAmount,
         } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
 
+        let fees: FeeData[] = [];
+        if (buyTokenFeeAmount.gt(ZERO)) {
+            const feeData: FeeData = {
+                feeAmount: buyTokenFeeAmount,
+                destination: affiliateFee.recipient,
+                feeToken: buyToken,
+                kind: AffiliateFeeType[affiliateFee.feeType],
+            };
+            fees = [feeData];
+        }
+
         // Grab the encoded version of the swap quote
         const { to, value, data, decodedUniqueId, gasOverhead } = await this._getSwapQuotePartialTransactionAsync(
             swapQuote,
@@ -473,6 +485,7 @@ export class SwapService {
             quoteReport,
             priceComparisonsReport,
             blockNumber: swapQuote.blockNumber,
+            fees,
         };
 
         if (apiSwapQuote.buyAmount.lte(new BigNumber(0))) {
@@ -622,6 +635,7 @@ export class SwapService {
             buyTokenToEthRate: new BigNumber(1),
             allowanceTarget: NULL_ADDRESS,
             blockNumber: undefined,
+            fees: [],
         };
         return apiSwapQuote;
     }

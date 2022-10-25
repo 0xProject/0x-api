@@ -20,6 +20,7 @@ export {
     AltOffering,
     AltRfqMakerAssetOfferings,
     AssetSwapperContractAddresses,
+    FeeData,
     MarketOperation,
     MockedRfqQuoteResponse,
     OrderPrunerPermittedFeeTypes,
