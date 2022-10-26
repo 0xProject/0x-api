@@ -166,7 +166,7 @@ export interface BalancerV2PoolInfo {
     vault: string;
 }
 
-export interface AaveV2Info {
+export interface AaveInfo {
     lendingPool: string;
     aToken: string;
     underlyingToken: string;
@@ -316,7 +316,7 @@ export interface LidoFillData extends FillData {
     makerToken: string;
 }
 
-export interface AaveV2FillData extends FillData {
+export interface AaveFillData extends FillData {
     lendingPool: string;
     aToken: string;
     underlyingToken: string;

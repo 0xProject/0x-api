@@ -8,7 +8,7 @@ import { TokenAdjacencyGraph, TokenAdjacencyGraphBuilder } from '../token_adjace
 import { IdentityFillAdjustor } from './identity_fill_adjustor';
 import { SourceFilters } from './source_filters';
 import {
-    AaveV2FillData,
+    AaveFillData,
     BalancerV2BatchSwapFillData,
     BancorFillData,
     CompoundFillData,
@@ -2380,6 +2380,17 @@ export const AAVE_V2_SUBGRAPH_URL_BY_CHAIN_ID = valueByChainId(
     null,
 );
 
+export const AAVE_V3_SUBGRAPH_URL_BY_CHAIN_ID = valueByChainId(
+    {
+        [ChainId.Polygon]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-polygon',
+        [ChainId.Avalanche]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-avalanche',
+        [ChainId.Arbitrum]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-arbitrum',
+        [ChainId.Optimism]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-optimism',
+        [ChainId.Fantom]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-fantom',
+    },
+    null,
+);
+
 export const COMPOUND_API_URL_BY_CHAIN_ID = valueByChainId(
     {
         // TODO: enable after FQT has been redeployed on Ethereum mainnet
@@ -2739,11 +2750,11 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
         }
     },
     [ERC20BridgeSource.AaveV2]: (fillData?: FillData) => {
-        const aaveFillData = fillData as AaveV2FillData;
+        const aaveFillData = fillData as AaveFillData;
         // NOTE: The Aave deposit method is more expensive than the withdraw
         return aaveFillData.takerToken === aaveFillData.underlyingToken ? 400e3 : 300e3;
     },[ERC20BridgeSource.AaveV3]: (fillData?: FillData) => {
-        const aaveFillData = fillData as AaveV2FillData;
+        const aaveFillData = fillData as AaveFillData;
         // NOTE: The Aave deposit method is more expensive than the withdraw
         return aaveFillData.takerToken === aaveFillData.underlyingToken ? 400e3 : 300e3;
     },

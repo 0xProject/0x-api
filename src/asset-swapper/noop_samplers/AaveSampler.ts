@@ -6,8 +6,8 @@ export interface AaveInfo {
     aToken: string;
     underlyingToken: string;
 }
-export class AaveV2Sampler {
-    public static sampleSellsFromAaveV2(
+export class AaveSampler {
+    public static sampleSellsFromAave(
         aaveInfo: AaveInfo,
         takerToken: string,
         makerToken: string,
@@ -31,7 +31,7 @@ export class AaveV2Sampler {
         return makerTokenAmounts;
     }
 
-    public static sampleBuysFromAaveV2(
+    public static sampleBuysFromAave(
         aaveInfo: AaveInfo,
         takerToken: string,
         makerToken: string,

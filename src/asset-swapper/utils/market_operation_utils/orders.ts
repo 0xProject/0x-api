@@ -6,7 +6,7 @@ import { AssetSwapperContractAddresses, MarketOperation } from '../../types';
 
 import { MAX_UINT256, ZERO_AMOUNT } from './constants';
 import {
-    AaveV2FillData,
+    AaveFillData,
     AggregationError,
     BalancerFillData,
     BalancerV2BatchSwapFillData,
@@ -360,8 +360,9 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             bridgeData = encoder.encode([lidoFillData.stEthTokenAddress, lidoFillData.wstEthTokenAddress]);
             break;
         }
+        case ERC20BridgeSource.AaveV3:
         case ERC20BridgeSource.AaveV2: {
-            const aaveFillData = (order as OptimizedMarketBridgeOrder<AaveV2FillData>).fillData;
+            const aaveFillData = (order as OptimizedMarketBridgeOrder<AaveFillData>).fillData;
             bridgeData = encoder.encode([aaveFillData.lendingPool, aaveFillData.aToken]);
             break;
         }
