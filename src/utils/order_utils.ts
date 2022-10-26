@@ -159,6 +159,7 @@ export const orderUtils = {
             referenceAsset: offerAddLiquidityEntity.referenceAsset as string,
             collateralToken: offerAddLiquidityEntity.collateralToken as string,
             dataProvider: offerAddLiquidityEntity.dataProvider as string,
+            permissionedERC721Token: offerAddLiquidityEntity.permissionedERC721Token as string,
             signature: JSON.parse(offerAddLiquidityEntity.signature as string),
         };
         return signedOffer;

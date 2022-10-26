@@ -29,7 +29,8 @@ import {
     NULL_TEXT,
     ONE_SECOND_MS,
 } from '../constants';
-import * as divaContractABI from '../diva-abis/divaContractABI.json';
+import * as divaContractABI from '../diva-abis/DivaContractABI.json';
+import * as PermissionedPositionTokenABI from '../diva-abis/PermissionedPositionTokenABI.json';
 import {
     OfferAddLiquidityEntity,
     OfferCreateContingentPoolEntity,
@@ -37,7 +38,7 @@ import {
     SignedOrderV4Entity,
 } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
-import { alertOnExpiredOrders } from '../logger';
+import { alertOnExpiredOrders, logger } from '../logger';
 import {
     FillableOrderType,
     MakerInfoType,
@@ -842,6 +843,12 @@ export class OrderBookService {
             if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
                 return false;
             }
+            if (
+                req.permissionedERC721Token !== NULL_ADDRESS &&
+                apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
+            ) {
+                return false;
+            }
 
             return true;
         });
@@ -872,11 +879,26 @@ export class OrderBookService {
         const collateralToken = parameters[0].collateralToken;
         const dataProvider = parameters[0].dataProvider;
 
+        // Get longToken address
+        const longToken = parameters[0].longToken;
+
+        // Get PermissionedPositionToken contract to call web3 function
+        const permissionedPositionContract = new Contract(longToken as string, PermissionedPositionTokenABI, provider);
+        // Get PermissionedERC721Token address
+        let permissionedERC721Token = NULL_ADDRESS;
+
+        try {
+            permissionedERC721Token = await permissionedPositionContract.functions.permissionedERC721Token();
+        } catch (err) {
+            logger.warn('There is no permissionedERC721Token for this pool.');
+        }
+
         const fillableOfferAddLiquidityEntity: OfferAddLiquidityEntity = {
             ...offerAddLiquidityEntity,
             referenceAsset,
             collateralToken,
             dataProvider,
+            permissionedERC721Token,
         };
         await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferAddLiquidityEntity);
 

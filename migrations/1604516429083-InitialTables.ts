@@ -68,6 +68,7 @@ export class InitialTables1604516429083 implements MigrationInterface {
                 "reference_asset" character varying NOT NULL,
                 "collateral_token" character varying NOT NULL,
                 "data_provider" character varying NOT NULL,
+                "permissioned_token" character varying NOT NULL,
                 "signature" character varying NOT NULL,
                 CONSTRAINT "PK_2nhf194jgyh71jh48sl34u7k492" PRIMARY KEY ("offer_hash"))`,
         );

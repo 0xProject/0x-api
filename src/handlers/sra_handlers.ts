@@ -192,6 +192,10 @@ export class SRAHandlers {
                 : (req.query.collateralToken as string).toLowerCase();
         const dataProvider =
             req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
+        const permissionedERC721Token =
+            req.query.permissionedERC721Token === undefined
+                ? NULL_ADDRESS
+                : (req.query.permissionedERC721Token as string).toLowerCase();
 
         const response = await this._orderBook.offerAddLiquidityAsync({
             page,
@@ -203,6 +207,7 @@ export class SRAHandlers {
             referenceAsset,
             collateralToken,
             dataProvider,
+            permissionedERC721Token,
         });
 
         res.status(HttpStatus.OK).send(response);
@@ -220,6 +225,7 @@ export class SRAHandlers {
             referenceAsset: NULL_TEXT,
             collateralToken: NULL_ADDRESS,
             dataProvider: NULL_ADDRESS,
+            permissionedERC721Token: NULL_ADDRESS,
         });
         const response = await this._orderBook.postOfferAddLiquidityAsync(offerAddLiquidityEntity);
 

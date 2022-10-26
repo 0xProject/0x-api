@@ -50,6 +50,9 @@
         "dataProvider": {
             "$ref": "/addressSchema"
         },
+        "permissionedERC721Token": {
+            "$ref": "/addressSchema"
+        },
         "signature": {
             "type": "object",
             "properties": {

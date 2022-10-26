@@ -54,6 +54,9 @@ export class OfferAddLiquidityEntity {
     @ViewColumn({ name: 'data_provider' })
     public dataProvider?: string;
 
+    @ViewColumn({ name: 'permissioned_token' })
+    public permissionedERC721Token?: string;
+
     @ViewColumn()
     public signature?: string;
 
@@ -75,6 +78,7 @@ export class OfferAddLiquidityEntity {
             referenceAsset?: string;
             collateralToken?: string;
             dataProvider?: string;
+            permissionedERC721Token?: string;
             signature?: string;
         } = {},
     ) {
