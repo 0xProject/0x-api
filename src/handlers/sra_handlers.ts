@@ -184,6 +184,18 @@ export class SRAHandlers {
         const makerDirection =
             req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
         const poolId = req.query.poolId === undefined ? NULL_TEXT : (req.query.poolId as string);
+        const referenceAsset =
+            req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
+        const collateralToken =
+            req.query.collateralToken === undefined
+                ? NULL_ADDRESS
+                : (req.query.collateralToken as string).toLowerCase();
+        const dataProvider =
+            req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
+        const permissionedERC721Token =
+            req.query.permissionedERC721Token === undefined
+                ? NULL_ADDRESS
+                : (req.query.permissionedERC721Token as string).toLowerCase();
 
         const response = await this._orderBook.offerAddLiquidityAsync({
             page,
@@ -192,6 +204,10 @@ export class SRAHandlers {
             taker,
             makerDirection,
             poolId,
+            referenceAsset,
+            collateralToken,
+            dataProvider,
+            permissionedERC721Token,
         });
 
         res.status(HttpStatus.OK).send(response);
@@ -204,7 +220,13 @@ export class SRAHandlers {
     public async postOfferAddLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
         schemaUtils.validateSchema(req.body, schemas.sraOfferAddLiquiditySchema);
 
-        const offerAddLiquidityEntity = new OfferAddLiquidityEntity(req.body);
+        const offerAddLiquidityEntity = new OfferAddLiquidityEntity({
+            ...req.body,
+            referenceAsset: NULL_TEXT,
+            collateralToken: NULL_ADDRESS,
+            dataProvider: NULL_ADDRESS,
+            permissionedERC721Token: NULL_ADDRESS,
+        });
         const response = await this._orderBook.postOfferAddLiquidityAsync(offerAddLiquidityEntity);
 
         res.status(HttpStatus.OK).send(response);

@@ -34,12 +34,7 @@ export interface OfferCreateContingentPoolFilterType {
     permissionedERC721Token: string;
 }
 
-export interface OfferAddLiquidityFilterType {
-    page: number;
-    perPage: number;
-    maker: string;
-    taker: string;
-    makerDirection: string;
+export interface OfferAddLiquidityFilterType extends OfferCreateContingentPoolFilterType {
     poolId: string;
 }
 
@@ -61,7 +56,7 @@ export interface SignedLimitOrder extends LimitOrderFields {
     poolId?: number;
 }
 
-export interface OfferCreateContingentPool {
+export interface OfferType {
     offerHash: string;
     maker: string;
     taker: string;
@@ -71,36 +66,27 @@ export interface OfferCreateContingentPool {
     offerExpiry: string;
     minimumTakerFillAmount: string;
     referenceAsset: string;
+    collateralToken: string;
+    dataProvider: string;
+    permissionedERC721Token: string;
+    signature: Signature;
+    chainId: number;
+    salt: string;
+    verifyingContract: string;
+}
+
+export interface OfferCreateContingentPool extends OfferType {
     expiryTime: string;
     floor: string;
     inflection: string;
     cap: string;
     gradient: string;
-    collateralToken: string;
-    dataProvider: string;
     capacity: string;
-    permissionedERC721Token: string;
-    salt: string;
-    signature: Signature;
-    chainId: number;
-    verifyingContract: string;
 }
 
-export interface OfferAddLiquidity {
-    offerHash: string;
-    maker: string;
-    taker: string;
-    makerCollateralAmount: string;
-    takerCollateralAmount: string;
-    makerDirection: string;
-    offerExpiry: string;
-    minimumTakerFillAmount: string;
-    salt: string;
+export interface OfferAddLiquidity extends OfferType {
     poolId: string;
     actualTakerFillableAmount: string;
-    signature: Signature;
-    chainId: number;
-    verifyingContract: string;
 }
 
 /** BEGIN SRA TYPES */

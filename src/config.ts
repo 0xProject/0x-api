@@ -222,8 +222,22 @@ export const SWAP_IGNORED_ADDRESSES: string[] = _.isEmpty(process.env.SWAP_IGNOR
 
 export const DB_ORDERS_UPDATE_CHUNK_SIZE = 300;
 
+// Infura API Key
+export const INFURA_API_KEY = _.isEmpty(process.env.INFURA_API_KEY)
+    ? ''
+    : assertEnvVarType('INFURA_API_KEY', process.env.INFURA_API_KEY, EnvVarType.NonEmptyString);
+
 // Ethereum RPC Url list
-export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.UrlList);
+export const ETHEREUM_RPC_URL = assertEnvVarType(
+    'ETHEREUM_RPC_URL',
+    CHAIN_ID === 1
+        ? `https://mainnet.infura.io/v3/${INFURA_API_KEY}`
+        : CHAIN_ID === 5
+        ? `https://goerli.infura.io/v3/${INFURA_API_KEY}`
+        : `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
+    EnvVarType.UrlList,
+);
+
 // Timeout in seconds to wait for an RPC request (default 5000)
 export const RPC_REQUEST_TIMEOUT = _.isEmpty(process.env.RPC_REQUEST_TIMEOUT)
     ? 5000

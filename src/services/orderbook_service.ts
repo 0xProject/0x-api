@@ -1,6 +1,8 @@
 import { LimitOrderFields } from '@0x/protocol-utils';
 import { BigNumber } from '@0x/utils';
 import { getAddress } from '@ethersproject/address';
+import { Contract } from '@ethersproject/contracts';
+import { InfuraProvider } from '@ethersproject/providers';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 import * as WebSocket from 'ws';
@@ -10,6 +12,7 @@ import { fetchPoolLists } from '../asset-swapper/utils/market_operation_utils/po
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     defaultHttpServiceConfig,
+    INFURA_API_KEY,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
     WEBSOCKET_PORT,
@@ -26,6 +29,8 @@ import {
     NULL_TEXT,
     ONE_SECOND_MS,
 } from '../constants';
+import * as divaContractABI from '../diva-abis/DivaContractABI.json';
+import * as PermissionedPositionTokenABI from '../diva-abis/PermissionedPositionTokenABI.json';
 import {
     OfferAddLiquidityEntity,
     OfferCreateContingentPoolEntity,
@@ -33,7 +38,7 @@ import {
     SignedOrderV4Entity,
 } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
-import { alertOnExpiredOrders } from '../logger';
+import { alertOnExpiredOrders, logger } from '../logger';
 import {
     FillableOrderType,
     MakerInfoType,
@@ -80,7 +85,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public filterOrder = (order: SRAOrder, req: OrderbookPriceRequest): boolean => {
+    public filterOrder(order: SRAOrder, req: OrderbookPriceRequest): boolean {
         // 1 is 0.001% and the actual amount is token fee / 100000, so we divided it by 100000
         // filter by taker token fee
         if (req.takerTokenFee !== -1) {
@@ -125,7 +130,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getBidOrAskFormat = (record: SRAOrder): OrderbookPriceResponse => {
+    public getBidOrAskFormat(record: SRAOrder): OrderbookPriceResponse {
         return {
             order: {
                 maker: getAddress(record.order.maker),
@@ -145,7 +150,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getMakerInfo = (records: SRAOrder[]): MakerInfoType => {
+    public getMakerInfo(records: SRAOrder[]): MakerInfoType {
         // maker address array
         const makers: string[] = records.map((data) => {
             return data.order.maker;
@@ -162,12 +167,12 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getFillableOrder = (
+    public getFillableOrder(
         makers: string[],
         makerTokens: string[],
         minOfBalancesOrAllowances: BigNumber[],
         order: SRAOrder,
-    ): FillableOrderType => {
+    ): FillableOrderType {
         // Calculate remainingFillableMakerAmount using remainingFillableTakerAmount, makerAmount and takerAmount information received from 0x api
         // This new variable is compared to the maker's maker token balance and allowance to assess fillability.
         const remainingFillableMakerAmount = order.order.makerAmount
@@ -235,7 +240,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getSignedOrderEntities = async (baseToken: string, quoteToken: string) => {
+    public async getSignedOrderEntitiesAsync(baseToken: string, quoteToken: string): Promise<any> {
         const orderEntities = await this._connection.manager.find(SignedOrderV4Entity, {
             where: {
                 takerToken: In([baseToken, quoteToken]),
@@ -270,7 +275,7 @@ export class OrderBookService {
         baseToken: string,
         quoteToken: string,
     ): Promise<OrderbookResponse> {
-        const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntities(baseToken, quoteToken);
+        const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntitiesAsync(baseToken, quoteToken);
 
         let makers: string[] = []; // maker address array
         let makerTokens: string[] = []; // maker token address array
@@ -286,7 +291,7 @@ export class OrderBookService {
         makerTokens = makerTokens.concat(askMakerInfo.makerTokens);
 
         // Get minOfBalancesOrAllowances
-        let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowances(makers, makerTokens);
+        let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowancesAsync(makers, makerTokens);
 
         const req: OrderbookPriceRequest = {
             page,
@@ -334,7 +339,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getMinOfBalancesOrAllowances = async (makers: string[], makerTokens: string[]): Promise<BigNumber[]> => {
+    public async getMinOfBalancesOrAllowancesAsync(makers: string[], makerTokens: string[]): Promise<BigNumber[]> {
         // The limit on the length of an array that can be sent as a parameter of smart contract function is 400.
         // Generate makers chunks
         const makersChunks = makers.reduce((resultArray: string[][], item, index) => {
@@ -410,7 +415,7 @@ export class OrderBookService {
         await Promise.all(
             pools.map(async (pool) => {
                 // Get bid list using pool's baseToken and quoteToken
-                const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntities(
+                const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntitiesAsync(
                     pool.baseToken,
                     pool.quoteToken,
                 );
@@ -430,7 +435,7 @@ export class OrderBookService {
             }),
         );
 
-        let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowances(makers, makerTokens);
+        let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowancesAsync(makers, makerTokens);
 
         // Get best bid and ask
         for (const pool of pools) {
@@ -750,10 +755,10 @@ export class OrderBookService {
 
         const filterEntities: OfferCreateContingentPool[] = apiEntities.filter(
             (apiEntity: OfferCreateContingentPool) => {
-                if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() === req.maker) {
+                if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
                     return false;
                 }
-                if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLocaleLowerCase() !== req.taker) {
+                if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
                     return false;
                 }
                 if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
@@ -764,19 +769,16 @@ export class OrderBookService {
                 }
                 if (
                     req.collateralToken !== NULL_ADDRESS &&
-                    apiEntity.collateralToken.toLocaleLowerCase() !== req.collateralToken
+                    apiEntity.collateralToken.toLowerCase() !== req.collateralToken
                 ) {
                     return false;
                 }
-                if (
-                    req.dataProvider !== NULL_ADDRESS &&
-                    apiEntity.dataProvider.toLocaleLowerCase() !== req.dataProvider
-                ) {
+                if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
                     return false;
                 }
                 if (
                     req.permissionedERC721Token !== NULL_ADDRESS &&
-                    apiEntity.permissionedERC721Token.toLocaleLowerCase() !== req.permissionedERC721Token
+                    apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
                 ) {
                     return false;
                 }
@@ -817,16 +819,34 @@ export class OrderBookService {
         );
 
         const filterEntities: OfferAddLiquidity[] = apiEntities.filter((apiEntity: OfferAddLiquidity) => {
-            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLocaleLowerCase() === req.maker) {
+            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
                 return false;
             }
-            if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLocaleLowerCase() !== req.taker) {
+            if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
                 return false;
             }
             if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
                 return false;
             }
             if (req.poolId !== NULL_TEXT && apiEntity.poolId !== req.poolId) {
+                return false;
+            }
+            if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
+                return false;
+            }
+            if (
+                req.collateralToken !== NULL_ADDRESS &&
+                apiEntity.collateralToken.toLowerCase() !== req.collateralToken
+            ) {
+                return false;
+            }
+            if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
+                return false;
+            }
+            if (
+                req.permissionedERC721Token !== NULL_ADDRESS &&
+                apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
+            ) {
                 return false;
             }
 
@@ -845,7 +865,44 @@ export class OrderBookService {
 
     // tslint:disable-next-line:prefer-function-over-method
     public async postOfferAddLiquidityAsync(offerAddLiquidityEntity: OfferAddLiquidityEntity): Promise<any> {
-        await this._connection.getRepository(OfferAddLiquidityEntity).insert(offerAddLiquidityEntity);
+        // Get provider to call web3 function
+        const provider = new InfuraProvider(offerAddLiquidityEntity.chainId, INFURA_API_KEY);
+        // Get DIVA contract to call web3 function
+        const divaContract = new Contract(
+            offerAddLiquidityEntity.verifyingContract || NULL_ADDRESS,
+            divaContractABI,
+            provider,
+        );
+        // Get parameters of pool using pool id
+        const parameters = await divaContract.functions.getPoolParameters(offerAddLiquidityEntity.poolId);
+        const referenceAsset = parameters[0].referenceAsset;
+        const collateralToken = parameters[0].collateralToken;
+        const dataProvider = parameters[0].dataProvider;
+
+        // Get longToken address
+        const longToken = parameters[0].longToken;
+
+        // Get PermissionedPositionToken contract to call web3 function
+        const permissionedPositionContract = new Contract(longToken as string, PermissionedPositionTokenABI, provider);
+        // Get PermissionedERC721Token address
+        let permissionedERC721Token = NULL_ADDRESS;
+
+        // TODO: If this call succeeds, longToken is permissionedPositionToken and the permissionedERC721Token exists, not NULL_ADDRESS.
+        // If this call fails, longToken is the permissionlessToken and the permissionedERC721Token is NULL_ADDRESS.
+        try {
+            permissionedERC721Token = await permissionedPositionContract.functions.permissionedERC721Token();
+        } catch (err) {
+            logger.warn('There is no permissionedERC721Token for this pool.');
+        }
+
+        const fillableOfferAddLiquidityEntity: OfferAddLiquidityEntity = {
+            ...offerAddLiquidityEntity,
+            referenceAsset,
+            collateralToken,
+            dataProvider,
+            permissionedERC721Token,
+        };
+        await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferAddLiquidityEntity);
 
         return offerAddLiquidityEntity.offerHash;
     }
