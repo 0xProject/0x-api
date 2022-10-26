@@ -84,7 +84,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public filterOrder = (order: SRAOrder, req: OrderbookPriceRequest): boolean => {
+    public filterOrder(order: SRAOrder, req: OrderbookPriceRequest): boolean {
         // 1 is 0.001% and the actual amount is token fee / 100000, so we divided it by 100000
         // filter by taker token fee
         if (req.takerTokenFee !== -1) {
@@ -129,7 +129,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getBidOrAskFormat = (record: SRAOrder): OrderbookPriceResponse => {
+    public getBidOrAskFormat(record: SRAOrder): OrderbookPriceResponse {
         return {
             order: {
                 maker: getAddress(record.order.maker),
@@ -149,7 +149,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getMakerInfo = (records: SRAOrder[]): MakerInfoType => {
+    public getMakerInfo(records: SRAOrder[]): MakerInfoType {
         // maker address array
         const makers: string[] = records.map((data) => {
             return data.order.maker;
@@ -166,12 +166,12 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getFillableOrder = (
+    public getFillableOrder(
         makers: string[],
         makerTokens: string[],
         minOfBalancesOrAllowances: BigNumber[],
         order: SRAOrder,
-    ): FillableOrderType => {
+    ): FillableOrderType {
         // Calculate remainingFillableMakerAmount using remainingFillableTakerAmount, makerAmount and takerAmount information received from 0x api
         // This new variable is compared to the maker's maker token balance and allowance to assess fillability.
         const remainingFillableMakerAmount = order.order.makerAmount
@@ -239,7 +239,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getSignedOrderEntities = async (baseToken: string, quoteToken: string) => {
+    public async getSignedOrderEntitiesAsync(baseToken: string, quoteToken: string): Promise<any> {
         const orderEntities = await this._connection.manager.find(SignedOrderV4Entity, {
             where: {
                 takerToken: In([baseToken, quoteToken]),
@@ -274,7 +274,7 @@ export class OrderBookService {
         baseToken: string,
         quoteToken: string,
     ): Promise<OrderbookResponse> {
-        const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntities(baseToken, quoteToken);
+        const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntitiesAsync(baseToken, quoteToken);
 
         let makers: string[] = []; // maker address array
         let makerTokens: string[] = []; // maker token address array
@@ -290,7 +290,7 @@ export class OrderBookService {
         makerTokens = makerTokens.concat(askMakerInfo.makerTokens);
 
         // Get minOfBalancesOrAllowances
-        let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowances(makers, makerTokens);
+        let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowancesAsync(makers, makerTokens);
 
         const req: OrderbookPriceRequest = {
             page,
@@ -338,7 +338,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public getMinOfBalancesOrAllowances = async (makers: string[], makerTokens: string[]): Promise<BigNumber[]> => {
+    public async getMinOfBalancesOrAllowancesAsync(makers: string[], makerTokens: string[]): Promise<BigNumber[]> {
         // The limit on the length of an array that can be sent as a parameter of smart contract function is 400.
         // Generate makers chunks
         const makersChunks = makers.reduce((resultArray: string[][], item, index) => {
@@ -414,7 +414,7 @@ export class OrderBookService {
         await Promise.all(
             pools.map(async (pool) => {
                 // Get bid list using pool's baseToken and quoteToken
-                const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntities(
+                const { bidApiOrders, askApiOrders } = await this.getSignedOrderEntitiesAsync(
                     pool.baseToken,
                     pool.quoteToken,
                 );
@@ -434,7 +434,7 @@ export class OrderBookService {
             }),
         );
 
-        let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowances(makers, makerTokens);
+        let minOfBalancesOrAllowances = await this.getMinOfBalancesOrAllowancesAsync(makers, makerTokens);
 
         // Get best bid and ask
         for (const pool of pools) {
