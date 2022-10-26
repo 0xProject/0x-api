@@ -887,7 +887,7 @@ export class OrderBookService {
         // Get PermissionedERC721Token address
         let permissionedERC721Token = NULL_ADDRESS;
 
-        // If this call succeeds, longToken is permissionedPositionToken and the permissionedERC721Token exists, not NULL_ADDRESS.
+        // TODO: If this call succeeds, longToken is permissionedPositionToken and the permissionedERC721Token exists, not NULL_ADDRESS.
         // If this call fails, longToken is the permissionlessToken and the permissionedERC721Token is NULL_ADDRESS.
         try {
             permissionedERC721Token = await permissionedPositionContract.functions.permissionedERC721Token();
