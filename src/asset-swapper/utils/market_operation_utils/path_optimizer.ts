@@ -71,7 +71,7 @@ function findRoutesAndCreateOptimalPath(
     side: MarketOperation,
     samples: DexSample[][],
     nativeOrders: NativeOrderWithFillableAmounts[],
-    input: BigNumber,
+    inputAmount: BigNumber,
     opts: PathPenaltyOpts,
     fees: FeeSchedule,
     neonRouterNumSamples: number,
@@ -81,7 +81,7 @@ function findRoutesAndCreateOptimalPath(
     // Currently the rust router is unable to handle 1 base unit sized quotes and will error out
     // To avoid flooding the logs with these errors we just return an insufficient liquidity error
     // which is how the JS router handles these quotes today
-    if (input.isLessThanOrEqualTo(ONE_BASE_UNIT)) {
+    if (inputAmount.isLessThanOrEqualTo(ONE_BASE_UNIT)) {
         return undefined;
     }
 
@@ -89,7 +89,7 @@ function findRoutesAndCreateOptimalPath(
     // adjustor
     const createFillFromDexSample = (sample: DexSample): Fill => {
         const fill = dexSampleToFill(side, sample, opts.outputAmountPerEth, opts.inputAmountPerEth, fees);
-        const adjustedFills = fillAdjustor.adjustFills(side, [fill], input);
+        const adjustedFills = fillAdjustor.adjustFills(side, [fill], inputAmount);
         return adjustedFills[0];
     };
 
@@ -117,7 +117,7 @@ function findRoutesAndCreateOptimalPath(
         const totalRoutedAmount = BigNumber.sum(...route.inputAmounts);
 
         // Due to precision errors we can end up with a totalRoutedAmount that is not exactly equal to the input
-        const precisionErrorScalar = input.dividedBy(totalRoutedAmount);
+        const precisionErrorScalar = inputAmount.dividedBy(totalRoutedAmount);
 
         for (const [
             routeInputAmount,
@@ -136,7 +136,7 @@ function findRoutesAndCreateOptimalPath(
             // we can work around it by scaling it and rounding up. However now we end up with a total amount of a couple base units too much
             const routeInputCorrected = BigNumber.min(
                 precisionErrorScalar.multipliedBy(routeInputAmount).integerValue(BigNumber.ROUND_CEIL),
-                input,
+                inputAmount,
             );
 
             const current = routeSamplesAndNativeOrders[routeSamplesAndNativeOrders.length - 1];
@@ -217,7 +217,7 @@ function findRoutesAndCreateOptimalPath(
             return undefined;
         }
 
-        const pathFromRustInputs = Path.create(side, adjustedFills, input, opts);
+        const pathFromRustInputs = Path.create(side, adjustedFills, inputAmount, opts);
 
         return pathFromRustInputs;
     };
@@ -277,7 +277,7 @@ function findRoutesAndCreateOptimalPath(
         sampleSourcePathIds.push(sourcePathId);
     }
 
-    const nativeOrdersourcePathId = hexUtils.random();
+    const nativeOrderSourcePathId = hexUtils.random();
     for (const [idx, nativeOrder] of nativeOrders.entries()) {
         const { input: normalizedOrderInput, output: normalizedOrderOutput } = nativeOrderToNormalizedAmounts(
             side,
@@ -304,7 +304,7 @@ function findRoutesAndCreateOptimalPath(
         // and including the full quote input amount.
         // If the order is smaller we don't need to scale anything, we will just end up
         // with trailing duplicate samples for the order input as we cannot go higher
-        const scaleToInput = BigNumber.min(input.dividedBy(normalizedOrderInput), 1);
+        const scaleToInput = BigNumber.min(inputAmount.dividedBy(normalizedOrderInput), 1);
         for (let i = 1; i <= 13; i++) {
             const fraction = i / 13;
             const currentInput = BigNumber.min(
@@ -335,7 +335,7 @@ function findRoutesAndCreateOptimalPath(
 
         samplesAndNativeOrdersWithResults.push([nativeOrder]);
         serializedPaths.push(serializedPath);
-        sampleSourcePathIds.push(nativeOrdersourcePathId);
+        sampleSourcePathIds.push(nativeOrderSourcePathId);
     }
 
     if (serializedPaths.length === 0) {
@@ -344,7 +344,7 @@ function findRoutesAndCreateOptimalPath(
 
     const optimizerCapture: OptimizerCapture = {
         side,
-        targetInput: input.toNumber(),
+        targetInput: inputAmount.toNumber(),
         pathsIn: serializedPaths,
     };
     const { allSourcesRoute, vipSourcesRoute } = routeFromNeonRouter({
@@ -365,7 +365,7 @@ export function findOptimalPathFromSamples(
     side: MarketOperation,
     samples: DexSample[][],
     nativeOrders: NativeOrderWithFillableAmounts[],
-    input: BigNumber,
+    inputAmount: BigNumber,
     opts: PathPenaltyOpts,
     fees: FeeSchedule,
     chainId: ChainId,
@@ -385,7 +385,7 @@ export function findOptimalPathFromSamples(
         side,
         samples,
         nativeOrders,
-        input,
+        inputAmount,
         opts,
         fees,
         neonRouterNumSamples,
