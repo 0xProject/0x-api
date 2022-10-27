@@ -46,7 +46,7 @@ import { IdentityFillAdjustor } from './identity_fill_adjustor';
 import { getBestTwoHopQuote } from './multihop_utils';
 import { createOrdersFromTwoHopSample } from './orders';
 import { PathPenaltyOpts } from './path';
-import { findOptimalPathFromSamples } from './path_optimizer';
+import { PathOptimizer } from './path_optimizer';
 import { DexOrderSampler, getSampleAmounts } from './sampler';
 import { SourceFilters } from './source_filters';
 import {
@@ -512,7 +512,7 @@ export class MarketOperationUtils {
         );
 
         // Find the optimal path.
-        const penaltyOpts: PathPenaltyOpts = {
+        const pathPenaltyOpts: PathPenaltyOpts = {
             outputAmountPerEth,
             inputAmountPerEth,
             exchangeProxyOverhead: opts.exchangeProxyOverhead || (() => ZERO_AMOUNT),
@@ -524,16 +524,18 @@ export class MarketOperationUtils {
         const makerAmountPerEth = side === MarketOperation.Sell ? outputAmountPerEth : inputAmountPerEth;
 
         // Find the optimal path using Rust router.
-        const optimalPath = findOptimalPathFromSamples(
+        const pathOptimizer = new PathOptimizer({
             side,
+            feeSchedule: opts.feeSchedule,
+            chainId: this._sampler.chainId,
+            neonRouterNumSamples: opts.neonRouterNumSamples,
+            fillAdjustor: opts.fillAdjustor,
+            pathPenaltyOpts,
+        });
+        const optimalPath = pathOptimizer.findOptimalPathFromSamples(
             dexQuotes,
             [...nativeOrders, ...augmentedRfqtIndicativeQuotes],
             inputAmount,
-            penaltyOpts,
-            opts.feeSchedule,
-            this._sampler.chainId,
-            opts.neonRouterNumSamples,
-            opts.fillAdjustor,
         );
 
         const optimalPathAdjustedRate = optimalPath ? optimalPath.adjustedRate() : ZERO_AMOUNT;
