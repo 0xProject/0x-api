@@ -93,9 +93,15 @@ export class AaveReservesCache {
         try {
             let reserves: (AaveV2Reserve | AaveV3Reserve)[];
             if (this._isV3) {
-                ({ reserves } = await request<{ reserves: AaveV3Reserve[] }>(this._subgraphUrl, AAVE_V3_RESERVES_GQL_QUERY));
+                ({ reserves } = await request<{ reserves: AaveV3Reserve[] }>(
+                    this._subgraphUrl,
+                    AAVE_V3_RESERVES_GQL_QUERY,
+                ));
             } else {
-                ({ reserves }  = await request<{ reserves: AaveV2Reserve[] }>(this._subgraphUrl, AAVE_V2_RESERVES_GQL_QUERY));
+                ({ reserves } = await request<{ reserves: AaveV2Reserve[] }>(
+                    this._subgraphUrl,
+                    AAVE_V2_RESERVES_GQL_QUERY,
+                ));
             }
             const newCache = reserves.reduce<Cache>((memo, reserve) => {
                 const underlyingAsset = reserve.underlyingAsset.toLowerCase();

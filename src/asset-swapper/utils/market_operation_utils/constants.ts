@@ -2753,7 +2753,8 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
         const aaveFillData = fillData as AaveFillData;
         // NOTE: The Aave deposit method is more expensive than the withdraw
         return aaveFillData.takerToken === aaveFillData.underlyingToken ? 400e3 : 300e3;
-    },[ERC20BridgeSource.AaveV3]: (fillData?: FillData) => {
+    },
+    [ERC20BridgeSource.AaveV3]: (fillData?: FillData) => {
         const aaveFillData = fillData as AaveFillData;
         // NOTE: The Aave deposit method is more expensive than the withdraw
         return aaveFillData.takerToken === aaveFillData.underlyingToken ? 400e3 : 300e3;

@@ -1131,7 +1131,7 @@ export class SamplerOperations {
         makerToken: string,
         takerToken: string,
         takerFillAmounts: BigNumber[],
-        source: ERC20BridgeSource.AaveV2 | ERC20BridgeSource.AaveV3
+        source: ERC20BridgeSource.AaveV2 | ERC20BridgeSource.AaveV3,
     ): SourceQuoteOperation<AaveFillData> {
         return new SamplerNoOperation({
             source: source,
@@ -1145,7 +1145,7 @@ export class SamplerOperations {
         makerToken: string,
         takerToken: string,
         makerFillAmounts: BigNumber[],
-        source: ERC20BridgeSource.AaveV2 | ERC20BridgeSource.AaveV3
+        source: ERC20BridgeSource.AaveV2 | ERC20BridgeSource.AaveV3,
     ): SourceQuoteOperation<AaveFillData> {
         return new SamplerNoOperation({
             source: source,
@@ -1714,7 +1714,7 @@ export class SamplerOperations {
                         const lidoInfo = LIDO_INFO_BY_CHAIN[this.chainId];
                         return this.getLidoSellQuotes(lidoInfo, makerToken, takerToken, takerFillAmounts);
                     }
-                    case ERC20BridgeSource.AaveV3:
+                    case ERC20BridgeSource.AaveV3: {
                         if (!this.aaveV3ReservesCache) {
                             return [];
                         }
@@ -1730,6 +1730,7 @@ export class SamplerOperations {
                         };
 
                         return this.getAaveSellQuotes(info, makerToken, takerToken, takerFillAmounts, source);
+                    }
                     case ERC20BridgeSource.AaveV2: {
                         if (!this.aaveV2ReservesCache) {
                             return [];
@@ -2075,7 +2076,7 @@ export class SamplerOperations {
                         const lidoInfo = LIDO_INFO_BY_CHAIN[this.chainId];
                         return this.getLidoBuyQuotes(lidoInfo, makerToken, takerToken, makerFillAmounts);
                     }
-                    case ERC20BridgeSource.AaveV3:
+                    case ERC20BridgeSource.AaveV3: {
                         if (!this.aaveV3ReservesCache) {
                             return [];
                         }
@@ -2087,8 +2088,9 @@ export class SamplerOperations {
                             lendingPool: (reserve as AaveV3Reserve).pool.pool,
                             aToken: reserve.aToken.id,
                             underlyingToken: reserve.underlyingAsset,
-                        }
+                        };
                         return this.getAaveBuyQuotes(info, makerToken, takerToken, makerFillAmounts, source);
+                    }
                     case ERC20BridgeSource.AaveV2: {
                         if (!this.aaveV2ReservesCache) {
                             return [];
