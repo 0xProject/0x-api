@@ -1,4 +1,3 @@
-import { ChainId } from '@0x/contract-addresses';
 import * as chai from 'chai';
 import 'mocha';
 import { DEFAULT_GAS_SCHEDULE, ERC20BridgeSource, FillQuoteTransformerOrderType } from '../../src/asset-swapper';
