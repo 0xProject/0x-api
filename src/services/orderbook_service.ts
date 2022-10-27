@@ -3,6 +3,7 @@ import { BigNumber } from '@0x/utils';
 import { getAddress } from '@ethersproject/address';
 import { Contract } from '@ethersproject/contracts';
 import { InfuraProvider } from '@ethersproject/providers';
+import { ContractCallContext, ContractCallResults, Multicall } from 'ethereum-multicall';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 import * as WebSocket from 'ws';
@@ -919,6 +920,8 @@ export class OrderBookService {
     public async checkVaildateOffersAsync(): Promise<void> {
         // Get provider to call web3 function
         const provider = new InfuraProvider(CHAIN_ID, INFURA_API_KEY);
+        const multicall = new Multicall({ ethersProvider: provider, tryAggregate: true });
+        const callData: ContractCallContext[] = [];
 
         // Check validate of offerCreateContingentPools
         const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
@@ -926,46 +929,89 @@ export class OrderBookService {
             offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
         ).map(orderUtils.deserializeOfferCreateContingentPool);
 
+        apiOfferCreateContingentPoolEntities.map((apiEntity) => {
+            const offerCreateContingentPool = {
+                maker: apiEntity.maker,
+                taker: apiEntity.taker,
+                makerCollateralAmount: apiEntity.makerCollateralAmount,
+                takerCollateralAmount: apiEntity.takerCollateralAmount,
+                makerDirection: apiEntity.makerDirection,
+                offerExpiry: apiEntity.offerExpiry,
+                minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
+                referenceAsset: apiEntity.referenceAsset,
+                expiryTime: apiEntity.expiryTime,
+                floor: apiEntity.floor,
+                inflection: apiEntity.inflection,
+                cap: apiEntity.cap,
+                gradient: apiEntity.gradient,
+                collateralToken: apiEntity.collateralToken,
+                dataProvider: apiEntity.dataProvider,
+                capacity: apiEntity.capacity,
+                permissionedERC721Token: apiEntity.permissionedERC721Token,
+                salt: apiEntity.salt,
+            };
+            const signature = apiEntity.signature;
+
+            callData.push({
+                reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
+                contractAddress: apiEntity.verifyingContract,
+                abi: divaContractABI,
+                calls: [
+                    {
+                        reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
+                        methodName: 'getOfferRelevantStateCreateContingentPool',
+                        methodParameters: [offerCreateContingentPool, signature],
+                    },
+                ],
+            });
+        });
+
+        // Check validate of offerAddLiquidities
+        const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
+        const apiOfferAddLiquidityEntities: OfferAddLiquidity[] = (
+            offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>
+        ).map(orderUtils.deserializeOfferAddLiquidity);
+
+        apiOfferAddLiquidityEntities.map(async (apiEntity) => {
+            // Get parameters to call the getOfferRelevantStateAddLiquidity function
+            const offerAddLiquidity = {
+                maker: apiEntity.maker,
+                taker: apiEntity.taker,
+                makerCollateralAmount: apiEntity.makerCollateralAmount,
+                takerCollateralAmount: apiEntity.takerCollateralAmount,
+                makerDirection: apiEntity.makerDirection,
+                offerExpiry: apiEntity.offerExpiry,
+                minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
+                poolId: apiEntity.poolId,
+                salt: apiEntity.salt,
+            };
+            const signature = apiEntity.signature;
+
+            callData.push({
+                reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
+                contractAddress: apiEntity.verifyingContract,
+                abi: divaContractABI,
+                calls: [
+                    {
+                        reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
+                        methodName: 'getOfferRelevantStateAddLiquidity',
+                        methodParameters: [offerAddLiquidity, signature],
+                    },
+                ],
+            });
+        });
+
+        const multicallResponse: ContractCallResults = await multicall.call(callData);
+        const result = multicallResponse.results;
+
         await Promise.all(
             apiOfferCreateContingentPoolEntities.map(async (apiEntity) => {
+                const offerCreateContingentPoolInfo =
+                    result[`OfferCreateContingentPool-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+
                 try {
-                    // Get DIVA contract to call web3 function
-                    const divaContract = new Contract(
-                        apiEntity.verifyingContract || NULL_ADDRESS,
-                        divaContractABI,
-                        provider,
-                    );
-                    // Get parameters to call the getOfferRelevantStateCreateContingentPool function
-                    const offerCreateContingentPool = {
-                        maker: apiEntity.maker,
-                        taker: apiEntity.taker,
-                        makerCollateralAmount: apiEntity.makerCollateralAmount,
-                        takerCollateralAmount: apiEntity.takerCollateralAmount,
-                        makerDirection: apiEntity.makerDirection,
-                        offerExpiry: apiEntity.offerExpiry,
-                        minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
-                        referenceAsset: apiEntity.referenceAsset,
-                        expiryTime: apiEntity.expiryTime,
-                        floor: apiEntity.floor,
-                        inflection: apiEntity.inflection,
-                        cap: apiEntity.cap,
-                        gradient: apiEntity.gradient,
-                        collateralToken: apiEntity.collateralToken,
-                        dataProvider: apiEntity.dataProvider,
-                        capacity: apiEntity.capacity,
-                        permissionedERC721Token: apiEntity.permissionedERC721Token,
-                        salt: apiEntity.salt,
-                    };
-                    const signature = apiEntity.signature;
-
                     // Get the offerCreateContingentPoolStatus
-                    const offerCreateContingentPoolStatus =
-                        await divaContract.functions.getOfferRelevantStateCreateContingentPool(
-                            offerCreateContingentPool,
-                            signature,
-                        );
-                    const status = offerCreateContingentPoolStatus[0].status;
-
+                    const status = offerCreateContingentPoolInfo[0][1];
                     // Delete the inValid, canceled, expired offerCreateContingentPools
                     if (
                         status === OfferStatus.Cancelled ||
@@ -984,42 +1030,13 @@ export class OrderBookService {
             }),
         );
 
-        // Check validate of offerAddLiquidities
-        const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
-        const apiOfferAddLiquidityEntities: OfferAddLiquidity[] = (
-            offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>
-        ).map(orderUtils.deserializeOfferAddLiquidity);
-
         await Promise.all(
             apiOfferAddLiquidityEntities.map(async (apiEntity) => {
+                const offerAddLiquidityInfo =
+                    result[`OfferAddLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+
                 try {
-                    // Get DIVA contract to call web3 function
-                    const divaContract = new Contract(
-                        apiEntity.verifyingContract || NULL_ADDRESS,
-                        divaContractABI,
-                        provider,
-                    );
-                    // Get parameters to call the getOfferRelevantStateAddLiquidity function
-                    const offerAddLiquidity = {
-                        maker: apiEntity.maker,
-                        taker: apiEntity.taker,
-                        makerCollateralAmount: apiEntity.makerCollateralAmount,
-                        takerCollateralAmount: apiEntity.takerCollateralAmount,
-                        makerDirection: apiEntity.makerDirection,
-                        offerExpiry: apiEntity.offerExpiry,
-                        minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
-                        poolId: apiEntity.poolId,
-                        salt: apiEntity.salt,
-                    };
-                    const signature = apiEntity.signature;
-
-                    // Get the offerAddLiquidityStatus
-                    const offerAddLiquidityStatus = await divaContract.functions.getOfferRelevantStateAddLiquidity(
-                        offerAddLiquidity,
-                        signature,
-                    );
-                    const status = offerAddLiquidityStatus[0].status;
-
+                    const status = offerAddLiquidityInfo[0][1];
                     // Delete the inValid, canceled, expired offerAddLiquidity
                     if (
                         status === OfferStatus.Cancelled ||
