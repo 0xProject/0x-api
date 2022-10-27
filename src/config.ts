@@ -67,6 +67,14 @@ enum EnvVarType {
     JsonStringList,
 }
 
+export enum OfferStatus {
+    Invalid,
+    Cancelled,
+    Filled,
+    Expired,
+    Fillable,
+}
+
 /**
  * A taker-integrator of the 0x API.
  */
