@@ -380,7 +380,7 @@ export function findOptimalPathFromSamples(
             timingMs: performance.now() - beforeTimeMs,
         });
     };
-    const vipSourcesSet = new Set(VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID[chainId]);
+    const vipSourcesSet = VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID[chainId];
     const paths = findRoutesAndCreateOptimalPath(
         side,
         samples,
