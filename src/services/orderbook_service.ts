@@ -523,7 +523,7 @@ export class OrderBookService {
 
         // Pre-filters; exists in the entity verbatim
         const columnNames = this._connection.getMetadata(SignedOrderV4Entity).columns.map((x) => x.propertyName);
-        const orderFilter = _.pickBy(orderFieldFilters, (v, k) => {
+        const orderFilter = _.pickBy(orderFieldFilters, (_v, k) => {
             return columnNames.includes(k);
         });
 
@@ -756,11 +756,41 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
+    public checkSortParams(takerCollateralAmount: string, makerCollateralAmount: string): BigNumber {
+        const takerAmount = new BigNumber(takerCollateralAmount);
+        const makerAmount = new BigNumber(makerCollateralAmount);
+
+        return takerAmount.div(takerAmount.plus(makerAmount));
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
     public async offerCreateContingentPoolsAsync(req: OfferCreateContingentPoolFilterType): Promise<any> {
         const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
         const apiEntities: OfferCreateContingentPool[] = (
             offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
         ).map(orderUtils.deserializeOfferCreateContingentPool);
+
+        // Sort offers with the same referenceAsset, floor, inflection, cap, gradient, expiryTime and makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
+        apiEntities
+            .sort((a, b) => {
+                if (
+                    a.floor === b.floor &&
+                    a.inflection === b.inflection &&
+                    a.cap === b.cap &&
+                    a.gradient === b.gradient &&
+                    a.expiryTime === b.expiryTime &&
+                    a.makerDirection === b.makerDirection
+                ) {
+                    const sortValA = this.checkSortParams(a.takerCollateralAmount, a.makerCollateralAmount);
+                    const sortValB = this.checkSortParams(b.takerCollateralAmount, b.makerCollateralAmount);
+                    const sortValue = sortValA.minus(sortValB);
+
+                    return Number(sortValue.toString());
+                } else {
+                    return 1;
+                }
+            })
+            .sort((a, b) => a.referenceAsset.localeCompare(b.referenceAsset));
 
         const filterEntities: OfferCreateContingentPool[] = apiEntities.filter(
             (apiEntity: OfferCreateContingentPool) => {
@@ -826,6 +856,23 @@ export class OrderBookService {
         const apiEntities: OfferAddLiquidity[] = (offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>).map(
             orderUtils.deserializeOfferAddLiquidity,
         );
+
+        // Sort offers with the same poolId and the same makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
+        apiEntities
+            .sort((a, b) => {
+                if (a.makerDirection === b.makerDirection) {
+                    const sortValA = this.checkSortParams(a.takerCollateralAmount, a.makerCollateralAmount);
+                    const sortValB = this.checkSortParams(b.takerCollateralAmount, b.makerCollateralAmount);
+                    const sortValue = sortValA.minus(sortValB);
+
+                    return Number(sortValue.toString());
+                } else {
+                    return 1;
+                }
+            })
+            .sort((a, b) => {
+                return Number(b.poolId) - Number(a.poolId);
+            });
 
         const filterEntities: OfferAddLiquidity[] = apiEntities.filter((apiEntity: OfferAddLiquidity) => {
             if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
@@ -972,7 +1019,7 @@ export class OrderBookService {
             offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>
         ).map(orderUtils.deserializeOfferAddLiquidity);
 
-        apiOfferAddLiquidityEntities.map(async (apiEntity) => {
+        apiOfferAddLiquidityEntities.map((apiEntity) => {
             // Get parameters to call the getOfferRelevantStateAddLiquidity function
             const offerAddLiquidity = {
                 maker: apiEntity.maker,
