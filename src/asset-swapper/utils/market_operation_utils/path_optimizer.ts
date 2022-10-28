@@ -35,38 +35,6 @@ function nativeOrderToNormalizedAmounts(
     return { input, output };
 }
 
-function calculateOutputFee(
-    side: MarketOperation,
-    sampleOrNativeOrder: DexSample | NativeOrderWithFillableAmounts,
-    outputAmountPerEth: BigNumber,
-    inputAmountPerEth: BigNumber,
-    fees: FeeSchedule,
-): BigNumber {
-    if (isDexSample(sampleOrNativeOrder)) {
-        const { input, output, source, fillData } = sampleOrNativeOrder;
-        const fee = fees[source]?.(fillData).fee || ZERO_AMOUNT;
-        const outputFee = ethToOutputAmount({
-            input,
-            output,
-            inputAmountPerEth,
-            outputAmountPerEth,
-            ethAmount: fee,
-        });
-        return outputFee;
-    } else {
-        const { input, output } = nativeOrderToNormalizedAmounts(side, sampleOrNativeOrder);
-        const fee = fees[ERC20BridgeSource.Native]?.(sampleOrNativeOrder).fee || ZERO_AMOUNT;
-        const outputFee = ethToOutputAmount({
-            input,
-            output,
-            inputAmountPerEth,
-            outputAmountPerEth,
-            ethAmount: fee,
-        });
-        return outputFee;
-    }
-}
-
 export interface PathOptimizerContext {
     side: MarketOperation;
     chainId: ChainId;
@@ -143,6 +111,7 @@ export class PathOptimizer {
         const sampleSourcePathIds: string[] = [];
 
         const vipSourcesSet = VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID[this.chainId];
+        //  TODO: factor out single source logic.
         for (const singleSourceSamples of samples) {
             if (singleSourceSamples.length === 0) {
                 continue;
@@ -195,6 +164,7 @@ export class PathOptimizer {
             sampleSourcePathIds.push(sourcePathId);
         }
 
+        //  TODO: factor out native order logic.
         const nativeOrderSourcePathId = hexUtils.random();
         for (const [idx, nativeOrder] of nativeOrders.entries()) {
             const { input: normalizedOrderInput, output: normalizedOrderOutput } = nativeOrderToNormalizedAmounts(
@@ -206,15 +176,7 @@ export class PathOptimizer {
             if (normalizedOrderInput.isLessThanOrEqualTo(0) || normalizedOrderOutput.isLessThanOrEqualTo(0)) {
                 continue;
             }
-            const fee = calculateOutputFee(
-                this.side,
-                nativeOrder,
-                this.pathPenaltyOpts.outputAmountPerEth,
-                this.pathPenaltyOpts.inputAmountPerEth,
-                this.feeSchedule,
-            )
-                .integerValue()
-                .toNumber();
+            const fee = this.calculateOutputFee(nativeOrder).integerValue().toNumber();
 
             // HACK: due to an issue with the Rust router interpolation we need to create exactly 13 samples from the native order
             const ids = [];
@@ -293,6 +255,33 @@ export class PathOptimizer {
             allSourcesPath,
             vipSourcesPath,
         };
+    }
+
+    private calculateOutputFee(sampleOrNativeOrder: DexSample | NativeOrderWithFillableAmounts): BigNumber {
+        const { inputAmountPerEth, outputAmountPerEth } = this.pathPenaltyOpts;
+        if (isDexSample(sampleOrNativeOrder)) {
+            const { input, output, source, fillData } = sampleOrNativeOrder;
+            const fee = this.feeSchedule[source]?.(fillData).fee || ZERO_AMOUNT;
+            const outputFee = ethToOutputAmount({
+                input,
+                output,
+                inputAmountPerEth,
+                outputAmountPerEth,
+                ethAmount: fee,
+            });
+            return outputFee;
+        } else {
+            const { input, output } = nativeOrderToNormalizedAmounts(this.side, sampleOrNativeOrder);
+            const fee = this.feeSchedule[ERC20BridgeSource.Native]?.(sampleOrNativeOrder).fee || ZERO_AMOUNT;
+            const outputFee = ethToOutputAmount({
+                input,
+                output,
+                inputAmountPerEth,
+                outputAmountPerEth,
+                ethAmount: fee,
+            });
+            return outputFee;
+        }
     }
 
     // Create a `Fill` from a dex sample and adjust it with any passed in
