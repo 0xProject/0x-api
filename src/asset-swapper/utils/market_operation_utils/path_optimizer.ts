@@ -142,20 +142,6 @@ export class PathOptimizer {
             return undefined;
         }
 
-        // Create a `Fill` from a dex sample and adjust it with any passed in
-        // adjustor
-        const createFillFromDexSample = (sample: DexSample): Fill => {
-            const fill = dexSampleToFill(
-                this.side,
-                sample,
-                this.pathPenaltyOpts.outputAmountPerEth,
-                this.pathPenaltyOpts.inputAmountPerEth,
-                this.feeSchedule,
-            );
-            const adjustedFills = this.fillAdjustor.adjustFills(this.side, [fill], inputAmount);
-            return adjustedFills[0];
-        };
-
         const createPathFromRoute = (route: Route) => {
             /**
              * inputs are the amounts to fill at each source index
@@ -224,7 +210,7 @@ export class PathOptimizer {
                 }
 
                 // NOTE: For DexSamples only
-                let fill = createFillFromDexSample(current);
+                let fill = this.createFillFromDexSample(current, inputAmount);
                 if (!fill) {
                     continue;
                 }
@@ -239,21 +225,24 @@ export class PathOptimizer {
                 for (let k = routeSamples.length - 1; k >= 0; k--) {
                     // If we're at the last remaining sample that's all we have left to use
                     if (k === 0) {
-                        fill = createFillFromDexSample(routeSamples[0]) ?? fill;
+                        fill = this.createFillFromDexSample(routeSamples[0], inputAmount) ?? fill;
                     }
                     if (routeInputCorrected.isGreaterThan(routeSamples[k].input)) {
                         const left = routeSamples[k];
                         const right = routeSamples[k + 1];
                         if (left && right) {
                             fill =
-                                createFillFromDexSample({
-                                    ...right, // default to the greater (for gas used)
-                                    input: routeInputCorrected,
-                                    output: new BigNumber(outputAmount).integerValue(),
-                                }) ?? fill;
+                                this.createFillFromDexSample(
+                                    {
+                                        ...right, // default to the greater (for gas used)
+                                        input: routeInputCorrected,
+                                        output: new BigNumber(outputAmount).integerValue(),
+                                    },
+                                    inputAmount,
+                                ) ?? fill;
                         } else {
                             assert.assert(Boolean(left || right), 'No valid sample to use');
-                            fill = createFillFromDexSample(left || right) ?? fill;
+                            fill = this.createFillFromDexSample(left || right, inputAmount) ?? fill;
                         }
                         break;
                     }
@@ -315,7 +304,7 @@ export class PathOptimizer {
                 (memo, sample, sampleIdx) => {
                     // Use the fill from createFillFromDexSample to apply
                     // any user supplied adjustments
-                    const f = createFillFromDexSample(sample);
+                    const f = this.createFillFromDexSample(sample, inputAmount);
                     memo.ids.push(`${f.source}-${serializedPaths.length}-${sampleIdx}`);
                     memo.inputs.push(f.input.integerValue().toNumber());
                     memo.outputs.push(f.output.integerValue().toNumber());
@@ -430,6 +419,20 @@ export class PathOptimizer {
             allSourcesPath,
             vipSourcesPath,
         };
+    }
+
+    // Create a `Fill` from a dex sample and adjust it with any passed in
+    // adjustor
+    private createFillFromDexSample(sample: DexSample, inputAmount: BigNumber): Fill {
+        const fill = dexSampleToFill(
+            this.side,
+            sample,
+            this.pathPenaltyOpts.outputAmountPerEth,
+            this.pathPenaltyOpts.inputAmountPerEth,
+            this.feeSchedule,
+        );
+        const adjustedFills = this.fillAdjustor.adjustFills(this.side, [fill], inputAmount);
+        return adjustedFills[0];
     }
 }
 
