@@ -106,15 +106,11 @@ export class PathOptimizer {
                 timingMs: performance.now() - beforeTimeMs,
             });
         };
-        const vipSourcesSet = VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID[this.chainId];
         const paths = this.findRoutesAndCreateOptimalPath(
             samples,
             nativeOrders,
             inputAmount,
-            this.feeSchedule,
             this.neonRouterNumSamples,
-            vipSourcesSet,
-            this.fillAdjustor,
         );
 
         if (!paths) {
@@ -137,10 +133,7 @@ export class PathOptimizer {
         samples: DexSample[][],
         nativeOrders: NativeOrderWithFillableAmounts[],
         inputAmount: BigNumber,
-        fees: FeeSchedule,
         neonRouterNumSamples: number,
-        vipSourcesSet: Set<ERC20BridgeSource>,
-        fillAdjustor: FillAdjustor,
     ): { allSourcesPath: Path | undefined; vipSourcesPath: Path | undefined } | undefined {
         // Currently the rust router is unable to handle 1 base unit sized quotes and will error out
         // To avoid flooding the logs with these errors we just return an insufficient liquidity error
@@ -157,9 +150,9 @@ export class PathOptimizer {
                 sample,
                 this.pathPenaltyOpts.outputAmountPerEth,
                 this.pathPenaltyOpts.inputAmountPerEth,
-                fees,
+                this.feeSchedule,
             );
-            const adjustedFills = fillAdjustor.adjustFills(this.side, [fill], inputAmount);
+            const adjustedFills = this.fillAdjustor.adjustFills(this.side, [fill], inputAmount);
             return adjustedFills[0];
         };
 
@@ -219,7 +212,7 @@ export class PathOptimizer {
                         routeInputCorrected,
                         this.pathPenaltyOpts.outputAmountPerEth,
                         this.pathPenaltyOpts.inputAmountPerEth,
-                        fees,
+                        this.feeSchedule,
                         false,
                     );
                     // Note: If the order has an adjusted rate of less than or equal to 0 it will be undefined
@@ -295,6 +288,8 @@ export class PathOptimizer {
         const samplesAndNativeOrdersWithResults: (DexSample[] | NativeOrderWithFillableAmounts[])[] = [];
         const serializedPaths: SerializedPath[] = [];
         const sampleSourcePathIds: string[] = [];
+
+        const vipSourcesSet = VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID[this.chainId];
         for (const singleSourceSamples of samples) {
             if (singleSourceSamples.length === 0) {
                 continue;
@@ -363,7 +358,7 @@ export class PathOptimizer {
                 nativeOrder,
                 this.pathPenaltyOpts.outputAmountPerEth,
                 this.pathPenaltyOpts.inputAmountPerEth,
-                fees,
+                this.feeSchedule,
             )
                 .integerValue()
                 .toNumber();
