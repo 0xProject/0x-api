@@ -74,6 +74,7 @@ export interface PathOptimizerContext {
     neonRouterNumSamples: number;
     fillAdjustor: FillAdjustor;
     pathPenaltyOpts: PathPenaltyOpts;
+    inputAmount: BigNumber;
 }
 
 export class PathOptimizer {
@@ -83,6 +84,7 @@ export class PathOptimizer {
     private neonRouterNumSamples: number;
     private fillAdjustor: FillAdjustor;
     private pathPenaltyOpts: PathPenaltyOpts;
+    private inputAmount: BigNumber;
 
     constructor(context: PathOptimizerContext) {
         this.side = context.side;
@@ -91,12 +93,12 @@ export class PathOptimizer {
         this.neonRouterNumSamples = context.neonRouterNumSamples;
         this.fillAdjustor = context.fillAdjustor;
         this.pathPenaltyOpts = context.pathPenaltyOpts;
+        this.inputAmount = context.inputAmount;
     }
 
     public findOptimalPathFromSamples(
         samples: DexSample[][],
         nativeOrders: NativeOrderWithFillableAmounts[],
-        inputAmount: BigNumber,
     ): Path | undefined {
         const beforeTimeMs = performance.now();
         const sendMetrics = () => {
@@ -106,12 +108,7 @@ export class PathOptimizer {
                 timingMs: performance.now() - beforeTimeMs,
             });
         };
-        const paths = this.findRoutesAndCreateOptimalPath(
-            samples,
-            nativeOrders,
-            inputAmount,
-            this.neonRouterNumSamples,
-        );
+        const paths = this.findRoutesAndCreateOptimalPath(samples, nativeOrders);
 
         if (!paths) {
             sendMetrics();
@@ -132,12 +129,11 @@ export class PathOptimizer {
     private findRoutesAndCreateOptimalPath(
         samples: DexSample[][],
         nativeOrders: NativeOrderWithFillableAmounts[],
-        inputAmount: BigNumber,
-        neonRouterNumSamples: number,
     ): { allSourcesPath: Path | undefined; vipSourcesPath: Path | undefined } | undefined {
         // Currently the rust router is unable to handle 1 base unit sized quotes and will error out
         // To avoid flooding the logs with these errors we just return an insufficient liquidity error
         // which is how the JS router handles these quotes today
+        const inputAmount = this.inputAmount;
         if (inputAmount.isLessThanOrEqualTo(ONE_BASE_UNIT)) {
             return undefined;
         }
@@ -409,7 +405,7 @@ export class PathOptimizer {
         };
         const { allSourcesRoute, vipSourcesRoute } = routeFromNeonRouter({
             optimizerCapture,
-            numSamples: neonRouterNumSamples,
+            numSamples: this.neonRouterNumSamples,
         });
 
         const allSourcesPath = createPathFromRoute(allSourcesRoute);

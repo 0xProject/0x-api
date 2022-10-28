@@ -531,12 +531,12 @@ export class MarketOperationUtils {
             neonRouterNumSamples: opts.neonRouterNumSamples,
             fillAdjustor: opts.fillAdjustor,
             pathPenaltyOpts,
-        });
-        const optimalPath = pathOptimizer.findOptimalPathFromSamples(
-            dexQuotes,
-            [...nativeOrders, ...augmentedRfqtIndicativeQuotes],
             inputAmount,
-        );
+        });
+        const optimalPath = pathOptimizer.findOptimalPathFromSamples(dexQuotes, [
+            ...nativeOrders,
+            ...augmentedRfqtIndicativeQuotes,
+        ]);
 
         const optimalPathAdjustedRate = optimalPath ? optimalPath.adjustedRate() : ZERO_AMOUNT;
 
