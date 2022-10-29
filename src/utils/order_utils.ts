@@ -7,12 +7,14 @@ import { NULL_ADDRESS, ONE_SECOND_MS } from '../constants';
 import {
     OfferAddLiquidityEntity,
     OfferCreateContingentPoolEntity,
+    OfferRemoveLiquidityEntity,
     PersistentSignedOrderV4Entity,
     SignedOrderV4Entity,
 } from '../entities';
 import {
     OfferAddLiquidity,
     OfferCreateContingentPool,
+    OfferRemoveLiquidity,
     OrderConfigRequestPayload,
     OrderConfigResponse,
     OrderEventEndState,
@@ -161,6 +163,29 @@ export const orderUtils = {
             dataProvider: offerAddLiquidityEntity.dataProvider as string,
             permissionedERC721Token: offerAddLiquidityEntity.permissionedERC721Token as string,
             signature: JSON.parse(offerAddLiquidityEntity.signature as string),
+        };
+        return signedOffer;
+    },
+    deserializeOfferRemoveLiquidity: (offerRemoveLiquidityEntity: OfferRemoveLiquidityEntity): OfferRemoveLiquidity => {
+        const signedOffer: OfferRemoveLiquidity = {
+            offerHash: offerRemoveLiquidityEntity.offerHash as string,
+            maker: offerRemoveLiquidityEntity.maker as string,
+            taker: offerRemoveLiquidityEntity.taker as string,
+            makerCollateralAmount: offerRemoveLiquidityEntity.makerCollateralAmount as string,
+            positionTokenAmount: offerRemoveLiquidityEntity.positionTokenAmount as string,
+            makerDirection: offerRemoveLiquidityEntity.makerDirection as string,
+            offerExpiry: offerRemoveLiquidityEntity.offerExpiry as string,
+            minimumTakerFillAmount: offerRemoveLiquidityEntity.minimumTakerFillAmount as string,
+            salt: offerRemoveLiquidityEntity.salt as string,
+            poolId: offerRemoveLiquidityEntity.poolId as string,
+            actualTakerFillableAmount: offerRemoveLiquidityEntity.actualTakerFillableAmount as string,
+            chainId: Number(offerRemoveLiquidityEntity.chainId),
+            verifyingContract: offerRemoveLiquidityEntity.verifyingContract as string,
+            referenceAsset: offerRemoveLiquidityEntity.referenceAsset as string,
+            collateralToken: offerRemoveLiquidityEntity.collateralToken as string,
+            dataProvider: offerRemoveLiquidityEntity.dataProvider as string,
+            permissionedERC721Token: offerRemoveLiquidityEntity.permissionedERC721Token as string,
+            signature: JSON.parse(offerRemoveLiquidityEntity.signature as string),
         };
         return signedOffer;
     },

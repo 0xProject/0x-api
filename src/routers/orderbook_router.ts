@@ -79,5 +79,20 @@ export function createOrderBookRouter(orderBook: OrderBookService): express.Rout
      * POST OfferAddLiquidity endpoint submits an OfferAddLiquidity to the Relayer.
      */
     router.post('/offer_add_liquidity', asyncHandler(handlers.postOfferAddLiquidityAsync.bind(handlers)));
+    /**
+     * GET OfferRemoveLiquidity endpoint retrieves the OfferRemoveLiquidity by offer hash.
+     */
+    router.get(
+        '/offer_remove_liquidity/:offerHash',
+        asyncHandler(handlers.getOfferRemoveLiquidityByOfferHashAsync.bind(handlers)),
+    );
+    /**
+     * GET OfferRemoveLiquidity endpoint retrieves a list of OfferRemoveLiquidities given query parameters.
+     */
+    router.get('/offers_remove_liquidity', asyncHandler(handlers.offerRemoveLiquidityAsync.bind(handlers)));
+    /**
+     * POST OfferRemoveLiquidity endpoint submits an OfferRemoveLiquidity to the Relayer.
+     */
+    router.post('/offer_remove_liquidity', asyncHandler(handlers.postOfferRemoveLiquidityAsync.bind(handlers)));
     return router;
 }

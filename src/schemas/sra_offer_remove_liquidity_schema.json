@@ -1,0 +1,74 @@
+{
+    "id": "/sraOfferRemoveLiquiditySchema",
+    "type": "object",
+    "properties": {
+        "offerHash": {
+            "$ref": "/hexSchema"
+        },
+        "maker": {
+            "$ref": "/addressSchema"
+        },
+        "taker": {
+            "$ref": "/addressSchema"
+        },
+        "makerCollateralAmount": {
+            "type": "string"
+        },
+        "positionTokenAmount": {
+            "type": "string"
+        },
+        "makerDirection": {
+            "enum": [true, false]
+        },
+        "offerExpiry": {
+            "type": "string"
+        },
+        "minimumTakerFillAmount": {
+            "type": "string"
+        },
+        "poolId": {
+            "type": "string"
+        },
+        "salt": {
+            "type": "string"
+        },
+        "chainId": {
+            "type": "number"
+        },
+        "verifyingContract": {
+            "type": "string"
+        },
+        "actualTakerFillableAmount": {
+            "type": "string"
+        },
+        "referenceAsset": {
+            "type": "string"
+        },
+        "collateralToken": {
+            "$ref": "/addressSchema"
+        },
+        "dataProvider": {
+            "$ref": "/addressSchema"
+        },
+        "permissionedERC721Token": {
+            "$ref": "/addressSchema"
+        },
+        "signature": {
+            "type": "object",
+            "properties": {
+                "signatureType": {
+                    "type": "number"
+                },
+                "v": {
+                    "type": "number"
+                },
+                "s": {
+                    "type": "string"
+                },
+                "r": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

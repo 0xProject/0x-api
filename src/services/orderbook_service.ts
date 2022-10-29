@@ -38,6 +38,7 @@ import * as PermissionedPositionTokenABI from '../diva-abis/PermissionedPosition
 import {
     OfferAddLiquidityEntity,
     OfferCreateContingentPoolEntity,
+    OfferRemoveLiquidityEntity,
     PersistentSignedOrderV4Entity,
     SignedOrderV4Entity,
 } from '../entities';
@@ -47,9 +48,10 @@ import {
     FillableOrderType,
     MakerInfoType,
     OfferAddLiquidity,
-    OfferAddLiquidityFilterType,
     OfferCreateContingentPool,
     OfferCreateContingentPoolFilterType,
+    OfferLiquidityFilterType,
+    OfferRemoveLiquidity,
     OrderbookPriceRequest,
     OrderbookPriceResponse,
     OrderbookResponse,
@@ -851,7 +853,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public async offerAddLiquidityAsync(req: OfferAddLiquidityFilterType): Promise<any> {
+    public async offerAddLiquidityAsync(req: OfferLiquidityFilterType): Promise<any> {
         const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
         const apiEntities: OfferAddLiquidity[] = (offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>).map(
             orderUtils.deserializeOfferAddLiquidity,
@@ -961,6 +963,124 @@ export class OrderBookService {
         await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferAddLiquidityEntity);
 
         return offerAddLiquidityEntity.offerHash;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async offerRemoveLiquidityAsync(req: OfferLiquidityFilterType): Promise<any> {
+        const offerRemoveLiquidityEntities = await this._connection.manager.find(OfferRemoveLiquidityEntity);
+        const apiEntities: OfferRemoveLiquidity[] = (
+            offerRemoveLiquidityEntities as Required<OfferRemoveLiquidityEntity[]>
+        ).map(orderUtils.deserializeOfferRemoveLiquidity);
+
+        // Sort offers with the same poolId and the same makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
+        apiEntities
+            .sort((a, b) => {
+                if (a.makerDirection === b.makerDirection) {
+                    const sortValA = this.checkSortParams(a.positionTokenAmount, a.makerCollateralAmount);
+                    const sortValB = this.checkSortParams(b.positionTokenAmount, b.makerCollateralAmount);
+                    const sortValue = sortValA.minus(sortValB);
+
+                    return Number(sortValue.toString());
+                } else {
+                    return 1;
+                }
+            })
+            .sort((a, b) => {
+                return Number(b.poolId) - Number(a.poolId);
+            });
+
+        const filterEntities: OfferRemoveLiquidity[] = apiEntities.filter((apiEntity: OfferRemoveLiquidity) => {
+            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
+                return false;
+            }
+            if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
+                return false;
+            }
+            if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
+                return false;
+            }
+            if (req.poolId !== NULL_TEXT && apiEntity.poolId !== req.poolId) {
+                return false;
+            }
+            if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
+                return false;
+            }
+            if (
+                req.collateralToken !== NULL_ADDRESS &&
+                apiEntity.collateralToken.toLowerCase() !== req.collateralToken
+            ) {
+                return false;
+            }
+            if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
+                return false;
+            }
+            if (
+                req.permissionedERC721Token !== NULL_ADDRESS &&
+                apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+
+        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getOfferRemoveLiquidityByOfferHashAsync(offerHash: string): Promise<any> {
+        const offerRemoveLiquidityEntity = await this._connection.manager.findOne(
+            OfferRemoveLiquidityEntity,
+            offerHash,
+        );
+
+        return orderUtils.deserializeOfferRemoveLiquidity(
+            offerRemoveLiquidityEntity as Required<OfferRemoveLiquidityEntity>,
+        );
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async postOfferRemoveLiquidityAsync(offerRemoveLiquidityEntity: OfferRemoveLiquidityEntity): Promise<any> {
+        // Get provider to call web3 function
+        const provider = new InfuraProvider(offerRemoveLiquidityEntity.chainId, INFURA_API_KEY);
+        // Get DIVA contract to call web3 function
+        const divaContract = new Contract(
+            offerRemoveLiquidityEntity.verifyingContract || NULL_ADDRESS,
+            divaContractABI,
+            provider,
+        );
+        // Get parameters of pool using pool id
+        const parameters = await divaContract.functions.getPoolParameters(offerRemoveLiquidityEntity.poolId);
+        const referenceAsset = parameters[0].referenceAsset;
+        const collateralToken = parameters[0].collateralToken;
+        const dataProvider = parameters[0].dataProvider;
+
+        // Get longToken address
+        const longToken = parameters[0].longToken;
+
+        // Get PermissionedPositionToken contract to call web3 function
+        const permissionedPositionContract = new Contract(longToken as string, PermissionedPositionTokenABI, provider);
+        // Get PermissionedERC721Token address
+        let permissionedERC721Token = NULL_ADDRESS;
+
+        // TODO: If this call succeeds, longToken is permissionedPositionToken and the permissionedERC721Token exists, not NULL_ADDRESS.
+        // If this call fails, longToken is the permissionlessToken and the permissionedERC721Token is NULL_ADDRESS.
+        try {
+            permissionedERC721Token = await permissionedPositionContract.functions.permissionedERC721Token();
+        } catch (err) {
+            logger.warn('There is no permissionedERC721Token for this pool.');
+        }
+
+        const fillableOfferRemoveLiquidityEntity: OfferRemoveLiquidityEntity = {
+            ...offerRemoveLiquidityEntity,
+            referenceAsset,
+            collateralToken,
+            dataProvider,
+            permissionedERC721Token,
+        };
+        await this._connection.getRepository(OfferRemoveLiquidityEntity).insert(fillableOfferRemoveLiquidityEntity);
+
+        return offerRemoveLiquidityEntity.offerHash;
     }
 
     // tslint:disable-next-line:prefer-function-over-method
