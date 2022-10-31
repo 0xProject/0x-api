@@ -35,6 +35,31 @@ function nativeOrderToNormalizedAmounts(
     return { input, output };
 }
 
+function mergeIntermediateSampleData(...intermediateSampleDataList: IntermediateSampleData[]): IntermediateSampleData {
+    return {
+        samplesAndNativeOrdersWithResults: _.flatMap(
+            intermediateSampleDataList,
+            (data) => data.samplesAndNativeOrdersWithResults,
+        ),
+
+        serializedPaths: _.flatMap(intermediateSampleDataList, (data) => data.serializedPaths),
+        sampleSourcePathIds: _.flatMap(intermediateSampleDataList, (data) => data.sampleSourcePathIds),
+    };
+}
+
+export interface RoutablePath {
+    pathId: string;
+    samplesOrNativeOrders: DexSample[] | NativeOrderWithFillableAmounts[];
+    serializedPath: SerializedPath;
+}
+
+// TODO: there is probably a better name.
+export interface IntermediateSampleData {
+    sampleSourcePathIds: string[];
+    samplesAndNativeOrdersWithResults: (DexSample[] | NativeOrderWithFillableAmounts[])[];
+    serializedPaths: SerializedPath[];
+}
+
 export class PathOptimizer {
     private side: MarketOperation;
     private chainId: ChainId;
@@ -104,12 +129,53 @@ export class PathOptimizer {
             return undefined;
         }
 
+        const singleSourceSampleData = this.processSingleSourceSamples(samples);
+        const nativeOrderData = this.processNativeOrders(nativeOrders);
+
+        const { samplesAndNativeOrdersWithResults, serializedPaths, sampleSourcePathIds } = mergeIntermediateSampleData(
+            singleSourceSampleData,
+            nativeOrderData,
+        );
+
+        if (serializedPaths.length === 0) {
+            return undefined;
+        }
+
+        const optimizerCapture: OptimizerCapture = {
+            side: this.side,
+            targetInput: inputAmount.toNumber(),
+            pathsIn: serializedPaths,
+        };
+        const { allSourcesRoute, vipSourcesRoute } = routeFromNeonRouter({
+            optimizerCapture,
+            numSamples: this.neonRouterNumSamples,
+        });
+
+        const allSourcesPath = this.createPathFromRoute(
+            samplesAndNativeOrdersWithResults,
+            sampleSourcePathIds,
+            allSourcesRoute,
+            optimizerCapture,
+        );
+        const vipSourcesPath = this.createPathFromRoute(
+            samplesAndNativeOrdersWithResults,
+            sampleSourcePathIds,
+            vipSourcesRoute,
+            optimizerCapture,
+        );
+
+        return {
+            allSourcesPath,
+            vipSourcesPath,
+        };
+    }
+
+    private processSingleSourceSamples(samples: DexSample[][]): IntermediateSampleData {
         const samplesAndNativeOrdersWithResults: (DexSample[] | NativeOrderWithFillableAmounts[])[] = [];
         const serializedPaths: SerializedPath[] = [];
         const sampleSourcePathIds: string[] = [];
-
         const vipSourcesSet = VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID[this.chainId];
-        //  TODO: factor out single source logic.
+
         for (const singleSourceSamples of samples) {
             if (singleSourceSamples.length === 0) {
                 continue;
@@ -135,7 +201,7 @@ export class PathOptimizer {
                 (memo, sample, sampleIdx) => {
                     // Use the fill from createFillFromDexSample to apply
                     // any user supplied adjustments
-                    const f = this.createFillFromDexSample(sample, inputAmount);
+                    const f = this.createFillFromDexSample(sample, this.inputAmount);
                     memo.ids.push(`${f.source}-${serializedPaths.length}-${sampleIdx}`);
                     memo.inputs.push(f.input.integerValue().toNumber());
                     memo.outputs.push(f.output.integerValue().toNumber());
@@ -162,8 +228,19 @@ export class PathOptimizer {
             sampleSourcePathIds.push(sourcePathId);
         }
 
-        //  TODO: factor out native order logic.
+        return {
+            sampleSourcePathIds,
+            samplesAndNativeOrdersWithResults,
+            serializedPaths,
+        };
+    }
+
+    private processNativeOrders(nativeOrders: NativeOrderWithFillableAmounts[]): IntermediateSampleData {
+        const samplesAndNativeOrdersWithResults: (DexSample[] | NativeOrderWithFillableAmounts[])[] = [];
+        const serializedPaths: SerializedPath[] = [];
+        const sampleSourcePathIds: string[] = [];
         const nativeOrderSourcePathId = hexUtils.random();
+
         for (const [idx, nativeOrder] of nativeOrders.entries()) {
             const { input: normalizedOrderInput, output: normalizedOrderOutput } = nativeOrderToNormalizedAmounts(
                 this.side,
@@ -188,7 +265,7 @@ export class PathOptimizer {
             // and including the full quote input amount.
             // If the order is smaller we don't need to scale anything, we will just end up
             // with trailing duplicate samples for the order input as we cannot go higher
-            const scaleToInput = BigNumber.min(inputAmount.dividedBy(normalizedOrderInput), 1);
+            const scaleToInput = BigNumber.min(this.inputAmount.dividedBy(normalizedOrderInput), 1);
             for (let i = 1; i <= 13; i++) {
                 const fraction = i / 13;
                 const currentInput = BigNumber.min(
@@ -222,36 +299,10 @@ export class PathOptimizer {
             sampleSourcePathIds.push(nativeOrderSourcePathId);
         }
 
-        if (serializedPaths.length === 0) {
-            return undefined;
-        }
-
-        const optimizerCapture: OptimizerCapture = {
-            side: this.side,
-            targetInput: inputAmount.toNumber(),
-            pathsIn: serializedPaths,
-        };
-        const { allSourcesRoute, vipSourcesRoute } = routeFromNeonRouter({
-            optimizerCapture,
-            numSamples: this.neonRouterNumSamples,
-        });
-
-        const allSourcesPath = this.createPathFromRoute(
-            samplesAndNativeOrdersWithResults,
-            sampleSourcePathIds,
-            allSourcesRoute,
-            optimizerCapture,
-        );
-        const vipSourcesPath = this.createPathFromRoute(
-            samplesAndNativeOrdersWithResults,
-            sampleSourcePathIds,
-            vipSourcesRoute,
-            optimizerCapture,
-        );
-
         return {
-            allSourcesPath,
-            vipSourcesPath,
+            sampleSourcePathIds,
+            samplesAndNativeOrdersWithResults,
+            serializedPaths,
         };
     }
 
