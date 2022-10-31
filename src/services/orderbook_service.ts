@@ -766,6 +766,41 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
+    public offerCreateContingentPoolFilter(apiEntities: any[], req: any): any {
+        return apiEntities.filter((apiEntity: OfferCreateContingentPool) => {
+            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
+                return false;
+            }
+            if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
+                return false;
+            }
+            if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
+                return false;
+            }
+            if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
+                return false;
+            }
+            if (
+                req.collateralToken !== NULL_ADDRESS &&
+                apiEntity.collateralToken.toLowerCase() !== req.collateralToken
+            ) {
+                return false;
+            }
+            if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
+                return false;
+            }
+            if (
+                req.permissionedERC721Token !== NULL_ADDRESS &&
+                apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
     public async offerCreateContingentPoolsAsync(req: OfferCreateContingentPoolFilterType): Promise<any> {
         const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
         const apiEntities: OfferCreateContingentPool[] = (
@@ -794,39 +829,7 @@ export class OrderBookService {
             })
             .sort((a, b) => a.referenceAsset.localeCompare(b.referenceAsset));
 
-        const filterEntities: OfferCreateContingentPool[] = apiEntities.filter(
-            (apiEntity: OfferCreateContingentPool) => {
-                if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
-                    return false;
-                }
-                if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
-                    return false;
-                }
-                if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
-                    return false;
-                }
-                if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
-                    return false;
-                }
-                if (
-                    req.collateralToken !== NULL_ADDRESS &&
-                    apiEntity.collateralToken.toLowerCase() !== req.collateralToken
-                ) {
-                    return false;
-                }
-                if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
-                    return false;
-                }
-                if (
-                    req.permissionedERC721Token !== NULL_ADDRESS &&
-                    apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
-                ) {
-                    return false;
-                }
-
-                return true;
-            },
-        );
+        const filterEntities: OfferCreateContingentPool[] = this.offerCreateContingentPoolFilter(apiEntities, req);
 
         return paginationUtils.paginate(filterEntities, req.page, req.perPage);
     }
@@ -876,40 +879,7 @@ export class OrderBookService {
                 return Number(b.poolId) - Number(a.poolId);
             });
 
-        const filterEntities: OfferAddLiquidity[] = apiEntities.filter((apiEntity: OfferAddLiquidity) => {
-            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
-                return false;
-            }
-            if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
-                return false;
-            }
-            if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
-                return false;
-            }
-            if (req.poolId !== NULL_TEXT && apiEntity.poolId !== req.poolId) {
-                return false;
-            }
-            if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
-                return false;
-            }
-            if (
-                req.collateralToken !== NULL_ADDRESS &&
-                apiEntity.collateralToken.toLowerCase() !== req.collateralToken
-            ) {
-                return false;
-            }
-            if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
-                return false;
-            }
-            if (
-                req.permissionedERC721Token !== NULL_ADDRESS &&
-                apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
-            ) {
-                return false;
-            }
-
-            return true;
-        });
+        const filterEntities = this.filterOfferLiquidity(apiEntities, req);
 
         return paginationUtils.paginate(filterEntities, req.page, req.perPage);
     }
@@ -922,17 +892,17 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public async postOfferAddLiquidityAsync(offerAddLiquidityEntity: OfferAddLiquidityEntity): Promise<any> {
+    public async postOfferLiquidityAsync(offerLiquidityEntity: any): Promise<any> {
         // Get provider to call web3 function
-        const provider = new InfuraProvider(offerAddLiquidityEntity.chainId, INFURA_API_KEY);
+        const provider = new InfuraProvider(offerLiquidityEntity.chainId, INFURA_API_KEY);
         // Get DIVA contract to call web3 function
         const divaContract = new Contract(
-            offerAddLiquidityEntity.verifyingContract || NULL_ADDRESS,
+            offerLiquidityEntity.verifyingContract || NULL_ADDRESS,
             divaContractABI,
             provider,
         );
         // Get parameters of pool using pool id
-        const parameters = await divaContract.functions.getPoolParameters(offerAddLiquidityEntity.poolId);
+        const parameters = await divaContract.functions.getPoolParameters(offerLiquidityEntity.poolId);
         const referenceAsset = parameters[0].referenceAsset;
         const collateralToken = parameters[0].collateralToken;
         const dataProvider = parameters[0].dataProvider;
@@ -953,16 +923,29 @@ export class OrderBookService {
             logger.warn('There is no permissionedERC721Token for this pool.');
         }
 
-        const fillableOfferAddLiquidityEntity: OfferAddLiquidityEntity = {
-            ...offerAddLiquidityEntity,
+        const fillableOfferLiquidityEntity: OfferAddLiquidityEntity = {
+            ...offerLiquidityEntity,
             referenceAsset,
             collateralToken,
             dataProvider,
             permissionedERC721Token,
         };
-        await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferAddLiquidityEntity);
+        await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferLiquidityEntity);
 
-        return offerAddLiquidityEntity.offerHash;
+        return offerLiquidityEntity.offerHash;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public filterOfferLiquidity(apiEntities: any[], req: OfferLiquidityFilterType): any {
+        const filterEntities = this.offerCreateContingentPoolFilter(apiEntities, req);
+
+        return filterEntities.filter((apiEntity: any) => {
+            if (req.poolId !== NULL_TEXT && apiEntity.poolId !== req.poolId) {
+                return false;
+            }
+
+            return true;
+        });
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -989,40 +972,7 @@ export class OrderBookService {
                 return Number(b.poolId) - Number(a.poolId);
             });
 
-        const filterEntities: OfferRemoveLiquidity[] = apiEntities.filter((apiEntity: OfferRemoveLiquidity) => {
-            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
-                return false;
-            }
-            if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
-                return false;
-            }
-            if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
-                return false;
-            }
-            if (req.poolId !== NULL_TEXT && apiEntity.poolId !== req.poolId) {
-                return false;
-            }
-            if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
-                return false;
-            }
-            if (
-                req.collateralToken !== NULL_ADDRESS &&
-                apiEntity.collateralToken.toLowerCase() !== req.collateralToken
-            ) {
-                return false;
-            }
-            if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
-                return false;
-            }
-            if (
-                req.permissionedERC721Token !== NULL_ADDRESS &&
-                apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
-            ) {
-                return false;
-            }
-
-            return true;
-        });
+        const filterEntities = this.filterOfferLiquidity(apiEntities, req);
 
         return paginationUtils.paginate(filterEntities, req.page, req.perPage);
     }
@@ -1037,50 +987,6 @@ export class OrderBookService {
         return orderUtils.deserializeOfferRemoveLiquidity(
             offerRemoveLiquidityEntity as Required<OfferRemoveLiquidityEntity>,
         );
-    }
-
-    // tslint:disable-next-line:prefer-function-over-method
-    public async postOfferRemoveLiquidityAsync(offerRemoveLiquidityEntity: OfferRemoveLiquidityEntity): Promise<any> {
-        // Get provider to call web3 function
-        const provider = new InfuraProvider(offerRemoveLiquidityEntity.chainId, INFURA_API_KEY);
-        // Get DIVA contract to call web3 function
-        const divaContract = new Contract(
-            offerRemoveLiquidityEntity.verifyingContract || NULL_ADDRESS,
-            divaContractABI,
-            provider,
-        );
-        // Get parameters of pool using pool id
-        const parameters = await divaContract.functions.getPoolParameters(offerRemoveLiquidityEntity.poolId);
-        const referenceAsset = parameters[0].referenceAsset;
-        const collateralToken = parameters[0].collateralToken;
-        const dataProvider = parameters[0].dataProvider;
-
-        // Get longToken address
-        const longToken = parameters[0].longToken;
-
-        // Get PermissionedPositionToken contract to call web3 function
-        const permissionedPositionContract = new Contract(longToken as string, PermissionedPositionTokenABI, provider);
-        // Get PermissionedERC721Token address
-        let permissionedERC721Token = NULL_ADDRESS;
-
-        // TODO: If this call succeeds, longToken is permissionedPositionToken and the permissionedERC721Token exists, not NULL_ADDRESS.
-        // If this call fails, longToken is the permissionlessToken and the permissionedERC721Token is NULL_ADDRESS.
-        try {
-            permissionedERC721Token = await permissionedPositionContract.functions.permissionedERC721Token();
-        } catch (err) {
-            logger.warn('There is no permissionedERC721Token for this pool.');
-        }
-
-        const fillableOfferRemoveLiquidityEntity: OfferRemoveLiquidityEntity = {
-            ...offerRemoveLiquidityEntity,
-            referenceAsset,
-            collateralToken,
-            dataProvider,
-            permissionedERC721Token,
-        };
-        await this._connection.getRepository(OfferRemoveLiquidityEntity).insert(fillableOfferRemoveLiquidityEntity);
-
-        return offerRemoveLiquidityEntity.offerHash;
     }
 
     // tslint:disable-next-line:prefer-function-over-method

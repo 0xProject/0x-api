@@ -134,35 +134,9 @@ export class SRAHandlers {
         }
     }
     public async offerCreateContingentPoolsAsync(req: express.Request, res: express.Response): Promise<void> {
-        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
-        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
-        const makerDirection =
-            req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
-        const referenceAsset =
-            req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
-        const collateralToken =
-            req.query.collateralToken === undefined
-                ? NULL_ADDRESS
-                : (req.query.collateralToken as string).toLowerCase();
-        const dataProvider =
-            req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
-        const permissionedERC721Token =
-            req.query.permissionedERC721Token === undefined
-                ? NULL_ADDRESS
-                : (req.query.permissionedERC721Token as string).toLowerCase();
+        const params = offerCreateContingentPoolFilterParams(req);
 
-        const response = await this._orderBook.offerCreateContingentPoolsAsync({
-            page,
-            perPage,
-            maker,
-            taker,
-            makerDirection,
-            referenceAsset,
-            collateralToken,
-            dataProvider,
-            permissionedERC721Token,
-        });
+        const response = await this._orderBook.offerCreateContingentPoolsAsync(params);
 
         res.status(HttpStatus.OK).send(response);
     }
@@ -183,37 +157,8 @@ export class SRAHandlers {
         res.status(HttpStatus.OK).send(response);
     }
     public async offerAddLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
-        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
-        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
-        const makerDirection =
-            req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
-        const poolId = req.query.poolId === undefined ? NULL_TEXT : (req.query.poolId as string);
-        const referenceAsset =
-            req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
-        const collateralToken =
-            req.query.collateralToken === undefined
-                ? NULL_ADDRESS
-                : (req.query.collateralToken as string).toLowerCase();
-        const dataProvider =
-            req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
-        const permissionedERC721Token =
-            req.query.permissionedERC721Token === undefined
-                ? NULL_ADDRESS
-                : (req.query.permissionedERC721Token as string).toLowerCase();
-
-        const response = await this._orderBook.offerAddLiquidityAsync({
-            page,
-            perPage,
-            maker,
-            taker,
-            makerDirection,
-            poolId,
-            referenceAsset,
-            collateralToken,
-            dataProvider,
-            permissionedERC721Token,
-        });
+        const params = offerLiquidityFilterParams(req);
+        const response = await this._orderBook.offerAddLiquidityAsync(params);
 
         res.status(HttpStatus.OK).send(response);
     }
@@ -232,42 +177,13 @@ export class SRAHandlers {
             dataProvider: NULL_ADDRESS,
             permissionedERC721Token: NULL_ADDRESS,
         });
-        const response = await this._orderBook.postOfferAddLiquidityAsync(offerAddLiquidityEntity);
+        const response = await this._orderBook.postOfferLiquidityAsync(offerAddLiquidityEntity);
 
         res.status(HttpStatus.OK).send(response);
     }
     public async offerRemoveLiquidityAsync(req: express.Request, res: express.Response): Promise<void> {
-        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
-        const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
-        const makerDirection =
-            req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
-        const poolId = req.query.poolId === undefined ? NULL_TEXT : (req.query.poolId as string);
-        const referenceAsset =
-            req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
-        const collateralToken =
-            req.query.collateralToken === undefined
-                ? NULL_ADDRESS
-                : (req.query.collateralToken as string).toLowerCase();
-        const dataProvider =
-            req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
-        const permissionedERC721Token =
-            req.query.permissionedERC721Token === undefined
-                ? NULL_ADDRESS
-                : (req.query.permissionedERC721Token as string).toLowerCase();
-
-        const response = await this._orderBook.offerRemoveLiquidityAsync({
-            page,
-            perPage,
-            maker,
-            taker,
-            makerDirection,
-            poolId,
-            referenceAsset,
-            collateralToken,
-            dataProvider,
-            permissionedERC721Token,
-        });
+        const params = offerLiquidityFilterParams(req);
+        const response = await this._orderBook.offerRemoveLiquidityAsync(params);
 
         res.status(HttpStatus.OK).send(response);
     }
@@ -286,7 +202,7 @@ export class SRAHandlers {
             dataProvider: NULL_ADDRESS,
             permissionedERC721Token: NULL_ADDRESS,
         });
-        const response = await this._orderBook.postOfferRemoveLiquidityAsync(offerRemoveLiquidityEntity);
+        const response = await this._orderBook.postOfferLiquidityAsync(offerRemoveLiquidityEntity);
 
         res.status(HttpStatus.OK).send(response);
     }
@@ -311,6 +227,45 @@ export class SRAHandlers {
             res.status(HttpStatus.OK).send();
         }
     }
+}
+
+// The function to get filter parameter about OfferCreateContingentPool
+function offerCreateContingentPoolFilterParams(req: express.Request): any {
+    const { page, perPage } = paginationUtils.parsePaginationConfig(req);
+    const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
+    const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
+    const makerDirection = req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
+    const referenceAsset = req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
+    const collateralToken =
+        req.query.collateralToken === undefined ? NULL_ADDRESS : (req.query.collateralToken as string).toLowerCase();
+    const dataProvider =
+        req.query.dataProvider === undefined ? NULL_ADDRESS : (req.query.dataProvider as string).toLowerCase();
+    const permissionedERC721Token =
+        req.query.permissionedERC721Token === undefined
+            ? NULL_ADDRESS
+            : (req.query.permissionedERC721Token as string).toLowerCase();
+
+    return {
+        page,
+        perPage,
+        maker,
+        taker,
+        makerDirection,
+        referenceAsset,
+        collateralToken,
+        dataProvider,
+        permissionedERC721Token,
+    };
+}
+
+// The function to get filter parameter about OfferAddLiqudity or OfferRemoveLiqudity
+function offerLiquidityFilterParams(req: express.Request): any {
+    const params = offerCreateContingentPoolFilterParams(req);
+
+    return {
+        ...params,
+        poolId: req.query.poolId === undefined ? NULL_TEXT : (req.query.poolId as string),
+    };
 }
 
 function validateAssetTokenOrThrow(allowedTokens: string[], tokenAddress: string, field: string): void {
