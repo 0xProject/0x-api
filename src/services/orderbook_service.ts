@@ -15,6 +15,7 @@ import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     defaultHttpServiceConfig,
     INFURA_API_KEY,
+    OfferLiquidityType,
     OfferStatus,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
     SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS,
@@ -892,7 +893,7 @@ export class OrderBookService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    public async postOfferLiquidityAsync(offerLiquidityEntity: any): Promise<any> {
+    public async postOfferLiquidityAsync(offerLiquidityEntity: any, offerLiquidityType: string): Promise<any> {
         // Get provider to call web3 function
         const provider = new InfuraProvider(offerLiquidityEntity.chainId, INFURA_API_KEY);
         // Get DIVA contract to call web3 function
@@ -923,14 +924,19 @@ export class OrderBookService {
             logger.warn('There is no permissionedERC721Token for this pool.');
         }
 
-        const fillableOfferLiquidityEntity: OfferAddLiquidityEntity = {
+        const fillableOfferLiquidityEntity: any = {
             ...offerLiquidityEntity,
             referenceAsset,
             collateralToken,
             dataProvider,
             permissionedERC721Token,
         };
-        await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferLiquidityEntity);
+
+        if (offerLiquidityType === OfferLiquidityType.Add) {
+            await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferLiquidityEntity);
+        } else {
+            await this._connection.getRepository(OfferRemoveLiquidityEntity).insert(fillableOfferLiquidityEntity);
+        }
 
         return offerLiquidityEntity.offerHash;
     }
@@ -955,7 +961,7 @@ export class OrderBookService {
             offerRemoveLiquidityEntities as Required<OfferRemoveLiquidityEntity[]>
         ).map(orderUtils.deserializeOfferRemoveLiquidity);
 
-        // Sort offers with the same poolId and the same makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
+        // Sort offers with the same poolId and the same makerDirection in ascending order by the positionTokenAmount / (positionTokenAmount + makerCollateralAmount).
         apiEntities
             .sort((a, b) => {
                 if (a.makerDirection === b.makerDirection) {
