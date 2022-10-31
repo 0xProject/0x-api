@@ -35,29 +35,10 @@ function nativeOrderToNormalizedAmounts(
     return { input, output };
 }
 
-function mergeIntermediateSampleData(...intermediateSampleDataList: IntermediateSampleData[]): IntermediateSampleData {
-    return {
-        samplesAndNativeOrdersWithResults: _.flatMap(
-            intermediateSampleDataList,
-            (data) => data.samplesAndNativeOrdersWithResults,
-        ),
-
-        serializedPaths: _.flatMap(intermediateSampleDataList, (data) => data.serializedPaths),
-        sampleSourcePathIds: _.flatMap(intermediateSampleDataList, (data) => data.sampleSourcePathIds),
-    };
-}
-
 export interface RoutablePath {
     pathId: string;
     samplesOrNativeOrders: DexSample[] | NativeOrderWithFillableAmounts[];
     serializedPath: SerializedPath;
-}
-
-// TODO: there is probably a better name.
-export interface IntermediateSampleData {
-    sampleSourcePathIds: string[];
-    samplesAndNativeOrdersWithResults: (DexSample[] | NativeOrderWithFillableAmounts[])[];
-    serializedPaths: SerializedPath[];
 }
 
 export class PathOptimizer {
@@ -129,13 +110,11 @@ export class PathOptimizer {
             return undefined;
         }
 
-        const singleSourceSampleData = this.processSingleSourceSamples(samples);
-        const nativeOrderData = this.processNativeOrders(nativeOrders);
+        const singleSourceRoutablePaths = this.singleSourceSamplesToRoutablePaths(samples);
+        const nativeOrderRoutablePaths = this.nativeOrdersToRoutablePaths(nativeOrders);
 
-        const { samplesAndNativeOrdersWithResults, serializedPaths, sampleSourcePathIds } = mergeIntermediateSampleData(
-            singleSourceSampleData,
-            nativeOrderData,
-        );
+        const allRoutablePaths = [...singleSourceRoutablePaths, ...nativeOrderRoutablePaths];
+        const serializedPaths = allRoutablePaths.map((path) => path.serializedPath);
 
         if (serializedPaths.length === 0) {
             return undefined;
@@ -151,18 +130,8 @@ export class PathOptimizer {
             numSamples: this.neonRouterNumSamples,
         });
 
-        const allSourcesPath = this.createPathFromRoute(
-            samplesAndNativeOrdersWithResults,
-            sampleSourcePathIds,
-            allSourcesRoute,
-            optimizerCapture,
-        );
-        const vipSourcesPath = this.createPathFromRoute(
-            samplesAndNativeOrdersWithResults,
-            sampleSourcePathIds,
-            vipSourcesRoute,
-            optimizerCapture,
-        );
+        const allSourcesPath = this.createPathFromRoute(allRoutablePaths, allSourcesRoute, optimizerCapture);
+        const vipSourcesPath = this.createPathFromRoute(allRoutablePaths, vipSourcesRoute, optimizerCapture);
 
         return {
             allSourcesPath,
@@ -170,10 +139,8 @@ export class PathOptimizer {
         };
     }
 
-    private processSingleSourceSamples(samples: DexSample[][]): IntermediateSampleData {
-        const samplesAndNativeOrdersWithResults: (DexSample[] | NativeOrderWithFillableAmounts[])[] = [];
-        const serializedPaths: SerializedPath[] = [];
-        const sampleSourcePathIds: string[] = [];
+    private singleSourceSamplesToRoutablePaths(samples: DexSample[][]): RoutablePath[] {
+        const routablePaths: RoutablePath[] = [];
         const vipSourcesSet = VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID[this.chainId];
 
         for (const singleSourceSamples of samples) {
@@ -202,7 +169,7 @@ export class PathOptimizer {
                     // Use the fill from createFillFromDexSample to apply
                     // any user supplied adjustments
                     const f = this.createFillFromDexSample(sample, this.inputAmount);
-                    memo.ids.push(`${f.source}-${serializedPaths.length}-${sampleIdx}`);
+                    memo.ids.push(`${f.source}-${routablePaths.length}-${sampleIdx}`);
                     memo.inputs.push(f.input.integerValue().toNumber());
                     memo.outputs.push(f.output.integerValue().toNumber());
                     // Calculate the penalty of this sample as the diff between the
@@ -221,24 +188,19 @@ export class PathOptimizer {
                 },
             );
 
-            samplesAndNativeOrdersWithResults.push(singleSourceSamplesWithOutput);
-            serializedPaths.push(serializedPath);
-
-            const sourcePathId = hexUtils.random();
-            sampleSourcePathIds.push(sourcePathId);
+            const pathId = hexUtils.random();
+            routablePaths.push({
+                pathId,
+                samplesOrNativeOrders: singleSourceSamplesWithOutput,
+                serializedPath,
+            });
         }
 
-        return {
-            sampleSourcePathIds,
-            samplesAndNativeOrdersWithResults,
-            serializedPaths,
-        };
+        return routablePaths;
     }
 
-    private processNativeOrders(nativeOrders: NativeOrderWithFillableAmounts[]): IntermediateSampleData {
-        const samplesAndNativeOrdersWithResults: (DexSample[] | NativeOrderWithFillableAmounts[])[] = [];
-        const serializedPaths: SerializedPath[] = [];
-        const sampleSourcePathIds: string[] = [];
+    private nativeOrdersToRoutablePaths(nativeOrders: NativeOrderWithFillableAmounts[]): RoutablePath[] {
+        const routablePaths: RoutablePath[] = [];
         const nativeOrderSourcePathId = hexUtils.random();
 
         for (const [idx, nativeOrder] of nativeOrders.entries()) {
@@ -276,7 +238,7 @@ export class PathOptimizer {
                     normalizedOrderOutput.times(scaleToInput).times(fraction),
                     normalizedOrderOutput,
                 );
-                const id = `${ERC20BridgeSource.Native}-${nativeOrder.type}-${serializedPaths.length}-${idx}-${i}`;
+                const id = `${ERC20BridgeSource.Native}-${nativeOrder.type}-${routablePaths.length}-${idx}-${i}`;
                 inputs.push(currentInput.integerValue().toNumber());
                 outputs.push(currentOutput.integerValue().toNumber());
                 outputFees.push(fee);
@@ -294,16 +256,14 @@ export class PathOptimizer {
                 isVip,
             };
 
-            samplesAndNativeOrdersWithResults.push([nativeOrder]);
-            serializedPaths.push(serializedPath);
-            sampleSourcePathIds.push(nativeOrderSourcePathId);
+            routablePaths.push({
+                pathId: nativeOrderSourcePathId,
+                samplesOrNativeOrders: [nativeOrder],
+                serializedPath: serializedPath,
+            });
         }
 
-        return {
-            sampleSourcePathIds,
-            samplesAndNativeOrdersWithResults,
-            serializedPaths,
-        };
+        return routablePaths;
     }
 
     private calculateOutputFee(sampleOrNativeOrder: DexSample | NativeOrderWithFillableAmounts): BigNumber {
@@ -348,12 +308,7 @@ export class PathOptimizer {
     }
 
     // TODO: `optimizerCapture` is only used for logging -- consider removing it.
-    private createPathFromRoute(
-        samplesAndNativeOrdersWithResults: (DexSample[] | NativeOrderWithFillableAmounts[])[],
-        sampleSourcePathIds: string[],
-        route: Route,
-        optimizerCapture: OptimizerCapture,
-    ) {
+    private createPathFromRoute(routablePaths: RoutablePath[], route: Route, optimizerCapture: OptimizerCapture) {
         /**
          * inputs are the amounts to fill at each source index
          * e.g fill 2076 at index 4
@@ -367,12 +322,7 @@ export class PathOptimizer {
          *  the sum represents the total expected output amount
          */
 
-        const routesAndSamplesAndOutputs = _.zip(
-            route.inputAmounts,
-            route.outputAmounts,
-            samplesAndNativeOrdersWithResults,
-            sampleSourcePathIds,
-        );
+        const routesAndPath = _.zip(route.inputAmounts, route.outputAmounts, routablePaths);
         const adjustedFills: Fill[] = [];
         const totalRoutedAmount = BigNumber.sum(...route.inputAmounts);
         const inputAmount = this.inputAmount;
@@ -380,19 +330,16 @@ export class PathOptimizer {
         // Due to precision errors we can end up with a totalRoutedAmount that is not exactly equal to the input
         const precisionErrorScalar = inputAmount.dividedBy(totalRoutedAmount);
 
-        for (const [
-            routeInputAmount,
-            outputAmount,
-            routeSamplesAndNativeOrders,
-            sourcePathId,
-        ] of routesAndSamplesAndOutputs) {
+        for (const [routeInputAmount, outputAmount, routablePath] of routesAndPath) {
             if (!Number.isFinite(outputAmount)) {
                 DEFAULT_WARNING_LOGGER(optimizerCapture, `neon-router: invalid route outputAmount ${outputAmount}`);
                 return undefined;
             }
-            if (!routeInputAmount || !routeSamplesAndNativeOrders || !outputAmount) {
+            if (!routeInputAmount || !routablePath || !outputAmount) {
                 continue;
             }
+            const { samplesOrNativeOrders, pathId } = routablePath;
+
             // TODO: [TKR-241] amounts are sometimes clipped in the router due to precision loss for number/f64
             // we can work around it by scaling it and rounding up. However now we end up with a total amount of a couple base units too much
             const routeInputCorrected = BigNumber.min(
@@ -400,7 +347,7 @@ export class PathOptimizer {
                 inputAmount,
             );
 
-            const current = routeSamplesAndNativeOrders[routeSamplesAndNativeOrders.length - 1];
+            const current = samplesOrNativeOrders[samplesOrNativeOrders.length - 1];
             // If it is a native single order we only have one Input/output
             // we want to convert this to an array of samples
             if (!isDexSample(current)) {
@@ -416,7 +363,7 @@ export class PathOptimizer {
                 // Note: If the order has an adjusted rate of less than or equal to 0 it will be undefined
                 if (nativeFill) {
                     // NOTE: For Limit/RFQ orders we are done here. No need to scale output
-                    adjustedFills.push({ ...nativeFill, sourcePathId: sourcePathId ?? hexUtils.random() });
+                    adjustedFills.push({ ...nativeFill, sourcePathId: pathId ?? hexUtils.random() });
                 }
                 continue;
             }
@@ -426,7 +373,7 @@ export class PathOptimizer {
             if (!fill) {
                 continue;
             }
-            const routeSamples = routeSamplesAndNativeOrders as DexSample<FillData>[];
+            const routeSamples = samplesOrNativeOrders as DexSample<FillData>[];
 
             // From the output of the router, find the closest Sample in terms of input.
             // The Router may have chosen an amount to fill that we do not have a measured sample of
@@ -473,7 +420,7 @@ export class PathOptimizer {
                 input: routeInputCorrected,
                 output: scaleOutput(fill.output),
                 adjustedOutput: scaleOutput(fill.adjustedOutput),
-                sourcePathId: sourcePathId ?? hexUtils.random(),
+                sourcePathId: pathId ?? hexUtils.random(),
             });
         }
 
