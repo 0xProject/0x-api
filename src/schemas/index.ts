@@ -9,6 +9,7 @@ import * as slippageModelFileSchema from './slippage_model_file_schema.json';
 import * as slippageModelSchema from './slippage_model_schema.json';
 import * as sraOfferAddLiquiditySchema from './sra_offer_add_liquidity_schema.json';
 import * as sraOfferCreateContingentPoolSchema from './sra_offer_create_contingent_pool_schema.json';
+import * as sraOfferRemoveLiquiditySchema from './sra_offer_remove_liquidity_schema.json';
 import * as sraOrderbookQuerySchema from './sra_orderbook_query_schema.json';
 import * as sraOrdersQuerySchema from './sra_orders_query_schema.json';
 import * as sraOrderConfigPayloadSchema from './sra_order_config_payload_schema.json';
@@ -32,6 +33,7 @@ export const schemas = {
     sraOfferAddLiquiditySchema,
     sraOrdersChannelSubscribeSchema,
     sraOfferCreateContingentPoolSchema,
+    sraOfferRemoveLiquiditySchema,
     sraOrdersQuerySchema,
     sraPostOrderPayloadSchema,
     sraPostOrdersPayloadSchema,

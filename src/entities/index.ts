@@ -12,5 +12,6 @@ export { RfqmTransactionSubmissionEntity } from './RfqmTransactionSubmissionEnti
 export { RfqmWorkerHeartbeatEntity } from './RfqmWorkerHeartbeatEntity';
 export { OfferCreateContingentPoolEntity } from './OfferCreateContingentPoolEntity';
 export { OfferAddLiquidityEntity } from './OfferAddLiquidityEntity';
+export { OfferRemoveLiquidityEntity } from './OfferRemoveLiquidityEntity';
 export { SignedOrderV4Entity } from './SignedOrderV4Entity';
 export { TransactionEntityOpts } from './types';

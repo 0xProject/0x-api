@@ -73,6 +73,28 @@ export class InitialTables1604516429083 implements MigrationInterface {
                 CONSTRAINT "PK_2nhf194jgyh71jh48sl34u7k492" PRIMARY KEY ("offer_hash"))`,
         );
         await queryRunner.query(
+            `CREATE TABLE IF NOT EXISTS "offer_remove_liquidity" (
+                "offer_hash" character varying NOT NULL,
+                "maker" character varying NOT NULL,
+                "taker" character varying NOT NULL,
+                "maker_collateral_amount" character varying NOT NULL,
+                "position_token_amount" character varying NOT NULL,
+                "maker_direction" character varying NOT NULL,
+                "offer_expiry" character varying NOT NULL,
+                "minimum_taker_fill_amount" character varying NOT NULL,
+                "pool_id" character varying NOT NULL,
+                "salt" character varying NOT NULL,
+                "chain_id" integer NOT NULL,
+                "verifying_contract" character varying NOT NULL,
+                "actual_taker_fillable_amount" character varying NOT NULL,
+                "reference_asset" character varying NOT NULL,
+                "collateral_token" character varying NOT NULL,
+                "data_provider" character varying NOT NULL,
+                "permissioned_token" character varying NOT NULL,
+                "signature" character varying NOT NULL,
+                CONSTRAINT "PK_9saw944ng94n439gv3409jn42k5" PRIMARY KEY ("offer_hash"))`,
+        );
+        await queryRunner.query(
             `CREATE TABLE IF NOT EXISTS "transactions" (
                 "ref_hash" character varying NOT NULL,
                 "data" character varying,
