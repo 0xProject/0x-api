@@ -464,6 +464,7 @@ export const MAINNET_TOKENS = {
     yUSD: '0x5dbcf33d8c2e976c6b560249878e6f1491bca25c',
     ybCRV: '0x2994529c0652d127b7842094103715ec5299bbed',
     yCRV: '0xdf5e0e81dff6faf3a7e52ba697820c5e32d806a8',
+    ynCRV: '0xfcc5c47be19d06bf83eb04298b026f81069ff65b',
     bCRV: '0x3b3ac5386837dc563660fb6a0937dfaa5924333b',
     yDAI: '0xacd43e627e64355f1861cec6d3a6688b31a6f952',
     yUSDC: '0x597ad1e0c13bfe8025993d9e79c69e1c0233522e',
@@ -735,6 +736,7 @@ export const CURVE_POOLS = {
     triEURpool: '0xb9446c4ef5ebe66268da6700d26f96273de3d571',
     ibEURsEUR: '0x19b080fe1ffa0553469d20ca36219f17fcf03859',
     wethyfi: '0xc26b89a667578ec7b3f11b2f98d6fd15c07c54ba',
+    ycrvcrv: '0x453d92c7d4263201c69aacfaf589ed14202d83a4'
 };
 
 export const CURVE_V2_POOLS = {
@@ -1492,6 +1494,11 @@ export const CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
         tokens: [MAINNET_TOKENS.FXS, MAINNET_TOKENS.cvxFXS],
         pool: CURVE_POOLS.cvxfxs,
         gasSchedule: 390e3,
+    }),
+    [CURVE_POOLS.ycrvcrv]: createCurveExchangePool({
+        tokens: [MAINNET_TOKENS.CRV, MAINNET_TOKENS.ynCRV],
+        pool: CURVE_POOLS.ycrvcrv,
+        gasSchedule: 450e3,
     }),
 };
 
