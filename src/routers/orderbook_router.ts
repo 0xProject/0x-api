@@ -11,7 +11,7 @@ export function createOrderBookRouter(orderBook: OrderBookService): express.Rout
     /**
      * GET Orderbook endpoint retrieves the orderbook for a given asset pair.
      */
-    router.get('/', asyncHandler(handlers.orderbookAsync.bind(handlers)));
+    router.get('/pair', asyncHandler(handlers.orderbookAsync.bind(handlers)));
     /**
      * GET Price endpoint retrieves the prices by order hash.
      */
