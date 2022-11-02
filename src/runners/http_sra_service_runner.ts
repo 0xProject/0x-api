@@ -15,11 +15,12 @@ import {
     SENTRY_SAMPLE_RATE,
     SENTRY_TRACES_SAMPLE_RATE,
 } from '../config';
-import { DEFAULT_CACHE_AGE_SECONDS, ORDERBOOK_PATH, SRA_PATH } from '../constants';
+import { DEFAULT_CACHE_AGE_SECONDS, OFFER_PATH, ORDERBOOK_PATH, SRA_PATH } from '../constants';
 import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
+import { createOfferRouter } from '../routers/offer_router';
 import { createOrderBookRouter } from '../routers/orderbook_router';
 import { createSRARouter } from '../routers/sra_router';
 import { SentryInit, SentryOptions } from '../sentry';
@@ -68,6 +69,9 @@ async function runHttpServiceAsync(
 
     // OrderBook http service
     app.use(ORDERBOOK_PATH, createOrderBookRouter(dependencies.orderBookService));
+
+    // Offer http service
+    app.use(OFFER_PATH, createOfferRouter(dependencies.offerService));
 
     app.use(errorHandler);
 

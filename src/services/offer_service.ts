@@ -1,0 +1,400 @@
+import { BigNumber } from '@0x/utils';
+import { Contract } from '@ethersproject/contracts';
+import { InfuraProvider } from '@ethersproject/providers';
+import { ContractCallContext, ContractCallResults, Multicall } from 'ethereum-multicall';
+import * as _ from 'lodash';
+import { Connection } from 'typeorm';
+
+import { CHAIN_ID, INFURA_API_KEY, OfferLiquidityType, OfferStatus } from '../config';
+import { NULL_ADDRESS, NULL_TEXT, QUOTE_ORDER_EXPIRATION_BUFFER_MS } from '../constants';
+import * as divaContractABI from '../diva-abis/DivaContractABI.json';
+import * as PermissionedPositionTokenABI from '../diva-abis/PermissionedPositionTokenABI.json';
+import { OfferAddLiquidityEntity, OfferCreateContingentPoolEntity, OfferRemoveLiquidityEntity } from '../entities';
+import { logger } from '../logger';
+import {
+    OfferAddLiquidity,
+    OfferCreateContingentPool,
+    OfferCreateContingentPoolFilterType,
+    OfferLiquidityFilterType,
+    OfferRemoveLiquidity,
+} from '../types';
+import { orderUtils } from '../utils/order_utils';
+import { paginationUtils } from '../utils/pagination_utils';
+
+export class OfferService {
+    private readonly _connection: Connection;
+
+    constructor(connection: Connection) {
+        this._connection = connection;
+
+        // Check the validation status of offerCreateContingentPools and offerAddLiquidities
+        setInterval(async () => {
+            await this.checkVaildateOffersAsync();
+        }, QUOTE_ORDER_EXPIRATION_BUFFER_MS);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public checkSortParams(takerCollateralAmount: string, makerCollateralAmount: string): BigNumber {
+        const takerAmount = new BigNumber(takerCollateralAmount);
+        const makerAmount = new BigNumber(makerCollateralAmount);
+
+        return takerAmount.div(takerAmount.plus(makerAmount));
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public offerCreateContingentPoolFilter(apiEntities: any[], req: any): any {
+        return apiEntities.filter((apiEntity: OfferCreateContingentPool) => {
+            if (req.maker !== NULL_ADDRESS && apiEntity.maker.toLowerCase() !== req.maker) {
+                return false;
+            }
+            if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
+                return false;
+            }
+            if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
+                return false;
+            }
+            if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
+                return false;
+            }
+            if (
+                req.collateralToken !== NULL_ADDRESS &&
+                apiEntity.collateralToken.toLowerCase() !== req.collateralToken
+            ) {
+                return false;
+            }
+            if (req.dataProvider !== NULL_ADDRESS && apiEntity.dataProvider.toLowerCase() !== req.dataProvider) {
+                return false;
+            }
+            if (
+                req.permissionedERC721Token !== NULL_ADDRESS &&
+                apiEntity.permissionedERC721Token.toLowerCase() !== req.permissionedERC721Token
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async offerCreateContingentPoolsAsync(req: OfferCreateContingentPoolFilterType): Promise<any> {
+        const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
+        const apiEntities: OfferCreateContingentPool[] = (
+            offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
+        ).map(orderUtils.deserializeOfferCreateContingentPool);
+
+        // Sort offers with the same referenceAsset, floor, inflection, cap, gradient, expiryTime and makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
+        apiEntities
+            .sort((a, b) => {
+                if (
+                    a.floor === b.floor &&
+                    a.inflection === b.inflection &&
+                    a.cap === b.cap &&
+                    a.gradient === b.gradient &&
+                    a.expiryTime === b.expiryTime &&
+                    a.makerDirection === b.makerDirection
+                ) {
+                    const sortValA = this.checkSortParams(a.takerCollateralAmount, a.makerCollateralAmount);
+                    const sortValB = this.checkSortParams(b.takerCollateralAmount, b.makerCollateralAmount);
+                    const sortValue = sortValA.minus(sortValB);
+
+                    return Number(sortValue.toString());
+                } else {
+                    return 1;
+                }
+            })
+            .sort((a, b) => a.referenceAsset.localeCompare(b.referenceAsset));
+
+        const filterEntities: OfferCreateContingentPool[] = this.offerCreateContingentPoolFilter(apiEntities, req);
+
+        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getOfferCreateContingentPoolByOfferHashAsync(offerHash: string): Promise<any> {
+        const offerCreateContingentPoolEntity = await this._connection.manager.findOne(
+            OfferCreateContingentPoolEntity,
+            offerHash,
+        );
+
+        return orderUtils.deserializeOfferCreateContingentPool(
+            offerCreateContingentPoolEntity as Required<OfferCreateContingentPoolEntity>,
+        );
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async postOfferCreateContingentPoolAsync(
+        offerCreateContingentPoolEntity: OfferCreateContingentPoolEntity,
+    ): Promise<any> {
+        await this._connection.getRepository(OfferCreateContingentPoolEntity).insert(offerCreateContingentPoolEntity);
+
+        return offerCreateContingentPoolEntity.offerHash;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async offerAddLiquidityAsync(req: OfferLiquidityFilterType): Promise<any> {
+        const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
+        const apiEntities: OfferAddLiquidity[] = (offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>).map(
+            orderUtils.deserializeOfferAddLiquidity,
+        );
+
+        // Sort offers with the same poolId and the same makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
+        apiEntities
+            .sort((a, b) => {
+                if (a.makerDirection === b.makerDirection) {
+                    const sortValA = this.checkSortParams(a.takerCollateralAmount, a.makerCollateralAmount);
+                    const sortValB = this.checkSortParams(b.takerCollateralAmount, b.makerCollateralAmount);
+                    const sortValue = sortValA.minus(sortValB);
+
+                    return Number(sortValue.toString());
+                } else {
+                    return 1;
+                }
+            })
+            .sort((a, b) => {
+                return Number(b.poolId) - Number(a.poolId);
+            });
+
+        const filterEntities = this.filterOfferLiquidity(apiEntities, req);
+
+        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getOfferAddLiquidityByOfferHashAsync(offerHash: string): Promise<any> {
+        const offerAddLiquidityEntity = await this._connection.manager.findOne(OfferAddLiquidityEntity, offerHash);
+
+        return orderUtils.deserializeOfferAddLiquidity(offerAddLiquidityEntity as Required<OfferAddLiquidityEntity>);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async postOfferLiquidityAsync(offerLiquidityEntity: any, offerLiquidityType: string): Promise<any> {
+        // Get provider to call web3 function
+        const provider = new InfuraProvider(offerLiquidityEntity.chainId, INFURA_API_KEY);
+        // Get DIVA contract to call web3 function
+        const divaContract = new Contract(
+            offerLiquidityEntity.verifyingContract || NULL_ADDRESS,
+            divaContractABI,
+            provider,
+        );
+        // Get parameters of pool using pool id
+        const parameters = await divaContract.functions.getPoolParameters(offerLiquidityEntity.poolId);
+        const referenceAsset = parameters[0].referenceAsset;
+        const collateralToken = parameters[0].collateralToken;
+        const dataProvider = parameters[0].dataProvider;
+
+        // Get longToken address
+        const longToken = parameters[0].longToken;
+
+        // Get PermissionedPositionToken contract to call web3 function
+        const permissionedPositionContract = new Contract(longToken as string, PermissionedPositionTokenABI, provider);
+        // Get PermissionedERC721Token address
+        let permissionedERC721Token = NULL_ADDRESS;
+
+        // TODO: If this call succeeds, longToken is permissionedPositionToken and the permissionedERC721Token exists, not NULL_ADDRESS.
+        // If this call fails, longToken is the permissionlessToken and the permissionedERC721Token is NULL_ADDRESS.
+        try {
+            permissionedERC721Token = await permissionedPositionContract.functions.permissionedERC721Token();
+        } catch (err) {
+            logger.warn('There is no permissionedERC721Token for this pool.');
+        }
+
+        const fillableOfferLiquidityEntity: any = {
+            ...offerLiquidityEntity,
+            referenceAsset,
+            collateralToken,
+            dataProvider,
+            permissionedERC721Token,
+        };
+
+        if (offerLiquidityType === OfferLiquidityType.Add) {
+            await this._connection.getRepository(OfferAddLiquidityEntity).insert(fillableOfferLiquidityEntity);
+        } else {
+            await this._connection.getRepository(OfferRemoveLiquidityEntity).insert(fillableOfferLiquidityEntity);
+        }
+
+        return offerLiquidityEntity.offerHash;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public filterOfferLiquidity(apiEntities: any[], req: OfferLiquidityFilterType): any {
+        const filterEntities = this.offerCreateContingentPoolFilter(apiEntities, req);
+
+        return filterEntities.filter((apiEntity: any) => {
+            if (req.poolId !== NULL_TEXT && apiEntity.poolId !== req.poolId) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async offerRemoveLiquidityAsync(req: OfferLiquidityFilterType): Promise<any> {
+        const offerRemoveLiquidityEntities = await this._connection.manager.find(OfferRemoveLiquidityEntity);
+        const apiEntities: OfferRemoveLiquidity[] = (
+            offerRemoveLiquidityEntities as Required<OfferRemoveLiquidityEntity[]>
+        ).map(orderUtils.deserializeOfferRemoveLiquidity);
+
+        // Sort offers with the same poolId and the same makerDirection in ascending order by the positionTokenAmount / (positionTokenAmount + makerCollateralAmount).
+        apiEntities
+            .sort((a, b) => {
+                if (a.makerDirection === b.makerDirection) {
+                    const sortValA = this.checkSortParams(a.positionTokenAmount, a.makerCollateralAmount);
+                    const sortValB = this.checkSortParams(b.positionTokenAmount, b.makerCollateralAmount);
+                    const sortValue = sortValA.minus(sortValB);
+
+                    return Number(sortValue.toString());
+                } else {
+                    return 1;
+                }
+            })
+            .sort((a, b) => {
+                return Number(b.poolId) - Number(a.poolId);
+            });
+
+        const filterEntities = this.filterOfferLiquidity(apiEntities, req);
+
+        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async getOfferRemoveLiquidityByOfferHashAsync(offerHash: string): Promise<any> {
+        const offerRemoveLiquidityEntity = await this._connection.manager.findOne(
+            OfferRemoveLiquidityEntity,
+            offerHash,
+        );
+
+        return orderUtils.deserializeOfferRemoveLiquidity(
+            offerRemoveLiquidityEntity as Required<OfferRemoveLiquidityEntity>,
+        );
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    public async checkVaildateOffersAsync(): Promise<void> {
+        // Get provider to call web3 function
+        const provider = new InfuraProvider(CHAIN_ID, INFURA_API_KEY);
+        const multicall = new Multicall({ ethersProvider: provider, tryAggregate: true });
+        const callData: ContractCallContext[] = [];
+
+        // Check validate of offerCreateContingentPools
+        const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
+        const apiOfferCreateContingentPoolEntities: OfferCreateContingentPool[] = (
+            offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
+        ).map(orderUtils.deserializeOfferCreateContingentPool);
+
+        apiOfferCreateContingentPoolEntities.map((apiEntity) => {
+            const offerCreateContingentPool = {
+                maker: apiEntity.maker,
+                taker: apiEntity.taker,
+                makerCollateralAmount: apiEntity.makerCollateralAmount,
+                takerCollateralAmount: apiEntity.takerCollateralAmount,
+                makerDirection: apiEntity.makerDirection,
+                offerExpiry: apiEntity.offerExpiry,
+                minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
+                referenceAsset: apiEntity.referenceAsset,
+                expiryTime: apiEntity.expiryTime,
+                floor: apiEntity.floor,
+                inflection: apiEntity.inflection,
+                cap: apiEntity.cap,
+                gradient: apiEntity.gradient,
+                collateralToken: apiEntity.collateralToken,
+                dataProvider: apiEntity.dataProvider,
+                capacity: apiEntity.capacity,
+                permissionedERC721Token: apiEntity.permissionedERC721Token,
+                salt: apiEntity.salt,
+            };
+            const signature = apiEntity.signature;
+
+            callData.push({
+                reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
+                contractAddress: apiEntity.verifyingContract,
+                abi: divaContractABI,
+                calls: [
+                    {
+                        reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
+                        methodName: 'getOfferRelevantStateCreateContingentPool',
+                        methodParameters: [offerCreateContingentPool, signature],
+                    },
+                ],
+            });
+        });
+
+        // Check validate of offerAddLiquidities
+        const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
+        const apiOfferAddLiquidityEntities: OfferAddLiquidity[] = (
+            offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>
+        ).map(orderUtils.deserializeOfferAddLiquidity);
+
+        apiOfferAddLiquidityEntities.map((apiEntity) => {
+            // Get parameters to call the getOfferRelevantStateAddLiquidity function
+            const offerAddLiquidity = {
+                maker: apiEntity.maker,
+                taker: apiEntity.taker,
+                makerCollateralAmount: apiEntity.makerCollateralAmount,
+                takerCollateralAmount: apiEntity.takerCollateralAmount,
+                makerDirection: apiEntity.makerDirection,
+                offerExpiry: apiEntity.offerExpiry,
+                minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
+                poolId: apiEntity.poolId,
+                salt: apiEntity.salt,
+            };
+            const signature = apiEntity.signature;
+
+            callData.push({
+                reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
+                contractAddress: apiEntity.verifyingContract,
+                abi: divaContractABI,
+                calls: [
+                    {
+                        reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
+                        methodName: 'getOfferRelevantStateAddLiquidity',
+                        methodParameters: [offerAddLiquidity, signature],
+                    },
+                ],
+            });
+        });
+
+        const multicallResponse: ContractCallResults = await multicall.call(callData);
+        const result = multicallResponse.results;
+
+        await Promise.all(
+            apiOfferCreateContingentPoolEntities.map(async (apiEntity) => {
+                const offerCreateContingentPoolInfo =
+                    result[`OfferCreateContingentPool-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+
+                try {
+                    // Get the offerCreateContingentPoolStatus
+                    const status = offerCreateContingentPoolInfo[0][1];
+                    // Delete the inValid, canceled, expired offerCreateContingentPools
+                    if (status !== OfferStatus.Fillable) {
+                        await this._connection.manager.delete(OfferCreateContingentPoolEntity, apiEntity.offerHash);
+                    }
+                } catch (err) {
+                    logger.warn(
+                        'Error deleting offerCreateContingentPool using offerHash = ',
+                        apiEntity.offerHash,
+                        '.',
+                    );
+                }
+            }),
+        );
+
+        await Promise.all(
+            apiOfferAddLiquidityEntities.map(async (apiEntity) => {
+                const offerAddLiquidityInfo =
+                    result[`OfferAddLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+
+                try {
+                    const status = offerAddLiquidityInfo[0][1];
+                    // Delete the inValid, canceled, expired offerAddLiquidity
+                    if (status !== OfferStatus.Fillable) {
+                        await this._connection.manager.delete(OfferAddLiquidityEntity, apiEntity.offerHash);
+                    }
+                } catch (err) {
+                    logger.warn('Error deleting offerAddLiquidity using offerHash = ', apiEntity.offerHash, '.');
+                }
+            }),
+        );
+    }
+}
