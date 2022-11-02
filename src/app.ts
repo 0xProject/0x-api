@@ -31,6 +31,7 @@ import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheE
 import { logger } from './logger';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
+import { OfferService } from './services/offer_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
 import { SwapService } from './services/swap_service';
@@ -49,6 +50,7 @@ export interface AppDependencies {
     contractAddresses: ContractAddresses;
     connection: Connection;
     kafkaClient?: Kafka;
+    offerService: OfferService;
     orderBookService: OrderBookService;
     swapService?: SwapService;
     metaTransactionService?: MetaTransactionService;
@@ -157,6 +159,8 @@ export async function getDefaultAppDependenciesAsync(
         logger.warn(`skipping kafka client creation because no kafkaBrokers were passed in`);
     }
 
+    const offerService = new OfferService(connection);
+
     const orderBookService = new OrderBookService(connection, new OrderWatcher());
 
     const rfqtFirmQuoteValidator = new PostgresRfqtFirmQuoteValidator(
@@ -212,6 +216,7 @@ export async function getDefaultAppDependenciesAsync(
         contractAddresses,
         connection,
         kafkaClient,
+        offerService,
         orderBookService,
         swapService,
         metaTransactionService,

@@ -49,7 +49,8 @@ export const SWAP_PATH = '/swap/v1';
 export const META_TRANSACTION_PATH = '/meta_transaction/v1';
 export const METRICS_PATH = '/metrics';
 export const RFQM_PATH = '/rfqm/v1';
-export const ORDERBOOK_PATH = '/orderbook/v1';
+export const ORDERBOOK_PATH = '/0x/orderbook/v1';
+export const OFFER_PATH = '/diva/offer/v1';
 export const API_KEY_HEADER = '0x-api-key';
 export const HEALTHCHECK_PATH = '/healthz';
 
