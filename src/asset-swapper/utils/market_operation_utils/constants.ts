@@ -512,7 +512,8 @@ export const MAINNET_TOKENS = {
     YFI: '0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e',
     LUSDCRV: '0xed279fdd11ca84beef15af5d39bb4d4bee23f0ca',
     bLUSD: '0xb9d7dddca9a4ac480991865efef82e01273f79c3',
-
+    rsr: '0x320623b8e4ff03373931769a31fc52a4e78b5d70',
+    crvFRAX: '0x3175df0976dfa876431c2e9ee6bc45b65d3473cc',
 };
 
 export const BSC_TOKENS = {
@@ -741,6 +742,7 @@ export const CURVE_POOLS = {
     wethyfi: '0xc26b89a667578ec7b3f11b2f98d6fd15c07c54ba',
     ycrvcrv: '0x453d92c7d4263201c69aacfaf589ed14202d83a4',
     bLUSD: '0x74ed5d42203806c8cdcf2f04ca5f60dc777b901c',
+    rsr: '0x6a6283ab6e31c2aec3fa08697a8f806b740660b2',
 };
 
 export const CURVE_V2_POOLS = {
@@ -1507,6 +1509,11 @@ export const CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
     [CURVE_POOLS.bLUSD]: createCurveFactoryCryptoExchangePool({
         tokens: [MAINNET_TOKENS.bLUSD, MAINNET_TOKENS.LUSDCRV],
         pool: CURVE_POOLS.bLUSD,
+        gasSchedule: 450e3,
+    }),
+    [CURVE_POOLS.rsr]: createCurveFactoryCryptoExchangePool({
+        tokens: [MAINNET_TOKENS.rsr, MAINNET_TOKENS.crvFRAX],
+        pool: CURVE_POOLS.rsr,
         gasSchedule: 450e3,
     }),
 };
