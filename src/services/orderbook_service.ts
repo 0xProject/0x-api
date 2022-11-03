@@ -287,6 +287,7 @@ export class OrderBookService {
             feeRecipient: NULL_ADDRESS,
             takerTokenFee: -1,
             threshold: 0,
+            count: 1,
         };
         const resultBids: SRAOrder[] = [];
         const resultAsks: SRAOrder[] = [];
@@ -424,7 +425,7 @@ export class OrderBookService {
 
         // Get best bid and ask
         for (const pool of pools) {
-            let bestBid = {}; // best bid
+            const bestBids: OrderbookPriceResponse[] = []; // best bids
             let count = 0;
             if (pool.bids.length !== 0) {
                 while (count < pool.bids.length) {
@@ -440,14 +441,16 @@ export class OrderBookService {
 
                     // Filtering the bid
                     if (this.filterOrder(fillableOrder.extendedOrder, req)) {
-                        bestBid = this.getBidOrAskFormat(pool.bids[count]);
-                        break;
+                        bestBids.push(this.getBidOrAskFormat(pool.bids[count]));
+                        if (count === req.count) {
+                            break;
+                        }
                     }
                     count++;
                 }
             }
 
-            let bestAsk = {}; // best ask
+            const bestAsks: OrderbookPriceResponse[] = []; // best ask
             count = 0;
             if (pool.asks.length !== 0) {
                 while (count < pool.asks.length) {
@@ -463,8 +466,10 @@ export class OrderBookService {
 
                     // Filtering the ask
                     if (this.filterOrder(fillableOrder.extendedOrder, req)) {
-                        bestAsk = this.getBidOrAskFormat(pool.asks[count]);
-                        break;
+                        bestAsks.push(this.getBidOrAskFormat(pool.asks[count]));
+                        if (count === req.count) {
+                            break;
+                        }
                     }
                     count++;
                 }
@@ -473,8 +478,8 @@ export class OrderBookService {
             result.push({
                 baseToken: getAddress(pool.baseToken), // baseToken of pool
                 quoteToken: getAddress(pool.quoteToken), // quoteToken of pool
-                bid: bestBid, // best bid of pool
-                ask: bestAsk, // best ask of pool
+                bids: bestBids, // best bid of pool
+                asks: bestAsks, // best ask of pool
             });
         }
 
