@@ -35,16 +35,6 @@ function nativeOrderToNormalizedAmounts(
     return { input, output };
 }
 
-export interface PathOptimizerContext {
-    side: MarketOperation;
-    chainId: ChainId;
-    feeSchedule: FeeSchedule;
-    neonRouterNumSamples: number;
-    fillAdjustor: FillAdjustor;
-    pathPenaltyOpts: PathPenaltyOpts;
-    inputAmount: BigNumber;
-}
-
 export class PathOptimizer {
     private side: MarketOperation;
     private chainId: ChainId;
@@ -54,7 +44,15 @@ export class PathOptimizer {
     private pathPenaltyOpts: PathPenaltyOpts;
     private inputAmount: BigNumber;
 
-    constructor(context: PathOptimizerContext) {
+    constructor(context: {
+        side: MarketOperation;
+        chainId: ChainId;
+        feeSchedule: FeeSchedule;
+        neonRouterNumSamples: number;
+        fillAdjustor: FillAdjustor;
+        pathPenaltyOpts: PathPenaltyOpts;
+        inputAmount: BigNumber;
+    }) {
         this.side = context.side;
         this.chainId = context.chainId;
         this.feeSchedule = context.feeSchedule;
