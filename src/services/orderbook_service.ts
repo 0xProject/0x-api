@@ -425,7 +425,7 @@ export class OrderBookService {
 
         // Get best bid and ask
         for (const pool of pools) {
-            let bestBids: OrderbookPriceResponse[] = []; // best bids
+            const bestBids: OrderbookPriceResponse[] = []; // best bids
             let count = 0;
             if (pool.bids.length !== 0) {
                 while (count < pool.bids.length) {
@@ -450,7 +450,7 @@ export class OrderBookService {
                 }
             }
 
-            let bestAsks: OrderbookPriceResponse[] = []; // best ask
+            const bestAsks: OrderbookPriceResponse[] = []; // best ask
             count = 0;
             if (pool.asks.length !== 0) {
                 while (count < pool.asks.length) {
