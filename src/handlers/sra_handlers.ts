@@ -80,6 +80,7 @@ export class SRAHandlers {
         const takerTokenFee: number =
             req.query.takerTokenFee === undefined ? -1 : Number(req.query.takerTokenFee as string);
         const threshold: number = req.query.threshold === undefined ? -1 : Number(req.query.threshold as string);
+        const count: number = req.query.count === undefined ? 1 : Number(req.query.count as string);
         const priceResponse = await this._orderBook.getPricesAsync({
             page,
             perPage,
@@ -89,6 +90,7 @@ export class SRAHandlers {
             feeRecipient,
             takerTokenFee,
             threshold,
+            count,
         });
         res.status(HttpStatus.OK).send(priceResponse);
     }
