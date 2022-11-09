@@ -50,8 +50,13 @@ export class OfferService {
             if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
                 return false;
             }
-            if (req.makerDirection !== NULL_TEXT && req.makerDirection !== apiEntity.makerDirection) {
-                return false;
+            if (req.makerDirection !== NULL_TEXT) {
+                if (
+                    (req.makerDirection !== 'true' && apiEntity.makerDirection) ||
+                    (req.makerDirection !== 'false' && !apiEntity.makerDirection)
+                ) {
+                    return false;
+                }
             }
             if (req.referenceAsset !== NULL_TEXT && apiEntity.referenceAsset !== req.referenceAsset) {
                 return false;
