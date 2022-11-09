@@ -18,7 +18,7 @@ import {
     OfferLiquidityFilterType,
     OfferRemoveLiquidity,
 } from '../types';
-import { orderUtils } from '../utils/order_utils';
+import { offerUtils } from '../utils/offer_utils';
 import { paginationUtils } from '../utils/pagination_utils';
 
 export class OfferService {
@@ -81,7 +81,7 @@ export class OfferService {
         const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
         const apiEntities: OfferCreateContingentPool[] = (
             offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
-        ).map(orderUtils.deserializeOfferCreateContingentPool);
+        ).map(offerUtils.deserializeOfferCreateContingentPool);
 
         // Sort offers with the same referenceAsset, floor, inflection, cap, gradient, expiryTime and makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
         apiEntities
@@ -117,7 +117,7 @@ export class OfferService {
             offerHash,
         );
 
-        return orderUtils.deserializeOfferCreateContingentPool(
+        return offerUtils.deserializeOfferCreateContingentPool(
             offerCreateContingentPoolEntity as Required<OfferCreateContingentPoolEntity>,
         );
     }
@@ -135,7 +135,7 @@ export class OfferService {
     public async offerAddLiquidityAsync(req: OfferLiquidityFilterType): Promise<any> {
         const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
         const apiEntities: OfferAddLiquidity[] = (offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>).map(
-            orderUtils.deserializeOfferAddLiquidity,
+            offerUtils.deserializeOfferAddLiquidity,
         );
 
         // Sort offers with the same poolId and the same makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
@@ -164,7 +164,7 @@ export class OfferService {
     public async getOfferAddLiquidityByOfferHashAsync(offerHash: string): Promise<any> {
         const offerAddLiquidityEntity = await this._connection.manager.findOne(OfferAddLiquidityEntity, offerHash);
 
-        return orderUtils.deserializeOfferAddLiquidity(offerAddLiquidityEntity as Required<OfferAddLiquidityEntity>);
+        return offerUtils.deserializeOfferAddLiquidity(offerAddLiquidityEntity as Required<OfferAddLiquidityEntity>);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -234,7 +234,7 @@ export class OfferService {
         const offerRemoveLiquidityEntities = await this._connection.manager.find(OfferRemoveLiquidityEntity);
         const apiEntities: OfferRemoveLiquidity[] = (
             offerRemoveLiquidityEntities as Required<OfferRemoveLiquidityEntity[]>
-        ).map(orderUtils.deserializeOfferRemoveLiquidity);
+        ).map(offerUtils.deserializeOfferRemoveLiquidity);
 
         // Sort offers with the same poolId and the same makerDirection in ascending order by the positionTokenAmount / (positionTokenAmount + makerCollateralAmount).
         apiEntities
@@ -265,7 +265,7 @@ export class OfferService {
             offerHash,
         );
 
-        return orderUtils.deserializeOfferRemoveLiquidity(
+        return offerUtils.deserializeOfferRemoveLiquidity(
             offerRemoveLiquidityEntity as Required<OfferRemoveLiquidityEntity>,
         );
     }
@@ -281,7 +281,7 @@ export class OfferService {
         const offerCreateContingentPoolEntities = await this._connection.manager.find(OfferCreateContingentPoolEntity);
         const apiOfferCreateContingentPoolEntities: OfferCreateContingentPool[] = (
             offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
-        ).map(orderUtils.deserializeOfferCreateContingentPool);
+        ).map(offerUtils.deserializeOfferCreateContingentPool);
 
         apiOfferCreateContingentPoolEntities.map((apiEntity) => {
             const offerCreateContingentPool = {
@@ -324,7 +324,7 @@ export class OfferService {
         const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
         const apiOfferAddLiquidityEntities: OfferAddLiquidity[] = (
             offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>
-        ).map(orderUtils.deserializeOfferAddLiquidity);
+        ).map(offerUtils.deserializeOfferAddLiquidity);
 
         apiOfferAddLiquidityEntities.map((apiEntity) => {
             // Get parameters to call the getOfferRelevantStateAddLiquidity function
