@@ -61,7 +61,7 @@ export interface OfferType {
     maker: string;
     taker: string;
     makerCollateralAmount: string;
-    makerDirection: string;
+    makerDirection: boolean;
     offerExpiry: string;
     minimumTakerFillAmount: string;
     referenceAsset: string;
