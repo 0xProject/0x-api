@@ -194,12 +194,12 @@ export class OfferService {
         if (offerLiquidityType === OfferLiquidityType.Add) {
             relevantStateParams = await divaContract.functions.getOfferRelevantStateAddLiquidity(
                 offerLiquidityEntity,
-                offerLiquidityEntity.signature
+                offerLiquidityEntity.signature,
             );
         } else {
             relevantStateParams = await divaContract.functions.getOfferRelevantStateRemoveLiquidity(
                 offerLiquidityEntity,
-                offerLiquidityEntity.signature
+                offerLiquidityEntity.signature,
             );
         }
         const actualTakerFillableAmount = relevantStateParams.actualTakerFillableAmount.toString();
