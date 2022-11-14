@@ -182,11 +182,27 @@ export class OfferService {
             divaContractABI,
             provider,
         );
+
         // Get parameters of pool using pool id
         const parameters = await divaContract.functions.getPoolParameters(offerLiquidityEntity.poolId);
         const referenceAsset = parameters[0].referenceAsset;
         const collateralToken = parameters[0].collateralToken;
         const dataProvider = parameters[0].dataProvider;
+
+        // Get actualTakerFillableAmount
+        let relevantStateParams: any;
+        if (offerLiquidityType === OfferLiquidityType.Add) {
+            relevantStateParams = await divaContract.functions.getOfferRelevantStateAddLiquidity(
+                offerLiquidityEntity,
+                offerLiquidityEntity.signature
+            );
+        } else {
+            relevantStateParams = await divaContract.functions.getOfferRelevantStateRemoveLiquidity(
+                offerLiquidityEntity,
+                offerLiquidityEntity.signature
+            );
+        }
+        const actualTakerFillableAmount = relevantStateParams.actualTakerFillableAmount.toString();
 
         // Get longToken address
         const longToken = parameters[0].longToken;
@@ -210,6 +226,7 @@ export class OfferService {
             collateralToken,
             dataProvider,
             permissionedERC721Token,
+            actualTakerFillableAmount,
         };
 
         if (offerLiquidityType === OfferLiquidityType.Add) {
