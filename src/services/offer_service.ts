@@ -112,7 +112,10 @@ export class OfferService {
 
         const filterEntities: OfferCreateContingentPool[] = this.offerCreateContingentPoolFilter(apiEntities, req);
 
-        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+        // Calculate the actualFillableTakerAmount and appends it to data
+        const resultEntities = await this.appendActualFillableTakerAmountAsync(filterEntities, "CreateContingentPool");
+
+        return paginationUtils.paginate(resultEntities, req.page, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -122,9 +125,14 @@ export class OfferService {
             offerHash,
         );
 
-        return offerUtils.deserializeOfferCreateContingentPool(
+        const entity = offerUtils.deserializeOfferCreateContingentPool(
             offerCreateContingentPoolEntity as Required<OfferCreateContingentPoolEntity>,
         );
+
+        // Calculate the actualFillableTakerAmount and appends it to data
+        const resultEntities = await this.appendActualFillableTakerAmountAsync([entity], "CreateContingentPool");
+
+        return resultEntities[0];
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -157,7 +165,7 @@ export class OfferService {
                         },
                     ],
                 });
-            } else {
+            } else if (offerLiquidityType === OfferLiquidityType.Remove) {
                 callData.push({
                     reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
                     contractAddress: apiEntity.verifyingContract,
@@ -170,6 +178,19 @@ export class OfferService {
                         },
                     ],
                 });
+            } else {
+                callData.push({
+                    reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
+                    contractAddress: apiEntity.verifyingContract,
+                    abi: divaContractABI,
+                    calls: [
+                        {
+                            reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
+                            methodName: 'getOfferRelevantStateCreateContingentPool',
+                            methodParameters: [apiEntity, apiEntity.signature],
+                        },
+                    ],
+                });
             }
         });
 
@@ -177,8 +198,16 @@ export class OfferService {
         const result = multicallResponse.results;
 
         const resultEntities = apiEntities.map((apiEntity) => {
-            const relevantStateParams: any =
-                result[`OfferAddLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+            let relevantStateParams: any;
+
+            if (offerLiquidityType === OfferLiquidityType.Add) {
+                relevantStateParams = result[`OfferAddLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+            } else if (offerLiquidityType === OfferLiquidityType.Remove) {
+                relevantStateParams = result[`OfferRemoveLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+            } else {
+                relevantStateParams = result[`OfferCreateContingentPool-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+            }
+                
             const actualTakerFillableAmount = parseInt(relevantStateParams[1].hex, 16);
 
             return {
