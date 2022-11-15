@@ -34,9 +34,6 @@ export class OfferLiquidityEntity {
     @ViewColumn({ name: 'verifying_contract' })
     public verifyingContract?: string;
 
-    @ViewColumn({ name: 'actual_taker_fillable_amount' })
-    public actualTakerFillableAmount?: string;
-
     @ViewColumn({ name: 'reference_asset' })
     public referenceAsset?: string;
 
@@ -63,7 +60,6 @@ export class OfferLiquidityEntity {
             minimumTakerFillAmount?: string;
             poolId?: string;
             salt?: string;
-            actualTakerFillableAmount?: string;
             chainId?: number;
             verifyingContract?: string;
             referenceAsset?: string;

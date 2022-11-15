@@ -87,13 +87,11 @@ export interface OfferCreateContingentPool extends OfferType {
 export interface OfferAddLiquidity extends OfferType {
     takerCollateralAmount: string;
     poolId: string;
-    actualTakerFillableAmount: string;
 }
 
 export interface OfferRemoveLiquidity extends OfferType {
     positionTokenAmount: string;
     poolId: string;
-    actualTakerFillableAmount: string;
 }
 
 /** BEGIN SRA TYPES */

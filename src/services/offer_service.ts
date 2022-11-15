@@ -137,6 +137,60 @@ export class OfferService {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
+    public async appendActualFillableTakerAmountAsync(apiEntities: any[], offerLiquidityType: string): Promise<any[]> {
+        // Get provider to call web3 function
+        const provider = new InfuraProvider(CHAIN_ID, INFURA_API_KEY);
+        const multicall = new Multicall({ ethersProvider: provider, tryAggregate: true });
+        const callData: ContractCallContext[] = [];
+
+        apiEntities.map((apiEntity) => {
+            if (offerLiquidityType === OfferLiquidityType.Add) {
+                callData.push({
+                    reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
+                    contractAddress: apiEntity.verifyingContract,
+                    abi: divaContractABI,
+                    calls: [
+                        {
+                            reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
+                            methodName: 'getOfferRelevantStateAddLiquidity',
+                            methodParameters: [apiEntity, apiEntity.signature],
+                        },
+                    ],
+                });
+            } else {
+                callData.push({
+                    reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
+                    contractAddress: apiEntity.verifyingContract,
+                    abi: divaContractABI,
+                    calls: [
+                        {
+                            reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
+                            methodName: 'getOfferRelevantStateRemoveLiquidity',
+                            methodParameters: [apiEntity, apiEntity.signature],
+                        },
+                    ],
+                });
+            }
+        });
+
+        const multicallResponse: ContractCallResults = await multicall.call(callData);
+        const result = multicallResponse.results;
+
+        const resultEntities = apiEntities.map((apiEntity) => {
+            const relevantStateParams: any =
+                result[`OfferAddLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+            const actualTakerFillableAmount = parseInt(relevantStateParams[1].hex, 16);
+
+            return {
+                ...apiEntity,
+                actualTakerFillableAmount: actualTakerFillableAmount.toString(),
+            };
+        });
+
+        return resultEntities;
+    }
+
+    // tslint:disable-next-line:prefer-function-over-method
     public async offerAddLiquidityAsync(req: OfferLiquidityFilterType): Promise<any> {
         const offerAddLiquidityEntities = await this._connection.manager.find(OfferAddLiquidityEntity);
         const apiEntities: OfferAddLiquidity[] = (offerAddLiquidityEntities as Required<OfferAddLiquidityEntity[]>).map(
@@ -162,14 +216,24 @@ export class OfferService {
 
         const filterEntities = this.filterOfferLiquidity(apiEntities, req);
 
-        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+        // Calculate the actualFillableTakerAmount and appends it to data
+        const resultEntities = await this.appendActualFillableTakerAmountAsync(filterEntities, OfferLiquidityType.Add);
+
+        return paginationUtils.paginate(resultEntities, req.page, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
     public async getOfferAddLiquidityByOfferHashAsync(offerHash: string): Promise<any> {
         const offerAddLiquidityEntity = await this._connection.manager.findOne(OfferAddLiquidityEntity, offerHash);
 
-        return offerUtils.deserializeOfferAddLiquidity(offerAddLiquidityEntity as Required<OfferAddLiquidityEntity>);
+        const entity = offerUtils.deserializeOfferAddLiquidity(
+            offerAddLiquidityEntity as Required<OfferAddLiquidityEntity>,
+        );
+
+        // Calculate the actualFillableTakerAmount and appends it to data
+        const resultEntities = await this.appendActualFillableTakerAmountAsync([entity], OfferLiquidityType.Add);
+
+        return resultEntities[0];
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -188,21 +252,6 @@ export class OfferService {
         const referenceAsset = parameters[0].referenceAsset;
         const collateralToken = parameters[0].collateralToken;
         const dataProvider = parameters[0].dataProvider;
-
-        // Get actualTakerFillableAmount
-        let relevantStateParams: any;
-        if (offerLiquidityType === OfferLiquidityType.Add) {
-            relevantStateParams = await divaContract.functions.getOfferRelevantStateAddLiquidity(
-                offerLiquidityEntity,
-                offerLiquidityEntity.signature,
-            );
-        } else {
-            relevantStateParams = await divaContract.functions.getOfferRelevantStateRemoveLiquidity(
-                offerLiquidityEntity,
-                offerLiquidityEntity.signature,
-            );
-        }
-        const actualTakerFillableAmount = relevantStateParams.actualTakerFillableAmount.toString();
 
         // Get longToken address
         const longToken = parameters[0].longToken;
@@ -226,7 +275,6 @@ export class OfferService {
             collateralToken,
             dataProvider,
             permissionedERC721Token,
-            actualTakerFillableAmount,
         };
 
         if (offerLiquidityType === OfferLiquidityType.Add) {
@@ -277,7 +325,10 @@ export class OfferService {
 
         const filterEntities = this.filterOfferLiquidity(apiEntities, req);
 
-        return paginationUtils.paginate(filterEntities, req.page, req.perPage);
+        // Calculate the actualFillableTakerAmount and appends it to data
+        const resultEntities = await this.appendActualFillableTakerAmountAsync(filterEntities, OfferLiquidityType.Add);
+
+        return paginationUtils.paginate(resultEntities, req.page, req.perPage);
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -287,9 +338,14 @@ export class OfferService {
             offerHash,
         );
 
-        return offerUtils.deserializeOfferRemoveLiquidity(
+        const entity = offerUtils.deserializeOfferRemoveLiquidity(
             offerRemoveLiquidityEntity as Required<OfferRemoveLiquidityEntity>,
         );
+
+        // Calculate the actualFillableTakerAmount and appends it to data
+        const resultEntities = await this.appendActualFillableTakerAmountAsync([entity], OfferLiquidityType.Add);
+
+        return resultEntities[0];
     }
 
     // tslint:disable-next-line:prefer-function-over-method
