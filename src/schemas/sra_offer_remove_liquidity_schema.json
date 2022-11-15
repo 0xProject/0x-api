@@ -38,9 +38,6 @@
         "verifyingContract": {
             "type": "string"
         },
-        "actualTakerFillableAmount": {
-            "type": "string"
-        },
         "referenceAsset": {
             "type": "string"
         },
