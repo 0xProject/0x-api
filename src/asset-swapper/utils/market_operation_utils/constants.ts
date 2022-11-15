@@ -1125,6 +1125,7 @@ const CURVE_POLYGON_ATRICRYPTO_UNDERLYING_TOKENS = [POLYGON_TOKENS.DAI, POLYGON_
 const CURVE_POLYGON_ATRICRYPTO_TOKENS = [POLYGON_TOKENS.amDAI, POLYGON_TOKENS.amUSDC, POLYGON_TOKENS.amUSDT];
 const CURVE_FANTOM_TWO_POOL_TOKENS = [FANTOM_TOKENS.DAI, FANTOM_TOKENS.USDC];
 const CURVE_ARBITRUM_TWO_POOL_TOKENS = [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT];
+const CURVE_FRAX_TOKENS = [MAINNET_TOKENS.USDC, MAINNET_TOKENS.FRAX];
 
 const createCurveExchangePool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange,
@@ -1151,6 +1152,16 @@ const createCurveMetaTriPool = (info: { tokens: string[]; pool: string; gasSched
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
     tokens: [...info.tokens, ...CURVE_TRI_POOL_MAINNET_TOKENS],
+    metaTokens: info.tokens,
+    poolAddress: info.pool,
+    gasSchedule: info.gasSchedule,
+});
+
+const createCurveMetaRSRPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+    exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying_uint256,
+    sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_uint256,
+    buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+    tokens: [...info.tokens, ...CURVE_FRAX_TOKENS],
     metaTokens: info.tokens,
     poolAddress: info.pool,
     gasSchedule: info.gasSchedule,
@@ -1513,11 +1524,11 @@ export const CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
         pool: CURVE_POOLS.bLUSD,
         gasSchedule: 390e3,
     }),
-    [CURVE_POOLS.rsr]: createCurveFactoryCryptoExchangePool({
-        tokens: [MAINNET_TOKENS.rsr, MAINNET_TOKENS.crvFRAX],
-        pool: CURVE_POOLS.rsr,
-        gasSchedule: 390e3,
-    }),
+    [CURVE_POOLS.rsr]: createCurveMetaRSRPool({
+            tokens: [MAINNET_TOKENS.rsr],
+            pool: CURVE_POOLS.rsr,
+            gasSchedule: 390e3,
+    }),    
     [CURVE_POOLS.DOLAFRAX]: createCurveExchangePool({
         tokens: [MAINNET_TOKENS.DOLA, MAINNET_TOKENS.crvFRAX],
         pool: CURVE_POOLS.DOLAFRAX,
