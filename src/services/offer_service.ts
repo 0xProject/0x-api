@@ -113,7 +113,7 @@ export class OfferService {
         const filterEntities: OfferCreateContingentPool[] = this.offerCreateContingentPoolFilter(apiEntities, req);
 
         // Calculate the actualFillableTakerAmount and appends it to data
-        const resultEntities = await this.appendActualFillableTakerAmountAsync(filterEntities, "CreateContingentPool");
+        const resultEntities = await this.appendActualFillableTakerAmountAsync(filterEntities, 'CreateContingentPool');
 
         return paginationUtils.paginate(resultEntities, req.page, req.perPage);
     }
@@ -130,7 +130,7 @@ export class OfferService {
         );
 
         // Calculate the actualFillableTakerAmount and appends it to data
-        const resultEntities = await this.appendActualFillableTakerAmountAsync([entity], "CreateContingentPool");
+        const resultEntities = await this.appendActualFillableTakerAmountAsync([entity], 'CreateContingentPool');
 
         return resultEntities[0];
     }
@@ -153,44 +153,50 @@ export class OfferService {
 
         apiEntities.map((apiEntity) => {
             if (offerLiquidityType === OfferLiquidityType.Add) {
-                callData.push({
-                    reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
-                    contractAddress: apiEntity.verifyingContract,
-                    abi: divaContractABI,
-                    calls: [
-                        {
-                            reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
-                            methodName: 'getOfferRelevantStateAddLiquidity',
-                            methodParameters: [apiEntity, apiEntity.signature],
-                        },
-                    ],
-                });
+                if (apiEntity.collateralToken !== NULL_ADDRESS) {
+                    callData.push({
+                        reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
+                        contractAddress: apiEntity.verifyingContract,
+                        abi: divaContractABI,
+                        calls: [
+                            {
+                                reference: `OfferAddLiquidity-${apiEntity.offerHash}`,
+                                methodName: 'getOfferRelevantStateAddLiquidity',
+                                methodParameters: [apiEntity, apiEntity.signature],
+                            },
+                        ],
+                    });
+                }
             } else if (offerLiquidityType === OfferLiquidityType.Remove) {
-                callData.push({
-                    reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
-                    contractAddress: apiEntity.verifyingContract,
-                    abi: divaContractABI,
-                    calls: [
-                        {
-                            reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
-                            methodName: 'getOfferRelevantStateRemoveLiquidity',
-                            methodParameters: [apiEntity, apiEntity.signature],
-                        },
-                    ],
-                });
+                if (apiEntity.collateralToken !== NULL_ADDRESS) {
+                    callData.push({
+                        reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
+                        contractAddress: apiEntity.verifyingContract,
+                        abi: divaContractABI,
+                        calls: [
+                            {
+                                reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
+                                methodName: 'getOfferRelevantStateRemoveLiquidity',
+                                methodParameters: [apiEntity, apiEntity.signature],
+                            },
+                        ],
+                    });
+                }
             } else {
-                callData.push({
-                    reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
-                    contractAddress: apiEntity.verifyingContract,
-                    abi: divaContractABI,
-                    calls: [
-                        {
-                            reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
-                            methodName: 'getOfferRelevantStateCreateContingentPool',
-                            methodParameters: [apiEntity, apiEntity.signature],
-                        },
-                    ],
-                });
+                if (apiEntity.collateralToken !== NULL_ADDRESS) {
+                    callData.push({
+                        reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
+                        contractAddress: apiEntity.verifyingContract,
+                        abi: divaContractABI,
+                        calls: [
+                            {
+                                reference: `OfferCreateContingentPool-${apiEntity.offerHash}`,
+                                methodName: 'getOfferRelevantStateCreateContingentPool',
+                                methodParameters: [apiEntity, apiEntity.signature],
+                            },
+                        ],
+                    });
+                }
             }
         });
 
@@ -198,22 +204,32 @@ export class OfferService {
         const result = multicallResponse.results;
 
         const resultEntities = apiEntities.map((apiEntity) => {
-            let relevantStateParams: any;
-
-            if (offerLiquidityType === OfferLiquidityType.Add) {
-                relevantStateParams = result[`OfferAddLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
-            } else if (offerLiquidityType === OfferLiquidityType.Remove) {
-                relevantStateParams = result[`OfferRemoveLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+            if (apiEntity.collateralToken === NULL_ADDRESS) {
+                return {
+                    ...apiEntity,
+                    actualTakerFillableAmount: '0',
+                };
             } else {
-                relevantStateParams = result[`OfferCreateContingentPool-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
-            }
-                
-            const actualTakerFillableAmount = parseInt(relevantStateParams[1].hex, 16);
+                let relevantStateParams: any;
 
-            return {
-                ...apiEntity,
-                actualTakerFillableAmount: actualTakerFillableAmount.toString(),
-            };
+                if (offerLiquidityType === OfferLiquidityType.Add) {
+                    relevantStateParams =
+                        result[`OfferAddLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+                } else if (offerLiquidityType === OfferLiquidityType.Remove) {
+                    relevantStateParams =
+                        result[`OfferRemoveLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+                } else {
+                    relevantStateParams =
+                        result[`OfferCreateContingentPool-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+                }
+
+                const actualTakerFillableAmount = parseInt(relevantStateParams[1].hex, 16);
+
+                return {
+                    ...apiEntity,
+                    actualTakerFillableAmount: actualTakerFillableAmount.toString(),
+                };
+            }
         });
 
         return resultEntities;
