@@ -481,6 +481,41 @@ export class OfferService {
             });
         });
 
+        // Check validate of offerRemoveLiquidities
+        const offerRemoveLiquidityEntities = await this._connection.manager.find(OfferRemoveLiquidityEntity);
+        const apiOfferRemoveLiquidityEntities: OfferRemoveLiquidity[] = (
+            offerRemoveLiquidityEntities as Required<OfferRemoveLiquidityEntity[]>
+        ).map(offerUtils.deserializeOfferRemoveLiquidity);
+
+        apiOfferRemoveLiquidityEntities.map((apiEntity) => {
+            // Get parameters to call the getOfferRelevantStateRemoveLiquidity function
+            const offerRemoveLiquidity = {
+                maker: apiEntity.maker,
+                taker: apiEntity.taker,
+                makerCollateralAmount: apiEntity.makerCollateralAmount,
+                positionTokenAmount: apiEntity.positionTokenAmount,
+                makerDirection: apiEntity.makerDirection,
+                offerExpiry: apiEntity.offerExpiry,
+                minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
+                poolId: apiEntity.poolId,
+                salt: apiEntity.salt,
+            };
+            const signature = apiEntity.signature;
+
+            callData.push({
+                reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
+                contractAddress: apiEntity.verifyingContract,
+                abi: divaContractABI,
+                calls: [
+                    {
+                        reference: `OfferRemoveLiquidity-${apiEntity.offerHash}`,
+                        methodName: 'getOfferRelevantStateRemoveLiquidity',
+                        methodParameters: [offerRemoveLiquidity, signature],
+                    },
+                ],
+            });
+        });
+
         const multicallResponse: ContractCallResults = await multicall.call(callData);
         const result = multicallResponse.results;
 
@@ -519,6 +554,23 @@ export class OfferService {
                     }
                 } catch (err) {
                     logger.warn('Error deleting offerAddLiquidity using offerHash = ', apiEntity.offerHash, '.');
+                }
+            }),
+        );
+
+        await Promise.all(
+            apiOfferRemoveLiquidityEntities.map(async (apiEntity) => {
+                const offerRemoveLiquidityInfo =
+                    result[`OfferRemoveLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
+
+                try {
+                    const status = offerRemoveLiquidityInfo[0][1];
+                    // Delete the inValid, canceled, expired offerAddLiquidity
+                    if (status !== OfferStatus.Fillable) {
+                        await this._connection.manager.delete(OfferRemoveLiquidityEntity, apiEntity.offerHash);
+                    }
+                } catch (err) {
+                    logger.warn('Error deleting offerRemoveLiquidity using offerHash = ', apiEntity.offerHash, '.');
                 }
             }),
         );
