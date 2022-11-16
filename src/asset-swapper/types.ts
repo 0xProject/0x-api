@@ -364,7 +364,7 @@ export enum SwapQuoteConsumerError {
 export enum SwapQuoterError {
     NoEtherTokenContractFound = 'NO_ETHER_TOKEN_CONTRACT_FOUND',
     StandardRelayerApiError = 'STANDARD_RELAYER_API_ERROR',
-    InsufficientAssetLiquidity = 'INSUFFICIENT_ASSET_LIQUIDITY',
+    InsufficientAssetLiquidity = 'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity',
     AssetUnavailable = 'ASSET_UNAVAILABLE',
     NoGasPriceProvidedOrEstimated = 'NO_GAS_PRICE_PROVIDED_OR_ESTIMATED',
     AssetDataUnsupported = 'ASSET_DATA_UNSUPPORTED',
