@@ -39,14 +39,11 @@ import {
     NATIVE_FEE_TOKEN_AMOUNT_BY_CHAIN_ID,
     NATIVE_FEE_TOKEN_BY_CHAIN_ID,
     SELL_SOURCE_FILTER_BY_CHAIN_ID,
-    SOURCE_FLAGS,
     ZERO_AMOUNT,
 } from './constants';
 import { IdentityFillAdjustor } from './identity_fill_adjustor';
-import { getBestTwoHopQuote } from './multihop_utils';
-import { createOrdersFromTwoHopSample } from './orders';
 import { PathPenaltyOpts } from './path';
-import { findOptimalPathFromSamples } from './path_optimizer';
+import { PathOptimizer } from './path_optimizer';
 import { DexOrderSampler, getSampleAmounts } from './sampler';
 import { SourceFilters } from './source_filters';
 import {
@@ -113,6 +110,7 @@ export class MarketOperationUtils {
         const nativeSources = quotes.nativeOrders.map((order) =>
             nativeOrderToReportEntry(
                 order.type,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
                 order as any,
                 order.fillableTakerAmount,
                 comparisonPrice,
@@ -462,16 +460,7 @@ export class MarketOperationUtils {
                             isRfqSupported: false,
                             blockNumber,
                         },
-                        {
-                            bridgeSlippage: _opts.bridgeSlippage,
-                            maxFallbackSlippage: _opts.maxFallbackSlippage,
-                            excludedSources: _opts.excludedSources,
-                            feeSchedule: _opts.feeSchedule,
-                            allowFallback: _opts.allowFallback,
-                            gasPrice: _opts.gasPrice,
-                            neonRouterNumSamples: _opts.neonRouterNumSamples,
-                            fillAdjustor: _opts.fillAdjustor,
-                        },
+                        _opts,
                     );
                     return optimizerResult;
                 } catch (e) {
@@ -489,14 +478,13 @@ export class MarketOperationUtils {
     ): Promise<OptimizerResult> {
         const { inputToken, outputToken, side, inputAmount, quotes, outputAmountPerEth, inputAmountPerEth } =
             marketSideLiquidity;
-        const { nativeOrders, rfqtIndicativeQuotes, dexQuotes } = quotes;
+        const { nativeOrders, rfqtIndicativeQuotes, dexQuotes, twoHopQuotes } = quotes;
 
         const orderOpts = {
             side,
             inputToken,
             outputToken,
             contractAddresses: this.contractAddresses,
-            bridgeSlippage: opts.bridgeSlippage || 0,
         };
 
         const augmentedRfqtIndicativeQuotes: NativeOrderWithFillableAmounts[] = rfqtIndicativeQuotes.map(
@@ -512,7 +500,7 @@ export class MarketOperationUtils {
         );
 
         // Find the optimal path.
-        const penaltyOpts: PathPenaltyOpts = {
+        const pathPenaltyOpts: PathPenaltyOpts = {
             outputAmountPerEth,
             inputAmountPerEth,
             exchangeProxyOverhead: opts.exchangeProxyOverhead || (() => ZERO_AMOUNT),
@@ -524,41 +512,23 @@ export class MarketOperationUtils {
         const makerAmountPerEth = side === MarketOperation.Sell ? outputAmountPerEth : inputAmountPerEth;
 
         // Find the optimal path using Rust router.
-        const optimalPath = findOptimalPathFromSamples(
+        const pathOptimizer = new PathOptimizer({
             side,
-            dexQuotes,
-            [...nativeOrders, ...augmentedRfqtIndicativeQuotes],
+            feeSchedule: opts.feeSchedule,
+            chainId: this._sampler.chainId,
+            neonRouterNumSamples: opts.neonRouterNumSamples,
+            fillAdjustor: opts.fillAdjustor,
+            pathPenaltyOpts,
             inputAmount,
-            penaltyOpts,
-            opts.feeSchedule,
-            this._sampler.chainId,
-            opts.neonRouterNumSamples,
-            opts.fillAdjustor,
-        );
+        });
+        const optimalPath = pathOptimizer.findOptimalPathFromSamples(dexQuotes, twoHopQuotes, [
+            ...nativeOrders,
+            ...augmentedRfqtIndicativeQuotes,
+        ]);
 
         const optimalPathAdjustedRate = optimalPath ? optimalPath.adjustedRate() : ZERO_AMOUNT;
 
-        const { adjustedRate: bestTwoHopAdjustedRate, quote: bestTwoHopQuote } = getBestTwoHopQuote(
-            marketSideLiquidity,
-            opts.feeSchedule,
-            opts.exchangeProxyOverhead,
-            opts.fillAdjustor,
-        );
-
-        if (bestTwoHopQuote && bestTwoHopAdjustedRate.isGreaterThan(optimalPathAdjustedRate)) {
-            const twoHopOrders = createOrdersFromTwoHopSample(bestTwoHopQuote, orderOpts);
-            return {
-                optimizedOrders: twoHopOrders,
-                liquidityDelivered: bestTwoHopQuote,
-                sourceFlags: SOURCE_FLAGS[ERC20BridgeSource.MultiHop],
-                marketSideLiquidity,
-                adjustedRate: bestTwoHopAdjustedRate,
-                takerAmountPerEth,
-                makerAmountPerEth,
-            };
-        }
-
-        // If there is no optimal path AND we didn't return a MultiHop quote, then throw
+        // If there is no optimal path then throw.
         if (optimalPath === undefined) {
             //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
             DEFAULT_INFO_LOGGER({}, 'NoOptimalPath thrown in _generateOptimizedOrdersAsync');
@@ -589,11 +559,7 @@ export class MarketOperationUtils {
     ): Promise<OptimizerResultWithReport> {
         const _opts: GetMarketOrdersOpts = { ...DEFAULT_GET_MARKET_ORDERS_OPTS, ...opts };
         const optimizerOpts: GenerateOptimizedOrdersOpts = {
-            bridgeSlippage: _opts.bridgeSlippage,
-            maxFallbackSlippage: _opts.maxFallbackSlippage,
-            excludedSources: _opts.excludedSources,
             feeSchedule: _opts.feeSchedule,
-            allowFallback: _opts.allowFallback,
             exchangeProxyOverhead: _opts.exchangeProxyOverhead,
             gasPrice: _opts.gasPrice,
             neonRouterNumSamples: _opts.neonRouterNumSamples,

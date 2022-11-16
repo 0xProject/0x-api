@@ -129,6 +129,7 @@ export class SwapQuoter {
             {},
             undefined,
             {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 encodeInput: (fnName: string, values: any) => fastAbi.encodeInput(fnName, values),
                 decodeOutput: (fnName: string, data: string) => fastAbi.decodeOutput(fnName, data),
             },
@@ -158,7 +159,7 @@ export class SwapQuoter {
         makerTokens: string[],
         targetTakerToken: string,
         makerTokenBuyAmounts: BigNumber[],
-        options: Partial<SwapQuoteRequestOpts> = {},
+        options: Partial<SwapQuoteRequestOpts>,
     ): Promise<MarketBuySwapQuote[]> {
         makerTokenBuyAmounts.map((a, i) => assert.isBigNumber(`makerAssetBuyAmounts[${i}]`, a));
         let gasPrice: BigNumber;
@@ -508,6 +509,7 @@ function calculateTwoHopQuoteInfo(
 ): { bestCaseQuoteInfo: SwapQuoteInfo; worstCaseQuoteInfo: SwapQuoteInfo; sourceBreakdown: SwapQuoteOrdersBreakdown } {
     const [firstHopOrder, secondHopOrder] = optimizedOrders;
     const gas = new BigNumber(
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
         gasSchedule[ERC20BridgeSource.MultiHop]!({
             firstHopSource: _.pick(firstHopOrder, 'source', 'fillData'),
             secondHopSource: _.pick(secondHopOrder, 'source', 'fillData'),

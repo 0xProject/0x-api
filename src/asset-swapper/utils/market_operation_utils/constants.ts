@@ -464,6 +464,7 @@ export const MAINNET_TOKENS = {
     yUSD: '0x5dbcf33d8c2e976c6b560249878e6f1491bca25c',
     ybCRV: '0x2994529c0652d127b7842094103715ec5299bbed',
     yCRV: '0xdf5e0e81dff6faf3a7e52ba697820c5e32d806a8',
+    ynCRV: '0xfcc5c47be19d06bf83eb04298b026f81069ff65b',
     bCRV: '0x3b3ac5386837dc563660fb6a0937dfaa5924333b',
     yDAI: '0xacd43e627e64355f1861cec6d3a6688b31a6f952',
     yUSDC: '0x597ad1e0c13bfe8025993d9e79c69e1c0233522e',
@@ -509,8 +510,11 @@ export const MAINNET_TOKENS = {
     agEUR: '0x1a7e4e63778b4f12a199c062f3efdd288afcbce8',
     ibEUR: '0x96e61422b6a9ba0e068b6c5add4ffabc6a4aae27',
     YFI: '0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e',
-    // Cronos (Crypto.com)
     CRO: '0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b',
+    LUSDCRV: '0xed279fdd11ca84beef15af5d39bb4d4bee23f0ca',
+    bLUSD: '0xb9d7dddca9a4ac480991865efef82e01273f79c3',
+    rsr: '0x320623b8e4ff03373931769a31fc52a4e78b5d70',
+    crvFRAX: '0x3175df0976dfa876431c2e9ee6bc45b65d3473cc',
 };
 
 export const BSC_TOKENS = {
@@ -737,6 +741,10 @@ export const CURVE_POOLS = {
     triEURpool: '0xb9446c4ef5ebe66268da6700d26f96273de3d571',
     ibEURsEUR: '0x19b080fe1ffa0553469d20ca36219f17fcf03859',
     wethyfi: '0xc26b89a667578ec7b3f11b2f98d6fd15c07c54ba',
+    ycrvcrv: '0x453d92c7d4263201c69aacfaf589ed14202d83a4',
+    bLUSD: '0x74ed5d42203806c8cdcf2f04ca5f60dc777b901c',
+    rsr: '0x6a6283ab6e31c2aec3fa08697a8f806b740660b2',
+    DOLAFRAX: '0xe57180685e3348589e9521aa53af0bcd497e884d',
 };
 
 export const CURVE_V2_POOLS = {
@@ -1345,11 +1353,12 @@ export const CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
         pool: CURVE_POOLS.USDP,
         gasSchedule: 374e3,
     }),
-    [CURVE_POOLS.ib]: createCurveExchangeUnderlyingPool({
-        tokens: [MAINNET_TOKENS.DAI, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT],
-        pool: CURVE_POOLS.ib,
-        gasSchedule: 646e3,
-    }),
+    //@todo investigate Underlying tokens not being able to support swap
+    // [CURVE_POOLS.ib]: createCurveExchangeUnderlyingPool({
+    //     tokens: [MAINNET_TOKENS.DAI, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT],
+    //     pool: CURVE_POOLS.ib,
+    //     gasSchedule: 646e3,
+    // }),
     [CURVE_POOLS.link]: createCurveExchangePool({
         tokens: [MAINNET_TOKENS.LINK, MAINNET_TOKENS.sLINK],
         pool: CURVE_POOLS.link,
@@ -1494,6 +1503,26 @@ export const CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
         tokens: [MAINNET_TOKENS.FXS, MAINNET_TOKENS.cvxFXS],
         pool: CURVE_POOLS.cvxfxs,
         gasSchedule: 390e3,
+    }),
+    [CURVE_POOLS.ycrvcrv]: createCurveExchangePool({
+        tokens: [MAINNET_TOKENS.CRV, MAINNET_TOKENS.ynCRV],
+        pool: CURVE_POOLS.ycrvcrv,
+        gasSchedule: 450e3,
+    }),
+    [CURVE_POOLS.bLUSD]: createCurveFactoryCryptoExchangePool({
+        tokens: [MAINNET_TOKENS.bLUSD, MAINNET_TOKENS.LUSDCRV],
+        pool: CURVE_POOLS.bLUSD,
+        gasSchedule: 390e3,
+    }),
+    [CURVE_POOLS.rsr]: createCurveFactoryCryptoExchangePool({
+        tokens: [MAINNET_TOKENS.rsr, MAINNET_TOKENS.crvFRAX],
+        pool: CURVE_POOLS.rsr,
+        gasSchedule: 390e3,
+    }),
+    [CURVE_POOLS.DOLAFRAX]: createCurveExchangePool({
+        tokens: [MAINNET_TOKENS.DOLA, MAINNET_TOKENS.crvFRAX],
+        pool: CURVE_POOLS.DOLAFRAX,
+        gasSchedule: 260e3,
     }),
 };
 
@@ -2572,17 +2601,17 @@ export const SYNTHETIX_CURRENCY_KEYS_BY_CHAIN_ID = valueByChainId<Map<string, st
     new Map(),
 );
 
-export const VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID = valueByChainId<ERC20BridgeSource[]>(
+export const VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID = valueByChainId<Set<ERC20BridgeSource>>(
     {
-        [ChainId.Mainnet]: [
+        [ChainId.Mainnet]: new Set([
             ERC20BridgeSource.UniswapV2,
             ERC20BridgeSource.SushiSwap,
             ERC20BridgeSource.UniswapV3,
             ERC20BridgeSource.Curve,
             ERC20BridgeSource.LiquidityProvider,
             ERC20BridgeSource.Native,
-        ],
-        [ChainId.BSC]: [
+        ]),
+        [ChainId.BSC]: new Set([
             ERC20BridgeSource.PancakeSwap,
             ERC20BridgeSource.PancakeSwapV2,
             ERC20BridgeSource.BakerySwap,
@@ -2590,9 +2619,9 @@ export const VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID = valueByChainId<ERC20BridgeSo
             ERC20BridgeSource.ApeSwap,
             ERC20BridgeSource.LiquidityProvider,
             ERC20BridgeSource.Native,
-        ],
+        ]),
     },
-    [],
+    new Set(),
 );
 
 const uniswapV2CloneGasSchedule = (fillData?: FillData) => {
@@ -2617,10 +2646,24 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     [ERC20BridgeSource.Native]: (fillData) => {
         // TODO jacob re-order imports so there is no circular rependency with SignedNativeOrder
         const nativeFillData = fillData as { type: FillQuoteTransformerOrderType };
-        return nativeFillData && nativeFillData.type === FillQuoteTransformerOrderType.Limit
-            ? PROTOCOL_FEE_MULTIPLIER.plus(100e3).toNumber()
-            : // TODO jacob revisit wth v4 LimitOrders
-              100e3;
+        if (!nativeFillData || nativeFillData.type === undefined) {
+            return 100e3;
+        }
+        switch (nativeFillData.type) {
+            case FillQuoteTransformerOrderType.Limit:
+                // TODO jacob revisit wth v4 LimitOrders
+                return PROTOCOL_FEE_MULTIPLIER.plus(100e3).toNumber();
+            case FillQuoteTransformerOrderType.Rfq:
+            case FillQuoteTransformerOrderType.Bridge:
+                // Should never hit a Bridge order, but if it does, set it to the same as RfqOrder to preserve old logic
+                return 100e3;
+            case FillQuoteTransformerOrderType.Otc:
+                return 85e3;
+            default:
+                ((_: never) => {
+                    throw new Error('unreachable');
+                })(nativeFillData.type);
+        }
     },
     [ERC20BridgeSource.Uniswap]: () => 90e3,
     [ERC20BridgeSource.LiquidityProvider]: (fillData) => {
@@ -2636,7 +2679,6 @@ export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
     [ERC20BridgeSource.IronSwap]: (fillData) => (fillData as CurveFillData).pool.gasSchedule,
     [ERC20BridgeSource.FirebirdOneSwap]: (fillData) => (fillData as CurveFillData).pool.gasSchedule,
     [ERC20BridgeSource.MobiusMoney]: (fillData) => (fillData as CurveFillData).pool.gasSchedule,
-    [ERC20BridgeSource.MultiBridge]: () => 350e3,
     [ERC20BridgeSource.UniswapV2]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.SushiSwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.CryptoCom]: uniswapV2CloneGasSchedule,

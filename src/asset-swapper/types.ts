@@ -33,16 +33,25 @@ export interface OrderPrunerOpts {
     permittedOrderFeeTypes: Set<OrderPrunerPermittedFeeTypes>;
 }
 
-export interface SignedOrder<T> {
-    order: T;
-    type: FillQuoteTransformerOrderType.Limit | FillQuoteTransformerOrderType.Rfq | FillQuoteTransformerOrderType.Otc;
+export interface SignedLimitOrder {
+    order: LimitOrderFields;
+    type: FillQuoteTransformerOrderType.Limit;
     signature: Signature;
 }
 
-export type SignedNativeOrder =
-    | SignedOrder<LimitOrderFields>
-    | SignedOrder<RfqOrderFields>
-    | SignedOrder<OtcOrderFields>;
+export interface SignedRfqOrder {
+    order: RfqOrderFields;
+    type: FillQuoteTransformerOrderType.Rfq;
+    signature: Signature;
+}
+
+export interface SignedOtcOrder {
+    order: OtcOrderFields;
+    type: FillQuoteTransformerOrderType.Otc;
+    signature: Signature;
+}
+
+export type SignedNativeOrder = SignedLimitOrder | SignedRfqOrder | SignedOtcOrder;
 export type NativeOrderWithFillableAmounts = SignedNativeOrder & NativeOrderFillableAmountFields;
 
 /**
@@ -95,6 +104,7 @@ export interface SwapQuoteConsumerOpts {
  * Represents the options provided to a generic SwapQuoteConsumer
  */
 export interface SwapQuoteGetOutputOpts {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     extensionContractOpts?: ExchangeProxyContractOpts | any;
 }
 
@@ -297,6 +307,7 @@ export interface TypedMakerUrl {
     pairType: RfqPairType;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
 export type LogFunction = (obj: object, msg?: string, ...args: any[]) => void;
 
 export interface RfqFirmQuoteValidator {
@@ -335,7 +346,6 @@ export interface SwapQuoterOpts extends OrderPrunerOpts {
     ethereumRpcUrl?: string;
     contractAddresses?: AssetSwapperContractAddresses;
     samplerGasLimit?: number;
-    multiBridgeAddress?: string;
     zeroExGasApiUrl?: string;
     rfqt?: SwapQuoterRfqOpts;
     samplerOverrides?: SamplerOverrides;
@@ -389,8 +399,10 @@ export interface MockedRfqQuoteResponse {
     endpoint: string;
     requestApiKey: string;
     requestParams: TakerRequestQueryParamsUnnested;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     responseData: any;
     responseCode: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     callback?: (config: any) => Promise<any>;
 }
 
@@ -401,6 +413,7 @@ export interface AltMockedRfqQuoteResponse {
     endpoint: string;
     mmApiKey: string;
     requestData: AltQuoteRequestData;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     responseData: any;
     responseCode: number;
 }

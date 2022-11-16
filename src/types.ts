@@ -243,6 +243,7 @@ interface SwapQuoteParamsBase {
 export interface GetSwapQuoteResponse extends SwapQuoteResponsePartialTransaction, BasePriceResponse {
     guaranteedPrice: BigNumber;
     // orders: SignedOrder[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     orders?: any;
     from?: string;
     quoteReport?: QuoteReport;
@@ -286,18 +287,13 @@ export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
 // GET /swap/price
 export type GetSwapPriceResponse = BasePriceResponse;
 
-// GET /swap/prices
-export interface Price {
-    symbol: string;
-    price: BigNumber;
-}
-
 /**
  * Response type for /meta_transaction/v1/quote endpoint
  */
 export interface MetaTransactionQuoteResponse extends BasePriceResponse {
     metaTransactionHash: string;
     metaTransaction: ExchangeProxyMetaTransaction;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     orders?: any;
 }
 

@@ -1,5 +1,5 @@
 import { isAPIError, isRevertError } from '@0x/api-utils';
-import { getTokenMetadataIfExists, isNativeSymbolOrAddress, isNativeWrappedSymbolOrAddress } from '@0x/token-metadata';
+import { isNativeSymbolOrAddress, isNativeWrappedSymbolOrAddress } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
@@ -44,7 +44,6 @@ import { SwapService } from '../services/swap_service';
 import { GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
 import { findTokenAddressOrThrowApiError } from '../utils/address_utils';
 import { estimateArbitrumL1CalldataGasCost } from '../utils/l2_gas_utils';
-import { paginationUtils } from '../utils/pagination_utils';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { publishQuoteReport } from '../utils/quote_report_utils';
@@ -118,24 +117,6 @@ export class SwapHandlers {
         this._swapService = swapService;
     }
 
-    public async getTokenPricesAsync(req: express.Request, res: express.Response): Promise<void> {
-        const symbolOrAddress = (req.query.sellToken as string) || 'WETH';
-        const baseAsset = getTokenMetadataIfExists(symbolOrAddress, CHAIN_ID);
-        if (!baseAsset) {
-            throw new ValidationError([
-                {
-                    field: 'sellToken',
-                    code: ValidationErrorCodes.ValueOutOfRange,
-                    reason: `Could not find token ${symbolOrAddress}`,
-                },
-            ]);
-        }
-        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const unitAmount = new BigNumber(1);
-        const tokenPrices = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount, page, perPage);
-        res.status(HttpStatus.OK).send(tokenPrices);
-    }
-
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const begin = Date.now();
         const params = parseSwapQuoteRequestParams(req, 'quote');
@@ -187,6 +168,7 @@ export class SwapHandlers {
         const response = _.omit(
             {
                 ...quote,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
                 orders: quote.orders.map((o: any) => _.omit(o, 'fills')),
             },
             'quoteReport',
@@ -375,6 +357,7 @@ export class SwapHandlers {
 
 const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | 'quote'): GetSwapQuoteParams => {
     // HACK typescript typing does not allow this valid json-schema
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     schemaUtils.validateSchema(req.query, schemas.swapQuoteRequestSchema as any);
     const apiKey: string | undefined = req.header('0x-api-key');
     const origin: string | undefined = req.header('origin');

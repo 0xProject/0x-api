@@ -35,7 +35,6 @@ export enum ERC20BridgeSource {
     UniswapV2 = 'Uniswap_V2',
     Curve = 'Curve',
     LiquidityProvider = 'LiquidityProvider',
-    MultiBridge = 'MultiBridge',
     Balancer = 'Balancer',
     BalancerV2 = 'Balancer_V2',
     Bancor = 'Bancor',
@@ -438,6 +437,7 @@ export interface GetMarketOrdersRfqOpts extends RfqRequestOpts {
 }
 
 export type FeeEstimate = (fillData: FillData) => { gas: number; fee: BigNumber };
+// TODO:  Remove `Partial` from `FeeSchedule`
 export type FeeSchedule = Partial<{ [key in ERC20BridgeSource]: FeeEstimate }>;
 
 export type GasEstimate = (fillData: FillData) => number;
@@ -598,14 +598,8 @@ export interface LiquidityProviderRegistry {
 }
 
 export interface GenerateOptimizedOrdersOpts {
-    runLimit?: number;
-    bridgeSlippage?: number;
-    maxFallbackSlippage?: number;
-    excludedSources?: ERC20BridgeSource[];
     feeSchedule: FeeSchedule;
-    exchangeProxyOverhead?: ExchangeProxyOverhead;
-    allowFallback?: boolean;
-    shouldBatchBridgeOrders?: boolean;
+    exchangeProxyOverhead: ExchangeProxyOverhead;
     gasPrice: BigNumber;
     neonRouterNumSamples: number;
     fillAdjustor: FillAdjustor;
@@ -616,5 +610,5 @@ export interface ComparisonPrice {
 }
 
 export interface FillAdjustor {
-    adjustFills: (side: MarketOperation, fills: Fill[], amount: BigNumber) => Fill[];
+    adjustFills: (side: MarketOperation, fills: Fill[]) => Fill[];
 }

@@ -50,13 +50,12 @@ export interface CreateOrderFromPathOpts {
     inputToken: string;
     outputToken: string;
     contractAddresses: AssetSwapperContractAddresses;
-    bridgeSlippage: number;
 }
 
 export function createOrdersFromTwoHopSample(
     sample: DexSample<MultiHopFillData>,
     opts: CreateOrderFromPathOpts,
-): OptimizedMarketOrder[] {
+): [OptimizedMarketOrder, OptimizedMarketOrder] {
     const [makerToken, takerToken] = getMakerTakerTokens(opts);
     const { firstHopSource, secondHopSource, intermediateToken } = sample.fillData;
     const firstHopFill: Fill = {
@@ -199,7 +198,7 @@ export function getErc20BridgeSourceToBridgeSource(source: ERC20BridgeSource): s
         case ERC20BridgeSource.BancorV3:
             return encodeBridgeSourceId(BridgeProtocol.BancorV3, 'BancorV3');
         case ERC20BridgeSource.Velodrome:
-            return encodeBridgeSourceId(BridgeProtocol.Velodrome, 'Velodrome');
+            return encodeBridgeSourceId(BridgeProtocol.Solidly, 'Velodrome');
         case ERC20BridgeSource.Synthetix:
             return encodeBridgeSourceId(BridgeProtocol.Synthetix, 'Synthetix');
         case ERC20BridgeSource.WOOFi:
@@ -211,11 +210,7 @@ export function getErc20BridgeSourceToBridgeSource(source: ERC20BridgeSource): s
 
 export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder): string {
     let bridgeData: string;
-    if (
-        order.source === ERC20BridgeSource.MultiHop ||
-        order.source === ERC20BridgeSource.MultiBridge ||
-        order.source === ERC20BridgeSource.Native
-    ) {
+    if (order.source === ERC20BridgeSource.MultiHop || order.source === ERC20BridgeSource.Native) {
         throw new Error('Invalid order to encode for Bridge Data');
     }
     const encoder = BRIDGE_ENCODERS[order.source];
@@ -437,28 +432,10 @@ const balancerV2Encoder = AbiEncoder.create([
 ]);
 const routerAddressPathEncoder = AbiEncoder.create('(address,address[])');
 const tokenAddressEncoder = AbiEncoder.create([{ name: 'tokenAddress', type: 'address' }]);
-const gmxAddressPathEncoder = AbiEncoder.create('(address,address,address,address[])');
-const platypusAddressPathEncoder = AbiEncoder.create('(address,address[],address[])');
 
 export const BRIDGE_ENCODERS: {
-    [key in Exclude<
-        ERC20BridgeSource,
-        ERC20BridgeSource.Native | ERC20BridgeSource.MultiHop | ERC20BridgeSource.MultiBridge
-    >]: AbiEncoder.DataType;
+    [key in Exclude<ERC20BridgeSource, ERC20BridgeSource.Native | ERC20BridgeSource.MultiHop>]: AbiEncoder.DataType;
 } = {
-    [ERC20BridgeSource.LiquidityProvider]: AbiEncoder.create([
-        { name: 'provider', type: 'address' },
-        { name: 'data', type: 'bytes' },
-    ]),
-    [ERC20BridgeSource.Dodo]: AbiEncoder.create([
-        { name: 'helper', type: 'address' },
-        { name: 'poolAddress', type: 'address' },
-        { name: 'isSellBase', type: 'bool' },
-    ]),
-    [ERC20BridgeSource.DodoV2]: AbiEncoder.create([
-        { name: 'poolAddress', type: 'address' },
-        { name: 'isSellBase', type: 'bool' },
-    ]),
     // Curve like
     [ERC20BridgeSource.Curve]: curveEncoder,
     [ERC20BridgeSource.CurveV2]: curveEncoder,
@@ -488,18 +465,12 @@ export const BRIDGE_ENCODERS: {
     [ERC20BridgeSource.KnightSwap]: routerAddressPathEncoder,
     [ERC20BridgeSource.Yoshi]: routerAddressPathEncoder,
     [ERC20BridgeSource.MeshSwap]: routerAddressPathEncoder,
-    // Avalanche
-    [ERC20BridgeSource.GMX]: gmxAddressPathEncoder,
-    [ERC20BridgeSource.Platypus]: platypusAddressPathEncoder,
-    // Celo
     [ERC20BridgeSource.UbeSwap]: routerAddressPathEncoder,
-    // BSC
     [ERC20BridgeSource.PancakeSwap]: routerAddressPathEncoder,
     [ERC20BridgeSource.PancakeSwapV2]: routerAddressPathEncoder,
     [ERC20BridgeSource.BakerySwap]: routerAddressPathEncoder,
     [ERC20BridgeSource.ApeSwap]: routerAddressPathEncoder,
     [ERC20BridgeSource.WaultSwap]: routerAddressPathEncoder,
-    // Polygon
     [ERC20BridgeSource.QuickSwap]: routerAddressPathEncoder,
     [ERC20BridgeSource.Dfyn]: routerAddressPathEncoder,
     // Generic pools
@@ -510,6 +481,21 @@ export const BRIDGE_ENCODERS: {
     [ERC20BridgeSource.Balancer]: poolEncoder,
     [ERC20BridgeSource.Uniswap]: poolEncoder,
     // Custom integrations
+    [ERC20BridgeSource.LiquidityProvider]: AbiEncoder.create([
+        { name: 'provider', type: 'address' },
+        { name: 'data', type: 'bytes' },
+    ]),
+    [ERC20BridgeSource.Dodo]: AbiEncoder.create([
+        { name: 'helper', type: 'address' },
+        { name: 'poolAddress', type: 'address' },
+        { name: 'isSellBase', type: 'bool' },
+    ]),
+    [ERC20BridgeSource.DodoV2]: AbiEncoder.create([
+        { name: 'poolAddress', type: 'address' },
+        { name: 'isSellBase', type: 'bool' },
+    ]),
+    [ERC20BridgeSource.GMX]: AbiEncoder.create('(address,address,address,address[])'),
+    [ERC20BridgeSource.Platypus]: AbiEncoder.create('(address,address[],address[])'),
     [ERC20BridgeSource.MakerPsm]: makerPsmEncoder,
     [ERC20BridgeSource.BalancerV2]: AbiEncoder.create([
         { name: 'vault', type: 'address' },

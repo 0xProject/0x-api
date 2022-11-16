@@ -7,13 +7,7 @@ import {
     Numberish,
     randomAddress,
 } from '@0x/contracts-test-utils';
-import {
-    FillQuoteTransformerOrderType,
-    LimitOrder,
-    LimitOrderFields,
-    RfqOrder,
-    SignatureType,
-} from '@0x/protocol-utils';
+import { FillQuoteTransformerOrderType, LimitOrder, RfqOrder, Signature, SignatureType } from '@0x/protocol-utils';
 import { BigNumber, hexUtils, NULL_BYTES } from '@0x/utils';
 import { Pool } from 'balancer-labs-sor-v1/dist/types';
 import * as _ from 'lodash';
@@ -27,7 +21,7 @@ import {
     SignedNativeOrder,
     TokenAdjacencyGraph,
 } from '../../src/asset-swapper';
-import { Integrator, SignedOrder } from '../../src/asset-swapper/types';
+import { Integrator, SignedLimitOrder } from '../../src/asset-swapper/types';
 import { MarketOperationUtils } from '../../src/asset-swapper/utils/market_operation_utils/';
 import {
     BUY_SOURCE_FILTER_BY_CHAIN_ID,
@@ -111,7 +105,7 @@ async function getMarketBuyOrdersAsync(
     return utils.getOptimizerResultAsync(nativeOrders, makerAmount, MarketOperation.Buy, opts);
 }
 
-function toRfqClientV1Price(order: SignedOrder<LimitOrderFields>): RfqClientV1Price {
+function toRfqClientV1Price(order: SignedLimitOrder): RfqClientV1Price {
     return {
         expiry: order.order.expiry,
         kind: 'rfq',
@@ -166,14 +160,6 @@ describe('MarketOperationUtils tests', () => {
         _results: SignedNativeOrder[],
         _verifiable: TypeMoq.Times,
     ): TypeMoq.IMock<QuoteRequestor> {
-        const args: [any, any, any, any, any, any] = [
-            TypeMoq.It.isAny(),
-            TypeMoq.It.isAny(),
-            TypeMoq.It.isAny(),
-            TypeMoq.It.isAny(),
-            TypeMoq.It.isAny(),
-            TypeMoq.It.isAny(),
-        ];
         const requestor = TypeMoq.Mock.ofType(QuoteRequestor, TypeMoq.MockBehavior.Loose, true);
         requestor.setup((r) => r.getMakerUriForSignature(TypeMoq.It.isValue(SIGNATURE))).returns(() => MAKER_URI);
         requestor
@@ -182,7 +168,7 @@ describe('MarketOperationUtils tests', () => {
         return requestor;
     }
 
-    function createOrdersFromSellRates(takerAmount: BigNumber, rates: Numberish[]): SignedOrder<LimitOrderFields>[] {
+    function createOrdersFromSellRates(takerAmount: BigNumber, rates: Numberish[]): SignedLimitOrder[] {
         const singleTakerAmount = takerAmount.div(rates.length).integerValue(BigNumber.ROUND_UP);
         return rates.map((r) => {
             const o: SignedNativeOrder = {
@@ -199,7 +185,7 @@ describe('MarketOperationUtils tests', () => {
         });
     }
 
-    function createOrdersFromBuyRates(makerAmount: BigNumber, rates: Numberish[]): SignedOrder<LimitOrderFields>[] {
+    function createOrdersFromBuyRates(makerAmount: BigNumber, rates: Numberish[]): SignedLimitOrder[] {
         const singleMakerAmount = makerAmount.div(rates.length).integerValue(BigNumber.ROUND_UP);
         return rates.map((r) => {
             const o: SignedNativeOrder = {
@@ -397,17 +383,29 @@ describe('MarketOperationUtils tests', () => {
         getSellQuotes: createGetMultipleSellQuotesOperationFromRates(DEFAULT_RATES),
         getBuyQuotes: createGetMultipleBuyQuotesOperationFromRates(DEFAULT_RATES),
         getBestNativeTokenSellRate: createGetBestNativeSellRate(1),
-        getTwoHopSellQuotes: (..._params: any[]) => [],
-        getTwoHopBuyQuotes: (..._params: any[]) => [],
-        isAddressContract: (..._params: any[]) => false,
+        isAddressContract: (..._params: unknown[]) => false,
+        getTwoHopSellQuotes: (
+            _sources: ERC20BridgeSource[],
+            _makerToken: string,
+            _takerToken: string,
+            _sellAmount: BigNumber,
+        ) => [],
+        getTwoHopBuyQuotes: (
+            _sources: ERC20BridgeSource[],
+            _makerToken: string,
+            _takerToken: string,
+            _buyAmount: BigNumber,
+        ) => [],
         getGasLeft: () => ZERO_AMOUNT,
         getBlockNumber: () => ZERO_AMOUNT,
     };
 
     const MOCK_SAMPLER = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async executeAsync(...ops: any[]): Promise<any[]> {
             return MOCK_SAMPLER.executeBatchAsync(ops);
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async executeBatchAsync(ops: any[]): Promise<any[]> {
             return ops;
         },
@@ -417,7 +415,7 @@ describe('MarketOperationUtils tests', () => {
         },
         liquidityProviderRegistry: {},
         chainId: CHAIN_ID,
-    } as any as DexOrderSampler;
+    } as unknown as DexOrderSampler;
 
     function replaceSamplerOps(ops: Partial<typeof DEFAULT_OPS> = {}): void {
         Object.assign(MOCK_SAMPLER, DEFAULT_OPS);
@@ -492,9 +490,17 @@ describe('MarketOperationUtils tests', () => {
                             TOKEN_ADJACENCY_GRAPH,
                         );
                     },
-                    getTwoHopSellQuotes: (...args: any[]) => {
-                        sourcesPolled.push(ERC20BridgeSource.MultiHop);
-                        return DEFAULT_OPS.getTwoHopSellQuotes(...args);
+                    getTwoHopSellQuotes: (
+                        sources: ERC20BridgeSource[],
+                        makerToken: string,
+                        takerToken: string,
+                        buyAmount: BigNumber,
+                    ) => {
+                        if (sources.length !== 0) {
+                            sourcesPolled.push(ERC20BridgeSource.MultiHop);
+                            sourcesPolled.push(...sources);
+                        }
+                        return DEFAULT_OPS.getTwoHopSellQuotes(sources, makerToken, takerToken, buyAmount);
                     },
                 });
                 await getMarketSellOrdersAsync(marketOperationUtils, ORDERS, FILL_AMOUNT, {
@@ -519,12 +525,17 @@ describe('MarketOperationUtils tests', () => {
                             TOKEN_ADJACENCY_GRAPH,
                         );
                     },
-                    getTwoHopSellQuotes: (sources: ERC20BridgeSource[], ...args: any[]) => {
+                    getTwoHopSellQuotes: (
+                        sources: ERC20BridgeSource[],
+                        makerToken: string,
+                        takerToken: string,
+                        buyAmount: BigNumber,
+                    ) => {
                         if (sources.length !== 0) {
                             sourcesPolled.push(ERC20BridgeSource.MultiHop);
                             sourcesPolled.push(...sources);
                         }
-                        return DEFAULT_OPS.getTwoHopSellQuotes(...args);
+                        return DEFAULT_OPS.getTwoHopSellQuotes(sources, makerToken, takerToken, buyAmount);
                     },
                 });
                 await getMarketSellOrdersAsync(marketOperationUtils, ORDERS, FILL_AMOUNT, {
@@ -549,12 +560,17 @@ describe('MarketOperationUtils tests', () => {
                             TOKEN_ADJACENCY_GRAPH,
                         );
                     },
-                    getTwoHopSellQuotes: (sources: ERC20BridgeSource[], ...args: any[]) => {
+                    getTwoHopSellQuotes: (
+                        sources: ERC20BridgeSource[],
+                        makerToken: string,
+                        takerToken: string,
+                        buyAmount: BigNumber,
+                    ) => {
                         if (sources.length !== 0) {
                             sourcesPolled.push(ERC20BridgeSource.MultiHop);
                             sourcesPolled.push(...sources);
                         }
-                        return DEFAULT_OPS.getTwoHopSellQuotes(sources, ...args);
+                        return DEFAULT_OPS.getTwoHopSellQuotes(sources, makerToken, takerToken, buyAmount);
                     },
                 });
                 await getMarketSellOrdersAsync(marketOperationUtils, ORDERS, FILL_AMOUNT, {
@@ -633,7 +649,6 @@ describe('MarketOperationUtils tests', () => {
                     .returns(async (a, b) => mockedMarketOpUtils.target._generateOptimizedOrdersAsync(a, b))
                     .verifiable(TypeMoq.Times.once());
 
-                const requestor = getMockedQuoteRequestor('firm', [], TypeMoq.Times.once());
                 const rfqClient = TypeMoq.Mock.ofType(RfqClient, TypeMoq.MockBehavior.Loose, true);
                 rfqClient
                     .setup((client) => client.getV1QuotesAsync(TypeMoq.It.isAny()))
@@ -663,8 +678,8 @@ describe('MarketOperationUtils tests', () => {
                                 getV1QuotesAsync: rfqClient.object.getV1QuotesAsync,
                                 getV2PricesAsync: rfqClient.object.getV2PricesAsync,
                                 getV2QuotesAsync: rfqClient.object.getV2QuotesAsync,
-                            } as any,
-                            quoteRequestor: {} as any,
+                            } as RfqClient,
+                            quoteRequestor: {} as QuoteRequestor,
                         },
                     },
                 );
@@ -723,10 +738,10 @@ describe('MarketOperationUtils tests', () => {
                                 getV1QuotesAsync: rfqClient.object.getV1QuotesAsync,
                                 getV2PricesAsync: rfqClient.object.getV2PricesAsync,
                                 getV2QuotesAsync: rfqClient.object.getV2QuotesAsync,
-                            } as any,
+                            } as RfqClient,
                             quoteRequestor: {
                                 getMakerUriForSignature: requestor.object.getMakerUriForSignature,
-                            } as any,
+                            } as QuoteRequestor,
                         },
                     },
                 );
@@ -799,11 +814,11 @@ describe('MarketOperationUtils tests', () => {
                                 getV1QuotesAsync: rfqClient.object.getV1QuotesAsync,
                                 getV2PricesAsync: rfqClient.object.getV2PricesAsync,
                                 getV2QuotesAsync: rfqClient.object.getV2QuotesAsync,
-                            } as any,
+                            } as RfqClient,
                             quoteRequestor: {
                                 setMakerUriForSignature: requestor.object.setMakerUriForSignature,
                                 getMakerUriForSignature: requestor.object.getMakerUriForSignature,
-                            } as any,
+                            } as QuoteRequestor,
                         },
                     },
                 );
@@ -874,11 +889,11 @@ describe('MarketOperationUtils tests', () => {
                                 getV1QuotesAsync: rfqClient.object.getV1QuotesAsync,
                                 getV2PricesAsync: rfqClient.object.getV2PricesAsync,
                                 getV2QuotesAsync: rfqClient.object.getV2QuotesAsync,
-                            } as any,
+                            } as RfqClient,
                             quoteRequestor: {
                                 setMakerUriForSignature: requestor.object.setMakerUriForSignature,
                                 getMakerUriForSignature: requestor.object.getMakerUriForSignature,
-                            } as any,
+                            } as QuoteRequestor,
                         },
                     },
                 );
@@ -900,7 +915,7 @@ describe('MarketOperationUtils tests', () => {
                 mockedMarketOpUtils.callBase = true;
                 mockedMarketOpUtils
                     .setup((m) => m._generateOptimizedOrdersAsync(TypeMoq.It.isAny(), TypeMoq.It.isAny()))
-                    .returns(async (msl: MarketSideLiquidity, _opts: GenerateOptimizedOrdersOpts) => {
+                    .returns(async (_msl: MarketSideLiquidity, _opts: GenerateOptimizedOrdersOpts) => {
                         throw new Error(AggregationError.NoOptimalPath);
                     })
                     .verifiable(TypeMoq.Times.exactly(1));
@@ -1105,8 +1120,9 @@ describe('MarketOperationUtils tests', () => {
             });
 
             it('is able to create a order from LiquidityProvider', async () => {
-                const liquidityProviderAddress = (DEFAULT_FILL_DATA[ERC20BridgeSource.LiquidityProvider] as any)
-                    .poolAddress;
+                const liquidityProviderAddress = (
+                    DEFAULT_FILL_DATA[ERC20BridgeSource.LiquidityProvider] as { poolAddress: string }
+                ).poolAddress;
                 const rates: RatesBySource = {};
                 rates[ERC20BridgeSource.LiquidityProvider] = [1, 1, 1, 1];
                 MOCK_SAMPLER.liquidityProviderRegistry[liquidityProviderAddress] = {
@@ -1127,7 +1143,7 @@ describe('MarketOperationUtils tests', () => {
                                 takerToken: TAKER_TOKEN,
                             }),
                             type: FillQuoteTransformerOrderType.Limit,
-                            signature: {} as any,
+                            signature: {} as Signature,
                         },
                     ],
                     FILL_AMOUNT,
@@ -1263,12 +1279,17 @@ describe('MarketOperationUtils tests', () => {
                             TOKEN_ADJACENCY_GRAPH,
                         );
                     },
-                    getTwoHopBuyQuotes: (sources: ERC20BridgeSource[], ..._args: any[]) => {
+                    getTwoHopBuyQuotes: (
+                        sources: ERC20BridgeSource[],
+                        makerToken: string,
+                        takerToken: string,
+                        buyAmount: BigNumber,
+                    ) => {
                         if (sources.length !== 0) {
                             sourcesPolled.push(ERC20BridgeSource.MultiHop);
                             sourcesPolled.push(...sources);
                         }
-                        return DEFAULT_OPS.getTwoHopBuyQuotes(..._args);
+                        return DEFAULT_OPS.getTwoHopBuyQuotes(sources, makerToken, takerToken, buyAmount);
                     },
                 });
                 await getMarketBuyOrdersAsync(marketOperationUtils, ORDERS, FILL_AMOUNT, {
@@ -1293,12 +1314,17 @@ describe('MarketOperationUtils tests', () => {
                             TOKEN_ADJACENCY_GRAPH,
                         );
                     },
-                    getTwoHopBuyQuotes: (sources: ERC20BridgeSource[], ..._args: any[]) => {
+                    getTwoHopBuyQuotes: (
+                        sources: ERC20BridgeSource[],
+                        makerToken: string,
+                        takerToken: string,
+                        buyAmount: BigNumber,
+                    ) => {
                         if (sources.length !== 0) {
                             sourcesPolled.push(ERC20BridgeSource.MultiHop);
                             sourcesPolled.push(...sources);
                         }
-                        return DEFAULT_OPS.getTwoHopBuyQuotes(..._args);
+                        return DEFAULT_OPS.getTwoHopBuyQuotes(sources, makerToken, takerToken, buyAmount);
                     },
                 });
                 await getMarketBuyOrdersAsync(marketOperationUtils, ORDERS, FILL_AMOUNT, {
@@ -1323,12 +1349,17 @@ describe('MarketOperationUtils tests', () => {
                             TOKEN_ADJACENCY_GRAPH,
                         );
                     },
-                    getTwoHopBuyQuotes: (sources: ERC20BridgeSource[], ..._args: any[]) => {
+                    getTwoHopBuyQuotes: (
+                        sources: ERC20BridgeSource[],
+                        makerToken: string,
+                        takerToken: string,
+                        buyAmount: BigNumber,
+                    ) => {
                         if (sources.length !== 0) {
                             sourcesPolled.push(ERC20BridgeSource.MultiHop);
                             sourcesPolled.push(...sources);
                         }
-                        return DEFAULT_OPS.getTwoHopBuyQuotes(..._args);
+                        return DEFAULT_OPS.getTwoHopBuyQuotes(sources, makerToken, takerToken, buyAmount);
                     },
                 });
                 await getMarketBuyOrdersAsync(marketOperationUtils, ORDERS, FILL_AMOUNT, {
@@ -1374,8 +1405,8 @@ describe('MarketOperationUtils tests', () => {
                     DEFAULT_OPTS,
                 );
                 const improvedOrders = improvedOrdersResponse.optimizedOrders;
-                const totalmakerAmount = BigNumber.sum(...improvedOrders.map((o) => o.makerAmount));
-                expect(totalmakerAmount).to.bignumber.gte(FILL_AMOUNT);
+                const totalMakerAmount = BigNumber.sum(...improvedOrders.map((o) => o.makerAmount));
+                expect(totalMakerAmount).to.bignumber.gte(FILL_AMOUNT);
             });
 
             it('generates bridge orders with max slippage of `bridgeSlippage`', async () => {
@@ -1396,72 +1427,7 @@ describe('MarketOperationUtils tests', () => {
                 }
             });
 
-            // TODO: disabled as this is not supported by neon-router
-            it.skip('can mix convex sources', async () => {
-                const rates: RatesBySource = { ...ZERO_RATES };
-                rates[ERC20BridgeSource.Native] = [0.4, 0.3, 0.2, 0.1];
-                rates[ERC20BridgeSource.Uniswap] = [0.5, 0.05, 0.05, 0.05];
-                rates[ERC20BridgeSource.SushiSwap] = [0.6, 0.05, 0.05, 0.05];
-                replaceSamplerOps({
-                    getBuyQuotes: createGetMultipleBuyQuotesOperationFromRates(rates),
-                });
-                const improvedOrdersResponse = await getMarketBuyOrdersAsync(
-                    marketOperationUtils,
-                    createOrdersFromBuyRates(FILL_AMOUNT, rates[ERC20BridgeSource.Native]),
-                    FILL_AMOUNT,
-                    { ...DEFAULT_OPTS, numSamples: 4 },
-                );
-                const improvedOrders = improvedOrdersResponse.optimizedOrders;
-                const orderSources = improvedOrders.map((o) => o.source);
-                const expectedSources = [
-                    ERC20BridgeSource.SushiSwap,
-                    ERC20BridgeSource.Uniswap,
-                    ERC20BridgeSource.Native,
-                    ERC20BridgeSource.Native,
-                ];
-                expect(orderSources.sort()).to.deep.eq(expectedSources.sort());
-            });
-
             const ETH_TO_TAKER_RATE = 1.5;
-
-            // TODO: disabled as this is not supported by neon-router
-            it.skip('factors in fees for native orders', async () => {
-                // Native orders will have the best rates but have fees,
-                // dropping their effective rates.
-                const nativeFeeRate = 0.06;
-                const rates: RatesBySource = {
-                    ...ZERO_RATES,
-                    [ERC20BridgeSource.Native]: [1, 0.99, 0.98, 0.97], // Effectively [0.94, ~0.93, ~0.92, ~0.91]
-                    [ERC20BridgeSource.Uniswap]: [0.96, 0.1, 0.1, 0.1],
-                    [ERC20BridgeSource.SushiSwap]: [0.95, 0.1, 0.1, 0.1],
-                    [ERC20BridgeSource.Curve]: [0.1, 0.1, 0.1, 0.1],
-                };
-                const feeSchedule = {
-                    [ERC20BridgeSource.Native]: _.constant({
-                        gas: 1,
-                        fee: FILL_AMOUNT.div(4).times(nativeFeeRate).dividedToIntegerBy(ETH_TO_TAKER_RATE),
-                    }),
-                };
-                replaceSamplerOps({
-                    getBuyQuotes: createGetMultipleBuyQuotesOperationFromRates(rates),
-                    getBestNativeTokenSellRate: createGetBestNativeSellRate(ETH_TO_TAKER_RATE),
-                });
-                const improvedOrdersResponse = await getMarketBuyOrdersAsync(
-                    marketOperationUtils,
-                    createOrdersFromBuyRates(FILL_AMOUNT, rates[ERC20BridgeSource.Native]),
-                    FILL_AMOUNT,
-                    { ...DEFAULT_OPTS, numSamples: 4, feeSchedule },
-                );
-                const improvedOrders = improvedOrdersResponse.optimizedOrders;
-                const orderSources = improvedOrders.map((o) => o.source);
-                const expectedSources = [
-                    ERC20BridgeSource.Uniswap,
-                    ERC20BridgeSource.SushiSwap,
-                    ERC20BridgeSource.Native,
-                    ERC20BridgeSource.Native,
-                ];
-                expect(orderSources.sort()).to.deep.eq(expectedSources.sort());
-            });
 
             it('factors in fees for dexes', async () => {
                 // Uniswap will have the best rates but will have fees,
