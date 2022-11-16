@@ -525,10 +525,11 @@ export class OfferService {
                     result[`OfferCreateContingentPool-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
 
                 try {
-                    // Get the offerCreateContingentPoolStatus
-                    const status = offerCreateContingentPoolInfo[0][1];
+                    const isInValid =
+                        offerCreateContingentPoolInfo.length === 0 ||
+                        offerCreateContingentPoolInfo[0][1] !== OfferStatus.Fillable;
                     // Delete the inValid, canceled, expired offerCreateContingentPools
-                    if (status !== OfferStatus.Fillable) {
+                    if (isInValid) {
                         await this._connection.manager.delete(OfferCreateContingentPoolEntity, apiEntity.offerHash);
                     }
                 } catch (err) {
@@ -547,9 +548,10 @@ export class OfferService {
                     result[`OfferAddLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
 
                 try {
-                    const status = offerAddLiquidityInfo[0][1];
+                    const isInValid =
+                        offerAddLiquidityInfo.length === 0 || offerAddLiquidityInfo[0][1] !== OfferStatus.Fillable;
                     // Delete the inValid, canceled, expired offerAddLiquidity
-                    if (status !== OfferStatus.Fillable) {
+                    if (isInValid) {
                         await this._connection.manager.delete(OfferAddLiquidityEntity, apiEntity.offerHash);
                     }
                 } catch (err) {
@@ -564,9 +566,11 @@ export class OfferService {
                     result[`OfferRemoveLiquidity-${apiEntity.offerHash}`].callsReturnContext[0].returnValues;
 
                 try {
-                    const status = offerRemoveLiquidityInfo[0][1];
+                    const isInValid =
+                        offerRemoveLiquidityInfo.length === 0 ||
+                        offerRemoveLiquidityInfo[0][1] !== OfferStatus.Fillable;
                     // Delete the inValid, canceled, expired offerAddLiquidity
-                    if (status !== OfferStatus.Fillable) {
+                    if (isInValid) {
                         await this._connection.manager.delete(OfferRemoveLiquidityEntity, apiEntity.offerHash);
                     }
                 } catch (err) {
