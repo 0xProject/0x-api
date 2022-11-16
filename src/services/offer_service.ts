@@ -371,7 +371,7 @@ export class OfferService {
         const filterEntities = this.filterOfferLiquidity(apiEntities, req);
 
         // Calculate the actualFillableTakerAmount and appends it to data
-        const resultEntities = await this.appendActualFillableTakerAmountAsync(filterEntities, OfferLiquidityType.Add);
+        const resultEntities = await this.appendActualFillableTakerAmountAsync(filterEntities, OfferLiquidityType.Remove);
 
         return paginationUtils.paginate(resultEntities, req.page, req.perPage);
     }
@@ -388,7 +388,7 @@ export class OfferService {
         );
 
         // Calculate the actualFillableTakerAmount and appends it to data
-        const resultEntities = await this.appendActualFillableTakerAmountAsync([entity], OfferLiquidityType.Add);
+        const resultEntities = await this.appendActualFillableTakerAmountAsync([entity], OfferLiquidityType.Remove);
 
         return resultEntities[0];
     }
