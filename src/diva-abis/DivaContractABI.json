@@ -687,17 +687,12 @@
                         "name": "positionTokenAmount",
                         "type": "uint256"
                     },
+                    {
+                        "internalType": "uint256",
+                        "name": "makerCollateralAmount",
+                        "type": "uint256"
+                    },
                     { "internalType": "bool", "name": "makerDirection", "type": "bool" },
-                    {
-                        "internalType": "uint256",
-                        "name": "makerReceiveCollateralAmount",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "takerReceiveCollateralAmount",
-                        "type": "uint256"
-                    },
                     {
                         "internalType": "uint256",
                         "name": "offerExpiry",
@@ -841,17 +836,12 @@
                         "name": "positionTokenAmount",
                         "type": "uint256"
                     },
+                    {
+                        "internalType": "uint256",
+                        "name": "makerCollateralAmount",
+                        "type": "uint256"
+                    },
                     { "internalType": "bool", "name": "makerDirection", "type": "bool" },
-                    {
-                        "internalType": "uint256",
-                        "name": "makerReceiveCollateralAmount",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "takerReceiveCollateralAmount",
-                        "type": "uint256"
-                    },
                     {
                         "internalType": "uint256",
                         "name": "offerExpiry",
@@ -1100,19 +1090,14 @@
                                 "type": "uint256"
                             },
                             {
+                                "internalType": "uint256",
+                                "name": "makerCollateralAmount",
+                                "type": "uint256"
+                            },
+                            {
                                 "internalType": "bool",
                                 "name": "makerDirection",
                                 "type": "bool"
-                            },
-                            {
-                                "internalType": "uint256",
-                                "name": "makerReceiveCollateralAmount",
-                                "type": "uint256"
-                            },
-                            {
-                                "internalType": "uint256",
-                                "name": "takerReceiveCollateralAmount",
-                                "type": "uint256"
                             },
                             {
                                 "internalType": "uint256",
@@ -1172,17 +1157,12 @@
                         "name": "positionTokenAmount",
                         "type": "uint256"
                     },
+                    {
+                        "internalType": "uint256",
+                        "name": "makerCollateralAmount",
+                        "type": "uint256"
+                    },
                     { "internalType": "bool", "name": "makerDirection", "type": "bool" },
-                    {
-                        "internalType": "uint256",
-                        "name": "makerReceiveCollateralAmount",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "takerReceiveCollateralAmount",
-                        "type": "uint256"
-                    },
                     {
                         "internalType": "uint256",
                         "name": "offerExpiry",
@@ -1626,17 +1606,12 @@
                         "name": "positionTokenAmount",
                         "type": "uint256"
                     },
+                    {
+                        "internalType": "uint256",
+                        "name": "makerCollateralAmount",
+                        "type": "uint256"
+                    },
                     { "internalType": "bool", "name": "makerDirection", "type": "bool" },
-                    {
-                        "internalType": "uint256",
-                        "name": "makerReceiveCollateralAmount",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "takerReceiveCollateralAmount",
-                        "type": "uint256"
-                    },
                     {
                         "internalType": "uint256",
                         "name": "offerExpiry",
