@@ -52,7 +52,13 @@ import {
     ONE_MINUTE_MS,
     ZERO,
 } from '../constants';
-import { GasEstimationError, InsufficientFundsError } from '../errors';
+import {
+    GasEstimationError,
+    InsufficientFundsError,
+    ValidationError,
+    ValidationErrorCodes,
+    ValidationErrorReasons,
+} from '../errors';
 import { logger } from '../logger';
 import {
     AffiliateFee,
@@ -249,6 +255,7 @@ export class SwapService implements ISwapService {
             skipValidation,
             shouldSellEntireBalance,
             enableSlippageProtection,
+            priceImpactProtectionPercentage,
         } = params;
 
         let _rfqt: GetMarketOrdersRfqOpts | undefined;
@@ -482,6 +489,19 @@ export class SwapService implements ISwapService {
 
         if (apiSwapQuote.buyAmount.lte(new BigNumber(0))) {
             throw new InsufficientFundsError();
+        }
+
+        if (
+            apiSwapQuote.estimatedPriceImpact &&
+            apiSwapQuote.estimatedPriceImpact.gt(priceImpactProtectionPercentage)
+        ) {
+            throw new ValidationError([
+                {
+                    field: 'priceImpactProtectionPercentage',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: ValidationErrorReasons.PriceImpactTooHigh,
+                },
+            ]);
         }
 
         // If the slippage Model is forced on for the integrator, or if they have opted in to slippage protection

@@ -28,6 +28,7 @@ import {
 import {
     AFFILIATE_DATA_SELECTOR,
     DEFAULT_ENABLE_SLIPPAGE_PROTECTION,
+    DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     ONE_SECOND_MS,
     SWAP_DOCS_URL,
@@ -451,6 +452,10 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
             },
         ]);
     }
+    const priceImpactProtectionPercentage =
+        req.query.priceImpactProtectionPercentage === undefined
+            ? DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE
+            : Number.parseFloat(req.query.priceImpactProtectionPercentage as string);
 
     // Parse sources
     const { excludedSources, includedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
@@ -515,6 +520,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         integratorLabel: integrator?.label || 'N/A',
         rawApiKey: apiKey || 'N/A',
         enableSlippageProtection,
+        priceImpactProtectionPercentage,
     });
 
     return {
@@ -543,6 +549,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         slippagePercentage,
         takerAddress: takerAddress as string,
         enableSlippageProtection,
+        priceImpactProtectionPercentage,
     };
 };
 
