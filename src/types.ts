@@ -27,7 +27,7 @@ export interface OfferCreateContingentPoolFilterType {
     perPage: number;
     maker: string;
     taker: string;
-    makerDirection: string;
+    makerIsLong: string;
     referenceAsset: string;
     collateralToken: string;
     dataProvider: string;
@@ -61,7 +61,7 @@ export interface OfferType {
     maker: string;
     taker: string;
     makerCollateralAmount: string;
-    makerDirection: boolean;
+    makerIsLong: boolean;
     offerExpiry: string;
     minimumTakerFillAmount: string;
     referenceAsset: string;

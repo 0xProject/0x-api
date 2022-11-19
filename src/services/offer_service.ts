@@ -50,10 +50,10 @@ export class OfferService {
             if (req.taker !== NULL_ADDRESS && apiEntity.taker.toLowerCase() !== req.taker) {
                 return false;
             }
-            if (req.makerDirection !== NULL_TEXT) {
+            if (req.makerIsLong !== NULL_TEXT) {
                 if (
-                    (req.makerDirection !== 'true' && apiEntity.makerDirection) ||
-                    (req.makerDirection !== 'false' && !apiEntity.makerDirection)
+                    (req.makerIsLong !== 'true' && apiEntity.makerIsLong) ||
+                    (req.makerIsLong !== 'false' && !apiEntity.makerIsLong)
                 ) {
                     return false;
                 }
@@ -88,7 +88,7 @@ export class OfferService {
             offerCreateContingentPoolEntities as Required<OfferCreateContingentPoolEntity[]>
         ).map(offerUtils.deserializeOfferCreateContingentPool);
 
-        // Sort offers with the same referenceAsset, floor, inflection, cap, gradient, expiryTime and makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
+        // Sort offers with the same referenceAsset, floor, inflection, cap, gradient, expiryTime and makerIsLong in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
         apiEntities
             .sort((a, b) => {
                 if (
@@ -97,7 +97,7 @@ export class OfferService {
                     a.cap === b.cap &&
                     a.gradient === b.gradient &&
                     a.expiryTime === b.expiryTime &&
-                    a.makerDirection === b.makerDirection
+                    a.makerIsLong === b.makerIsLong
                 ) {
                     const sortValA = this.checkSortParams(a.takerCollateralAmount, a.makerCollateralAmount);
                     const sortValB = this.checkSortParams(b.takerCollateralAmount, b.makerCollateralAmount);
@@ -242,10 +242,10 @@ export class OfferService {
             offerUtils.deserializeOfferAddLiquidity,
         );
 
-        // Sort offers with the same poolId and the same makerDirection in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
+        // Sort offers with the same poolId and the same makerIsLong in ascending order by the takerCollateralAmount / (takerCollateralAmount + makerCollateralAmount).
         apiEntities
             .sort((a, b) => {
-                if (a.makerDirection === b.makerDirection) {
+                if (a.makerIsLong === b.makerIsLong) {
                     const sortValA = this.checkSortParams(a.takerCollateralAmount, a.makerCollateralAmount);
                     const sortValB = this.checkSortParams(b.takerCollateralAmount, b.makerCollateralAmount);
                     const sortValue = sortValA.minus(sortValB);
@@ -351,10 +351,10 @@ export class OfferService {
             offerRemoveLiquidityEntities as Required<OfferRemoveLiquidityEntity[]>
         ).map(offerUtils.deserializeOfferRemoveLiquidity);
 
-        // Sort offers with the same poolId and the same makerDirection in ascending order by the positionTokenAmount / (positionTokenAmount + makerCollateralAmount).
+        // Sort offers with the same poolId and the same makerIsLong in ascending order by the positionTokenAmount / (positionTokenAmount + makerCollateralAmount).
         apiEntities
             .sort((a, b) => {
-                if (a.makerDirection === b.makerDirection) {
+                if (a.makerIsLong === b.makerIsLong) {
                     const sortValA = this.checkSortParams(a.positionTokenAmount, a.makerCollateralAmount);
                     const sortValB = this.checkSortParams(b.positionTokenAmount, b.makerCollateralAmount);
                     const sortValue = sortValA.minus(sortValB);
@@ -415,7 +415,7 @@ export class OfferService {
                 taker: apiEntity.taker,
                 makerCollateralAmount: apiEntity.makerCollateralAmount,
                 takerCollateralAmount: apiEntity.takerCollateralAmount,
-                makerDirection: apiEntity.makerDirection,
+                makerIsLong: apiEntity.makerIsLong,
                 offerExpiry: apiEntity.offerExpiry,
                 minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
                 referenceAsset: apiEntity.referenceAsset,
@@ -459,7 +459,7 @@ export class OfferService {
                 taker: apiEntity.taker,
                 makerCollateralAmount: apiEntity.makerCollateralAmount,
                 takerCollateralAmount: apiEntity.takerCollateralAmount,
-                makerDirection: apiEntity.makerDirection,
+                makerIsLong: apiEntity.makerIsLong,
                 offerExpiry: apiEntity.offerExpiry,
                 minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
                 poolId: apiEntity.poolId,
@@ -494,7 +494,7 @@ export class OfferService {
                 taker: apiEntity.taker,
                 makerCollateralAmount: apiEntity.makerCollateralAmount,
                 positionTokenAmount: apiEntity.positionTokenAmount,
-                makerDirection: apiEntity.makerDirection,
+                makerIsLong: apiEntity.makerIsLong,
                 offerExpiry: apiEntity.offerExpiry,
                 minimumTakerFillAmount: apiEntity.minimumTakerFillAmount,
                 poolId: apiEntity.poolId,

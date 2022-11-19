@@ -17,7 +17,7 @@
         "positionTokenAmount": {
             "type": "string"
         },
-        "makerDirection": {
+        "makerIsLong": {
             "enum": [true, false]
         },
         "offerExpiry": {
