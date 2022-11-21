@@ -28,7 +28,11 @@ export const schemaUtils = {
     },
 };
 
-function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject: AJV.ErrorObject): ValidationErrorItem {
+interface ValidationErrorObject extends AJV.ErrorObject{
+    description?: string;
+  }
+
+function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject: ValidationErrorObject): ValidationErrorItem {
     if (
         [
             'type',
