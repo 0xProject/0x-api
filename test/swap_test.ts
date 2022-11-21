@@ -213,7 +213,7 @@ describe(SUITE_NAME, () => {
     });
 
     describe('/quote', async () => {
-        it("should respond with 'INSUFFICIENT_ASSET_LIQUIDITY' when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
+        it("should respond with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
             await quoteAndExpectAsync(
                 app,
                 { buyAmount: '10000000000000000000000000000000' },
