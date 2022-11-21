@@ -49,6 +49,7 @@ function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject:
             field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.IncorrectFormat,
             reason: schemaValidationErrorObject.message || '',
+            description: schemaValidationErrorObject.description || '',
         };
     } else if (
         ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'enum', 'const'].includes(
@@ -59,18 +60,21 @@ function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject:
             field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.ValueOutOfRange,
             reason: schemaValidationErrorObject.message || '',
+            description: schemaValidationErrorObject.description || '',
         };
     } else if (schemaValidationErrorObject.keyword === 'required') {
         return {
             field: (schemaValidationErrorObject.params as AJV.RequiredParams).missingProperty,
             code: ValidationErrorCodes.RequiredField,
             reason: schemaValidationErrorObject.message || '',
+            description: schemaValidationErrorObject.description || '',
         };
     } else if (schemaValidationErrorObject.keyword === 'not') {
         return {
             field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.UnsupportedOption,
             reason: schemaValidationErrorObject.message || '',
+            description: schemaValidationErrorObject.description || '',
         };
     } else {
         throw new Error(`Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);
