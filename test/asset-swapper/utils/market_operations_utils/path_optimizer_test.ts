@@ -99,6 +99,194 @@ describe('PathOptimizer', () => {
         expect(fill?.output).bignumber.eq(ONE_ETHER.times(8));
     });
 
+    it('Returns the best single source path when 0 outputs are present', async () => {
+        const pathOptimizer = new PathOptimizer({
+            side: MarketOperation.Sell,
+            chainId: ChainId.Mainnet,
+            feeSchedule: NO_OP_FEE_SCHEDULE,
+            neonRouterNumSamples: 14,
+            fillAdjustor: new IdentityFillAdjustor(),
+            pathPenaltyOpts: NO_OP_PATH_PENALTY_OPTS,
+            inputAmount: ONE_ETHER.times(13),
+        });
+
+        const path = pathOptimizer.findOptimalPathFromSamples(
+            [
+                [
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER,
+                        output: ONE_ETHER.times(4),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(2),
+                        output: ONE_ETHER.times(8),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(3),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(4),
+                        output: ONE_ETHER.times(16),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(5),
+                        output: ONE_ETHER.times(0),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(6),
+                        output: ONE_ETHER.times(0),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(7),
+                        output: ONE_ETHER.times(0),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(8),
+                        output: ONE_ETHER.times(0),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(9),
+                        output: ONE_ETHER.times(0),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(10),
+                        output: ONE_ETHER.times(0),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(11),
+                        output: ONE_ETHER.times(0),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(12),
+                        output: ONE_ETHER.times(0),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(13),
+                        output: ONE_ETHER.times(0),
+                    },
+                ],
+                [
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER,
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(2),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(3),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(4),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(5),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(6),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(7),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(8),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(9),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(10),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(11),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(12),
+                        output: ONE_ETHER.times(12),
+                    },
+                    {
+                        source: ERC20BridgeSource.BalancerV2,
+                        fillData: {},
+                        input: ONE_ETHER.times(13),
+                        output: ONE_ETHER.times(12),
+                    },
+                ],
+            ],
+            [],
+            [],
+        );
+
+        expect(path?.fills).lengthOf(2);
+        const fill1 = path?.fills[0];
+        expect(fill1?.input).bignumber.eq(ONE_ETHER.times(4));
+        expect(fill1?.output).bignumber.eq(ONE_ETHER.times(16));
+
+        const fill2 = path?.fills[1];
+        expect(fill2?.input).bignumber.eq(ONE_ETHER.times(9));
+        expect(fill2?.output).bignumber.eq(ONE_ETHER.times(12));
+    });
+
     it('Returns the multihop path when it is the best path', async () => {
         const pathOptimizer = new PathOptimizer({
             side: MarketOperation.Sell,
