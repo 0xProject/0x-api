@@ -1196,7 +1196,7 @@ export class SamplerOperations {
         });
     }
 
-    public getVelodromeSellQuotes(
+    public getSolidlySellQuotes(
         source: ERC20BridgeSource,
         router: string,
         takerToken: string,
@@ -1220,7 +1220,7 @@ export class SamplerOperations {
         });
     }
 
-    public getVelodromeBuyQuotes(
+    public getSolidlyBuyQuotes(
         source: ERC20BridgeSource,
         router: string,
         takerToken: string,
@@ -1723,7 +1723,7 @@ export class SamplerOperations {
                         } else {
                             address = VELODROME_ROUTER_BY_CHAIN_ID[this.chainId];
                         }
-                        return this.getVelodromeSellQuotes(source, address, takerToken, makerToken, takerFillAmounts);
+                        return this.getSolidlySellQuotes(source, address, takerToken, makerToken, takerFillAmounts);
                     }
                     case ERC20BridgeSource.Synthetix: {
                         const readProxy = SYNTHETIX_READ_PROXY_BY_CHAIN_ID[this.chainId];
@@ -2054,7 +2054,7 @@ export class SamplerOperations {
                         } else {
                             address = VELODROME_ROUTER_BY_CHAIN_ID[this.chainId];
                         }
-                        return this.getVelodromeBuyQuotes(source, address, takerToken, makerToken, makerFillAmounts);
+                        return this.getSolidlyBuyQuotes(source, address, takerToken, makerToken, makerFillAmounts);
                     }
                     case ERC20BridgeSource.Synthetix: {
                         const readProxy = SYNTHETIX_READ_PROXY_BY_CHAIN_ID[this.chainId];
