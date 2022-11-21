@@ -213,7 +213,7 @@ describe(SUITE_NAME, () => {
     });
 
     describe('/quote', async () => {
-        it("should respond with 'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity' when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
+        it("should respond with 'INSUFFICIENT_ASSET_LIQUIDITY' when there's no liquidity (empty orderbook, sampling excluded, no RFQ)", async () => {
             await quoteAndExpectAsync(
                 app,
                 { buyAmount: '10000000000000000000000000000000' },
@@ -222,7 +222,7 @@ describe(SUITE_NAME, () => {
                         {
                             code: ValidationErrorCodes.ValueOutOfRange,
                             field: 'buyAmount',
-                            reason: 'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity',
+                            reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
                         },
                     ],
                 },

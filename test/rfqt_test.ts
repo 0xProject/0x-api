@@ -243,7 +243,7 @@ describe.skip(SUITE_NAME, () => {
 
                             const validationErrors = appResponse.body.validationErrors;
                             expect(validationErrors.length).to.eql(1);
-                            expect(validationErrors[0].reason).to.eql('We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity');
+                            expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
                         },
                         quoteRequestorHttpClient,
                     );
@@ -275,7 +275,7 @@ describe.skip(SUITE_NAME, () => {
 
                             const validationErrors = appResponse.body.validationErrors;
                             expect(validationErrors.length).to.eql(1);
-                            expect(validationErrors[0].reason).to.eql('We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity');
+                            expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
                         },
                     );
                 });
@@ -290,7 +290,7 @@ describe.skip(SUITE_NAME, () => {
 
                     const validationErrors = appResponse.body.validationErrors;
                     expect(validationErrors.length).to.eql(1);
-                    expect(validationErrors[0].reason).to.eql('We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity');
+                    expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
                 });
                 it("should fail when it's a buy order and those are disabled (which is the default)", async () => {
                     const buyAmount = new BigNumber(100000000000000000);
@@ -308,7 +308,7 @@ describe.skip(SUITE_NAME, () => {
                         .expect('Content-Type', /json/);
                     const validationErrors = appResponse.body.validationErrors;
                     expect(validationErrors.length).to.eql(1);
-                    expect(validationErrors[0].reason).to.eql('We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity');
+                    expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
                 });
                 it('should succeed when taker can not actually fill but we skip validation', async () => {
                     await wethContract
@@ -369,7 +369,7 @@ describe.skip(SUITE_NAME, () => {
                                 .expect('Content-Type', /json/);
                             const validationErrors = appResponse.body.validationErrors;
                             expect(validationErrors.length).to.eql(1);
-                            expect(validationErrors[0].reason).to.eql('We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity');
+                            expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
                         },
                     );
                 });
@@ -472,7 +472,7 @@ describe.skip(SUITE_NAME, () => {
 
                             const validationErrors = appResponse.body.validationErrors;
                             expect(validationErrors.length).to.eql(1);
-                            expect(validationErrors[0].reason).to.eql('We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity');
+                            expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
                         },
                         quoteRequestorHttpClient,
                     );
@@ -511,7 +511,7 @@ describe.skip(SUITE_NAME, () => {
 
                         const validationErrors = appResponse.body.validationErrors;
                         expect(validationErrors.length).to.eql(1);
-                        expect(validationErrors[0].reason).to.eql('We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity');
+                        expect(validationErrors[0].reason).to.eql('INSUFFICIENT_ASSET_LIQUIDITY');
                     },
                     quoteRequestorHttpClient,
                 );
