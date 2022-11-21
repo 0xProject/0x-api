@@ -26,7 +26,7 @@ import {
     ExtendedQuoteReportSources,
     generateExtendedQuoteReportSources,
     generateQuoteReport,
-    multiHopSampleToReportSource,
+    MultiHopQuoteReportEntry,
     nativeOrderToReportEntry,
     PriceComparisonsReport,
     QuoteReport,
@@ -106,7 +106,9 @@ export class MarketOperationUtils {
     ): PriceComparisonsReport {
         const { side, quotes } = marketSideLiquidity;
         const dexSources = _.flatten(quotes.dexQuotes).map((quote) => dexSampleToReportSource(quote, side));
-        const multiHopSources = quotes.twoHopQuotes.map((quote) => multiHopSampleToReportSource(quote, side));
+        const multiHopSources = [] as MultiHopQuoteReportEntry[];
+        // TODO
+        // quotes.twoHopQuotes.map((quote) => multiHopSampleToReportSource(quote, side));
         const nativeSources = quotes.nativeOrders.map((order) =>
             nativeOrderToReportEntry(
                 order.type,
@@ -184,7 +186,7 @@ export class MarketOperationUtils {
                 quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
                 makerToken,
                 takerToken,
-                [takerAmount],
+                getSampleAmounts(takerAmount, _opts.numMultiHopSamples, _opts.sampleDistributionBase),
             ),
             this._sampler.isAddressContract(txOrigin),
             this._sampler.getGasLeft(),
@@ -219,11 +221,13 @@ export class MarketOperationUtils {
         SAMPLER_METRICS.logGasDetails({ side: 'sell', gasBefore, gasAfter });
         SAMPLER_METRICS.logBlockNumber(blockNumber);
 
-        // Filter out any invalid two hop quotes where we couldn't find a route
-        const twoHopQuotes = rawTwoHopQuotes.filter(
-            (q) => q && q.fillData && q.fillData.firstHopSource && q.fillData.secondHopSource,
-        );
+        // // Filter out any invalid two hop quotes where we couldn't find a route
+        const twoHopQuotes = rawTwoHopQuotes
+            .map((twoHopQuote) =>
+                twoHopQuote.filter((q) => q && q.fillData && q.fillData.firstHopSource && q.fillData.secondHopSource),
+            )
 
+            .filter((quote) => quote.length > 0);
         const [makerTokenDecimals, takerTokenDecimals] = tokenDecimals;
 
         const isRfqSupported = !!(_opts.rfqt && !isTxOriginContract);
@@ -305,7 +309,7 @@ export class MarketOperationUtils {
                 quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
                 makerToken,
                 takerToken,
-                [makerAmount],
+                getSampleAmounts(makerAmount, _opts.numMultiHopSamples, _opts.sampleDistributionBase),
             ),
             this._sampler.isAddressContract(txOrigin),
             this._sampler.getGasLeft(),
@@ -331,9 +335,11 @@ export class MarketOperationUtils {
         SAMPLER_METRICS.logBlockNumber(blockNumber);
 
         // Filter out any invalid two hop quotes where we couldn't find a route
-        const twoHopQuotes = rawTwoHopQuotes.filter(
-            (q) => q && q.fillData && q.fillData.firstHopSource && q.fillData.secondHopSource,
-        );
+        const twoHopQuotes = rawTwoHopQuotes
+            .map((twoHopQuote) =>
+                twoHopQuote.filter((q) => q && q.fillData && q.fillData.firstHopSource && q.fillData.secondHopSource),
+            )
+            .filter((quote) => quote.length > 0);
 
         const [makerTokenDecimals, takerTokenDecimals] = tokenDecimals;
         const isRfqSupported = !isTxOriginContract;

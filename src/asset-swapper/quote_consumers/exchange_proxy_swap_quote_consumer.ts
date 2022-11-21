@@ -399,6 +399,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
         // and we also want to ensure no dust amount is left in the flash wallet
         const intermediateToken = quote.isTwoHop ? slippedOrders[0].makerToken : NULL_ADDRESS;
         // This transformer will fill the quote.
+        // TODO(kyu): twohop modification needed here
         if (quote.isTwoHop) {
             const [firstHopOrder, secondHopOrder] = slippedOrders;
             transforms.push({

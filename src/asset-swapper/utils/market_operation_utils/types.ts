@@ -478,6 +478,10 @@ export interface GetMarketOrdersOpts {
      */
     numSamples: number;
     /**
+     * Number of samples to take for multihop.
+     */
+    numMultiHopSamples: number;
+    /**
      * The exponential sampling distribution base.
      * A value of 1 will result in evenly spaced samples.
      * > 1 will result in more samples at lower sizes.
@@ -581,7 +585,7 @@ export interface MarketSideLiquidity {
 export interface RawQuotes {
     nativeOrders: NativeOrderWithFillableAmounts[];
     rfqtIndicativeQuotes: V4RFQIndicativeQuoteMM[];
-    twoHopQuotes: DexSample<MultiHopFillData>[];
+    twoHopQuotes: DexSample<MultiHopFillData>[][];
     dexQuotes: DexSample<FillData>[][];
 }
 

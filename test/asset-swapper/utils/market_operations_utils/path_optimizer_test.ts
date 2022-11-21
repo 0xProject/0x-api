@@ -103,11 +103,11 @@ describe('PathOptimizer', () => {
                     }),
                 ],
                 [
-                    createMultihopSample({
+                    createMultiHopSamples({
                         firstHopSource: ERC20BridgeSource.Curve,
                         secondHopSource: ERC20BridgeSource.CurveV2,
-                        inputInEther: 4,
-                        outputInEther: 9,
+                        inputsInEther: [4],
+                        outputsInEther: [9],
                     }),
                 ],
                 [],
@@ -147,11 +147,11 @@ describe('PathOptimizer', () => {
                     }),
                 ],
                 [
-                    createMultihopSample({
+                    createMultiHopSamples({
                         firstHopSource: ERC20BridgeSource.Curve,
                         secondHopSource: ERC20BridgeSource.CurveV2,
-                        inputInEther: 4,
-                        outputInEther: 4,
+                        inputsInEther: [4],
+                        outputsInEther: [4],
                     }),
                 ],
                 [
@@ -322,6 +322,55 @@ describe('PathOptimizer', () => {
             expect(inputTotal).bignumber.eq(ONE_ETHER.times(4));
             expect(outputTotal).bignumber.eq(ONE_ETHER.times(8));
         });
+
+        it('Returns the best multiplex path (DEX + MultiHop)', async () => {
+            const pathOptimizer = new PathOptimizer({
+                side: MarketOperation.Sell,
+                chainId: ChainId.Mainnet,
+                feeSchedule: NO_OP_FEE_SCHEDULE,
+                neonRouterNumSamples: 5,
+                fillAdjustor: new IdentityFillAdjustor(),
+                pathPenaltyOpts: NO_OP_PATH_PENALTY_OPTS,
+                inputAmount: ONE_ETHER.times(4),
+            });
+
+            // The best route involves utilizing both Uniswap V3 and MultiHop
+            const path = pathOptimizer.findOptimalPathFromSamples(
+                [
+                    createDexSamples({
+                        source: ERC20BridgeSource.UniswapV3,
+                        inputsInEther: [1, 2, 3, 4],
+                        outputsInEther: [2, 4, 5, 7],
+                    }),
+                ],
+                [
+                    createMultiHopSamples({
+                        firstHopSource: ERC20BridgeSource.Curve,
+                        secondHopSource: ERC20BridgeSource.CurveV2,
+                        inputsInEther: [1, 2, 3],
+                        outputsInEther: [2, 4, 5],
+                    }),
+                ],
+                [],
+            );
+
+            if (path === undefined) {
+                expect(path).to.be.not.undefined();
+                return;
+            }
+
+            expect(path.fills).lengthOf(2);
+            const fill0 = path.fills[0];
+            const fill1 = path.fills[1];
+            expect(fill0.source).eq(ERC20BridgeSource.UniswapV3);
+            expect(fill1.source).eq(ERC20BridgeSource.MultiHop);
+
+            const inputTotal = fill0.input.plus(fill1.input);
+            const outputTotal = fill0.output.plus(fill1.output);
+
+            expect(inputTotal).bignumber.eq(ONE_ETHER.times(4));
+            expect(outputTotal).bignumber.eq(ONE_ETHER.times(8));
+        });
     });
 });
 
@@ -343,7 +392,7 @@ function createDexSamples(params: {
     return inputsInEther.map((inputInEther, i) => createDexSample(source, inputInEther, outputsInEther[i]));
 }
 
-function createMultihopSample(params: {
+function createMultiHopSample(params: {
     firstHopSource: ERC20BridgeSource;
     secondHopSource: ERC20BridgeSource;
     inputInEther: number;
@@ -371,6 +420,18 @@ function createMultihopSample(params: {
         input: ONE_ETHER.times(params.inputInEther),
         output: ONE_ETHER.times(params.outputInEther),
     };
+}
+
+function createMultiHopSamples(params: {
+    firstHopSource: ERC20BridgeSource;
+    secondHopSource: ERC20BridgeSource;
+    inputsInEther: number[];
+    outputsInEther: number[];
+}): DexSample<MultiHopFillData>[] {
+    const { firstHopSource, secondHopSource, inputsInEther, outputsInEther } = params;
+    return inputsInEther.map((inputInEther, i) =>
+        createMultiHopSample({ firstHopSource, secondHopSource, inputInEther, outputInEther: outputsInEther[i] }),
+    );
 }
 
 function createOtcOrder(params: { inputInEther: number; outputInEther: number }): NativeOrderWithFillableAmounts {

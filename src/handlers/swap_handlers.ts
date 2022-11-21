@@ -347,6 +347,8 @@ export class SwapHandlers {
                     },
                 ]);
             }
+            console.log('============ err stack ============');
+            console.log((e as Error).stack);
             throw new InternalServerError(e.message);
         }
     }

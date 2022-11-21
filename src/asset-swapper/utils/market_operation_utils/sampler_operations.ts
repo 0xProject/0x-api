@@ -750,7 +750,7 @@ export class SamplerOperations {
         makerToken: string,
         takerToken: string,
         sellAmounts: BigNumber[],
-    ): BatchedOperation<DexSample<MultiHopFillData>[]> {
+    ): BatchedOperation<DexSample<MultiHopFillData>[][]> {
         const _sources = TWO_HOP_SOURCE_FILTERS.getAllowed(sources);
         if (_sources.length === 0) {
             return SamplerOperations.constant([]);
@@ -794,13 +794,14 @@ export class SamplerOperations {
             subOps,
             (samples: BigNumber[][]) => {
                 return subOps.map((op, i) => {
-                    // TODO(kyu-c): make it return DexSample<MultiHopFillData>[][] once it actually samples more than 1 point.
-                    return {
-                        source: op.source,
-                        output: samples[i][0],
-                        input: sellAmounts[0],
-                        fillData: op.fillData,
-                    };
+                    return sellAmounts.map((sellAmount, j) => {
+                        return {
+                            source: op.source,
+                            output: samples[i][j],
+                            input: sellAmount,
+                            fillData: op.fillData,
+                        };
+                    });
                 });
             },
             () => {
@@ -815,7 +816,7 @@ export class SamplerOperations {
         makerToken: string,
         takerToken: string,
         buyAmounts: BigNumber[],
-    ): BatchedOperation<DexSample<MultiHopFillData>[]> {
+    ): BatchedOperation<DexSample<MultiHopFillData>[][]> {
         const _sources = TWO_HOP_SOURCE_FILTERS.getAllowed(sources);
         if (_sources.length === 0) {
             return SamplerOperations.constant([]);
@@ -858,14 +859,15 @@ export class SamplerOperations {
         return this._createBatch(
             subOps,
             (samples: BigNumber[][]) => {
-                // TODO(kyu-c): make it return DexSample<MultiHopFillData>[][] once it actually samples more than 1 point.
                 return subOps.map((op, i) => {
-                    return {
-                        source: op.source,
-                        output: samples[i][0],
-                        input: buyAmounts[0],
-                        fillData: op.fillData,
-                    };
+                    return buyAmounts.map((buyAmount, j) => {
+                        return {
+                            source: op.source,
+                            output: samples[i][j],
+                            input: buyAmount,
+                            fillData: op.fillData,
+                        };
+                    });
                 });
             },
             () => {

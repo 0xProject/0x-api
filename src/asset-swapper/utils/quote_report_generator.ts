@@ -200,7 +200,12 @@ export function generateExtendedQuoteReportSources(
     );
 
     // MultiHop
-    sourcesConsidered.push(...quotes.twoHopQuotes.map((quote) => multiHopSampleToReportSource(quote, marketOperation)));
+    sourcesConsidered.push(
+        ..._.flatMap(quotes.twoHopQuotes, (quotes) =>
+            quotes.map((quote) => multiHopSampleToReportSource(quote, marketOperation)),
+        ),
+    );
+    // ...quotes.twoHopQuotes.map((quote) => multiHopSampleToReportSource(quote, marketOperation)));
 
     // Dex Quotes
     sourcesConsidered.push(

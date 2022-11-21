@@ -156,7 +156,7 @@ export function twoHopSampleToFill(
         flags,
         type: FillQuoteTransformerOrderType.Bridge,
         adjustedOutput: adjustOutput(side, twoHopSample.output, sourcePenalty),
-        sourcePathId: `${ERC20BridgeSource.MultiHop}-${fillData.firstHopSource.source}-${fillData.secondHopSource.source}`,
+        sourcePathId: hexUtils.random(),
         // We don't have this information at this stage
         gas: 0,
     };

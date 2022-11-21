@@ -70,7 +70,7 @@ export class PathOptimizer {
 
     public findOptimalPathFromSamples(
         samples: DexSample[][],
-        twoHopQuotes: DexSample<MultiHopFillData>[],
+        twoHopQuotes: DexSample<MultiHopFillData>[][],
         nativeOrders: NativeOrderWithFillableAmounts[],
     ): Path | undefined {
         const beforeTimeMs = performance.now();
@@ -101,7 +101,7 @@ export class PathOptimizer {
 
     private findRoutesAndCreateOptimalPath(
         samples: DexSample[][],
-        twoHopSamples: DexSample<MultiHopFillData>[],
+        twoHopSamples: DexSample<MultiHopFillData>[][],
         nativeOrders: NativeOrderWithFillableAmounts[],
     ): { allSourcesPath: Path | undefined; vipSourcesPath: Path | undefined } | undefined {
         // Currently the rust router is unable to handle 1 base unit sized quotes and will error out
@@ -115,14 +115,18 @@ export class PathOptimizer {
         // Ensure the expected data we require exists. In the case where all hops reverted
         // or there were no sources included that allowed for multi hop,
         // we can end up with an empty, but not undefined, fill data.
-        const validTwoHopSamples = twoHopSamples.filter(
-            (sample) =>
-                sample &&
-                sample.fillData &&
-                sample.fillData.firstHopSource &&
-                sample.fillData.secondHopSource &&
-                sample.output.isGreaterThan(ZERO_AMOUNT),
-        );
+        const validTwoHopSamples = twoHopSamples
+            .map((twoHopSample) =>
+                twoHopSample.filter(
+                    (sample) =>
+                        sample &&
+                        sample.fillData &&
+                        sample.fillData.firstHopSource &&
+                        sample.fillData.secondHopSource &&
+                        sample.output.isGreaterThan(ZERO_AMOUNT),
+                ),
+            )
+            .filter((sample) => sample.length > 0);
 
         const singleSourceRoutablePaths = this.singleSourceSamplesToRoutablePaths(samples);
         const twoHopRoutablePaths = this.twoHopSamplesToRoutablePaths(validTwoHopSamples);
@@ -214,25 +218,49 @@ export class PathOptimizer {
         return routablePaths;
     }
 
-    private twoHopSamplesToRoutablePaths(twoHopSamples: DexSample<MultiHopFillData>[]): RoutablePath[] {
+    private twoHopSamplesToRoutablePaths(twoHopSamples: DexSample<MultiHopFillData>[][]): RoutablePath[] {
         return twoHopSamples.map((twoHopSample, i) => {
-            const fill = this.createFillFromTwoHopSample(twoHopSample);
-            const outputFee = fill.output.minus(fill.adjustedOutput).absoluteValue().integerValue().toNumber();
+            const fills = twoHopSample.map((sample) => {
+                return this.createFillFromTwoHopSample(sample);
+            });
+            const outputFees = fills.map((fill) =>
+                fill.output.minus(fill.adjustedOutput).absoluteValue().integerValue().toNumber(),
+            );
 
             const serializedPath: SerializedPath = {
-                ids: [fill.sourcePathId],
-                inputs: [fill.input.integerValue().toNumber()],
-                outputs: [fill.output.integerValue().toNumber()],
-                outputFees: [outputFee],
+                ids: fills.map((fill) => fill.sourcePathId),
+                inputs: fills.map((fill) => fill.input.integerValue().toNumber()),
+                outputs: fills.map((fill) => fill.output.integerValue().toNumber()),
+                outputFees: outputFees,
                 isVip: false,
             };
             return {
                 pathId: `two-hop-${i}`,
-                samplesOrNativeOrders: [twoHopSample],
+                samplesOrNativeOrders: twoHopSample,
                 serializedPath,
             };
         });
     }
+
+    // private twoHopSamplesToRoutablePaths(twoHopSamples: DexSample<MultiHopFillData>[]): RoutablePath[] {
+    //     return twoHopSamples.map((twoHopSample, i) => {
+    //         const fill = this.createFillFromTwoHopSample(twoHopSample);
+    //         const outputFee = fill.output.minus(fill.adjustedOutput).absoluteValue().integerValue().toNumber();
+
+    //         const serializedPath: SerializedPath = {
+    //             ids: [fill.sourcePathId],
+    //             inputs: [fill.input.integerValue().toNumber()],
+    //             outputs: [fill.output.integerValue().toNumber()],
+    //             outputFees: [outputFee],
+    //             isVip: false,
+    //         };
+    //         return {
+    //             pathId: `two-hop-${i}`,
+    //             samplesOrNativeOrders: [twoHopSample],
+    //             serializedPath,
+    //         };
+    //     });
+    // }
 
     private nativeOrdersToRoutablePaths(nativeOrders: NativeOrderWithFillableAmounts[]): RoutablePath[] {
         const routablePaths: RoutablePath[] = [];

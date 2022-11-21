@@ -363,12 +363,17 @@ function createSwapQuote(
         makerAmountPerEth,
         priceComparisonsReport,
     } = optimizerResult;
+    // contains
     const isTwoHop = sourceFlags === SOURCE_FLAGS[ERC20BridgeSource.MultiHop];
+    const containsTwoHop = (sourceFlags & SOURCE_FLAGS[ERC20BridgeSource.MultiHop]) > 0;
+    console.log('[DEBUG] contains two hop', containsTwoHop);
 
     // Calculate quote info
     const { bestCaseQuoteInfo, worstCaseQuoteInfo, sourceBreakdown } = isTwoHop
         ? calculateTwoHopQuoteInfo(optimizedOrders, operation, gasSchedule, slippage)
         : calculateQuoteInfo(optimizedOrders, operation, assetFillAmount, gasPrice, gasSchedule, slippage);
+
+    console.log('[DEBUG] source breakdowns', sourceBreakdown);
 
     // Put together the swap quote
     const { makerTokenDecimals, takerTokenDecimals, blockNumber } = optimizerResult.marketSideLiquidity;
