@@ -1033,9 +1033,6 @@ export const DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID = valueByChainId<TokenAdj
                 // FRAX ecosystem
                 builder.addBidirectional(MAINNET_TOKENS.FRAX, MAINNET_TOKENS.FXS);
                 builder.addBidirectional(MAINNET_TOKENS.FRAX, MAINNET_TOKENS.OHM);
-                builder.addBidirectional(MAINNET_TOKENS.crvFRAX, MAINNET_TOKENS.FRAX);
-                builder.addBidirectional(MAINNET_TOKENS.crvFRAX, MAINNET_TOKENS.rsr);
-                builder.addBidirectional(MAINNET_TOKENS.crvFRAX, MAINNET_TOKENS.USDC);
                 // REDACTED CARTEL
                 builder.addBidirectional(MAINNET_TOKENS.OHMV2, MAINNET_TOKENS.BTRFLY);
                 // Lido
