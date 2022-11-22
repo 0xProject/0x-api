@@ -307,11 +307,13 @@ describe(SUITE_NAME, () => {
                 reason: 'Validation Failed',
                 validationErrors: [
                     {
+                        "description": "",
                         field: 'baseToken',
                         code: 1000,
                         reason: "should have required property 'baseToken'",
                     },
                     {
+                        "description": "",
                         field: 'quoteToken',
                         code: 1001,
                         reason: 'should match pattern "^0x[0-9a-fA-F]{40}$"',
@@ -361,11 +363,13 @@ describe(SUITE_NAME, () => {
                 reason: generalErrorCodeToReason[GeneralErrorCodes.ValidationError],
                 validationErrors: [
                     {
+                        "description": "",
                         field: 'taker',
                         code: ValidationErrorCodes.RequiredField,
                         reason: "should have required property 'taker'",
                     },
                     {
+                        "description": "",
                         field: 'expiry',
                         code: ValidationErrorCodes.RequiredField,
                         reason: "should have required property 'expiry'",
