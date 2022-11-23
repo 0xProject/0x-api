@@ -62,27 +62,53 @@ The transaction watcher ensures that the data being served is present and up-to-
 
 1. Running Kafka service
     ```
-    sudo systemctl start kafka.service
+    $ sudo systemctl start kafka.service
     ```
 
 2. Running Docker service
     ```
-    cd 0x-api-fork && docker-compose up --build
+    $ cd 0x-api-node
+
+    $ git checkout develop
+
+    $ sudo docker-compose up --build
     ```
 
 3. Running Block watcher service
     ```
-    cd 0x-rs && cd block-watcher && cargo run
+    $ cd 0x-rs
+
+    $ git checkout develop
+
+    $ cd block-watcher
+    
+    $ cargo run
     ```
 
 4. Running Order watcher service
     ```
-    cd 0x-rs && cd order-watcher && cargo Run
+    $ cd 0x-rs
+
+    $ git checkout develop
+
+    $ cd order-watcher
+
+    $ cargo run
     ```
 
 5. Running Node service
     ```
-    cd 0x-api-fork && yarn dev
+    $ cd 0x-api-node
+
+    $ git checkout develop
+
+    $ yarn install
+
+    $ yarn build
+
+    $ yarn db:migrate
+
+    $ yarn dev
     ```
 
 #### Developing
@@ -122,33 +148,33 @@ To get a local development version of `0x-api` running:
 3. Install the dependencies:
 
     ```sh
-    yarn
+    $ yarn
     ```
 
 4. Build the project:
 
     ```sh
-    yarn build
+    $ yarn build
     ```
 
 5. Run `docker-compose up` to run the other dependencies required for the API. This uses the local `docker-compose.yml` file.
 
 6. Run the database migrations:
 
-```
-yarn db:migrate
-```
+    ```
+    $ yarn db:migrate
+    ```
 
 7. Start the API
 
     ```sh
-    yarn start
+    $ yarn start
     ```
 
     For development:
 
     ```sh
-    yarn dev
+    $ yarn dev
     ```
 
 #### Developing on Ganache
@@ -164,6 +190,7 @@ Then run
 
 ```
 $ docker-compose up
+
 $ yarn dev
 ```
 
@@ -210,7 +237,7 @@ This project uses [TypeORM](https://github.com/typeorm/typeorm). It makes it eas
 To add a migration, you may use the following command:
 
 ```
-yarn db:migration:create -n myMigration
+$ yarn db:migration:create -n myMigration
 ```
 
 ## Legal Disclaimer
