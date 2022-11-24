@@ -22,7 +22,7 @@
 
 ## Introduction
 
-The 0x API is a collection of services and endpoints that can be run together or separately. In aggregate, the APIs provide interfaces to 0x liquidity.
+The DIVA-0x API is a fork of the [0x-api repo](https://github.com/0xProject/0x-api) extended with services for [DIVA Protocol](https://github.com/divaprotocol/diva-contracts). Inspired by 0x, DIVA Protocol allows the creation of off-chain offers to engage in a derivative contract with on-chain settlement on fill. The API is a collection of services and endpoints that can be run together or separately. In aggregate, the APIs provide interfaces to 0x and DIVA Protocol liquidity.
 Everything can be run monolithically via `yarn start` and `docker-compose` up as described in [Getting Started](#getting-started).
 
 ## Services
@@ -37,8 +37,10 @@ These are services that handle HTTP requests and responses.
 | --------------------------------------------------- | ------------------- | ------------------------------------------ | ------------------------------------ | ----------------------------- |
 | All HTTP Services                                   | `/*`                | `yarn start:service:http`                  | Yes                                  | Yes                           |
 | [Swap](https://0x.org/docs/api#swap)                | `/swap`             | `yarn start:service:swap_http`             | Yes                                  | Yes                           |
-| [Orderbook](https://0x.org/docs/api#orderbook) | `/orderbook`              | `yarn start:service:sra_http`              | No                                   | Yes                           |
+| [Orderbook](https://0x.org/docs/api#orderbook) | `/orderbook`              | `yarn start:service:sra_http`               | No                                   | Yes                           |
 | Meta Transaction Service                            | `/meta_transaction` | `yarn start:service:meta_transaction_http` | Yes                                  | Yes                           |
+
+A documentation for the endpoints available is provided here: https://app.swaggerhub.com/apis/DIVAPROTOCOL/DIVA/1.0.0#.
 
 ### Data Services
 
@@ -113,7 +115,7 @@ The transaction watcher ensures that the data being served is present and up-to-
 
 #### Developing
 
-To get a local development version of `0x-api` running:
+To get a local development version of `DIVA-0x-api` running:
 
 1. Clone the repo.
 
