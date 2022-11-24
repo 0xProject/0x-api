@@ -22,7 +22,7 @@
 
 ## Introduction
 
-The 0x API is a collection of services and endpoints that can be run together or separately. In aggregate, the APIs provide interfaces to 0x liquidity.
+The DIVA-0x API is a fork of the [0x-api repo](https://github.com/0xProject/0x-api) extended with services for [DIVA Protocol](https://github.com/divaprotocol/diva-contracts). Inspired by 0x, DIVA Protocol allows the creation of off-chain offers to engage in a derivative contract with on-chain settlement on fill. The API is a collection of services and endpoints that can be run together or separately. In aggregate, the APIs provide interfaces to 0x and DIVA Protocol liquidity.
 Everything can be run monolithically via `yarn start` and `docker-compose` up as described in [Getting Started](#getting-started).
 
 ## Services
@@ -37,8 +37,10 @@ These are services that handle HTTP requests and responses.
 | --------------------------------------------------- | ------------------- | ------------------------------------------ | ------------------------------------ | ----------------------------- |
 | All HTTP Services                                   | `/*`                | `yarn start:service:http`                  | Yes                                  | Yes                           |
 | [Swap](https://0x.org/docs/api#swap)                | `/swap`             | `yarn start:service:swap_http`             | Yes                                  | Yes                           |
-| [Orderbook](https://0x.org/docs/api#orderbook) | `/orderbook`              | `yarn start:service:sra_http`              | No                                   | Yes                           |
+| [Orderbook](https://0x.org/docs/api#orderbook) | `/orderbook`              | `yarn start:service:sra_http`               | No                                   | Yes                           |
 | Meta Transaction Service                            | `/meta_transaction` | `yarn start:service:meta_transaction_http` | Yes                                  | Yes                           |
+
+A documentation for the endpoints available is provided here: https://app.swaggerhub.com/apis/DIVAPROTOCOL/DIVA/1.0.0#.
 
 ### Data Services
 
@@ -62,32 +64,58 @@ The transaction watcher ensures that the data being served is present and up-to-
 
 1. Running Kafka service
     ```
-    sudo systemctl start kafka.service
+    $ sudo systemctl start kafka.service
     ```
 
 2. Running Docker service
     ```
-    cd 0x-api-fork && docker-compose up --build
+    $ cd 0x-api-node
+
+    $ git checkout develop
+
+    $ sudo docker-compose up --build
     ```
 
 3. Running Block watcher service
     ```
-    cd 0x-rs && cd block-watcher && cargo run
+    $ cd 0x-rs
+
+    $ git checkout develop
+
+    $ cd block-watcher
+    
+    $ cargo run
     ```
 
 4. Running Order watcher service
     ```
-    cd 0x-rs && cd order-watcher && cargo Run
+    $ cd 0x-rs
+
+    $ git checkout develop
+
+    $ cd order-watcher
+
+    $ cargo run
     ```
 
 5. Running Node service
     ```
-    cd 0x-api-fork && yarn dev
+    $ cd 0x-api-node
+
+    $ git checkout develop
+
+    $ yarn install
+
+    $ yarn build
+
+    $ yarn db:migrate
+
+    $ yarn dev
     ```
 
 #### Developing
 
-To get a local development version of `0x-api` running:
+To get a local development version of `DIVA-0x-api` running:
 
 1. Clone the repo.
 
@@ -122,33 +150,33 @@ To get a local development version of `0x-api` running:
 3. Install the dependencies:
 
     ```sh
-    yarn
+    $ yarn
     ```
 
 4. Build the project:
 
     ```sh
-    yarn build
+    $ yarn build
     ```
 
 5. Run `docker-compose up` to run the other dependencies required for the API. This uses the local `docker-compose.yml` file.
 
 6. Run the database migrations:
 
-```
-yarn db:migrate
-```
+    ```
+    $ yarn db:migrate
+    ```
 
 7. Start the API
 
     ```sh
-    yarn start
+    $ yarn start
     ```
 
     For development:
 
     ```sh
-    yarn dev
+    $ yarn dev
     ```
 
 #### Developing on Ganache
@@ -164,6 +192,7 @@ Then run
 
 ```
 $ docker-compose up
+
 $ yarn dev
 ```
 
@@ -210,7 +239,7 @@ This project uses [TypeORM](https://github.com/typeorm/typeorm). It makes it eas
 To add a migration, you may use the following command:
 
 ```
-yarn db:migration:create -n myMigration
+$ yarn db:migration:create -n myMigration
 ```
 
 ## Legal Disclaimer
