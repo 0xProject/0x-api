@@ -123,7 +123,7 @@ function offerCreateContingentPoolFilterParams(req: express.Request): any {
     const { page, perPage } = paginationUtils.parsePaginationConfig(req);
     const maker = req.query.maker === undefined ? NULL_ADDRESS : (req.query.maker as string).toLowerCase();
     const taker = req.query.taker === undefined ? NULL_ADDRESS : (req.query.taker as string).toLowerCase();
-    const makerDirection = req.query.makerDirection === undefined ? NULL_TEXT : (req.query.makerDirection as string);
+    const makerIsLong = req.query.makerIsLong === undefined ? NULL_TEXT : (req.query.makerIsLong as string);
     const referenceAsset = req.query.referenceAsset === undefined ? NULL_TEXT : (req.query.referenceAsset as string);
     const collateralToken =
         req.query.collateralToken === undefined ? NULL_ADDRESS : (req.query.collateralToken as string).toLowerCase();
@@ -139,7 +139,7 @@ function offerCreateContingentPoolFilterParams(req: express.Request): any {
         perPage,
         maker,
         taker,
-        makerDirection,
+        makerIsLong,
         referenceAsset,
         collateralToken,
         dataProvider,

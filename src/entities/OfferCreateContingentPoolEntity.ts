@@ -21,8 +21,8 @@ export class OfferCreateContingentPoolEntity {
     @ViewColumn({ name: 'taker_collateral_amount' })
     public takerCollateralAmount?: string;
 
-    @ViewColumn({ name: 'maker_direction' })
-    public makerDirection?: string;
+    @ViewColumn({ name: 'maker_is_long' })
+    public makerIsLong?: string;
 
     @ViewColumn({ name: 'offer_expiry' })
     public offerExpiry?: string;
@@ -79,7 +79,7 @@ export class OfferCreateContingentPoolEntity {
             taker?: string;
             makerCollateralAmount?: string;
             takerCollateralAmount?: string;
-            makerDirection?: string;
+            makerIsLong?: string;
             offerExpiry?: string;
             minimumTakerFillAmount?: string;
             referenceAsset?: string;

@@ -13,8 +13,8 @@ export class OfferLiquidityEntity {
     @ViewColumn({ name: 'maker_collateral_amount' })
     public makerCollateralAmount?: string;
 
-    @ViewColumn({ name: 'maker_direction' })
-    public makerDirection?: string;
+    @ViewColumn({ name: 'maker_is_long' })
+    public makerIsLong?: string;
 
     @ViewColumn({ name: 'offer_expiry' })
     public offerExpiry?: string;
@@ -55,7 +55,7 @@ export class OfferLiquidityEntity {
             maker?: string;
             taker?: string;
             makerCollateralAmount?: string;
-            makerDirection?: string;
+            makerIsLong?: string;
             offerExpiry?: string;
             minimumTakerFillAmount?: string;
             poolId?: string;
