@@ -1,20 +1,32 @@
 import { Web3Wrapper } from '@0x/dev-utils';
+import { FastABI } from '@0x/fast-abi';
+import { BigNumber } from '@0x/utils';
 import { S3 } from 'aws-sdk';
 import axios from 'axios';
+import { MethodAbi } from 'ethereum-types';
 import * as express from 'express';
 import { Server } from 'http';
 import { Kafka } from 'kafkajs';
+import _ from 'lodash';
 import { Connection } from 'typeorm';
 
 import {
     artifacts,
     AssetSwapperContractAddresses,
+    BlockParamLiteral,
     ChainId,
     ContractAddresses,
     ERC20BridgeSamplerContract,
     getContractAddressesForChainOrThrow,
+    ProtocolFeeUtils,
     SupportedProvider,
 } from './asset-swapper';
+import { BancorService } from './asset-swapper/utils/market_operation_utils/bancor_service';
+import {
+    DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
+    SAMPLER_ADDRESS,
+} from './asset-swapper/utils/market_operation_utils/constants';
+import { DexOrderSampler } from './asset-swapper/utils/market_operation_utils/sampler';
 import {
     CHAIN_ID,
     ORDER_WATCHER_KAFKA_TOPIC,
@@ -23,15 +35,18 @@ import {
     SENTRY_ENABLED,
     SLIPPAGE_MODEL_S3_API_VERSION,
     WEBSOCKET_ORDER_UPDATES_PATH,
+    ZERO_EX_GAS_API_URL,
 } from './config';
 import { RFQ_DYNAMIC_BLACKLIST_TTL, RFQ_FIRM_QUOTE_CACHE_EXPIRY } from './constants';
 import { getDBConnectionAsync } from './db_connection';
 import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
 import { logger } from './logger';
 import { runHttpServiceAsync } from './runners/http_service_runner';
+import { BasicSwapService } from './services/basic_swap_service';
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
+import { SamplerService } from './services/sampler_service';
 import { SwapService } from './services/swap_service';
 import { HttpServiceConfig, WebsocketSRAOpts } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
@@ -50,6 +65,7 @@ export interface AppDependencies {
     kafkaClient?: Kafka;
     orderBookService: OrderBookService;
     swapService?: SwapService;
+    basicSwapService?: BasicSwapService;
     metaTransactionService?: MetaTransactionService;
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
@@ -164,6 +180,7 @@ export async function getDefaultAppDependenciesAsync(
     );
 
     let swapService: SwapService | undefined;
+    let basicSwapService: BasicSwapService | undefined;
     let metaTransactionService: MetaTransactionService | undefined;
     try {
         const rfqDynamicBlacklist = new RfqDynamicBlacklist(
@@ -193,6 +210,63 @@ export async function getDefaultAppDependenciesAsync(
             pairsManager,
             slippageModelManager,
         );
+        const protocoFeeUtils = ProtocolFeeUtils.getInstance(
+            1000, // TODO
+            ZERO_EX_GAS_API_URL,
+        );
+
+        // Allow the sampler bytecode to be overwritten using geths override functionality
+        const samplerBytecode = artifacts.ERC20BridgeSampler.compilerOutput.evm.deployedBytecode.object;
+        const samplerAddress = SAMPLER_ADDRESS;
+        const defaultCodeOverrides = {
+            [samplerAddress]: { code: samplerBytecode },
+        };
+        const samplerOverrides = Object.assign(
+            {},
+            { block: BlockParamLiteral.Latest, overrides: defaultCodeOverrides },
+        );
+        const fastAbi = new FastABI(ERC20BridgeSamplerContract.ABI() as MethodAbi[], { BigNumber });
+        const samplerContract = new ERC20BridgeSamplerContract(
+            samplerAddress,
+            provider,
+            {
+                gas: 500e6,
+            },
+            {},
+            undefined,
+            {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                encodeInput: (fnName: string, values: any) => fastAbi.encodeInput(fnName, values),
+                decodeOutput: (fnName: string, data: string) => fastAbi.decodeOutput(fnName, data),
+            },
+        );
+
+        const tokenAdjacencyGraph = DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID[CHAIN_ID];
+
+        const sampler = new DexOrderSampler(
+            CHAIN_ID,
+            samplerContract,
+            samplerOverrides,
+            undefined, // pools caches for balancer
+            tokenAdjacencyGraph,
+            CHAIN_ID === ChainId.Mainnet // Enable Bancor only on Mainnet
+                ? async () => BancorService.createAsync(provider)
+                : async () => undefined,
+        );
+
+        const samplerService = new SamplerService(sampler, contractAddresses);
+        basicSwapService = new BasicSwapService(
+            new AssetSwapperOrderbook(orderBookService),
+            provider,
+            contractAddresses,
+            rfqClient,
+            samplerService,
+            protocoFeeUtils,
+            rfqtFirmQuoteValidator,
+            rfqDynamicBlacklist,
+            pairsManager,
+            slippageModelManager,
+        );
         metaTransactionService = createMetaTxnServiceFromSwapService(swapService, contractAddresses);
     } catch (err) {
         logger.error(err.stack);
@@ -213,6 +287,7 @@ export async function getDefaultAppDependenciesAsync(
         kafkaClient,
         orderBookService,
         swapService,
+        basicSwapService,
         metaTransactionService,
         provider,
         websocketOpts,

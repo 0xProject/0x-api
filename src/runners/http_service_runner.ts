@@ -16,6 +16,7 @@ import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
+import { createBasicSwapRouter } from '../routers/basic_swap_router';
 import { createMetaTransactionRouter } from '../routers/meta_transaction_router';
 import { createOrderBookRouter } from '../routers/orderbook_router';
 import { createSRARouter } from '../routers/sra_router';
@@ -108,8 +109,9 @@ export async function runHttpServiceAsync(
     }
 
     // swap/quote http service
-    if (dependencies.swapService) {
+    if (dependencies.swapService && dependencies.basicSwapService) {
         app.use(SWAP_PATH, createSwapRouter(dependencies.swapService));
+        app.use('/basic/swap/v1', createBasicSwapRouter(dependencies.swapService, dependencies.basicSwapService));
     } else {
         logger.error(`API running without swap service`);
     }

@@ -1,5 +1,6 @@
 import { ChainId } from '@0x/contract-addresses';
 import { BigNumber, NULL_BYTES } from '@0x/utils';
+import { logger } from '../../../logger';
 
 import { ERC20BridgeSamplerContract } from '../../../wrappers';
 import { SamplerOverrides } from '../../types';

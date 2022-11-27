@@ -261,8 +261,6 @@ export class SwapQuoter {
 
         const sourceFilters = new SourceFilters([], opts.excludedSources, opts.includedSources);
 
-        opts.rfqt = this._validateRfqtOpts(sourceFilters, opts.rfqt);
-
         // Get SRA orders (limit orders)
         const shouldSkipOpenOrderbook =
             !sourceFilters.isAllowed(ERC20BridgeSource.Native) ||

@@ -19,6 +19,7 @@ import { rootHandler } from '../handlers/root_handler';
 import { logger } from '../logger';
 import { addressNormalizer } from '../middleware/address_normalizer';
 import { errorHandler } from '../middleware/error_handling';
+import { createBasicSwapRouter } from '../routers/basic_swap_router';
 import { createSwapRouter } from '../routers/swap_router';
 import { SentryInit, SentryOptions } from '../sentry';
 import { HttpServiceConfig } from '../types';
@@ -78,8 +79,9 @@ async function runHttpServiceAsync(
 
     app.get('/', rootHandler);
 
-    if (dependencies.swapService) {
-        app.use(SWAP_PATH, createSwapRouter(dependencies.swapService));
+    if (dependencies.swapService && dependencies.basicSwapService) {
+        // app.use(SWAP_PATH, createSwapRouter(dependencies.swapService));
+        app.use('/basic/swap/v1', createBasicSwapRouter(dependencies.swapService, dependencies.basicSwapService));
     } else {
         logger.error(`Could not run swap service, exiting`);
         process.exit(1);
