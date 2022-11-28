@@ -54,7 +54,13 @@ import {
 } from '../constants';
 import { GasEstimationError, InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
-import { AffiliateFee, GetSwapQuoteParams, GetSwapQuoteResponse, ISwapService, SwapQuoteResponsePartialTransaction } from '../types';
+import {
+    AffiliateFee,
+    GetSwapQuoteParams,
+    GetSwapQuoteResponse,
+    ISwapService,
+    SwapQuoteResponsePartialTransaction,
+} from '../types';
 import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
 import { PairsManager } from '../utils/pairs_manager';
 import { createResultCache } from '../utils/result_cache';

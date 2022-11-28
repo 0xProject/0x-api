@@ -18,7 +18,6 @@ import { GAS_LIMIT_BUFFER_MULTIPLIER, TX_BASE_GAS, ZERO } from '../constants';
 import { logger } from '../logger';
 import { SourceComparison, ISlippageModelManager } from '../types';
 
-
 // NOTE: Our internal Uniswap gas usage may be lower than the Uniswap UI usage
 // Therefore we need to adjust the gas estimates to be representative of using the Uniswap UI.
 const gasScheduleWithOverrides: GasSchedule = {

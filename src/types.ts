@@ -399,13 +399,13 @@ export interface MetaTransactionQuoteResult extends QuoteBase {
 
 export interface IMetaTransactionService {
     getMetaTransactionPriceAsync(params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResult>;
-    getMetaTransactionQuoteAsync( params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResponse>;
+    getMetaTransactionQuoteAsync(params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResponse>;
 }
 
 export interface IOrderBookService {
     isAllowedPersistentOrders(apiKey: string): boolean;
     getOrderByHashIfExistsAsync(orderHash: string): Promise<SRAOrder | undefined>;
-    getOrderBookAsync( page: number, perPage: number, baseToken: string, quoteToken: string,): Promise<OrderbookResponse>;
+    getOrderBookAsync(page: number, perPage: number, baseToken: string, quoteToken: string): Promise<OrderbookResponse>;
 
     getOrdersAsync(
         page: number,
@@ -419,7 +419,7 @@ export interface IOrderBookService {
         perPage: number,
         makerTokens: string[],
         takerTokens: string[],
-    ): Promise<PaginatedCollection<SRAOrder>>; 
+    ): Promise<PaginatedCollection<SRAOrder>>;
 
     addOrderAsync(signedOrder: SignedLimitOrder): Promise<void>;
     addOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void>;
@@ -441,11 +441,9 @@ export interface ISlippageModelManager {
 export interface ISwapService {
     readonly slippageModelManager?: ISlippageModelManager;
     calculateSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
-    getSwapQuoteForWrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>; 
+    getSwapQuoteForWrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
     getSwapQuoteForUnwrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
 }
-
-
 
 export interface AppDependencies {
     contractAddresses: ContractAddresses;
@@ -458,4 +456,3 @@ export interface AppDependencies {
     websocketOpts: Partial<WebsocketSRAOpts>;
     hasSentry?: boolean;
 }
-
