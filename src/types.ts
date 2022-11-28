@@ -5,8 +5,8 @@ import { ContractAddresses, ChainId } from '@0x/contract-addresses';
 import { Connection } from 'typeorm';
 import { Kafka } from 'kafkajs';
 
-import { OrderBookService } from './services/orderbook_service';
 import { SwapService } from './services/swap_service';
+import { SignedOrderV4Entity } from './entities';
 import {
     AffiliateFeeType,
     ERC20BridgeSource,
@@ -403,15 +403,41 @@ export interface IMetaTransactionService {
     getMetaTransactionQuoteAsync( params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResponse>;
 }
 
+export interface IOrderBookService {
+    isAllowedPersistentOrders(apiKey: string): boolean;
+    getOrderByHashIfExistsAsync(orderHash: string): Promise<SRAOrder | undefined>;
+    getOrderBookAsync( page: number, perPage: number, baseToken: string, quoteToken: string,): Promise<OrderbookResponse>;
+
+    getOrdersAsync(
+        page: number,
+        perPage: number,
+        orderFieldFilters: Partial<SignedOrderV4Entity>,
+        additionalFilters: { isUnfillable?: boolean; trader?: string },
+    ): Promise<PaginatedCollection<SRAOrder>>;
+
+    getBatchOrdersAsync(
+        page: number,
+        perPage: number,
+        makerTokens: string[],
+        takerTokens: string[],
+    ): Promise<PaginatedCollection<SRAOrder>>; 
+
+    addOrderAsync(signedOrder: SignedLimitOrder): Promise<void>;
+    addOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void>;
+    addPersistentOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void>;
+}
+
+
 export interface AppDependencies {
     contractAddresses: ContractAddresses;
     connection: Connection;
     kafkaClient?: Kafka;
-    orderBookService: OrderBookService;
+    orderBookService: IOrderBookService;
     swapService?: SwapService;
     metaTransactionService?: IMetaTransactionService;
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
     hasSentry?: boolean;
 }
+
 
