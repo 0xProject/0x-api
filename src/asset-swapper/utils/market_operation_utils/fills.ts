@@ -6,7 +6,7 @@ import { MarketOperation, NativeOrderWithFillableAmounts } from '../../types';
 import { DEFAULT_FEE_ESTIMATE, POSITIVE_INF, SOURCE_FLAGS } from './constants';
 import { DexSample, ERC20BridgeSource, FeeEstimate, FeeSchedule, Fill, MultiHopFillData } from './types';
 
-function toSourceFlagKey(type: FillQuoteTransformerOrderType): 'LimitOrder' | 'RfqOrder' | 'OtcOrder' {
+function toNativeSourceFlagKey(type: FillQuoteTransformerOrderType): 'LimitOrder' | 'RfqOrder' | 'OtcOrder' {
     switch (type) {
         case FillQuoteTransformerOrderType.Limit:
             return 'LimitOrder';
@@ -91,7 +91,7 @@ export function nativeOrderToFill(
         adjustedOutput,
         input: clippedInput,
         output: clippedOutput,
-        flags: SOURCE_FLAGS[toSourceFlagKey(type)],
+        flags: SOURCE_FLAGS[toNativeSourceFlagKey(type)],
         source: ERC20BridgeSource.Native,
         type,
         fillData: { ...order },
