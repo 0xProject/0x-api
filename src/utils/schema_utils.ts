@@ -35,6 +35,10 @@ interface ValidationErrorObject extends AJV.ErrorObject {
 function schemaValidationErrorToValidationErrorItem(
     schemaValidationErrorObject: ValidationErrorObject,
 ): ValidationErrorItem {
+    let field: string;
+    let code: ValidationErrorCodes;
+    const reason = schemaValidationErrorObject.message || '';
+
     if (
         [
             'type',
@@ -51,38 +55,38 @@ function schemaValidationErrorToValidationErrorItem(
             'dependencies',
         ].includes(schemaValidationErrorObject.keyword)
     ) {
-        return {
-            field: schemaValidationErrorObject.dataPath.replace('.', ''),
-            code: ValidationErrorCodes.IncorrectFormat,
-            reason: schemaValidationErrorObject.message || '',
-            description: schemaValidationErrorObject.description,
-        };
+        field = schemaValidationErrorObject.dataPath.replace('.', '');
+        code =  ValidationErrorCodes.IncorrectFormat; 
     } else if (
         ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'enum', 'const'].includes(
             schemaValidationErrorObject.keyword,
         )
     ) {
-        return {
-            field: schemaValidationErrorObject.dataPath.replace('.', ''),
-            code: ValidationErrorCodes.ValueOutOfRange,
-            reason: schemaValidationErrorObject.message || '',
-            description: schemaValidationErrorObject.description || '',
-        };
+        field = schemaValidationErrorObject.dataPath.replace('.', '');
+        code = ValidationErrorCodes.ValueOutOfRange;
     } else if (schemaValidationErrorObject.keyword === 'required') {
-        return {
-            field: (schemaValidationErrorObject.params as AJV.RequiredParams).missingProperty,
-            code: ValidationErrorCodes.RequiredField,
-            reason: schemaValidationErrorObject.message || '',
-            description: schemaValidationErrorObject.description || '',
-        };
+        field =  (schemaValidationErrorObject.params as AJV.RequiredParams).missingProperty;
+        code = ValidationErrorCodes.RequiredField;
     } else if (schemaValidationErrorObject.keyword === 'not') {
-        return {
-            field: schemaValidationErrorObject.dataPath.replace('.', ''),
-            code: ValidationErrorCodes.UnsupportedOption,
-            reason: schemaValidationErrorObject.message || '',
-            description: schemaValidationErrorObject.description || '',
-        };
+        field =  schemaValidationErrorObject.dataPath.replace('.', '');
+        code = ValidationErrorCodes.UnsupportedOption;
     } else {
         throw new Error(`Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);
     }
+
+    if (schemaValidationErrorObject.description === undefined) {
+        return {
+            field: field,
+            code: code,
+            reason: reason,
+        };
+    }
+
+    return {
+        field: field,
+        code: code,
+        reason: reason,
+        description: schemaValidationErrorObject.description,
+    };
+
 }
