@@ -1,10 +1,14 @@
 import { HttpServiceConfig as BaseHttpConfig } from '@0x/api-utils';
 import { ExchangeProxyMetaTransaction, ZeroExTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
+import { ContractAddresses, ChainId } from '@0x/contract-addresses';
+import { Connection } from 'typeorm';
+import { Kafka } from 'kafkajs';
 
+import { OrderBookService } from './services/orderbook_service';
+import { SwapService } from './services/swap_service';
 import {
     AffiliateFeeType,
-    ChainId,
     ERC20BridgeSource,
     ExtendedQuoteReportSources,
     LimitOrderFields,
@@ -12,8 +16,8 @@ import {
     QuoteReport,
     RfqRequestOpts,
     Signature,
+    SupportedProvider,
 } from './asset-swapper';
-import { Integrator } from './config';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
@@ -376,3 +380,38 @@ export enum OrderEventEndState {
     // future.
     StoppedWatching = 'STOPPED_WATCHING',
 }
+
+export interface Integrator {
+    apiKeys: string[];
+    integratorId: string;
+    whitelistIntegratorUrls?: string[];
+    label: string;
+    rfqm: boolean;
+    rfqt: boolean;
+    slippageModel?: boolean;
+}
+
+export interface MetaTransactionQuoteResult extends QuoteBase {
+    buyTokenAddress: string;
+    callData: string;
+    sellTokenAddress: string;
+    taker: string;
+}
+
+export interface IMetaTransactionService {
+    getMetaTransactionPriceAsync(params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResult>;
+    getMetaTransactionQuoteAsync( params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResponse>;
+}
+
+export interface AppDependencies {
+    contractAddresses: ContractAddresses;
+    connection: Connection;
+    kafkaClient?: Kafka;
+    orderBookService: OrderBookService;
+    swapService?: SwapService;
+    metaTransactionService?: IMetaTransactionService;
+    provider: SupportedProvider;
+    websocketOpts: Partial<WebsocketSRAOpts>;
+    hasSentry?: boolean;
+}
+
