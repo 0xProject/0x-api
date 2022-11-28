@@ -55,7 +55,7 @@ function schemaValidationErrorToValidationErrorItem(
             field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.IncorrectFormat,
             reason: schemaValidationErrorObject.message || '',
-            description: schemaValidationErrorObject.description || '',
+            description: schemaValidationErrorObject.description,
         };
     } else if (
         ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'enum', 'const'].includes(

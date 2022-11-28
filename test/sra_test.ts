@@ -363,13 +363,13 @@ describe(SUITE_NAME, () => {
                 reason: generalErrorCodeToReason[GeneralErrorCodes.ValidationError],
                 validationErrors: [
                     {
-                        description: '',
+                        //description: '',
                         field: 'taker',
                         code: ValidationErrorCodes.RequiredField,
                         reason: "should have required property 'taker'",
                     },
                     {
-                        description: '',
+                        //description: '',
                         field: 'expiry',
                         code: ValidationErrorCodes.RequiredField,
                         reason: "should have required property 'expiry'",
