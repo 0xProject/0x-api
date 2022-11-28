@@ -5,7 +5,6 @@ import { ContractAddresses, ChainId } from '@0x/contract-addresses';
 import { Connection } from 'typeorm';
 import { Kafka } from 'kafkajs';
 
-import { SwapService } from './services/swap_service';
 import { SignedOrderV4Entity } from './entities';
 import {
     AffiliateFeeType,
@@ -18,7 +17,6 @@ import {
     Signature,
     SupportedProvider,
 } from './asset-swapper';
-import { SlippageModelManager } from './utils/slippage_model_manager';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
@@ -428,12 +426,26 @@ export interface IOrderBookService {
     addPersistentOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void>;
 }
 
+export interface ISlippageModelManager {
+    initializeAsync(): Promise<void>;
+    calculateExpectedSlippage(
+        buyToken: string,
+        sellToken: string,
+        buyAmount: BigNumber,
+        sellAmount: BigNumber,
+        sources: GetSwapQuoteResponseLiquiditySource[],
+        maxSlippageRate: number,
+    ): BigNumber | null;
+}
+
 export interface ISwapService {
-    readonly slippageModelManager?: SlippageModelManager;
+    readonly slippageModelManager?: ISlippageModelManager;
     calculateSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
     getSwapQuoteForWrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>; 
     getSwapQuoteForUnwrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
 }
+
+
 
 export interface AppDependencies {
     contractAddresses: ContractAddresses;
@@ -446,5 +458,4 @@ export interface AppDependencies {
     websocketOpts: Partial<WebsocketSRAOpts>;
     hasSentry?: boolean;
 }
-
 

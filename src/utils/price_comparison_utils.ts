@@ -16,9 +16,8 @@ import {
 import { CHAIN_ID } from '../config';
 import { GAS_LIMIT_BUFFER_MULTIPLIER, TX_BASE_GAS, ZERO } from '../constants';
 import { logger } from '../logger';
-import { SourceComparison } from '../types';
+import { SourceComparison, ISlippageModelManager } from '../types';
 
-import { SlippageModelManager } from './slippage_model_manager';
 
 // NOTE: Our internal Uniswap gas usage may be lower than the Uniswap UI usage
 // Therefore we need to adjust the gas estimates to be representative of using the Uniswap UI.
@@ -61,7 +60,7 @@ export const priceComparisonUtils = {
         chainId: ChainId,
         side: MarketOperation,
         quote: PartialQuote,
-        slippageModelManager: SlippageModelManager | undefined,
+        slippageModelManager: ISlippageModelManager | undefined,
         maxSlippageRate: number,
     ): SourceComparison[] | undefined {
         try {
@@ -95,7 +94,7 @@ function getPriceComparisonFromQuoteOrThrow(
     chainId: ChainId,
     side: MarketOperation,
     quote: PartialQuote,
-    slippageModelManager: SlippageModelManager | undefined,
+    slippageModelManager: ISlippageModelManager | undefined,
     maxSlippageRate: number,
 ): SourceComparison[] | undefined {
     // Set up variables for calculation
