@@ -51,7 +51,10 @@ function schemaValidationErrorToValidationErrorItem(
             'dependencies',
         ].includes(schemaValidationErrorObject.keyword)
     ) {
-        if (schemaValidationErrorObject.description == "We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity") {
+        if (
+            schemaValidationErrorObject.description ==
+            'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity'
+        ) {
             return {
                 field: schemaValidationErrorObject.dataPath.replace('.', ''),
                 code: ValidationErrorCodes.IncorrectFormat,
