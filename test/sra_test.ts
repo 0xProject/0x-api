@@ -308,13 +308,13 @@ describe(SUITE_NAME, () => {
                 validationErrors: [
                     {
                         code: 1000,
-                        description: '',
+                        //description: '',
                         field: 'baseToken',
                         reason: "should have required property 'baseToken'",
                     },
                     {
                         code: 1001,
-                        description: '',
+                        //description: '',
                         field: 'quoteToken',
                         reason: 'should match pattern "^0x[0-9a-fA-F]{40}$"',
                     },
