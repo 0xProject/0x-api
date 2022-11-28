@@ -51,12 +51,21 @@ function schemaValidationErrorToValidationErrorItem(
             'dependencies',
         ].includes(schemaValidationErrorObject.keyword)
     ) {
-        return {
-            field: schemaValidationErrorObject.dataPath.replace('.', ''),
-            code: ValidationErrorCodes.IncorrectFormat,
-            reason: schemaValidationErrorObject.message || '',
-            description: schemaValidationErrorObject.description,
-        };
+        if (schemaValidationErrorObject.description) {
+            return {
+                field: schemaValidationErrorObject.dataPath.replace('.', ''),
+                code: ValidationErrorCodes.IncorrectFormat,
+                reason: schemaValidationErrorObject.message || '',
+                description: schemaValidationErrorObject.description,
+            };
+        } else {
+            return {
+                field: schemaValidationErrorObject.dataPath.replace('.', ''),
+                code: ValidationErrorCodes.IncorrectFormat,
+                reason: schemaValidationErrorObject.message || '',
+                description: schemaValidationErrorObject.description,
+            };
+        }
     } else if (
         ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'enum', 'const'].includes(
             schemaValidationErrorObject.keyword,
