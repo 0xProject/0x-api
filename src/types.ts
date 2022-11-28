@@ -18,6 +18,7 @@ import {
     Signature,
     SupportedProvider,
 } from './asset-swapper';
+import { SlippageModelManager } from './utils/slippage_model_manager';
 
 export enum OrderWatcherLifeCycleEvents {
     Added,
@@ -427,13 +428,19 @@ export interface IOrderBookService {
     addPersistentOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void>;
 }
 
+export interface ISwapService {
+    readonly slippageModelManager?: SlippageModelManager;
+    calculateSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
+    getSwapQuoteForWrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>; 
+    getSwapQuoteForUnwrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
+}
 
 export interface AppDependencies {
     contractAddresses: ContractAddresses;
     connection: Connection;
     kafkaClient?: Kafka;
     orderBookService: IOrderBookService;
-    swapService?: SwapService;
+    swapService?: ISwapService;
     metaTransactionService?: IMetaTransactionService;
     provider: SupportedProvider;
     websocketOpts: Partial<WebsocketSRAOpts>;
