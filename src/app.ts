@@ -43,18 +43,6 @@ import { RfqMakerDbUtils } from './utils/rfq_maker_db_utils';
 import { S3Client } from './utils/s3_client';
 import { SlippageModelManager } from './utils/slippage_model_manager';
 
-// export interface AppDependencies {
-//     contractAddresses: ContractAddresses;
-//     connection: Connection;
-//     kafkaClient?: Kafka;
-//     orderBookService: OrderBookService;
-//     swapService?: SwapService;
-//     metaTransactionService?: MetaTransactionService;
-//     provider: SupportedProvider;
-//     websocketOpts: Partial<WebsocketSRAOpts>;
-//     hasSentry?: boolean;
-// }
-
 async function deploySamplerContractAsync(
     provider: SupportedProvider,
     chainId: ChainId,

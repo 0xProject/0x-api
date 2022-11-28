@@ -18,7 +18,6 @@ import {
 } from '../errors';
 import { logger } from '../logger';
 import { schemas } from '../schemas';
-import { MetaTransactionService } from '../services/meta_transaction_service';
 import { MetaTransactionPriceResponse, MetaTransactionQuoteRequestParams, IMetaTransactionService } from '../types';
 import { findTokenAddressOrThrowApiError } from '../utils/address_utils';
 import { parseUtils } from '../utils/parse_utils';
