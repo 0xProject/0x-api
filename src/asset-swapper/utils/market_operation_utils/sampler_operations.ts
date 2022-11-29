@@ -1003,7 +1003,7 @@ export class SamplerOperations {
         });
     }
 
-    public  getDODOV2SellQuotes(
+    public getDODOV2SellQuotes(
         registry: string,
         offset: BigNumber,
         makerToken: string,
@@ -1160,17 +1160,25 @@ export class SamplerOperations {
         makerToken: string,
         takerToken: string,
         takerFillAmounts: BigNumber[],
-        l2EncoderAddress: string
+        l2EncoderAddress: string,
     ): SourceQuoteOperation<AaveV3FillData> {
         return new SamplerContractOperation({
             source: ERC20BridgeSource.AaveV3,
             contract: this._samplerContract,
             function: this._samplerContract.sampleSellsFromAaveV3,
-            params: [l2EncoderAddress, aaveInfo.aToken, aaveInfo.underlyingToken, takerToken, makerToken, takerFillAmounts],
+            params: [
+                l2EncoderAddress,
+                aaveInfo.aToken,
+                aaveInfo.underlyingToken,
+                takerToken,
+                makerToken,
+                takerFillAmounts,
+            ],
             callback: (callResults: string, fillData: AaveV3FillData): BigNumber[] => {
-                const [l2Params, samples] = this._samplerContract.getABIDecodedReturnData<
-                [string[], BigNumber[]]
-                >('sampleSellsFromAaveV3', callResults);
+                const [l2Params, samples] = this._samplerContract.getABIDecodedReturnData<[string[], BigNumber[]]>(
+                    'sampleSellsFromAaveV3',
+                    callResults,
+                );
                 fillData.l2EncodedParams = l2Params.map((l2Param, i) => ({
                     inputAmount: takerFillAmounts[i],
                     l2Parameter: l2Param,
@@ -1180,8 +1188,8 @@ export class SamplerOperations {
                 fillData.aToken = aaveInfo.aToken;
 
                 return samples;
-            }
-        })
+            },
+        });
     }
 
     public getAaveV3BuyQuotes(
@@ -1189,17 +1197,25 @@ export class SamplerOperations {
         makerToken: string,
         takerToken: string,
         makerFillAmounts: BigNumber[],
-        l2EncoderAddress: string
+        l2EncoderAddress: string,
     ): SourceQuoteOperation<AaveV3FillData> {
         return new SamplerContractOperation({
             source: ERC20BridgeSource.AaveV3,
             contract: this._samplerContract,
             function: this._samplerContract.sampleBuysFromAaveV3,
-            params: [l2EncoderAddress, aaveInfo.aToken, aaveInfo.underlyingToken, takerToken, makerToken, makerFillAmounts],
+            params: [
+                l2EncoderAddress,
+                aaveInfo.aToken,
+                aaveInfo.underlyingToken,
+                takerToken,
+                makerToken,
+                makerFillAmounts,
+            ],
             callback: (callResults: string, fillData: AaveV3FillData): BigNumber[] => {
-                const [l2Params, samples] = this._samplerContract.getABIDecodedReturnData<
-                [string[], BigNumber[]]
-                >('sampleBuysFromAaveV3', callResults);
+                const [l2Params, samples] = this._samplerContract.getABIDecodedReturnData<[string[], BigNumber[]]>(
+                    'sampleBuysFromAaveV3',
+                    callResults,
+                );
                 fillData.l2EncodedParams = l2Params.map((l2Param, i) => ({
                     inputAmount: makerFillAmounts[i],
                     l2Parameter: l2Param,
@@ -1209,8 +1225,8 @@ export class SamplerOperations {
                 fillData.aToken = aaveInfo.aToken;
 
                 return samples;
-            }
-        })
+            },
+        });
     }
 
     public getCompoundSellQuotes(
@@ -1788,7 +1804,7 @@ export class SamplerOperations {
                             underlyingToken: reserve.underlyingAsset,
                         };
 
-                        const l2Encoder = AAVE_V3_L2_ENCODERS_BY_CHAIN_ID[this.chainId]                      
+                        const l2Encoder = AAVE_V3_L2_ENCODERS_BY_CHAIN_ID[this.chainId];
 
                         return this.getAaveV3SellQuotes(info, makerToken, takerToken, takerFillAmounts, l2Encoder);
                     }

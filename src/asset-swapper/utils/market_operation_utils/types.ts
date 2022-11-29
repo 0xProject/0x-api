@@ -323,7 +323,6 @@ export interface AaveV2FillData extends FillData {
     takerToken: string;
 }
 
-
 export interface AaveV3L2EncodedParameter {
     inputAmount: BigNumber;
     l2Parameter: string;

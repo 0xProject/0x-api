@@ -44,10 +44,7 @@ interface IL2Encoder {
      * @param amount The underlying amount to be withdrawn
      * @return compact representation of withdraw parameters
      */
-    function encodeWithdrawParams(
-        address asset,
-        uint256 amount
-    ) external view returns (bytes32);
+    function encodeWithdrawParams(address asset, uint256 amount) external view returns (bytes32);
 }
 
 contract AaveV3Sampler {
@@ -68,23 +65,14 @@ contract AaveV3Sampler {
         address takerToken,
         address makerToken,
         uint256[] memory takerTokenAmounts
-    )
-        public
-        view
-        returns (
-            bytes32[] memory l2Params,
-            uint256[] memory makerTokenAmounts
-        )
-    {
+    ) public view returns (bytes32[] memory l2Params, uint256[] memory makerTokenAmounts) {
         uint256 numSamples = takerTokenAmounts.length;
         makerTokenAmounts = new uint256[](numSamples);
         l2Params = new bytes32[](numSamples);
 
         if (
-            (takerToken == aToken &&
-                makerToken == underlyingToken) ||
-            (takerToken == underlyingToken &&
-                makerToken == aToken)
+            (takerToken == aToken && makerToken == underlyingToken) ||
+            (takerToken == underlyingToken && makerToken == aToken)
         ) {
             makerTokenAmounts = takerTokenAmounts;
             if (l2Encoder == address(0)) {
@@ -119,23 +107,14 @@ contract AaveV3Sampler {
         address takerToken,
         address makerToken,
         uint256[] memory makerTokenAmounts
-    )
-        public
-        view
-        returns (
-            bytes32[] memory l2Params,
-            uint256[] memory takerTokenAmounts
-        )
-    {
+    ) public view returns (bytes32[] memory l2Params, uint256[] memory takerTokenAmounts) {
         uint256 numSamples = makerTokenAmounts.length;
         takerTokenAmounts = new uint256[](numSamples);
         l2Params = new bytes32[](numSamples);
 
         if (
-            (takerToken == aToken &&
-                makerToken == underlyingToken) ||
-            (takerToken == underlyingToken &&
-                makerToken == aToken)
+            (takerToken == aToken && makerToken == underlyingToken) ||
+            (takerToken == underlyingToken && makerToken == aToken)
         ) {
             takerTokenAmounts = makerTokenAmounts;
             if (l2Encoder == address(0)) {
