@@ -191,7 +191,6 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.Yoshi,
             ERC20BridgeSource.WOOFi,
-            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Celo]: new SourceFilters([
             ERC20BridgeSource.UbeSwap,
@@ -348,7 +347,6 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Synapse,
             ERC20BridgeSource.Yoshi,
             ERC20BridgeSource.WOOFi,
-            ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Celo]: new SourceFilters([
             ERC20BridgeSource.UbeSwap,
@@ -2386,7 +2384,6 @@ export const AAVE_V3_SUBGRAPH_URL_BY_CHAIN_ID = valueByChainId(
         [ChainId.Avalanche]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-avalanche',
         [ChainId.Arbitrum]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-arbitrum',
         [ChainId.Optimism]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-optimism',
-        [ChainId.Fantom]: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-fantom',
     },
     null,
 );
