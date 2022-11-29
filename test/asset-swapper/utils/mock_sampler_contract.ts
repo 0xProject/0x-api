@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ContractTxFunctionObj } from '@0x/base-contract';
 import { constants } from '@0x/contracts-test-utils';
 import { LimitOrderFields, Signature } from '@0x/protocol-utils';
 import { BigNumber, hexUtils } from '@0x/utils';
 
-import { ERC20BridgeSamplerContract } from '../../../src/asset-swapp../../wrappers';
+import { ERC20BridgeSamplerContract } from '../../../src/asset-swapper/../wrappers';
 import { SamplerCallResult } from '../../../src/asset-swapper/types';
 
 export type GetOrderFillableAssetAmountResult = BigNumber[];
@@ -26,26 +27,8 @@ export type SampleBuysUniswapHandler = (
     makerToken: string,
     makerTokenAmounts: BigNumber[],
 ) => SampleResults;
-export type SampleSellsEth2DaiHandler = (
-    router: string,
-    takerToken: string,
-    makerToken: string,
-    takerTokenAmounts: BigNumber[],
-) => SampleResults;
-export type SampleBuysEth2DaiHandler = (
-    router: string,
-    takerToken: string,
-    makerToken: string,
-    makerTokenAmounts: BigNumber[],
-) => SampleResults;
 export type SampleUniswapV2Handler = (router: string, path: string[], assetAmounts: BigNumber[]) => SampleResults;
 export type SampleBuysMultihopHandler = (path: string[], takerTokenAmounts: BigNumber[]) => SampleResults;
-export type SampleSellsLPHandler = (
-    providerAddress: string,
-    takerToken: string,
-    makerToken: string,
-    takerTokenAmounts: BigNumber[],
-) => SampleResults;
 export type SampleSellsMultihopHandler = (path: string[], takerTokenAmounts: BigNumber[]) => SampleResults;
 
 const DUMMY_PROVIDER = {
@@ -57,12 +40,10 @@ const DUMMY_PROVIDER = {
 interface Handlers {
     getLimitOrderFillableMakerAssetAmounts: GetOrderFillableAssetAmountHandler;
     getLimitOrderFillableTakerAssetAmounts: GetOrderFillableAssetAmountHandler;
-    sampleSellsFromLiquidityProvider: SampleSellsLPHandler;
     sampleSellsFromUniswap: SampleSellsUniswapHandler;
     sampleSellsFromUniswapV2: SampleUniswapV2Handler;
     sampleBuysFromUniswap: SampleBuysUniswapHandler;
     sampleBuysFromUniswapV2: SampleUniswapV2Handler;
-    sampleBuysFromLiquidityProvider: SampleSellsLPHandler;
 }
 
 export class MockSamplerContract extends ERC20BridgeSamplerContract {
@@ -137,22 +118,6 @@ export class MockSamplerContract extends ERC20BridgeSamplerContract {
         );
     }
 
-    public sampleSellsFromLiquidityProvider(
-        providerAddress: string,
-        takerToken: string,
-        makerToken: string,
-        takerAssetAmounts: BigNumber[],
-    ): ContractTxFunctionObj<BigNumber[]> {
-        return this._wrapCall(
-            super.sampleSellsFromLiquidityProvider,
-            this._handlers.sampleSellsFromLiquidityProvider,
-            providerAddress,
-            takerToken,
-            makerToken,
-            takerAssetAmounts,
-        );
-    }
-
     public sampleBuysFromUniswap(
         router: string,
         takerToken: string,
@@ -193,7 +158,7 @@ export class MockSamplerContract extends ERC20BridgeSamplerContract {
                 const args = this.getABIDecodedTransactionData<any>(name, callData);
                 const result = (handler as any)(...args);
                 const encoder = this._lookupAbiEncoder(this.getFunctionSignature(name));
-                if (encoder.getReturnValueDataItem().components!.length === 1) {
+                if (encoder.getReturnValueDataItem().components?.length === 1) {
                     return encoder.encodeReturnValues([result]);
                 } else {
                     return encoder.encodeReturnValues(result);

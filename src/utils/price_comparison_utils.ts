@@ -16,9 +16,7 @@ import {
 import { CHAIN_ID } from '../config';
 import { GAS_LIMIT_BUFFER_MULTIPLIER, TX_BASE_GAS, ZERO } from '../constants';
 import { logger } from '../logger';
-import { SourceComparison } from '../types';
-
-import { SlippageModelManager } from './slippage_model_manager';
+import { SourceComparison, ISlippageModelManager } from '../types';
 
 // NOTE: Our internal Uniswap gas usage may be lower than the Uniswap UI usage
 // Therefore we need to adjust the gas estimates to be representative of using the Uniswap UI.
@@ -61,7 +59,7 @@ export const priceComparisonUtils = {
         chainId: ChainId,
         side: MarketOperation,
         quote: PartialQuote,
-        slippageModelManager: SlippageModelManager | undefined,
+        slippageModelManager: ISlippageModelManager | undefined,
         maxSlippageRate: number,
     ): SourceComparison[] | undefined {
         try {
@@ -95,12 +93,13 @@ function getPriceComparisonFromQuoteOrThrow(
     chainId: ChainId,
     side: MarketOperation,
     quote: PartialQuote,
-    slippageModelManager: SlippageModelManager | undefined,
+    slippageModelManager: ISlippageModelManager | undefined,
     maxSlippageRate: number,
 ): SourceComparison[] | undefined {
     // Set up variables for calculation
     const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
     const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
     const ethToken = getTokenMetadataIfExists('WETH', chainId)!;
     const ethUnitAmount = new BigNumber(10).pow(ethToken.decimals);
     if (!buyToken || !sellToken || !quote.buyAmount || !quote.sellAmount || !quote.priceComparisonsReport) {
@@ -120,12 +119,15 @@ function getPriceComparisonFromQuoteOrThrow(
     ];
     const fullTradeSources = allSources.filter((s) =>
         isSelling
-            ? s.takerAmount.isEqualTo(quote.sellAmount!) && s.makerAmount.isGreaterThan(ZERO)
-            : s.makerAmount.isEqualTo(quote.buyAmount!) && s.takerAmount.isGreaterThan(ZERO),
+            ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
+              s.takerAmount.isEqualTo(quote.sellAmount!) && s.makerAmount.isGreaterThan(ZERO)
+            : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
+              s.makerAmount.isEqualTo(quote.buyAmount!) && s.takerAmount.isGreaterThan(ZERO),
     );
 
     // Calculate the maker/taker amounts after factoring in gas costs
     const tradeSourcesWithGas = fullTradeSources.map((source) => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
         const gas = TX_BASE_GAS.plus(new BigNumber(gasScheduleWithOverrides[source.liquiditySource]!(source.fillData)));
 
         const gasCost = gas.times(quote.gasPrice).dividedBy(ethUnitAmount).times(quoteTokenToEthRate);

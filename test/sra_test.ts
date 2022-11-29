@@ -9,7 +9,8 @@ import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 import 'mocha';
 
-import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { AppDependencies } from '../src/types';
 import { LimitOrder } from '../src/asset-swapper';
 import * as config from '../src/config';
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE, NULL_ADDRESS, ONE_SECOND_MS, SRA_PATH } from '../src/constants';
@@ -197,9 +198,11 @@ describe(SUITE_NAME, () => {
                 app,
                 route: `${SRA_PATH}/orders?makerToken=${ZRX_TOKEN_ADDRESS}&trader=${makerAddress}`,
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
             const sortByHash = (arr: any[]) => _.sortBy(arr, 'metaData.orderHash');
             const { body } = response;
             // Remove createdAt from response for easier comparison
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
             const cleanRecords = body.records.map((r: any) => _.omit(r, 'metaData.createdAt'));
 
             expect(response.type).to.eq(`application/json`);

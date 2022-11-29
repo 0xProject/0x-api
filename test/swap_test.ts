@@ -11,7 +11,8 @@ import * as _ from 'lodash';
 import 'mocha';
 import supertest from 'supertest';
 
-import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { AppDependencies } from '../src/types';
 import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ChainId, ERC20BridgeSource, LimitOrderFields } from '../src/asset-swapper';
 import * as config from '../src/config';
 import { AFFILIATE_FEE_TRANSFORMER_GAS, GAS_LIMIT_BUFFER_MULTIPLIER, SWAP_PATH } from '../src/constants';
@@ -572,11 +573,12 @@ async function quoteAndExpectAsync(
 const PRECISION = 2;
 function expectCorrectQuote(quoteResponse: GetSwapQuoteResponse, assertions: Partial<SwapAssertion>): void {
     try {
-        for (const property of Object.keys(assertions)) {
+        for (const prop of Object.keys(assertions)) {
+            const property = prop as keyof GetSwapQuoteResponse;
             if (BigNumber.isBigNumber(assertions[property as keyof SwapAssertion])) {
-                assertRoughlyEquals((quoteResponse as any)[property], (assertions as any)[property], PRECISION);
+                assertRoughlyEquals(quoteResponse[property], assertions[property], PRECISION);
             } else {
-                expect((quoteResponse as any)[property], property).to.eql((assertions as any)[property]);
+                expect(quoteResponse[property], property).to.eql(assertions[property]);
             }
         }
         // Only have 0x liquidity for now.

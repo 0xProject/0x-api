@@ -11,7 +11,6 @@ import {
     ChainId,
     DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
     ERC20BridgeSource,
-    LiquidityProviderRegistry,
     OrderPrunerPermittedFeeTypes,
     RfqMakerAssetOfferings,
     SamplerOverrides,
@@ -38,10 +37,8 @@ import {
     TX_BASE_GAS,
 } from './constants';
 import { schemas } from './schemas';
-import { HttpServiceConfig } from './types';
+import { HttpServiceConfig, Integrator } from './types';
 import { schemaUtils } from './utils/schema_utils';
-
-const SHOULD_USE_RUST_ROUTER = process.env.RUST_ROUTER === 'true';
 
 enum EnvVarType {
     AddressList,
@@ -62,23 +59,12 @@ enum EnvVarType {
     PrivateKeys,
     RfqMakerAssetOfferings,
     RateLimitConfig,
-    LiquidityProviderRegistry,
     JsonStringList,
 }
 
 /**
  * A taker-integrator of the 0x API.
  */
-export interface Integrator {
-    apiKeys: string[];
-    integratorId: string;
-    whitelistIntegratorUrls?: string[];
-    label: string;
-    plp: boolean;
-    rfqm: boolean;
-    rfqt: boolean;
-    slippageModel?: boolean;
-}
 export type IntegratorsAcl = Integrator[];
 
 /**
@@ -99,7 +85,7 @@ export const INTEGRATORS_ACL: IntegratorsAcl = (() => {
 /**
  * Extracts the integrator API keys from the `INTEGRATORS_ACL` environment variable for the provided group type.
  */
-export const getApiKeyWhitelistFromIntegratorsAcl = (groupType: 'rfqt' | 'plp' | 'rfqm'): string[] => {
+export const getApiKeyWhitelistFromIntegratorsAcl = (groupType: 'rfqt' | 'rfqm'): string[] => {
     return INTEGRATORS_ACL.filter((i) => i[groupType])
         .flatMap((i) => i.apiKeys)
         .sort();
@@ -225,6 +211,10 @@ export const RPC_REQUEST_TIMEOUT = _.isEmpty(process.env.RPC_REQUEST_TIMEOUT)
 
 // Prometheus shared metrics
 export const PROMETHEUS_REQUEST_BUCKETS = linearBuckets(0, 0.25, RPC_REQUEST_TIMEOUT / 1000 / 0.25); // [ 0,  0.25,  0.5,  0.75, ... 5 ]
+export const PROMETHEUS_REQUEST_SIZE_BUCKETS = linearBuckets(0, 50000, 20); // A single step is 50kb, up to 1mb.
+export const PROMETHEUS_RESPONSE_SIZE_BUCKETS = linearBuckets(0, 50000, 20); // A single step is 50kb, up to 1mb.
+export const PROMETHEUS_LABEL_STATUS_OK = 'ok';
+export const PROMETHEUS_LABEL_STATUS_ERROR = 'error';
 
 // Enable client side content compression when sending RPC requests (default false)
 export const ENABLE_RPC_REQUEST_COMPRESSION = _.isEmpty(process.env.ENABLE_RPC_REQUEST_COMPRESSION)
@@ -317,14 +307,6 @@ export const LOGGER_INCLUDE_TIMESTAMP = _.isEmpty(process.env.LOGGER_INCLUDE_TIM
     ? DEFAULT_LOGGER_INCLUDE_TIMESTAMP
     : assertEnvVarType('LOGGER_INCLUDE_TIMESTAMP', process.env.LOGGER_INCLUDE_TIMESTAMP, EnvVarType.Boolean);
 
-export const LIQUIDITY_PROVIDER_REGISTRY: LiquidityProviderRegistry = _.isEmpty(process.env.LIQUIDITY_PROVIDER_REGISTRY)
-    ? {}
-    : assertEnvVarType(
-          'LIQUIDITY_PROVIDER_REGISTRY',
-          process.env.LIQUIDITY_PROVIDER_REGISTRY,
-          EnvVarType.LiquidityProviderRegistry,
-      );
-
 export const RFQT_REGISTRY_PASSWORDS: string[] = resolveEnvVar<string[]>(
     'RFQT_REGISTRY_PASSWORDS',
     EnvVarType.JsonStringList,
@@ -335,7 +317,6 @@ export const RFQT_INTEGRATORS: Integrator[] = INTEGRATORS_ACL.filter((i) => i.rf
 export const RFQT_INTEGRATOR_IDS: string[] = INTEGRATORS_ACL.filter((i) => i.rfqt).map((i) => i.integratorId);
 export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('rfqt');
 export const RFQM_API_KEY_WHITELIST: Set<string> = new Set(getApiKeyWhitelistFromIntegratorsAcl('rfqm'));
-export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('plp');
 
 export const RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER: MakerIdsToConfigs = getMakerConfigMapForOrderType('rfq', 'rfqt');
 export const MATCHA_INTEGRATOR_ID: string | undefined = getIntegratorIdFromLabel('Matcha');
@@ -457,7 +438,7 @@ const EXCLUDED_SOURCES = (() => {
     const allERC20BridgeSources = Object.values(ERC20BridgeSource);
     switch (CHAIN_ID) {
         case ChainId.Mainnet:
-            return [ERC20BridgeSource.MultiBridge];
+            return [];
         case ChainId.Kovan:
             return allERC20BridgeSources.filter(
                 (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
@@ -474,7 +455,7 @@ const EXCLUDED_SOURCES = (() => {
         case ChainId.PolygonMumbai:
         case ChainId.ArbitrumRinkeby:
         case ChainId.Arbitrum:
-            return [ERC20BridgeSource.MultiBridge, ERC20BridgeSource.Native];
+            return [ERC20BridgeSource.Native];
         default:
             throw new Error(`Excluded sources not specified for ${CHAIN_ID}`);
     }
@@ -501,11 +482,10 @@ const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD
 const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
     SOURCE_FLAGS.Uniswap_V2 |
     SOURCE_FLAGS.SushiSwap |
-    SOURCE_FLAGS.LiquidityProvider |
     SOURCE_FLAGS.RfqOrder |
-    SOURCE_FLAGS.Uniswap_V3;
-const MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS =
-    SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider | SOURCE_FLAGS.Uniswap_V3;
+    SOURCE_FLAGS.Uniswap_V3 |
+    SOURCE_FLAGS.OtcOrder;
+const MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS = SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.Uniswap_V3;
 const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
     if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
         // Uniswap and forks VIP
@@ -528,13 +508,19 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
     } else if (SOURCE_FLAGS.Curve === sourceFlags) {
         // Curve pseudo-VIP
         return TX_BASE_GAS.plus(40e3);
-    } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
-        // PLP VIP
-        return TX_BASE_GAS.plus(10e3);
     } else if (SOURCE_FLAGS.RfqOrder === sourceFlags) {
         // RFQ VIP
         return TX_BASE_GAS.plus(5e3);
+    } else if (SOURCE_FLAGS.OtcOrder === sourceFlags) {
+        // OtcOrder VIP
+        // NOTE: Should be 15k cheaper after the first tx from txOrigin than RfqOrder
+        // Use 5k less for now as not to over bias
+        return TX_BASE_GAS;
     } else if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
+        if ((sourceFlags & SOURCE_FLAGS.OtcOrder) === SOURCE_FLAGS.OtcOrder) {
+            // Multiplex that has OtcOrder
+            return TX_BASE_GAS.plus(10e3);
+        }
         // Multiplex batch fill
         return TX_BASE_GAS.plus(15e3);
     } else if (
@@ -552,7 +538,11 @@ export const NATIVE_WRAPPED_TOKEN_SYMBOL = nativeWrappedTokenSymbol(CHAIN_ID);
 
 const NEON_ROUTER_NUM_SAMPLES = 14;
 // TODO(kimpers): Due to an issue with the Rust router we want to use equidistant samples when using the Rust router
-const SAMPLE_DISTRIBUTION_BASE = SHOULD_USE_RUST_ROUTER ? 1 : 1.05;
+const DEFAULT_SAMPLE_DISTRIBUTION_BASE = 1;
+
+export const SAMPLE_DISTRIBUTION_BASE: number = _.isEmpty(process.env.SAMPLE_DISTRIBUTION_BASE)
+    ? DEFAULT_SAMPLE_DISTRIBUTION_BASE
+    : assertEnvVarType('SAMPLE_DISTRIBUTION_BASE', process.env.SAMPLE_DISTRIBUTION_BASE, EnvVarType.Float);
 
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     excludedSources: EXCLUDED_SOURCES,
@@ -563,7 +553,6 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     sampleDistributionBase: SAMPLE_DISTRIBUTION_BASE,
     neonRouterNumSamples: NEON_ROUTER_NUM_SAMPLES,
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
-    runLimit: 2 ** 8,
     shouldGenerateQuoteReport: true,
 };
 
@@ -605,7 +594,6 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
     samplerOverrides: SAMPLER_OVERRIDES,
     tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID[CHAIN_ID],
-    liquidityProviderRegistry: LIQUIDITY_PROVIDER_REGISTRY,
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
@@ -703,7 +691,11 @@ function resolveEnvVar<T>(envVar: string, envVarType: EnvVarType, fallback: T): 
     return assertEnvVarType(envVar, process.env[envVar], envVarType);
 }
 
-function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): any {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
+function assertEnvVarType(name: string, value: string | undefined, expectedType: EnvVarType): any {
+    if (value === undefined) {
+        throw new Error(`${name} is not defined`);
+    }
     let returnValue;
     switch (expectedType) {
         case EnvVarType.Port: {
@@ -810,21 +802,6 @@ function assertEnvVarType(name: string, value: any, expectedType: EnvVarType): a
                 });
             }
             return offerings;
-        }
-        case EnvVarType.LiquidityProviderRegistry: {
-            const registry: LiquidityProviderRegistry = JSON.parse(value);
-            for (const liquidityProvider in registry) {
-                assert.isETHAddressHex('liquidity provider address', liquidityProvider);
-
-                const { tokens } = registry[liquidityProvider];
-                assert.isArray(`token list for liquidity provider ${liquidityProvider}`, tokens);
-                tokens.forEach((token, i) => {
-                    assert.isETHAddressHex(`address of token ${i} for liquidity provider ${liquidityProvider}`, token);
-                });
-                // TODO jacob validate gas cost callback in registry
-                // assert.isNumber(`gas cost for liquidity provider ${liquidityProvider}`, gasCost);
-            }
-            return registry;
         }
         default:
             throw new Error(`Unrecognised EnvVarType: ${expectedType} encountered for variable ${name}.`);

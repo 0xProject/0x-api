@@ -34,8 +34,6 @@ export enum ERC20BridgeSource {
     Uniswap = 'Uniswap',
     UniswapV2 = 'Uniswap_V2',
     Curve = 'Curve',
-    LiquidityProvider = 'LiquidityProvider',
-    MultiBridge = 'MultiBridge',
     Balancer = 'Balancer',
     BalancerV2 = 'Balancer_V2',
     Bancor = 'Bancor',
@@ -81,6 +79,7 @@ export enum ERC20BridgeSource {
     FirebirdOneSwap = 'FirebirdOneSwap',
     IronSwap = 'IronSwap',
     MeshSwap = 'MeshSwap',
+    Dystopia = 'Dystopia',
     // Avalanche
     Pangolin = 'Pangolin',
     TraderJoe = 'TraderJoe',
@@ -234,11 +233,6 @@ export interface UniswapV2FillData extends FillData {
 
 export interface ShellFillData extends FillData {
     poolAddress: string;
-}
-
-export interface LiquidityProviderFillData extends FillData {
-    poolAddress: string;
-    gasCost: number;
 }
 
 export interface BancorFillData extends FillData {
@@ -447,6 +441,7 @@ export interface GetMarketOrdersRfqOpts extends RfqRequestOpts {
 }
 
 export type FeeEstimate = (fillData: FillData) => { gas: number; fee: BigNumber };
+// TODO:  Remove `Partial` from `FeeSchedule`
 export type FeeSchedule = Partial<{ [key in ERC20BridgeSource]: FeeEstimate }>;
 
 export type GasEstimate = (fillData: FillData) => number;
@@ -473,11 +468,6 @@ export interface GetMarketOrdersOpts {
      */
     includedSources: ERC20BridgeSource[];
     /**
-     * Complexity limit on the search algorithm, i.e., maximum number of
-     * nodes to visit. Default is 1024.
-     */
-    runLimit: number;
-    /**
      * When generating bridge orders, we use
      * sampled rate * (1 - bridgeSlippage)
      * as the rate for calculating maker/taker asset amounts.
@@ -501,7 +491,7 @@ export interface GetMarketOrdersOpts {
      * A value of 1 will result in evenly spaced samples.
      * > 1 will result in more samples at lower sizes.
      * < 1 will result in more samples at higher sizes.
-     * Default: 1.25.
+     * Default: 1
      */
     sampleDistributionBase: number;
     /**
@@ -604,22 +594,9 @@ export interface RawQuotes {
     dexQuotes: DexSample<FillData>[][];
 }
 
-export interface LiquidityProviderRegistry {
-    [address: string]: {
-        tokens: string[];
-        gasCost: number | ((takerToken: string, makerToken: string) => number);
-    };
-}
-
 export interface GenerateOptimizedOrdersOpts {
-    runLimit?: number;
-    bridgeSlippage?: number;
-    maxFallbackSlippage?: number;
-    excludedSources?: ERC20BridgeSource[];
     feeSchedule: FeeSchedule;
-    exchangeProxyOverhead?: ExchangeProxyOverhead;
-    allowFallback?: boolean;
-    shouldBatchBridgeOrders?: boolean;
+    exchangeProxyOverhead: ExchangeProxyOverhead;
     gasPrice: BigNumber;
     neonRouterNumSamples: number;
     fillAdjustor: FillAdjustor;
@@ -630,5 +607,5 @@ export interface ComparisonPrice {
 }
 
 export interface FillAdjustor {
-    adjustFills: (side: MarketOperation, fills: Fill[], amount: BigNumber) => Fill[];
+    adjustFills: (side: MarketOperation, fills: Fill[]) => Fill[];
 }

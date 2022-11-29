@@ -7,7 +7,7 @@ import { TokenAdjacencyGraph } from '../token_adjacency_graph';
 
 import { BancorService } from './bancor_service';
 import { PoolsCacheMap, SamplerOperations } from './sampler_operations';
-import { BatchedOperation, LiquidityProviderRegistry } from './types';
+import { BatchedOperation } from './types';
 
 /**
  * Generate sample amounts up to `maxFillAmount`.
@@ -39,10 +39,9 @@ export class DexOrderSampler extends SamplerOperations {
         private readonly _samplerOverrides?: SamplerOverrides,
         poolsCaches?: PoolsCacheMap,
         tokenAdjacencyGraph?: TokenAdjacencyGraph,
-        liquidityProviderRegistry?: LiquidityProviderRegistry,
         bancorServiceFn: () => Promise<BancorService | undefined> = async () => undefined,
     ) {
-        super(chainId, _samplerContract, poolsCaches, tokenAdjacencyGraph, liquidityProviderRegistry, bancorServiceFn);
+        super(chainId, _samplerContract, poolsCaches, tokenAdjacencyGraph, bancorServiceFn);
     }
 
     /* Type overloads for `executeAsync()`. Could skip this if we would upgrade TS. */
@@ -165,6 +164,7 @@ export class DexOrderSampler extends SamplerOperations {
     /**
      * Run a series of operations from `DexOrderSampler.ops` in a single transaction.
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async executeAsync(...ops: any[]): Promise<any[]> {
         return this.executeBatchAsync(ops);
     }
@@ -173,6 +173,7 @@ export class DexOrderSampler extends SamplerOperations {
      * Run a series of operations from `DexOrderSampler.ops` in a single transaction.
      * Takes an arbitrary length array, but is not typesafe.
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async executeBatchAsync<T extends BatchedOperation<any>[]>(ops: T): Promise<any[]> {
         const callDatas = ops.map((o) => o.encodeCall());
         const { overrides, block } = this._samplerOverrides

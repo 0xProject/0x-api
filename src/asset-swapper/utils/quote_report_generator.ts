@@ -127,6 +127,7 @@ export function generateQuoteReport(
     quoteRequestor?: QuoteRequestor,
 ): QuoteReport {
     const nativeOrderSourcesConsidered = nativeOrders.map((order) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
         nativeOrderToReportEntry(order.type, order as any, order.fillableTakerAmount, comparisonPrice, quoteRequestor),
     );
     const sourcesConsidered = [...nativeOrderSourcesConsidered.filter((order) => order.isRFQ)];
@@ -184,6 +185,7 @@ export function generateExtendedQuoteReportSources(
         ...quotes.nativeOrders.map((order) =>
             nativeOrderToReportEntry(
                 order.type,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
                 order as any,
                 order.fillableTakerAmount,
                 comparisonPrice,
@@ -338,7 +340,18 @@ export function multiHopSampleToReportSource(
 
 function _isNativeOrderFromCollapsedFill(cf: Fill): cf is Fill<NativeFillData> {
     const { type } = cf;
-    return type === FillQuoteTransformerOrderType.Limit || type === FillQuoteTransformerOrderType.Rfq;
+    switch (type) {
+        case FillQuoteTransformerOrderType.Limit:
+        case FillQuoteTransformerOrderType.Rfq:
+        case FillQuoteTransformerOrderType.Otc:
+            return true;
+        case FillQuoteTransformerOrderType.Bridge:
+            return false;
+        default:
+            ((_x: never) => {
+                throw new Error('unreachable');
+            })(type);
+    }
 }
 
 /**
@@ -414,6 +427,7 @@ export function indicativeQuoteToReportEntry(
 export function jsonifyFillData(source: ExtendedQuoteReportIndexedEntry): ExtendedQuoteReportIndexedEntryOutbound {
     return {
         ...source,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
         fillData: JSON.stringify(source.fillData, (key: string, value: any) => {
             if (key === '_samplerContract') {
                 return {};

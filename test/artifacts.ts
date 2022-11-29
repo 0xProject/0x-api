@@ -29,14 +29,12 @@ import * as ICurve from '../test/generated-artifacts/ICurve.json';
 import * as IGMX from '../test/generated-artifacts/IGMX.json';
 import * as IMooniswap from '../test/generated-artifacts/IMooniswap.json';
 import * as IMStable from '../test/generated-artifacts/IMStable.json';
-import * as IMultiBridge from '../test/generated-artifacts/IMultiBridge.json';
 import * as IPlatypus from '../test/generated-artifacts/IPlatypus.json';
 import * as IShell from '../test/generated-artifacts/IShell.json';
 import * as IUniswapExchangeQuotes from '../test/generated-artifacts/IUniswapExchangeQuotes.json';
 import * as IUniswapV2Router01 from '../test/generated-artifacts/IUniswapV2Router01.json';
 import * as KyberDmmSampler from '../test/generated-artifacts/KyberDmmSampler.json';
 import * as LidoSampler from '../test/generated-artifacts/LidoSampler.json';
-import * as LiquidityProviderSampler from '../test/generated-artifacts/LiquidityProviderSampler.json';
 import * as MakerPSMSampler from '../test/generated-artifacts/MakerPSMSampler.json';
 import * as MooniswapSampler from '../test/generated-artifacts/MooniswapSampler.json';
 import * as MStableSampler from '../test/generated-artifacts/MStableSampler.json';
@@ -72,7 +70,6 @@ export const artifacts = {
     GMXSampler: GMXSampler as ContractArtifact,
     KyberDmmSampler: KyberDmmSampler as ContractArtifact,
     LidoSampler: LidoSampler as ContractArtifact,
-    LiquidityProviderSampler: LiquidityProviderSampler as ContractArtifact,
     MStableSampler: MStableSampler as ContractArtifact,
     MakerPSMSampler: MakerPSMSampler as ContractArtifact,
     MooniswapSampler: MooniswapSampler as ContractArtifact,
@@ -96,7 +93,6 @@ export const artifacts = {
     IGMX: IGMX as ContractArtifact,
     IMStable: IMStable as ContractArtifact,
     IMooniswap: IMooniswap as ContractArtifact,
-    IMultiBridge: IMultiBridge as ContractArtifact,
     IPlatypus: IPlatypus as ContractArtifact,
     IShell: IShell as ContractArtifact,
     IUniswapExchangeQuotes: IUniswapExchangeQuotes as ContractArtifact,

@@ -4,6 +4,7 @@ import {
     FillQuoteTransformerOrderType,
     LimitOrderFields,
     OtcOrder,
+    OtcOrderFields,
     RfqOrder,
     RfqOrderFields,
     Signature,
@@ -12,12 +13,7 @@ import { TakerRequestQueryParamsUnnested, V4SignedRfqOrder } from '@0x/quote-ser
 import { Fee } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 
-import {
-    ERC20BridgeSource,
-    GetMarketOrdersOpts,
-    LiquidityProviderRegistry,
-    OptimizedMarketOrder,
-} from './utils/market_operation_utils/types';
+import { ERC20BridgeSource, GetMarketOrdersOpts, OptimizedMarketOrder } from './utils/market_operation_utils/types';
 import { ExtendedQuoteReportSources, PriceComparisonsReport, QuoteReport } from './utils/quote_report_generator';
 import { TokenAdjacencyGraph } from './utils/token_adjacency_graph';
 
@@ -32,13 +28,25 @@ export interface OrderPrunerOpts {
     permittedOrderFeeTypes: Set<OrderPrunerPermittedFeeTypes>;
 }
 
-export interface SignedOrder<T> {
-    order: T;
-    type: FillQuoteTransformerOrderType.Limit | FillQuoteTransformerOrderType.Rfq;
+export interface SignedLimitOrder {
+    order: LimitOrderFields;
+    type: FillQuoteTransformerOrderType.Limit;
     signature: Signature;
 }
 
-export type SignedNativeOrder = SignedOrder<LimitOrderFields> | SignedOrder<RfqOrderFields>;
+export interface SignedRfqOrder {
+    order: RfqOrderFields;
+    type: FillQuoteTransformerOrderType.Rfq;
+    signature: Signature;
+}
+
+export interface SignedOtcOrder {
+    order: OtcOrderFields;
+    type: FillQuoteTransformerOrderType.Otc;
+    signature: Signature;
+}
+
+export type SignedNativeOrder = SignedLimitOrder | SignedRfqOrder | SignedOtcOrder;
 export type NativeOrderWithFillableAmounts = SignedNativeOrder & NativeOrderFillableAmountFields;
 
 /**
@@ -91,6 +99,7 @@ export interface SwapQuoteConsumerOpts {
  * Represents the options provided to a generic SwapQuoteConsumer
  */
 export interface SwapQuoteGetOutputOpts {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     extensionContractOpts?: ExchangeProxyContractOpts | any;
 }
 
@@ -149,11 +158,6 @@ export interface ExchangeProxyContractOpts {
     refundReceiver: string | ExchangeProxyRefundReceiver;
     isMetaTransaction: boolean;
     shouldSellEntireBalance: boolean;
-}
-
-export interface GetExtensionContractTypeOpts {
-    takerAddress?: string;
-    ethAmount?: BigNumber;
 }
 
 /**
@@ -235,17 +239,6 @@ export type SwapQuoteOrdersBreakdown = Partial<
     }
 >;
 
-/**
- * nativeExclusivelyRFQ: if set to `true`, Swap quote will exclude Open Orderbook liquidity.
- *                       If set to `true` and `ERC20BridgeSource.Native` is part of the `excludedSources`
- *                       array in `SwapQuoteRequestOpts`, an Error will be raised.
- */
-
-export interface RfqmRequestOptions extends RfqRequestOpts {
-    isLastLook: true;
-    fee: Fee;
-}
-
 export interface RfqRequestOpts {
     takerAddress: string;
     txOrigin: string;
@@ -284,15 +277,8 @@ export interface AltOffering {
 export interface AltRfqMakerAssetOfferings {
     [endpoint: string]: AltOffering[];
 }
-export enum RfqPairType {
-    Standard = 'standard',
-    Alt = 'alt',
-}
-export interface TypedMakerUrl {
-    url: string;
-    pairType: RfqPairType;
-}
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
 export type LogFunction = (obj: object, msg?: string, ...args: any[]) => void;
 
 export interface RfqFirmQuoteValidator {
@@ -331,23 +317,10 @@ export interface SwapQuoterOpts extends OrderPrunerOpts {
     ethereumRpcUrl?: string;
     contractAddresses?: AssetSwapperContractAddresses;
     samplerGasLimit?: number;
-    multiBridgeAddress?: string;
     zeroExGasApiUrl?: string;
     rfqt?: SwapQuoterRfqOpts;
     samplerOverrides?: SamplerOverrides;
     tokenAdjacencyGraph?: TokenAdjacencyGraph;
-    liquidityProviderRegistry?: LiquidityProviderRegistry;
-}
-
-/**
- * Possible error messages thrown by an SwapQuoterConsumer instance or associated static methods.
- */
-export enum SwapQuoteConsumerError {
-    InvalidMarketSellOrMarketBuySwapQuote = 'INVALID_MARKET_BUY_SELL_SWAP_QUOTE',
-    InvalidForwarderSwapQuote = 'INVALID_FORWARDER_SWAP_QUOTE_PROVIDED',
-    NoAddressAvailable = 'NO_ADDRESS_AVAILABLE',
-    SignatureRequestDenied = 'SIGNATURE_REQUEST_DENIED',
-    TransactionValueTooLow = 'TRANSACTION_VALUE_TOO_LOW',
 }
 
 /**
@@ -385,8 +358,10 @@ export interface MockedRfqQuoteResponse {
     endpoint: string;
     requestApiKey: string;
     requestParams: TakerRequestQueryParamsUnnested;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     responseData: any;
     responseCode: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     callback?: (config: any) => Promise<any>;
 }
 
@@ -397,6 +372,7 @@ export interface AltMockedRfqQuoteResponse {
     endpoint: string;
     mmApiKey: string;
     requestData: AltQuoteRequestData;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     responseData: any;
     responseCode: number;
 }
@@ -473,7 +449,7 @@ export interface RfqtV2Request {
     txOrigin: string;
 }
 
-export type RfqtV2Prices = {
+export type RfqtV2Price = {
     expiry: BigNumber;
     makerAddress: string;
     makerAmount: BigNumber;
@@ -482,9 +458,9 @@ export type RfqtV2Prices = {
     makerUri: string;
     takerAmount: BigNumber;
     takerToken: string;
-}[];
+};
 
-export type RfqtV2Quotes = {
+export type RfqtV2Quote = {
     fillableMakerAmount: BigNumber;
     fillableTakerAmount: BigNumber;
     fillableTakerFeeAmount: BigNumber;
@@ -492,7 +468,7 @@ export type RfqtV2Quotes = {
     makerUri: string;
     order: OtcOrder;
     signature: Signature;
-}[];
+};
 
 export interface RfqClientV1PriceRequest {
     altRfqAssetOfferings: AltRfqMakerAssetOfferings | undefined;
