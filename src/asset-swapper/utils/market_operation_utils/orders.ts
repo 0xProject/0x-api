@@ -365,11 +365,18 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
         }
         case ERC20BridgeSource.AaveV3: {
             const aaveFillData = (order as OptimizedMarketBridgeOrder<AaveV3FillData>).fillData;
-            const l2Encoding = _.find(
+            const i = _.findIndex(
                 aaveFillData.l2EncodedParams,
                 (l) => l.inputAmount.isEqualTo(order.makerAmount) || l.inputAmount.isEqualTo(order.takerAmount),
-            )!;
-            bridgeData = encoder.encode([aaveFillData.lendingPool, aaveFillData.aToken, l2Encoding.l2Parameter]);
+            );
+            if (i === -1) {
+                throw new Error('Invalid order to encode for Bridge Data');
+            }
+            bridgeData = encoder.encode([
+                aaveFillData.lendingPool,
+                aaveFillData.aToken,
+                aaveFillData.l2EncodedParams[i].l2Parameter,
+            ]);
             break;
         }
         case ERC20BridgeSource.AaveV2: {
