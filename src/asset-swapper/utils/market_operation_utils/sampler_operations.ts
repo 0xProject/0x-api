@@ -1176,6 +1176,9 @@ export class SamplerOperations {
                     l2Parameter: l2Param,
                 }));
 
+                fillData.lendingPool = aaveInfo.lendingPool;
+                fillData.aToken = aaveInfo.aToken;
+
                 return samples;
             }
         })
@@ -1201,6 +1204,9 @@ export class SamplerOperations {
                     inputAmount: makerFillAmounts[i],
                     l2Parameter: l2Param,
                 }));
+
+                fillData.lendingPool = aaveInfo.lendingPool;
+                fillData.aToken = aaveInfo.aToken;
 
                 return samples;
             }

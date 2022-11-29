@@ -2396,7 +2396,7 @@ export const AAVE_V3_L2_ENCODERS_BY_CHAIN_ID = valueByChainId(
         [ChainId.Arbitrum]: '0x9abadecd08572e0ea5af4d47a9c7984a5aa503dc',
         [ChainId.Optimism]: '0x9abadecd08572e0ea5af4d47a9c7984a5aa503dc',
     },
-    "",
+    NULL_ADDRESS,
 );
 
 export const COMPOUND_API_URL_BY_CHAIN_ID = valueByChainId(

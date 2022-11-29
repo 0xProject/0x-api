@@ -1,4 +1,4 @@
-import { BridgeProtocol, encodeBridgeSourceId, FillQuoteTransformerOrderType } from '@0x/protocol-utils';
+import { BridgeProtocol, encodeBridgeSourceId, FillQuoteTransformerOrderType} from '@0x/protocol-utils';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import _ = require('lodash');
 
@@ -363,12 +363,12 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             bridgeData = encoder.encode([lidoFillData.stEthTokenAddress, lidoFillData.wstEthTokenAddress]);
             break;
         }
-        case ERC20BridgeSource.AaveV3:
+        case ERC20BridgeSource.AaveV3: {
             const aaveFillData = (order as OptimizedMarketBridgeOrder<AaveV3FillData>).fillData;
-            const l2Encoding = _.find(aaveFillData.l2EncodedParams, (l) => l.inputAmount === order.makerAmount)!;
+            const l2Encoding = _.find(aaveFillData.l2EncodedParams, (l) => l.inputAmount.isEqualTo(order.makerAmount) || l.inputAmount.isEqualTo(order.takerAmount))!;
             bridgeData = encoder.encode([aaveFillData.lendingPool, aaveFillData.aToken, l2Encoding.l2Parameter]);
             break;
-            
+        }
         case ERC20BridgeSource.AaveV2: {
             const aaveFillData = (order as OptimizedMarketBridgeOrder<AaveV2FillData>).fillData;
             bridgeData = encoder.encode([aaveFillData.lendingPool, aaveFillData.aToken]);
