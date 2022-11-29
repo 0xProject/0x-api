@@ -37,6 +37,7 @@ function schemaValidationErrorToValidationErrorItem(
 ): ValidationErrorItem {
     let field: string;
     let code: ValidationErrorCodes;
+    const description = schemaValidationErrorObject.description;
     const reason = schemaValidationErrorObject.message || '';
 
     if (
@@ -55,38 +56,38 @@ function schemaValidationErrorToValidationErrorItem(
             'dependencies',
         ].includes(schemaValidationErrorObject.keyword)
     ) {
-        field = schemaValidationErrorObject.dataPath.replace('.', '');
-        code =  ValidationErrorCodes.IncorrectFormat; 
+        return {
+            field: schemaValidationErrorObject.dataPath.replace('.', ''),
+            code: ValidationErrorCodes.IncorrectFormat,
+            reason,
+            ...(description && { description }),
+        };
     } else if (
         ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'enum', 'const'].includes(
             schemaValidationErrorObject.keyword,
         )
     ) {
-        field = schemaValidationErrorObject.dataPath.replace('.', '');
-        code = ValidationErrorCodes.ValueOutOfRange;
+        return {
+            field: schemaValidationErrorObject.dataPath.replace('.', ''),
+            code: ValidationErrorCodes.ValueOutOfRange,
+            reason,
+            ...(description && { description }),
+        };
     } else if (schemaValidationErrorObject.keyword === 'required') {
-        field =  (schemaValidationErrorObject.params as AJV.RequiredParams).missingProperty;
-        code = ValidationErrorCodes.RequiredField;
+        return {
+            field: (schemaValidationErrorObject.params as AJV.RequiredParams).missingProperty,
+            code: ValidationErrorCodes.RequiredField,
+            reason,
+            ...(description && { description }),
+        };
     } else if (schemaValidationErrorObject.keyword === 'not') {
-        field =  schemaValidationErrorObject.dataPath.replace('.', '');
-        code = ValidationErrorCodes.UnsupportedOption;
+        return {
+            field: schemaValidationErrorObject.dataPath.replace('.', ''),
+            code: ValidationErrorCodes.UnsupportedOption,
+            reason,
+            ...(description && { description }),
+        };
     } else {
         throw new Error(`Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);
     }
-
-    if (schemaValidationErrorObject.description === undefined) {
-        return {
-            field: field,
-            code: code,
-            reason: reason,
-        };
-    }
-
-    return {
-        field: field,
-        code: code,
-        reason: reason,
-        description: schemaValidationErrorObject.description,
-    };
-
 }
