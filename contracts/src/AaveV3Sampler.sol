@@ -31,11 +31,7 @@ interface IL2Encoder {
      *   0 if the action is executed directly by the user, without any middle-man
      * @return compact representation of supply parameters
      */
-    function encodeSupplyParams(
-        address asset,
-        uint256 amount,
-        uint16 referralCode
-    ) external view returns (bytes32);
+    function encodeSupplyParams(address asset, uint256 amount, uint16 referralCode) external view returns (bytes32);
 
     /**
      * @notice Encodes withdraw parameters from standard input to compact representation of 1 bytes32
