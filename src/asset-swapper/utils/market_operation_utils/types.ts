@@ -1,18 +1,19 @@
 import { ChainId } from '@0x/contract-addresses';
-import {
-    FillQuoteTransformerLimitOrderInfo,
-    FillQuoteTransformerOrderType,
-    FillQuoteTransformerRfqOrderInfo,
-    FillQuoteTransformerOtcOrderInfo,
-} from '@0x/protocol-utils';
 import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
-import { RfqClient } from '../../../utils/rfq_client';
 
-import { NativeOrderWithFillableAmounts, RfqFirmQuoteValidator, RfqRequestOpts } from '../../types';
-import { QuoteRequestor, V4RFQIndicativeQuoteMM } from '../../utils/quote_requestor';
+import {
+    NativeOrderWithFillableAmounts,
+    ERC20BridgeSource,
+    OptimizedMarketOrder,
+    FillData,
+    FeeSchedule,
+    Fill,
+    FillAdjustor,
+    ExchangeProxyOverhead,
+} from '../../types';
+import { V4RFQIndicativeQuoteMM } from '../../utils/quote_requestor';
 import { ExtendedQuoteReportSources, PriceComparisonsReport, QuoteReport } from '../quote_report_generator';
-import { TokenAdjacencyGraph } from '../token_adjacency_graph';
 
 import { SourceFilters } from './source_filters';
 
@@ -170,16 +171,6 @@ export interface AaveInfo {
     aToken: string;
     underlyingToken: string;
 }
-
-// Internal `fillData` field for `Fill` objects.
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface FillData {}
-
-// `FillData` for native fills. Represents a single native order
-export type NativeRfqOrderFillData = FillQuoteTransformerRfqOrderInfo;
-export type NativeLimitOrderFillData = FillQuoteTransformerLimitOrderInfo;
-export type NativeOtcOrderFillData = FillQuoteTransformerOtcOrderInfo;
-export type NativeFillData = NativeRfqOrderFillData | NativeLimitOrderFillData | NativeOtcOrderFillData;
 
 // Represents an individual DEX sample from the sampler contract
 export interface DexSample<TFillData extends FillData = FillData> {
@@ -372,177 +363,6 @@ export interface SynthetixFillData extends FillData {
 }
 
 /**
- * Represents a node on a fill path.
- */
-export interface Fill<TFillData extends FillData = FillData> {
-    // basic data for every fill
-    source: ERC20BridgeSource;
-    // TODO jacob people seem to agree  that orderType here is more readable
-    type: FillQuoteTransformerOrderType; // should correspond with TFillData
-    fillData: TFillData;
-    // Unique ID of the original source path this fill belongs to.
-    // This is generated when the path is generated and is useful to distinguish
-    // paths that have the same `source` IDs but are distinct (e.g., Curves).
-    sourcePathId: string;
-    // See `SOURCE_FLAGS`.
-    flags: bigint;
-    // Input fill amount (taker asset amount in a sell, maker asset amount in a buy).
-    input: BigNumber;
-    // Output fill amount (maker asset amount in a sell, taker asset amount in a buy).
-    output: BigNumber;
-    // The output fill amount, adjusted by fees.
-    adjustedOutput: BigNumber;
-    // The expected gas cost of this fill
-    gas: number;
-}
-
-export interface OptimizedMarketOrderBase<TFillData extends FillData = FillData> {
-    source: ERC20BridgeSource;
-    fillData: TFillData;
-    type: FillQuoteTransformerOrderType; // should correspond with TFillData
-    makerToken: string;
-    takerToken: string;
-    makerAmount: BigNumber; // The amount we wish to buy from this order, e.g inclusive of any previous partial fill
-    takerAmount: BigNumber; // The amount we wish to fill this for, e.g inclusive of any previous partial fill
-    fill: Omit<Fill, 'flags' | 'fillData' | 'sourcePathId' | 'source' | 'type'>; // Remove duplicates which have been brought into the OrderBase interface
-}
-
-export interface OptimizedMarketBridgeOrder<TFillData extends FillData = FillData>
-    extends OptimizedMarketOrderBase<TFillData> {
-    type: FillQuoteTransformerOrderType.Bridge;
-    sourcePathId: string;
-}
-
-export interface OptimizedLimitOrder extends OptimizedMarketOrderBase<NativeLimitOrderFillData> {
-    type: FillQuoteTransformerOrderType.Limit;
-}
-
-export interface OptimizedRfqOrder extends OptimizedMarketOrderBase<NativeRfqOrderFillData> {
-    type: FillQuoteTransformerOrderType.Rfq;
-}
-
-export interface OptimizedOtcOrder extends OptimizedMarketOrderBase<NativeOtcOrderFillData> {
-    type: FillQuoteTransformerOrderType.Otc;
-}
-
-/**
- * Optimized orders to fill.
- */
-export type OptimizedMarketOrder =
-    | OptimizedMarketBridgeOrder<FillData>
-    | OptimizedMarketOrderBase<NativeLimitOrderFillData>
-    | OptimizedMarketOrderBase<NativeRfqOrderFillData>
-    | OptimizedMarketOrderBase<NativeOtcOrderFillData>;
-
-export interface GetMarketOrdersRfqOpts extends RfqRequestOpts {
-    rfqClient?: RfqClient;
-    quoteRequestor?: QuoteRequestor;
-    firmQuoteValidator?: RfqFirmQuoteValidator;
-}
-
-export type FeeEstimate = (fillData: FillData) => { gas: number; fee: BigNumber };
-// TODO:  Remove `Partial` from `FeeSchedule`
-export type FeeSchedule = Partial<{ [key in ERC20BridgeSource]: FeeEstimate }>;
-
-export type GasEstimate = (fillData: FillData) => number;
-export type GasSchedule = Partial<{ [key in ERC20BridgeSource]: GasEstimate }>;
-
-export type ExchangeProxyOverhead = (sourceFlags: bigint) => BigNumber;
-
-/**
- * Options for `getMarketSellOrdersAsync()` and `getMarketBuyOrdersAsync()`.
- */
-export interface GetMarketOrdersOpts {
-    /**
-     * Liquidity sources to exclude. Default is none.
-     */
-    excludedSources: ERC20BridgeSource[];
-    /**
-     * Liquidity sources to exclude when used to calculate the cost of the route.
-     * Default is none.
-     */
-    excludedFeeSources: ERC20BridgeSource[];
-    /**
-     * Liquidity sources to include. Default is none, which allows all supported
-     * sources that aren't excluded by `excludedSources`.
-     */
-    includedSources: ERC20BridgeSource[];
-    /**
-     * When generating bridge orders, we use
-     * sampled rate * (1 - bridgeSlippage)
-     * as the rate for calculating maker/taker asset amounts.
-     * This should be a small positive number (e.g., 0.0005) to make up for
-     * small discrepancies between samples and truth.
-     * Default is 0.0005 (5 basis points).
-     */
-    bridgeSlippage: number;
-    /**
-     * The maximum price slippage allowed in the fallback quote. If the slippage
-     * between the optimal quote and the fallback quote is greater than this
-     * percentage, no fallback quote will be provided.
-     */
-    maxFallbackSlippage: number;
-    /**
-     * Number of samples to take for each DEX quote.
-     */
-    numSamples: number;
-    /**
-     * The exponential sampling distribution base.
-     * A value of 1 will result in evenly spaced samples.
-     * > 1 will result in more samples at lower sizes.
-     * < 1 will result in more samples at higher sizes.
-     * Default: 1
-     */
-    sampleDistributionBase: number;
-    /**
-     * Number of samples to use when creating fill curves with neon-router
-     */
-    neonRouterNumSamples: number;
-    /**
-     * Fees for each liquidity source, expressed in gas.
-     */
-    feeSchedule: FeeSchedule;
-    /**
-     * Estimated gas consumed by each liquidity source.
-     */
-    gasSchedule: GasSchedule;
-    exchangeProxyOverhead: ExchangeProxyOverhead;
-    /**
-     * Whether to pad the quote with a redundant fallback quote using different
-     * sources. Defaults to `true`.
-     */
-    allowFallback: boolean;
-    /**
-     * Options for RFQT such as takerAddress, intent on filling
-     */
-    rfqt?: GetMarketOrdersRfqOpts;
-    /**
-     * Whether to generate a quote report
-     */
-    shouldGenerateQuoteReport: boolean;
-
-    /**
-     * Whether to include price comparison data in the quote
-     */
-    shouldIncludePriceComparisonsReport: boolean;
-    /**
-     * Token addresses with a list of adjacent intermediary tokens to consider
-     * hopping to. E.g DAI->USDC via an adjacent token WETH
-     */
-    tokenAdjacencyGraph: TokenAdjacencyGraph;
-
-    /**
-     * Gas price to use for quote
-     */
-    gasPrice: BigNumber;
-
-    /**
-     * Adjusts fills individual fills based on caller supplied criteria
-     */
-    fillAdjustor: FillAdjustor;
-}
-
-/**
  * A composable operation the be run in `DexOrderSampler.executeAsync()`.
  */
 export interface BatchedOperation<TResult> {
@@ -604,8 +424,4 @@ export interface GenerateOptimizedOrdersOpts {
 
 export interface ComparisonPrice {
     wholeOrder: BigNumber | undefined;
-}
-
-export interface FillAdjustor {
-    adjustFills: (side: MarketOperation, fills: Fill[]) => Fill[];
 }
