@@ -38,8 +38,8 @@ describe('ProtocolFeeUtils', () => {
 
         it('parses fast gas price response correctly', async () => {
             const utils = ProtocolFeeUtils.getInstance(420000, 'https://mock-0x-gas-api.org/median');
-            const gasPrice = await utils.getGasPriceEstimationOrThrowAsync();
-            expect(gasPrice.toNumber()).to.eq(18848500000);
+            const gasPrice = await utils.getGasPriceEstimationOrThrowAsync({ fast: 100_000_000 });
+            expect(gasPrice.fast).to.eq(18848500000);
         });
     });
 });

@@ -152,7 +152,11 @@ export class SwapQuoter {
      * Returns the recommended gas price for a fast transaction
      */
     public async getGasPriceEstimationOrThrowAsync(): Promise<BigNumber> {
-        return this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+        const gasPrices = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync({
+            fast: 100_000_000, // 0.1 gwei in wei
+        });
+
+        return new BigNumber(gasPrices.fast);
     }
 
     /**
