@@ -47,7 +47,7 @@ import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { publishQuoteReport } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
-import { ProtocolFeeUtils } from '../asset-swapper';
+import { GasPriceUtils } from '../asset-swapper';
 
 let kafkaProducer: Producer | undefined;
 if (KAFKA_BROKERS !== undefined) {
@@ -301,8 +301,8 @@ export class SwapHandlers {
 
             // Add additional L1 gas cost.
             if (CHAIN_ID === ChainId.Arbitrum) {
-                const gasUtils = ProtocolFeeUtils.getInstance(constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
-                const gasPrices = await gasUtils.getGasPriceEstimationOrThrowAsync({
+                const gasUtils = GasPriceUtils.getInstance(constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
+                const gasPrices = await gasUtils.getGasPriceEstimationOrDefault({
                     fast: 100_000_000, // 0.1 gwei in wei
                 });
 

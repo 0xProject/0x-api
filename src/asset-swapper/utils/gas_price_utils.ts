@@ -6,6 +6,7 @@ import { SwapQuoterError } from '../types';
 const MAX_ERROR_COUNT = 5;
 
 interface GasPrices {
+    // gas price in wei
     fast: number;
     l1CalldataPricePerUnit?: number;
 }
@@ -13,8 +14,8 @@ interface GasInfoResponse {
     result: GasPrices;
 }
 
-export class ProtocolFeeUtils {
-    private static _instances = new Map<string, ProtocolFeeUtils>();
+export class GasPriceUtils {
+    private static _instances = new Map<string, GasPriceUtils>();
     private readonly _zeroExGasApiUrl: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     private readonly _gasPriceHeart: any;
@@ -24,15 +25,15 @@ export class ProtocolFeeUtils {
     public static getInstance(
         gasPricePollingIntervalInMs: number,
         zeroExGasApiUrl: string = constants.ZERO_EX_GAS_API_URL,
-    ): ProtocolFeeUtils {
-        if (!ProtocolFeeUtils._instances.has(zeroExGasApiUrl)) {
-            ProtocolFeeUtils._instances.set(
+    ): GasPriceUtils {
+        if (!GasPriceUtils._instances.has(zeroExGasApiUrl)) {
+            GasPriceUtils._instances.set(
                 zeroExGasApiUrl,
-                new ProtocolFeeUtils(gasPricePollingIntervalInMs, zeroExGasApiUrl),
+                new GasPriceUtils(gasPricePollingIntervalInMs, zeroExGasApiUrl),
             );
         }
 
-        const instance = ProtocolFeeUtils._instances.get(zeroExGasApiUrl);
+        const instance = GasPriceUtils._instances.get(zeroExGasApiUrl);
         if (instance === undefined) {
             // should not be reachable
             throw new Error(`Singleton for ${zeroExGasApiUrl} was not initialized`);
@@ -41,9 +42,10 @@ export class ProtocolFeeUtils {
         return instance;
     }
 
-    /** @returns gas price (in wei) */
-    public async getGasPriceEstimationOrThrowAsync(defaultGasPrices: GasPrices): Promise<GasPrices> {
-        await this._getGasPriceFromGasStationOrThrowAsync();
+    public async getGasPriceEstimationOrDefault(defaultGasPrices: GasPrices): Promise<GasPrices> {
+        if (this._gasPriceEstimation === undefined){
+            await this._updateGasPriceFromOracleOrThrow(); 
+        }
         if (this._gasPriceEstimation !== undefined) {
             return {
                 ...defaultGasPrices,
@@ -52,6 +54,14 @@ export class ProtocolFeeUtils {
         }
 
         return defaultGasPrices;
+    }
+
+    /** @returns gas price (in wei) */
+    public async getGasPriceEstimationOrThrowAsync(): Promise<GasPrices> {
+        if (this._gasPriceEstimation === undefined) {
+            await this._updateGasPriceFromOracleOrThrow();    
+        }
+        return this._gasPriceEstimation!;
     }
 
     /**
@@ -67,7 +77,7 @@ export class ProtocolFeeUtils {
         this._initializeHeartBeat();
     }
 
-    private async _getGasPriceFromGasStationOrThrowAsync(): Promise<void> {
+    private async _updateGasPriceFromOracleOrThrow(): Promise<void> {
         try {
             const res = await fetch(this._zeroExGasApiUrl);
             const gasInfo: GasInfoResponse = await res.json();
@@ -86,7 +96,7 @@ export class ProtocolFeeUtils {
 
     private _initializeHeartBeat(): void {
         this._gasPriceHeart.createEvent(1, async () => {
-            await this._getGasPriceFromGasStationOrThrowAsync();
+            await this._updateGasPriceFromOracleOrThrow();
         });
     }
 }
