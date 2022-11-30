@@ -44,16 +44,13 @@ export class GasPriceUtils {
 
     public async getGasPriceEstimationOrDefault(defaultGasPrices: GasPrices): Promise<GasPrices> {
         if (this._gasPriceEstimation === undefined) {
-            await this._updateGasPriceFromOracleOrThrow();
-        }
-        if (this._gasPriceEstimation !== undefined) {
-            return {
-                ...defaultGasPrices,
-                ...this._gasPriceEstimation,
-            };
+            return defaultGasPrices;
         }
 
-        return defaultGasPrices;
+        return {
+            ...defaultGasPrices,
+            ...this._gasPriceEstimation,
+        };
     }
 
     /** @returns gas price (in wei) */
