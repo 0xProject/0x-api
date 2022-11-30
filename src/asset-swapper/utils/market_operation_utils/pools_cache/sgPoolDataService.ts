@@ -38,6 +38,20 @@ const queryWithLinear = gql`
             sqrtAlpha
             sqrtBeta
             root3Alpha
+            alpha
+            beta
+            c
+            s
+            lambda
+            tauAlphaX
+            tauAlphaY
+            tauBetaX
+            tauBetaY
+            u
+            v
+            w
+            z
+            dSq
         }
     }
 `;
