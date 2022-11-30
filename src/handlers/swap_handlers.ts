@@ -3,7 +3,7 @@ import { isNativeSymbolOrAddress, isNativeWrappedSymbolOrAddress } from '@0x/tok
 import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
-import * as HttpStatus from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 import { Kafka, Producer } from 'kafkajs';
 import _ = require('lodash');
 import { Counter, Histogram } from 'prom-client';
@@ -19,7 +19,6 @@ import {
     getIntegratorIdForApiKey,
     KAFKA_BROKERS,
     MATCHA_INTEGRATOR_ID,
-    PLP_API_KEY_WHITELIST,
     PROMETHEUS_REQUEST_BUCKETS,
     RFQT_API_KEY_WHITELIST,
     RFQT_INTEGRATOR_IDS,
@@ -40,15 +39,13 @@ import {
     ValidationErrorReasons,
 } from '../errors';
 import { schemas } from '../schemas';
-import { SwapService } from '../services/swap_service';
-import { GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
+import { ISwapService, GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
 import { findTokenAddressOrThrowApiError } from '../utils/address_utils';
 import { estimateArbitrumL1CalldataGasCost } from '../utils/l2_gas_utils';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { publishQuoteReport } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
-import { serviceUtils } from '../utils/service_utils';
 import { zeroExGasApiUtils } from '../utils/zero_ex_gas_api_utils';
 
 let kafkaProducer: Producer | undefined;
@@ -83,37 +80,37 @@ const HTTP_SWAP_REQUESTS = new Counter({
 });
 
 export class SwapHandlers {
-    private readonly _swapService: SwapService;
+    private readonly _swapService: ISwapService;
     public static root(_req: express.Request, res: express.Response): void {
         const message = `This is the root of the Swap API. Visit ${SWAP_DOCS_URL} for details about this API.`;
-        res.status(HttpStatus.OK).send({ message });
+        res.status(StatusCodes.OK).send({ message });
     }
 
     public static getLiquiditySources(_req: express.Request, res: express.Response): void {
         const sources = SELL_SOURCE_FILTER_BY_CHAIN_ID[CHAIN_ID].sources
             .map((s) => (s === ERC20BridgeSource.Native ? '0x' : s))
             .sort((a, b) => a.localeCompare(b));
-        res.status(HttpStatus.OK).send({ records: sources });
+        res.status(StatusCodes.OK).send({ records: sources });
     }
 
     public static getRfqRegistry(req: express.Request, res: express.Response): void {
         const auth = req.header('Authorization');
         REGISTRY_ENDPOINT_FETCHED.labels(auth || 'N/A').inc();
         if (auth === undefined) {
-            return res.status(HttpStatus.UNAUTHORIZED).end();
+            return res.status(StatusCodes.UNAUTHORIZED).end();
         }
         const authTokenRegex = auth.match(BEARER_REGEX);
         if (!authTokenRegex) {
-            return res.status(HttpStatus.UNAUTHORIZED).end();
+            return res.status(StatusCodes.UNAUTHORIZED).end();
         }
         const authToken = authTokenRegex[1];
         if (!REGISTRY_SET.has(authToken)) {
-            return res.status(HttpStatus.UNAUTHORIZED).end();
+            return res.status(StatusCodes.UNAUTHORIZED).end();
         }
-        res.status(HttpStatus.OK).send(RFQT_INTEGRATOR_IDS).end();
+        res.status(StatusCodes.OK).send(RFQT_INTEGRATOR_IDS).end();
     }
 
-    constructor(swapService: SwapService) {
+    constructor(swapService: ISwapService) {
         this._swapService = swapService;
     }
 
@@ -196,7 +193,7 @@ export class SwapHandlers {
             params.apiKey !== undefined ? params.apiKey : 'N/A',
             params.integrator?.integratorId || 'N/A',
         ).inc();
-        res.status(HttpStatus.OK).send(response);
+        res.status(StatusCodes.OK).send(response);
     }
 
     public async getQuotePriceAsync(req: express.Request, res: express.Response): Promise<void> {
@@ -287,7 +284,7 @@ export class SwapHandlers {
             params.integrator?.integratorId || 'N/A',
         ).inc();
 
-        res.status(HttpStatus.OK).send(response);
+        res.status(StatusCodes.OK).send(response);
     }
 
     private async _getSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
@@ -338,6 +335,8 @@ export class SwapHandlers {
                         field: params.sellAmount ? 'sellAmount' : 'buyAmount',
                         code: ValidationErrorCodes.ValueOutOfRange,
                         reason: SwapQuoterError.InsufficientAssetLiquidity,
+                        description:
+                            'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity',
                     },
                 ]);
             }
@@ -463,15 +462,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         endpoint,
     );
 
-    // Determine if any other sources should be excluded. This usually has an effect
-    // if an API key is not present, or the API key is ineligible for PLP.
-    const updatedExcludedSources = serviceUtils.determineExcludedSources(
-        excludedSources,
-        apiKey,
-        PLP_API_KEY_WHITELIST,
-    );
-
-    const isAllExcluded = Object.values(ERC20BridgeSource).every((s) => updatedExcludedSources.includes(s));
+    const isAllExcluded = Object.values(ERC20BridgeSource).every((s) => excludedSources.includes(s));
     if (isAllExcluded) {
         throw new ValidationError([
             {
@@ -513,7 +504,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     req.log.info({
         type: 'swapRequest',
         endpoint,
-        updatedExcludedSources,
+        excludedSources,
         nativeExclusivelyRFQT,
         // TODO (MKR-123): Remove once the log source has been updated.
         apiKey: integratorId || 'N/A',
@@ -530,7 +521,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         buyAmount,
         buyToken,
         endpoint,
-        excludedSources: updatedExcludedSources,
+        excludedSources,
         gasPrice,
         includePriceComparisons,
         includedSources,

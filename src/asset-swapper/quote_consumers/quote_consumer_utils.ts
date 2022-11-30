@@ -17,7 +17,6 @@ import {
 const MULTIPLEX_BATCH_FILL_SOURCES = [
     ERC20BridgeSource.UniswapV2,
     ERC20BridgeSource.SushiSwap,
-    ERC20BridgeSource.LiquidityProvider,
     ERC20BridgeSource.Native,
     ERC20BridgeSource.UniswapV3,
 ];
@@ -26,10 +25,6 @@ const MULTIPLEX_BATCH_FILL_SOURCES = [
  * Returns true iff a quote can be filled via `MultiplexFeature.batchFill`.
  */
 export function isMultiplexBatchFillCompatible(quote: SwapQuote, opts: ExchangeProxyContractOpts): boolean {
-    // Temporarily avoid Multiplex for OtcOrder types
-    if (quote.orders.some((o) => o.type === FillQuoteTransformerOrderType.Otc)) {
-        return false;
-    }
     if (requiresTransformERC20(opts)) {
         return false;
     }
@@ -48,7 +43,6 @@ export function isMultiplexBatchFillCompatible(quote: SwapQuote, opts: ExchangeP
 const MULTIPLEX_MULTIHOP_FILL_SOURCES = [
     ERC20BridgeSource.UniswapV2,
     ERC20BridgeSource.SushiSwap,
-    ERC20BridgeSource.LiquidityProvider,
     ERC20BridgeSource.UniswapV3,
 ];
 
@@ -56,10 +50,6 @@ const MULTIPLEX_MULTIHOP_FILL_SOURCES = [
  * Returns true iff a quote can be filled via `MultiplexFeature.multiHopFill`.
  */
 export function isMultiplexMultiHopFillCompatible(quote: SwapQuote, opts: ExchangeProxyContractOpts): boolean {
-    // Temporarily avoid Multiplex for OtcOrder types
-    if (quote.orders.some((o) => o.type === FillQuoteTransformerOrderType.Otc)) {
-        return false;
-    }
     if (requiresTransformERC20(opts)) {
         return false;
     }

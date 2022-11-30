@@ -28,15 +28,15 @@ interface IDODOV2Registry {
 }
 
 interface IDODOV2Pool {
-    function querySellBase(address trader, uint256 payBaseAmount)
-        external
-        view
-        returns (uint256 receiveQuoteAmount, uint256 mtFee);
+    function querySellBase(
+        address trader,
+        uint256 payBaseAmount
+    ) external view returns (uint256 receiveQuoteAmount, uint256 mtFee);
 
-    function querySellQuote(address trader, uint256 payQuoteAmount)
-        external
-        view
-        returns (uint256 receiveBaseAmount, uint256 mtFee);
+    function querySellQuote(
+        address trader,
+        uint256 payQuoteAmount
+    ) external view returns (uint256 receiveBaseAmount, uint256 mtFee);
 }
 
 contract DODOV2Sampler is SamplerUtils, ApproximateBuys {
@@ -59,15 +59,7 @@ contract DODOV2Sampler is SamplerUtils, ApproximateBuys {
         address takerToken,
         address makerToken,
         uint256[] memory takerTokenAmounts
-    )
-        public
-        view
-        returns (
-            bool sellBase,
-            address pool,
-            uint256[] memory makerTokenAmounts
-        )
-    {
+    ) public view returns (bool sellBase, address pool, uint256[] memory makerTokenAmounts) {
         _assertValidPair(makerToken, takerToken);
 
         uint256 numSamples = takerTokenAmounts.length;
@@ -108,22 +100,15 @@ contract DODOV2Sampler is SamplerUtils, ApproximateBuys {
         address takerToken,
         address makerToken,
         uint256[] memory makerTokenAmounts
-    )
-        public
-        view
-        returns (
-            bool sellBase,
-            address pool,
-            uint256[] memory takerTokenAmounts
-        )
-    {
+    ) public view returns (bool sellBase, address pool, uint256[] memory takerTokenAmounts) {
         _assertValidPair(makerToken, takerToken);
+
+        uint256 numSamples = makerTokenAmounts.length;
+        takerTokenAmounts = new uint256[](numSamples);
         (pool, sellBase) = _getNextDODOV2Pool(registry, offset, takerToken, makerToken);
         if (pool == address(0)) {
             return (sellBase, pool, takerTokenAmounts);
         }
-        uint256 numSamples = makerTokenAmounts.length;
-        takerTokenAmounts = new uint256[](numSamples);
 
         takerTokenAmounts = _sampleApproximateBuys(
             ApproximateBuyQuoteOpts({
@@ -137,7 +122,7 @@ contract DODOV2Sampler is SamplerUtils, ApproximateBuys {
 
     function _sampleSellForApproximateBuyFromDODOV2(
         bytes memory takerTokenData,
-        bytes memory, /* makerTokenData */
+        bytes memory /* makerTokenData */,
         uint256 sellAmount
     ) private view returns (uint256) {
         (address takerToken, address pool, bool sellBase) = abi.decode(takerTokenData, (address, address, bool));
