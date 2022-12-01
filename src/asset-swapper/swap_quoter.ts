@@ -29,15 +29,9 @@ import { BancorService } from './utils/market_operation_utils/bancor_service';
 import { SAMPLER_ADDRESS, SOURCE_FLAGS, ZERO_AMOUNT } from './utils/market_operation_utils/constants';
 import { DexOrderSampler } from './utils/market_operation_utils/sampler';
 import { SourceFilters } from './utils/market_operation_utils/source_filters';
-import {
-    ERC20BridgeSource,
-    FillData,
-    GasSchedule,
-    GetMarketOrdersOpts,
-    OptimizedMarketOrder,
-    OptimizerResultWithReport,
-} from './utils/market_operation_utils/types';
-import { ProtocolFeeUtils } from './utils/protocol_fee_utils';
+import { OptimizerResultWithReport } from './utils/market_operation_utils/types';
+import { ERC20BridgeSource, FillData, GasSchedule, GetMarketOrdersOpts, OptimizedMarketOrder } from './types';
+import { GasPriceUtils } from './utils/gas_price_utils';
 import { QuoteRequestor } from './utils/quote_requestor';
 import { QuoteFillResult, simulateBestCaseFill, simulateWorstCaseFill } from './utils/quote_simulation';
 
@@ -64,7 +58,7 @@ export class SwapQuoter {
     public readonly chainId: number;
     public readonly permittedOrderFeeTypes: Set<OrderPrunerPermittedFeeTypes>;
     private readonly _contractAddresses: AssetSwapperContractAddresses;
-    private readonly _protocolFeeUtils: ProtocolFeeUtils;
+    private readonly _gasPriceUtils: GasPriceUtils;
     private readonly _marketOperationUtils: MarketOperationUtils;
     private readonly _rfqtOptions?: SwapQuoterRfqOpts;
     private readonly _integratorIdsSet: Set<string>;
@@ -96,7 +90,7 @@ export class SwapQuoter {
         this._contractAddresses = options.contractAddresses || {
             ...getContractAddressesForChainOrThrow(chainId),
         };
-        this._protocolFeeUtils = ProtocolFeeUtils.getInstance(
+        this._gasPriceUtils = GasPriceUtils.getInstance(
             constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
             options.zeroExGasApiUrl,
         );
@@ -152,14 +146,16 @@ export class SwapQuoter {
      * Returns the recommended gas price for a fast transaction
      */
     public async getGasPriceEstimationOrThrowAsync(): Promise<BigNumber> {
-        return this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+        const gasPrices = await this._gasPriceUtils.getGasPriceEstimationOrThrowAsync();
+
+        return new BigNumber(gasPrices.fast);
     }
 
     /**
      * Destroys any subscriptions or connections.
      */
     public async destroyAsync(): Promise<void> {
-        await this._protocolFeeUtils.destroyAsync();
+        await this._gasPriceUtils.destroyAsync();
         await this.orderbook.destroyAsync();
     }
 

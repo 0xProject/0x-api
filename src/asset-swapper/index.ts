@@ -51,6 +51,8 @@ export {
     NATIVE_FEE_TOKEN_BY_CHAIN_ID,
     ZERO_AMOUNT,
 } from './utils/market_operation_utils/constants';
+export { UniswapV2FillData } from './utils/market_operation_utils/types';
+
 export {
     ERC20BridgeSource,
     GasSchedule,
@@ -59,12 +61,11 @@ export {
     FillData,
     GetMarketOrdersRfqOpts,
     OptimizedMarketOrder,
-    UniswapV2FillData,
-} from './utils/market_operation_utils/types';
+} from './types';
 
 export { TokenAdjacencyGraph } from './utils/token_adjacency_graph';
 export { IdentityFillAdjustor } from './utils/market_operation_utils/identity_fill_adjustor';
-export { ProtocolFeeUtils } from './utils/protocol_fee_utils';
+export { GasPriceUtils } from './utils/gas_price_utils';
 export {
     jsonifyFillData,
     QuoteReport,
