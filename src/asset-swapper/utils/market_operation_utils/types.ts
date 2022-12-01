@@ -113,7 +113,7 @@ export interface CurveFillData extends FillData {
     pool: CurveInfo;
 }
 
-export interface BalancerBatchSwapStep {
+interface BalancerBatchSwapStep {
     poolId: string;
     assetInIndex: number;
     assetOutIndex: number;
@@ -179,7 +179,7 @@ export interface MultiHopFillData extends FillData {
     intermediateToken: string;
 }
 
-export interface MakerPsmExtendedData {
+interface MakerPsmExtendedData {
     isSellOperation: boolean;
     takerToken: string;
 }
@@ -236,7 +236,7 @@ export interface AaveV2FillData extends FillData {
     takerToken: string;
 }
 
-export interface AaveV3L2EncodedParameter {
+interface AaveV3L2EncodedParameter {
     inputAmount: BigNumber;
     l2Parameter: string;
 }

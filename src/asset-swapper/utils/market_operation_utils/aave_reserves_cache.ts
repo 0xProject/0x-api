@@ -45,7 +45,7 @@ const AAVE_V3_RESERVES_GQL_QUERY = gql`
     }
 `;
 
-export interface AaveV2Reserve {
+interface AaveV2Reserve {
     id: string;
     underlyingAsset: string;
     aToken: {
@@ -57,7 +57,7 @@ export interface AaveV2Reserve {
     };
 }
 
-export interface AaveV3Reserve {
+interface AaveV3Reserve {
     id: string;
     underlyingAsset: string;
     aToken: {
