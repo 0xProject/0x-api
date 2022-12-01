@@ -78,7 +78,6 @@ import { SlippageModelFillAdjustor } from '../utils/slippage_model_fill_adjustor
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
 
-
 const PRICE_IMPACT_TOO_HIGH = new Counter({
     name: 'price_impact_too_high',
     help: 'estimated price impact is too high',

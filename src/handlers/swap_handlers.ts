@@ -469,8 +469,8 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
                     code: ValidationErrorCodes.ValueOutOfRange,
                     reason: ValidationErrorReasons.PercentageOutOfRange,
                     description: 'priceImpactProtectionPercentage should be between 0 and 1.0',
-                }
-            ])
+                },
+            ]);
         }
     }
 
