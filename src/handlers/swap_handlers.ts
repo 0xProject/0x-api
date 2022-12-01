@@ -81,6 +81,11 @@ const HTTP_SWAP_REQUESTS = new Counter({
     labelNames: ['endpoint', 'chain_id', 'api_key', 'integrator_id'],
 });
 
+const PRICE_IMPACT_PROTECTION_SPECIFIED = new Counter({
+    name: 'price_impact_protection_specified',
+    help: 'price impact protection was specified by client',
+});
+
 export class SwapHandlers {
     private readonly _swapService: ISwapService;
     public static root(_req: express.Request, res: express.Response): void {
@@ -452,10 +457,22 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
             },
         ]);
     }
-    const priceImpactProtectionPercentage =
-        req.query.priceImpactProtectionPercentage === undefined
-            ? DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE
-            : Number.parseFloat(req.query.priceImpactProtectionPercentage as string);
+
+    let priceImpactProtectionPercentage = DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE;
+    if (req.query.priceImpactProtectionPercentage !== undefined) {
+        PRICE_IMPACT_PROTECTION_SPECIFIED.inc();
+        priceImpactProtectionPercentage = Number.parseFloat(req.query.priceImpactProtectionPercentage as string);
+        if (priceImpactProtectionPercentage > 1) {
+            throw new ValidationError([
+                {
+                    field: 'priceImpactProtectionPercentage',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: ValidationErrorReasons.PercentageOutOfRange,
+                    description: 'priceImpactProtectionPercentage should be between 0 and 1.0',
+                }
+            ])
+        }
+    }
 
     // Parse sources
     const { excludedSources, includedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(

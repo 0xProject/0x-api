@@ -7,6 +7,7 @@ import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
 import axios from 'axios';
 import { SupportedProvider } from 'ethereum-types';
 import * as _ from 'lodash';
+import { Counter } from 'prom-client';
 
 import {
     AffiliateFeeAmount,
@@ -76,6 +77,12 @@ import { serviceUtils, getBuyTokenPercentageFeeOrZero } from '../utils/service_u
 import { SlippageModelFillAdjustor } from '../utils/slippage_model_fill_adjustor';
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
+
+
+const PRICE_IMPACT_TOO_HIGH = new Counter({
+    name: 'price_impact_too_high',
+    help: 'estimated price impact is too high',
+});
 
 export class SwapService implements ISwapService {
     private readonly _provider: SupportedProvider;
@@ -495,11 +502,13 @@ export class SwapService implements ISwapService {
             apiSwapQuote.estimatedPriceImpact &&
             apiSwapQuote.estimatedPriceImpact.gt(priceImpactProtectionPercentage)
         ) {
+            PRICE_IMPACT_TOO_HIGH.inc();
             throw new ValidationError([
                 {
                     field: 'priceImpactProtectionPercentage',
                     code: ValidationErrorCodes.ValueOutOfRange,
                     reason: ValidationErrorReasons.PriceImpactTooHigh,
+                    description: `estimated price impact of ${apiSwapQuote.estimatedPriceImpact} is greater than priceImpactProtectionPercentage ${priceImpactProtectionPercentage}`,
                 },
             ]);
         }
