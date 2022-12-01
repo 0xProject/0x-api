@@ -394,7 +394,12 @@ export const FEE_QUOTE_SOURCES_BY_CHAIN_ID = valueByChainId<ERC20BridgeSource[]>
     [],
 );
 
-// HACK(mzhu25): Limit, Rfq, and Otc orders need to be treated as different sources
+/**
+ * Sources to poll for ETH fee price estimates.
+ */
+ 
+
+// HACK(mzhu25): Limit and RFQ orders need to be treated as different sources
 //               when computing the exchange proxy gas overhead.
 export const SOURCE_FLAGS: { [key in ERC20BridgeSource]: bigint } & {
     RfqOrder: bigint;
@@ -1115,6 +1120,13 @@ export const NATIVE_FEE_TOKEN_AMOUNT_BY_CHAIN_ID = valueByChainId(
         [ChainId.Arbitrum]: ONE_ETHER.times(0.1),
     },
     ONE_ETHER,
+);
+
+export const RFQT_MUTIHOP_INTERMEDIATE_TOKENS_BY_CHAIN_ID = valueByChainId<string[]>(
+    {
+        [ChainId.Mainnet]: [MAINNET_TOKENS.WETH, MAINNET_TOKENS.DAI, MAINNET_TOKENS.BUSD, MAINNET_TOKENS.WBTC, MAINNET_TOKENS.USDC, MAINNET_TOKENS.USDT]
+    },
+    [],
 );
 
 // Order dependent

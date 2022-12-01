@@ -64,6 +64,22 @@ interface IExchange {
         uint256 salt;
     }
 
+    /// @dev A standard OTC order
+    struct OtcOrder{
+        IERC20TokenV06 makerToken;
+        IERC20TokenV06 takerToken;
+        uint128 makerAmount;
+        uint128 takerAmount;
+        uint128 takerTokenFeeAmount;
+        address maker;
+        address taker;
+        address sender;
+        address feeRecipient;
+        bytes32 pool;
+        uint64 expiry;
+        uint256 salt;
+    }
+
     /// @dev Info on a limit or RFQ order.
     struct OrderInfo {
         bytes32 orderHash;
@@ -106,6 +122,19 @@ interface IExchange {
     /// @return isSignatureValid Whether the signature is valid.
     function getLimitOrderRelevantState(
         LimitOrder memory order,
+        Signature calldata signature
+    ) external view returns (OrderInfo memory orderInfo, uint128 actualFillableTakerTokenAmount, bool isSignatureValid);
+
+    /// @dev Get order info, fillable amount, and signature validity for a limit order.
+    ///      Fillable amount is determined using balances and allowances of the maker.
+    /// @param order The limit order.
+    /// @param signature The order signature.
+    /// @return orderInfo Info about the order.
+    /// @return actualFillableTakerTokenAmount How much of the order is fillable
+    ///         based on maker funds, in taker tokens.
+    /// @return isSignatureValid Whether the signature is valid.
+    function getOtcOrderRelevantState(
+        OtcOrder memory order,
         Signature calldata signature
     ) external view returns (OrderInfo memory orderInfo, uint128 actualFillableTakerTokenAmount, bool isSignatureValid);
 }
@@ -198,4 +227,79 @@ contract NativeOrderSampler {
 
         fillableTakerAmount = uint256(remainingFillableTakerAmount);
     }
+
+    function getOtcOrderFillableTakerAssetAmounts(
+        IExchange.OtcOrder[] memory orders,
+        IExchange.Signature[] memory orderSignatures,
+        IExchange exchange
+    ) public view returns (uint256[] memory orderFillableTakerAssetAmounts) {
+        orderFillableTakerAssetAmounts = new uint256[](orders.length);
+        for (uint256 i = 0; i != orders.length; i++) {
+            try
+                this.getOtcOrderFillableTakerAmount{gas: DEFAULT_CALL_GAS}(orders[i], orderSignatures[i], exchange)
+            returns (uint256 amount) {
+                orderFillableTakerAssetAmounts[i] = amount;
+            } catch (bytes memory) {
+                // Swallow failures, leaving all results as zero.
+                orderFillableTakerAssetAmounts[i] = 0;
+            }
+        }
+    }
+
+    /// @dev Queries the fillable taker asset amounts of native orders.
+    ///      Effectively ignores orders that have empty signatures or
+    /// @param orders Native orders to query.
+    /// @param orderSignatures Signatures for each respective order in `orders`.
+    /// @param exchange The V4 exchange.
+    /// @return orderFillableMakerAssetAmounts How much maker asset can be filled
+    ///         by each order in `orders`.
+    function getOtcOrderFillableMakerAssetAmounts(
+        IExchange.OtcOrder[] memory orders,
+        IExchange.Signature[] memory orderSignatures,
+        IExchange exchange
+    ) public view returns (uint256[] memory orderFillableMakerAssetAmounts) {
+        orderFillableMakerAssetAmounts = getOtcOrderFillableTakerAssetAmounts(orders, orderSignatures, exchange);
+        // `orderFillableMakerAssetAmounts` now holds taker asset amounts, so
+        // convert them to maker asset amounts.
+        for (uint256 i = 0; i < orders.length; ++i) {
+            if (orderFillableMakerAssetAmounts[i] != 0) {
+                orderFillableMakerAssetAmounts[i] = LibMathV06.getPartialAmountCeil(
+                    orderFillableMakerAssetAmounts[i],
+                    orders[i].takerAmount,
+                    orders[i].makerAmount
+                );
+            }
+        }
+    }
+
+    /// @dev Get the fillable taker amount of an order, taking into account
+    ///      order state, maker fees, and maker balances.
+    function getOtcOrderFillableTakerAmount(
+        IExchange.OtcOrder memory order,
+        IExchange.Signature memory signature,
+        IExchange exchange
+    ) public view virtual returns (uint256 fillableTakerAmount) {
+        if (
+            signature.signatureType == IExchange.SignatureType.ILLEGAL ||
+            signature.signatureType == IExchange.SignatureType.INVALID ||
+            order.makerAmount == 0 ||
+            order.takerAmount == 0
+        ) {
+            return 0;
+        }
+
+        (IExchange.OrderInfo memory orderInfo, uint128 remainingFillableTakerAmount, bool isSignatureValid) = exchange
+            .getOtcOrderRelevantState(order, signature);
+
+        if (
+            orderInfo.status != IExchange.OrderStatus.FILLABLE ||
+            !isSignatureValid ||
+            order.makerToken == IERC20TokenV06(0)
+        ) {
+            return 0;
+        }
+
+        fillableTakerAmount = uint256(remainingFillableTakerAmount);
+    }
+
 }

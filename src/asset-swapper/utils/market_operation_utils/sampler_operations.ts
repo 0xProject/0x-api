@@ -1,5 +1,5 @@
 import { ChainId } from '@0x/contract-addresses';
-import { LimitOrderFields } from '@0x/protocol-utils';
+import { LimitOrderFields, OtcOrderFields } from '@0x/protocol-utils';
 import { BigNumber, logUtils } from '@0x/utils';
 import { formatBytes32String } from '@ethersproject/strings';
 import * as _ from 'lodash';
@@ -253,6 +253,45 @@ export class SamplerOperations {
             contract: this._samplerContract,
             function: this._samplerContract.getLimitOrderFillableMakerAssetAmounts,
             params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
+        });
+    }
+
+    public getOtcOrderFillableTakerAmounts(
+        orders: SignedNativeOrder[],
+        exchangeAddress: string,
+    ): BatchedOperation<BigNumber[]> {
+        // Skip checking empty or invalid orders on-chain, returning a constant
+        if (orders.length === 0) {
+            return SamplerOperations.constant<BigNumber[]>([]);
+        }
+        if (orders.length === 1 && orders[0].order.maker === NULL_ADDRESS) {
+            return SamplerOperations.constant<BigNumber[]>([ZERO_AMOUNT]);
+        }
+        return new SamplerContractOperation({
+            source: ERC20BridgeSource.Native,
+            contract: this._samplerContract,
+            function: this._samplerContract.getOtcOrderFillableTakerAssetAmounts,
+            params: [orders.map((o) => o.order as OtcOrderFields), orders.map((o) => o.signature), exchangeAddress],
+        });
+    }
+
+    public getOtcOrderFillableMakerAmounts(
+        orders: SignedNativeOrder[],
+        exchangeAddress: string,
+    ): BatchedOperation<BigNumber[]> {
+        // Skip checking empty or invalid orders on-chain, returning a constant
+        if (orders.length === 0) {
+            return SamplerOperations.constant<BigNumber[]>([]);
+        }
+        if (orders.length === 1 && orders[0].order.maker === NULL_ADDRESS) {
+            return SamplerOperations.constant<BigNumber[]>([ZERO_AMOUNT]);
+        }
+
+        return new SamplerContractOperation({
+            source: ERC20BridgeSource.Native,
+            contract: this._samplerContract,
+            function: this._samplerContract.getOtcOrderFillableMakerAssetAmounts,
+            params: [orders.map((o) => o.order as OtcOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
 

@@ -1,10 +1,11 @@
-import { FillQuoteTransformerOrderType, RfqOrder } from '@0x/protocol-utils';
+import { ethSignHashWithKey, FillQuoteTransformerOrderType, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as _ from 'lodash';
 import { Counter } from 'prom-client';
 
 import { SAMPLER_METRICS } from '../../../utils/sampler_metrics';
 import { DEFAULT_INFO_LOGGER, INVALID_SIGNATURE } from '../../constants';
+import {RFQT_MUTIHOP_INTERMEDIATE_TOKENS_BY_CHAIN_ID} from './constants';
 import {
     AltRfqMakerAssetOfferings,
     AssetSwapperContractAddresses,
@@ -161,6 +162,7 @@ export class MarketOperationUtils {
             this._sampler.getTokenDecimals([makerToken, takerToken]),
             // Get native order fillable amounts.
             this._sampler.getLimitOrderFillableTakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
+            //this._sampler.getOtcOrderFillableTakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> maker token price.
             this._sampler.getBestNativeTokenSellRate(
                 feeSourceFilters.sources,
@@ -533,6 +535,19 @@ export class MarketOperationUtils {
                     const offering = getAltMarketInfo(rfqt.altRfqAssetOfferings[endpoint], makerToken, takerToken);
                     if (offering) {
                         filteredOfferings[endpoint] = [offering];
+                    }
+                    else{
+                        //quote other intermediate tokens if the token pair is not supported
+
+                        //check against
+                        //eth, btc, usdc, usdt, dai, busd
+                        RFQT_MUTIHOP_INTERMEDIATE_TOKENS_BY_CHAIN_ID[this._sampler.chainId].map( (intermediateToken) => {
+                            const offeringToFromMaker = getAltMarketInfo(rfqt.altRfqAssetOfferings![endpoint], makerToken, intermediateToken);
+                            const offeringToFromTaker = getAltMarketInfo(rfqt.altRfqAssetOfferings![endpoint], intermediateToken, takerToken);
+                            if (offeringToFromMaker) {
+                                filteredOfferings[endpoint] = [offeringToFromMaker!];
+                            }
+                        })
                     }
                 }
             }

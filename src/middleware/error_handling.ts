@@ -1,5 +1,5 @@
 import { APIBaseError, BadRequestError, ErrorUtils as BaseErrorUtils, isAPIError } from '@0x/api-utils';
-import { StatusCodes } from 'http-status-codes';
+import { getStatusCode } from 'http-status-codes';
 
 import { APIErrorCodes, apiErrorCodesToReasons } from '../errors';
 
