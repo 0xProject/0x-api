@@ -105,29 +105,15 @@
     js-sha3 "^0.7.0"
     uuid "^3.3.2"
 
-"@0x/contract-addresses@^6.11.0", "@0x/contract-addresses@^6.6.0":
-  version "6.11.0"
-  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.11.0.tgz#31f743c06aeefc8e61327017f9186ffb11cc23f1"
-
-"@0x/contract-addresses@^6.20.1":
-  version "6.20.1"
-  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.20.1.tgz#1f1cb86d7fde775e04ca679f1af92a462f15ab57"
-  integrity sha512-74YSA7UrM8kaC4GysaL+GPPwVsJRSOW8bGorZvglDrtx6Rid9Xv681pAqhKaPxXh/C5HTgYa1mpLgdnhS8zkxw==
-
-"@0x/contract-addresses@^6.22.0":
+"@0x/contract-addresses@^6.11.0", "@0x/contract-addresses@^6.20.1", "@0x/contract-addresses@^6.22.0", "@0x/contract-addresses@^6.6.0":
   version "6.22.0"
   resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-6.22.0.tgz#435fe031f1c225c515a56fa65947517a4b606053"
   integrity sha512-A/MlnKFj67t2W10EF8pyMkmKMfqKG5MKGnU5R6ahHJN11y7i9HLDewPHfpG+6oaDip6Kn8ihWx3VN5C9gCDHHw==
 
-"@0x/contract-addresses@^7.3.0":
-  version "7.3.0"
-  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-7.3.0.tgz#9ed35d381b5d1bd95072c1808c298d5bbc8a92a9"
-  integrity sha512-5bR+FQyva7ZFYmRdfpv8sXJCCmiAxMaxQnKTJqGjHFuW2hzdjmvJZ1Es5sncK3To532cAgj8Rne+pVQqAFvuBg==
-
-"@0x/contract-addresses@^7.4.0":
-  version "7.4.0"
-  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-7.4.0.tgz#ae8e34ada258e4a0611a46ba733957f2599206fd"
-  integrity sha512-8IE9YefeLSuHu8zFn+jN+R/lXFbJ63QMAE/dYSGbOfruvmqBx3u1S9d/OcIrq/HoxNcoDIiFVQGFZxXKBay+Iw==
+"@0x/contract-addresses@^7.3.0", "@0x/contract-addresses@^7.4.1":
+  version "7.4.1"
+  resolved "https://registry.yarnpkg.com/@0x/contract-addresses/-/contract-addresses-7.4.1.tgz#7ff613cc9019747744665b36d351be59481de53b"
+  integrity sha512-Wl4zVKLJgWxYWDidYSYYXenAHiRAso3WkXCqDpz2fzSgWTWOMEG/F0s0KxGxzDOmOBVNyFT4dQJpmWv/8mD24Q==
 
 "@0x/contract-wrappers@^13.17.4", "@0x/contract-wrappers@^13.18.5":
   version "13.18.5"
