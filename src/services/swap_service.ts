@@ -80,7 +80,8 @@ import { utils } from '../utils/utils';
 
 const PRICE_IMPACT_TOO_HIGH = new Counter({
     name: 'price_impact_too_high',
-    help: 'estimated price impact is too high',
+    help: 'The number of price impact events',
+    labelNames: ['reason'],
 });
 
 export class SwapService implements ISwapService {
@@ -501,7 +502,7 @@ export class SwapService implements ISwapService {
             apiSwapQuote.estimatedPriceImpact &&
             apiSwapQuote.estimatedPriceImpact.gt(priceImpactProtectionPercentage)
         ) {
-            PRICE_IMPACT_TOO_HIGH.inc();
+            PRICE_IMPACT_TOO_HIGH.labels('ValueOutOfRange').inc();
             throw new ValidationError([
                 {
                     field: 'priceImpactProtectionPercentage',
