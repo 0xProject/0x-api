@@ -3,7 +3,6 @@ import { BlockParam, ContractAddresses, GethCallOverrides } from '@0x/contract-w
 import {
     FillQuoteTransformerOrderType,
     LimitOrderFields,
-    OtcOrder,
     OtcOrderFields,
     RfqOrder,
     RfqOrderFields,
@@ -460,39 +459,6 @@ export interface SamplerCallResult {
 }
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
-
-export interface RfqtV2Request {
-    assetFillAmount: BigNumber;
-    chainId: number;
-    integratorId: string;
-    intentOnFilling: boolean;
-    makerToken: string;
-    marketOperation: 'Sell' | 'Buy';
-    takerAddress: string;
-    takerToken: string;
-    txOrigin: string;
-}
-
-export type RfqtV2Price = {
-    expiry: BigNumber;
-    makerAddress: string;
-    makerAmount: BigNumber;
-    makerId: string;
-    makerToken: string;
-    makerUri: string;
-    takerAmount: BigNumber;
-    takerToken: string;
-};
-
-export type RfqtV2Quote = {
-    fillableMakerAmount: BigNumber;
-    fillableTakerAmount: BigNumber;
-    fillableTakerFeeAmount: BigNumber;
-    makerId: string;
-    makerUri: string;
-    order: OtcOrder;
-    signature: Signature;
-};
 
 export interface RfqClientV1PriceRequest {
     altRfqAssetOfferings: AltRfqMakerAssetOfferings | undefined;
