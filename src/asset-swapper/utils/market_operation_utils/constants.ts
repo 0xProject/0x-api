@@ -2641,7 +2641,7 @@ const uniswapV2CloneGasSchedule = (fillData?: FillData) => {
  * I.e remove the overhead cost of ExchangeProxy (130k) and
  * the ethereum transaction cost (21k)
  */
-export const DEFAULT_GAS_SCHEDULE: Required<GasSchedule> = {
+export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     [ERC20BridgeSource.Native]: (fillData) => {
         // TODO jacob re-order imports so there is no circular rependency with SignedNativeOrder
         const nativeFillData = fillData as { type: FillQuoteTransformerOrderType };

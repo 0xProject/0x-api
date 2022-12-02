@@ -544,7 +544,7 @@ export type FeeEstimate = (fillData: FillData) => { gas: number; fee: BigNumber 
 export type FeeSchedule = Partial<{ [key in ERC20BridgeSource]: FeeEstimate }>;
 
 type GasEstimate = (fillData: FillData) => number;
-export type GasSchedule = Partial<{ [key in ERC20BridgeSource]: GasEstimate }>;
+export type GasSchedule = Record<ERC20BridgeSource, GasEstimate>;
 
 /**
  * Represents a node on a fill path.
