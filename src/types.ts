@@ -18,6 +18,8 @@ import {
     SupportedProvider,
 } from './asset-swapper';
 
+export type Address = string;
+
 export interface PaginatedCollection<T> {
     total: number;
     page: number;

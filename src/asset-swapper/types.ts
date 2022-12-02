@@ -12,17 +12,13 @@ import {
 import { TakerRequestQueryParamsUnnested } from '@0x/quote-server';
 import { Fee } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
-import { RfqClient } from '../utils/rfq_client';
-import { QuoteRequestor } from './utils/quote_requestor';
 import {
     FillQuoteTransformerRfqOrderInfo,
     FillQuoteTransformerLimitOrderInfo,
     FillQuoteTransformerOtcOrderInfo,
 } from '@0x/protocol-utils';
-
-import { TokenAdjacencyGraph } from './utils/token_adjacency_graph';
-
-export type Address = string;
+import { RfqClient } from '../utils/rfq_client';
+import { QuoteRequestor } from './utils/quote_requestor';
 
 export interface QuoteReport {
     sourcesConsidered: QuoteReportEntry[];
