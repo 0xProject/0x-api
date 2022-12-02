@@ -637,9 +637,8 @@ export interface GetMarketOrdersOpts {
      */
     feeSchedule: FeeSchedule;
     /**
-     * Estimated gas consumed by each liquidity source.
+     * Exchange proxy gas overhead based on source flag.
      */
-    gasSchedule: GasSchedule;
     exchangeProxyOverhead: ExchangeProxyOverhead;
     /**
      * Whether to pad the quote with a redundant fallback quote using different

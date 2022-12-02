@@ -2909,7 +2909,6 @@ export const DEFAULT_GET_MARKET_ORDERS_OPTS: Omit<GetMarketOrdersOpts, 'gasPrice
     numSamples: 13,
     sampleDistributionBase: 1,
     feeSchedule: DEFAULT_FEE_SCHEDULE,
-    gasSchedule: DEFAULT_GAS_SCHEDULE,
     exchangeProxyOverhead: () => ZERO_AMOUNT,
     allowFallback: true,
     shouldGenerateQuoteReport: true,
