@@ -14,6 +14,8 @@ import {
     SignedNativeOrder,
     ERC20BridgeSource,
     GetMarketOrdersOpts,
+    RfqtV2Price,
+    RfqtV2Quote,
 } from '../../types';
 import { getAltMarketInfo } from '../alt_mm_implementation_utils';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from '../quote_requestor';
@@ -56,6 +58,7 @@ import {
     OptimizerResult,
     OptimizerResultWithReport,
 } from './types';
+import { f } from 'msw/lib/glossary-297d38ba';
 
 const NO_CONVERSION_TO_NATIVE_FOUND = new Counter({
     name: 'no_conversion_to_native_found',
@@ -536,25 +539,13 @@ export class MarketOperationUtils {
                     if (offering) {
                         filteredOfferings[endpoint] = [offering];
                     }
-                    else{
-                        //quote other intermediate tokens if the token pair is not supported
-
-                        //check against
-                        //eth, btc, usdc, usdt, dai, busd
-                        RFQT_MUTIHOP_INTERMEDIATE_TOKENS_BY_CHAIN_ID[this._sampler.chainId].map( (intermediateToken) => {
-                            const offeringToFromMaker = getAltMarketInfo(rfqt.altRfqAssetOfferings![endpoint], makerToken, intermediateToken);
-                            const offeringToFromTaker = getAltMarketInfo(rfqt.altRfqAssetOfferings![endpoint], intermediateToken, takerToken);
-                            if (offeringToFromMaker) {
-                                filteredOfferings[endpoint] = [offeringToFromMaker!];
-                            }
-                        })
-                    }
                 }
             }
 
             if (rfqt.isIndicative) {
                 // An indicative quote is being requested, and indicative quotes price-aware enabled
                 // Make the RFQT request and then re-run the sampler if new orders come back.
+                
 
                 const [v1Prices, v2Prices] =
                     rfqt.rfqClient === undefined
@@ -623,10 +614,51 @@ export class MarketOperationUtils {
                     );
                 }
             } else {
+                const rfqtV2MultihopPrices: RfqtV2Quote[][] = RFQT_MUTIHOP_INTERMEDIATE_TOKENS_BY_CHAIN_ID[this._sampler.chainId].map((intermediateToken) => {
+                    let prices: RfqtV2Quote[]  = [];
+                    rfqt.rfqClient?.getV2QuotesAsync({
+                        assetFillAmount: amount,
+                        chainId: this._sampler.chainId,
+                        integratorId: rfqt.integrator.integratorId,
+                        intentOnFilling: rfqt.intentOnFilling,
+                        makerToken,
+                        marketOperation: side,
+                        takerAddress: rfqt.takerAddress,
+                        takerToken: intermediateToken,
+                        txOrigin: rfqt.txOrigin,
+                    })!.then(
+                        (res: RfqtV2Quote[]) => {
+                            res.forEach((quote) => {
+                                prices.push(quote);
+                            })
+                        }
+                    );
+                    rfqt.rfqClient?.getV2QuotesAsync({
+                        assetFillAmount: amount,
+                        chainId: this._sampler.chainId,
+                        integratorId: rfqt.integrator.integratorId,
+                        intentOnFilling: rfqt.intentOnFilling,
+                        makerToken: intermediateToken,
+                        marketOperation: side,
+                        takerAddress: rfqt.takerAddress,
+                        takerToken,
+                        txOrigin: rfqt.txOrigin,
+                    })!.then(
+                        (res: RfqtV2Quote[]) => {
+                            res.map((quote) => {
+                                prices.push(quote);
+                            })
+                            
+                        }
+                    );
+                    return prices;
+
+                })
+
                 // A firm quote is being requested, and firm quotes price-aware enabled.
                 // Ensure that `intentOnFilling` is enabled and make the request.
 
-                const [v1Quotes, v2Quotes] =
+                const [v1Quotes, v2Quotes, v2MultihopQuotes] =
                     rfqt.rfqClient === undefined
                         ? [[], []]
                         : await Promise.all([
@@ -656,6 +688,7 @@ export class MarketOperationUtils {
                                   takerToken,
                                   txOrigin: rfqt.txOrigin,
                               }),
+                              rfqtV2MultihopPrices
                           ]);
 
                 DEFAULT_INFO_LOGGER({ v2Quotes, isEmpty: v2Quotes?.length === 0 }, 'v2Quotes from RFQ Client');
@@ -671,6 +704,24 @@ export class MarketOperationUtils {
                     rfqt.quoteRequestor?.setMakerUriForSignature(quote.signature, quote.makerUri);
                     return toSignedNativeOrderWithFillableAmounts(quote);
                 });
+
+                let rfqtMultiHopFillableAmounts: NativeOrderWithFillableAmounts[] = [];
+                const v2MultiHopQuotesWithOrderFillableAmounts = v2MultihopQuotes!.map((quotePair) => {
+                    if(quotePair.length == 2){ 
+                        console.log(toSignedNativeOrderWithFillableAmounts(quotePair[0]));    
+                        console.log(toSignedNativeOrderWithFillableAmounts(quotePair[1]));
+                        rfqt.quoteRequestor?.setMakerUriForSignature(quotePair[0].signature, quotePair[0].makerUri);
+                        rfqt.quoteRequestor?.setMakerUriForSignature(quotePair[1].signature, quotePair[1].makerUri);
+                        rfqtMultiHopFillableAmounts.push(toSignedNativeOrderWithFillableAmounts(quotePair[0]));
+                        rfqtMultiHopFillableAmounts.push(toSignedNativeOrderWithFillableAmounts(quotePair[1]));
+                    }
+                    // HACK: set the signature on quoteRequestor for future lookup (i.e. in Quote Report)
+
+                    return rfqtMultiHopFillableAmounts;
+                });
+                rfqtV2MultihopPrices.map((twoLegQuote) => {
+                    console.log("MULTIHOP" + twoLegQuote);
+                })
 
                 const deltaTime = new Date().getTime() - timeStart;
                 DEFAULT_INFO_LOGGER({
@@ -700,11 +751,33 @@ export class MarketOperationUtils {
                             fillableTakerFeeAmount: ZERO_AMOUNT,
                         }),
                     );
+                    
+
+                    let conjoinedNativeOrderWithFillableAmounts: NativeOrderWithFillableAmounts;
+                    let conjoinedNativeOrdersWithFillableAmounts: NativeOrderWithFillableAmounts[] = [];
+                    //manipulate an existing rfqtMultihop trade to appear as takerToken->makerToken instead of takerToken->intermediateToken->makerToken
+                    let i = 0;
+                    const conjoinedRfqtMultiHop = v2MultiHopQuotesWithOrderFillableAmounts.map( (multiHop,index) => {
+                        if(multiHop.length >= 2 && i < multiHop.length && multiHop.length <= 10){
+                            conjoinedNativeOrderWithFillableAmounts = {
+                                fillableTakerAmount : multiHop[i].fillableTakerAmount,
+                                fillableTakerFeeAmount : new BigNumber(0),
+                                type : 3,
+                                fillableMakerAmount: multiHop[i + 1].fillableTakerAmount,
+                            } as NativeOrderWithFillableAmounts;
+                            conjoinedNativeOrdersWithFillableAmounts[index] = conjoinedNativeOrderWithFillableAmounts;
+                            i += 2;
+                            return conjoinedNativeOrdersWithFillableAmounts;
+                        }
+                        return [];                        
+                    }).filter((value) => value !== undefined);
 
                     const quotesWithOrderFillableAmounts = [
                         ...v1QuotesWithOrderFillableAmounts,
                         ...v2QuotesWithOrderFillableAmounts,
-                    ];
+                        
+                    ].concat(...conjoinedRfqtMultiHop);
+                    
 
                     // Attach the firm RFQt quotes to the market side liquidity
                     marketSideLiquidity.quotes.nativeOrders = [

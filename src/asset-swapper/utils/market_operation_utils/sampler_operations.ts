@@ -1,5 +1,5 @@
 import { ChainId } from '@0x/contract-addresses';
-import { LimitOrderFields, OtcOrderFields } from '@0x/protocol-utils';
+import { CommonOrderFields, LimitOrderFields, OtcOrderFields } from '@0x/protocol-utils';
 import { BigNumber, logUtils } from '@0x/utils';
 import { formatBytes32String } from '@ethersproject/strings';
 import * as _ from 'lodash';
@@ -271,7 +271,7 @@ export class SamplerOperations {
             source: ERC20BridgeSource.Native,
             contract: this._samplerContract,
             function: this._samplerContract.getOtcOrderFillableTakerAssetAmounts,
-            params: [orders.map((o) => o.order as OtcOrderFields), orders.map((o) => o.signature), exchangeAddress],
+            params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
 
@@ -291,7 +291,7 @@ export class SamplerOperations {
             source: ERC20BridgeSource.Native,
             contract: this._samplerContract,
             function: this._samplerContract.getOtcOrderFillableMakerAssetAmounts,
-            params: [orders.map((o) => o.order as OtcOrderFields), orders.map((o) => o.signature), exchangeAddress],
+            params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
 
