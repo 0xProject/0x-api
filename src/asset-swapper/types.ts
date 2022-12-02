@@ -750,3 +750,19 @@ export type OptimizedMarketOrder =
     | OptimizedMarketOrderBase<NativeLimitOrderFillData>
     | OptimizedMarketOrderBase<NativeRfqOrderFillData>
     | OptimizedMarketOrderBase<NativeOtcOrderFillData>;
+
+export abstract class Orderbook {
+    public abstract getOrdersAsync(
+        makerToken: string,
+        takerToken: string,
+        pruneFn?: (o: SignedNativeOrder) => boolean,
+    ): Promise<SignedNativeOrder[]>;
+    public abstract getBatchOrdersAsync(
+        makerTokens: string[],
+        takerToken: string,
+        pruneFn?: (o: SignedNativeOrder) => boolean,
+    ): Promise<SignedNativeOrder[][]>;
+    public async destroyAsync(): Promise<void> {
+        return;
+    }
+}

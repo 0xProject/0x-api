@@ -13,7 +13,7 @@ export {
 export { BlockParamLiteral, SupportedProvider } from 'ethereum-types';
 export { artifacts } from '../artifacts';
 export { SwapQuoteConsumer } from './quote_consumers/swap_quote_consumer';
-export { SwapQuoter, Orderbook } from './swap_quoter';
+export { SwapQuoter } from './swap_quoter';
 export {
     AffiliateFeeAmount,
     AffiliateFeeType,
@@ -41,6 +41,7 @@ export {
     RfqClientV1Quote,
     RfqClientV1QuoteRequest,
     RfqClientV1QuoteResponse,
+    Orderbook,
 } from './types';
 export {
     DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
