@@ -20,10 +20,84 @@ import {
     FillQuoteTransformerOtcOrderInfo,
 } from '@0x/protocol-utils';
 
-import { ExtendedQuoteReportSources, PriceComparisonsReport, QuoteReport } from './utils/quote_report_generator';
 import { TokenAdjacencyGraph } from './utils/token_adjacency_graph';
 
 export type Address = string;
+
+export interface QuoteReport {
+    sourcesConsidered: QuoteReportEntry[];
+    sourcesDelivered: QuoteReportEntry[];
+}
+
+export interface PriceComparisonsReport {
+    dexSources: BridgeQuoteReportEntry[];
+    multiHopSources: MultiHopQuoteReportEntry[];
+    nativeSources: (NativeLimitOrderQuoteReportEntry | NativeRfqOrderQuoteReportEntry)[];
+}
+
+export interface IndicativeRfqOrderQuoteReportEntry extends QuoteReportEntryBase {
+    liquiditySource: ERC20BridgeSource.Native;
+    fillableTakerAmount: BigNumber;
+    isRFQ: true;
+    makerUri?: string;
+    comparisonPrice?: number;
+}
+
+export interface NativeRfqOrderQuoteReportEntry extends QuoteReportEntryBase {
+    liquiditySource: ERC20BridgeSource.Native;
+    fillData: NativeFillData;
+    fillableTakerAmount: BigNumber;
+    isRFQ: true;
+    nativeOrder: RfqOrderFields;
+    makerUri: string;
+    comparisonPrice?: number;
+}
+
+export interface NativeLimitOrderQuoteReportEntry extends QuoteReportEntryBase {
+    liquiditySource: ERC20BridgeSource.Native;
+    fillData: NativeFillData;
+    fillableTakerAmount: BigNumber;
+    isRFQ: false;
+}
+
+export interface MultiHopQuoteReportEntry extends QuoteReportEntryBase {
+    liquiditySource: ERC20BridgeSource.MultiHop;
+    hopSources: ERC20BridgeSource[];
+}
+
+interface QuoteReportEntryBase {
+    liquiditySource: ERC20BridgeSource;
+    makerAmount: BigNumber;
+    takerAmount: BigNumber;
+    fillData: FillData;
+}
+
+export interface BridgeQuoteReportEntry extends QuoteReportEntryBase {
+    liquiditySource: Exclude<ERC20BridgeSource, ERC20BridgeSource.Native>;
+}
+
+export type QuoteReportEntry =
+    | BridgeQuoteReportEntry
+    | MultiHopQuoteReportEntry
+    | NativeLimitOrderQuoteReportEntry
+    | NativeRfqOrderQuoteReportEntry;
+
+export type ExtendedQuoteReportEntry =
+    | BridgeQuoteReportEntry
+    | MultiHopQuoteReportEntry
+    | NativeLimitOrderQuoteReportEntry
+    | NativeRfqOrderQuoteReportEntry
+    | IndicativeRfqOrderQuoteReportEntry;
+
+export type ExtendedQuoteReportIndexedEntry = ExtendedQuoteReportEntry & {
+    quoteEntryIndex: number;
+    isDelivered: boolean;
+};
+
+export interface ExtendedQuoteReportSources {
+    sourcesConsidered: ExtendedQuoteReportIndexedEntry[];
+    sourcesDelivered: ExtendedQuoteReportIndexedEntry[] | undefined;
+}
 
 /**
  * expiryBufferMs: The number of seconds to add when calculating whether an order is expired or not. Defaults to 300s (5m).
