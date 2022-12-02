@@ -53,18 +53,22 @@ export {
 } from './utils/market_operation_utils/constants';
 export { UniswapV2FillData } from './utils/market_operation_utils/types';
 
-export { ERC20BridgeSource, GasSchedule, Fill, FillAdjustor, FillData, GetMarketOrdersRfqOpts } from './types';
+export {
+    ERC20BridgeSource,
+    GasSchedule,
+    Fill,
+    FillAdjustor,
+    FillData,
+    GetMarketOrdersRfqOpts,
+    QuoteReport,
+    ExtendedQuoteReportSources,
+    PriceComparisonsReport,
+} from './types';
 
 export { TokenAdjacencyGraph } from './utils/token_adjacency_graph';
 export { IdentityFillAdjustor } from './utils/market_operation_utils/identity_fill_adjustor';
 export { GasPriceUtils } from './utils/gas_price_utils';
-export {
-    jsonifyFillData,
-    QuoteReport,
-    ExtendedQuoteReport,
-    ExtendedQuoteReportSources,
-    PriceComparisonsReport,
-} from './utils/quote_report_generator';
+export { jsonifyFillData, ExtendedQuoteReport } from './utils/quote_report_generator';
 export { QuoteRequestor } from './utils/quote_requestor';
 export { ERC20BridgeSamplerContract, BalanceCheckerContract, FakeTakerContract } from '../wrappers';
 

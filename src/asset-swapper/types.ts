@@ -19,6 +19,7 @@ import {
 } from '@0x/protocol-utils';
 import { RfqClient } from '../utils/rfq_client';
 import { QuoteRequestor } from './utils/quote_requestor';
+import { TokenAdjacencyGraph } from './utils/token_adjacency_graph';
 
 export interface QuoteReport {
     sourcesConsidered: QuoteReportEntry[];
