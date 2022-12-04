@@ -72,24 +72,26 @@ export class Path {
      * Finalizes this path, creating fillable orders with the information required
      * for settlement
      */
-    public finalize(opts: CreateOrderFromPathOpts): FinalizedPath {
-        const [makerToken, takerToken] = getMakerTakerTokens(opts);
+    public finalize(side: MarketOperation, inputToken: string, outputToken: string): FinalizedPath {
+        const [makerToken, takerToken] = getMakerTakerTokens(side, inputToken, outputToken);
         this.orders = [];
         for (const fill of this.fills) {
             // internal BigInt flag field is not supported JSON and is tricky
             // to remove upstream. Since it's not needed in a FinalizedPath we just drop it.
             const normalizedFill = _.omit(fill, 'flags') as Fill;
             if (fill.source === ERC20BridgeSource.Native) {
-                this.orders.push(createNativeOptimizedOrder(normalizedFill as Fill<NativeFillData>, opts.side));
+                this.orders.push(createNativeOptimizedOrder(normalizedFill as Fill<NativeFillData>, side));
             } else if (fill.source === ERC20BridgeSource.MultiHop) {
                 const [firstHopOrder, secondHopOrder] = createOrdersFromTwoHopSample(
                     normalizedFill as Fill<MultiHopFillData>,
-                    opts,
+                    side,
+                    inputToken,
+                    outputToken,
                 );
                 this.orders.push(firstHopOrder);
                 this.orders.push(secondHopOrder);
             } else {
-                this.orders.push(createBridgeOrder(normalizedFill, makerToken, takerToken, opts.side));
+                this.orders.push(createBridgeOrder(normalizedFill, makerToken, takerToken, side));
             }
         }
         return this as FinalizedPath;

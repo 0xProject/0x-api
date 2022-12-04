@@ -400,7 +400,7 @@ export class SwapQuoter {
 }
 
 // begin formatting and report generation functions
-function createSwapQuote(
+export function createSwapQuote(
     optimizerResult: OptimizerResultWithReport,
     makerToken: string,
     takerToken: string,

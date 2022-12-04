@@ -1,5 +1,5 @@
 import { WETH9Contract } from '@0x/contract-wrappers';
-import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
+import { ETH_TOKEN_ADDRESS, FillQuoteTransformerOrderType, RevertError, RfqOrder } from '@0x/protocol-utils';
 import { getTokenMetadataIfExists } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
@@ -34,13 +34,22 @@ import {
     SwapQuoterOpts,
     ZERO_AMOUNT,
 } from '../asset-swapper';
+import { INVALID_SIGNATURE } from '../asset-swapper/constants';
+import { ExchangeProxySwapQuoteConsumer } from '../asset-swapper/quote_consumers/exchange_proxy_swap_quote_consumer';
+import { createSwapQuote } from '../asset-swapper/swap_quoter';
+import { NativeOrderWithFillableAmounts } from '../asset-swapper/types';
+import { DEFAULT_GET_MARKET_ORDERS_OPTS } from '../asset-swapper/utils/market_operation_utils/constants';
+import { FinalizedPath, PathPenaltyOpts } from '../asset-swapper/utils/market_operation_utils/path';
+import { PathOptimizer } from '../asset-swapper/utils/market_operation_utils/path_optimizer';
 import { SourceFilters } from '../asset-swapper/utils/market_operation_utils/source_filters';
+import { AggregationError, FeeSchedule, RawQuotes } from '../asset-swapper/utils/market_operation_utils/types';
 import {
     ALT_RFQ_MM_API_KEY,
     ALT_RFQ_MM_ENDPOINT,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
     CHAIN_ID,
+    EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
     RFQT_REQUEST_MAX_RESPONSE_MS,
     SWAP_QUOTER_OPTS,
     UNWRAP_QUOTE_GAS,
@@ -58,7 +67,13 @@ import {
 } from '../constants';
 import { GasEstimationError, InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
-import { AffiliateFee, GetSwapQuoteParams, GetSwapQuoteResponse, SwapQuoteResponsePartialTransaction } from '../types';
+import {
+    AffiliateFee,
+    AffiliateFeeAmounts,
+    GetSwapQuoteParams,
+    GetSwapQuoteResponse,
+    SwapQuoteResponsePartialTransaction,
+} from '../types';
 import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
 import { PairsManager } from '../utils/pairs_manager';
 import { createResultCache } from '../utils/result_cache';
@@ -135,7 +150,7 @@ export class BasicSwapService {
     }
 
     private static _getSwapQuotePrice(
-        buyAmount: BigNumber | undefined,
+        side: MarketOperation,
         buyTokenDecimals: number,
         sellTokenDecimals: number,
         swapQuote: SwapQuote,
@@ -152,7 +167,7 @@ export class BasicSwapService {
             getBuyTokenPercentageFeeOrZero(affiliateFee),
         );
 
-        const isSelling = buyAmount === undefined;
+        const isSelling = side === MarketOperation.Sell;
         // NOTE: In order to not communicate a price better than the actual quote we
         // should make sure to always round towards a worse price
         const roundingStrategy = isSelling ? BigNumber.ROUND_FLOOR : BigNumber.ROUND_CEIL;
@@ -229,7 +244,6 @@ export class BasicSwapService {
 
     public async getQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
         const {
-            endpoint,
             takerAddress,
             sellAmount,
             buyAmount,
@@ -237,41 +251,41 @@ export class BasicSwapService {
             sellToken,
             slippagePercentage,
             gasPrice: providedGasPrice,
-            isMetaTransaction,
             isETHSell,
             isETHBuy,
             excludedSources,
             includedSources,
             integrator,
             rfqt,
-            affiliateAddress,
             affiliateFee,
-            includePriceComparisons,
-            skipValidation,
-            shouldSellEntireBalance,
             enableSlippageProtection,
         } = params;
         const side = sellAmount !== undefined ? MarketOperation.Sell : MarketOperation.Buy;
-        const requestedAmount = sellAmount !== undefined ? sellAmount : buyAmount;
-        if (requestedAmount === undefined) {
+        const inputAmount = sellAmount !== undefined ? sellAmount : buyAmount;
+        if (inputAmount === undefined) {
             // should be unreachable
             throw new Error('sellAmount or buyAmount must be defined');
         }
         const takerToken = sellToken;
         const makerToken = buyToken;
+        const [inputToken, outputToken] =
+            side === MarketOperation.Sell ? [takerToken, makerToken] : [makerToken, takerToken];
 
         const gasPrice = providedGasPrice || (await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync());
 
+        // feeSchedule is a mapping of sources to fee functions.
+        // Each fee function takes in fillData, and returns the expected gas used, and the fee in wei
+        // Notice that each function closes over the gasPrice
         const feeSchedule = _.mapValues(DEFAULT_GAS_SCHEDULE, (gasCost) => (fillData: FillData) => {
             const gas = gasCost ? gasCost(fillData) : 0;
             const fee = gasPrice.times(gas);
             return { gas, fee };
         });
 
-        // 1) Sample
+        /// Sample
         const marketLiquidity = await this._samplerService.getSamplesAsync({
             side,
-            requestedAmount,
+            inputAmount: inputAmount,
             makerToken,
             takerToken,
             feeSchedule,
@@ -282,144 +296,176 @@ export class BasicSwapService {
             txOrigin: takerAddress, // TODO verify if we want this
         });
 
-        // 2) Route
-        // 3) Calldata Generation
-        const apiSwapQuote: GetSwapQuoteResponse = {
+        /// Route
+        const finalizedPath = await this.routeSamplesAsync(
+            params,
+            marketLiquidity, // only need quotes, input and output token per ETH
+            side,
+            inputAmount,
+            inputToken,
+            outputToken,
+            gasPrice,
+            feeSchedule,
+        );
+
+        ///////////////////////////////////////////////////////////////
+        //                      SwapQuote Land
+        ///////////////////////////////////////////////////////////////
+
+        /// Create SwapQuote
+        const { outputAmountPerEth, inputAmountPerEth } = marketLiquidity;
+        const [takerAmountPerEth, makerAmountPerEth] =
+            side === MarketOperation.Sell
+                ? [inputAmountPerEth, outputAmountPerEth]
+                : [outputAmountPerEth, inputAmountPerEth];
+        const optimizerResult = {
+            marketSideLiquidity: marketLiquidity,
+            optimizedOrders: finalizedPath.orders,
+            liquidityDelivered: finalizedPath.fills,
+            sourceFlags: finalizedPath.sourceFlags,
+            adjustedRate: finalizedPath.adjustedRate(),
+            takerAmountPerEth,
+            makerAmountPerEth,
+        };
+        const swapQuote = createSwapQuote(
+            optimizerResult,
+            makerToken,
+            takerToken,
+            side,
+            inputAmount,
+            gasPrice,
+            DEFAULT_GAS_SCHEDULE,
+            slippagePercentage || DEFAULT_GET_MARKET_ORDERS_OPTS.bridgeSlippage,
+        );
+
+        // Get AffiliateFeeAmounts
+        const affiliateFeeAmounts = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
+
+        /// Calldata Generation
+        const { to, data, value, gasOverhead, decodedUniqueId } = await this.generateCalldataAsync(
+            params,
+            swapQuote,
+            affiliateFeeAmounts,
+        );
+
+        /// Estimate Gas
+        const gasEstimate = await this.estimateGasAsync(
+            params,
+            swapQuote,
+            affiliateFeeAmounts,
+            to,
+            data,
+            value,
+            gasPrice,
+            gasOverhead,
+        );
+
+        /// Calculate Protocol Fees and make adjustments
+        const { protocolFeeInWeiAmount: bestCaseProtocolFee } = swapQuote.bestCaseQuoteInfo;
+        const { protocolFeeInWeiAmount: protocolFee } = swapQuote.worstCaseQuoteInfo;
+        // TODO: this might be redundant with calculations done in calldata generation
+        const valueWithProtocolFees = isETHSell
+            ? protocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAmount)
+            : protocolFee;
+        const minimumProtocolFee = BigNumber.min(protocolFee, bestCaseProtocolFee);
+
+        /// Estimate Price Impact
+        const { makerTokenDecimals, takerTokenDecimals } = marketLiquidity;
+        const { price, guaranteedPrice } = BasicSwapService._getSwapQuotePrice(
+            side,
+            makerTokenDecimals,
+            takerTokenDecimals,
+            swapQuote,
+            affiliateFee,
+        );
+        // Convert into unit amounts
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
+        const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
+        const sellTokenToEthRate = takerAmountPerEth
+            .times(new BigNumber(10).pow(wethToken.decimals - takerTokenDecimals))
+            .decimalPlaces(takerTokenDecimals);
+        const buyTokenToEthRate = makerAmountPerEth
+            .times(new BigNumber(10).pow(wethToken.decimals - makerTokenDecimals))
+            .decimalPlaces(makerTokenDecimals);
+
+        const estimatedPriceImpact = BasicSwapService._calculateEstimatedPriceImpactPercent(
+            price,
+            sellTokenToEthRate,
+            buyTokenToEthRate,
+            side,
+        );
+
+        /// Estimate Slippage
+        const { makerAmount, totalTakerAmount } = swapQuote.bestCaseQuoteInfo;
+        const { buyTokenFeeAmount } = affiliateFeeAmounts;
+        const sources = serviceUtils.convertSourceBreakdownToArray(swapQuote.sourceBreakdown);
+        let expectedSlippage = null;
+        const finalBuyAmount = makerAmount.minus(buyTokenFeeAmount);
+        const finalSellAmount = totalTakerAmount;
+        // If the slippage Model is forced on for the integrator, or if they have opted in to slippage protection
+        if (integrator?.slippageModel === true || enableSlippageProtection) {
+            if (this.slippageModelManager) {
+                expectedSlippage = this.slippageModelManager.calculateExpectedSlippage(
+                    buyToken,
+                    sellToken,
+                    finalBuyAmount,
+                    finalSellAmount,
+                    sources,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
+                    slippagePercentage!,
+                );
+            }
+        }
+
+        /// Prepare Response
+        return {
             chainId: CHAIN_ID,
-            price: new BigNumber(0),
-            guaranteedPrice: new BigNumber(0),
-            estimatedPriceImpact: new BigNumber(0),
-            to: '',
-            data: '',
-            value: new BigNumber(0),
-            gas: new BigNumber(0),
-            estimatedGas: new BigNumber(0),
+            price,
+            guaranteedPrice,
+            estimatedPriceImpact,
+            to,
+            data,
+            value: valueWithProtocolFees,
+            gas: gasEstimate,
+            estimatedGas: gasEstimate,
             from: takerAddress,
             gasPrice,
-            protocolFee: new BigNumber(0),
-            minimumProtocolFee: new BigNumber(0),
+            protocolFee,
+            minimumProtocolFee,
             // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
             buyTokenAddress: isETHBuy ? ETH_TOKEN_ADDRESS : buyToken,
             sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellToken,
-            buyAmount: ZERO,
-            sellAmount: ZERO,
-            sources: [],
-            orders: [],
-            allowanceTarget: '',
-            decodedUniqueId: '',
-            extendedQuoteReportSources: undefined,
-            sellTokenToEthRate: ZERO,
-            buyTokenToEthRate: ZERO,
-            quoteReport: undefined,
-            priceComparisonsReport: undefined,
-            blockNumber: 0,
+            buyAmount: finalBuyAmount,
+            sellAmount: finalSellAmount,
+            sources,
+            orders: swapQuote.orders,
+            allowanceTarget: isETHSell ? NULL_ADDRESS : this._contractAddresses.exchangeProxy,
+            decodedUniqueId,
+            extendedQuoteReportSources: undefined, // TODO
+            sellTokenToEthRate,
+            buyTokenToEthRate,
+            quoteReport: undefined, // TODO
+            priceComparisonsReport: undefined, // TODO
+            blockNumber: swapQuote.blockNumber,
+            expectedSlippage,
         };
-        return apiSwapQuote;
     }
 
-    public async calculateSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
+    public async estimateGasAsync(
+        params: GetSwapQuoteParams,
+        swapQuote: SwapQuote,
+        affiliateFeeAmounts: AffiliateFeeAmounts,
+        to: string,
+        data: string,
+        value: BigNumber,
+        gasPrice: BigNumber,
+        gasOverhead: BigNumber,
+    ): Promise<BigNumber> {
+        const { endpoint, buyToken, sellToken, takerAddress, skipValidation } = params;
         const {
-            endpoint,
-            takerAddress,
-            sellAmount,
-            buyAmount,
-            buyToken,
-            sellToken,
-            slippagePercentage,
-            gasPrice: providedGasPrice,
-            isMetaTransaction,
-            isETHSell,
-            isETHBuy,
-            excludedSources,
-            includedSources,
-            integrator,
-            rfqt,
-            affiliateAddress,
-            affiliateFee,
-            includePriceComparisons,
-            skipValidation,
-            shouldSellEntireBalance,
-            enableSlippageProtection,
-        } = params;
-
-        let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
-        if (
-            isMetaTransaction ||
-            shouldSellEntireBalance ||
-            // Note: We allow VIP to continue ahead when positive slippage fee is enabled
-            affiliateFee.feeType === AffiliateFeeType.PercentageFee
-        ) {
-            swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP;
-        } else {
-            swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS;
-        }
-
-        const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
-            ...swapQuoteRequestOpts,
-            bridgeSlippage: slippagePercentage,
-            gasPrice: providedGasPrice,
-            excludedSources: swapQuoteRequestOpts.excludedSources?.concat(...(excludedSources || [])),
-            includedSources,
-            shouldIncludePriceComparisonsReport: !!includePriceComparisons,
-            fillAdjustor:
-                enableSlippageProtection && this.slippageModelManager
-                    ? new SlippageModelFillAdjustor(
-                          this.slippageModelManager,
-                          sellToken,
-                          buyToken,
-                          slippagePercentage || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
-                      )
-                    : new IdentityFillAdjustor(),
-        };
-
-        const marketSide = sellAmount !== undefined ? MarketOperation.Sell : MarketOperation.Buy;
-        const amount =
-            marketSide === MarketOperation.Sell
-                ? sellAmount
-                : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-                  buyAmount!.times(getBuyTokenPercentageFeeOrZero(affiliateFee) + 1).integerValue(BigNumber.ROUND_DOWN);
-
-        // Fetch the Swap quote
-        const swapQuote = await this._swapQuoter.getSwapQuoteAsync(
-            buyToken,
-            sellToken,
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-            amount!, // was validated earlier
-            marketSide,
-            assetSwapperOpts,
-            this._rfqClient,
-        );
-
-        const {
-            makerAmount,
-            totalTakerAmount,
-            protocolFeeInWeiAmount: bestCaseProtocolFee,
-        } = swapQuote.bestCaseQuoteInfo;
-        const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = swapQuote.worstCaseQuoteInfo;
-        const { gasPrice, sourceBreakdown, quoteReport, priceComparisonsReport, extendedQuoteReportSources } =
-            swapQuote;
-
-        const {
-            gasCost: affiliateFeeGasCost,
-            buyTokenFeeAmount,
-            sellTokenFeeAmount,
-        } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
-
-        // Grab the encoded version of the swap quote
-        const { to, value, data, decodedUniqueId, gasOverhead } = await this._getSwapQuotePartialTransactionAsync(
-            swapQuote,
-            isETHSell,
-            isETHBuy,
-            isMetaTransaction,
-            shouldSellEntireBalance,
-            affiliateAddress,
-            {
-                recipient: affiliateFee.recipient,
-                feeType: affiliateFee.feeType,
-                buyTokenFeeAmount,
-                sellTokenFeeAmount,
-            },
-        );
+            worstCaseQuoteInfo: { gas: worstCaseGas },
+        } = swapQuote;
+        const { gasCost: affiliateFeeGasCost } = affiliateFeeAmounts;
 
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(affiliateFeeGasCost);
 
@@ -471,156 +517,127 @@ export class BasicSwapService {
                 );
             }
         }
-        const worstCaseGasEstimate = conservativeBestCaseGasEstimate;
-        const { makerTokenDecimals, takerTokenDecimals } = swapQuote;
-        const { price, guaranteedPrice } = BasicSwapService._getSwapQuotePrice(
-            buyAmount,
-            makerTokenDecimals,
-            takerTokenDecimals,
-            swapQuote,
-            affiliateFee,
-        );
-
-        let adjustedValue = value;
-
-        adjustedValue = isETHSell ? protocolFee.plus(swapQuote.worstCaseQuoteInfo.takerAmount) : protocolFee;
-
-        // No allowance target is needed if this is an ETH sell, so set to 0x000..
-        const allowanceTarget = isETHSell ? NULL_ADDRESS : this._contractAddresses.exchangeProxy;
-
-        const { takerAmountPerEth: takerTokenToEthRate, makerAmountPerEth: makerTokenToEthRate } = swapQuote;
-
-        // Convert into unit amounts
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-        const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
-        const sellTokenToEthRate = takerTokenToEthRate
-            .times(new BigNumber(10).pow(wethToken.decimals - takerTokenDecimals))
-            .decimalPlaces(takerTokenDecimals);
-        const buyTokenToEthRate = makerTokenToEthRate
-            .times(new BigNumber(10).pow(wethToken.decimals - makerTokenDecimals))
-            .decimalPlaces(makerTokenDecimals);
-
-        const estimatedPriceImpact = BasicSwapService._calculateEstimatedPriceImpactPercent(
-            price,
-            sellTokenToEthRate,
-            buyTokenToEthRate,
-            marketSide,
-        );
-
-        const apiSwapQuote: GetSwapQuoteResponse = {
-            chainId: CHAIN_ID,
-            price,
-            guaranteedPrice,
-            estimatedPriceImpact,
-            to,
-            data,
-            value: adjustedValue,
-            gas: worstCaseGasEstimate,
-            estimatedGas: conservativeBestCaseGasEstimate,
-            from: takerAddress,
-            gasPrice,
-            protocolFee,
-            minimumProtocolFee: BigNumber.min(protocolFee, bestCaseProtocolFee),
-            // NOTE: Internally all ETH trades are for WETH, we just wrap/unwrap automatically
-            buyTokenAddress: isETHBuy ? ETH_TOKEN_ADDRESS : buyToken,
-            sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellToken,
-            buyAmount: makerAmount.minus(buyTokenFeeAmount),
-            sellAmount: totalTakerAmount,
-            sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
-            orders: swapQuote.orders,
-            allowanceTarget,
-            decodedUniqueId,
-            extendedQuoteReportSources,
-            sellTokenToEthRate,
-            buyTokenToEthRate,
-            quoteReport,
-            priceComparisonsReport,
-            blockNumber: swapQuote.blockNumber,
-        };
-
-        if (apiSwapQuote.buyAmount.lte(new BigNumber(0))) {
-            throw new InsufficientFundsError();
-        }
-
-        // If the slippage Model is forced on for the integrator, or if they have opted in to slippage protection
-        if (integrator?.slippageModel === true || enableSlippageProtection) {
-            if (this.slippageModelManager) {
-                apiSwapQuote.expectedSlippage = this.slippageModelManager.calculateExpectedSlippage(
-                    buyToken,
-                    sellToken,
-                    apiSwapQuote.buyAmount,
-                    apiSwapQuote.sellAmount,
-                    apiSwapQuote.sources,
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-                    slippagePercentage!,
-                );
-            } else {
-                apiSwapQuote.expectedSlippage = null;
-            }
-        }
-        return apiSwapQuote;
+        return conservativeBestCaseGasEstimate;
     }
 
-    public async getSwapQuoteForWrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
-        return this._getSwapQuoteForNativeWrappedAsync(params, false);
-    }
-
-    public async getSwapQuoteForUnwrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
-        return this._getSwapQuoteForNativeWrappedAsync(params, true);
-    }
-
-    private async _getSwapQuoteForNativeWrappedAsync(
+    public async routeSamplesAsync(
         params: GetSwapQuoteParams,
-        isUnwrap: boolean,
-    ): Promise<GetSwapQuoteResponse> {
-        const {
-            takerAddress,
-            buyToken,
-            sellToken,
-            buyAmount,
-            sellAmount,
-            affiliateAddress,
-            gasPrice: providedGasPrice,
-        } = params;
-        const amount = buyAmount || sellAmount;
-        if (amount === undefined) {
-            throw new Error('sellAmount or buyAmount required');
-        }
-        const data = (
-            isUnwrap ? this._wethContract.withdraw(amount) : this._wethContract.deposit()
-        ).getABIEncodedTransactionData();
-        const value = isUnwrap ? ZERO : amount;
-        const attributedCalldata = serviceUtils.attributeCallData(data, affiliateAddress);
-        // TODO: consider not using protocol fee utils due to lack of need for an aggresive gas price for wrapping/unwrapping
-        const gasPrice = providedGasPrice || (await this._swapQuoter.getGasPriceEstimationOrThrowAsync());
-        const gasEstimate = isUnwrap ? UNWRAP_QUOTE_GAS : WRAP_QUOTE_GAS;
-        const apiSwapQuote: GetSwapQuoteResponse = {
-            chainId: CHAIN_ID,
-            estimatedPriceImpact: ZERO_AMOUNT,
-            price: ONE,
-            guaranteedPrice: ONE,
-            to: NATIVE_FEE_TOKEN_BY_CHAIN_ID[CHAIN_ID],
-            data: attributedCalldata.affiliatedData,
-            decodedUniqueId: attributedCalldata.decodedUniqueId,
-            value,
-            gas: gasEstimate,
-            estimatedGas: gasEstimate,
-            from: takerAddress,
+        samplerData: {
+            quotes: RawQuotes;
+            outputAmountPerEth: BigNumber;
+            inputAmountPerEth: BigNumber;
+        },
+        side: MarketOperation,
+        inputAmount: BigNumber,
+        inputToken: string,
+        outputToken: string,
+        gasPrice: BigNumber,
+        feeSchedule: FeeSchedule,
+    ): Promise<FinalizedPath> {
+        const { buyToken, sellToken, slippagePercentage, enableSlippageProtection } = params;
+        const { outputAmountPerEth, inputAmountPerEth, quotes } = samplerData;
+        const { nativeOrders, rfqtIndicativeQuotes, dexQuotes, twoHopQuotes } = quotes;
+        const augmentedRfqtIndicativeQuotes: NativeOrderWithFillableAmounts[] = rfqtIndicativeQuotes.map(
+            (q) =>
+                ({
+                    order: { ...new RfqOrder({ ...q }) },
+                    signature: INVALID_SIGNATURE,
+                    fillableMakerAmount: new BigNumber(q.makerAmount),
+                    fillableTakerAmount: new BigNumber(q.takerAmount),
+                    fillableTakerFeeAmount: ZERO_AMOUNT,
+                    type: FillQuoteTransformerOrderType.Rfq,
+                } as NativeOrderWithFillableAmounts),
+        );
+
+        // TODO: need to handle some stuff regarding metatransaction?
+        const exchangeProxyOverhead = EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED;
+
+        const pathPenaltyOpts: PathPenaltyOpts = {
+            outputAmountPerEth,
+            inputAmountPerEth,
+            exchangeProxyOverhead,
             gasPrice,
-            protocolFee: ZERO,
-            minimumProtocolFee: ZERO,
-            buyTokenAddress: buyToken,
-            sellTokenAddress: sellToken,
-            buyAmount: amount,
-            sellAmount: amount,
-            sources: [],
-            orders: [],
-            sellTokenToEthRate: new BigNumber(1),
-            buyTokenToEthRate: new BigNumber(1),
-            allowanceTarget: NULL_ADDRESS,
-            blockNumber: undefined,
         };
-        return apiSwapQuote;
+        const fillAdjustor =
+            enableSlippageProtection && this.slippageModelManager
+                ? new SlippageModelFillAdjustor(
+                      this.slippageModelManager,
+                      sellToken,
+                      buyToken,
+                      slippagePercentage || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
+                  )
+                : new IdentityFillAdjustor();
+        // Find the optimal path using Rust router.
+        const neonRouterNumSamples = 14;
+        const pathOptimizer = new PathOptimizer({
+            side,
+            feeSchedule,
+            chainId: CHAIN_ID, // TODO: check to see if this can be passed in
+            neonRouterNumSamples,
+            fillAdjustor,
+            pathPenaltyOpts,
+            inputAmount,
+        });
+        const optimalPath = pathOptimizer.findOptimalPathFromSamples(dexQuotes, twoHopQuotes, [
+            ...nativeOrders,
+            ...augmentedRfqtIndicativeQuotes,
+        ]);
+
+        const optimalPathAdjustedRate = optimalPath ? optimalPath.adjustedRate() : ZERO_AMOUNT;
+
+        // If there is no optimal path then throw.
+        if (optimalPath === undefined) {
+            //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
+            logger.info({}, 'NoOptimalPath thrown in _generateOptimizedOrdersAsync');
+            throw new Error(AggregationError.NoOptimalPath);
+        }
+
+        const finalizedPath = optimalPath.finalize(side, inputToken, outputToken);
+        return finalizedPath;
+    }
+
+    public async generateCalldataAsync(
+        params: GetSwapQuoteParams,
+        swapQuote: SwapQuote,
+        affiliateFeeAmounts: AffiliateFeeAmounts,
+    ): Promise<{
+        to: string;
+        data: string;
+        value: BigNumber;
+        gasOverhead: BigNumber;
+        decodedUniqueId: string;
+    }> {
+        const { isMetaTransaction, isETHSell, isETHBuy, affiliateAddress, affiliateFee, shouldSellEntireBalance } =
+            params;
+        const callDataGenerator = new ExchangeProxySwapQuoteConsumer(this._contractAddresses, SWAP_QUOTER_OPTS);
+        const { buyTokenFeeAmount, sellTokenFeeAmount } = affiliateFeeAmounts;
+        const opts: Partial<SwapQuoteGetOutputOpts> = {
+            extensionContractOpts: {
+                isFromETH: isETHSell,
+                isToETH: isETHBuy,
+                isMetaTransaction,
+                shouldSellEntireBalance,
+                affiliateFee: {
+                    ...affiliateFee,
+                    buyTokenFeeAmount,
+                    sellTokenFeeAmount,
+                },
+            },
+        };
+        const {
+            toAddress: to,
+            calldataHexString: data,
+            ethAmount: value,
+            gasOverhead,
+        } = await callDataGenerator.getCalldataOrThrowAsync(swapQuote, opts);
+        const { affiliatedData, decodedUniqueId } = serviceUtils.attributeCallData(data, affiliateAddress);
+        return {
+            to,
+            value,
+            data: affiliatedData,
+            gasOverhead,
+            decodedUniqueId,
+        };
     }
 
     private async _estimateGasOrThrowRevertErrorAsync(txData: Partial<TxData>): Promise<BigNumber> {
@@ -746,29 +763,5 @@ export class BasicSwapService {
             decodedUniqueId,
             gasOverhead,
         };
-    }
-
-    private async _getAltMarketOfferingsAsync(timeoutMs: number): Promise<AltRfqMakerAssetOfferings> {
-        if (!this._altRfqMarketsCache) {
-            this._altRfqMarketsCache = createResultCache<AltRfqMakerAssetOfferings>(async () => {
-                if (ALT_RFQ_MM_ENDPOINT === undefined || ALT_RFQ_MM_API_KEY === undefined) {
-                    return {};
-                }
-                try {
-                    const response = await axios.get(`${ALT_RFQ_MM_ENDPOINT}/markets`, {
-                        headers: { Authorization: `Bearer ${ALT_RFQ_MM_API_KEY}` },
-                        timeout: timeoutMs,
-                    });
-
-                    return altMarketResponseToAltOfferings(response.data, ALT_RFQ_MM_ENDPOINT);
-                } catch (err) {
-                    logger.warn(`error fetching alt RFQ markets: ${err}`);
-                    return {};
-                }
-                // refresh cache every 6 hours
-            }, ONE_MINUTE_MS * 360);
-        }
-
-        return (await this._altRfqMarketsCache.getResultAsync()).result;
     }
 }

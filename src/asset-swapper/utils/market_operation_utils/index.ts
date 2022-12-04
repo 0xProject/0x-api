@@ -535,7 +535,7 @@ export class MarketOperationUtils {
             throw new Error(AggregationError.NoOptimalPath);
         }
 
-        const finalizedPath = optimalPath.finalize(orderOpts);
+        const finalizedPath = optimalPath.finalize(orderOpts.side, orderOpts.inputToken, orderOpts.outputToken);
 
         return {
             optimizedOrders: finalizedPath.orders,

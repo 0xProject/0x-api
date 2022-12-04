@@ -83,9 +83,9 @@ export class SamplerService {
 
     public async getSamplesAsync(input: {
         side: MarketOperation;
-        requestedAmount: BigNumber;
-        makerToken: string; // output token
-        takerToken: string; // input token
+        inputAmount: BigNumber;
+        makerToken: string;
+        takerToken: string;
         feeSchedule: FeeSchedule;
         includedSources: ERC20BridgeSource[];
         excludedSources: ERC20BridgeSource[];
@@ -95,7 +95,7 @@ export class SamplerService {
     }): Promise<MarketSideLiquidity> {
         const {
             side,
-            requestedAmount,
+            inputAmount,
             makerToken,
             takerToken,
             feeSchedule,
@@ -108,7 +108,7 @@ export class SamplerService {
 
         // Define sampling granularity
         const numSamples = 13;
-        const sampleAmounts = getSampleAmounts(requestedAmount, numSamples);
+        const sampleAmounts = getSampleAmounts(inputAmount, numSamples);
 
         // Get sources we'll sample for fees
         const feeSources = this._feeSources.exclude(excludedFeeSources).include(includedFeeSources).sources;
@@ -147,7 +147,7 @@ export class SamplerService {
                 sourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? sources : [],
                 makerToken,
                 takerToken,
-                [requestedAmount],
+                [inputAmount],
             ),
             this._sampler.isAddressContract(txOrigin || NULL_ADDRESS),
             this._sampler.getGasLeft(),
@@ -178,11 +178,11 @@ export class SamplerService {
         if (side === MarketOperation.Sell) {
             return {
                 side: MarketOperation.Sell,
-                inputAmount: requestedAmount,
-                inputToken: takerToken,
+                inputAmount,
+                inputToken: takerToken, // Note this is the opposite of Buys
+                inputAmountPerEth: ethToTakerAssetRate,
                 outputToken: makerToken,
-                outputAmountPerEth: ethToMakerAssetRate, // output amount is the maker asset
-                inputAmountPerEth: ethToTakerAssetRate, // input amount is the taker asset
+                outputAmountPerEth: ethToMakerAssetRate,
                 quoteSourceFilters: sourceFilters,
                 makerTokenDecimals: makerTokenDecimals.toNumber(),
                 takerTokenDecimals: takerTokenDecimals.toNumber(),
@@ -196,14 +196,13 @@ export class SamplerService {
                 blockNumber: blockNumber.toNumber(),
             };
         } else {
-            // side === MarketOperation.Buy
             return {
                 side: MarketOperation.Buy,
-                inputAmount: requestedAmount,
-                inputToken: makerToken,
+                inputAmount,
+                inputToken: makerToken, // Note this is the opposite of Sells
+                inputAmountPerEth: ethToMakerAssetRate,
                 outputToken: takerToken,
                 outputAmountPerEth: ethToTakerAssetRate,
-                inputAmountPerEth: ethToMakerAssetRate,
                 quoteSourceFilters: sourceFilters,
                 makerTokenDecimals: makerTokenDecimals.toNumber(),
                 takerTokenDecimals: takerTokenDecimals.toNumber(),
@@ -622,7 +621,7 @@ export class SamplerService {
             throw new Error(AggregationError.NoOptimalPath);
         }
 
-        const finalizedPath = optimalPath.finalize(orderOpts);
+        const finalizedPath = optimalPath.finalize(orderOpts.side, orderOpts.inputToken, orderOpts.outputToken);
 
         return {
             optimizedOrders: finalizedPath.orders,
