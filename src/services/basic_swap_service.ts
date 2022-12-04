@@ -4,14 +4,11 @@ import { getTokenMetadataIfExists } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
 import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
-import axios from 'axios';
 import { SupportedProvider } from 'ethereum-types';
 import * as _ from 'lodash';
 
 import {
     AffiliateFeeAmount,
-    AffiliateFeeType,
-    AltRfqMakerAssetOfferings,
     artifacts,
     AssetSwapperContractAddresses,
     BlockParamLiteral,
@@ -20,9 +17,7 @@ import {
     DEFAULT_GAS_SCHEDULE,
     FakeTakerContract,
     FillData,
-    GetMarketOrdersRfqOpts,
     IdentityFillAdjustor,
-    NATIVE_FEE_TOKEN_BY_CHAIN_ID,
     Orderbook,
     ProtocolFeeUtils,
     RfqFirmQuoteValidator,
@@ -30,7 +25,6 @@ import {
     SwapQuoteConsumer,
     SwapQuoteGetOutputOpts,
     SwapQuoter,
-    SwapQuoteRequestOpts,
     SwapQuoterOpts,
     ZERO_AMOUNT,
 } from '../asset-swapper';
@@ -41,42 +35,20 @@ import { NativeOrderWithFillableAmounts } from '../asset-swapper/types';
 import { DEFAULT_GET_MARKET_ORDERS_OPTS } from '../asset-swapper/utils/market_operation_utils/constants';
 import { FinalizedPath, PathPenaltyOpts } from '../asset-swapper/utils/market_operation_utils/path';
 import { PathOptimizer } from '../asset-swapper/utils/market_operation_utils/path_optimizer';
-import { SourceFilters } from '../asset-swapper/utils/market_operation_utils/source_filters';
 import { AggregationError, FeeSchedule, RawQuotes } from '../asset-swapper/utils/market_operation_utils/types';
-import {
-    ALT_RFQ_MM_API_KEY,
-    ALT_RFQ_MM_ENDPOINT,
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
-    CHAIN_ID,
-    EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
-    RFQT_REQUEST_MAX_RESPONSE_MS,
-    SWAP_QUOTER_OPTS,
-    UNWRAP_QUOTE_GAS,
-    WRAP_QUOTE_GAS,
-} from '../config';
+import { CHAIN_ID, EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED, SWAP_QUOTER_OPTS } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     DEFAULT_VALIDATION_GAS_LIMIT,
     GAS_LIMIT_BUFFER_MULTIPLIER,
     NULL_ADDRESS,
     NULL_BYTES,
-    ONE,
-    ONE_MINUTE_MS,
     ZERO,
 } from '../constants';
 import { GasEstimationError, InsufficientFundsError } from '../errors';
 import { logger } from '../logger';
-import {
-    AffiliateFee,
-    AffiliateFeeAmounts,
-    GetSwapQuoteParams,
-    GetSwapQuoteResponse,
-    SwapQuoteResponsePartialTransaction,
-} from '../types';
-import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
+import { AffiliateFee, AffiliateFeeAmounts, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
 import { PairsManager } from '../utils/pairs_manager';
-import { createResultCache } from '../utils/result_cache';
 import { RfqClient } from '../utils/rfq_client';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
 import { serviceUtils, getBuyTokenPercentageFeeOrZero } from '../utils/service_utils';
@@ -733,35 +705,5 @@ export class BasicSwapService {
             throw new GasEstimationError();
         }
         return gasEstimate;
-    }
-
-    private async _getSwapQuotePartialTransactionAsync(
-        swapQuote: SwapQuote,
-        isFromETH: boolean,
-        isToETH: boolean,
-        isMetaTransaction: boolean,
-        shouldSellEntireBalance: boolean,
-        affiliateAddress: string | undefined,
-        affiliateFee: AffiliateFeeAmount,
-    ): Promise<SwapQuoteResponsePartialTransaction & { gasOverhead: BigNumber }> {
-        const opts: Partial<SwapQuoteGetOutputOpts> = {
-            extensionContractOpts: { isFromETH, isToETH, isMetaTransaction, shouldSellEntireBalance, affiliateFee },
-        };
-
-        const {
-            calldataHexString: data,
-            ethAmount: value,
-            toAddress: to,
-            gasOverhead,
-        } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, opts);
-
-        const { affiliatedData, decodedUniqueId } = serviceUtils.attributeCallData(data, affiliateAddress);
-        return {
-            to,
-            value,
-            data: affiliatedData,
-            decodedUniqueId,
-            gasOverhead,
-        };
     }
 }
