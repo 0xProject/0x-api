@@ -499,6 +499,7 @@ export class SwapService implements ISwapService {
         }
 
         if (
+            isQuote &&
             apiSwapQuote.estimatedPriceImpact &&
             apiSwapQuote.estimatedPriceImpact.gt(priceImpactProtectionPercentage)
         ) {
