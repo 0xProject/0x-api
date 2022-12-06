@@ -99,11 +99,14 @@ export class RPCSubprovider extends Subprovider {
         ETH_RPC_REQUEST_SIZE.labels(method).observe(Buffer.byteLength(body, 'utf8'));
 
         try {
+            const abort = new AbortController();
+            setTimeout(() => abort.abort(), this._requestTimeoutMs);
+
             response = await fetch(rpcUrl, {
                 method: 'POST',
                 headers,
                 body,
-                timeout: this._requestTimeoutMs,
+                signal: abort.signal,
                 compress: true,
                 agent,
             });
