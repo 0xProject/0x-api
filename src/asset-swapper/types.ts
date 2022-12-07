@@ -560,7 +560,6 @@ export type GasSchedule = Partial<{ [key in ERC20BridgeSource]: GasEstimate }>;
  * Represents a node on a fill path.
  */
 export interface Fill<TFillData extends FillData = FillData> {
-    [x: string]: any;
     // basic data for every fill
     source: ERC20BridgeSource;
     // TODO jacob people seem to agree  that orderType here is more readable
