@@ -35,7 +35,6 @@ import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
 import { S3Client } from '../utils/s3_client';
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 
-
 /**
  * Pass this callback into the default server to ensure all dependencies shut down correctly
  * @param dependencies A set of app dependencies
