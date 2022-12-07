@@ -23,39 +23,22 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from './types';
-import { assert } from './utils/assert';
 import { MarketOperationUtils } from './utils/market_operation_utils';
 import { BancorService } from './utils/market_operation_utils/bancor_service';
-import { SAMPLER_ADDRESS, SOURCE_FLAGS, ZERO_AMOUNT } from './utils/market_operation_utils/constants';
+import {
+    DEFAULT_GAS_SCHEDULE,
+    SAMPLER_ADDRESS,
+    SOURCE_FLAGS,
+    ZERO_AMOUNT,
+} from './utils/market_operation_utils/constants';
 import { DexOrderSampler } from './utils/market_operation_utils/sampler';
 import { SourceFilters } from './utils/market_operation_utils/source_filters';
-import {
-    ERC20BridgeSource,
-    FillData,
-    GasSchedule,
-    GetMarketOrdersOpts,
-    OptimizedMarketOrder,
-    OptimizerResultWithReport,
-} from './utils/market_operation_utils/types';
-import { ProtocolFeeUtils } from './utils/protocol_fee_utils';
+import { OptimizerResultWithReport } from './utils/market_operation_utils/types';
+import { ERC20BridgeSource, FillData, GasSchedule, GetMarketOrdersOpts, OptimizedOrder, Orderbook } from './types';
+import { GasPriceUtils } from './utils/gas_price_utils';
 import { QuoteRequestor } from './utils/quote_requestor';
 import { QuoteFillResult, simulateBestCaseFill, simulateWorstCaseFill } from './utils/quote_simulation';
-
-export abstract class Orderbook {
-    public abstract getOrdersAsync(
-        makerToken: string,
-        takerToken: string,
-        pruneFn?: (o: SignedNativeOrder) => boolean,
-    ): Promise<SignedNativeOrder[]>;
-    public abstract getBatchOrdersAsync(
-        makerTokens: string[],
-        takerToken: string,
-        pruneFn?: (o: SignedNativeOrder) => boolean,
-    ): Promise<SignedNativeOrder[][]>;
-    public async destroyAsync(): Promise<void> {
-        return;
-    }
-}
+import { assert } from './utils/utils';
 
 export class SwapQuoter {
     public readonly provider: ZeroExProvider;
@@ -64,7 +47,7 @@ export class SwapQuoter {
     public readonly chainId: number;
     public readonly permittedOrderFeeTypes: Set<OrderPrunerPermittedFeeTypes>;
     private readonly _contractAddresses: AssetSwapperContractAddresses;
-    private readonly _protocolFeeUtils: ProtocolFeeUtils;
+    private readonly _gasPriceUtils: GasPriceUtils;
     private readonly _marketOperationUtils: MarketOperationUtils;
     private readonly _rfqtOptions?: SwapQuoterRfqOpts;
     private readonly _integratorIdsSet: Set<string>;
@@ -96,7 +79,7 @@ export class SwapQuoter {
         this._contractAddresses = options.contractAddresses || {
             ...getContractAddressesForChainOrThrow(chainId),
         };
-        this._protocolFeeUtils = ProtocolFeeUtils.getInstance(
+        this._gasPriceUtils = GasPriceUtils.getInstance(
             constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
             options.zeroExGasApiUrl,
         );
@@ -152,14 +135,16 @@ export class SwapQuoter {
      * Returns the recommended gas price for a fast transaction
      */
     public async getGasPriceEstimationOrThrowAsync(): Promise<BigNumber> {
-        return this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
+        const gasPrices = await this._gasPriceUtils.getGasPriceEstimationOrThrowAsync();
+
+        return new BigNumber(gasPrices.fast);
     }
 
     /**
      * Destroys any subscriptions or connections.
      */
     public async destroyAsync(): Promise<void> {
-        await this._protocolFeeUtils.destroyAsync();
+        await this._gasPriceUtils.destroyAsync();
         await this.orderbook.destroyAsync();
     }
 
@@ -224,7 +209,7 @@ export class SwapQuoter {
         const calcOpts: GetMarketOrdersOpts = {
             ...cloneOpts,
             gasPrice,
-            feeSchedule: _.mapValues(opts.gasSchedule, (gasCost) => (fillData: FillData) => {
+            feeSchedule: _.mapValues(DEFAULT_GAS_SCHEDULE, (gasCost) => (fillData: FillData) => {
                 const gas = gasCost ? gasCost(fillData) : 0;
                 const fee = gasPrice.times(gas);
                 return { gas, fee };
@@ -251,7 +236,7 @@ export class SwapQuoter {
             marketOperation,
             assetFillAmount,
             gasPrice,
-            opts.gasSchedule,
+            DEFAULT_GAS_SCHEDULE,
             opts.bridgeSlippage,
         );
 
@@ -407,7 +392,7 @@ function createSwapQuote(
 }
 
 function calculateQuoteInfo(
-    optimizedOrders: OptimizedMarketOrder[],
+    optimizedOrders: OptimizedOrder[],
     operation: MarketOperation,
     assetFillAmount: BigNumber,
     gasPrice: BigNumber,
@@ -438,7 +423,7 @@ function calculateQuoteInfo(
 }
 
 function calculateTwoHopQuoteInfo(
-    optimizedOrders: OptimizedMarketOrder[],
+    optimizedOrders: OptimizedOrder[],
     operation: MarketOperation,
     gasSchedule: GasSchedule,
     slippage: number,

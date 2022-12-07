@@ -26,14 +26,12 @@ import {
     MarketBuySwapQuote,
     MarketOperation,
     MarketSellSwapQuote,
-} from '../../src/asset-swapper/types';
-import {
     ERC20BridgeSource,
     Fill,
     NativeFillData,
     OptimizedLimitOrder,
-    OptimizedMarketOrder,
-} from '../../src/asset-swapper/utils/market_operation_utils/types';
+    OptimizedOrder,
+} from '../../src/asset-swapper/types';
 
 import { chaiSetup } from './utils/chai_setup';
 import { getRandomAmount, getRandomSignature } from './utils/utils';
@@ -174,7 +172,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
 
     type PlainOrder = Exclude<LimitOrderFields, ['chainId', 'exchangeAddress']>;
 
-    function cleanOrders(orders: OptimizedMarketOrder[]): PlainOrder[] {
+    function cleanOrders(orders: OptimizedOrder[]): PlainOrder[] {
         return orders.map(
             (o) =>
                 _.omit(

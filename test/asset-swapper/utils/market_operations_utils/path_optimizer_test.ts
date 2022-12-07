@@ -9,13 +9,8 @@ import {
     SignatureType,
 } from '../../../../src/asset-swapper';
 import { PathOptimizer } from '../../../../src/asset-swapper/utils/market_operation_utils/path_optimizer';
-import {
-    DexSample,
-    ERC20BridgeSource,
-    FeeSchedule,
-    FillData,
-    MultiHopFillData,
-} from '../../../../src/asset-swapper/utils/market_operation_utils/types';
+import { ERC20BridgeSource, FeeSchedule, FillData } from '../../../../src/asset-swapper/types';
+import { DexSample, MultiHopFillData } from '../../../../src/asset-swapper/utils/market_operation_utils/types';
 import { BigNumber } from '@0x/utils';
 import { chaiSetup } from '../chai_setup';
 import { PathPenaltyOpts } from '../../../../src/asset-swapper/utils/market_operation_utils/path';
@@ -29,7 +24,7 @@ const ZERO = new BigNumber(0);
 
 const NO_OP_FEE_SCHEDULE: FeeSchedule = Object.fromEntries(
     Object.values(ERC20BridgeSource).map((source) => [source, _.constant({ gas: 0, fee: ZERO })]),
-);
+) as unknown as FeeSchedule;
 
 const NO_OP_PATH_PENALTY_OPTS: PathPenaltyOpts = {
     outputAmountPerEth: ZERO,

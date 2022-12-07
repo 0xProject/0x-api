@@ -1,18 +1,21 @@
 import { FillQuoteTransformerData, FillQuoteTransformerOrderType } from '@0x/protocol-utils';
 
-import { ExchangeProxyContractOpts, MarketBuySwapQuote, MarketOperation, SwapQuote } from '../types';
+import {
+    ExchangeProxyContractOpts,
+    MarketBuySwapQuote,
+    MarketOperation,
+    SwapQuote,
+    ERC20BridgeSource,
+    OptimizedMarketBridgeOrder,
+    OptimizedOrder,
+    OptimizedOtcOrder,
+    OptimizedRfqOrder,
+    OptimizedLimitOrder,
+} from '../types';
 import {
     createBridgeDataForBridgeOrder,
     getErc20BridgeSourceToBridgeSource,
 } from '../utils/market_operation_utils/orders';
-import {
-    ERC20BridgeSource,
-    OptimizedMarketBridgeOrder,
-    OptimizedMarketOrder,
-    OptimizedOtcOrder,
-    OptimizedRfqOrder,
-    OptimizedLimitOrder,
-} from '../utils/market_operation_utils/types';
 
 const MULTIPLEX_BATCH_FILL_SOURCES = [
     ERC20BridgeSource.UniswapV2,
@@ -93,19 +96,19 @@ export function isBuyQuote(quote: SwapQuote): quote is MarketBuySwapQuote {
     return quote.type === MarketOperation.Buy;
 }
 
-function isOptimizedBridgeOrder(x: OptimizedMarketOrder): x is OptimizedMarketBridgeOrder {
+function isOptimizedBridgeOrder(x: OptimizedOrder): x is OptimizedMarketBridgeOrder {
     return x.type === FillQuoteTransformerOrderType.Bridge;
 }
 
-function isOptimizedLimitOrder(x: OptimizedMarketOrder): x is OptimizedLimitOrder {
+function isOptimizedLimitOrder(x: OptimizedOrder): x is OptimizedLimitOrder {
     return x.type === FillQuoteTransformerOrderType.Limit;
 }
 
-function isOptimizedRfqOrder(x: OptimizedMarketOrder): x is OptimizedRfqOrder {
+function isOptimizedRfqOrder(x: OptimizedOrder): x is OptimizedRfqOrder {
     return x.type === FillQuoteTransformerOrderType.Rfq;
 }
 
-function isOptimizedOtcOrder(x: OptimizedMarketOrder): x is OptimizedOtcOrder {
+function isOptimizedOtcOrder(x: OptimizedOrder): x is OptimizedOtcOrder {
     return x.type === FillQuoteTransformerOrderType.Otc;
 }
 
@@ -114,7 +117,7 @@ function isOptimizedOtcOrder(x: OptimizedMarketOrder): x is OptimizedOtcOrder {
  * FillQuoteTransformer.
  */
 export function getFQTTransformerDataFromOptimizedOrders(
-    orders: OptimizedMarketOrder[],
+    orders: OptimizedOrder[],
 ): Pick<FillQuoteTransformerData, 'bridgeOrders' | 'limitOrders' | 'rfqOrders' | 'otcOrders' | 'fillSequence'> {
     const fqtData: Pick<
         FillQuoteTransformerData,

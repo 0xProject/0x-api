@@ -1,7 +1,14 @@
 import { BigNumber } from '@0x/utils';
 import _ = require('lodash');
 
-import { MarketOperation } from '../../types';
+import {
+    MarketOperation,
+    NativeFillData,
+    OptimizedOrder,
+    ERC20BridgeSource,
+    ExchangeProxyOverhead,
+    Fill,
+} from '../../types';
 
 import { POSITIVE_INF, ZERO_AMOUNT } from './constants';
 import { ethToOutputAmount } from './fills';
@@ -13,16 +20,9 @@ import {
     getMakerTakerTokens,
 } from './orders';
 import { getCompleteRate, getRate } from './rate_utils';
-import {
-    ERC20BridgeSource,
-    ExchangeProxyOverhead,
-    Fill,
-    MultiHopFillData,
-    NativeFillData,
-    OptimizedMarketOrder,
-} from './types';
+import { MultiHopFillData } from './types';
 
-export interface PathSize {
+interface PathSize {
     input: BigNumber;
     output: BigNumber;
 }
@@ -34,7 +34,7 @@ export interface PathPenaltyOpts {
     gasPrice: BigNumber;
 }
 
-export const DEFAULT_PATH_PENALTY_OPTS: PathPenaltyOpts = {
+const DEFAULT_PATH_PENALTY_OPTS: PathPenaltyOpts = {
     outputAmountPerEth: ZERO_AMOUNT,
     inputAmountPerEth: ZERO_AMOUNT,
     exchangeProxyOverhead: () => ZERO_AMOUNT,
@@ -42,7 +42,7 @@ export const DEFAULT_PATH_PENALTY_OPTS: PathPenaltyOpts = {
 };
 
 export class Path {
-    public orders?: OptimizedMarketOrder[];
+    public orders?: OptimizedOrder[];
     public sourceFlags = BigInt(0);
     protected _size: PathSize = { input: ZERO_AMOUNT, output: ZERO_AMOUNT };
     protected _adjustedSize: PathSize = { input: ZERO_AMOUNT, output: ZERO_AMOUNT };
@@ -178,6 +178,6 @@ export class Path {
     }
 }
 
-export interface FinalizedPath extends Path {
-    readonly orders: OptimizedMarketOrder[];
+interface FinalizedPath extends Path {
+    readonly orders: OptimizedOrder[];
 }

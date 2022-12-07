@@ -29,21 +29,20 @@ import {
     SwapQuoteExecutionOpts,
     SwapQuoteGetOutputOpts,
 } from '../types';
-import { assert } from '../utils/assert';
+import { assert } from '../utils/utils';
 import {
     CURVE_LIQUIDITY_PROVIDER_BY_CHAIN_ID,
     NATIVE_FEE_TOKEN_BY_CHAIN_ID,
 } from '../utils/market_operation_utils/constants';
+import { CurveFillData, FinalUniswapV3FillData, UniswapV2FillData } from '../utils/market_operation_utils/types';
+
 import {
-    CurveFillData,
     ERC20BridgeSource,
-    FinalUniswapV3FillData,
     NativeOtcOrderFillData,
     NativeRfqOrderFillData,
     OptimizedMarketBridgeOrder,
-    OptimizedMarketOrder,
-    UniswapV2FillData,
-} from '../utils/market_operation_utils/types';
+    OptimizedOrder,
+} from '../types';
 
 import {
     multiplexOtcOrder,
@@ -728,7 +727,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
     }
 }
 
-function slipNonNativeOrders(quote: MarketSellSwapQuote | MarketBuySwapQuote): OptimizedMarketOrder[] {
+function slipNonNativeOrders(quote: MarketSellSwapQuote | MarketBuySwapQuote): OptimizedOrder[] {
     const slippage = getMaxQuoteSlippageRate(quote);
     if (slippage === 0) {
         return quote.orders;

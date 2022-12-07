@@ -11,6 +11,11 @@ import {
     MarketOperation,
     NativeOrderWithFillableAmounts,
     SignedNativeOrder,
+    ERC20BridgeSource,
+    GetMarketOrdersOpts,
+    ExtendedQuoteReportSources,
+    PriceComparisonsReport,
+    QuoteReport,
 } from '../../types';
 import { getAltMarketInfo } from '../alt_mm_implementation_utils';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from '../quote_requestor';
@@ -23,13 +28,10 @@ import {
 
 import {
     dexSampleToReportSource,
-    ExtendedQuoteReportSources,
     generateExtendedQuoteReportSources,
     generateQuoteReport,
     multiHopSampleToReportSource,
     nativeOrderToReportEntry,
-    PriceComparisonsReport,
-    QuoteReport,
 } from './../quote_report_generator';
 import { getComparisonPrices } from './comparison_price';
 import {
@@ -48,10 +50,7 @@ import { DexOrderSampler, getSampleAmounts } from './sampler';
 import { SourceFilters } from './source_filters';
 import {
     AggregationError,
-    DexSample,
-    ERC20BridgeSource,
     GenerateOptimizedOrdersOpts,
-    GetMarketOrdersOpts,
     MarketSideLiquidity,
     OptimizerResult,
     OptimizerResultWithReport,
@@ -497,7 +496,7 @@ export class MarketOperationUtils {
                 optimizerResult.adjustedRate,
                 amount,
                 marketSideLiquidity,
-                _opts.feeSchedule,
+                _opts.feeSchedule.Native,
                 _opts.exchangeProxyOverhead,
             ).wholeOrder;
         }

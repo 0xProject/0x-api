@@ -34,12 +34,9 @@ import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_qu
 import { SwapService } from './services/swap_service';
 import { HttpServiceConfig, AppDependencies } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
-import { ConfigManager } from './utils/config_manager';
 import { OrderWatcher } from './utils/order_watcher';
-import { PairsManager } from './utils/pairs_manager';
 import { RfqClient } from './utils/rfq_client';
 import { RfqDynamicBlacklist } from './utils/rfq_dyanmic_blacklist';
-import { RfqMakerDbUtils } from './utils/rfq_maker_db_utils';
 import { S3Client } from './utils/s3_client';
 import { SlippageModelManager } from './utils/slippage_model_manager';
 
@@ -76,7 +73,7 @@ let contractAddresses_: AssetSwapperContractAddresses | undefined;
  * @param provider provider to the network, used for ganache deployment
  * @param chainId the network chain id
  */
-export async function getContractAddressesForNetworkOrThrowAsync(
+async function getContractAddressesForNetworkOrThrowAsync(
     provider: SupportedProvider,
     chainId: ChainId,
 ): Promise<AssetSwapperContractAddresses> {
@@ -94,23 +91,6 @@ export async function getContractAddressesForNetworkOrThrowAsync(
     // Set the global cached contractAddresses_
     contractAddresses_ = contractAddresses;
     return contractAddresses_;
-}
-
-/**
- * Create and initialize a PairsManager instance
- */
-async function createAndInitializePairsManagerAsync(
-    configManager: ConfigManager,
-    rfqMakerDbUtils: RfqMakerDbUtils,
-): Promise<PairsManager | undefined> {
-    const chainId = configManager.getChainId();
-    if (chainId !== ChainId.Mainnet) {
-        return undefined;
-    }
-
-    const pairsManager = new PairsManager(configManager, rfqMakerDbUtils);
-    await pairsManager.initializeAsync();
-    return pairsManager;
 }
 
 /**
@@ -159,10 +139,7 @@ export async function getDefaultAppDependenciesAsync(
             RFQ_DYNAMIC_BLACKLIST_TTL,
         );
 
-        const configManager: ConfigManager = new ConfigManager();
-        const rfqMakerDbUtils: RfqMakerDbUtils = new RfqMakerDbUtils(connection);
         const rfqClient: RfqClient = new RfqClient(RFQ_API_URL, axios);
-        const pairsManager = await createAndInitializePairsManagerAsync(configManager, rfqMakerDbUtils);
 
         const s3Client: S3Client = new S3Client(
             new S3({
@@ -177,7 +154,6 @@ export async function getDefaultAppDependenciesAsync(
             rfqClient,
             rfqtFirmQuoteValidator,
             rfqDynamicBlacklist,
-            pairsManager,
             slippageModelManager,
         );
         metaTransactionService = createMetaTxnServiceFromSwapService(swapService, contractAddresses);
@@ -231,7 +207,7 @@ export async function getAppAsync(
 /**
  * Instantiates a MetaTransactionService
  */
-export function createMetaTxnServiceFromSwapService(
+function createMetaTxnServiceFromSwapService(
     swapService: SwapService,
     contractAddresses: ContractAddresses,
 ): MetaTransactionService {

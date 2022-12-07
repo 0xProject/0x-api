@@ -1,10 +1,17 @@
 import { FillQuoteTransformerOrderType } from '@0x/protocol-utils';
 import { BigNumber, hexUtils } from '@0x/utils';
 
-import { MarketOperation, NativeOrderWithFillableAmounts } from '../../types';
+import {
+    MarketOperation,
+    NativeOrderWithFillableAmounts,
+    ERC20BridgeSource,
+    FeeEstimate,
+    FeeSchedule,
+    Fill,
+} from '../../types';
 
-import { DEFAULT_FEE_ESTIMATE, POSITIVE_INF, SOURCE_FLAGS } from './constants';
-import { DexSample, ERC20BridgeSource, FeeEstimate, FeeSchedule, Fill, MultiHopFillData } from './types';
+import { POSITIVE_INF, SOURCE_FLAGS } from './constants';
+import { DexSample, MultiHopFillData } from './types';
 
 function toNativeSourceFlagKey(type: FillQuoteTransformerOrderType): 'LimitOrder' | 'RfqOrder' | 'OtcOrder' {
     switch (type) {
@@ -59,9 +66,7 @@ export function nativeOrderToFill(
     const takerAmount = fillableTakerAmount.plus(fillableTakerFeeAmount);
     const input = side === MarketOperation.Sell ? takerAmount : makerAmount;
     const output = side === MarketOperation.Sell ? makerAmount : takerAmount;
-    const { fee, gas } =
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-        fees[ERC20BridgeSource.Native] === undefined ? DEFAULT_FEE_ESTIMATE : fees[ERC20BridgeSource.Native]!(order);
+    const { fee, gas } = fees[ERC20BridgeSource.Native](order);
     const outputPenalty = ethToOutputAmount({
         input,
         output,
@@ -110,9 +115,7 @@ export function dexSampleToFill(
     const { source, fillData } = sample;
     const input = sample.input;
     const output = sample.output;
-    const { fee, gas } =
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-        fees[source] === undefined ? DEFAULT_FEE_ESTIMATE : fees[source]!(sample.fillData) || DEFAULT_FEE_ESTIMATE;
+    const { fee, gas } = fees[source](sample.fillData);
 
     const penalty = ethToOutputAmount({
         input,

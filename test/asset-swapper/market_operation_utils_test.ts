@@ -21,7 +21,14 @@ import {
     SignedNativeOrder,
     TokenAdjacencyGraph,
 } from '../../src/asset-swapper';
-import { Integrator, SignedLimitOrder } from '../../src/asset-swapper/types';
+import {
+    Integrator,
+    SignedLimitOrder,
+    ERC20BridgeSource,
+    FillData,
+    GetMarketOrdersOpts,
+    FeeSchedule,
+} from '../../src/asset-swapper/types';
 import { MarketOperationUtils } from '../../src/asset-swapper/utils/market_operation_utils/';
 import {
     BUY_SOURCE_FILTER_BY_CHAIN_ID,
@@ -35,10 +42,7 @@ import { BATCH_SOURCE_FILTERS } from '../../src/asset-swapper/utils/market_opera
 import {
     AggregationError,
     DexSample,
-    ERC20BridgeSource,
-    FillData,
     GenerateOptimizedOrdersOpts,
-    GetMarketOrdersOpts,
     MarketSideLiquidity,
     OptimizerResultWithReport,
 } from '../../src/asset-swapper/utils/market_operation_utils/types';
@@ -60,6 +64,9 @@ const DEFAULT_EXCLUDED = SELL_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources
 const BUY_SOURCES = BUY_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources;
 const SELL_SOURCES = SELL_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources;
 const TOKEN_ADJACENCY_GRAPH = TokenAdjacencyGraph.getEmptyGraph();
+const NO_OP_FEE_SCHEDULE: FeeSchedule = Object.fromEntries(
+    Object.values(ERC20BridgeSource).map((source) => [source, _.constant({ gas: 0, fee: new BigNumber(0) })]),
+) as unknown as FeeSchedule;
 
 const SIGNATURE = { v: 1, r: NULL_BYTES, s: NULL_BYTES, signatureType: SignatureType.EthSign };
 const FOO_INTEGRATOR: Integrator = {
@@ -437,8 +444,6 @@ describe('MarketOperationUtils tests', () => {
                 maxFallbackSlippage: 100,
                 excludedSources: DEFAULT_EXCLUDED,
                 allowFallback: false,
-                gasSchedule: {},
-                feeSchedule: {},
                 gasPrice: new BigNumber(30e9),
             };
 
@@ -1001,11 +1006,13 @@ describe('MarketOperationUtils tests', () => {
                     [ERC20BridgeSource.SushiSwap]: [0.95, 0.1, 0.1, 0.1],
                 };
                 const feeSchedule = {
+                    ...NO_OP_FEE_SCHEDULE,
                     [ERC20BridgeSource.Native]: _.constant({
                         gas: 1,
                         fee: FILL_AMOUNT.div(4).times(nativeFeeRate).dividedToIntegerBy(ETH_TO_MAKER_RATE),
                     }),
                 };
+
                 replaceSamplerOps({
                     getSellQuotes: createGetMultipleSellQuotesOperationFromRates(rates),
                     getBestNativeTokenSellRate: createGetBestNativeSellRate(ETH_TO_MAKER_RATE),
@@ -1036,7 +1043,9 @@ describe('MarketOperationUtils tests', () => {
                     // Effectively [0.8, ~0.5, ~0, ~0]
                     [ERC20BridgeSource.Uniswap]: [1, 0.7, 0.2, 0.2],
                 };
+
                 const feeSchedule = {
+                    ...NO_OP_FEE_SCHEDULE,
                     [ERC20BridgeSource.Uniswap]: _.constant({
                         gas: 1,
                         fee: FILL_AMOUNT.div(4).times(uniswapFeeRate).dividedToIntegerBy(ETH_TO_MAKER_RATE),
@@ -1163,8 +1172,6 @@ describe('MarketOperationUtils tests', () => {
                 maxFallbackSlippage: 100,
                 excludedSources: DEFAULT_EXCLUDED,
                 allowFallback: false,
-                gasSchedule: {},
-                feeSchedule: {},
                 gasPrice: GAS_PRICE,
             };
 
@@ -1374,6 +1381,7 @@ describe('MarketOperationUtils tests', () => {
                     [ERC20BridgeSource.SushiSwap]: [0.92, 0.1, 0.1, 0.1],
                 };
                 const feeSchedule = {
+                    ...NO_OP_FEE_SCHEDULE,
                     [ERC20BridgeSource.Uniswap]: _.constant({
                         gas: 1,
                         fee: FILL_AMOUNT.div(4).times(uniswapFeeRate).dividedToIntegerBy(ETH_TO_TAKER_RATE),
