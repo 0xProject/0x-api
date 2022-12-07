@@ -4,7 +4,6 @@ import axios from 'axios';
 import * as express from 'express';
 import { Server } from 'http';
 import { Kafka } from 'kafkajs';
-import { Connection } from 'typeorm';
 
 import {
     artifacts,
@@ -13,48 +12,31 @@ import {
     ContractAddresses,
     ERC20BridgeSamplerContract,
     getContractAddressesForChainOrThrow,
+    Orderbook,
     SupportedProvider,
 } from './asset-swapper';
 import {
     CHAIN_ID,
     ORDER_WATCHER_KAFKA_TOPIC,
-    RFQT_TX_ORIGIN_BLACKLIST,
     RFQ_API_URL,
     SENTRY_ENABLED,
     SLIPPAGE_MODEL_S3_API_VERSION,
     WEBSOCKET_ORDER_UPDATES_PATH,
 } from './config';
-import { RFQ_DYNAMIC_BLACKLIST_TTL, RFQ_FIRM_QUOTE_CACHE_EXPIRY } from './constants';
-import { getDBConnectionAsync } from './db_connection';
-import { MakerBalanceChainCacheEntity } from './entities/MakerBalanceChainCacheEntity';
+import { getDBConnection } from './db_connection';
 import { logger } from './logger';
 import { runHttpServiceAsync } from './runners/http_service_runner';
 import { MetaTransactionService } from './services/meta_transaction_service';
 import { OrderBookService } from './services/orderbook_service';
 import { PostgresRfqtFirmQuoteValidator } from './services/postgres_rfqt_firm_quote_validator';
 import { SwapService } from './services/swap_service';
-import { HttpServiceConfig, WebsocketSRAOpts } from './types';
+import { HttpServiceConfig, AppDependencies } from './types';
 import { AssetSwapperOrderbook } from './utils/asset_swapper_orderbook';
-import { ConfigManager } from './utils/config_manager';
-import { OrderWatcher } from './utils/order_watcher';
-import { PairsManager } from './utils/pairs_manager';
+import { NoOpOrderbook } from './utils/no_op_orderbook';
 import { RfqClient } from './utils/rfq_client';
 import { RfqDynamicBlacklist } from './utils/rfq_dyanmic_blacklist';
-import { RfqMakerDbUtils } from './utils/rfq_maker_db_utils';
 import { S3Client } from './utils/s3_client';
 import { SlippageModelManager } from './utils/slippage_model_manager';
-
-export interface AppDependencies {
-    contractAddresses: ContractAddresses;
-    connection: Connection;
-    kafkaClient?: Kafka;
-    orderBookService: OrderBookService;
-    swapService?: SwapService;
-    metaTransactionService?: MetaTransactionService;
-    provider: SupportedProvider;
-    websocketOpts: Partial<WebsocketSRAOpts>;
-    hasSentry?: boolean;
-}
 
 async function deploySamplerContractAsync(
     provider: SupportedProvider,
@@ -89,7 +71,7 @@ let contractAddresses_: AssetSwapperContractAddresses | undefined;
  * @param provider provider to the network, used for ganache deployment
  * @param chainId the network chain id
  */
-export async function getContractAddressesForNetworkOrThrowAsync(
+async function getContractAddressesForNetworkOrThrowAsync(
     provider: SupportedProvider,
     chainId: ChainId,
 ): Promise<AssetSwapperContractAddresses> {
@@ -110,29 +92,19 @@ export async function getContractAddressesForNetworkOrThrowAsync(
 }
 
 /**
- * Create and initialize a PairsManager instance
- */
-async function createAndInitializePairsManagerAsync(
-    configManager: ConfigManager,
-    rfqMakerDbUtils: RfqMakerDbUtils,
-): Promise<PairsManager | undefined> {
-    const chainId = configManager.getChainId();
-    if (chainId !== ChainId.Mainnet) {
-        return undefined;
-    }
-
-    const pairsManager = new PairsManager(configManager, rfqMakerDbUtils);
-    await pairsManager.initializeAsync();
-    return pairsManager;
-}
-
-/**
  * Create and initialize a SlippageModelManager instance
  */
 async function createAndInitializeSlippageModelManagerAsync(s3Client: S3Client): Promise<SlippageModelManager> {
     const slippageModelManager = new SlippageModelManager(s3Client);
     await slippageModelManager.initializeAsync();
     return slippageModelManager;
+}
+
+function createOrderbook(orderBookService: OrderBookService | undefined): Orderbook {
+    if (orderBookService === undefined) {
+        return new NoOpOrderbook();
+    }
+    return new AssetSwapperOrderbook(orderBookService);
 }
 
 /**
@@ -144,7 +116,7 @@ export async function getDefaultAppDependenciesAsync(
     config: HttpServiceConfig,
 ): Promise<AppDependencies> {
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
-    const connection = await getDBConnectionAsync();
+    const connection = await getDBConnection();
 
     let kafkaClient: Kafka | undefined;
     if (config.kafkaBrokers !== undefined) {
@@ -156,26 +128,16 @@ export async function getDefaultAppDependenciesAsync(
         logger.warn(`skipping kafka client creation because no kafkaBrokers were passed in`);
     }
 
-    const orderBookService = new OrderBookService(connection, new OrderWatcher());
+    const orderBookService = OrderBookService.create(connection);
 
-    const rfqtFirmQuoteValidator = new PostgresRfqtFirmQuoteValidator(
-        connection.getRepository(MakerBalanceChainCacheEntity),
-        RFQ_FIRM_QUOTE_CACHE_EXPIRY,
-    );
+    if (orderBookService == undefined) {
+        logger.warn('Order book service is disabled');
+    }
 
     let swapService: SwapService | undefined;
     let metaTransactionService: MetaTransactionService | undefined;
     try {
-        const rfqDynamicBlacklist = new RfqDynamicBlacklist(
-            connection,
-            RFQT_TX_ORIGIN_BLACKLIST,
-            RFQ_DYNAMIC_BLACKLIST_TTL,
-        );
-
-        const configManager: ConfigManager = new ConfigManager();
-        const rfqMakerDbUtils: RfqMakerDbUtils = new RfqMakerDbUtils(connection);
         const rfqClient: RfqClient = new RfqClient(RFQ_API_URL, axios);
-        const pairsManager = await createAndInitializePairsManagerAsync(configManager, rfqMakerDbUtils);
 
         const s3Client: S3Client = new S3Client(
             new S3({
@@ -184,13 +146,12 @@ export async function getDefaultAppDependenciesAsync(
         );
         const slippageModelManager = await createAndInitializeSlippageModelManagerAsync(s3Client);
         swapService = new SwapService(
-            new AssetSwapperOrderbook(orderBookService),
+            createOrderbook(orderBookService),
             provider,
             contractAddresses,
             rfqClient,
-            rfqtFirmQuoteValidator,
-            rfqDynamicBlacklist,
-            pairsManager,
+            PostgresRfqtFirmQuoteValidator.create(connection),
+            RfqDynamicBlacklist.create(connection),
             slippageModelManager,
         );
         metaTransactionService = createMetaTxnServiceFromSwapService(swapService, contractAddresses);
@@ -244,7 +205,7 @@ export async function getAppAsync(
 /**
  * Instantiates a MetaTransactionService
  */
-export function createMetaTxnServiceFromSwapService(
+function createMetaTxnServiceFromSwapService(
     swapService: SwapService,
     contractAddresses: ContractAddresses,
 ): MetaTransactionService {

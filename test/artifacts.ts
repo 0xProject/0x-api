@@ -5,6 +5,7 @@
  */
 import { ContractArtifact } from 'ethereum-types';
 
+import * as AaveV3Sampler from '../test/generated-artifacts/AaveV3Sampler.json';
 import * as ApproximateBuys from '../test/generated-artifacts/ApproximateBuys.json';
 import * as BalanceChecker from '../test/generated-artifacts/BalanceChecker.json';
 import * as BalancerSampler from '../test/generated-artifacts/BalancerSampler.json';
@@ -34,7 +35,6 @@ import * as IUniswapExchangeQuotes from '../test/generated-artifacts/IUniswapExc
 import * as IUniswapV2Router01 from '../test/generated-artifacts/IUniswapV2Router01.json';
 import * as KyberDmmSampler from '../test/generated-artifacts/KyberDmmSampler.json';
 import * as LidoSampler from '../test/generated-artifacts/LidoSampler.json';
-import * as LiquidityProviderSampler from '../test/generated-artifacts/LiquidityProviderSampler.json';
 import * as MakerPSMSampler from '../test/generated-artifacts/MakerPSMSampler.json';
 import * as MooniswapSampler from '../test/generated-artifacts/MooniswapSampler.json';
 import * as MStableSampler from '../test/generated-artifacts/MStableSampler.json';
@@ -52,6 +52,7 @@ import * as UtilitySampler from '../test/generated-artifacts/UtilitySampler.json
 import * as VelodromeSampler from '../test/generated-artifacts/VelodromeSampler.json';
 import * as WooPPSampler from '../test/generated-artifacts/WooPPSampler.json';
 export const artifacts = {
+    AaveV3Sampler: AaveV3Sampler as ContractArtifact,
     ApproximateBuys: ApproximateBuys as ContractArtifact,
     BalanceChecker: BalanceChecker as ContractArtifact,
     BalancerSampler: BalancerSampler as ContractArtifact,
@@ -69,7 +70,6 @@ export const artifacts = {
     GMXSampler: GMXSampler as ContractArtifact,
     KyberDmmSampler: KyberDmmSampler as ContractArtifact,
     LidoSampler: LidoSampler as ContractArtifact,
-    LiquidityProviderSampler: LiquidityProviderSampler as ContractArtifact,
     MStableSampler: MStableSampler as ContractArtifact,
     MakerPSMSampler: MakerPSMSampler as ContractArtifact,
     MooniswapSampler: MooniswapSampler as ContractArtifact,

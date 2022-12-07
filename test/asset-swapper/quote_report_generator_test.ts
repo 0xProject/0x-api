@@ -5,26 +5,24 @@ import * as _ from 'lodash';
 import 'mocha';
 import * as TypeMoq from 'typemoq';
 
-import { MarketOperation, NativeOrderWithFillableAmounts } from '../../src/asset-swapper/types';
 import {
-    DexSample,
+    MarketOperation,
+    NativeOrderWithFillableAmounts,
     ERC20BridgeSource,
     Fill,
-    MultiHopFillData,
     NativeFillData,
     NativeLimitOrderFillData,
     NativeRfqOrderFillData,
-} from '../../src/asset-swapper/utils/market_operation_utils/types';
-import { QuoteRequestor } from '../../src/asset-swapper/utils/quote_requestor';
-
-import {
     BridgeQuoteReportEntry,
-    generateQuoteReport,
     MultiHopQuoteReportEntry,
     NativeLimitOrderQuoteReportEntry,
     NativeRfqOrderQuoteReportEntry,
     QuoteReportEntry,
-} from './../../src/asset-swapper/utils/quote_report_generator';
+} from '../../src/asset-swapper/types';
+import { DexSample, MultiHopFillData } from '../../src/asset-swapper/utils/market_operation_utils/types';
+import { QuoteRequestor } from '../../src/asset-swapper/utils/quote_requestor';
+
+import { generateQuoteReport } from './../../src/asset-swapper/utils/quote_report_generator';
 import { chaiSetup } from './utils/chai_setup';
 import { getRandomAmount, getRandomSignature } from './utils/utils';
 

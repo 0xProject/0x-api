@@ -1,19 +1,11 @@
 import { ChainId, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
-import {
-    constants,
-    expect,
-    getRandomFloat,
-    getRandomInteger,
-    randomAddress,
-    toBaseUnitAmount,
-} from '@0x/contracts-test-utils';
+import { constants, expect, getRandomFloat, getRandomInteger, randomAddress } from '@0x/contracts-test-utils';
 import { FillQuoteTransformerOrderType, LimitOrderFields, SignatureType } from '@0x/protocol-utils';
 import { BigNumber, hexUtils, NULL_ADDRESS } from '@0x/utils';
 import * as _ from 'lodash';
-import { SignedLimitOrder } from '../../src/asset-swapper/types';
+import { SignedLimitOrder, ERC20BridgeSource } from '../../src/asset-swapper/types';
 
 import { DexOrderSampler, getSampleAmounts } from '../../src/asset-swapper/utils/market_operation_utils/sampler';
-import { ERC20BridgeSource } from '../../src/asset-swapper/utils/market_operation_utils/types';
 import { TokenAdjacencyGraphBuilder } from '../../src/asset-swapper/utils/token_adjacency_graph';
 
 import { MockSamplerContract } from './utils/mock_sampler_contract';
@@ -109,7 +101,6 @@ describe('DexSampler tests', () => {
                 undefined,
                 undefined,
                 undefined,
-                undefined,
                 async () => undefined,
             );
             const [fillableAmounts] = await dexOrderSampler.executeAsync(
@@ -133,101 +124,12 @@ describe('DexSampler tests', () => {
                 undefined,
                 undefined,
                 undefined,
-                undefined,
                 async () => undefined,
             );
             const [fillableAmounts] = await dexOrderSampler.executeAsync(
                 dexOrderSampler.getLimitOrderFillableTakerAmounts(ORDERS, exchangeProxyAddress),
             );
             expect(fillableAmounts).to.deep.eq(expectedFillableAmounts);
-        });
-
-        it('getLiquidityProviderSellQuotes()', async () => {
-            const expectedMakerToken = randomAddress();
-            const expectedTakerToken = randomAddress();
-            const poolAddress = randomAddress();
-            const gasCost = 123;
-            const sampler = new MockSamplerContract({
-                sampleSellsFromLiquidityProvider: (providerAddress, takerToken, makerToken, _fillAmounts) => {
-                    expect(providerAddress).to.eq(poolAddress);
-                    expect(takerToken).to.eq(expectedTakerToken);
-                    expect(makerToken).to.eq(expectedMakerToken);
-                    return [toBaseUnitAmount(1001)];
-                },
-            });
-            const dexOrderSampler = new DexOrderSampler(
-                chainId,
-                sampler,
-                undefined,
-                undefined,
-                undefined,
-                {
-                    [poolAddress]: { tokens: [expectedMakerToken, expectedTakerToken], gasCost },
-                },
-                async () => undefined,
-            );
-            const [result] = await dexOrderSampler.executeAsync(
-                dexOrderSampler.getSellQuotes(
-                    [ERC20BridgeSource.LiquidityProvider],
-                    expectedMakerToken,
-                    expectedTakerToken,
-                    [toBaseUnitAmount(1000)],
-                ),
-            );
-            expect(result).to.deep.equal([
-                [
-                    {
-                        source: 'LiquidityProvider',
-                        output: toBaseUnitAmount(1001),
-                        input: toBaseUnitAmount(1000),
-                        fillData: { poolAddress, gasCost },
-                    },
-                ],
-            ]);
-        });
-
-        it('getLiquidityProviderBuyQuotes()', async () => {
-            const expectedMakerToken = randomAddress();
-            const expectedTakerToken = randomAddress();
-            const poolAddress = randomAddress();
-            const gasCost = 321;
-            const sampler = new MockSamplerContract({
-                sampleBuysFromLiquidityProvider: (providerAddress, takerToken, makerToken, _fillAmounts) => {
-                    expect(providerAddress).to.eq(poolAddress);
-                    expect(takerToken).to.eq(expectedTakerToken);
-                    expect(makerToken).to.eq(expectedMakerToken);
-                    return [toBaseUnitAmount(999)];
-                },
-            });
-            const dexOrderSampler = new DexOrderSampler(
-                chainId,
-                sampler,
-                undefined,
-                undefined,
-                undefined,
-                {
-                    [poolAddress]: { tokens: [expectedMakerToken, expectedTakerToken], gasCost },
-                },
-                async () => undefined,
-            );
-            const [result] = await dexOrderSampler.executeAsync(
-                dexOrderSampler.getBuyQuotes(
-                    [ERC20BridgeSource.LiquidityProvider],
-                    expectedMakerToken,
-                    expectedTakerToken,
-                    [toBaseUnitAmount(1000)],
-                ),
-            );
-            expect(result).to.deep.equal([
-                [
-                    {
-                        source: 'LiquidityProvider',
-                        output: toBaseUnitAmount(999),
-                        input: toBaseUnitAmount(1000),
-                        fillData: { poolAddress, gasCost },
-                    },
-                ],
-            ]);
         });
 
         it('getUniswapSellQuotes()', async () => {
@@ -246,7 +148,6 @@ describe('DexSampler tests', () => {
             const dexOrderSampler = new DexOrderSampler(
                 chainId,
                 sampler,
-                undefined,
                 undefined,
                 undefined,
                 undefined,
@@ -281,7 +182,6 @@ describe('DexSampler tests', () => {
                 undefined,
                 undefined,
                 undefined,
-                undefined,
                 async () => undefined,
             );
             const [fillableAmounts] = await dexOrderSampler.executeAsync(
@@ -310,7 +210,6 @@ describe('DexSampler tests', () => {
             const dexOrderSampler = new DexOrderSampler(
                 chainId,
                 sampler,
-                undefined,
                 undefined,
                 undefined,
                 undefined,
@@ -369,7 +268,6 @@ describe('DexSampler tests', () => {
                 undefined,
                 undefined,
                 tokenAdjacencyGraph,
-                undefined,
                 async () => undefined,
             );
             const [quotes] = await dexOrderSampler.executeAsync(
@@ -454,7 +352,6 @@ describe('DexSampler tests', () => {
                 undefined,
                 undefined,
                 tokenAdjacencyGraph,
-                undefined,
                 async () => undefined,
             );
             const [quotes] = await dexOrderSampler.executeAsync(
@@ -513,7 +410,6 @@ describe('DexSampler tests', () => {
                 const dexOrderSampler = new DexOrderSampler(
                     chainId,
                     sampler,
-                    undefined,
                     undefined,
                     undefined,
                     undefined,

@@ -12,15 +12,35 @@ import { ONE_SECOND_MS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
+import {
+    IOrderBookService,
+    OrderbookResponse,
+    OrderEventEndState,
+    PaginatedCollection,
+    SignedLimitOrder,
+    SRAOrder,
+} from '../types';
 import { orderUtils } from '../utils/order_utils';
-import { OrderWatcherInterface } from '../utils/order_watcher';
+import { OrderWatcher, OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
 
-export class OrderBookService {
+export class OrderBookService implements IOrderBookService {
     private readonly _connection: Connection;
     private readonly _orderWatcher: OrderWatcherInterface;
-    public static isAllowedPersistentOrders(apiKey: string): boolean {
+
+    public static create(connection: Connection | undefined): OrderBookService | undefined {
+        if (connection === undefined) {
+            return undefined;
+        }
+        return new OrderBookService(connection, new OrderWatcher());
+    }
+
+    constructor(connection: Connection, orderWatcher: OrderWatcherInterface) {
+        this._connection = connection;
+        this._orderWatcher = orderWatcher;
+    }
+
+    public isAllowedPersistentOrders(apiKey: string): boolean {
         return SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS.includes(apiKey);
     }
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<SRAOrder | undefined> {
@@ -195,10 +215,6 @@ export class OrderBookService {
 
         const paginatedApiOrders = paginationUtils.paginate(fresh, page, perPage);
         return paginatedApiOrders;
-    }
-    constructor(connection: Connection, orderWatcher: OrderWatcherInterface) {
-        this._connection = connection;
-        this._orderWatcher = orderWatcher;
     }
     public async addOrderAsync(signedOrder: SignedLimitOrder): Promise<void> {
         await this._orderWatcher.postOrdersAsync([signedOrder]);

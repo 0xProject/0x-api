@@ -1,10 +1,14 @@
 import { HttpServiceConfig as BaseHttpConfig } from '@0x/api-utils';
-import { ExchangeProxyMetaTransaction, ZeroExTransaction } from '@0x/types';
+import { ExchangeProxyMetaTransaction } from '@0x/types';
 import { BigNumber } from '@0x/utils';
+import { ContractAddresses, ChainId } from '@0x/contract-addresses';
+import { OtcOrder } from '@0x/protocol-utils';
+import { Connection } from 'typeorm';
+import { Kafka } from 'kafkajs';
 
+import { SignedOrderV4Entity } from './entities';
 import {
     AffiliateFeeType,
-    ChainId,
     ERC20BridgeSource,
     ExtendedQuoteReportSources,
     LimitOrderFields,
@@ -12,21 +16,10 @@ import {
     QuoteReport,
     RfqRequestOpts,
     Signature,
+    SupportedProvider,
 } from './asset-swapper';
-import { Integrator } from './config';
 
-export enum OrderWatcherLifeCycleEvents {
-    Added,
-    Removed,
-    Updated,
-    PersistentUpdated,
-}
-
-export interface OrdersByLifecycleEvents {
-    added: SRAOrder[];
-    removed: SRAOrder[];
-    updated: SRAOrder[];
-}
+export type Address = string;
 
 export interface PaginatedCollection<T> {
     total: number;
@@ -66,31 +59,20 @@ export interface UpdateOrdersChannelMessageWithChannel extends UpdateOrdersChann
     channel: MessageChannels;
 }
 
-export type OrdersChannelMessage = UpdateOrdersChannelMessage | UnknownOrdersChannelMessage;
 export enum OrdersChannelMessageTypes {
     Update = 'update',
     Unknown = 'unknown',
 }
-export interface UpdateOrdersChannelMessage {
+interface UpdateOrdersChannelMessage {
     type: OrdersChannelMessageTypes.Update;
     requestId: string;
     payload: SRAOrder[];
-}
-export interface UnknownOrdersChannelMessage {
-    type: OrdersChannelMessageTypes.Unknown;
-    requestId: string;
-    payload: undefined;
 }
 
 export enum WebsocketConnectionEventType {
     Close = 'close',
     Error = 'error',
     Message = 'message',
-}
-
-export enum WebsocketClientEventType {
-    Connect = 'connect',
-    ConnectFailed = 'connectFailed',
 }
 
 /**
@@ -112,13 +94,6 @@ export interface SRAOrderMetaData {
 export interface SRAOrder {
     order: SignedLimitOrder;
     metaData: SRAOrderMetaData;
-}
-
-export type OrdersResponse = PaginatedCollection<SRAOrder>;
-
-export interface OrderbookRequest {
-    baseToken: string;
-    quoteToken: string;
 }
 
 export interface OrderbookResponse {
@@ -143,24 +118,7 @@ export interface OrderConfigResponse {
     takerTokenFeeAmount: BigNumber;
 }
 
-export type FeeRecipientsResponse = PaginatedCollection<string>;
-
-export interface PagedRequestOpts {
-    page?: number;
-    perPage?: number;
-}
-
 /** END SRA TYPES */
-
-export interface ObjectMap<T> {
-    [key: string]: T;
-}
-
-export interface TokenMetadata {
-    symbol: string;
-    decimals: number;
-    tokenAddress: string;
-}
 
 export enum FeeParamTypes {
     POSITIVE_SLIPPAGE = 'POSITIVE_SLIPPAGE',
@@ -176,7 +134,7 @@ export interface AffiliateFeeAmounts {
 
 /** Begin /swap and /meta_transaction types */
 
-export interface QuoteBase {
+interface QuoteBase {
     chainId: ChainId;
     price: BigNumber;
     buyAmount: BigNumber;
@@ -201,7 +159,7 @@ export interface GetSwapQuoteResponseLiquiditySource {
     hops?: string[];
 }
 
-export interface BasePriceResponse extends QuoteBase {
+interface BasePriceResponse extends QuoteBase {
     sellTokenAddress: string;
     buyTokenAddress: string;
     value: BigNumber;
@@ -316,9 +274,6 @@ export interface MetaTransactionQuoteRequestParams extends SwapQuoteParamsBase {
     takerAddress: string;
 }
 
-// Interim types
-export type ZeroExTransactionWithoutDomain = Omit<ZeroExTransaction, 'domain'>;
-
 /**
  * Parameters for the Meta Transaction Service price and quote functions.
  */
@@ -341,12 +296,6 @@ export interface HttpServiceConfig extends BaseHttpConfig {
     kafkaConsumerGroupId?: string;
     rpcRequestTimeout: number;
     shouldCompressRequest: boolean;
-}
-
-export interface TokenMetadataOptionalSymbol {
-    symbol?: string;
-    decimals: number;
-    tokenAddress: string;
 }
 
 export enum OrderEventEndState {
@@ -375,4 +324,114 @@ export enum OrderEventEndState {
     // and no further events for this order will be emitted. In some cases, the order may be re-added in the
     // future.
     StoppedWatching = 'STOPPED_WATCHING',
+}
+
+export interface Integrator {
+    apiKeys: string[];
+    integratorId: string;
+    whitelistIntegratorUrls?: string[];
+    label: string;
+    rfqm: boolean;
+    rfqt: boolean;
+    slippageModel?: boolean;
+}
+
+export interface MetaTransactionQuoteResult extends QuoteBase {
+    buyTokenAddress: string;
+    callData: string;
+    sellTokenAddress: string;
+    taker: string;
+}
+
+export interface IMetaTransactionService {
+    getMetaTransactionPriceAsync(params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResult>;
+    getMetaTransactionQuoteAsync(params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResponse>;
+}
+
+export interface IOrderBookService {
+    isAllowedPersistentOrders(apiKey: string): boolean;
+    getOrderByHashIfExistsAsync(orderHash: string): Promise<SRAOrder | undefined>;
+    getOrderBookAsync(page: number, perPage: number, baseToken: string, quoteToken: string): Promise<OrderbookResponse>;
+
+    getOrdersAsync(
+        page: number,
+        perPage: number,
+        orderFieldFilters: Partial<SignedOrderV4Entity>,
+        additionalFilters: { isUnfillable?: boolean; trader?: string },
+    ): Promise<PaginatedCollection<SRAOrder>>;
+
+    getBatchOrdersAsync(
+        page: number,
+        perPage: number,
+        makerTokens: string[],
+        takerTokens: string[],
+    ): Promise<PaginatedCollection<SRAOrder>>;
+
+    addOrderAsync(signedOrder: SignedLimitOrder): Promise<void>;
+    addOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void>;
+    addPersistentOrdersAsync(signedOrders: SignedLimitOrder[]): Promise<void>;
+}
+
+export interface ISlippageModelManager {
+    initializeAsync(): Promise<void>;
+    calculateExpectedSlippage(
+        buyToken: string,
+        sellToken: string,
+        buyAmount: BigNumber,
+        sellAmount: BigNumber,
+        sources: GetSwapQuoteResponseLiquiditySource[],
+        maxSlippageRate: number,
+    ): BigNumber | null;
+}
+
+export interface ISwapService {
+    readonly slippageModelManager?: ISlippageModelManager;
+    calculateSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
+    getSwapQuoteForWrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
+    getSwapQuoteForUnwrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse>;
+}
+
+export interface AppDependencies {
+    contractAddresses: ContractAddresses;
+    connection?: Connection;
+    kafkaClient?: Kafka;
+    orderBookService?: IOrderBookService;
+    swapService?: ISwapService;
+    metaTransactionService?: IMetaTransactionService;
+    provider: SupportedProvider;
+    websocketOpts: Partial<WebsocketSRAOpts>;
+    hasSentry?: boolean;
+}
+
+export type RfqtV2Price = {
+    expiry: BigNumber;
+    makerAddress: string;
+    makerAmount: BigNumber;
+    makerId: string;
+    makerToken: string;
+    makerUri: string;
+    takerAmount: BigNumber;
+    takerToken: string;
+};
+
+export type RfqtV2Quote = {
+    fillableMakerAmount: BigNumber;
+    fillableTakerAmount: BigNumber;
+    fillableTakerFeeAmount: BigNumber;
+    makerId: string;
+    makerUri: string;
+    order: OtcOrder;
+    signature: Signature;
+};
+
+export interface RfqtV2Request {
+    assetFillAmount: BigNumber;
+    chainId: number;
+    integratorId: string;
+    intentOnFilling: boolean;
+    makerToken: string;
+    marketOperation: 'Sell' | 'Buy';
+    takerAddress: string;
+    takerToken: string;
+    txOrigin: string;
 }

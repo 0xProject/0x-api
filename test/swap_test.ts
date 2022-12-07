@@ -11,11 +11,12 @@ import * as _ from 'lodash';
 import 'mocha';
 import supertest from 'supertest';
 
-import { AppDependencies, getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { AppDependencies } from '../src/types';
 import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ChainId, ERC20BridgeSource, LimitOrderFields } from '../src/asset-swapper';
 import * as config from '../src/config';
 import { AFFILIATE_FEE_TRANSFORMER_GAS, GAS_LIMIT_BUFFER_MULTIPLIER, SWAP_PATH } from '../src/constants';
-import { getDBConnectionAsync } from '../src/db_connection';
+import { getDBConnectionOrThrow } from '../src/db_connection';
 import { ValidationErrorCodes, ValidationErrorItem, ValidationErrorReasons } from '../src/errors';
 import { logger } from '../src/logger';
 import { GetSwapQuoteResponse, SignedLimitOrder } from '../src/types';
@@ -72,7 +73,7 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        const connection = await getDBConnectionAsync();
+        const connection = await getDBConnectionOrThrow();
         await connection.runMigrations();
         provider = getProvider();
         const web3Wrapper = new Web3Wrapper(provider);
@@ -220,6 +221,8 @@ describe(SUITE_NAME, () => {
                     validationErrors: [
                         {
                             code: ValidationErrorCodes.ValueOutOfRange,
+                            description:
+                                'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity',
                             field: 'buyAmount',
                             reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
                         },

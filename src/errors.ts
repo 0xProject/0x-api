@@ -1,13 +1,10 @@
 import { AlertError, BadRequestError, generalErrorCodeToReason as baseReasons } from '@0x/api-utils';
-import * as HttpStatus from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 
 import { ONE_SECOND_MS } from './constants';
 import { SignedLimitOrder } from './types';
 
 export {
-    BadRequestError,
-    ErrorBody,
-    GeneralErrorCodes,
     InternalServerError,
     InvalidAPIKeyError,
     MalformedJSONError,
@@ -20,17 +17,17 @@ export {
 } from '@0x/api-utils';
 
 export class InsufficientFundsError extends BadRequestError<APIErrorCodes> {
-    public statusCode = HttpStatus.BAD_REQUEST;
+    public statusCode = StatusCodes.BAD_REQUEST;
     public generalErrorCode = APIErrorCodes.InsufficientFundsError;
 }
 
 export class EthSellNotSupportedError extends BadRequestError<APIErrorCodes> {
-    public statusCode = HttpStatus.BAD_REQUEST;
+    public statusCode = StatusCodes.BAD_REQUEST;
     public generalErrorCode = APIErrorCodes.EthSellNotSupported;
 }
 
 export class GasEstimationError extends BadRequestError<APIErrorCodes> {
-    public statusCode = HttpStatus.BAD_REQUEST;
+    public statusCode = StatusCodes.BAD_REQUEST;
     public generalErrorCode = APIErrorCodes.GasEstimationFailed;
 }
 
@@ -74,13 +71,6 @@ export class ExpiredOrderError extends AlertError {
         super();
         this.expiry = order.expiry.toNumber();
         this.expiredForSeconds = Date.now() / ONE_SECOND_MS - this.expiry;
-    }
-}
-
-export class OrderWatcherSyncError extends AlertError {
-    public message = `Error syncing OrderWatcher!`;
-    constructor(public details?: string) {
-        super();
     }
 }
 

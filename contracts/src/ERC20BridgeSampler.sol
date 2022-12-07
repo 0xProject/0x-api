@@ -20,6 +20,7 @@
 pragma solidity ^0.6;
 pragma experimental ABIEncoderV2;
 
+import "./AaveV3Sampler.sol";
 import "./BalancerSampler.sol";
 import "./BalancerV2Sampler.sol";
 import "./BalancerV2BatchSampler.sol";
@@ -32,7 +33,6 @@ import "./DODOV2Sampler.sol";
 import "./GMXSampler.sol";
 import "./KyberDmmSampler.sol";
 import "./LidoSampler.sol";
-import "./LiquidityProviderSampler.sol";
 import "./MakerPSMSampler.sol";
 import "./MStableSampler.sol";
 import "./MooniswapSampler.sol";
@@ -49,6 +49,7 @@ import "./WooPPSampler.sol";
 import "./UtilitySampler.sol";
 
 contract ERC20BridgeSampler is
+    AaveV3Sampler,
     BalancerSampler,
     BalancerV2Sampler,
     BalancerV2BatchSampler,
@@ -61,7 +62,6 @@ contract ERC20BridgeSampler is
     GMXSampler,
     KyberDmmSampler,
     LidoSampler,
-    LiquidityProviderSampler,
     MakerPSMSampler,
     MStableSampler,
     MooniswapSampler,

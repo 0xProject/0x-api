@@ -1,5 +1,5 @@
 import { assert } from '@0x/assert';
-import { nativeWrappedTokenSymbol, TokenMetadatasForChains, valueByChainId } from '@0x/token-metadata';
+import { TokenMetadatasForChains, valueByChainId } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as fs from 'fs';
 import * as _ from 'lodash';
@@ -11,7 +11,6 @@ import {
     ChainId,
     DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
     ERC20BridgeSource,
-    LiquidityProviderRegistry,
     OrderPrunerPermittedFeeTypes,
     RfqMakerAssetOfferings,
     SamplerOverrides,
@@ -22,7 +21,6 @@ import {
 } from './asset-swapper';
 import {
     DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
-    DEFAULT_LOCAL_POSTGRES_URI,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_META_TX_MIN_ALLOWED_SLIPPAGE,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
@@ -38,7 +36,7 @@ import {
     TX_BASE_GAS,
 } from './constants';
 import { schemas } from './schemas';
-import { HttpServiceConfig } from './types';
+import { HttpServiceConfig, Integrator } from './types';
 import { schemaUtils } from './utils/schema_utils';
 
 enum EnvVarType {
@@ -60,30 +58,19 @@ enum EnvVarType {
     PrivateKeys,
     RfqMakerAssetOfferings,
     RateLimitConfig,
-    LiquidityProviderRegistry,
     JsonStringList,
 }
 
 /**
  * A taker-integrator of the 0x API.
  */
-export interface Integrator {
-    apiKeys: string[];
-    integratorId: string;
-    whitelistIntegratorUrls?: string[];
-    label: string;
-    plp: boolean;
-    rfqm: boolean;
-    rfqt: boolean;
-    slippageModel?: boolean;
-}
-export type IntegratorsAcl = Integrator[];
+type IntegratorsAcl = Integrator[];
 
 /**
  * Configuration which represents taker-integrators of the 0x API. The configuration contains the label, id,
  * api keys, and allowed liquidity sources for each integrator.
  */
-export const INTEGRATORS_ACL: IntegratorsAcl = (() => {
+const INTEGRATORS_ACL: IntegratorsAcl = (() => {
     let integrators: IntegratorsAcl;
     try {
         integrators = resolveEnvVar<IntegratorsAcl>('INTEGRATORS_ACL', EnvVarType.JsonStringList, []);
@@ -97,7 +84,7 @@ export const INTEGRATORS_ACL: IntegratorsAcl = (() => {
 /**
  * Extracts the integrator API keys from the `INTEGRATORS_ACL` environment variable for the provided group type.
  */
-export const getApiKeyWhitelistFromIntegratorsAcl = (groupType: 'rfqt' | 'plp' | 'rfqm'): string[] => {
+export const getApiKeyWhitelistFromIntegratorsAcl = (groupType: 'rfqt' | 'rfqm'): string[] => {
     return INTEGRATORS_ACL.filter((i) => i[groupType])
         .flatMap((i) => i.apiKeys)
         .sort();
@@ -106,7 +93,7 @@ export const getApiKeyWhitelistFromIntegratorsAcl = (groupType: 'rfqt' | 'plp' |
 /**
  * Gets the integrator ID for the provided label.
  */
-export const getIntegratorIdFromLabel = (label: string): string | undefined => {
+const getIntegratorIdFromLabel = (label: string): string | undefined => {
     for (const integrator of INTEGRATORS_ACL) {
         if (integrator.label === label) {
             return integrator.integratorId;
@@ -114,16 +101,13 @@ export const getIntegratorIdFromLabel = (label: string): string | undefined => {
     }
 };
 
-export type RfqWorkFlowType = 'rfqt' | 'rfqm';
-export type RfqOrderType = 'rfq' | 'otc';
-
-export const RFQ_WORKFLOW: RfqWorkFlowType = 'rfqt'; // This code base currently only supports rfqt workflow.
-export const RFQ_PAIR_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
+type RfqWorkFlowType = 'rfqt' | 'rfqm';
+type RfqOrderType = 'rfq' | 'otc';
 
 /**
  * The JSON config for each Market Maker, providing information including URIs, type of order supported and authentication.
  */
-export interface RfqMakerConfig {
+interface RfqMakerConfig {
     makerId: string;
     label: string;
     rfqmMakerUri: string;
@@ -136,12 +120,12 @@ export interface RfqMakerConfig {
 /**
  * A Map type which map the makerId to the config object.
  */
-export type MakerIdsToConfigs = Map</* makerId */ string, RfqMakerConfig>;
+type MakerIdsToConfigs = Map</* makerId */ string, RfqMakerConfig>;
 
 /**
  * Generate a map from MakerId to MakerConfig that support a given order type for a given workflow
  */
-export const getMakerConfigMapForOrderType = (
+const getMakerConfigMapForOrderType = (
     orderType: RfqOrderType | 'any',
     workflow: RfqWorkFlowType,
 ): MakerIdsToConfigs => {
@@ -173,12 +157,12 @@ export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
     : assertEnvVarType('LOG_LEVEL', process.env.LOG_LEVEL, EnvVarType.NonEmptyString);
 
 // Network port to listen on
-export const HTTP_PORT = _.isEmpty(process.env.HTTP_PORT)
+const HTTP_PORT = _.isEmpty(process.env.HTTP_PORT)
     ? 3000
     : assertEnvVarType('HTTP_PORT', process.env.HTTP_PORT, EnvVarType.Port);
 
 // Network port for the healthcheck service at /healthz, if not provided, it uses the HTTP_PORT value.
-export const HEALTHCHECK_HTTP_PORT = _.isEmpty(process.env.HEALTHCHECK_HTTP_PORT)
+const HEALTHCHECK_HTTP_PORT = _.isEmpty(process.env.HEALTHCHECK_HTTP_PORT)
     ? HTTP_PORT
     : assertEnvVarType('HEALTHCHECK_HTTP_PORT', process.env.HEALTHCHECK_HTTP_PORT, EnvVarType.Port);
 
@@ -186,14 +170,14 @@ export const HEALTHCHECK_HTTP_PORT = _.isEmpty(process.env.HEALTHCHECK_HTTP_PORT
 // incoming data aftere it finished writing last response before a socket will
 // be destroyed.
 // Ref: https://nodejs.org/api/http.html#http_server_keepalivetimeout
-export const HTTP_KEEP_ALIVE_TIMEOUT = _.isEmpty(process.env.HTTP_KEEP_ALIVE_TIMEOUT)
+const HTTP_KEEP_ALIVE_TIMEOUT = _.isEmpty(process.env.HTTP_KEEP_ALIVE_TIMEOUT)
     ? 76 * 1000
     : assertEnvVarType('HTTP_KEEP_ALIVE_TIMEOUT', process.env.HTTP_KEEP_ALIVE_TIMEOUT, EnvVarType.KeepAliveTimeout);
 
 // Limit the amount of time the parser will wait to receive the complete HTTP headers.
 // NOTE: This value HAS to be higher than HTTP_KEEP_ALIVE_TIMEOUT.
 // Ref: https://nodejs.org/api/http.html#http_server_headerstimeout
-export const HTTP_HEADERS_TIMEOUT = _.isEmpty(process.env.HTTP_HEADERS_TIMEOUT)
+const HTTP_HEADERS_TIMEOUT = _.isEmpty(process.env.HTTP_HEADERS_TIMEOUT)
     ? 77 * 1000
     : assertEnvVarType('HTTP_HEADERS_TIMEOUT', process.env.HTTP_HEADERS_TIMEOUT, EnvVarType.KeepAliveTimeout);
 
@@ -207,25 +191,24 @@ export const WHITELISTED_TOKENS: string[] | '*' = _.isEmpty(process.env.WHITELIS
     ? TokenMetadatasForChains.map((tm) => tm.tokenAddresses[CHAIN_ID])
     : assertEnvVarType('WHITELIST_ALL_TOKENS', process.env.WHITELIST_ALL_TOKENS, EnvVarType.WhitelistAllTokens);
 
-// Ignored addresses only for Swap endpoints (still present in database and SRA).
-export const SWAP_IGNORED_ADDRESSES: string[] = _.isEmpty(process.env.SWAP_IGNORED_ADDRESSES)
-    ? []
-    : assertEnvVarType('SWAP_IGNORED_ADDRESSES', process.env.SWAP_IGNORED_ADDRESSES, EnvVarType.AddressList);
-
 export const DB_ORDERS_UPDATE_CHUNK_SIZE = 300;
 
 // Ethereum RPC Url list
-export const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.UrlList);
+const ETHEREUM_RPC_URL = assertEnvVarType('ETHEREUM_RPC_URL', process.env.ETHEREUM_RPC_URL, EnvVarType.UrlList);
 // Timeout in seconds to wait for an RPC request (default 5000)
-export const RPC_REQUEST_TIMEOUT = _.isEmpty(process.env.RPC_REQUEST_TIMEOUT)
+const RPC_REQUEST_TIMEOUT = _.isEmpty(process.env.RPC_REQUEST_TIMEOUT)
     ? 5000
     : assertEnvVarType('RPC_REQUEST_TIMEOUT', process.env.RPC_REQUEST_TIMEOUT, EnvVarType.Integer);
 
 // Prometheus shared metrics
 export const PROMETHEUS_REQUEST_BUCKETS = linearBuckets(0, 0.25, RPC_REQUEST_TIMEOUT / 1000 / 0.25); // [ 0,  0.25,  0.5,  0.75, ... 5 ]
+export const PROMETHEUS_REQUEST_SIZE_BUCKETS = linearBuckets(0, 50000, 20); // A single step is 50kb, up to 1mb.
+export const PROMETHEUS_RESPONSE_SIZE_BUCKETS = linearBuckets(0, 50000, 20); // A single step is 50kb, up to 1mb.
+export const PROMETHEUS_LABEL_STATUS_OK = 'ok';
+export const PROMETHEUS_LABEL_STATUS_ERROR = 'error';
 
 // Enable client side content compression when sending RPC requests (default false)
-export const ENABLE_RPC_REQUEST_COMPRESSION = _.isEmpty(process.env.ENABLE_RPC_REQUEST_COMPRESSION)
+const ENABLE_RPC_REQUEST_COMPRESSION = _.isEmpty(process.env.ENABLE_RPC_REQUEST_COMPRESSION)
     ? false
     : assertEnvVarType(
           'ENABLE_RPC_REQUEST_COMPRESSION',
@@ -261,7 +244,7 @@ export const KAFKA_BROKERS = _.isEmpty(process.env.KAFKA_BROKERS)
     ? undefined
     : assertEnvVarType('KAFKA_BROKERS', process.env.KAFKA_BROKERS, EnvVarType.StringList);
 
-export const KAFKA_CONSUMER_GROUP_ID = _.isEmpty(process.env.KAFKA_CONSUMER_GROUP_ID)
+const KAFKA_CONSUMER_GROUP_ID = _.isEmpty(process.env.KAFKA_CONSUMER_GROUP_ID)
     ? undefined
     : assertEnvVarType('KAFKA_CONSUMER_GROUP_ID', process.env.KAFKA_CONSUMER_GROUP_ID, EnvVarType.NonEmptyString);
 
@@ -302,8 +285,8 @@ export const SRA_ORDER_EXPIRATION_BUFFER_SECONDS: number = _.isEmpty(process.env
           EnvVarType.KeepAliveTimeout,
       );
 
-export const POSTGRES_URI = _.isEmpty(process.env.POSTGRES_URI)
-    ? DEFAULT_LOCAL_POSTGRES_URI
+export const POSTGRES_URI: string | undefined = _.isEmpty(process.env.POSTGRES_URI)
+    ? undefined
     : assertEnvVarType('POSTGRES_URI', process.env.POSTGRES_URI, EnvVarType.Url);
 
 export const POSTGRES_READ_REPLICA_URIS: string[] | undefined = _.isEmpty(process.env.POSTGRES_READ_REPLICA_URIS)
@@ -315,27 +298,16 @@ export const LOGGER_INCLUDE_TIMESTAMP = _.isEmpty(process.env.LOGGER_INCLUDE_TIM
     ? DEFAULT_LOGGER_INCLUDE_TIMESTAMP
     : assertEnvVarType('LOGGER_INCLUDE_TIMESTAMP', process.env.LOGGER_INCLUDE_TIMESTAMP, EnvVarType.Boolean);
 
-export const LIQUIDITY_PROVIDER_REGISTRY: LiquidityProviderRegistry = _.isEmpty(process.env.LIQUIDITY_PROVIDER_REGISTRY)
-    ? {}
-    : assertEnvVarType(
-          'LIQUIDITY_PROVIDER_REGISTRY',
-          process.env.LIQUIDITY_PROVIDER_REGISTRY,
-          EnvVarType.LiquidityProviderRegistry,
-      );
-
 export const RFQT_REGISTRY_PASSWORDS: string[] = resolveEnvVar<string[]>(
     'RFQT_REGISTRY_PASSWORDS',
     EnvVarType.JsonStringList,
     [],
 );
 
-export const RFQT_INTEGRATORS: Integrator[] = INTEGRATORS_ACL.filter((i) => i.rfqt);
+const RFQT_INTEGRATORS: Integrator[] = INTEGRATORS_ACL.filter((i) => i.rfqt);
 export const RFQT_INTEGRATOR_IDS: string[] = INTEGRATORS_ACL.filter((i) => i.rfqt).map((i) => i.integratorId);
 export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('rfqt');
-export const RFQM_API_KEY_WHITELIST: Set<string> = new Set(getApiKeyWhitelistFromIntegratorsAcl('rfqm'));
-export const PLP_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('plp');
 
-export const RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER: MakerIdsToConfigs = getMakerConfigMapForOrderType('rfq', 'rfqt');
 export const MATCHA_INTEGRATOR_ID: string | undefined = getIntegratorIdFromLabel('Matcha');
 
 export const RFQ_CLIENT_ROLLOUT_PERCENT: number = resolveEnvVar('RFQ_CLIENT_ROLLOUT_PERCENT', EnvVarType.Integer, 0);
@@ -352,7 +324,7 @@ export const ALT_RFQ_MM_ENDPOINT: string | undefined = _.isEmpty(process.env.ALT
 export const ALT_RFQ_MM_API_KEY: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_API_KEY)
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_API_KEY', process.env.ALT_RFQ_MM_API_KEY, EnvVarType.NonEmptyString);
-export const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_PROFILE)
+const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_PROFILE)
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_PROFILE', process.env.ALT_RFQ_MM_PROFILE, EnvVarType.NonEmptyString);
 
@@ -394,13 +366,9 @@ export const PROMETHEUS_PORT: number = _.isEmpty(process.env.PROMETHEUS_PORT)
     : assertEnvVarType('PROMETHEUS_PORT', process.env.PROMETHEUS_PORT, EnvVarType.Port);
 
 // ZeroEx Gas API URL
-export const ZERO_EX_GAS_API_URL: string = _.isEmpty(process.env.ZERO_EX_GAS_API_URL)
+const ZERO_EX_GAS_API_URL: string = _.isEmpty(process.env.ZERO_EX_GAS_API_URL)
     ? DEFAULT_ZERO_EX_GAS_API_URL
     : assertEnvVarType('ZERO_EX_GAS_API_URL', process.env.ZERO_EX_GAS_API_URL, EnvVarType.Url);
-
-export const RFQ_PROXY_PORT: number | undefined = _.isEmpty(process.env.RFQ_PROXY_PORT)
-    ? undefined
-    : assertEnvVarType('RFQ_PROXY_PORT', process.env.RFQ_PROXY_PORT, EnvVarType.Port);
 
 export const KAFKA_TOPIC_QUOTE_REPORT: string = _.isEmpty(process.env.KAFKA_TOPIC_QUOTE_REPORT)
     ? undefined
@@ -432,8 +400,6 @@ export const GASLESS_SWAP_FEE_ENABLED: boolean = _.isEmpty(process.env.GASLESS_S
 
 // Max number of entities per page
 export const MAX_PER_PAGE = 1000;
-// Default ERC20 token precision
-export const DEFAULT_ERC20_TOKEN_PRECISION = 18;
 
 export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(0);
 
@@ -446,8 +412,7 @@ const UNWRAP_GAS_BY_CHAIN_ID = valueByChainId<BigNumber>(
     },
     new BigNumber(25000),
 );
-export const UNWRAP_WETH_GAS = UNWRAP_GAS_BY_CHAIN_ID[CHAIN_ID];
-export const WRAP_ETH_GAS = UNWRAP_WETH_GAS;
+const UNWRAP_WETH_GAS = UNWRAP_GAS_BY_CHAIN_ID[CHAIN_ID];
 export const UNWRAP_QUOTE_GAS = TX_BASE_GAS.plus(UNWRAP_WETH_GAS);
 export const WRAP_QUOTE_GAS = UNWRAP_QUOTE_GAS;
 
@@ -499,11 +464,10 @@ const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD
 const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
     SOURCE_FLAGS.Uniswap_V2 |
     SOURCE_FLAGS.SushiSwap |
-    SOURCE_FLAGS.LiquidityProvider |
     SOURCE_FLAGS.RfqOrder |
-    SOURCE_FLAGS.Uniswap_V3;
-const MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS =
-    SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.LiquidityProvider | SOURCE_FLAGS.Uniswap_V3;
+    SOURCE_FLAGS.Uniswap_V3 |
+    SOURCE_FLAGS.OtcOrder;
+const MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS = SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.Uniswap_V3;
 const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
     if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
         // Uniswap and forks VIP
@@ -526,13 +490,19 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
     } else if (SOURCE_FLAGS.Curve === sourceFlags) {
         // Curve pseudo-VIP
         return TX_BASE_GAS.plus(40e3);
-    } else if (SOURCE_FLAGS.LiquidityProvider === sourceFlags) {
-        // PLP VIP
-        return TX_BASE_GAS.plus(10e3);
     } else if (SOURCE_FLAGS.RfqOrder === sourceFlags) {
         // RFQ VIP
         return TX_BASE_GAS.plus(5e3);
+    } else if (SOURCE_FLAGS.OtcOrder === sourceFlags) {
+        // OtcOrder VIP
+        // NOTE: Should be 15k cheaper after the first tx from txOrigin than RfqOrder
+        // Use 5k less for now as not to over bias
+        return TX_BASE_GAS;
     } else if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
+        if ((sourceFlags & SOURCE_FLAGS.OtcOrder) === SOURCE_FLAGS.OtcOrder) {
+            // Multiplex that has OtcOrder
+            return TX_BASE_GAS.plus(10e3);
+        }
         // Multiplex batch fill
         return TX_BASE_GAS.plus(15e3);
     } else if (
@@ -546,13 +516,11 @@ const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
     }
 };
 
-export const NATIVE_WRAPPED_TOKEN_SYMBOL = nativeWrappedTokenSymbol(CHAIN_ID);
-
 const NEON_ROUTER_NUM_SAMPLES = 14;
 // TODO(kimpers): Due to an issue with the Rust router we want to use equidistant samples when using the Rust router
 const DEFAULT_SAMPLE_DISTRIBUTION_BASE = 1;
 
-export const SAMPLE_DISTRIBUTION_BASE: number = _.isEmpty(process.env.SAMPLE_DISTRIBUTION_BASE)
+const SAMPLE_DISTRIBUTION_BASE: number = _.isEmpty(process.env.SAMPLE_DISTRIBUTION_BASE)
     ? DEFAULT_SAMPLE_DISTRIBUTION_BASE
     : assertEnvVarType('SAMPLE_DISTRIBUTION_BASE', process.env.SAMPLE_DISTRIBUTION_BASE, EnvVarType.Float);
 
@@ -573,7 +541,7 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP: Partial<SwapQuoteRequestOp
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_NO_VIP,
 };
 
-export const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
+const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     switch (CHAIN_ID) {
         case ChainId.Ganache:
         case ChainId.Kovan:
@@ -606,7 +574,6 @@ export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
     permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
     samplerOverrides: SAMPLER_OVERRIDES,
     tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID[CHAIN_ID],
-    liquidityProviderRegistry: LIQUIDITY_PROVIDER_REGISTRY,
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
@@ -815,21 +782,6 @@ function assertEnvVarType(name: string, value: string | undefined, expectedType:
                 });
             }
             return offerings;
-        }
-        case EnvVarType.LiquidityProviderRegistry: {
-            const registry: LiquidityProviderRegistry = JSON.parse(value);
-            for (const liquidityProvider in registry) {
-                assert.isETHAddressHex('liquidity provider address', liquidityProvider);
-
-                const { tokens } = registry[liquidityProvider];
-                assert.isArray(`token list for liquidity provider ${liquidityProvider}`, tokens);
-                tokens.forEach((token, i) => {
-                    assert.isETHAddressHex(`address of token ${i} for liquidity provider ${liquidityProvider}`, token);
-                });
-                // TODO jacob validate gas cost callback in registry
-                // assert.isNumber(`gas cost for liquidity provider ${liquidityProvider}`, gasCost);
-            }
-            return registry;
         }
         default:
             throw new Error(`Unrecognised EnvVarType: ${expectedType} encountered for variable ${name}.`);

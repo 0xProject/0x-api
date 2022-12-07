@@ -7,7 +7,7 @@ import {
     Numberish,
     randomAddress,
 } from '@0x/contracts-test-utils';
-import { FillQuoteTransformerOrderType, LimitOrder, RfqOrder, Signature, SignatureType } from '@0x/protocol-utils';
+import { FillQuoteTransformerOrderType, LimitOrder, RfqOrder, SignatureType } from '@0x/protocol-utils';
 import { BigNumber, hexUtils, NULL_BYTES } from '@0x/utils';
 import { Pool } from 'balancer-labs-sor-v1/dist/types';
 import * as _ from 'lodash';
@@ -21,7 +21,14 @@ import {
     SignedNativeOrder,
     TokenAdjacencyGraph,
 } from '../../src/asset-swapper';
-import { Integrator, SignedLimitOrder } from '../../src/asset-swapper/types';
+import {
+    Integrator,
+    SignedLimitOrder,
+    ERC20BridgeSource,
+    FillData,
+    GetMarketOrdersOpts,
+    FeeSchedule,
+} from '../../src/asset-swapper/types';
 import { MarketOperationUtils } from '../../src/asset-swapper/utils/market_operation_utils/';
 import {
     BUY_SOURCE_FILTER_BY_CHAIN_ID,
@@ -35,13 +42,8 @@ import { BATCH_SOURCE_FILTERS } from '../../src/asset-swapper/utils/market_opera
 import {
     AggregationError,
     DexSample,
-    ERC20BridgeSource,
-    FillData,
     GenerateOptimizedOrdersOpts,
-    GetMarketOrdersOpts,
-    LiquidityProviderFillData,
     MarketSideLiquidity,
-    OptimizedMarketBridgeOrder,
     OptimizerResultWithReport,
 } from '../../src/asset-swapper/utils/market_operation_utils/types';
 import { RfqClient } from '../../src/utils/rfq_client';
@@ -62,6 +64,9 @@ const DEFAULT_EXCLUDED = SELL_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources
 const BUY_SOURCES = BUY_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources;
 const SELL_SOURCES = SELL_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources;
 const TOKEN_ADJACENCY_GRAPH = TokenAdjacencyGraph.getEmptyGraph();
+const NO_OP_FEE_SCHEDULE: FeeSchedule = Object.fromEntries(
+    Object.values(ERC20BridgeSource).map((source) => [source, _.constant({ gas: 0, fee: new BigNumber(0) })]),
+) as unknown as FeeSchedule;
 
 const SIGNATURE = { v: 1, r: NULL_BYTES, s: NULL_BYTES, signatureType: SignatureType.EthSign };
 const FOO_INTEGRATOR: Integrator = {
@@ -232,7 +237,6 @@ describe('MarketOperationUtils tests', () => {
         fillAmounts: BigNumber[],
         wethAddress: string,
         tokenAdjacencyGraph: TokenAdjacencyGraph,
-        liquidityProviderAddress?: string,
     ) => DexSample[][];
 
     function createGetMultipleSellQuotesOperationFromRates(rates: RatesBySource): GetMultipleQuotesOperation {
@@ -354,7 +358,6 @@ describe('MarketOperationUtils tests', () => {
             fromTokenIdx: 0,
             toTokenIdx: 1,
         },
-        [ERC20BridgeSource.LiquidityProvider]: { poolAddress: randomAddress() },
         [ERC20BridgeSource.SushiSwap]: { tokenAddressPath: [] },
         [ERC20BridgeSource.Mooniswap]: { poolAddress: randomAddress() },
         [ERC20BridgeSource.Native]: { order: new LimitOrder() },
@@ -413,7 +416,6 @@ describe('MarketOperationUtils tests', () => {
             [ERC20BridgeSource.BalancerV2]: mockPoolsCache,
             [ERC20BridgeSource.Balancer]: mockPoolsCache,
         },
-        liquidityProviderRegistry: {},
         chainId: CHAIN_ID,
     } as unknown as DexOrderSampler;
 
@@ -442,8 +444,6 @@ describe('MarketOperationUtils tests', () => {
                 maxFallbackSlippage: 100,
                 excludedSources: DEFAULT_EXCLUDED,
                 allowFallback: false,
-                gasSchedule: {},
-                feeSchedule: {},
                 gasPrice: new BigNumber(30e9),
             };
 
@@ -1006,11 +1006,13 @@ describe('MarketOperationUtils tests', () => {
                     [ERC20BridgeSource.SushiSwap]: [0.95, 0.1, 0.1, 0.1],
                 };
                 const feeSchedule = {
+                    ...NO_OP_FEE_SCHEDULE,
                     [ERC20BridgeSource.Native]: _.constant({
                         gas: 1,
                         fee: FILL_AMOUNT.div(4).times(nativeFeeRate).dividedToIntegerBy(ETH_TO_MAKER_RATE),
                     }),
                 };
+
                 replaceSamplerOps({
                     getSellQuotes: createGetMultipleSellQuotesOperationFromRates(rates),
                     getBestNativeTokenSellRate: createGetBestNativeSellRate(ETH_TO_MAKER_RATE),
@@ -1041,7 +1043,9 @@ describe('MarketOperationUtils tests', () => {
                     // Effectively [0.8, ~0.5, ~0, ~0]
                     [ERC20BridgeSource.Uniswap]: [1, 0.7, 0.2, 0.2],
                 };
+
                 const feeSchedule = {
+                    ...NO_OP_FEE_SCHEDULE,
                     [ERC20BridgeSource.Uniswap]: _.constant({
                         gas: 1,
                         fee: FILL_AMOUNT.div(4).times(uniswapFeeRate).dividedToIntegerBy(ETH_TO_MAKER_RATE),
@@ -1119,69 +1123,13 @@ describe('MarketOperationUtils tests', () => {
                 expect(orderSources.slice(firstSources.length).sort()).to.deep.eq(secondSources.sort());
             });
 
-            it('is able to create a order from LiquidityProvider', async () => {
-                const liquidityProviderAddress = (
-                    DEFAULT_FILL_DATA[ERC20BridgeSource.LiquidityProvider] as { poolAddress: string }
-                ).poolAddress;
-                const rates: RatesBySource = {};
-                rates[ERC20BridgeSource.LiquidityProvider] = [1, 1, 1, 1];
-                MOCK_SAMPLER.liquidityProviderRegistry[liquidityProviderAddress] = {
-                    tokens: [MAKER_TOKEN, TAKER_TOKEN],
-                    gasCost: 0,
-                };
-                replaceSamplerOps({
-                    getLimitOrderFillableTakerAmounts: () => [constants.ZERO_AMOUNT],
-                    getSellQuotes: createGetMultipleSellQuotesOperationFromRates(rates),
-                });
-
-                const sampler = new MarketOperationUtils(MOCK_SAMPLER, contractAddresses);
-                const ordersAndReport = await sampler.getOptimizerResultAsync(
-                    [
-                        {
-                            order: new LimitOrder({
-                                makerToken: MAKER_TOKEN,
-                                takerToken: TAKER_TOKEN,
-                            }),
-                            type: FillQuoteTransformerOrderType.Limit,
-                            signature: {} as Signature,
-                        },
-                    ],
-                    FILL_AMOUNT,
-                    MarketOperation.Sell,
-                    {
-                        includedSources: [ERC20BridgeSource.LiquidityProvider],
-                        excludedSources: [],
-                        numSamples: 4,
-                        bridgeSlippage: 0,
-                        gasPrice: new BigNumber(30e9),
-                    },
-                );
-                const result = ordersAndReport.optimizedOrders;
-                expect(result.length).to.eql(1);
-                expect(
-                    (result[0] as OptimizedMarketBridgeOrder<LiquidityProviderFillData>).fillData.poolAddress,
-                ).to.eql(liquidityProviderAddress);
-
-                // // TODO (xianny): decode bridge data in v4 format
-                // const decodedAssetData = assetDataUtils.decodeAssetDataOrThrow(
-                //     result[0].makerAssetData,
-                // ) as ERC20BridgeAssetData;
-                // expect(decodedAssetData.assetProxyId).to.eql(AssetProxyId.ERC20Bridge);
-                // expect(decodedAssetData.bridgeAddress).to.eql(liquidityProviderAddress);
-                // expect(result[0].takerAmount).to.bignumber.eql(FILL_AMOUNT);
-            });
-
             it('factors in exchange proxy gas overhead', async () => {
-                // Uniswap has a slightly better rate than LiquidityProvider,
-                // but LiquidityProvider is better accounting for the EP gas overhead.
+                // Uniswap has a slightly better rate than Curve (via LiquidityProvider),
+                // but Curve is better accounting for the EP gas overhead.
                 const rates: RatesBySource = {
                     [ERC20BridgeSource.Native]: [0.01, 0.01, 0.01, 0.01],
                     [ERC20BridgeSource.Uniswap]: [1, 1, 1, 1],
-                    [ERC20BridgeSource.LiquidityProvider]: [0.9999, 0.9999, 0.9999, 0.9999],
-                };
-                MOCK_SAMPLER.liquidityProviderRegistry[randomAddress()] = {
-                    tokens: [MAKER_TOKEN, TAKER_TOKEN],
-                    gasCost: 0,
+                    [ERC20BridgeSource.Curve]: [0.9999, 0.9999, 0.9999, 0.9999],
                 };
                 replaceSamplerOps({
                     getSellQuotes: createGetMultipleSellQuotesOperationFromRates(rates),
@@ -1190,9 +1138,7 @@ describe('MarketOperationUtils tests', () => {
                 const optimizer = new MarketOperationUtils(MOCK_SAMPLER, contractAddresses);
                 const gasPrice = 100e9; // 100 gwei
                 const exchangeProxyOverhead = (sourceFlags: bigint) =>
-                    sourceFlags === SOURCE_FLAGS.LiquidityProvider
-                        ? constants.ZERO_AMOUNT
-                        : new BigNumber(1.3e5).times(gasPrice);
+                    sourceFlags === SOURCE_FLAGS.Curve ? constants.ZERO_AMOUNT : new BigNumber(1.3e5).times(gasPrice);
                 const improvedOrdersResponse = await optimizer.getOptimizerResultAsync(
                     createOrdersFromSellRates(FILL_AMOUNT, rates[ERC20BridgeSource.Native]),
                     FILL_AMOUNT,
@@ -1200,18 +1146,14 @@ describe('MarketOperationUtils tests', () => {
                     {
                         ...DEFAULT_OPTS,
                         numSamples: 4,
-                        includedSources: [
-                            ERC20BridgeSource.Native,
-                            ERC20BridgeSource.Uniswap,
-                            ERC20BridgeSource.LiquidityProvider,
-                        ],
+                        includedSources: [ERC20BridgeSource.Native, ERC20BridgeSource.Uniswap, ERC20BridgeSource.Curve],
                         excludedSources: [],
                         exchangeProxyOverhead,
                     },
                 );
                 const improvedOrders = improvedOrdersResponse.optimizedOrders;
                 const orderSources = improvedOrders.map((o) => o.source);
-                const expectedSources = [ERC20BridgeSource.LiquidityProvider];
+                const expectedSources = [ERC20BridgeSource.Curve];
                 expect(orderSources).to.deep.eq(expectedSources);
             });
         });
@@ -1230,8 +1172,6 @@ describe('MarketOperationUtils tests', () => {
                 maxFallbackSlippage: 100,
                 excludedSources: DEFAULT_EXCLUDED,
                 allowFallback: false,
-                gasSchedule: {},
-                feeSchedule: {},
                 gasPrice: GAS_PRICE,
             };
 
@@ -1441,6 +1381,7 @@ describe('MarketOperationUtils tests', () => {
                     [ERC20BridgeSource.SushiSwap]: [0.92, 0.1, 0.1, 0.1],
                 };
                 const feeSchedule = {
+                    ...NO_OP_FEE_SCHEDULE,
                     [ERC20BridgeSource.Uniswap]: _.constant({
                         gas: 1,
                         fee: FILL_AMOUNT.div(4).times(uniswapFeeRate).dividedToIntegerBy(ETH_TO_TAKER_RATE),
@@ -1491,16 +1432,12 @@ describe('MarketOperationUtils tests', () => {
             });
 
             it('factors in exchange proxy gas overhead', async () => {
-                // Uniswap has a slightly better rate than LiquidityProvider,
-                // but LiquidityProvider is better accounting for the EP gas overhead.
+                // Uniswap has a slightly better rate than Curve (via LiquidityProvider),
+                // but Curve is better accounting for the EP gas overhead.
                 const rates: RatesBySource = {
                     [ERC20BridgeSource.Native]: [0.01, 0.01, 0.01, 0.01],
                     [ERC20BridgeSource.Uniswap]: [1, 1, 1, 1],
-                    [ERC20BridgeSource.LiquidityProvider]: [0.9999, 0.9999, 0.9999, 0.9999],
-                };
-                MOCK_SAMPLER.liquidityProviderRegistry[randomAddress()] = {
-                    tokens: [MAKER_TOKEN, TAKER_TOKEN],
-                    gasCost: 0,
+                    [ERC20BridgeSource.Curve]: [0.9999, 0.9999, 0.9999, 0.9999],
                 };
                 replaceSamplerOps({
                     getBuyQuotes: createGetMultipleBuyQuotesOperationFromRates(rates),
@@ -1508,9 +1445,7 @@ describe('MarketOperationUtils tests', () => {
                 });
                 const optimizer = new MarketOperationUtils(MOCK_SAMPLER, contractAddresses);
                 const exchangeProxyOverhead = (sourceFlags: bigint) =>
-                    sourceFlags === SOURCE_FLAGS.LiquidityProvider
-                        ? constants.ZERO_AMOUNT
-                        : new BigNumber(1.3e5).times(GAS_PRICE);
+                    sourceFlags === SOURCE_FLAGS.Curve ? constants.ZERO_AMOUNT : new BigNumber(1.3e5).times(GAS_PRICE);
                 const improvedOrdersResponse = await optimizer.getOptimizerResultAsync(
                     createOrdersFromSellRates(FILL_AMOUNT, rates[ERC20BridgeSource.Native]),
                     FILL_AMOUNT,
@@ -1518,18 +1453,14 @@ describe('MarketOperationUtils tests', () => {
                     {
                         ...DEFAULT_OPTS,
                         numSamples: 4,
-                        includedSources: [
-                            ERC20BridgeSource.Native,
-                            ERC20BridgeSource.Uniswap,
-                            ERC20BridgeSource.LiquidityProvider,
-                        ],
+                        includedSources: [ERC20BridgeSource.Native, ERC20BridgeSource.Uniswap, ERC20BridgeSource.Curve],
                         excludedSources: [],
                         exchangeProxyOverhead,
                     },
                 );
                 const improvedOrders = improvedOrdersResponse.optimizedOrders;
                 const orderSources = improvedOrders.map((o) => o.source);
-                const expectedSources = [ERC20BridgeSource.LiquidityProvider];
+                const expectedSources = [ERC20BridgeSource.Curve];
                 expect(orderSources).to.deep.eq(expectedSources);
             });
         });

@@ -6,7 +6,7 @@ import * as express from 'express';
 import * as core from 'express-serve-static-core';
 import { Server } from 'http';
 
-import { AppDependencies, getDefaultAppDependenciesAsync } from '../app';
+import { getDefaultAppDependenciesAsync } from '../app';
 import {
     defaultHttpServiceConfig,
     SENTRY_DSN,
@@ -23,7 +23,7 @@ import { createOrderBookRouter } from '../routers/orderbook_router';
 import { createSRARouter } from '../routers/sra_router';
 import { SentryInit, SentryOptions } from '../sentry';
 import { WebsocketService } from '../services/websocket_service';
-import { HttpServiceConfig } from '../types';
+import { HttpServiceConfig, AppDependencies } from '../types';
 import { providerUtils } from '../utils/provider_utils';
 
 import { destroyCallback } from './utils';
@@ -76,6 +76,12 @@ async function runHttpServiceAsync(
     const server = createDefaultServer(config, app, logger, destroyCallback(dependencies));
 
     app.get('/', rootHandler);
+
+    if (dependencies.orderBookService === undefined) {
+        logger.error('OrderBookService dependency is missing, exiting');
+        process.exit(1);
+    }
+
     // SRA http service
     app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
 

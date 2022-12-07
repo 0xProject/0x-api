@@ -26,14 +26,12 @@ import {
     MarketBuySwapQuote,
     MarketOperation,
     MarketSellSwapQuote,
-} from '../../src/asset-swapper/types';
-import {
     ERC20BridgeSource,
     Fill,
     NativeFillData,
     OptimizedLimitOrder,
-    OptimizedMarketOrder,
-} from '../../src/asset-swapper/utils/market_operation_utils/types';
+    OptimizedOrder,
+} from '../../src/asset-swapper/types';
 
 import { chaiSetup } from './utils/chai_setup';
 import { getRandomAmount, getRandomSignature } from './utils/utils';
@@ -174,7 +172,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
 
     type PlainOrder = Exclude<LimitOrderFields, ['chainId', 'exchangeAddress']>;
 
-    function cleanOrders(orders: OptimizedMarketOrder[]): PlainOrder[] {
+    function cleanOrders(orders: OptimizedOrder[]): PlainOrder[] {
         return orders.map(
             (o) =>
                 _.omit(
@@ -223,26 +221,6 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             data: string;
         }[];
     }
-
-    // const liquidityProviderEncoder = AbiEncoder.createMethod('sellToLiquidityProvider', [
-    //     { type: 'address', name: 'inputToken' },
-    //     { type: 'address', name: 'outputToken' },
-    //     { type: 'address', name: 'target' },
-    //     { type: 'address', name: 'recipient' },
-    //     { type: 'uint256', name: 'sellAmount' },
-    //     { type: 'uint256', name: 'minBuyAmount' },
-    //     { type: 'bytes', name: 'auxiliaryData' },
-    // ]);
-
-    // interface LiquidityProviderArgs {
-    //     inputToken: string;
-    //     outputToken: string;
-    //     target: string;
-    //     recipient: string;
-    //     sellAmount: BigNumber;
-    //     minBuyAmount: BigNumber;
-    //     auxiliaryData: string;
-    // }
 
     describe('getCalldataOrThrow()', () => {
         it('can produce a sell quote', async () => {
@@ -493,36 +471,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             expect(payTakerTransformerData.amounts).to.deep.eq([]);
             expect(payTakerTransformerData.tokens).to.deep.eq([TAKER_TOKEN, INTERMEDIATE_TOKEN, ETH_TOKEN_ADDRESS]);
         });
-        // it.skip('Uses the `LiquidityProviderFeature` if given a single LiquidityProvider order', async () => {
-        //     const quote = {
-        //         ...getRandomSellQuote(),
-        //         orders: [
-        //             {
-        //                 ...getRandomOrder(),
-        //                 fills: [
-        //                     {
-        //                         source: ERC20BridgeSource.LiquidityProvider,
-        //                         sourcePathId: '',
-        //                         input: constants.ZERO_AMOUNT,
-        //                         output: constants.ZERO_AMOUNT,
-        //                         subFills: [],
-        //                     },
-        //                 ],
-        //             },
-        //         ],
-        //     };
-        //     const callInfo = await consumer.getCalldataOrThrowAsync(quote);
-        //     const callArgs = liquidityProviderEncoder.decode(callInfo.calldataHexString) as LiquidityProviderArgs;
-        //     expect(callArgs).to.deep.equal({
-        //         inputToken: TAKER_TOKEN,
-        //         outputToken: MAKER_TOKEN,
-        //         target: quote.orders[0].makerAddress,
-        //         recipient: constants.NULL_ADDRESS,
-        //         sellAmount: quote.worstCaseQuoteInfo.feeTakerTokenAmount,
-        //         minBuyAmount: getSwapMinBuyAmount(quote),
-        //         auxiliaryData: constants.NULL_BYTES,
-        //     });
-        // });
+
         it('allows selling the entire balance for CFL', async () => {
             const quote = getRandomSellQuote();
             const callInfo = await consumer.getCalldataOrThrowAsync(quote, {

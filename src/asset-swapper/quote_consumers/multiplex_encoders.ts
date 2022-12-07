@@ -7,7 +7,6 @@ export enum MultiplexSubcall {
     Otc,
     UniswapV2,
     UniswapV3,
-    LiquidityProvider,
     TransformERC20,
     BatchSell,
     MultiHopSell,
@@ -33,8 +32,4 @@ export const multiplexOtcOrder = AbiEncoder.create([
 export const multiplexUniswapEncoder = AbiEncoder.create([
     { name: 'tokens', type: 'address[]' },
     { name: 'isSushi', type: 'bool' },
-]);
-export const multiplexPlpEncoder = AbiEncoder.create([
-    { name: 'provider', type: 'address' },
-    { name: 'auxiliaryData', type: 'bytes' },
 ]);
