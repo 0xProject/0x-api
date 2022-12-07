@@ -6,7 +6,7 @@ import * as _ from 'lodash';
 
 import { ERC20BridgeSamplerContract } from '../../../wrappers';
 import { AaveV2Sampler } from '../../noop_samplers/AaveV2Sampler';
-import { SamplerCallResult, SignedNativeOrder, ERC20BridgeSource, FeeSchedule } from '../../types';
+import { SamplerCallResult, SignedNativeOrder, ERC20BridgeSource, FeeSchedule, SignedOtcOrder } from '../../types';
 import { TokenAdjacencyGraph } from '../token_adjacency_graph';
 
 import { AaveReservesCache, AaveV3Reserve, AaveV2Reserve } from './aave_reserves_cache';
@@ -257,7 +257,7 @@ export class SamplerOperations {
     }
 
     public getOtcOrderFillableTakerAmounts(
-        orders: SignedNativeOrder[],
+        orders: SignedOtcOrder[],
         exchangeAddress: string,
     ): BatchedOperation<BigNumber[]> {
         // Skip checking empty or invalid orders on-chain, returning a constant
@@ -271,7 +271,7 @@ export class SamplerOperations {
             source: ERC20BridgeSource.Native,
             contract: this._samplerContract,
             function: this._samplerContract.getOtcOrderFillableTakerAssetAmounts,
-            params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
+            params: [orders.map((o) => o.order as OtcOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
 
@@ -291,7 +291,7 @@ export class SamplerOperations {
             source: ERC20BridgeSource.Native,
             contract: this._samplerContract,
             function: this._samplerContract.getOtcOrderFillableMakerAssetAmounts,
-            params: [orders.map((o) => o.order as LimitOrderFields), orders.map((o) => o.signature), exchangeAddress],
+            params: [orders.map((o) => o.order as OtcOrderFields), orders.map((o) => o.signature), exchangeAddress],
         });
     }
 

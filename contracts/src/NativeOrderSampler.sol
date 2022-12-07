@@ -65,19 +65,15 @@ interface IExchange {
     }
 
     /// @dev A standard OTC order
-    struct OtcOrder{
+    struct OtcOrder {
         IERC20TokenV06 makerToken;
         IERC20TokenV06 takerToken;
         uint128 makerAmount;
         uint128 takerAmount;
-        uint128 takerTokenFeeAmount;
         address maker;
         address taker;
-        address sender;
-        address feeRecipient;
-        bytes32 pool;
-        uint64 expiry;
-        uint256 salt;
+        address txOrigin;
+        uint256 expiryAndNonce; // [uint64 expiry, uint64 nonceBucket, uint128 nonce]
     }
 
     /// @dev Info on a limit or RFQ order.
@@ -137,6 +133,12 @@ interface IExchange {
         OtcOrder memory order,
         Signature calldata signature
     ) external view returns (OrderInfo memory orderInfo, uint128 actualFillableTakerTokenAmount, bool isSignatureValid);
+
+
+    /// @dev Get the order info for a limit order.
+    /// @param order The limit order.
+    /// @return orderInfo Info about the order.
+    function getOtcOrderInfo(OtcOrder memory order) external view returns (OrderInfo memory orderInfo);
 }
 
 contract NativeOrderSampler {
@@ -301,5 +303,4 @@ contract NativeOrderSampler {
 
         fillableTakerAmount = uint256(remainingFillableTakerAmount);
     }
-
 }

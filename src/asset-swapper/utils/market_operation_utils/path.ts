@@ -8,14 +8,19 @@ import {
     ERC20BridgeSource,
     ExchangeProxyOverhead,
     Fill,
+    NativeOrderWithFillableAmounts,
+    SignedNativeOrder,
+    OptimizedMarketOrderBase,
 } from '../../types';
 
 import { POSITIVE_INF, ZERO_AMOUNT } from './constants';
 import { ethToOutputAmount } from './fills';
 import {
     createBridgeOrder,
+    createNativeOptimizedMultihopOrder,
     createNativeOptimizedOrder,
     CreateOrderFromPathOpts,
+    createOrdersFromTwoHopRfqtSample,
     createOrdersFromTwoHopSample,
     getMakerTakerTokens,
 } from './orders';
@@ -72,7 +77,7 @@ export class Path {
      * Finalizes this path, creating fillable orders with the information required
      * for settlement
      */
-    public finalize(opts: CreateOrderFromPathOpts): FinalizedPath {
+    public finalize(opts: CreateOrderFromPathOpts, RFQtMultiHop?: NativeOrderWithFillableAmounts[]): FinalizedPath {
         const [makerToken, takerToken] = getMakerTakerTokens(opts);
         this.orders = [];
         for (const fill of this.fills) {
@@ -80,7 +85,21 @@ export class Path {
             // to remove upstream. Since it's not needed in a FinalizedPath we just drop it.
             const normalizedFill = _.omit(fill, 'flags') as Fill;
             if (fill.source === ERC20BridgeSource.Native) {
-                this.orders.push(createNativeOptimizedOrder(normalizedFill as Fill<NativeFillData>, opts.side));
+                //this.orders.push(createNativeOptimizedOrder(normalizedFill as Fill<NativeFillData>, opts.side));
+                if(RFQtMultiHop !== undefined && RFQtMultiHop.length !== 0){
+                    let orders: OptimizedMarketOrderBase<NativeFillData>[] =createNativeOptimizedMultihopOrder(
+                        normalizedFill as Fill<NativeFillData>,
+                        RFQtMultiHop,
+                        opts.side
+                    )
+
+                    orders.forEach((order) => {
+                        this.orders?.push(order as OptimizedMarketOrder);
+                    })
+                }
+                else{
+                    this.orders.push(createNativeOptimizedOrder(normalizedFill as Fill<NativeFillData>, opts.side));
+                }
             } else if (fill.source === ERC20BridgeSource.MultiHop) {
                 const [firstHopOrder, secondHopOrder] = createOrdersFromTwoHopSample(
                     normalizedFill as Fill<MultiHopFillData>,

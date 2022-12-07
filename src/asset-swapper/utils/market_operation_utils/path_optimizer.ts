@@ -80,6 +80,7 @@ export class PathOptimizer {
         samples: DexSample[][],
         twoHopQuotes: DexSample<MultiHopFillData>[],
         nativeOrders: NativeOrderWithFillableAmounts[],
+        multiHopRfqtOrders?: NativeOrderWithFillableAmounts[],
     ): Path | undefined {
         const beforeTimeMs = performance.now();
         const sendMetrics = () => {
@@ -89,7 +90,7 @@ export class PathOptimizer {
                 timingMs: performance.now() - beforeTimeMs,
             });
         };
-        const paths = this.findRoutesAndCreateOptimalPath(samples, twoHopQuotes, nativeOrders);
+        const paths = this.findRoutesAndCreateOptimalPath(samples, twoHopQuotes, nativeOrders, multiHopRfqtOrders);
 
         if (!paths) {
             sendMetrics();
@@ -111,6 +112,7 @@ export class PathOptimizer {
         samples: DexSample[][],
         twoHopSamples: DexSample<MultiHopFillData>[],
         nativeOrders: NativeOrderWithFillableAmounts[],
+        multiHopRfqtOrders?: NativeOrderWithFillableAmounts[],
     ): { allSourcesPath: Path | undefined; vipSourcesPath: Path | undefined } | undefined {
         // Currently the rust router is unable to handle 1 base unit sized quotes and will error out
         // To avoid flooding the logs with these errors we just return an insufficient liquidity error
@@ -135,8 +137,9 @@ export class PathOptimizer {
         const singleSourceRoutablePaths = this.singleSourceSamplesToRoutablePaths(samples);
         const twoHopRoutablePaths = this.twoHopSamplesToRoutablePaths(validTwoHopSamples);
         const nativeOrderRoutablePaths = this.nativeOrdersToRoutablePaths(nativeOrders);
+        const multiHopRfqtOrderPaths = this.nativeOrdersToRoutablePaths(multiHopRfqtOrders!);
 
-        const allRoutablePaths = [...singleSourceRoutablePaths, ...twoHopRoutablePaths, ...nativeOrderRoutablePaths];
+        const allRoutablePaths = [...singleSourceRoutablePaths, ...twoHopRoutablePaths, ...nativeOrderRoutablePaths, ...multiHopRfqtOrderPaths];
         const serializedPaths = allRoutablePaths.map((path) => path.serializedPath);
 
         if (serializedPaths.length === 0) {

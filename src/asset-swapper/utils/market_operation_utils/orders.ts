@@ -1,4 +1,4 @@
-import { BridgeProtocol, encodeBridgeSourceId, FillQuoteTransformerOrderType } from '@0x/protocol-utils';
+import { BridgeProtocol, encodeBridgeSourceId, FillQuoteTransformerOrderType, OtcOrder, OtcOrderFields, RfqOrderFields } from '@0x/protocol-utils';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import _ = require('lodash');
 
@@ -15,6 +15,10 @@ import {
     OptimizedMarketBridgeOrder,
     OptimizedMarketOrder,
     OptimizedMarketOrderBase,
+    NativeOrderWithFillableAmounts,
+    OptimizedOtcOrder,
+    SignedNativeOrder,
+    SignedOtcOrder,
 } from '../../types';
 
 import { MAX_UINT256, ZERO_AMOUNT } from './constants';
@@ -86,6 +90,42 @@ export function createOrdersFromTwoHopSample(
     return [
         createBridgeOrder(firstHopFill, intermediateToken, takerToken, opts.side),
         createBridgeOrder(secondHopFill, makerToken, intermediateToken, opts.side),
+    ];
+}
+
+export function createOrdersFromTwoHopRfqtSample(
+    rfqtMultihop: NativeOrderWithFillableAmounts[],
+    sample: any,
+    opts: CreateOrderFromPathOpts,
+): [OptimizedMarketOrder, OptimizedMarketOrder] {
+    const [makerToken, takerToken] = getMakerTakerTokens(opts);
+    const { firstHopSource, secondHopSource, intermediateToken } = sample.fillData;
+    // const firstHopFill: Fill = {
+    //     sourcePathId: '',
+    //     source: ERC20BridgeSource.Native,
+    //     type: FillQuoteTransformerOrderType.Otc,
+    //     input: opts.side === MarketOperation.Sell ? sample.input : ZERO_AMOUNT,
+    //     output: opts.side === MarketOperation.Sell ? ZERO_AMOUNT : sample.output,
+    //     adjustedOutput: opts.side === MarketOperation.Sell ? ZERO_AMOUNT : sample.output,
+    //     fillData: firstHopSource.fillData,
+    //     flags: BigInt(0),
+    //     gas: 1,
+    // };
+    // const secondHopFill: Fill = {
+    //     sourcePathId: '',
+    //     source: ERC20BridgeSource.Native,
+    //     type: FillQuoteTransformerOrderType.Otc,
+    //     input: opts.side === MarketOperation.Sell ? MAX_UINT256 : sample.input,
+    //     output: opts.side === MarketOperation.Sell ? sample.output : MAX_UINT256,
+    //     adjustedOutput: opts.side === MarketOperation.Sell ? sample.output : MAX_UINT256,
+    //     fillData: secondHopSource.fillData,
+    //     flags: BigInt(0),
+    //     gas: 1,
+    // };
+    const [firstRfqtHop, secondRfqtHop] = createMultihopRfqtOrder(sample, rfqtMultihop, makerToken, takerToken, opts.side);
+    return [
+        firstRfqtHop,
+        secondRfqtHop
     ];
 }
 
@@ -548,6 +588,15 @@ function getFillTokenAmounts(fill: Fill, side: MarketOperation): [BigNumber, Big
     ];
 }
 
+function getMultiHopFillTokenAmounts(fill: NativeOrderWithFillableAmounts, side: MarketOperation): [BigNumber, BigNumber] {
+    return [
+        // Maker asset amount.
+        side === MarketOperation.Sell ? fill.order.makerAmount.integerValue(BigNumber.ROUND_DOWN) : fill.order.takerAmount,
+        // Taker asset amount.
+        side === MarketOperation.Sell ? fill.order.takerAmount : fill.order.makerAmount.integerValue(BigNumber.ROUND_UP),
+    ];
+}
+
 export function createNativeOptimizedOrder(
     fill: Fill<NativeFillData>,
     side: MarketOperation,
@@ -587,6 +636,101 @@ export function createNativeOptimizedOrder(
     }
 }
 
+export function createNativeOptimizedMultihopOrder(
+    fill: Fill<NativeFillData>,
+    multiHop: NativeOrderWithFillableAmounts[],
+    side: MarketOperation,
+) : | OptimizedMarketOrderBase<NativeFillData>[] {
+    const fillData = fill.fillData;
+    //const [makerAmount, takerAmount] = getFillTokenAmounts(fill, side);
+    // const [makerAmount1, takerAmount1] = getMultiHopFillTokenAmounts(multiHop[0], side);
+    // const [makerAmount2, takerAmount2] = getMultiHopFillTokenAmounts(multiHop[1], side);
+    
+    const base = {
+        type: fill.type,
+        source: ERC20BridgeSource.Native,
+        makerToken: fillData.order.makerToken,
+        takerToken: fillData.order.takerToken,
+        fill: cleanFillForExport(fill),
+    };
+
+    // export interface Fill<TFillData extends FillData = FillData> {
+    //     [x: string]: any;
+    //     // basic data for every fill
+    //     source: ERC20BridgeSource;
+    //     // TODO jacob people seem to agree  that orderType here is more readable
+    //     type: FillQuoteTransformerOrderType; // should correspond with TFillData
+    //     fillData: TFillData;
+    //     // Unique ID of the original source path this fill belongs to.
+    //     // This is generated when the path is generated and is useful to distinguish
+    //     // paths that have the same `source` IDs but are distinct (e.g., Curves).
+    //     sourcePathId: string;
+    //     // See `SOURCE_FLAGS`.
+    //     flags: bigint;
+    //     // Input fill amount (taker asset amount in a sell, maker asset amount in a buy).
+    //     input: BigNumber;
+    //     // Output fill amount (maker asset amount in a sell, taker asset amount in a buy).
+    //     output: BigNumber;
+    //     // The output fill amount, adjusted by fees.
+    //     adjustedOutput: BigNumber;
+    //     // The expected gas cost of this fill
+    //     gas: number;
+    // }
+
+    let optimizedOtcOrders: OptimizedMarketOrderBase<NativeFillData>[] = [];
+    //_.omit(fill, ['flags', 'fillData', 'sourcePathId', 'source', 'type']) as Fill;
+    let firstOrderExpiry: BigNumber, firstOrderNonce: BigNumber, firstOrderNonceBucket: BigNumber, firstOrderMaker: string;
+    multiHop.forEach( (order, index) => {
+        let optimizedOtcOrder: OptimizedMarketOrderBase<NativeFillData>;
+        let otcFillData: NativeOtcOrderFillData;
+        let otcFill: Omit<Fill<FillData>, 'flags' | 'fillData'| 'sourcePathId'| 'source'| 'type'>;
+        order.order = (order.order as OtcOrderFields);
+        let { expiry, nonce, nonceBucket } = OtcOrder.parseExpiryAndNonce(order.order.expiryAndNonce);
+        let maker = order.order.maker;
+        if(index == 0){
+            firstOrderExpiry = expiry;
+            firstOrderNonce = nonce;
+            firstOrderNonceBucket = nonceBucket;
+            firstOrderMaker = order.order.maker;
+        }
+        else {
+            //if we are trading with the same market maker, increment the nonce on the second otc order
+            if(maker === firstOrderMaker){
+                nonce = new BigNumber(Number(nonce) + 1);
+                order.order.expiryAndNonce = OtcOrder.encodeExpiryAndNonce(expiry,nonceBucket,nonce);
+            }
+
+        }
+        let [makerAmount, takerAmount] = getMultiHopFillTokenAmounts(multiHop[0], side);
+
+        otcFill = {
+            gas: 85000,
+            input: order.fillableTakerAmount,
+            output: order.fillableMakerAmount,
+            adjustedOutput: Number(order.fillableTakerFeeAmount) === 0 ? new BigNumber(order.fillableMakerAmount) : new BigNumber(Number(order.fillableMakerAmount) + (Number(order.fillableMakerAmount) * Number(order.fillableTakerFeeAmount)))
+        }
+
+        otcFillData = {
+            order: order.order,
+            signature: order.signature,
+            maxTakerTokenFillAmount: order.fillableTakerAmount
+        }
+        optimizedOtcOrder = { 
+            type: fill.type,
+            source: ERC20BridgeSource.Native,
+            makerToken: order.order.makerToken ,
+            takerToken: order.order.takerToken ,
+            makerAmount:  makerAmount,
+            takerAmount: takerAmount,
+            fillData: otcFillData,
+            fill: otcFill,
+        }
+        optimizedOtcOrders.push(optimizedOtcOrder);
+    });
+
+    return optimizedOtcOrders;
+}
+
 export function createBridgeOrder(
     fill: Fill,
     makerToken: string,
@@ -605,6 +749,64 @@ export function createBridgeOrder(
         fill: cleanFillForExport(fill),
         sourcePathId: fill.sourcePathId,
     };
+}
+
+export function createMultihopRfqtOrder(
+    fill: Fill,
+    multiHopOrders: NativeOrderWithFillableAmounts[],
+    makerToken: string,
+    takerToken: string,
+    side: MarketOperation,
+): [OptimizedOtcOrder, OptimizedOtcOrder] {
+    const [makerAmount, takerAmount] = getFillTokenAmounts(fill, side);
+    // makerToken: NULL_ADDRESS,
+    // takerToken: NULL_ADDRESS,
+    // makerAmount: ZERO,
+    // takerAmount: ZERO,
+    // maker: NULL_ADDRESS,
+    // taker: NULL_ADDRESS,
+    // chainId: 1,
+    // verifyingContract: getContractAddressesForChainOrThrow(1).exchangeProxy,
+    // txOrigin: NULL_ADDRESS,
+    // expiryAndNonce: ZERO,
+
+    
+    //txOrigin: string; expiryAndNonce: BigNumber; makerToken: string; takerToken: string; makerAmount: BigNumber; takerAmount: BigNumber; maker: string; taker: string; chainId: number; verifyingContract: string; }
+
+    let optimizedOrders: OptimizedOtcOrder[] = []
+    multiHopOrders.forEach((rfqtOrder) => {
+        console.log(rfqtOrder);
+
+        // let OOorder: OptimizedOtcOrder = {
+        //     type: FillQuoteTransformerOrderType.Otc,
+        //     source: ERC20BridgeSource.Native,
+        //     fillData: {
+        //         fillableMakerAmount: rfqtOrder.fillableMakerAmount,
+        //         fillableTakerAmount:rfqtOrder.fillableTakerAmount,
+        //         fillableTakerFeeAmount: rfqtOrder.fillableTakerFeeAmount,
+        //         order: {
+        //             makerToken: rfqtOrder.order.makerToken,
+        //             takerToken: rfqtOrder.order.takerToken,
+        //             makerAmount: rfqtOrder.order.makerAmount,
+        //             takerAmount: rfqtOrder.order.makerAmount,
+        //             maker:rfqtOrder.order.maker,
+        //             taker:rfqtOrder.order.taker,
+        //             chainId:rfqtOrder.order.chainId,
+        //             verifyingContract: rfqtOrder.order.verifyingContract,
+        //             txOrigin: rfqtOrder.order.taker,
+        //             expiryAndNonce: (rfqtOrder.order as OtcOrder).expiryAndNonce,                    
+        //         },
+        //         signature: rfqtOrder.signature,
+        //     },
+        //     makerToken: rfqtOrder.order.makerToken,
+        //     takerToken: rfqtOrder.order.takerToken,
+        //     makerAmount: rfqtOrder.fillableMakerAmount,
+        //     takerAmount: rfqtOrder.fillableTakerAmount,
+        //     fill: cleanFillForExport(fill)
+        // }
+        // return OOorder
+    });
+    return [optimizedOrders[0], optimizedOrders[1]];
 }
 
 function cleanFillForExport(fill: Fill): Fill {

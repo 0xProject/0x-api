@@ -359,10 +359,11 @@ function createSwapQuote(
         makerAmountPerEth,
         priceComparisonsReport,
     } = optimizerResult;
-    const isTwoHop = sourceFlags === SOURCE_FLAGS[ERC20BridgeSource.MultiHop];
+    const isRFQtMultiHop = (optimizedOrders.length >= 2 && optimizedOrders[0].type === 3 && optimizedOrders[1].type === 3);
+    const isTwoHop = (sourceFlags === SOURCE_FLAGS[ERC20BridgeSource.MultiHop]);
 
     // Calculate quote info
-    const { bestCaseQuoteInfo, worstCaseQuoteInfo, sourceBreakdown } = isTwoHop
+    const { bestCaseQuoteInfo, worstCaseQuoteInfo, sourceBreakdown } = (isTwoHop || isRFQtMultiHop)
         ? calculateTwoHopQuoteInfo(optimizedOrders, operation, gasSchedule, slippage)
         : calculateQuoteInfo(optimizedOrders, operation, assetFillAmount, gasPrice, gasSchedule, slippage);
 
