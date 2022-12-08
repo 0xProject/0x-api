@@ -2,6 +2,7 @@ import { FillQuoteTransformerOrderType, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as _ from 'lodash';
 import { Counter } from 'prom-client';
+import { Set } from 'immutable';
 
 import { SAMPLER_METRICS } from '../../../utils/sampler_metrics';
 import { DEFAULT_INFO_LOGGER, INVALID_SIGNATURE } from '../../constants';
@@ -64,7 +65,7 @@ const NO_CONVERSION_TO_NATIVE_FOUND = new Counter({
 export class MarketOperationUtils {
     private readonly _sellSources: SourceFilters;
     private readonly _buySources: SourceFilters;
-    private readonly _feeSources: ERC20BridgeSource[];
+    private readonly _feeSources: Set<ERC20BridgeSource>;
     private readonly _nativeFeeToken: string;
     private readonly _nativeFeeTokenAmount: BigNumber;
 
@@ -162,7 +163,7 @@ export class MarketOperationUtils {
             this._sampler.getLimitOrderFillableTakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> maker token price.
             this._sampler.getBestNativeTokenSellRate(
-                this._feeSources,
+                [...this._feeSources],
                 makerToken,
                 this._nativeFeeToken,
                 this._nativeFeeTokenAmount,
@@ -170,7 +171,7 @@ export class MarketOperationUtils {
             ),
             // Get ETH -> taker token price.
             this._sampler.getBestNativeTokenSellRate(
-                this._feeSources,
+                [...this._feeSources],
                 takerToken,
                 this._nativeFeeToken,
                 this._nativeFeeTokenAmount,
@@ -282,7 +283,7 @@ export class MarketOperationUtils {
             this._sampler.getLimitOrderFillableMakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> makerToken token price.
             this._sampler.getBestNativeTokenSellRate(
-                this._feeSources,
+                [...this._feeSources],
                 makerToken,
                 this._nativeFeeToken,
                 this._nativeFeeTokenAmount,
@@ -290,7 +291,7 @@ export class MarketOperationUtils {
             ),
             // Get ETH -> taker token price.
             this._sampler.getBestNativeTokenSellRate(
-                this._feeSources,
+                [...this._feeSources],
                 takerToken,
                 this._nativeFeeToken,
                 this._nativeFeeTokenAmount,

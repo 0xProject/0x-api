@@ -48,7 +48,7 @@ export class SourceFilters {
         return sources.every((s) => this.isAllowed(s));
     }
 
-    public getAllowed(sources: ERC20BridgeSource[] = []): ERC20BridgeSource[] {
+    public getAllowed(sources: ERC20BridgeSource[]): ERC20BridgeSource[] {
         return sources.filter((s) => this.isAllowed(s));
     }
 
