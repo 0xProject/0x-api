@@ -20,7 +20,6 @@ import {
     createNativeOptimizedMultihopOrder,
     createNativeOptimizedOrder,
     CreateOrderFromPathOpts,
-    createOrdersFromTwoHopRfqtSample,
     createOrdersFromTwoHopSample,
     getMakerTakerTokens,
 } from './orders';

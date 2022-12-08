@@ -681,10 +681,10 @@ export class MarketOperationUtils {
                             chainId: this._sampler.chainId,
                             integratorId: rfqt.integrator.integratorId,
                             intentOnFilling: rfqt.intentOnFilling,
-                            makerToken: intermediateToken,
+                            makerToken,
                             marketOperation: side,
                             takerAddress: rfqt.takerAddress,
-                            takerToken,
+                            takerToken: intermediateToken,
                             txOrigin: rfqt.txOrigin,
                         })!
                         .then((res: RfqtV2Quote[]) => {
