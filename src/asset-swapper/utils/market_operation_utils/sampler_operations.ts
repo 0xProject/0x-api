@@ -45,7 +45,6 @@ import {
     MOONISWAP_REGISTRIES_BY_CHAIN_ID,
     NATIVE_FEE_TOKEN_BY_CHAIN_ID,
     NULL_ADDRESS,
-    OPTIMISM_TOKENS,
     PLATYPUS_ROUTER_BY_CHAIN_ID,
     REBASING_TOKENS,
     SELL_SOURCE_FILTER_BY_CHAIN_ID,
@@ -447,6 +446,19 @@ export class SamplerOperations {
             contract: this._samplerContract,
             function: this._samplerContract.sampleMultihopSellsFromBalancerV2,
             params: [vault, quoteSwapSteps, quoteSwaps.assets, takerFillAmounts],
+            callback: (callResults: string, fillData: BalancerV2BatchSwapFillData): BigNumber[] => {
+                const samples = this._samplerContract.getABIDecodedReturnData<BigNumber[]>(
+                    'sampleMultihopSellsFromBalancerV2',
+                    callResults,
+                );
+
+                // ignore sample if there are 0s in output, bug in router causes non-optimal routing
+                // refer to [LIT-668] for more information
+                if (_.every(samples, (v: BigNumber) => !v.isZero())) {
+                    return samples;
+                }
+                return [];
+            }
         });
     }
 
@@ -469,6 +481,19 @@ export class SamplerOperations {
             contract: this._samplerContract,
             function: this._samplerContract.sampleMultihopBuysFromBalancerV2,
             params: [vault, quoteSwapSteps, quoteSwaps.assets, makerFillAmounts],
+            callback: (callResults: string, _fillData: BalancerV2BatchSwapFillData): BigNumber[] => {
+                const samples = this._samplerContract.getABIDecodedReturnData<BigNumber[]>(
+                    'sampleMultihopBuysFromBalancerV2',
+                    callResults,
+                );
+
+                // ignore sample if there are 0s in output, bug in router causes non-optimal routing
+                // refer to [LIT-668] for more information
+                if (_.every(samples, (v: BigNumber) => !v.isZero())) {
+                    return samples;
+                }
+                return [];
+            }
         });
     }
 
@@ -1637,16 +1662,6 @@ export class SamplerOperations {
                             );
                     case ERC20BridgeSource.Beethovenx:
                     case ERC20BridgeSource.BalancerV2: {
-                        if (
-                            this.chainId === ChainId.Optimism &&
-                            source === ERC20BridgeSource.Beethovenx &&
-                            (takerToken === OPTIMISM_TOKENS.OP || makerToken === OPTIMISM_TOKENS.OP)
-                        ) {
-                            // BeethovenX on Optimism is currently seeing some revert issues with the OP token
-                            // so we're going to blacklist the token until we can investigate.
-                            return [];
-                        }
-
                         const cache = this.poolsCaches[source];
                         if (!cache) {
                             return [];
@@ -1987,16 +2002,6 @@ export class SamplerOperations {
                             );
                     case ERC20BridgeSource.Beethovenx:
                     case ERC20BridgeSource.BalancerV2: {
-                        if (
-                            this.chainId === ChainId.Optimism &&
-                            source === ERC20BridgeSource.Beethovenx &&
-                            (takerToken === OPTIMISM_TOKENS.OP || makerToken === OPTIMISM_TOKENS.OP)
-                        ) {
-                            // BeethovenX on Optimism is currently seeing some revert issues with the OP token
-                            // so we're going to blacklist the token until we can investigate.
-                            return [];
-                        }
-
                         const cache = this.poolsCaches[source];
                         if (!cache) {
                             return [];

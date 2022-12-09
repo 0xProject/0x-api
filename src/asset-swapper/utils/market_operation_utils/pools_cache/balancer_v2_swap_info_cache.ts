@@ -77,7 +77,7 @@ class MockTokenPriceService implements TokenPriceService {
 
 export class BalancerV2SwapInfoCache extends SwapInfoCache {
     private static readonly _MAX_POOLS_PER_PATH = 4;
-    private static readonly _MAX_CANDIDATE_PATHS_PER_PAIR = 2;
+    private static readonly _MAX_CANDIDATE_PATHS_PER_PAIR = 1;
     private readonly _routeProposer: RouteProposer;
     private readonly _poolDataService: SubgraphPoolDataService;
 
