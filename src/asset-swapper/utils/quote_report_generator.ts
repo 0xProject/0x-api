@@ -292,8 +292,13 @@ function _isRFQOrderfromType(orderType: FillQuoteTransformerOrderType) {
         case FillQuoteTransformerOrderType.Rfq:
         case FillQuoteTransformerOrderType.Otc:
             return true;
+        case FillQuoteTransformerOrderType.Limit:
+        case FillQuoteTransformerOrderType.Bridge:
+            return false;             
         default:
-            return false;
+            ((_: never) => {
+                throw new Error('unreachable');
+            })(orderType);
     }
 }
 
