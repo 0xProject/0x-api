@@ -305,7 +305,7 @@ export function nativeOrderToReportEntry(
     };
 
     // if we find this is an rfqt order, label it as such and associate makerUri
-    const isRFQ = type === FillQuoteTransformerOrderType.Rfq;
+    const isRFQ = type === FillQuoteTransformerOrderType.Rfq || type === FillQuoteTransformerOrderType.Otc;
     const rfqtMakerUri =
         isRFQ && quoteRequestor ? quoteRequestor.getMakerUriForSignature(fillData.signature) : undefined;
 
