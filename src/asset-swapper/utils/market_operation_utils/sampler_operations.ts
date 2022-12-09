@@ -110,7 +110,6 @@ export const BATCH_SOURCE_FILTERS = SourceFilters.all().exclude([ERC20BridgeSour
 export interface PoolsCacheMap {
     [ERC20BridgeSource.Balancer]: PoolsCache;
     [ERC20BridgeSource.BalancerV2]: BalancerV2SwapInfoCache | undefined;
-    [ERC20BridgeSource.Beethovenx]: BalancerV2SwapInfoCache | undefined;
 }
 
 /**
@@ -141,10 +140,6 @@ export class SamplerOperations {
         this.poolsCaches = poolsCaches
             ? poolsCaches
             : {
-                  [ERC20BridgeSource.Beethovenx]:
-                      BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[chainId] === NULL_ADDRESS
-                          ? undefined
-                          : new BalancerV2SwapInfoCache(chainId),
                   [ERC20BridgeSource.Balancer]: BalancerPoolsCache.create(chainId),
                   [ERC20BridgeSource.BalancerV2]:
                       BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[chainId] === NULL_ADDRESS
@@ -446,7 +441,7 @@ export class SamplerOperations {
             contract: this._samplerContract,
             function: this._samplerContract.sampleMultihopSellsFromBalancerV2,
             params: [vault, quoteSwapSteps, quoteSwaps.assets, takerFillAmounts],
-            callback: (callResults: string, fillData: BalancerV2BatchSwapFillData): BigNumber[] => {
+            callback: (callResults: string, _fillData: BalancerV2BatchSwapFillData): BigNumber[] => {
                 const samples = this._samplerContract.getABIDecodedReturnData<BigNumber[]>(
                     'sampleMultihopSellsFromBalancerV2',
                     callResults,
@@ -458,7 +453,7 @@ export class SamplerOperations {
                     return samples;
                 }
                 return [];
-            }
+            },
         });
     }
 
@@ -493,7 +488,7 @@ export class SamplerOperations {
                     return samples;
                 }
                 return [];
-            }
+            },
         });
     }
 
@@ -1662,7 +1657,7 @@ export class SamplerOperations {
                             );
                     case ERC20BridgeSource.Beethovenx:
                     case ERC20BridgeSource.BalancerV2: {
-                        const cache = this.poolsCaches[source];
+                        const cache = this.poolsCaches[ERC20BridgeSource.BalancerV2];
                         if (!cache) {
                             return [];
                         }
@@ -2002,7 +1997,7 @@ export class SamplerOperations {
                             );
                     case ERC20BridgeSource.Beethovenx:
                     case ERC20BridgeSource.BalancerV2: {
-                        const cache = this.poolsCaches[source];
+                        const cache = this.poolsCaches[ERC20BridgeSource.BalancerV2];
                         if (!cache) {
                             return [];
                         }

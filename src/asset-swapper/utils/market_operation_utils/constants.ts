@@ -2339,12 +2339,6 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
         [ChainId.Mainnet]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2',
         [ChainId.Polygon]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-polygon-v2',
         [ChainId.Arbitrum]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-arbitrum-v2',
-    },
-    null,
-);
-
-export const BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
-    {
         [ChainId.Fantom]: 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx',
         [ChainId.Optimism]: 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx-optimism',
     },
@@ -2888,7 +2882,7 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     [ERC20BridgeSource.Beethovenx]: (fillData?: FillData) => {
         const balancerFillData = fillData as BalancerV2BatchSwapFillData;
         if (balancerFillData.chainId === ChainId.Fantom) {
-            return 125e3 + ((fillData as BalancerV2BatchSwapFillData).swapSteps.length - 1) * 50e3;
+            return 125e3 + (balancerFillData.swapSteps.length - 1) * 50e3;
         }
         return 305e3 + (balancerFillData.swapSteps.length - 1) * 100e3;
     },

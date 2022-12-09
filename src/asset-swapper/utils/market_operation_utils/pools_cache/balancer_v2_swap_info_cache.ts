@@ -16,7 +16,7 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 
 import { DEFAULT_WARNING_LOGGER } from '../../../constants';
 import { LogFunction } from '../../../types';
-import { BALANCER_V2_SUBGRAPH_URL_BY_CHAIN, BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN, ONE_SECOND_MS } from '../constants';
+import { BALANCER_V2_SUBGRAPH_URL_BY_CHAIN, ONE_SECOND_MS } from '../constants';
 import { BalancerSwapInfo, BalancerSwaps } from '../types';
 
 import { CacheValue, EMPTY_BALANCER_SWAPS, SwapInfoCache } from './pair_swaps_cache';
@@ -77,14 +77,16 @@ class MockTokenPriceService implements TokenPriceService {
 
 export class BalancerV2SwapInfoCache extends SwapInfoCache {
     private static readonly _MAX_POOLS_PER_PATH = 4;
+    // TODO: Balancer V2 Multiplexing results in an increased revert rate
+    // re-enable multiplexing and set _MAX_CANDIDATE_PATHS_PER_PAIR to 2
+    // when resolved.
     private static readonly _MAX_CANDIDATE_PATHS_PER_PAIR = 1;
     private readonly _routeProposer: RouteProposer;
     private readonly _poolDataService: SubgraphPoolDataService;
 
     constructor(
         chainId: ChainId,
-        subgraphUrl: string | null = BALANCER_V2_SUBGRAPH_URL_BY_CHAIN[chainId] ||
-            BEETHOVEN_X_SUBGRAPH_URL_BY_CHAIN[chainId],
+        subgraphUrl: string | null = BALANCER_V2_SUBGRAPH_URL_BY_CHAIN[chainId],
         private readonly _warningLogger: LogFunction = DEFAULT_WARNING_LOGGER,
         cache: { [key: string]: CacheValue } = {},
     ) {
