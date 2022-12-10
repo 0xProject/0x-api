@@ -9,11 +9,10 @@ import {
     DEFAULT_GAS_SCHEDULE,
     ERC20BridgeSource,
     GasSchedule,
+    NATIVE_FEE_TOKEN_BY_CHAIN_ID,
     PriceComparisonsReport,
-    SELL_SOURCE_FILTER_BY_CHAIN_ID,
     UniswapV2FillData,
 } from '../asset-swapper';
-import { CHAIN_ID } from '../config';
 import { GAS_LIMIT_BUFFER_MULTIPLIER, TX_BASE_GAS, ZERO } from '../constants';
 import { logger } from '../logger';
 import { SourceComparison, ISlippageModelManager } from '../types';
@@ -37,22 +36,6 @@ const gasScheduleWithOverrides: GasSchedule = {
         return gas;
     },
 };
-
-const NULL_SOURCE_COMPARISONS = SELL_SOURCE_FILTER_BY_CHAIN_ID[CHAIN_ID].sources.reduce<SourceComparison[]>(
-    (memo, liquiditySource) => {
-        memo.push({
-            name: liquiditySource,
-            price: null,
-            gas: null,
-            savingsInEth: null,
-            buyAmount: null,
-            sellAmount: null,
-            expectedSlippage: null,
-        });
-        return memo;
-    },
-    [],
-);
 
 export const priceComparisonUtils = {
     getPriceComparisonFromQuote(
@@ -96,13 +79,14 @@ function getPriceComparisonFromQuoteOrThrow(
     slippageModelManager: ISlippageModelManager | undefined,
     maxSlippageRate: number,
 ): SourceComparison[] | undefined {
-    // Set up variables for calculation
-    const buyToken = getTokenMetadataIfExists(quote.buyTokenAddress, chainId);
-    const sellToken = getTokenMetadataIfExists(quote.sellTokenAddress, chainId);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-    const ethToken = getTokenMetadataIfExists('WETH', chainId)!;
-    const ethUnitAmount = new BigNumber(10).pow(ethToken.decimals);
-    if (!buyToken || !sellToken || !quote.buyAmount || !quote.sellAmount || !quote.priceComparisonsReport) {
+    const nativeToken = getTokenMetadataIfExists(NATIVE_FEE_TOKEN_BY_CHAIN_ID[chainId], chainId);
+    if (nativeToken === undefined) {
+        logger.warn('native token metadata is missing');
+        return undefined;
+    }
+
+    const ethUnitAmount = new BigNumber(10).pow(nativeToken.decimals);
+    if (!quote.buyAmount || !quote.sellAmount || !quote.priceComparisonsReport) {
         logger.warn('Missing data to generate price comparisons');
         return undefined;
     }
@@ -110,6 +94,7 @@ function getPriceComparisonFromQuoteOrThrow(
     const quoteTokenToEthRate = isSelling ? quote.buyTokenToEthRate : quote.sellTokenToEthRate;
 
     const { priceComparisonsReport } = quote;
+    const { buyTokenDecimals, sellTokenDecimals } = priceComparisonsReport;
     // Filter out samples with invalid amounts
 
     const allSources = [
@@ -117,6 +102,10 @@ function getPriceComparisonFromQuoteOrThrow(
         ...priceComparisonsReport.multiHopSources,
         ...priceComparisonsReport.nativeSources,
     ];
+    console.log(
+        'all sources',
+        allSources.map((s) => s.liquiditySource),
+    );
     const fullTradeSources = allSources.filter((s) =>
         isSelling
             ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
@@ -131,9 +120,9 @@ function getPriceComparisonFromQuoteOrThrow(
         const gas = TX_BASE_GAS.plus(new BigNumber(gasScheduleWithOverrides[source.liquiditySource]!(source.fillData)));
 
         const gasCost = gas.times(quote.gasPrice).dividedBy(ethUnitAmount).times(quoteTokenToEthRate);
-        const unitMakerAmount = Web3Wrapper.toUnitAmount(source.makerAmount, buyToken.decimals);
+        const unitMakerAmount = Web3Wrapper.toUnitAmount(source.makerAmount, buyTokenDecimals);
         const unitMakerAmountAfterGasCosts = isSelling ? unitMakerAmount.minus(gasCost) : unitMakerAmount;
-        const unitTakerAmount = Web3Wrapper.toUnitAmount(source.takerAmount, sellToken.decimals);
+        const unitTakerAmount = Web3Wrapper.toUnitAmount(source.takerAmount, sellTokenDecimals);
         const unitTakerAmountAfterGasCosts = isSelling ? unitTakerAmount : unitTakerAmount.plus(gasCost);
         let expectedSlippage = null;
 
@@ -181,8 +170,8 @@ function getPriceComparisonFromQuoteOrThrow(
         .dividedBy(ethUnitAmount)
         .times(quoteTokenToEthRate);
     const unitAmount = isSelling
-        ? Web3Wrapper.toUnitAmount(quote.buyAmount, buyToken.decimals)
-        : Web3Wrapper.toUnitAmount(quote.sellAmount, sellToken.decimals);
+        ? Web3Wrapper.toUnitAmount(quote.buyAmount, buyTokenDecimals)
+        : Web3Wrapper.toUnitAmount(quote.sellAmount, sellTokenDecimals);
     const unitAmountAfterGasCosts = isSelling
         ? unitAmount.minus(quoteGasCostInTokens)
         : unitAmount.plus(quoteGasCostInTokens);
@@ -194,15 +183,15 @@ function getPriceComparisonFromQuoteOrThrow(
 
         // calculate price
         const price = isSelling
-            ? unitMakerAmount.dividedBy(unitTakerAmount).decimalPlaces(buyToken.decimals, roundingStrategy)
-            : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(sellToken.decimals, roundingStrategy);
+            ? unitMakerAmount.dividedBy(unitTakerAmount).decimalPlaces(buyTokenDecimals, roundingStrategy)
+            : unitTakerAmount.dividedBy(unitMakerAmount).decimalPlaces(sellTokenDecimals, roundingStrategy);
 
         // calculate savings (Part 2):
         const savingsInTokens = isSelling
             ? unitAmountAfterGasCosts.minus(source.unitMakerAmountAfterGasCosts)
             : source.unitTakerAmountAfterGasCosts.minus(unitAmountAfterGasCosts);
-        const savingsInEth = quoteTokenToEthRate.gt(ZERO)
-            ? savingsInTokens.dividedBy(quoteTokenToEthRate).decimalPlaces(ethToken.decimals)
+        const savingsInNativeToken = quoteTokenToEthRate.gt(ZERO)
+            ? savingsInTokens.dividedBy(quoteTokenToEthRate).decimalPlaces(nativeToken.decimals)
             : ZERO;
 
         let expectedSlippage = null;
@@ -224,12 +213,10 @@ function getPriceComparisonFromQuoteOrThrow(
             sellAmount: source.takerAmount,
             buyAmount: source.makerAmount,
             gas,
-            savingsInEth,
+            savingsInNativeToken,
             expectedSlippage,
         };
     });
 
-    // Add null values for all sources we don't have a result for so that we always have a full result set in the response
-    const allSourcePrices = _.uniqBy<SourceComparison>([...sourcePrices, ...NULL_SOURCE_COMPARISONS], 'name');
-    return allSourcePrices;
+    return sourcePrices;
 }

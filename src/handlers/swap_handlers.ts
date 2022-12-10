@@ -183,6 +183,7 @@ export class SwapHandlers {
                 this._swapService.slippageModelManager,
                 params.slippagePercentage || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
             );
+            console.log(priceComparisons);
             response.priceComparisons = priceComparisons?.map((sc) => priceComparisonUtils.renameNative(sc));
         }
         const duration = (new Date().getTime() - begin) / ONE_SECOND_MS;

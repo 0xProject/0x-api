@@ -104,20 +104,33 @@ export class MarketOperationUtils {
         comparisonPrice?: BigNumber | undefined,
     ): PriceComparisonsReport {
         const { side, quotes } = marketSideLiquidity;
-        const dexSources = _.flatten(quotes.dexQuotes).map((quote) => dexSampleToReportSource(quote, side));
-        const multiHopSources = quotes.twoHopQuotes.map((quote) => multiHopSampleToReportSource(quote, side));
-        const nativeSources = quotes.nativeOrders.map((order) =>
-            nativeOrderToReportEntry(
-                order.type,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
-                order as any,
-                order.fillableTakerAmount,
-                comparisonPrice,
-                quoteRequestor,
-            ),
-        );
+        const dexSources = quotes.dexQuotes
+            .map((quotes) => quotes[quotes.length - 1])
+            .filter((quote) => quote.output.gt(0) && quote.input.gt(0))
+            .map((quote) => dexSampleToReportSource(quote, side));
+        const multiHopSources = quotes.twoHopQuotes
+            .filter((quote) => quote.output.gt(0) && quote.input.gt(0))
+            .map((quote) => multiHopSampleToReportSource(quote, side));
+        const nativeSources = quotes.nativeOrders
+            .filter((nativeOrder) => nativeOrder.fillableMakerAmount.gt(0))
+            .map((order) =>
+                nativeOrderToReportEntry(
+                    order.type,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
+                    order as any,
+                    order.fillableTakerAmount,
+                    comparisonPrice,
+                    quoteRequestor,
+                ),
+            );
 
-        return { dexSources, multiHopSources, nativeSources };
+        return {
+            dexSources,
+            multiHopSources,
+            nativeSources,
+            buyTokenDecimals: marketSideLiquidity.makerTokenDecimals,
+            sellTokenDecimals: marketSideLiquidity.takerTokenDecimals,
+        };
     }
 
     constructor(

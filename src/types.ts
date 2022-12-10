@@ -171,7 +171,7 @@ export interface SourceComparison {
     name: ERC20BridgeSource | '0x';
     price: BigNumber | null;
     gas: BigNumber | null;
-    savingsInEth: BigNumber | null;
+    savingsInNativeToken: BigNumber | null;
     buyAmount: BigNumber | null;
     sellAmount: BigNumber | null;
     expectedSlippage: BigNumber | null;

@@ -29,6 +29,8 @@ export interface PriceComparisonsReport {
     dexSources: BridgeQuoteReportEntry[];
     multiHopSources: MultiHopQuoteReportEntry[];
     nativeSources: (NativeLimitOrderQuoteReportEntry | NativeRfqOrderQuoteReportEntry)[];
+    buyTokenDecimals: number;
+    sellTokenDecimals: number;
 }
 
 export interface IndicativeRfqOrderQuoteReportEntry extends QuoteReportEntryBase {
