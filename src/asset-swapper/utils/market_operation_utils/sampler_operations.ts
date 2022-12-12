@@ -9,7 +9,7 @@ import { AaveV2Sampler } from '../../noop_samplers/AaveV2Sampler';
 import { SamplerCallResult, SignedNativeOrder, ERC20BridgeSource, FeeSchedule } from '../../types';
 import { TokenAdjacencyGraph } from '../token_adjacency_graph';
 
-import { AaveV2ReservesCache } from './aave_reserves_cache';
+import { AaveReservesCache, AaveV3Reserve, AaveV2Reserve } from './aave_reserves_cache';
 import { BancorService } from './bancor_service';
 import {
     getCurveLikeInfosForPair,
@@ -23,12 +23,13 @@ import {
 import { CompoundCTokenCache } from './compound_ctoken_cache';
 import {
     AAVE_V2_SUBGRAPH_URL_BY_CHAIN_ID,
+    AAVE_V3_SUBGRAPH_URL_BY_CHAIN_ID,
+    AAVE_V3_L2_ENCODERS_BY_CHAIN_ID,
     AVALANCHE_TOKENS,
     BALANCER_V2_VAULT_ADDRESS_BY_CHAIN,
     BANCORV3_NETWORK_BY_CHAIN_ID,
     BANCORV3_NETWORK_INFO_BY_CHAIN_ID,
     BANCOR_REGISTRY_BY_CHAIN_ID,
-    BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN,
     COMPOUND_API_URL_BY_CHAIN_ID,
     DODOV1_CONFIG_BY_CHAIN_ID,
     DODOV2_FACTORIES_BY_CHAIN_ID,
@@ -56,14 +57,15 @@ import {
     WOOFI_SUPPORTED_TOKENS,
     ZERO_AMOUNT,
 } from './constants';
-import { BalancerPoolsCache, BalancerV2PoolsCache, PoolsCache } from './pools_cache';
+import { BalancerPoolsCache, PoolsCache } from './pools_cache';
 import { BalancerV2SwapInfoCache } from './pools_cache/balancer_v2_swap_info_cache';
 import { SamplerContractOperation } from './sampler_contract_operation';
 import { SamplerNoOperation } from './sampler_no_operation';
 import { SourceFilters } from './source_filters';
 import {
     AaveV2FillData,
-    AaveV2Info,
+    AaveV3FillData,
+    AaveInfo,
     BalancerFillData,
     BalancerSwapInfo,
     BalancerV2BatchSwapFillData,
@@ -99,10 +101,7 @@ import {
 /**
  * Source filters for `getTwoHopBuyQuotes()` and `getTwoHopSellQuotes()`.
  */
-export const TWO_HOP_SOURCE_FILTERS = SourceFilters.all().exclude([
-    ERC20BridgeSource.MultiHop,
-    ERC20BridgeSource.Native,
-]);
+const TWO_HOP_SOURCE_FILTERS = SourceFilters.all().exclude([ERC20BridgeSource.MultiHop, ERC20BridgeSource.Native]);
 /**
  * Source filters for `getSellQuotes()` and `getBuyQuotes()`.
  */
@@ -111,7 +110,6 @@ export const BATCH_SOURCE_FILTERS = SourceFilters.all().exclude([ERC20BridgeSour
 export interface PoolsCacheMap {
     [ERC20BridgeSource.Balancer]: PoolsCache;
     [ERC20BridgeSource.BalancerV2]: BalancerV2SwapInfoCache | undefined;
-    [ERC20BridgeSource.Beethovenx]: PoolsCache;
 }
 
 /**
@@ -120,7 +118,8 @@ export interface PoolsCacheMap {
  */
 export class SamplerOperations {
     public readonly poolsCaches: PoolsCacheMap;
-    public readonly aaveReservesCache: AaveV2ReservesCache | undefined;
+    public readonly aaveV2ReservesCache: AaveReservesCache | undefined;
+    public readonly aaveV3ReservesCache: AaveReservesCache | undefined;
     public readonly compoundCTokenCache: CompoundCTokenCache | undefined;
     protected _bancorService?: BancorService;
     public static constant<T>(result: T): BatchedOperation<T> {
@@ -141,7 +140,6 @@ export class SamplerOperations {
         this.poolsCaches = poolsCaches
             ? poolsCaches
             : {
-                  [ERC20BridgeSource.Beethovenx]: BalancerV2PoolsCache.createBeethovenXPoolCache(chainId),
                   [ERC20BridgeSource.Balancer]: BalancerPoolsCache.create(chainId),
                   [ERC20BridgeSource.BalancerV2]:
                       BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[chainId] === NULL_ADDRESS
@@ -149,9 +147,14 @@ export class SamplerOperations {
                           : new BalancerV2SwapInfoCache(chainId),
               };
 
-        const aaveSubgraphUrl = AAVE_V2_SUBGRAPH_URL_BY_CHAIN_ID[chainId];
-        if (aaveSubgraphUrl) {
-            this.aaveReservesCache = new AaveV2ReservesCache(aaveSubgraphUrl);
+        const aaveV2SubgraphUrl = AAVE_V2_SUBGRAPH_URL_BY_CHAIN_ID[chainId];
+        if (aaveV2SubgraphUrl) {
+            this.aaveV2ReservesCache = new AaveReservesCache(aaveV2SubgraphUrl, false);
+        }
+
+        const aaveV3SubgraphUrl = AAVE_V3_SUBGRAPH_URL_BY_CHAIN_ID[chainId];
+        if (aaveV3SubgraphUrl) {
+            this.aaveV3ReservesCache = new AaveReservesCache(aaveV3SubgraphUrl, true);
         }
 
         const compoundApiUrl = COMPOUND_API_URL_BY_CHAIN_ID[chainId];
@@ -434,10 +437,23 @@ export class SamplerOperations {
         }));
         return new SamplerContractOperation({
             source,
-            fillData: { vault, swapSteps: fillSwaps.swapSteps, assets: fillSwaps.assets },
+            fillData: { vault, swapSteps: fillSwaps.swapSteps, assets: fillSwaps.assets, chainId: this.chainId },
             contract: this._samplerContract,
             function: this._samplerContract.sampleMultihopSellsFromBalancerV2,
             params: [vault, quoteSwapSteps, quoteSwaps.assets, takerFillAmounts],
+            callback: (callResults: string, _fillData: BalancerV2BatchSwapFillData): BigNumber[] => {
+                const samples = this._samplerContract.getABIDecodedReturnData<BigNumber[]>(
+                    'sampleMultihopSellsFromBalancerV2',
+                    callResults,
+                );
+
+                // ignore sample if there are 0s in output, bug in router causes non-optimal routing
+                // refer to [LIT-668] for more information
+                if (_.every(samples, (v: BigNumber) => !v.isZero())) {
+                    return samples;
+                }
+                return [];
+            },
         });
     }
 
@@ -456,10 +472,23 @@ export class SamplerOperations {
         return new SamplerContractOperation({
             source,
             // NOTE: fillData is set up for sells but quote function is set up for buys.
-            fillData: { vault, swapSteps: fillSwaps.swapSteps, assets: fillSwaps.assets },
+            fillData: { vault, swapSteps: fillSwaps.swapSteps, assets: fillSwaps.assets, chainId: this.chainId },
             contract: this._samplerContract,
             function: this._samplerContract.sampleMultihopBuysFromBalancerV2,
             params: [vault, quoteSwapSteps, quoteSwaps.assets, makerFillAmounts],
+            callback: (callResults: string, _fillData: BalancerV2BatchSwapFillData): BigNumber[] => {
+                const samples = this._samplerContract.getABIDecodedReturnData<BigNumber[]>(
+                    'sampleMultihopBuysFromBalancerV2',
+                    callResults,
+                );
+
+                // ignore sample if there are 0s in output, bug in router causes non-optimal routing
+                // refer to [LIT-668] for more information
+                if (_.every(samples, (v: BigNumber) => !v.isZero())) {
+                    return samples;
+                }
+                return [];
+            },
         });
     }
 
@@ -1078,7 +1107,7 @@ export class SamplerOperations {
     }
 
     public getAaveV2SellQuotes(
-        aaveInfo: AaveV2Info,
+        aaveInfo: AaveInfo,
         makerToken: string,
         takerToken: string,
         takerFillAmounts: BigNumber[],
@@ -1091,7 +1120,7 @@ export class SamplerOperations {
     }
 
     public getAaveV2BuyQuotes(
-        aaveInfo: AaveV2Info,
+        aaveInfo: AaveInfo,
         makerToken: string,
         takerToken: string,
         makerFillAmounts: BigNumber[],
@@ -1100,6 +1129,80 @@ export class SamplerOperations {
             source: ERC20BridgeSource.AaveV2,
             fillData: { ...aaveInfo, takerToken },
             callback: () => AaveV2Sampler.sampleBuysFromAaveV2(aaveInfo, takerToken, makerToken, makerFillAmounts),
+        });
+    }
+
+    public getAaveV3SellQuotes(
+        aaveInfo: AaveInfo,
+        makerToken: string,
+        takerToken: string,
+        takerFillAmounts: BigNumber[],
+        l2EncoderAddress: string,
+    ): SourceQuoteOperation<AaveV3FillData> {
+        return new SamplerContractOperation({
+            source: ERC20BridgeSource.AaveV3,
+            contract: this._samplerContract,
+            function: this._samplerContract.sampleSellsFromAaveV3,
+            params: [
+                l2EncoderAddress,
+                aaveInfo.aToken,
+                aaveInfo.underlyingToken,
+                takerToken,
+                makerToken,
+                takerFillAmounts,
+            ],
+            callback: (callResults: string, fillData: AaveV3FillData): BigNumber[] => {
+                const [l2Params, samples] = this._samplerContract.getABIDecodedReturnData<[string[], BigNumber[]]>(
+                    'sampleSellsFromAaveV3',
+                    callResults,
+                );
+                fillData.l2EncodedParams = l2Params.map((l2Param, i) => ({
+                    inputAmount: takerFillAmounts[i],
+                    l2Parameter: l2Param,
+                }));
+
+                fillData.lendingPool = aaveInfo.lendingPool;
+                fillData.aToken = aaveInfo.aToken;
+
+                return samples;
+            },
+        });
+    }
+
+    public getAaveV3BuyQuotes(
+        aaveInfo: AaveInfo,
+        makerToken: string,
+        takerToken: string,
+        makerFillAmounts: BigNumber[],
+        l2EncoderAddress: string,
+    ): SourceQuoteOperation<AaveV3FillData> {
+        return new SamplerContractOperation({
+            source: ERC20BridgeSource.AaveV3,
+            contract: this._samplerContract,
+            function: this._samplerContract.sampleBuysFromAaveV3,
+            params: [
+                l2EncoderAddress,
+                aaveInfo.aToken,
+                aaveInfo.underlyingToken,
+                takerToken,
+                makerToken,
+                makerFillAmounts,
+            ],
+            callback: (callResults: string, fillData: AaveV3FillData): BigNumber[] => {
+                const [l2Params, samples] = this._samplerContract.getABIDecodedReturnData<[string[], BigNumber[]]>(
+                    'sampleBuysFromAaveV3',
+                    callResults,
+                );
+                fillData.l2EncodedParams = l2Params.map((l2Param, i) => ({
+                    inputAmount: makerFillAmounts[i],
+                    l2Parameter: l2Param,
+                }));
+
+                fillData.lendingPool = aaveInfo.lendingPool;
+                fillData.aToken = aaveInfo.aToken;
+
+                return samples;
+            },
         });
     }
 
@@ -1552,8 +1655,9 @@ export class SamplerOperations {
                                     ERC20BridgeSource.Balancer,
                                 ),
                             );
+                    case ERC20BridgeSource.Beethovenx:
                     case ERC20BridgeSource.BalancerV2: {
-                        const cache = this.poolsCaches[source];
+                        const cache = this.poolsCaches[ERC20BridgeSource.BalancerV2];
                         if (!cache) {
                             return [];
                         }
@@ -1566,23 +1670,6 @@ export class SamplerOperations {
                         // Changed to retrieve queryBatchSwap for swap steps > 1 of length
                         return swaps.swapInfoExactIn.map((swapInfo) =>
                             this.getBalancerV2MultihopSellQuotes(vault, swapInfo, swapInfo, takerFillAmounts, source),
-                        );
-                    }
-                    case ERC20BridgeSource.Beethovenx: {
-                        const cache = this.poolsCaches[source];
-                        const poolAddresses = cache.getPoolAddressesForPair(takerToken, makerToken);
-                        const vault = BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
-                        if (vault === NULL_ADDRESS) {
-                            return [];
-                        }
-                        return poolAddresses.map((poolAddress) =>
-                            this.getBalancerV2SellQuotes(
-                                { poolId: poolAddress, vault },
-                                makerToken,
-                                takerToken,
-                                takerFillAmounts,
-                                source,
-                            ),
                         );
                     }
                     case ERC20BridgeSource.Dodo:
@@ -1649,17 +1736,36 @@ export class SamplerOperations {
                         const lidoInfo = LIDO_INFO_BY_CHAIN[this.chainId];
                         return this.getLidoSellQuotes(lidoInfo, makerToken, takerToken, takerFillAmounts);
                     }
-                    case ERC20BridgeSource.AaveV2: {
-                        if (!this.aaveReservesCache) {
+                    case ERC20BridgeSource.AaveV3: {
+                        if (!this.aaveV3ReservesCache) {
                             return [];
                         }
-                        const reserve = this.aaveReservesCache.get(takerToken, makerToken);
+                        const reserve = this.aaveV3ReservesCache.get(takerToken, makerToken);
                         if (!reserve) {
                             return [];
                         }
 
-                        const info: AaveV2Info = {
-                            lendingPool: reserve.pool.lendingPool,
+                        const info: AaveInfo = {
+                            lendingPool: (reserve as AaveV3Reserve).pool.pool,
+                            aToken: reserve.aToken.id,
+                            underlyingToken: reserve.underlyingAsset,
+                        };
+
+                        const l2Encoder = AAVE_V3_L2_ENCODERS_BY_CHAIN_ID[this.chainId];
+
+                        return this.getAaveV3SellQuotes(info, makerToken, takerToken, takerFillAmounts, l2Encoder);
+                    }
+                    case ERC20BridgeSource.AaveV2: {
+                        if (!this.aaveV2ReservesCache) {
+                            return [];
+                        }
+                        const reserve = this.aaveV2ReservesCache.get(takerToken, makerToken);
+                        if (!reserve) {
+                            return [];
+                        }
+
+                        const info: AaveInfo = {
+                            lendingPool: (reserve as AaveV2Reserve).pool.lendingPool,
                             aToken: reserve.aToken.id,
                             underlyingToken: reserve.underlyingAsset,
                         };
@@ -1889,8 +1995,9 @@ export class SamplerOperations {
                                     ERC20BridgeSource.Balancer,
                                 ),
                             );
+                    case ERC20BridgeSource.Beethovenx:
                     case ERC20BridgeSource.BalancerV2: {
-                        const cache = this.poolsCaches[source];
+                        const cache = this.poolsCaches[ERC20BridgeSource.BalancerV2];
                         if (!cache) {
                             return [];
                         }
@@ -1906,23 +2013,6 @@ export class SamplerOperations {
                                 vault,
                                 quoteSwapInfo,
                                 swaps.swapInfoExactIn[i],
-                                makerFillAmounts,
-                                source,
-                            ),
-                        );
-                    }
-                    case ERC20BridgeSource.Beethovenx: {
-                        const cache = this.poolsCaches[source];
-                        const poolIds = cache.getPoolAddressesForPair(takerToken, makerToken) || [];
-                        const vault = BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN[this.chainId];
-                        if (vault === NULL_ADDRESS) {
-                            return [];
-                        }
-                        return poolIds.map((poolId) =>
-                            this.getBalancerV2BuyQuotes(
-                                { poolId, vault },
-                                makerToken,
-                                takerToken,
                                 makerFillAmounts,
                                 source,
                             ),
@@ -1986,16 +2076,33 @@ export class SamplerOperations {
                         const lidoInfo = LIDO_INFO_BY_CHAIN[this.chainId];
                         return this.getLidoBuyQuotes(lidoInfo, makerToken, takerToken, makerFillAmounts);
                     }
-                    case ERC20BridgeSource.AaveV2: {
-                        if (!this.aaveReservesCache) {
+                    case ERC20BridgeSource.AaveV3: {
+                        if (!this.aaveV3ReservesCache) {
                             return [];
                         }
-                        const reserve = this.aaveReservesCache.get(takerToken, makerToken);
+                        const reserve = this.aaveV3ReservesCache.get(takerToken, makerToken);
                         if (!reserve) {
                             return [];
                         }
-                        const info: AaveV2Info = {
-                            lendingPool: reserve.pool.lendingPool,
+                        const info: AaveInfo = {
+                            lendingPool: (reserve as AaveV3Reserve).pool.pool,
+                            aToken: reserve.aToken.id,
+                            underlyingToken: reserve.underlyingAsset,
+                        };
+
+                        const l2Encoder = AAVE_V3_L2_ENCODERS_BY_CHAIN_ID[this.chainId];
+                        return this.getAaveV3BuyQuotes(info, makerToken, takerToken, makerFillAmounts, l2Encoder);
+                    }
+                    case ERC20BridgeSource.AaveV2: {
+                        if (!this.aaveV2ReservesCache) {
+                            return [];
+                        }
+                        const reserve = this.aaveV2ReservesCache.get(takerToken, makerToken);
+                        if (!reserve) {
+                            return [];
+                        }
+                        const info: AaveInfo = {
+                            lendingPool: (reserve as AaveV2Reserve).pool.lendingPool,
                             aToken: reserve.aToken.id,
                             underlyingToken: reserve.underlyingAsset,
                         };

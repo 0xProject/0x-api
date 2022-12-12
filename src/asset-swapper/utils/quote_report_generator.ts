@@ -7,84 +7,24 @@ import {
     NativeOrderWithFillableAmounts,
     ERC20BridgeSource,
     Fill,
-    FillData,
     NativeFillData,
+    ExtendedQuoteReportIndexedEntry,
+    BridgeQuoteReportEntry,
+    MultiHopQuoteReportEntry,
+    NativeLimitOrderQuoteReportEntry,
+    NativeRfqOrderQuoteReportEntry,
+    ExtendedQuoteReportSources,
+    ExtendedQuoteReportEntry,
+    IndicativeRfqOrderQuoteReportEntry,
+    QuoteReport,
 } from '../types';
 
 import { DexSample, MultiHopFillData, RawQuotes } from './market_operation_utils/types';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from './quote_requestor';
 
-export interface QuoteReportEntryBase {
-    liquiditySource: ERC20BridgeSource;
-    makerAmount: BigNumber;
-    takerAmount: BigNumber;
-    fillData: FillData;
-}
-export interface BridgeQuoteReportEntry extends QuoteReportEntryBase {
-    liquiditySource: Exclude<ERC20BridgeSource, ERC20BridgeSource.Native>;
-}
-
-export interface MultiHopQuoteReportEntry extends QuoteReportEntryBase {
-    liquiditySource: ERC20BridgeSource.MultiHop;
-    hopSources: ERC20BridgeSource[];
-}
-
-export interface NativeLimitOrderQuoteReportEntry extends QuoteReportEntryBase {
-    liquiditySource: ERC20BridgeSource.Native;
-    fillData: NativeFillData;
-    fillableTakerAmount: BigNumber;
-    isRFQ: false;
-}
-
-export interface NativeRfqOrderQuoteReportEntry extends QuoteReportEntryBase {
-    liquiditySource: ERC20BridgeSource.Native;
-    fillData: NativeFillData;
-    fillableTakerAmount: BigNumber;
-    isRFQ: true;
-    nativeOrder: RfqOrderFields;
-    makerUri: string;
-    comparisonPrice?: number;
-}
-
-export interface IndicativeRfqOrderQuoteReportEntry extends QuoteReportEntryBase {
-    liquiditySource: ERC20BridgeSource.Native;
-    fillableTakerAmount: BigNumber;
-    isRFQ: true;
-    makerUri?: string;
-    comparisonPrice?: number;
-}
-
-export type QuoteReportEntry =
-    | BridgeQuoteReportEntry
-    | MultiHopQuoteReportEntry
-    | NativeLimitOrderQuoteReportEntry
-    | NativeRfqOrderQuoteReportEntry;
-
-export type ExtendedQuoteReportEntry =
-    | BridgeQuoteReportEntry
-    | MultiHopQuoteReportEntry
-    | NativeLimitOrderQuoteReportEntry
-    | NativeRfqOrderQuoteReportEntry
-    | IndicativeRfqOrderQuoteReportEntry;
-
-export type ExtendedQuoteReportIndexedEntry = ExtendedQuoteReportEntry & {
-    quoteEntryIndex: number;
-    isDelivered: boolean;
-};
-
-export type ExtendedQuoteReportIndexedEntryOutbound = Omit<ExtendedQuoteReportIndexedEntry, 'fillData'> & {
+type ExtendedQuoteReportIndexedEntryOutbound = Omit<ExtendedQuoteReportIndexedEntry, 'fillData'> & {
     fillData?: string;
 };
-
-export interface QuoteReport {
-    sourcesConsidered: QuoteReportEntry[];
-    sourcesDelivered: QuoteReportEntry[];
-}
-
-export interface ExtendedQuoteReportSources {
-    sourcesConsidered: ExtendedQuoteReportIndexedEntry[];
-    sourcesDelivered: ExtendedQuoteReportIndexedEntry[] | undefined;
-}
 
 export interface ExtendedQuoteReport {
     quoteId?: string;
@@ -106,12 +46,6 @@ export interface ExtendedQuoteReport {
     estimatedGas: string;
     enableSlippageProtection?: boolean;
     expectedSlippage?: string;
-}
-
-export interface PriceComparisonsReport {
-    dexSources: BridgeQuoteReportEntry[];
-    multiHopSources: MultiHopQuoteReportEntry[];
-    nativeSources: (NativeLimitOrderQuoteReportEntry | NativeRfqOrderQuoteReportEntry)[];
 }
 
 /**
@@ -353,6 +287,21 @@ function _isNativeOrderFromCollapsedFill(cf: Fill): cf is Fill<NativeFillData> {
     }
 }
 
+function _isRFQOrderfromType(orderType: FillQuoteTransformerOrderType) {
+    switch (orderType) {
+        case FillQuoteTransformerOrderType.Rfq:
+        case FillQuoteTransformerOrderType.Otc:
+            return true;
+        case FillQuoteTransformerOrderType.Limit:
+        case FillQuoteTransformerOrderType.Bridge:
+            return false;
+        default:
+            ((_: never) => {
+                throw new Error('unreachable');
+            })(orderType);
+    }
+}
+
 /**
  * Generates a report entry for a native order
  * NOTE: this is used for the QuoteReport and quote price comparison data
@@ -371,7 +320,7 @@ export function nativeOrderToReportEntry(
     };
 
     // if we find this is an rfqt order, label it as such and associate makerUri
-    const isRFQ = type === FillQuoteTransformerOrderType.Rfq;
+    const isRFQ = _isRFQOrderfromType(type);
     const rfqtMakerUri =
         isRFQ && quoteRequestor ? quoteRequestor.getMakerUriForSignature(fillData.signature) : undefined;
 
@@ -400,7 +349,7 @@ export function nativeOrderToReportEntry(
  * Generates a report entry for an indicative RFQ Quote
  * NOTE: this is used for the QuoteReport and quote price comparison data
  */
-export function indicativeQuoteToReportEntry(
+function indicativeQuoteToReportEntry(
     order: V4RFQIndicativeQuoteMM,
     comparisonPrice?: BigNumber | undefined,
 ): IndicativeRfqOrderQuoteReportEntry {

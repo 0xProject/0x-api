@@ -5,15 +5,17 @@ import { BigNumber } from '@0x/utils';
 import {
     NativeOrderWithFillableAmounts,
     ERC20BridgeSource,
-    OptimizedMarketOrder,
+    OptimizedOrder,
     FillData,
     FeeSchedule,
     Fill,
     FillAdjustor,
     ExchangeProxyOverhead,
+    ExtendedQuoteReportSources,
+    PriceComparisonsReport,
+    QuoteReport,
 } from '../../types';
 import { V4RFQIndicativeQuoteMM } from '../../utils/quote_requestor';
-import { ExtendedQuoteReportSources, PriceComparisonsReport, QuoteReport } from '../quote_report_generator';
 
 import { SourceFilters } from './source_filters';
 
@@ -94,7 +96,7 @@ export interface BalancerV2PoolInfo {
     vault: string;
 }
 
-export interface AaveV2Info {
+export interface AaveInfo {
     lendingPool: string;
     aToken: string;
     underlyingToken: string;
@@ -113,7 +115,7 @@ export interface CurveFillData extends FillData {
     pool: CurveInfo;
 }
 
-export interface BalancerBatchSwapStep {
+interface BalancerBatchSwapStep {
     poolId: string;
     assetInIndex: number;
     assetOutIndex: number;
@@ -143,6 +145,8 @@ export interface BalancerV2BatchSwapFillData extends FillData {
     vault: string;
     swapSteps: BalancerBatchSwapStep[];
     assets: string[];
+    // Only needed for gas estimation
+    chainId: ChainId;
 }
 
 export interface UniswapV2FillData extends FillData {
@@ -179,7 +183,7 @@ export interface MultiHopFillData extends FillData {
     intermediateToken: string;
 }
 
-export interface MakerPsmExtendedData {
+interface MakerPsmExtendedData {
     isSellOperation: boolean;
     takerToken: string;
 }
@@ -234,6 +238,14 @@ export interface AaveV2FillData extends FillData {
     aToken: string;
     underlyingToken: string;
     takerToken: string;
+}
+
+interface AaveV3L2EncodedParameter {
+    inputAmount: BigNumber;
+    l2Parameter: string;
+}
+export interface AaveV3FillData extends AaveV2FillData {
+    l2EncodedParams: AaveV3L2EncodedParameter[];
 }
 
 export interface CompoundFillData extends FillData {
@@ -297,7 +309,7 @@ export interface SourceQuoteOperation<TFillData extends FillData = FillData> ext
 }
 
 export interface OptimizerResult {
-    optimizedOrders: OptimizedMarketOrder[];
+    optimizedOrders: OptimizedOrder[];
     sourceFlags: bigint;
     liquidityDelivered: Readonly<Fill[] | DexSample<MultiHopFillData>>;
     marketSideLiquidity: MarketSideLiquidity;

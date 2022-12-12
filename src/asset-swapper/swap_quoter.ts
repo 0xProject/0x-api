@@ -1,6 +1,6 @@
 import { ChainId, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { FastABI } from '@0x/fast-abi';
-import { FillQuoteTransformerOrderType, LimitOrder } from '@0x/protocol-utils';
+import { LimitOrder } from '@0x/protocol-utils';
 import { BigNumber, providerUtils } from '@0x/utils';
 import { BlockParamLiteral, MethodAbi, SupportedProvider, ZeroExProvider } from 'ethereum-types';
 import * as _ from 'lodash';
@@ -9,7 +9,7 @@ import { artifacts } from '../artifacts';
 import { RfqClient } from '../utils/rfq_client';
 import { ERC20BridgeSamplerContract } from '../wrappers';
 
-import { constants, INVALID_SIGNATURE } from './constants';
+import { constants } from './constants';
 import {
     AssetSwapperContractAddresses,
     MarketOperation,
@@ -23,45 +23,38 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from './types';
-import { assert } from './utils/assert';
 import { MarketOperationUtils } from './utils/market_operation_utils';
 import { BancorService } from './utils/market_operation_utils/bancor_service';
-import { SAMPLER_ADDRESS, SOURCE_FLAGS, ZERO_AMOUNT } from './utils/market_operation_utils/constants';
+import {
+    BUY_SOURCE_FILTER_BY_CHAIN_ID,
+    DEFAULT_GAS_SCHEDULE,
+    SAMPLER_ADDRESS,
+    SELL_SOURCE_FILTER_BY_CHAIN_ID,
+    SOURCE_FLAGS,
+} from './utils/market_operation_utils/constants';
 import { DexOrderSampler } from './utils/market_operation_utils/sampler';
 import { SourceFilters } from './utils/market_operation_utils/source_filters';
 import { OptimizerResultWithReport } from './utils/market_operation_utils/types';
-import { ERC20BridgeSource, FillData, GasSchedule, GetMarketOrdersOpts, OptimizedMarketOrder } from './types';
+import { ERC20BridgeSource, FillData, GasSchedule, GetMarketOrdersOpts, OptimizedOrder, Orderbook } from './types';
 import { GasPriceUtils } from './utils/gas_price_utils';
 import { QuoteRequestor } from './utils/quote_requestor';
 import { QuoteFillResult, simulateBestCaseFill, simulateWorstCaseFill } from './utils/quote_simulation';
-
-export abstract class Orderbook {
-    public abstract getOrdersAsync(
-        makerToken: string,
-        takerToken: string,
-        pruneFn?: (o: SignedNativeOrder) => boolean,
-    ): Promise<SignedNativeOrder[]>;
-    public abstract getBatchOrdersAsync(
-        makerTokens: string[],
-        takerToken: string,
-        pruneFn?: (o: SignedNativeOrder) => boolean,
-    ): Promise<SignedNativeOrder[][]>;
-    public async destroyAsync(): Promise<void> {
-        return;
-    }
-}
+import { assert } from './utils/utils';
 
 export class SwapQuoter {
     public readonly provider: ZeroExProvider;
     public readonly orderbook: Orderbook;
     public readonly expiryBufferMs: number;
-    public readonly chainId: number;
+    public readonly chainId: ChainId;
     public readonly permittedOrderFeeTypes: Set<OrderPrunerPermittedFeeTypes>;
     private readonly _contractAddresses: AssetSwapperContractAddresses;
     private readonly _gasPriceUtils: GasPriceUtils;
     private readonly _marketOperationUtils: MarketOperationUtils;
     private readonly _rfqtOptions?: SwapQuoterRfqOpts;
     private readonly _integratorIdsSet: Set<string>;
+    // TODO: source filters can be removed once orderbook is moved to `MarketOperationUtils`.
+    private readonly _sellSources: SourceFilters;
+    private readonly _buySources: SourceFilters;
 
     /**
      * Instantiates a new SwapQuoter instance
@@ -140,6 +133,8 @@ export class SwapQuoter {
         const integratorIds =
             this._rfqtOptions?.integratorsWhitelist.map((integrator) => integrator.integratorId) || [];
         this._integratorIdsSet = new Set(integratorIds);
+        this._buySources = BUY_SOURCE_FILTER_BY_CHAIN_ID[chainId];
+        this._sellSources = SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId];
     }
 
     /**
@@ -149,21 +144,6 @@ export class SwapQuoter {
         const gasPrices = await this._gasPriceUtils.getGasPriceEstimationOrThrowAsync();
 
         return new BigNumber(gasPrices.fast);
-    }
-
-    /**
-     * Destroys any subscriptions or connections.
-     */
-    public async destroyAsync(): Promise<void> {
-        await this._gasPriceUtils.destroyAsync();
-        await this.orderbook.destroyAsync();
-    }
-
-    /**
-     * Utility function to get Ether token address
-     */
-    public getEtherToken(): string {
-        return this._contractAddresses.etherToken;
     }
 
     /**
@@ -201,40 +181,30 @@ export class SwapQuoter {
 
         opts.rfqt = this._validateRfqtOpts(sourceFilters, opts.rfqt);
 
-        // Get SRA orders (limit orders)
-        const shouldSkipOpenOrderbook =
-            !sourceFilters.isAllowed(ERC20BridgeSource.Native) ||
-            (opts.rfqt && opts.rfqt.nativeExclusivelyRFQ === true);
-        const nativeOrders = shouldSkipOpenOrderbook
-            ? await Promise.resolve([])
-            : await this.orderbook.getOrdersAsync(makerToken, takerToken, this._limitOrderPruningFn);
-
-        // if no native orders, pass in a dummy order for the sampler to have required metadata for sampling
-        if (nativeOrders.length === 0) {
-            nativeOrders.push(createDummyOrder(makerToken, takerToken));
-        }
-
         //  ** Prepare options for fetching market side liquidity **
         // Scale fees by gas price.
         const cloneOpts = _.omit(opts, 'gasPrice') as GetMarketOrdersOpts;
         const calcOpts: GetMarketOrdersOpts = {
             ...cloneOpts,
             gasPrice,
-            feeSchedule: _.mapValues(opts.gasSchedule, (gasCost) => (fillData: FillData) => {
+            feeSchedule: _.mapValues(DEFAULT_GAS_SCHEDULE, (gasCost) => (fillData: FillData) => {
                 const gas = gasCost ? gasCost(fillData) : 0;
                 const fee = gasPrice.times(gas);
                 return { gas, fee };
             }),
             exchangeProxyOverhead: (flags) => gasPrice.times(opts.exchangeProxyOverhead(flags)),
         };
+
         // pass the rfqClient on if rfqt enabled
         if (calcOpts.rfqt !== undefined) {
             calcOpts.rfqt.quoteRequestor = new QuoteRequestor();
             calcOpts.rfqt.rfqClient = rfqClient;
         }
-
-        const result: OptimizerResultWithReport = await this._marketOperationUtils.getOptimizerResultAsync(
-            nativeOrders,
+        const limitOrders = await this.getLimitOrders(marketOperation, makerToken, takerToken, calcOpts);
+        const result = await this._marketOperationUtils.getOptimizerResultAsync(
+            makerToken,
+            takerToken,
+            limitOrders,
             assetFillAmount,
             marketOperation,
             calcOpts,
@@ -247,7 +217,7 @@ export class SwapQuoter {
             marketOperation,
             assetFillAmount,
             gasPrice,
-            opts.gasSchedule,
+            DEFAULT_GAS_SCHEDULE,
             opts.bridgeSlippage,
         );
 
@@ -257,6 +227,23 @@ export class SwapQuoter {
         swapQuote.worstCaseQuoteInfo.gas += exchangeProxyOverhead;
 
         return swapQuote;
+    }
+
+    private async getLimitOrders(
+        side: MarketOperation,
+        makerToken: string,
+        takerToken: string,
+        opts: GetMarketOrdersOpts,
+    ): Promise<SignedNativeOrder[]> {
+        const requestFilters = new SourceFilters([], opts.excludedSources, opts.includedSources);
+        const sourceFilter = side === MarketOperation.Sell ? this._sellSources : this._buySources;
+        const quoteFilter = sourceFilter.merge(requestFilters);
+
+        if (!quoteFilter.isAllowed(ERC20BridgeSource.Native) || opts.rfqt?.nativeExclusivelyRFQ === true) {
+            return [];
+        }
+
+        return await this.orderbook.getOrdersAsync(makerToken, takerToken, this._limitOrderPruningFn);
     }
 
     private readonly _limitOrderPruningFn = (limitOrder: SignedNativeOrder) => {
@@ -403,7 +390,7 @@ function createSwapQuote(
 }
 
 function calculateQuoteInfo(
-    optimizedOrders: OptimizedMarketOrder[],
+    optimizedOrders: OptimizedOrder[],
     operation: MarketOperation,
     assetFillAmount: BigNumber,
     gasPrice: BigNumber,
@@ -434,7 +421,7 @@ function calculateQuoteInfo(
 }
 
 function calculateTwoHopQuoteInfo(
-    optimizedOrders: OptimizedMarketOrder[],
+    optimizedOrders: OptimizedOrder[],
     operation: MarketOperation,
     gasSchedule: GasSchedule,
     slippage: number,
@@ -508,21 +495,5 @@ function fillResultsToQuoteInfo(fr: QuoteFillResult, slippage: number): SwapQuot
         protocolFeeInWeiAmount: fr.protocolFeeAmount,
         gas: fr.gas,
         slippage,
-    };
-}
-
-function createDummyOrder(makerToken: string, takerToken: string): SignedNativeOrder {
-    return {
-        type: FillQuoteTransformerOrderType.Limit,
-        order: {
-            ...new LimitOrder({
-                makerToken,
-                takerToken,
-                makerAmount: ZERO_AMOUNT,
-                takerAmount: ZERO_AMOUNT,
-                takerTokenFeeAmount: ZERO_AMOUNT,
-            }),
-        },
-        signature: INVALID_SIGNATURE,
     };
 }

@@ -6,7 +6,7 @@ import * as express from 'express';
 import * as core from 'express-serve-static-core';
 import { Server } from 'http';
 
-import { getDefaultAppDependenciesAsync } from '../app';
+import { getDefaultAppDependenciesAsync } from './utils';
 import {
     defaultHttpServiceConfig,
     SENTRY_DSN,
@@ -76,6 +76,12 @@ async function runHttpServiceAsync(
     const server = createDefaultServer(config, app, logger, destroyCallback(dependencies));
 
     app.get('/', rootHandler);
+
+    if (dependencies.orderBookService === undefined) {
+        logger.error('OrderBookService dependency is missing, exiting');
+        process.exit(1);
+    }
+
     // SRA http service
     app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
 

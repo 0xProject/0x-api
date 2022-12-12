@@ -29,7 +29,7 @@ import {
     SwapQuoteExecutionOpts,
     SwapQuoteGetOutputOpts,
 } from '../types';
-import { assert } from '../utils/assert';
+import { assert } from '../utils/utils';
 import {
     CURVE_LIQUIDITY_PROVIDER_BY_CHAIN_ID,
     NATIVE_FEE_TOKEN_BY_CHAIN_ID,
@@ -41,7 +41,7 @@ import {
     NativeOtcOrderFillData,
     NativeRfqOrderFillData,
     OptimizedMarketBridgeOrder,
-    OptimizedMarketOrder,
+    OptimizedOrder,
 } from '../types';
 
 import {
@@ -727,7 +727,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumerBase {
     }
 }
 
-function slipNonNativeOrders(quote: MarketSellSwapQuote | MarketBuySwapQuote): OptimizedMarketOrder[] {
+function slipNonNativeOrders(quote: MarketSellSwapQuote | MarketBuySwapQuote): OptimizedOrder[] {
     const slippage = getMaxQuoteSlippageRate(quote);
     if (slippage === 0) {
         return quote.orders;

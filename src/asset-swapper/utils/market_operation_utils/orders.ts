@@ -13,17 +13,17 @@ import {
     NativeOtcOrderFillData,
     NativeRfqOrderFillData,
     OptimizedMarketBridgeOrder,
-    OptimizedMarketOrder,
-    OptimizedMarketOrderBase,
+    OptimizedOrder,
+    OptimizedNativeOrder,
 } from '../../types';
 
 import { MAX_UINT256, ZERO_AMOUNT } from './constants';
 import {
     AaveV2FillData,
+    AaveV3FillData,
     AggregationError,
     BalancerFillData,
     BalancerV2BatchSwapFillData,
-    BalancerV2FillData,
     BancorFillData,
     CompoundFillData,
     CurveFillData,
@@ -57,7 +57,7 @@ export interface CreateOrderFromPathOpts {
 export function createOrdersFromTwoHopSample(
     sample: DexSample<MultiHopFillData>,
     opts: CreateOrderFromPathOpts,
-): [OptimizedMarketOrder, OptimizedMarketOrder] {
+): [OptimizedOrder, OptimizedOrder] {
     const [makerToken, takerToken] = getMakerTakerTokens(opts);
     const { firstHopSource, secondHopSource, intermediateToken } = sample.fillData;
     const firstHopFill: Fill = {
@@ -167,7 +167,7 @@ export function getErc20BridgeSourceToBridgeSource(source: ERC20BridgeSource): s
         case ERC20BridgeSource.UbeSwap:
             return encodeBridgeSourceId(BridgeProtocol.UniswapV2, 'UbeSwap');
         case ERC20BridgeSource.Beethovenx:
-            return encodeBridgeSourceId(BridgeProtocol.BalancerV2, 'Beethovenx');
+            return encodeBridgeSourceId(BridgeProtocol.BalancerV2Batch, 'Beethovenx');
         case ERC20BridgeSource.SpiritSwap:
             return encodeBridgeSourceId(BridgeProtocol.UniswapV2, 'SpiritSwap');
         case ERC20BridgeSource.SpookySwap:
@@ -178,6 +178,8 @@ export function getErc20BridgeSourceToBridgeSource(source: ERC20BridgeSource): s
             return encodeBridgeSourceId(BridgeProtocol.UniswapV2, 'Yoshi');
         case ERC20BridgeSource.AaveV2:
             return encodeBridgeSourceId(BridgeProtocol.AaveV2, 'AaveV2');
+        case ERC20BridgeSource.AaveV3:
+            return encodeBridgeSourceId(BridgeProtocol.AaveV3, 'AaveV3');
         case ERC20BridgeSource.Compound:
             return encodeBridgeSourceId(BridgeProtocol.Compound, 'Compound');
         case ERC20BridgeSource.MobiusMoney:
@@ -246,6 +248,7 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             bridgeData = encoder.encode([balancerFillData.poolAddress]);
             break;
         }
+        case ERC20BridgeSource.Beethovenx:
         case ERC20BridgeSource.BalancerV2:
             {
                 const balancerV2FillData = (order as OptimizedMarketBridgeOrder<BalancerV2BatchSwapFillData>).fillData;
@@ -256,12 +259,6 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
                 ]);
             }
             break;
-        case ERC20BridgeSource.Beethovenx: {
-            const beethovenFillData = (order as OptimizedMarketBridgeOrder<BalancerV2FillData>).fillData;
-            const { vault, poolId } = beethovenFillData;
-            bridgeData = encoder.encode([vault, poolId]);
-            break;
-        }
         case ERC20BridgeSource.Bancor: {
             const bancorFillData = (order as OptimizedMarketBridgeOrder<BancorFillData>).fillData;
             bridgeData = encoder.encode([bancorFillData.networkAddress, bancorFillData.path]);
@@ -352,6 +349,22 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             bridgeData = encoder.encode([lidoFillData.stEthTokenAddress, lidoFillData.wstEthTokenAddress]);
             break;
         }
+        case ERC20BridgeSource.AaveV3: {
+            const aaveFillData = (order as OptimizedMarketBridgeOrder<AaveV3FillData>).fillData;
+            const i = _.findIndex(
+                aaveFillData.l2EncodedParams,
+                (l) => l.inputAmount.isEqualTo(order.makerAmount) || l.inputAmount.isEqualTo(order.takerAmount),
+            );
+            if (i === -1) {
+                throw new Error('Invalid order to encode for Bridge Data');
+            }
+            bridgeData = encoder.encode([
+                aaveFillData.lendingPool,
+                aaveFillData.aToken,
+                aaveFillData.l2EncodedParams[i].l2Parameter,
+            ]);
+            break;
+        }
         case ERC20BridgeSource.AaveV2: {
             const aaveFillData = (order as OptimizedMarketBridgeOrder<AaveV2FillData>).fillData;
             bridgeData = encoder.encode([aaveFillData.lendingPool, aaveFillData.aToken]);
@@ -412,7 +425,7 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
     return bridgeData;
 }
 
-export const poolEncoder = AbiEncoder.create([{ name: 'poolAddress', type: 'address' }]);
+const poolEncoder = AbiEncoder.create([{ name: 'poolAddress', type: 'address' }]);
 const curveEncoder = AbiEncoder.create([
     { name: 'curveAddress', type: 'address' },
     { name: 'exchangeFunctionSelector', type: 'bytes4' },
@@ -423,13 +436,24 @@ const makerPsmEncoder = AbiEncoder.create([
     { name: 'psmAddress', type: 'address' },
     { name: 'gemTokenAddress', type: 'address' },
 ]);
-const balancerV2Encoder = AbiEncoder.create([
+const balancerV2BatchEncoder = AbiEncoder.create([
     { name: 'vault', type: 'address' },
-    { name: 'poolId', type: 'bytes32' },
+    {
+        name: 'swapSteps',
+        type: 'tuple[]',
+        components: [
+            { name: 'poolId', type: 'bytes32' },
+            { name: 'assetInIndex', type: 'uint256' },
+            { name: 'assetOutIndex', type: 'uint256' },
+            { name: 'amount', type: 'uint256' },
+            { name: 'userData', type: 'bytes' },
+        ],
+    },
+    { name: 'assets', type: 'address[]' },
 ]);
 const routerAddressPathEncoder = AbiEncoder.create('(address,address[])');
 
-export const BRIDGE_ENCODERS: {
+const BRIDGE_ENCODERS: {
     [key in Exclude<ERC20BridgeSource, ERC20BridgeSource.Native | ERC20BridgeSource.MultiHop>]: AbiEncoder.DataType;
 } = {
     // Curve like
@@ -489,22 +513,8 @@ export const BRIDGE_ENCODERS: {
     [ERC20BridgeSource.GMX]: AbiEncoder.create('(address,address,address,address[])'),
     [ERC20BridgeSource.Platypus]: AbiEncoder.create('(address,address[],address[])'),
     [ERC20BridgeSource.MakerPsm]: makerPsmEncoder,
-    [ERC20BridgeSource.BalancerV2]: AbiEncoder.create([
-        { name: 'vault', type: 'address' },
-        {
-            name: 'swapSteps',
-            type: 'tuple[]',
-            components: [
-                { name: 'poolId', type: 'bytes32' },
-                { name: 'assetInIndex', type: 'uint256' },
-                { name: 'assetOutIndex', type: 'uint256' },
-                { name: 'amount', type: 'uint256' },
-                { name: 'userData', type: 'bytes' },
-            ],
-        },
-        { name: 'assets', type: 'address[]' },
-    ]),
-    [ERC20BridgeSource.Beethovenx]: balancerV2Encoder,
+    [ERC20BridgeSource.BalancerV2]: balancerV2BatchEncoder,
+    [ERC20BridgeSource.Beethovenx]: balancerV2BatchEncoder,
     [ERC20BridgeSource.UniswapV3]: AbiEncoder.create([
         { name: 'router', type: 'address' },
         { name: 'path', type: 'bytes' },
@@ -512,6 +522,7 @@ export const BRIDGE_ENCODERS: {
     [ERC20BridgeSource.KyberDmm]: AbiEncoder.create('(address,address[],address[])'),
     [ERC20BridgeSource.Lido]: AbiEncoder.create('(address,address)'),
     [ERC20BridgeSource.AaveV2]: AbiEncoder.create('(address,address)'),
+    [ERC20BridgeSource.AaveV3]: AbiEncoder.create('(address,address,bytes32)'),
     [ERC20BridgeSource.Compound]: AbiEncoder.create('(address)'),
     [ERC20BridgeSource.Velodrome]: AbiEncoder.create('(address,bool)'),
     [ERC20BridgeSource.Dystopia]: AbiEncoder.create('(address,bool)'),
@@ -528,13 +539,7 @@ function getFillTokenAmounts(fill: Fill, side: MarketOperation): [BigNumber, Big
     ];
 }
 
-export function createNativeOptimizedOrder(
-    fill: Fill<NativeFillData>,
-    side: MarketOperation,
-):
-    | OptimizedMarketOrderBase<NativeRfqOrderFillData>
-    | OptimizedMarketOrderBase<NativeLimitOrderFillData>
-    | OptimizedMarketOrderBase<NativeOtcOrderFillData> {
+export function createNativeOptimizedOrder(fill: Fill<NativeFillData>, side: MarketOperation): OptimizedNativeOrder {
     const fillData = fill.fillData;
     const [makerAmount, takerAmount] = getFillTokenAmounts(fill, side);
     const base = {
