@@ -62,7 +62,6 @@ import {
     SwapQuoteResponsePartialTransaction,
 } from '../types';
 import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
-import { PairsManager } from '../utils/pairs_manager';
 import { createResultCache } from '../utils/result_cache';
 import { RfqClient } from '../utils/rfq_client';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
@@ -188,7 +187,6 @@ export class SwapService implements ISwapService {
         private readonly _rfqClient: RfqClient,
         firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
         rfqDynamicBlacklist?: RfqDynamicBlacklist,
-        private readonly _pairsManager?: PairsManager,
         readonly slippageModelManager?: SlippageModelManager,
     ) {
         this._provider = provider;
@@ -298,7 +296,7 @@ export class SwapService implements ISwapService {
             ...swapQuoteRequestOpts,
             bridgeSlippage: slippagePercentage,
             gasPrice: providedGasPrice,
-            excludedSources: swapQuoteRequestOpts.excludedSources?.concat(...(excludedSources || [])),
+            excludedSources: excludedSources.concat(swapQuoteRequestOpts.excludedSources || []),
             includedSources,
             rfqt: _rfqt,
             shouldGenerateQuoteReport,

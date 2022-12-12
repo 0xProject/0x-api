@@ -9,7 +9,8 @@ import * as HttpStatus from 'http-status-codes';
 import * as _ from 'lodash';
 import 'mocha';
 
-import { getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { getAppAsync } from '../src/app';
+import { getDefaultAppDependenciesAsync } from '../src/runners/utils';
 import { AppDependencies } from '../src/types';
 import { LimitOrder } from '../src/asset-swapper';
 import * as config from '../src/config';
@@ -32,6 +33,7 @@ import { getRandomSignedLimitOrderAsync } from './utils/orders';
 
 // Force reload of the app avoid variables being polluted between test suites
 delete require.cache[require.resolve('../src/app')];
+delete require.cache[require.resolve('../src/runners/utils')];
 
 const SUITE_NAME = 'Standard Relayer API (SRA) integration tests';
 
@@ -70,7 +72,7 @@ describe(SUITE_NAME, () => {
             },
         };
         const orderEntity = orderUtils.serializeOrder(apiOrder);
-        await dependencies.connection.getRepository(OrderWatcherSignedOrderEntity).save(orderEntity);
+        await dependencies.connection?.getRepository(OrderWatcherSignedOrderEntity).save(orderEntity);
         return apiOrder;
     }
 
@@ -107,14 +109,14 @@ describe(SUITE_NAME, () => {
     });
 
     beforeEach(async () => {
-        await dependencies.connection.runMigrations();
+        await dependencies.connection?.runMigrations();
         await blockchainLifecycle.startAsync();
     });
 
     afterEach(async () => {
         await blockchainLifecycle.revertAsync();
         await dependencies.connection
-            .createQueryBuilder()
+            ?.createQueryBuilder()
             .delete()
             .from(OrderWatcherSignedOrderEntity)
             .where('true')
@@ -249,7 +251,7 @@ describe(SUITE_NAME, () => {
         });
         it('should return 404 if order is not found', async () => {
             const apiOrder = await addNewOrderAsync({ maker: makerAddress });
-            await dependencies.connection.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
+            await dependencies.connection?.manager.delete(OrderWatcherSignedOrderEntity, apiOrder.metaData.orderHash);
             const response = await httpGetAsync({ app, route: `${SRA_PATH}/order/${apiOrder.metaData.orderHash}` });
             expect(response.status).to.deep.eq(HttpStatus.NOT_FOUND);
         });

@@ -3,7 +3,7 @@ import * as express from 'express';
 import * as core from 'express-serve-static-core';
 import { Server } from 'http';
 
-import { getDefaultAppDependenciesAsync } from '../app';
+import { getDefaultAppDependenciesAsync } from './utils';
 import {
     defaultHttpServiceConfig,
     SENTRY_DSN,
@@ -94,11 +94,13 @@ export async function runHttpServiceAsync(
     // transform all values of `req.query.[xx]Address` to lowercase
     app.use(addressNormalizer);
 
-    // SRA http service
-    app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
+    if (dependencies.orderBookService !== undefined) {
+        // SRA http service
+        app.use(SRA_PATH, createSRARouter(dependencies.orderBookService));
 
-    // OrderBook http service
-    app.use(ORDERBOOK_PATH, createOrderBookRouter(dependencies.orderBookService));
+        // OrderBook http service
+        app.use(ORDERBOOK_PATH, createOrderBookRouter(dependencies.orderBookService));
+    }
 
     // metatxn http service
     if (dependencies.metaTransactionService) {
