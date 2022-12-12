@@ -1,6 +1,6 @@
 import { ChainId, getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { FillQuoteTransformerOrderType } from '@0x/protocol-utils';
-import { BigNumber } from '@0x/utils';
+import { BigNumber, coerceThrownErrorAsRevertError } from '@0x/utils';
 import { formatBytes32String, parseBytes32String } from '@ethersproject/strings';
 
 import { TokenAdjacencyGraph, TokenAdjacencyGraphBuilder } from '../token_adjacency_graph';
@@ -514,6 +514,9 @@ export const MAINNET_TOKENS = {
     bLUSD: '0xb9d7dddca9a4ac480991865efef82e01273f79c3',
     rsr: '0x320623b8e4ff03373931769a31fc52a4e78b5d70',
     crvFRAX: '0x3175df0976dfa876431c2e9ee6bc45b65d3473cc',
+    cUSDC: '0x39aa39c021dfbae8fac545936693ac917d5e7563',
+    cDAI: '0x5d3a536e4d6dbd6114cc1ead35777bab948e3643',
+    cWBTC: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
 };
 
 const BSC_TOKENS = {
@@ -1037,6 +1040,11 @@ export const DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID = valueByChainId<TokenAdj
                 builder.addBidirectional(MAINNET_TOKENS.OHMV2, MAINNET_TOKENS.BTRFLY);
                 // Lido
                 builder.addBidirectional(MAINNET_TOKENS.stETH, MAINNET_TOKENS.wstETH);
+                // Compound
+                builder.addBidirectional(MAINNET_TOKENS.cUSDC, MAINNET_TOKENS.USDC);
+                builder.addBidirectional(MAINNET_TOKENS.cDAI, MAINNET_TOKENS.DAI);
+                builder.addBidirectional(MAINNET_TOKENS.cWBTC, MAINNET_TOKENS.WBTC);
+
                 // Synthetix Atomic Swap
                 builder.addCompleteSubgraph([
                     MAINNET_TOKENS.sBTC,
