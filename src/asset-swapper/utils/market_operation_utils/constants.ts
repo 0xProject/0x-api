@@ -516,7 +516,7 @@ export const MAINNET_TOKENS = {
     crvFRAX: '0x3175df0976dfa876431c2e9ee6bc45b65d3473cc',
     cUSDC: '0x39aa39c021dfbae8fac545936693ac917d5e7563',
     cDAI: '0x5d3a536e4d6dbd6114cc1ead35777bab948e3643',
-    cWBTC: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+    cWBTC: '0xccf4429db6322d5c611ee964527d42e5d685dd6a',
 };
 
 const BSC_TOKENS = {
