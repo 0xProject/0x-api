@@ -294,7 +294,7 @@ function _isRFQOrderfromType(orderType: FillQuoteTransformerOrderType) {
             return true;
         case FillQuoteTransformerOrderType.Limit:
         case FillQuoteTransformerOrderType.Bridge:
-            return false;             
+            return false;
         default:
             ((_: never) => {
                 throw new Error('unreachable');
