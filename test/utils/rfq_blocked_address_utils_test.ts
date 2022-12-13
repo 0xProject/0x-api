@@ -38,7 +38,8 @@ describe(SUITE_NAME, () => {
 
     describe('blocked_addresses table', () => {
         it('should only allow lower case insertions', async () => {
-            const sampleBadAddress = '0xa10612ee5432b6395d1f0d6fb2601299a1c64274';
+            // eslint-disable-next-line @zapper-fi/ethereum-address
+            const sampleBadAddress = '0xA10612Ee5432B6395d1F0d6fB2601299a1c64274';
 
             try {
                 await connection.getRepository(BlockedAddressEntity).save({
@@ -60,7 +61,8 @@ describe(SUITE_NAME, () => {
     });
 
     it('should use stale values via isBlocked', async () => {
-        const sampleBadAddress = '0xa10612ee5432b6395d1f0d6fb2601299a1c64274';
+        // eslint-disable-next-line @zapper-fi/ethereum-address
+        const sampleBadAddress = '0xA10612Ee5432B6395d1F0d6fB2601299a1c64274';
         expect(rfqBlacklistUtils.isBlocked(sampleBadAddress)).to.be.false();
 
         // Add it to the blocked list
@@ -72,7 +74,8 @@ describe(SUITE_NAME, () => {
     });
 
     it('should use fresh values after the update is complete', async () => {
-        const sampleBadAddress = '0xb10612ee5432b6395d1f0d6fb2601299a1c64274';
+        // eslint-disable-next-line @zapper-fi/ethereum-address
+        const sampleBadAddress = '0xB10612Ee5432B6395d1F0d6fB2601299a1c64274';
 
         // Add it to the blocked list
         await connection.getRepository(BlockedAddressEntity).save({
@@ -92,7 +95,8 @@ describe(SUITE_NAME, () => {
     });
 
     it('should be case insensitive', async () => {
-        const sampleBadAddress = '0xc10612ee5432b6395d1f0d6fb2601299a1c64274';
+        // eslint-disable-next-line @zapper-fi/ethereum-address
+        const sampleBadAddress = '0xC10612Ee5432B6395d1F0d6fB2601299a1c64274';
         await connection.getRepository(BlockedAddressEntity).save({
             address: sampleBadAddress.toLowerCase(),
         });
