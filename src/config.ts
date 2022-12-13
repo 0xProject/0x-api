@@ -10,7 +10,6 @@ import {
     BlockParamLiteral,
     ChainId,
     DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
-    ERC20BridgeSource,
     OrderPrunerPermittedFeeTypes,
     RfqMakerAssetOfferings,
     SamplerOverrides,
@@ -21,7 +20,6 @@ import {
 } from './asset-swapper';
 import {
     DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
-    DEFAULT_LOCAL_POSTGRES_URI,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_META_TX_MIN_ALLOWED_SLIPPAGE,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
@@ -102,7 +100,6 @@ const getIntegratorIdFromLabel = (label: string): string | undefined => {
     }
 };
 
-type RfqWorkFlowType = 'rfqt' | 'rfqm';
 type RfqOrderType = 'rfq' | 'otc';
 
 /**
@@ -117,27 +114,6 @@ interface RfqMakerConfig {
     rfqtOrderTypes: RfqOrderType[];
     apiKeyHashes: string[];
 }
-
-/**
- * A Map type which map the makerId to the config object.
- */
-type MakerIdsToConfigs = Map</* makerId */ string, RfqMakerConfig>;
-
-/**
- * Generate a map from MakerId to MakerConfig that support a given order type for a given workflow
- */
-const getMakerConfigMapForOrderType = (
-    orderType: RfqOrderType | 'any',
-    workflow: RfqWorkFlowType,
-): MakerIdsToConfigs => {
-    const typesField = workflow === 'rfqt' ? 'rfqtOrderTypes' : 'rfqmOrderTypes';
-    return RFQ_MAKER_CONFIGS.reduce((acc, curr) => {
-        if (orderType === 'any' || curr[typesField].includes(orderType)) {
-            acc.set(curr.makerId, curr);
-        }
-        return acc;
-    }, new Map<string, RfqMakerConfig>());
-};
 
 /**
  * A list of type RfqMakerConfig, read from the RFQ_MAKER_CONFIGS env variable
@@ -184,7 +160,7 @@ const HTTP_HEADERS_TIMEOUT = _.isEmpty(process.env.HTTP_HEADERS_TIMEOUT)
 
 // Default chain id to use when not specified
 export const CHAIN_ID: ChainId = _.isEmpty(process.env.CHAIN_ID)
-    ? ChainId.Kovan
+    ? ChainId.Mainnet
     : assertEnvVarType('CHAIN_ID', process.env.CHAIN_ID, EnvVarType.ChainId);
 
 // Whitelisted token addresses. Set to a '*' instead of an array to allow all tokens.
@@ -286,8 +262,8 @@ export const SRA_ORDER_EXPIRATION_BUFFER_SECONDS: number = _.isEmpty(process.env
           EnvVarType.KeepAliveTimeout,
       );
 
-export const POSTGRES_URI = _.isEmpty(process.env.POSTGRES_URI)
-    ? DEFAULT_LOCAL_POSTGRES_URI
+export const POSTGRES_URI: string | undefined = _.isEmpty(process.env.POSTGRES_URI)
+    ? undefined
     : assertEnvVarType('POSTGRES_URI', process.env.POSTGRES_URI, EnvVarType.Url);
 
 export const POSTGRES_READ_REPLICA_URIS: string[] | undefined = _.isEmpty(process.env.POSTGRES_READ_REPLICA_URIS)
@@ -417,49 +393,6 @@ const UNWRAP_WETH_GAS = UNWRAP_GAS_BY_CHAIN_ID[CHAIN_ID];
 export const UNWRAP_QUOTE_GAS = TX_BASE_GAS.plus(UNWRAP_WETH_GAS);
 export const WRAP_QUOTE_GAS = UNWRAP_QUOTE_GAS;
 
-const EXCLUDED_SOURCES = (() => {
-    const allERC20BridgeSources = Object.values(ERC20BridgeSource);
-    switch (CHAIN_ID) {
-        case ChainId.Mainnet:
-            return [];
-        case ChainId.Kovan:
-            return allERC20BridgeSources.filter(
-                (s) => s !== ERC20BridgeSource.Native && s !== ERC20BridgeSource.UniswapV2,
-            );
-        case ChainId.Ganache:
-            return allERC20BridgeSources.filter((s) => s !== ERC20BridgeSource.Native);
-        case ChainId.BSC:
-        case ChainId.Polygon:
-        case ChainId.Avalanche:
-        case ChainId.Celo:
-        case ChainId.Fantom:
-        case ChainId.Optimism:
-        case ChainId.Goerli:
-        case ChainId.PolygonMumbai:
-        case ChainId.ArbitrumRinkeby:
-        case ChainId.Arbitrum:
-            return [ERC20BridgeSource.Native];
-        default:
-            throw new Error(`Excluded sources not specified for ${CHAIN_ID}`);
-    }
-})();
-
-const EXCLUDED_FEE_SOURCES = (() => {
-    switch (CHAIN_ID) {
-        case ChainId.Mainnet:
-            return [];
-        case ChainId.Kovan:
-            return [ERC20BridgeSource.Uniswap];
-        case ChainId.BSC:
-            return [ERC20BridgeSource.Uniswap];
-        case ChainId.Polygon:
-            return [];
-        case ChainId.Celo:
-            return [];
-        default:
-            return [ERC20BridgeSource.Uniswap, ERC20BridgeSource.UniswapV2];
-    }
-})();
 const FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD = new BigNumber(150e3);
 const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
 const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
@@ -526,8 +459,6 @@ const SAMPLE_DISTRIBUTION_BASE: number = _.isEmpty(process.env.SAMPLE_DISTRIBUTI
     : assertEnvVarType('SAMPLE_DISTRIBUTION_BASE', process.env.SAMPLE_DISTRIBUTION_BASE, EnvVarType.Float);
 
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
-    excludedSources: EXCLUDED_SOURCES,
-    excludedFeeSources: EXCLUDED_FEE_SOURCES,
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     numSamples: 13,
@@ -545,7 +476,6 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP: Partial<SwapQuoteRequestOp
 const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     switch (CHAIN_ID) {
         case ChainId.Ganache:
-        case ChainId.Kovan:
             return { overrides: {}, block: BlockParamLiteral.Latest };
         default:
             return undefined;

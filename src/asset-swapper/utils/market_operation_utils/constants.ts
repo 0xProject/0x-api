@@ -49,7 +49,6 @@ function valueByChainId<T>(rest: Partial<{ [key in ChainId]: T }>, defaultValue:
     return {
         [ChainId.Mainnet]: defaultValue,
         [ChainId.Goerli]: defaultValue,
-        [ChainId.Kovan]: defaultValue,
         [ChainId.Ganache]: defaultValue,
         [ChainId.BSC]: defaultValue,
         [ChainId.Polygon]: defaultValue,
@@ -59,7 +58,6 @@ function valueByChainId<T>(rest: Partial<{ [key in ChainId]: T }>, defaultValue:
         [ChainId.Celo]: defaultValue,
         [ChainId.Optimism]: defaultValue,
         [ChainId.Arbitrum]: defaultValue,
-        [ChainId.ArbitrumRinkeby]: defaultValue,
         ...(rest || {}),
     };
 }
@@ -98,7 +96,6 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.AaveV2,
             ERC20BridgeSource.Compound,
         ]),
-        [ChainId.Kovan]: new SourceFilters([ERC20BridgeSource.Native]),
         [ChainId.Goerli]: new SourceFilters([
             ERC20BridgeSource.Native,
             ERC20BridgeSource.SushiSwap,
@@ -199,6 +196,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Saddle,
             ERC20BridgeSource.Velodrome,
             ERC20BridgeSource.Synthetix,
+            ERC20BridgeSource.Beethovenx,
             ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
@@ -260,7 +258,6 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.MultiHop,
         ]),
         [ChainId.PolygonMumbai]: new SourceFilters([ERC20BridgeSource.Native, ERC20BridgeSource.UniswapV3]),
-        [ChainId.Kovan]: new SourceFilters([ERC20BridgeSource.Native]),
         [ChainId.Ganache]: new SourceFilters([ERC20BridgeSource.Native]),
         [ChainId.BSC]: new SourceFilters([
             ERC20BridgeSource.BakerySwap,
@@ -352,6 +349,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID = valueByChainId<SourceFilters>(
             ERC20BridgeSource.Saddle,
             ERC20BridgeSource.Velodrome,
             ERC20BridgeSource.Synthetix,
+            ERC20BridgeSource.Beethovenx,
             ERC20BridgeSource.AaveV3,
         ]),
         [ChainId.Arbitrum]: new SourceFilters([
@@ -512,6 +510,9 @@ export const MAINNET_TOKENS = {
     bLUSD: '0xb9d7dddca9a4ac480991865efef82e01273f79c3',
     rsr: '0x320623b8e4ff03373931769a31fc52a4e78b5d70',
     crvFRAX: '0x3175df0976dfa876431c2e9ee6bc45b65d3473cc',
+    cUSDC: '0x39aa39c021dfbae8fac545936693ac917d5e7563',
+    cDAI: '0x5d3a536e4d6dbd6114cc1ead35777bab948e3643',
+    cWBTC: '0xccf4429db6322d5c611ee964527d42e5d685dd6a',
 };
 
 const BSC_TOKENS = {
@@ -1035,6 +1036,11 @@ export const DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID = valueByChainId<TokenAdj
                 builder.addBidirectional(MAINNET_TOKENS.OHMV2, MAINNET_TOKENS.BTRFLY);
                 // Lido
                 builder.addBidirectional(MAINNET_TOKENS.stETH, MAINNET_TOKENS.wstETH);
+                // Compound
+                builder.addBidirectional(MAINNET_TOKENS.cUSDC, MAINNET_TOKENS.USDC);
+                builder.addBidirectional(MAINNET_TOKENS.cDAI, MAINNET_TOKENS.DAI);
+                builder.addBidirectional(MAINNET_TOKENS.cWBTC, MAINNET_TOKENS.WBTC);
+
                 // Synthetix Atomic Swap
                 builder.addCompleteSubgraph([
                     MAINNET_TOKENS.sBTC,
@@ -1097,7 +1103,6 @@ export const NATIVE_FEE_TOKEN_BY_CHAIN_ID = valueByChainId<string>(
         [ChainId.Ganache]: getContractAddressesForChainOrThrow(ChainId.Ganache).etherToken,
         [ChainId.Goerli]: getContractAddressesForChainOrThrow(ChainId.Goerli).etherToken,
         [ChainId.PolygonMumbai]: getContractAddressesForChainOrThrow(ChainId.PolygonMumbai).etherToken,
-        [ChainId.Kovan]: getContractAddressesForChainOrThrow(ChainId.Kovan).etherToken,
         [ChainId.Polygon]: getContractAddressesForChainOrThrow(ChainId.Polygon).etherToken,
         [ChainId.Avalanche]: getContractAddressesForChainOrThrow(ChainId.Avalanche).etherToken,
         [ChainId.Fantom]: getContractAddressesForChainOrThrow(ChainId.Fantom).etherToken,
@@ -2307,13 +2312,8 @@ export const BALANCER_V2_VAULT_ADDRESS_BY_CHAIN = valueByChainId<string>(
         [ChainId.Mainnet]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
         [ChainId.Polygon]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
         [ChainId.Arbitrum]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
-    },
-    NULL_ADDRESS,
-);
-
-export const BEETHOVEN_X_VAULT_ADDRESS_BY_CHAIN = valueByChainId<string>(
-    {
         [ChainId.Fantom]: '0x20dd72ed959b6147912c2e529f0a0c651c33c9ce',
+        [ChainId.Optimism]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
     },
     NULL_ADDRESS,
 );
@@ -2341,6 +2341,8 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
         [ChainId.Mainnet]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2',
         [ChainId.Polygon]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-polygon-v2',
         [ChainId.Arbitrum]: 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-arbitrum-v2',
+        [ChainId.Fantom]: 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx',
+        [ChainId.Optimism]: 'https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx-optimism',
     },
     null,
 );
@@ -2879,8 +2881,13 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     [ERC20BridgeSource.SpiritSwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.SpookySwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Yoshi]: uniswapV2CloneGasSchedule,
-    [ERC20BridgeSource.Beethovenx]: () => 100e3,
-
+    [ERC20BridgeSource.Beethovenx]: (fillData?: FillData) => {
+        const balancerFillData = fillData as BalancerV2BatchSwapFillData;
+        if (balancerFillData.chainId === ChainId.Fantom) {
+            return 125e3 + (balancerFillData.swapSteps.length - 1) * 50e3;
+        }
+        return 305e3 + (balancerFillData.swapSteps.length - 1) * 100e3;
+    },
     //
     // Optimism
     //
@@ -2900,7 +2907,6 @@ const DEFAULT_FEE_SCHEDULE: FeeSchedule = Object.keys(DEFAULT_GAS_SCHEDULE).redu
 
 export const DEFAULT_GET_MARKET_ORDERS_OPTS: Omit<GetMarketOrdersOpts, 'gasPrice'> = {
     excludedSources: [],
-    excludedFeeSources: [],
     includedSources: [],
     bridgeSlippage: 0.005,
     maxFallbackSlippage: 0.05,

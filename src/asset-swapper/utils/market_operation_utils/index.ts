@@ -64,7 +64,7 @@ const NO_CONVERSION_TO_NATIVE_FOUND = new Counter({
 export class MarketOperationUtils {
     private readonly _sellSources: SourceFilters;
     private readonly _buySources: SourceFilters;
-    private readonly _feeSources: SourceFilters;
+    private readonly _feeSources: ERC20BridgeSource[];
     private readonly _nativeFeeToken: string;
     private readonly _nativeFeeTokenAmount: BigNumber;
 
@@ -126,30 +126,32 @@ export class MarketOperationUtils {
     ) {
         this._buySources = BUY_SOURCE_FILTER_BY_CHAIN_ID[_sampler.chainId];
         this._sellSources = SELL_SOURCE_FILTER_BY_CHAIN_ID[_sampler.chainId];
-        this._feeSources = new SourceFilters(FEE_QUOTE_SOURCES_BY_CHAIN_ID[_sampler.chainId]);
+        this._feeSources = FEE_QUOTE_SOURCES_BY_CHAIN_ID[_sampler.chainId];
         this._nativeFeeToken = NATIVE_FEE_TOKEN_BY_CHAIN_ID[_sampler.chainId];
         this._nativeFeeTokenAmount = NATIVE_FEE_TOKEN_AMOUNT_BY_CHAIN_ID[_sampler.chainId];
     }
 
     /**
      * Gets the liquidity available for a market sell operation
+     * @param makerToken Maker token address
+     * @param takerToken Taker token address
      * @param nativeOrders Native orders. Assumes LimitOrders not RfqOrders
      * @param takerAmount Amount of taker asset to sell.
      * @param opts Options object.
      * @return MarketSideLiquidity.
      */
     public async getMarketSellLiquidityAsync(
+        makerToken: string,
+        takerToken: string,
         nativeOrders: SignedNativeOrder[],
         takerAmount: BigNumber,
         opts?: Partial<GetMarketOrdersOpts>,
     ): Promise<MarketSideLiquidity> {
         const _opts = { ...DEFAULT_GET_MARKET_ORDERS_OPTS, ...opts };
-        const { makerToken, takerToken } = nativeOrders[0].order;
         const sampleAmounts = getSampleAmounts(takerAmount, _opts.numSamples, _opts.sampleDistributionBase);
 
         const requestFilters = new SourceFilters().exclude(_opts.excludedSources).include(_opts.includedSources);
         const quoteSourceFilters = this._sellSources.merge(requestFilters);
-        const feeSourceFilters = this._feeSources.exclude(_opts.excludedFeeSources);
 
         // Used to determine whether the tx origin is an EOA or a contract
         const txOrigin = (_opts.rfqt && _opts.rfqt.txOrigin) || NULL_ADDRESS;
@@ -163,7 +165,7 @@ export class MarketOperationUtils {
             this._sampler.getLimitOrderFillableTakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> maker token price.
             this._sampler.getBestNativeTokenSellRate(
-                feeSourceFilters.sources,
+                this._feeSources,
                 makerToken,
                 this._nativeFeeToken,
                 this._nativeFeeTokenAmount,
@@ -171,7 +173,7 @@ export class MarketOperationUtils {
             ),
             // Get ETH -> taker token price.
             this._sampler.getBestNativeTokenSellRate(
-                feeSourceFilters.sources,
+                this._feeSources,
                 takerToken,
                 this._nativeFeeToken,
                 this._nativeFeeTokenAmount,
@@ -254,23 +256,25 @@ export class MarketOperationUtils {
 
     /**
      * Gets the liquidity available for a market buy operation
+     * @param makerToken Maker token address
+     * @param takerToken Taker token address
      * @param nativeOrders Native orders. Assumes LimitOrders not RfqOrders
      * @param makerAmount Amount of maker asset to buy.
      * @param opts Options object.
      * @return MarketSideLiquidity.
      */
     public async getMarketBuyLiquidityAsync(
+        makerToken: string,
+        takerToken: string,
         nativeOrders: SignedNativeOrder[],
         makerAmount: BigNumber,
         opts?: Partial<GetMarketOrdersOpts>,
     ): Promise<MarketSideLiquidity> {
         const _opts = { ...DEFAULT_GET_MARKET_ORDERS_OPTS, ...opts };
-        const { makerToken, takerToken } = nativeOrders[0].order;
         const sampleAmounts = getSampleAmounts(makerAmount, _opts.numSamples, _opts.sampleDistributionBase);
 
         const requestFilters = new SourceFilters().exclude(_opts.excludedSources).include(_opts.includedSources);
         const quoteSourceFilters = this._buySources.merge(requestFilters);
-        const feeSourceFilters = this._feeSources.exclude(_opts.excludedFeeSources);
 
         // Used to determine whether the tx origin is an EOA or a contract
         const txOrigin = (_opts.rfqt && _opts.rfqt.txOrigin) || NULL_ADDRESS;
@@ -284,7 +288,7 @@ export class MarketOperationUtils {
             this._sampler.getLimitOrderFillableMakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> makerToken token price.
             this._sampler.getBestNativeTokenSellRate(
-                feeSourceFilters.sources,
+                this._feeSources,
                 makerToken,
                 this._nativeFeeToken,
                 this._nativeFeeTokenAmount,
@@ -292,7 +296,7 @@ export class MarketOperationUtils {
             ),
             // Get ETH -> taker token price.
             this._sampler.getBestNativeTokenSellRate(
-                feeSourceFilters.sources,
+                this._feeSources,
                 takerToken,
                 this._nativeFeeToken,
                 this._nativeFeeTokenAmount,
@@ -443,6 +447,8 @@ export class MarketOperationUtils {
      * @param nativeOrders: Assumes LimitOrders not RfqOrders
      */
     public async getOptimizerResultAsync(
+        makerToken: string,
+        takerToken: string,
         nativeOrders: SignedNativeOrder[],
         amount: BigNumber,
         side: MarketOperation,
@@ -457,16 +463,24 @@ export class MarketOperationUtils {
             fillAdjustor: _opts.fillAdjustor,
         };
 
-        if (nativeOrders.length === 0) {
-            throw new Error(AggregationError.EmptyOrders);
-        }
-
         // Compute an optimized path for on-chain DEX and open-orderbook. This should not include RFQ liquidity.
         let marketSideLiquidity: MarketSideLiquidity;
         if (side === MarketOperation.Sell) {
-            marketSideLiquidity = await this.getMarketSellLiquidityAsync(nativeOrders, amount, _opts);
+            marketSideLiquidity = await this.getMarketSellLiquidityAsync(
+                makerToken,
+                takerToken,
+                nativeOrders,
+                amount,
+                _opts,
+            );
         } else {
-            marketSideLiquidity = await this.getMarketBuyLiquidityAsync(nativeOrders, amount, _opts);
+            marketSideLiquidity = await this.getMarketBuyLiquidityAsync(
+                makerToken,
+                takerToken,
+                nativeOrders,
+                amount,
+                _opts,
+            );
         }
 
         // Phase 1 Routing
@@ -522,8 +536,6 @@ export class MarketOperationUtils {
         ) {
             // Timing of RFQT lifecycle
             const timeStart = new Date().getTime();
-            const { makerToken, takerToken } = nativeOrders[0].order;
-
             // Filter Alt Rfq Maker Asset Offerings to the current pair
             const filteredOfferings: AltRfqMakerAssetOfferings = {};
             if (rfqt.altRfqAssetOfferings) {

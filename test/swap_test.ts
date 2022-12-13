@@ -11,12 +11,13 @@ import * as _ from 'lodash';
 import 'mocha';
 import supertest from 'supertest';
 
-import { getAppAsync, getDefaultAppDependenciesAsync } from '../src/app';
+import { getAppAsync } from '../src/app';
+import { getDefaultAppDependenciesAsync } from '../src/runners/utils';
 import { AppDependencies } from '../src/types';
 import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ChainId, ERC20BridgeSource, LimitOrderFields } from '../src/asset-swapper';
 import * as config from '../src/config';
 import { AFFILIATE_FEE_TRANSFORMER_GAS, GAS_LIMIT_BUFFER_MULTIPLIER, SWAP_PATH } from '../src/constants';
-import { getDBConnectionAsync } from '../src/db_connection';
+import { getDBConnectionOrThrow } from '../src/db_connection';
 import { ValidationErrorCodes, ValidationErrorItem, ValidationErrorReasons } from '../src/errors';
 import { logger } from '../src/logger';
 import { GetSwapQuoteResponse, SignedLimitOrder } from '../src/types';
@@ -33,7 +34,6 @@ import {
     MAX_MINT_AMOUNT,
     NULL_ADDRESS,
     SYMBOL_TO_ADDRESS,
-    // UNKNOWN_TOKEN_ADDRESS,
     WETH_TOKEN_ADDRESS,
     ZRX_TOKEN_ADDRESS,
 } from './constants';
@@ -46,6 +46,7 @@ import { getRandomSignedLimitOrderAsync } from './utils/orders';
 // Force reload of the app avoid variables being polluted between test suites
 // Warning: You probably don't want to move this
 delete require.cache[require.resolve('../src/app')];
+delete require.cache[require.resolve('../src/runners/utils')];
 
 const SUITE_NAME = 'Swap API';
 const EXCLUDED_SOURCES = BUY_SOURCE_FILTER_BY_CHAIN_ID[ChainId.Mainnet].sources.filter(
@@ -73,7 +74,7 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        const connection = await getDBConnectionAsync();
+        const connection = await getDBConnectionOrThrow();
         await connection.runMigrations();
         provider = getProvider();
         const web3Wrapper = new Web3Wrapper(provider);
@@ -252,7 +253,7 @@ describe(SUITE_NAME, () => {
                 { gasPrice, protocolFee, value: protocolFee },
             );
         });
-        it('should respect excludedSources', async () => {
+        it('should throw an error when requested to exclude all sources', async () => {
             await quoteAndExpectAsync(
                 app,
                 {
@@ -265,6 +266,50 @@ describe(SUITE_NAME, () => {
                             code: ValidationErrorCodes.ValueOutOfRange,
                             field: 'excludedSources',
                             reason: 'Request excluded all sources',
+                        },
+                    ],
+                },
+            );
+        });
+        it('should not use a source that is in excludedSources', async () => {
+            // TODO: When non-native source is supported for this test, it should test whether the
+            // proportion of Native in response.sources is 0 instead of checking whether it failed
+            // because of INSUFFICIENT_ASSET_LIQUIDITY
+            await quoteAndExpectAsync(
+                app,
+                { sellAmount: '1234', excludedSources: `${ERC20BridgeSource.Native}` },
+                {
+                    validationErrors: [
+                        {
+                            code: ValidationErrorCodes.ValueOutOfRange,
+                            description:
+                                'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity',
+                            field: 'sellAmount',
+                            reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
+                        },
+                    ],
+                },
+            );
+        });
+        it('should not use source that is not in includedSources', async () => {
+            // TODO: When non-native source is supported for this test, it should test whether the
+            // proportion of Native in response.sources is 0 instead of checking whether it failed
+            // because of INSUFFICIENT_ASSET_LIQUIDITY
+            await quoteAndExpectAsync(
+                app,
+                {
+                    sellAmount: '1234',
+                    excludedSources: '',
+                    includedSources: `${ERC20BridgeSource.UniswapV2}`,
+                },
+                {
+                    validationErrors: [
+                        {
+                            code: ValidationErrorCodes.ValueOutOfRange,
+                            description:
+                                'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity',
+                            field: 'sellAmount',
+                            reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
                         },
                     ],
                 },
