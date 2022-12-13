@@ -208,11 +208,11 @@ export class MarketOperationUtils {
         ] = await samplerPromise;
 
         if (outputAmountPerEth.isZero()) {
-            DEFAULT_INFO_LOGGER({ token: makerToken }, 'output conversion to native token is zero');
+            DEFAULT_INFO_LOGGER({ token: makerToken, endpoint: opts?.endpoint, inOut: 'output' }, "conversion to native token is zero");
             NO_CONVERSION_TO_NATIVE_FOUND.inc();
         }
         if (inputAmountPerEth.isZero()) {
-            DEFAULT_INFO_LOGGER({ token: takerToken }, 'input conversion to native token is zero');
+            DEFAULT_INFO_LOGGER({ token: takerToken, endpoint: opts?.endpoint, inOut: 'input' }, "conversion to native token is zero");
             NO_CONVERSION_TO_NATIVE_FOUND.inc();
         }
 
@@ -329,6 +329,15 @@ export class MarketOperationUtils {
             isTxOriginContract,
             gasAfter,
         ] = await samplerPromise;
+
+        if (ethToMakerAssetRate.isZero()) {
+            DEFAULT_INFO_LOGGER({ token: makerToken, endpoint: opts?.endpoint, inOut: 'output' }, "conversion to native token is zero");
+            NO_CONVERSION_TO_NATIVE_FOUND.inc();
+        }
+        if (ethToTakerAssetRate.isZero()) {
+            DEFAULT_INFO_LOGGER({ token: takerToken, endpoint: opts?.endpoint, inOut: 'input' }, "conversion to native token is zero");
+            NO_CONVERSION_TO_NATIVE_FOUND.inc();
+        }
 
         SAMPLER_METRICS.logGasDetails({ side: 'buy', gasBefore, gasAfter });
         SAMPLER_METRICS.logBlockNumber(blockNumber);
