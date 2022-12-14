@@ -499,7 +499,7 @@ export class SwapService implements ISwapService {
         if (
             isQuote &&
             apiSwapQuote.estimatedPriceImpact &&
-            apiSwapQuote.estimatedPriceImpact.gt(priceImpactProtectionPercentage)
+            apiSwapQuote.estimatedPriceImpact.gt(priceImpactProtectionPercentage * 100)
         ) {
             PRICE_IMPACT_TOO_HIGH.labels('ValueOutOfRange').inc();
             throw new ValidationError([
