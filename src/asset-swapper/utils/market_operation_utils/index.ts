@@ -208,11 +208,17 @@ export class MarketOperationUtils {
         ] = await samplerPromise;
 
         if (outputAmountPerEth.isZero()) {
-            DEFAULT_INFO_LOGGER({ token: makerToken, endpoint: opts?.endpoint, inOut: 'output' }, "conversion to native token is zero");
+            DEFAULT_INFO_LOGGER(
+                { token: makerToken, endpoint: opts?.endpoint, inOut: 'output' },
+                'conversion to native token is zero',
+            );
             NO_CONVERSION_TO_NATIVE_FOUND.inc();
         }
         if (inputAmountPerEth.isZero()) {
-            DEFAULT_INFO_LOGGER({ token: takerToken, endpoint: opts?.endpoint, inOut: 'input' }, "conversion to native token is zero");
+            DEFAULT_INFO_LOGGER(
+                { token: takerToken, endpoint: opts?.endpoint, inOut: 'input' },
+                'conversion to native token is zero',
+            );
             NO_CONVERSION_TO_NATIVE_FOUND.inc();
         }
 
@@ -331,11 +337,17 @@ export class MarketOperationUtils {
         ] = await samplerPromise;
 
         if (ethToMakerAssetRate.isZero()) {
-            DEFAULT_INFO_LOGGER({ token: makerToken, endpoint: opts?.endpoint, inOut: 'output' }, "conversion to native token is zero");
+            DEFAULT_INFO_LOGGER(
+                { token: makerToken, endpoint: opts?.endpoint, inOut: 'output' },
+                'conversion to native token is zero',
+            );
             NO_CONVERSION_TO_NATIVE_FOUND.inc();
         }
         if (ethToTakerAssetRate.isZero()) {
-            DEFAULT_INFO_LOGGER({ token: takerToken, endpoint: opts?.endpoint, inOut: 'input' }, "conversion to native token is zero");
+            DEFAULT_INFO_LOGGER(
+                { token: takerToken, endpoint: opts?.endpoint, inOut: 'input' },
+                'conversion to native token is zero',
+            );
             NO_CONVERSION_TO_NATIVE_FOUND.inc();
         }
 
