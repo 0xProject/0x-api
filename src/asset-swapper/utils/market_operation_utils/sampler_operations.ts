@@ -59,7 +59,6 @@ import {
 import { BalancerPoolsCache, PoolsCache } from './pools_cache';
 import { BalancerV2SwapInfoCache } from './pools_cache/balancer_v2_swap_info_cache';
 import { SamplerContractOperation } from './sampler_contract_operation';
-import { SamplerNoOperation } from './sampler_no_operation';
 import { SourceFilters } from './source_filters';
 import {
     AaveV2FillData,
@@ -1115,15 +1114,9 @@ export class SamplerOperations {
             source: ERC20BridgeSource.AaveV2,
             contract: this._samplerContract,
             function: this._samplerContract.sampleSellsFromAaveV2,
-            params: [
-                aaveInfo.aToken,
-                aaveInfo.underlyingToken,
-                takerToken,
-                makerToken,
-                takerFillAmounts
-            ],
+            params: [aaveInfo.aToken, aaveInfo.underlyingToken, takerToken, makerToken, takerFillAmounts],
             callback: (callResults: string, fillData: AaveV2FillData): BigNumber[] => {
-                const [samples] = this._samplerContract.getABIDecodedReturnData<[BigNumber[]]>(
+                const samples = this._samplerContract.getABIDecodedReturnData<BigNumber[]>(
                     'sampleSellsFromAaveV2',
                     callResults,
                 );
@@ -1146,15 +1139,9 @@ export class SamplerOperations {
             source: ERC20BridgeSource.AaveV2,
             contract: this._samplerContract,
             function: this._samplerContract.sampleBuysFromAaveV2,
-            params: [
-                aaveInfo.aToken,
-                aaveInfo.underlyingToken,
-                takerToken,
-                makerToken,
-                makerFillAmounts
-            ],
+            params: [aaveInfo.aToken, aaveInfo.underlyingToken, takerToken, makerToken, makerFillAmounts],
             callback: (callResults: string, fillData: AaveV2FillData): BigNumber[] => {
-                const [samples] = this._samplerContract.getABIDecodedReturnData<[BigNumber[]]>(
+                const samples = this._samplerContract.getABIDecodedReturnData<BigNumber[]>(
                     'sampleBuysFromAaveV2',
                     callResults,
                 );
@@ -1163,7 +1150,7 @@ export class SamplerOperations {
                 fillData.aToken = aaveInfo.aToken;
 
                 return samples;
-            }
+            },
         });
     }
 

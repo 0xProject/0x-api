@@ -39,10 +39,16 @@ contract AaveV2Sampler {
         uint256 numSamples = takerTokenAmounts.length;
         makerTokenAmounts = new uint256[](numSamples);
 
-        if (
-            (takerToken == aToken && makerToken == underlyingToken) ||
-            (takerToken == underlyingToken && makerToken == aToken)
-        ) {
+        if (takerToken == underlyingToken && makerToken == aToken) {
+            return takerTokenAmounts;
+        }
+
+        // Aave V2 balances sometimes have a rounding error causing
+        // 1 fewer wei from being outputted during unwraps
+        if (takerToken == aToken && makerToken == underlyingToken) {
+            for (uint256 i = 0; i < numSamples; i++) {
+                takerTokenAmounts[i] -= 1;
+            }
             return takerTokenAmounts;
         }
     }
@@ -64,11 +70,17 @@ contract AaveV2Sampler {
     ) public pure returns (uint256[] memory takerTokenAmounts) {
         uint256 numSamples = makerTokenAmounts.length;
         takerTokenAmounts = new uint256[](numSamples);
-        
-        if (
-            (takerToken == aToken && makerToken == underlyingToken) ||
-            (takerToken == underlyingToken && makerToken == aToken)
-        ) {
+
+        if (takerToken == underlyingToken && makerToken == aToken) {
+            return makerTokenAmounts;
+        }
+
+        // Aave V2 balances sometimes have a rounding error causing
+        // 1 fewer wei from being outputted during unwraps
+        if (takerToken == aToken && makerToken == underlyingToken) {
+            for (uint256 i = 0; i < numSamples; i++) {
+                makerTokenAmounts[i] -= 1;
+            }
             return makerTokenAmounts;
         }
     }
