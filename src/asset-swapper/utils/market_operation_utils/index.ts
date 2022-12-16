@@ -614,8 +614,8 @@ export class MarketOperationUtils {
                 DEFAULT_INFO_LOGGER({ v2Prices, isEmpty: v2Prices?.length === 0 }, 'v2Prices from RFQ Client');
 
                 const indicativeQuotes = [
-                    ...v1Prices as V4RFQIndicativeQuoteMM[],
-                    ...v2Prices as V4RFQIndicativeQuoteMM[]
+                    ...(v1Prices as V4RFQIndicativeQuoteMM[]),
+                    ...(v2Prices as V4RFQIndicativeQuoteMM[]),
                 ];
                 const deltaTime = new Date().getTime() - timeStart;
                 DEFAULT_INFO_LOGGER({
