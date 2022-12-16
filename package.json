@@ -133,7 +133,7 @@
         "express": "^4.17.3",
         "express-async-handler": "^1.1.4",
         "graphql": "^15.4.0",
-        "graphql-request": "^3.4.0",
+        "graphql-request": "^5.0.0",
         "heartbeats": "^5.0.1",
         "http-status-codes": "^2.2.0",
         "json-rpc-error": "^2.0.0",
