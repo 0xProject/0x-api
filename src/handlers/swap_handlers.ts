@@ -50,7 +50,6 @@ import { priceComparisonUtils } from '../utils/price_comparison_utils';
 import { publishQuoteReport } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
 import { GasPriceUtils } from '../asset-swapper';
-import { QuoteServerClient } from '../utils/quote_server_client';
 
 let kafkaProducer: Producer | undefined;
 if (KAFKA_BROKERS !== undefined) {

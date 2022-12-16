@@ -47,7 +47,7 @@ export interface ExtendedQuoteReport {
     enableSlippageProtection?: boolean;
     expectedSlippage?: string;
     estimatedPriceImpact?: string;
-    priceImpactProtectionPercentage: number,
+    priceImpactProtectionPercentage: number;
 }
 
 /**
