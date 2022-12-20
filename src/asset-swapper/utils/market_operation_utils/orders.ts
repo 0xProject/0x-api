@@ -15,6 +15,7 @@ import {
     OptimizedMarketBridgeOrder,
     OptimizedOrder,
     OptimizedNativeOrder,
+    FillBase,
 } from '../../types';
 
 import { MAX_UINT256, ZERO_AMOUNT } from './constants';
@@ -550,7 +551,7 @@ export function createNativeOptimizedOrder(fill: Fill<NativeFillData>, side: Mar
         makerAmount,
         takerAmount,
         fillData,
-        fill: cleanFillForExport(fill),
+        fill: toFillBase(fill),
     };
     switch (fill.type) {
         case FillQuoteTransformerOrderType.Rfq:
@@ -587,12 +588,12 @@ export function createBridgeOrder(
         makerAmount,
         takerAmount,
         fillData: createFinalBridgeOrderFillDataFromCollapsedFill(fill),
-        fill: cleanFillForExport(fill),
+        fill: toFillBase(fill),
     };
 }
 
-function cleanFillForExport(fill: Fill): Fill {
-    return _.omit(fill, ['flags', 'fillData', 'sourcePathId', 'source', 'type']) as Fill;
+function toFillBase(fill: Fill): FillBase {
+    return _.pick(fill, ['input', 'output', 'adjustedOutput', 'gas']);
 }
 
 function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {

@@ -428,7 +428,7 @@ function calculateTwoHopQuoteInfo(
 ): { bestCaseQuoteInfo: SwapQuoteInfo; worstCaseQuoteInfo: SwapQuoteInfo; sourceBreakdown: SwapQuoteOrdersBreakdown } {
     const [firstHopOrder, secondHopOrder] = optimizedOrders;
     const gas = new BigNumber(
-        gasSchedule[ERC20BridgeSource.MultiHop]!({
+        gasSchedule[ERC20BridgeSource.MultiHop]({
             firstHopSource: _.pick(firstHopOrder, 'source', 'fillData'),
             secondHopSource: _.pick(secondHopOrder, 'source', 'fillData'),
         }),
