@@ -59,7 +59,7 @@ export function createOrdersFromTwoHopSample(
     sample: DexSample<MultiHopFillData>,
     opts: CreateOrderFromPathOpts,
 ): [OptimizedOrder, OptimizedOrder] {
-    const [makerToken, takerToken] = getMakerTakerTokens(opts);
+    const { makerToken, takerToken } = getMakerTakerTokens(opts);
     const { firstHopSource, secondHopSource, intermediateToken } = sample.fillData;
     const firstHopFill: Fill = {
         sourcePathId: '',
@@ -632,8 +632,11 @@ function getBestUniswapV3PathAmountForInputAmount(
     return fillData.pathAmounts[fillData.pathAmounts.length - 1];
 }
 
-export function getMakerTakerTokens(opts: CreateOrderFromPathOpts): [string, string] {
+export function getMakerTakerTokens(opts: CreateOrderFromPathOpts): {
+    makerToken: string;
+    takerToken: string;
+} {
     const makerToken = opts.side === MarketOperation.Sell ? opts.outputToken : opts.inputToken;
     const takerToken = opts.side === MarketOperation.Sell ? opts.inputToken : opts.outputToken;
-    return [makerToken, takerToken];
+    return { makerToken, takerToken };
 }
