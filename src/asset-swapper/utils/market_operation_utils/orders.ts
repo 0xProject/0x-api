@@ -588,7 +588,6 @@ export function createBridgeOrder(
         takerAmount,
         fillData: createFinalBridgeOrderFillDataFromCollapsedFill(fill),
         fill: cleanFillForExport(fill),
-        sourcePathId: fill.sourcePathId,
     };
 }
 

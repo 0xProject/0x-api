@@ -725,7 +725,6 @@ interface OptimizedMarketOrderBase<TFillData extends FillData = FillData> {
 export interface OptimizedMarketBridgeOrder<TFillData extends FillData = FillData>
     extends OptimizedMarketOrderBase<TFillData> {
     type: FillQuoteTransformerOrderType.Bridge;
-    sourcePathId: string;
 }
 
 export interface OptimizedLimitOrder extends OptimizedMarketOrderBase<NativeLimitOrderFillData> {
