@@ -36,7 +36,6 @@ export interface PathPenaltyOpts {
 export class Path {
     public orders?: OptimizedOrder[];
     public sourceFlags = BigInt(0);
-    protected _size: PathSize = { input: ZERO_AMOUNT, output: ZERO_AMOUNT };
     protected _adjustedSize: PathSize = { input: ZERO_AMOUNT, output: ZERO_AMOUNT };
 
     public static create(
@@ -105,8 +104,8 @@ export class Path {
             throw new Error(`Target input mismatch: ${this.targetInput} !== ${other.targetInput}`);
         }
         const { targetInput } = this;
-        const { input } = this._size;
-        const { input: otherInput } = other._size;
+        const { input } = this._adjustedSize;
+        const { input: otherInput } = other._adjustedSize;
         if (input.isLessThan(targetInput) || otherInput.isLessThan(targetInput)) {
             return input.isGreaterThan(otherInput);
         } else {
@@ -141,18 +140,14 @@ export class Path {
     }
 
     private _addFillSize(fill: Fill): void {
-        if (this._size.input.plus(fill.input).isGreaterThan(this.targetInput)) {
-            const remainingInput = this.targetInput.minus(this._size.input);
+        if (this._adjustedSize.input.plus(fill.input).isGreaterThan(this.targetInput)) {
+            const remainingInput = this.targetInput.minus(this._adjustedSize.input);
             const scaledFillOutput = fill.output.times(remainingInput.div(fill.input));
-            this._size.input = this.targetInput;
-            this._size.output = this._size.output.plus(scaledFillOutput);
             // Penalty does not get interpolated.
             const penalty = fill.adjustedOutput.minus(fill.output);
             this._adjustedSize.input = this.targetInput;
             this._adjustedSize.output = this._adjustedSize.output.plus(scaledFillOutput).plus(penalty);
         } else {
-            this._size.input = this._size.input.plus(fill.input);
-            this._size.output = this._size.output.plus(fill.output);
             this._adjustedSize.input = this._adjustedSize.input.plus(fill.input);
             this._adjustedSize.output = this._adjustedSize.output.plus(fill.adjustedOutput);
         }
