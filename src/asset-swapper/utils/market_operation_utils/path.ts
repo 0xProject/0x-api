@@ -10,7 +10,7 @@ import {
     Fill,
 } from '../../types';
 
-import { POSITIVE_INF, ZERO_AMOUNT } from './constants';
+import { ZERO_AMOUNT } from './constants';
 import { ethToOutputAmount } from './fills';
 import {
     createBridgeOrder,
@@ -87,32 +87,6 @@ export class Path {
         return this as FinalizedPath;
     }
 
-    public adjustedSize(): PathSize {
-        // Adjusted input/output has been adjusted by the cost of the DEX, but not by any
-        // overhead added by the exchange proxy.
-        const { input, output } = this._adjustedSize;
-        const { exchangeProxyOverhead, outputAmountPerEth, inputAmountPerEth } = this.pathPenaltyOpts;
-        // Calculate the additional penalty from the ways this path can be filled
-        // by the exchange proxy, e.g VIPs (small) or FillQuoteTransformer (large)
-        const gasOverhead = exchangeProxyOverhead(this.sourceFlags);
-        const pathPenalty = ethToOutputAmount({
-            input,
-            output,
-            inputAmountPerEth,
-            outputAmountPerEth,
-            ethAmount: gasOverhead,
-        });
-        return {
-            input,
-            output: this.side === MarketOperation.Sell ? output.minus(pathPenalty) : output.plus(pathPenalty),
-        };
-    }
-
-    public adjustedCompleteRate(): BigNumber {
-        const { input, output } = this.adjustedSize();
-        return getCompleteRate(this.side, input, output, this.targetInput);
-    }
-
     /**
      * Calculates the rate of this path, where the output has been
      * adjusted for penalties (e.g cost)
@@ -138,6 +112,32 @@ export class Path {
         } else {
             return this.adjustedCompleteRate().isGreaterThan(other.adjustedCompleteRate());
         }
+    }
+
+    private adjustedSize(): PathSize {
+        // Adjusted input/output has been adjusted by the cost of the DEX, but not by any
+        // overhead added by the exchange proxy.
+        const { input, output } = this._adjustedSize;
+        const { exchangeProxyOverhead, outputAmountPerEth, inputAmountPerEth } = this.pathPenaltyOpts;
+        // Calculate the additional penalty from the ways this path can be filled
+        // by the exchange proxy, e.g VIPs (small) or FillQuoteTransformer (large)
+        const gasOverhead = exchangeProxyOverhead(this.sourceFlags);
+        const pathPenalty = ethToOutputAmount({
+            input,
+            output,
+            inputAmountPerEth,
+            outputAmountPerEth,
+            ethAmount: gasOverhead,
+        });
+        return {
+            input,
+            output: this.side === MarketOperation.Sell ? output.minus(pathPenalty) : output.plus(pathPenalty),
+        };
+    }
+
+    private adjustedCompleteRate(): BigNumber {
+        const { input, output } = this.adjustedSize();
+        return getCompleteRate(this.side, input, output, this.targetInput);
     }
 
     private _addFillSize(fill: Fill): void {
