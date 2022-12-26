@@ -6,8 +6,7 @@ import { StoredFee, StoredOrder } from './RfqmJobEntity';
  * @deprecated
  * Kept here to ensure existing migrations type check
  */
-export type RfqmQuoteConstructorOpts = Pick<RfqmQuoteEntity, 'chainId' | 'makerUri' | 'orderHash'> &
-    Partial<RfqmQuoteEntity>;
+type RfqmQuoteConstructorOpts = Pick<RfqmQuoteEntity, 'chainId' | 'makerUri' | 'orderHash'> & Partial<RfqmQuoteEntity>;
 
 /**
  * @deprecated
@@ -43,7 +42,6 @@ export class RfqmQuoteEntity {
     @Column({ name: 'affiliate_address', type: 'varchar', nullable: true })
     public affiliateAddress: string | null;
 
-    // tslint:disable-next-line no-object-literal-type-assertion
     constructor(opts: RfqmQuoteConstructorOpts = {} as RfqmQuoteConstructorOpts) {
         // allow createdAt overrides for testing
         if (opts.createdAt) {

@@ -103,7 +103,7 @@ export class WebsocketService {
         await this._orderWatcherKafkaEventConsumer.subscribe({ topic: this._orderWatcherKafkaEventTopic });
 
         await this._orderWatcherKafkaEventConsumer.run({
-            eachMessage: async ({ topic, partition, message }) => {
+            eachMessage: async ({ message }) => {
                 // do nothing if no value present
                 if (!message.value) {
                     return;
@@ -127,7 +127,12 @@ export class WebsocketService {
         }
         this._requestIdToSocket.clear();
         this._requestIdToSubscriptionOpts.clear();
+
         this._server.close();
+        for (const client of this._server.clients) {
+            client.terminate();
+        }
+
         if (this._orderEventsSubscription) {
             this._orderEventsSubscription.unsubscribe();
         }
@@ -184,13 +189,14 @@ export class WebsocketService {
         schemaUtils.validateSchema(message, schemas.sraOrdersChannelSubscribeSchema);
         const { requestId, payload, type } = message;
         switch (type) {
-            case MessageTypes.Subscribe:
+            case MessageTypes.Subscribe: {
                 ws.requestIds.add(requestId);
                 const subscriptionOpts =
                     payload === undefined || _.isEmpty(payload) ? 'ALL_SUBSCRIPTION_OPTS' : payload;
                 this._requestIdToSubscriptionOpts.set(requestId, subscriptionOpts);
                 this._requestIdToSocket.set(requestId, ws);
                 break;
+            }
             default:
                 throw new NotImplementedError(message.type);
         }
@@ -216,13 +222,11 @@ export class WebsocketService {
             }
         };
     }
-    // tslint:disable-next-line:prefer-function-over-method
     private _processError(ws: WrappedWebSocket, err: Error): void {
         const { errorBody } = errorUtils.generateError(err);
         ws.send(JSON.stringify(errorBody));
         ws.terminate();
     }
-    // tslint:disable-next-line:prefer-function-over-method
     private _pongHandler(ws: WrappedWebSocket): () => void {
         return () => {
             ws.isAlive = true;

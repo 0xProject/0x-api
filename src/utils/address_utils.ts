@@ -1,13 +1,15 @@
 import { ValidationError, ValidationErrorCodes } from '@0x/api-utils';
-import { ChainId } from '@0x/asset-swapper';
 import { findTokenAddressOrThrow } from '@0x/token-metadata';
 import { addressUtils } from '@0x/utils';
+
+import { ChainId } from '../asset-swapper';
 
 /**
  * Checks top level attributes of an object for values matching an ETH address
  * and normalizes the address by turning it to lowercase
  */
 export const objectETHAddressNormalizer = <T>(obj: T) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     const normalized: { [key: string]: any } = {};
     for (const [key, value] of Object.entries(obj)) {
         if (value && addressUtils.isAddress(value as string)) {

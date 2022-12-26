@@ -1,5 +1,6 @@
-import { adjustOutput, BigNumber, Fill, FillAdjustor, FillData } from '@0x/asset-swapper';
 import { MarketOperation } from '@0x/types';
+
+import { adjustOutput, BigNumber, Fill, FillAdjustor, FillData } from '../asset-swapper';
 
 import { SlippageModelManager } from './slippage_model_manager';
 
@@ -11,7 +12,7 @@ export class SlippageModelFillAdjustor implements FillAdjustor {
         private readonly maxSlippageRate: number,
     ) {}
 
-    public adjustFills(side: MarketOperation, fills: Fill<FillData>[], amount: BigNumber): Fill<FillData>[] {
+    public adjustFills(side: MarketOperation, fills: Fill<FillData>[]): Fill<FillData>[] {
         return fills.map((f) => {
             // Mostly negative, as in the trade experiences a worst price
             // e.g -0.02938

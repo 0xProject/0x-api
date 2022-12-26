@@ -1,5 +1,6 @@
-import { MarketOperation, RfqOrderFields, SwapQuote } from '@0x/asset-swapper';
 import { BigNumber, NULL_ADDRESS, NULL_BYTES } from '@0x/utils';
+
+import { MarketOperation, RfqOrderFields, SwapQuote } from '../../src/asset-swapper';
 
 export const rfqtIndicativeQuoteResponse = {
     makerAmount: '100000000000000000',
@@ -24,29 +25,6 @@ export const ganacheZrxWethRfqOrderExchangeProxy: RfqOrderFields = {
     taker: NULL_ADDRESS,
 };
 
-export const liquiditySources0xOnly = [
-    { name: '0x', proportion: '1' },
-    { name: 'Uniswap', proportion: '0' },
-    { name: 'Uniswap_V2', proportion: '0' },
-    { name: 'Eth2Dai', proportion: '0' },
-    { name: 'Kyber', proportion: '0' },
-    { name: 'Curve', proportion: '0' },
-    { name: 'LiquidityProvider', proportion: '0' },
-    { name: 'MultiBridge', proportion: '0' },
-    { name: 'Balancer', proportion: '0' },
-    { name: 'CREAM', proportion: '0' },
-    { name: 'Bancor', proportion: '0' },
-    { name: 'mStable', proportion: '0' },
-    { name: 'Mooniswap', proportion: '0' },
-    { name: 'MultiHop', proportion: '0' },
-    { name: 'Shell', proportion: '0' },
-    { name: 'Swerve', proportion: '0' },
-    { name: 'SnowSwap', proportion: '0' },
-    { name: 'SushiSwap', proportion: '0' },
-    { name: 'DODO', proportion: '0' },
-    { name: 'CryptoCom', proportion: '0' },
-];
-
 const bestCaseQuoteInfo = {
     feeTakerTokenAmount: new BigNumber('383288145500497440'),
     makerAmount: new BigNumber('213528060573258946'),
@@ -59,7 +37,7 @@ const bestCaseQuoteInfo = {
 
 export const randomSellQuote: SwapQuote = {
     gasPrice: new BigNumber('201111549'),
-    type: MarketOperation.Sell as MarketOperation.Sell, // tslint:disable-line:no-unnecessary-type-assertion
+    type: MarketOperation.Sell as MarketOperation.Sell,
     makerToken: '0xb9302bbc853c3e3480a1eefc2bb6bf4cdca809e6',
     takerToken: '0x5471a5833768d1151d34701eba1c9123d1ba2f8a',
     orders: [],

@@ -1,8 +1,8 @@
-import { LimitOrder } from '@0x/asset-swapper';
 import { LimitOrderFields } from '@0x/protocol-utils';
 import * as _ from 'lodash';
 import { Connection, In, MoreThanOrEqual } from 'typeorm';
 
+import { LimitOrder } from '../asset-swapper';
 import {
     DB_ORDERS_UPDATE_CHUNK_SIZE,
     SRA_ORDER_EXPIRATION_BUFFER_SECONDS,
@@ -12,15 +12,35 @@ import { ONE_SECOND_MS } from '../constants';
 import { PersistentSignedOrderV4Entity, SignedOrderV4Entity } from '../entities';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
 import { alertOnExpiredOrders } from '../logger';
-import { OrderbookResponse, OrderEventEndState, PaginatedCollection, SignedLimitOrder, SRAOrder } from '../types';
+import {
+    IOrderBookService,
+    OrderbookResponse,
+    OrderEventEndState,
+    PaginatedCollection,
+    SignedLimitOrder,
+    SRAOrder,
+} from '../types';
 import { orderUtils } from '../utils/order_utils';
-import { OrderWatcherInterface } from '../utils/order_watcher';
+import { OrderWatcher, OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
 
-export class OrderBookService {
+export class OrderBookService implements IOrderBookService {
     private readonly _connection: Connection;
     private readonly _orderWatcher: OrderWatcherInterface;
-    public static isAllowedPersistentOrders(apiKey: string): boolean {
+
+    public static create(connection: Connection | undefined): OrderBookService | undefined {
+        if (connection === undefined) {
+            return undefined;
+        }
+        return new OrderBookService(connection, new OrderWatcher());
+    }
+
+    constructor(connection: Connection, orderWatcher: OrderWatcherInterface) {
+        this._connection = connection;
+        this._orderWatcher = orderWatcher;
+    }
+
+    public isAllowedPersistentOrders(apiKey: string): boolean {
         return SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS.includes(apiKey);
     }
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<SRAOrder | undefined> {
@@ -35,7 +55,6 @@ export class OrderBookService {
             return orderUtils.deserializeOrderToSRAOrder(signedOrderEntity as Required<SignedOrderV4Entity>);
         }
     }
-    // tslint:disable-next-line:prefer-function-over-method
     public async getOrderBookAsync(
         page: number,
         perPage: number,
@@ -70,7 +89,6 @@ export class OrderBookService {
         };
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public async getOrdersAsync(
         page: number,
         perPage: number,
@@ -197,10 +215,6 @@ export class OrderBookService {
 
         const paginatedApiOrders = paginationUtils.paginate(fresh, page, perPage);
         return paginatedApiOrders;
-    }
-    constructor(connection: Connection, orderWatcher: OrderWatcherInterface) {
-        this._connection = connection;
-        this._orderWatcher = orderWatcher;
     }
     public async addOrderAsync(signedOrder: SignedLimitOrder): Promise<void> {
         await this._orderWatcher.postOrdersAsync([signedOrder]);

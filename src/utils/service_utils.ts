@@ -1,14 +1,13 @@
+import { AbiEncoder, BigNumber } from '@0x/utils';
+
 import {
     AffiliateFeeType,
     ERC20BridgeSource,
     SELL_SOURCE_FILTER_BY_CHAIN_ID,
     SwapQuote,
     SwapQuoteOrdersBreakdown,
-} from '@0x/asset-swapper';
-import { AbiEncoder, BigNumber } from '@0x/utils';
-import * as _ from 'lodash';
-
-import { CHAIN_ID, FEE_RECIPIENT_ADDRESS } from '../config';
+} from '../asset-swapper';
+import { CHAIN_ID, FEE_RECIPIENT_ADDRESS, GASLESS_SWAP_FEE_ENABLED } from '../config';
 import {
     AFFILIATE_FEE_TRANSFORMER_GAS,
     HEX_BASE,
@@ -21,6 +20,16 @@ import {
 import { AffiliateFee, AffiliateFeeAmounts, GetSwapQuoteResponseLiquiditySource } from '../types';
 
 import { numberUtils } from './number_utils';
+
+export const getBuyTokenPercentageFeeOrZero = (affiliateFee: AffiliateFee) => {
+    switch (affiliateFee.feeType) {
+        case AffiliateFeeType.GaslessFee:
+        case AffiliateFeeType.PositiveSlippageFee:
+            return 0;
+        default:
+            return affiliateFee.buyTokenPercentageFee;
+    }
+};
 
 export const serviceUtils = {
     attributeCallData(
@@ -44,7 +53,7 @@ export const serviceUtils = {
             type: 'function',
         });
 
-        // Generate unique identiifer
+        // Generate unique identifier
         const timestampInSeconds = new BigNumber(Date.now() / ONE_SECOND_MS).integerValue();
         const hexTimestamp = timestampInSeconds.toString(HEX_BASE);
         const randomNumber = numberUtils.randomHexNumberOfLength(10);
@@ -60,25 +69,6 @@ export const serviceUtils = {
         const affiliatedData = `${data}${encodedAffiliateData.slice(2)}`;
         return { affiliatedData, decodedUniqueId: `${randomNumber}-${timestampInSeconds}` };
     },
-    /**
-     * Returns a new list of excluded sources that may contain additional excluded sources that were determined to be excluded.
-     * @param currentExcludedSources the current list of `excludedSources`
-     * @param apiKey the `0x-api-key` that was passed into the headers
-     * @param allowedApiKeys an array of eligible API keys
-     * @returns a copy of `currentExcludedSources` which may include additional excluded sources
-     */
-    determineExcludedSources(
-        currentExcludedSources: ERC20BridgeSource[],
-        apiKey: string | undefined,
-        allowedApiKeys: string[],
-    ): ERC20BridgeSource[] {
-        const isWildcardEnabled = allowedApiKeys.length === 1 && allowedApiKeys[0] === '*';
-        const isAPIKeyEnabled = isWildcardEnabled || (apiKey && allowedApiKeys.includes(apiKey));
-        if (!isAPIKeyEnabled && !currentExcludedSources.includes(ERC20BridgeSource.LiquidityProvider)) {
-            return currentExcludedSources.concat(ERC20BridgeSource.LiquidityProvider);
-        }
-        return currentExcludedSources;
-    },
     convertSourceBreakdownToArray(sourceBreakdown: SwapQuoteOrdersBreakdown): GetSwapQuoteResponseLiquiditySource[] {
         const defaultSourceBreakdown: SwapQuoteOrdersBreakdown = Object.assign(
             {},
@@ -92,9 +82,9 @@ export const serviceUtils = {
             let obj;
             if (source === ERC20BridgeSource.MultiHop && !BigNumber.isBigNumber(breakdown)) {
                 obj = {
-                    ...breakdown!,
+                    ...breakdown,
                     name: ERC20BridgeSource.MultiHop,
-                    proportion: new BigNumber(breakdown!.proportion.toPrecision(PERCENTAGE_SIG_DIGITS)),
+                    proportion: new BigNumber(breakdown.proportion.toPrecision(PERCENTAGE_SIG_DIGITS)),
                 };
             } else {
                 obj = {
@@ -114,10 +104,24 @@ export const serviceUtils = {
             };
         }
 
+        if (fee.feeType === AffiliateFeeType.GaslessFee) {
+            const buyTokenFeeAmount = GASLESS_SWAP_FEE_ENABLED
+                ? quote.makerAmountPerEth
+                      .times(quote.gasPrice)
+                      .times(quote.worstCaseQuoteInfo.gas)
+                      .integerValue(BigNumber.ROUND_DOWN)
+                : ZERO;
+            return {
+                sellTokenFeeAmount: ZERO,
+                buyTokenFeeAmount,
+                gasCost: AFFILIATE_FEE_TRANSFORMER_GAS,
+            };
+        }
+
         const minBuyAmount = quote.worstCaseQuoteInfo.makerAmount;
         const buyTokenFeeAmount = minBuyAmount
-            .times(fee.buyTokenPercentageFee)
-            .dividedBy(fee.buyTokenPercentageFee + 1)
+            .times(getBuyTokenPercentageFeeOrZero(fee))
+            .dividedBy(getBuyTokenPercentageFeeOrZero(fee) + 1)
             .integerValue(BigNumber.ROUND_DOWN);
         return {
             sellTokenFeeAmount: ZERO,

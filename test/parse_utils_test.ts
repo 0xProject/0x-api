@@ -1,8 +1,8 @@
-import { ERC20BridgeSource } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
 import { NULL_ADDRESS } from '@0x/utils';
 import 'mocha';
 
+import { ERC20BridgeSource } from '../src/asset-swapper';
 import { parseUtils } from '../src/utils/parse_utils';
 
 const SUITE_NAME = 'parseUtils';
@@ -39,7 +39,6 @@ describe(SUITE_NAME, () => {
     });
 
     it('returns excludedSources correctly when excludedSources is present', async () => {
-        // tslint:disable-next-line: boolean-naming
         const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
             {
                 excludedSources: 'Uniswap,Curve',
@@ -53,14 +52,12 @@ describe(SUITE_NAME, () => {
     });
 
     it('returns empty array if no includedSources and excludedSources are present', async () => {
-        // tslint:disable-next-line: boolean-naming
         const { excludedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources({}, [], 'price');
         expect(excludedSources.length).to.eql(0);
         expect(nativeExclusivelyRFQT).to.eql(false);
     });
 
     it('correctly handles includedSources=RFQT', async () => {
-        // tslint:disable-next-line: boolean-naming
         const { excludedSources, includedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
             {
                 includedSources: 'RFQT',
@@ -76,7 +73,6 @@ describe(SUITE_NAME, () => {
     });
 
     it('correctly handles includedSources=RFQT,Native', async () => {
-        // tslint:disable-next-line: boolean-naming
         const { excludedSources, includedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
             {
                 includedSources: 'RFQT,Native',

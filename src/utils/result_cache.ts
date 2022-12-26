@@ -1,21 +1,24 @@
 import { TEN_MINUTES_MS } from '../constants';
 import { logger } from '../logger';
 
-export interface CachedResult<T> {
+interface CachedResult<T> {
     timestamp: number;
     result: T;
 }
 
 export interface ResultCache<T> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     getResultAsync: (args?: any) => Promise<CachedResult<T>>;
 }
 
 export const createResultCache = <T>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     fn: (fnArgs?: any) => Promise<T>,
     cacheExpiryMs: number = TEN_MINUTES_MS,
 ): ResultCache<T> => {
     const resultCache: { [key: string]: { timestamp: number; result: T } } = {};
     return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
         getResultAsync: async (getArgs?: any): Promise<CachedResult<T>> => {
             let timestamp = resultCache[getArgs] && resultCache[getArgs].timestamp;
             let result = resultCache[getArgs] && resultCache[getArgs].result;

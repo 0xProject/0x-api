@@ -1,17 +1,17 @@
-// tslint:disable:no-empty
-// tslint:disable:max-file-line-count
-
-import { ChainId, ERC20BridgeSource } from '@0x/asset-swapper';
 import { expect } from '@0x/contracts-test-utils';
 import { getTokenMetadataIfExists } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
+import { ChainId, ERC20BridgeSource } from '../src/asset-swapper';
 import { ZERO } from '../src/constants';
 import { priceComparisonUtils } from '../src/utils/price_comparison_utils';
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
 const WETH = getTokenMetadataIfExists('WETH', ChainId.Mainnet)!;
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
 const DAI = getTokenMetadataIfExists('DAI', ChainId.Mainnet)!;
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
 const USDC = getTokenMetadataIfExists('USDC', ChainId.Mainnet)!;
 const buyAmount = new BigNumber('23318242912334152626');
 const sellAmount = new BigNumber('70100000000000000');

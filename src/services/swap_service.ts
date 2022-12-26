@@ -1,3 +1,14 @@
+import { WETH9Contract } from '@0x/contract-wrappers';
+import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
+import { getTokenMetadataIfExists } from '@0x/token-metadata';
+import { MarketOperation } from '@0x/types';
+import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
+import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
+import axios from 'axios';
+import { SupportedProvider } from 'ethereum-types';
+import * as _ from 'lodash';
+import { Counter } from 'prom-client';
+
 import {
     AffiliateFeeAmount,
     AffiliateFeeType,
@@ -20,27 +31,15 @@ import {
     SwapQuoteRequestOpts,
     SwapQuoterOpts,
     ZERO_AMOUNT,
-} from '@0x/asset-swapper';
-import { WETH9Contract } from '@0x/contract-wrappers';
-import { ETH_TOKEN_ADDRESS, RevertError } from '@0x/protocol-utils';
-import { getTokenMetadataIfExists, TokenMetadatasForChains } from '@0x/token-metadata';
-import { MarketOperation, PaginatedCollection } from '@0x/types';
-import { BigNumber, decodeThrownErrorAsRevertError } from '@0x/utils';
-import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
-import axios from 'axios';
-import { SupportedProvider } from 'ethereum-types';
-import * as _ from 'lodash';
-
+} from '../asset-swapper';
 import {
     ALT_RFQ_MM_API_KEY,
     ALT_RFQ_MM_ENDPOINT,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
+    CHAIN_HAS_VIPS,
     CHAIN_ID,
     RFQT_REQUEST_MAX_RESPONSE_MS,
-    RFQ_CLIENT_ROLLOUT_PERCENT,
-    RFQ_PROXY_ADDRESS,
-    RFQ_PROXY_PORT,
     SWAP_QUOTER_OPTS,
     UNWRAP_QUOTE_GAS,
     WRAP_QUOTE_GAS,
@@ -55,31 +54,37 @@ import {
     ONE_MINUTE_MS,
     ZERO,
 } from '../constants';
-import { GasEstimationError, InsufficientFundsError } from '../errors';
+import {
+    GasEstimationError,
+    InsufficientFundsError,
+    ValidationError,
+    ValidationErrorCodes,
+    ValidationErrorReasons,
+} from '../errors';
 import { logger } from '../logger';
 import {
     AffiliateFee,
     GetSwapQuoteParams,
     GetSwapQuoteResponse,
-    Price,
+    ISwapService,
     SwapQuoteResponsePartialTransaction,
-    TokenMetadata,
 } from '../types';
 import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
-import { isHashSmallEnough } from '../utils/hash_utils';
-import { METRICS_PROXY } from '../utils/metrics_service';
-import { paginationUtils } from '../utils/pagination_utils';
-import { PairsManager } from '../utils/pairs_manager';
 import { createResultCache } from '../utils/result_cache';
 import { RfqClient } from '../utils/rfq_client';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
-import { SAMPLER_METRICS } from '../utils/sampler_metrics';
-import { serviceUtils } from '../utils/service_utils';
+import { serviceUtils, getBuyTokenPercentageFeeOrZero } from '../utils/service_utils';
 import { SlippageModelFillAdjustor } from '../utils/slippage_model_fill_adjustor';
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
 
-export class SwapService {
+const PRICE_IMPACT_TOO_HIGH = new Counter({
+    name: 'price_impact_too_high',
+    help: 'The number of price impact events',
+    labelNames: ['reason'],
+});
+
+export class SwapService implements ISwapService {
     private readonly _provider: SupportedProvider;
     private readonly _fakeTaker: FakeTakerContract;
     private readonly _swapQuoteConsumer: SwapQuoteConsumer;
@@ -88,6 +93,7 @@ export class SwapService {
     private readonly _contractAddresses: ContractAddresses;
     private readonly _firmQuoteValidator: RfqFirmQuoteValidator | undefined;
     private readonly _swapQuoterOpts: Partial<SwapQuoterOpts>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     private _altRfqMarketsCache: any;
     private _swapQuoter: SwapQuoter;
 
@@ -156,7 +162,9 @@ export class SwapService {
         const unitTakerAmount = Web3Wrapper.toUnitAmount(totalTakerAmount, sellTokenDecimals);
         const guaranteedUnitMakerAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAmount, buyTokenDecimals);
         const guaranteedUnitTakerAmount = Web3Wrapper.toUnitAmount(guaranteedTotalTakerAmount, sellTokenDecimals);
-        const affiliateFeeUnitMakerAmount = guaranteedUnitMakerAmount.times(affiliateFee.buyTokenPercentageFee);
+        const affiliateFeeUnitMakerAmount = guaranteedUnitMakerAmount.times(
+            getBuyTokenPercentageFeeOrZero(affiliateFee),
+        );
 
         const isSelling = buyAmount === undefined;
         // NOTE: In order to not communicate a price better than the actual quote we
@@ -190,32 +198,20 @@ export class SwapService {
         orderbook: Orderbook,
         provider: SupportedProvider,
         contractAddresses: AssetSwapperContractAddresses,
+        private readonly _rfqClient: RfqClient,
         firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
         rfqDynamicBlacklist?: RfqDynamicBlacklist,
-        private readonly _pairsManager?: PairsManager,
         readonly slippageModelManager?: SlippageModelManager,
-        private readonly _rfqClient?: RfqClient,
     ) {
         this._provider = provider;
         this._firmQuoteValidator = firmQuoteValidator;
 
-        let axiosOpts = {};
-        if (RFQ_PROXY_ADDRESS !== undefined && RFQ_PROXY_PORT !== undefined) {
-            axiosOpts = {
-                proxy: {
-                    host: RFQ_PROXY_ADDRESS,
-                    port: RFQ_PROXY_PORT,
-                },
-            };
-        }
         this._swapQuoterOpts = {
             ...SWAP_QUOTER_OPTS,
             rfqt: {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
                 ...SWAP_QUOTER_OPTS.rfqt!,
                 warningLogger: logger.warn.bind(logger),
-                infoLogger: logger.info.bind(logger),
-                axiosInstanceOpts: axiosOpts,
-                metricsProxy: METRICS_PROXY,
             },
             contractAddresses,
         };
@@ -233,10 +229,6 @@ export class SwapService {
             };
         }
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, this._swapQuoterOpts);
-        this._renewSwapQuoter();
-        this._pairsManager?.on(PairsManager.REFRESHED_EVENT, () => {
-            this._renewSwapQuoter();
-        });
 
         this._swapQuoteConsumer = new SwapQuoteConsumer(this._swapQuoterOpts);
         this._web3Wrapper = new Web3Wrapper(this._provider);
@@ -265,12 +257,11 @@ export class SwapService {
             rfqt,
             affiliateAddress,
             affiliateFee,
-            // tslint:disable:boolean-naming
             includePriceComparisons,
             skipValidation,
-            // tslint:enable:boolean-naming
             shouldSellEntireBalance,
             enableSlippageProtection,
+            priceImpactProtectionPercentage,
         } = params;
 
         let _rfqt: GetMarketOrdersRfqOpts | undefined;
@@ -289,10 +280,12 @@ export class SwapService {
             _rfqt = {
                 ...rfqt,
                 intentOnFilling: rfqt && rfqt.intentOnFilling ? true : false,
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
                 integrator: integrator!,
                 makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
                 // Note 0xAPI maps takerAddress query parameter to txOrigin as takerAddress is always Exchange Proxy or a VIP
                 takerAddress: NULL_ADDRESS,
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
                 txOrigin: takerAddress!,
                 firmQuoteValidator: this._firmQuoteValidator,
                 altRfqAssetOfferings,
@@ -303,12 +296,12 @@ export class SwapService {
         const shouldGenerateQuoteReport = rfqt && rfqt.intentOnFilling;
 
         let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
-        // tslint:disable-next-line:prefer-conditional-expression
         if (
             isMetaTransaction ||
             shouldSellEntireBalance ||
             // Note: We allow VIP to continue ahead when positive slippage fee is enabled
-            affiliateFee.feeType === AffiliateFeeType.PercentageFee
+            affiliateFee.feeType === AffiliateFeeType.PercentageFee ||
+            !CHAIN_HAS_VIPS(CHAIN_ID)
         ) {
             swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP;
         } else {
@@ -319,12 +312,11 @@ export class SwapService {
             ...swapQuoteRequestOpts,
             bridgeSlippage: slippagePercentage,
             gasPrice: providedGasPrice,
-            excludedSources: swapQuoteRequestOpts.excludedSources?.concat(...(excludedSources || [])),
+            excludedSources: excludedSources.concat(swapQuoteRequestOpts.excludedSources || []),
             includedSources,
             rfqt: _rfqt,
             shouldGenerateQuoteReport,
             shouldIncludePriceComparisonsReport: !!includePriceComparisons,
-            samplerMetrics: SAMPLER_METRICS,
             fillAdjustor:
                 enableSlippageProtection && this.slippageModelManager
                     ? new SlippageModelFillAdjustor(
@@ -334,30 +326,25 @@ export class SwapService {
                           slippagePercentage || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
                       )
                     : new IdentityFillAdjustor(),
+            endpoint: endpoint,
         };
 
         const marketSide = sellAmount !== undefined ? MarketOperation.Sell : MarketOperation.Buy;
         const amount =
             marketSide === MarketOperation.Sell
                 ? sellAmount
-                : buyAmount!.times(affiliateFee.buyTokenPercentageFee + 1).integerValue(BigNumber.ROUND_DOWN);
+                : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
+                  buyAmount!.times(getBuyTokenPercentageFeeOrZero(affiliateFee) + 1).integerValue(BigNumber.ROUND_DOWN);
 
         // Fetch the Swap quote
-        const rfqClient = isHashSmallEnough({
-            message:
-                `${assetSwapperOpts.rfqt?.txOrigin}-${sellToken}-${buyToken}-${amount}-${marketSide}`.toLowerCase(),
-            threshold: RFQ_CLIENT_ROLLOUT_PERCENT / 100,
-        })
-            ? this._rfqClient
-            : undefined;
-
         const swapQuote = await this._swapQuoter.getSwapQuoteAsync(
             buyToken,
             sellToken,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
             amount!, // was validated earlier
             marketSide,
             assetSwapperOpts,
-            rfqClient,
+            this._rfqClient,
         );
 
         const {
@@ -461,6 +448,7 @@ export class SwapService {
         const { takerAmountPerEth: takerTokenToEthRate, makerAmountPerEth: makerTokenToEthRate } = swapQuote;
 
         // Convert into unit amounts
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
         const wethToken = getTokenMetadataIfExists('WETH', CHAIN_ID)!;
         const sellTokenToEthRate = takerTokenToEthRate
             .times(new BigNumber(10).pow(wethToken.decimals - takerTokenDecimals))
@@ -507,6 +495,28 @@ export class SwapService {
             blockNumber: swapQuote.blockNumber,
         };
 
+        if (apiSwapQuote.buyAmount.lte(new BigNumber(0))) {
+            throw new InsufficientFundsError();
+        }
+
+        if (
+            isQuote &&
+            apiSwapQuote.estimatedPriceImpact &&
+            apiSwapQuote.estimatedPriceImpact.gt(priceImpactProtectionPercentage * 100)
+        ) {
+            PRICE_IMPACT_TOO_HIGH.labels('ValueOutOfRange').inc();
+            throw new ValidationError([
+                {
+                    field: 'priceImpactProtectionPercentage',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: ValidationErrorReasons.PriceImpactTooHigh,
+                    description: `estimated price impact of ${
+                        apiSwapQuote.estimatedPriceImpact
+                    } is greater than priceImpactProtectionPercentage ${priceImpactProtectionPercentage * 100}`,
+                },
+            ]);
+        }
+
         // If the slippage Model is forced on for the integrator, or if they have opted in to slippage protection
         if (integrator?.slippageModel === true || enableSlippageProtection) {
             if (this.slippageModelManager) {
@@ -516,6 +526,7 @@ export class SwapService {
                     apiSwapQuote.buyAmount,
                     apiSwapQuote.sellAmount,
                     apiSwapQuote.sources,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
                     slippagePercentage!,
                 );
             } else {
@@ -531,73 +542,6 @@ export class SwapService {
 
     public async getSwapQuoteForUnwrapAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
         return this._getSwapQuoteForNativeWrappedAsync(params, true);
-    }
-
-    public async getTokenPricesAsync(
-        sellToken: TokenMetadata,
-        unitAmount: BigNumber,
-        page: number,
-        perPage: number,
-    ): Promise<PaginatedCollection<Price>> {
-        // Gets the price for buying 1 unit (not base unit as this is different between tokens with differing decimals)
-        // returns price in sellToken units, e.g What is the price of 1 ZRX (in DAI)
-        // Equivalent to performing multiple swap quotes selling sellToken and buying 1 whole buy token
-        const takerToken = sellToken.tokenAddress;
-        const queryTokenData = TokenMetadatasForChains.filter((m) => m.symbol !== sellToken.symbol).filter(
-            (m) => m.tokenAddresses[CHAIN_ID] !== NULL_ADDRESS,
-        );
-        const paginatedTokens = paginationUtils.paginate(queryTokenData, page, perPage);
-        const chunkSize = 20;
-        const queryTokenChunks = _.chunk(paginatedTokens.records, chunkSize);
-        const allResults = (
-            await Promise.all(
-                queryTokenChunks.map(async (tokens) => {
-                    const makerTokens = tokens.map((t) => t.tokenAddresses[CHAIN_ID]);
-                    const amounts = tokens.map((t) => Web3Wrapper.toBaseUnitAmount(unitAmount, t.decimals));
-                    const quotes = await this._swapQuoter.getBatchMarketBuySwapQuoteAsync(
-                        makerTokens,
-                        takerToken,
-                        amounts,
-                        {
-                            ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-                            bridgeSlippage: 0,
-                            maxFallbackSlippage: 0,
-                            numSamples: 1,
-                        },
-                    );
-                    return quotes;
-                }),
-            )
-        )
-            .filter((x) => x !== undefined)
-            .reduce((acc, x) => acc.concat(x), []); // flatten
-
-        const prices = allResults
-            .map((quote, i) => {
-                const buyTokenDecimals = new BigNumber(quote.makerTokenDecimals).toNumber();
-                const sellTokenDecimals = new BigNumber(quote.takerTokenDecimals).toNumber();
-                const symbol = queryTokenData.find(
-                    (data) => data.tokenAddresses[CHAIN_ID] === quote.makerToken,
-                )?.symbol;
-                const { makerAmount, totalTakerAmount } = quote.bestCaseQuoteInfo;
-                const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyTokenDecimals);
-                const unitTakerAmount = Web3Wrapper.toUnitAmount(totalTakerAmount, sellTokenDecimals);
-                const price = unitTakerAmount
-                    .dividedBy(unitMakerAmount)
-                    .decimalPlaces(sellTokenDecimals, BigNumber.ROUND_CEIL);
-                return {
-                    symbol,
-                    price,
-                };
-            })
-            .filter((p) => p) as Price[];
-
-        // Add ETH into the prices list as it is not a token
-        const wethData = prices.find((p: Price) => p.symbol === 'WETH');
-        if (wethData) {
-            prices.push({ ...wethData, symbol: 'ETH' });
-        }
-        return { ...paginatedTokens, records: prices };
     }
 
     private async _getSwapQuoteForNativeWrappedAsync(
@@ -640,8 +584,8 @@ export class SwapService {
             gasPrice,
             protocolFee: ZERO,
             minimumProtocolFee: ZERO,
-            buyTokenAddress: buyToken,
-            sellTokenAddress: sellToken,
+            buyTokenAddress: isUnwrap ? ETH_TOKEN_ADDRESS : buyToken,
+            sellTokenAddress: isUnwrap ? sellToken : ETH_TOKEN_ADDRESS,
             buyAmount: amount,
             sellAmount: amount,
             sources: [],
@@ -683,14 +627,17 @@ export class SwapService {
             } else {
                 // Split out the `to` and `data` so it doesn't override
                 const { data, to, ...rest } = txData;
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
                 callResult = await this._fakeTaker.execute(to!, data!).callAsync({
                     ...rest,
                     // Set the `to` to be the user address with a fake contract at that address
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
                     to: txData.from!,
                     // TODO jacob this has issues with protocol fees, but a gas amount is needed to use gasPrice
                     gasPrice: 0,
                     overrides: {
                         // Override the user address with the Fake Taker contract
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
                         [txData.from!]: {
                             code: _.get(artifacts.FakeTaker, 'compilerOutput.evm.deployedBytecode.object'),
                         },
@@ -725,6 +672,7 @@ export class SwapService {
         try {
             if (callResultGanacheRaw) {
                 revertError = RevertError.decode(callResultGanacheRaw, false);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
             } else if (callResult! && !callResult.success) {
                 revertError = RevertError.decode(callResult.resultData, false);
             }
@@ -735,6 +683,7 @@ export class SwapService {
             throw revertError;
         }
         // Add in the overhead of call data
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
         gasEstimate = callResult.gasUsed.plus(utils.calculateCallDataGas(txData.data!));
         // If there's a revert and we still are unable to decode it, just throw it.
         // This can happen in VIPs where there are no real revert reasons
@@ -797,20 +746,4 @@ export class SwapService {
 
         return (await this._altRfqMarketsCache.getResultAsync()).result;
     }
-
-    /**
-     * Update to a new SwapQuoter instance with the newest RFQt assets offerings
-     */
-    private _renewSwapQuoter(): void {
-        if (this._pairsManager !== undefined && this._swapQuoterOpts.rfqt !== undefined) {
-            this._swapQuoterOpts.rfqt.makerAssetOfferings = this._pairsManager.getRfqtMakerOfferingsForRfqOrder();
-            this._swapQuoter = new SwapQuoter(
-                this._swapQuoter.provider,
-                this._swapQuoter.orderbook,
-                this._swapQuoterOpts,
-            );
-        }
-    }
 }
-
-// tslint:disable:max-file-line-count

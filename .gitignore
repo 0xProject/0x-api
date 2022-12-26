@@ -72,7 +72,7 @@ typings/
 .next
 
 # compiled ts sources
-lib
+/lib
 
 # sqlite DB
 db/database.sqlite
@@ -89,3 +89,11 @@ TODOs.org
 TODO.txt
 
 scripts
+
+# Solidity artifacts and wrappers
+**/generated-artifacts
+**/generated-wrappers
+
+# Foundry
+foundry-artifacts
+foundry-cache

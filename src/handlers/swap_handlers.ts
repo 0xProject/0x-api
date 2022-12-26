@@ -1,39 +1,35 @@
-// tslint:disable:max-file-line-count
 import { isAPIError, isRevertError } from '@0x/api-utils';
-import { ERC20BridgeSource, RfqRequestOpts, SwapQuoterError } from '@0x/asset-swapper';
-import {
-    NATIVE_FEE_TOKEN_BY_CHAIN_ID,
-    SELL_SOURCE_FILTER_BY_CHAIN_ID,
-} from '@0x/asset-swapper/lib/src/utils/market_operation_utils/constants';
-import {
-    getTokenMetadataIfExists,
-    isNativeSymbolOrAddress,
-    isNativeWrappedSymbolOrAddress,
-    TokenMetadatasForChains,
-} from '@0x/token-metadata';
+import { isNativeSymbolOrAddress, isNativeWrappedSymbolOrAddress } from '@0x/token-metadata';
 import { MarketOperation } from '@0x/types';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as express from 'express';
-import * as HttpStatus from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 import { Kafka, Producer } from 'kafkajs';
 import _ = require('lodash');
 import { Counter, Histogram } from 'prom-client';
 
+import { ChainId, ERC20BridgeSource, RfqRequestOpts, SwapQuoterError } from '../asset-swapper';
+import {
+    NATIVE_FEE_TOKEN_BY_CHAIN_ID,
+    SELL_SOURCE_FILTER_BY_CHAIN_ID,
+} from '../asset-swapper/utils/market_operation_utils/constants';
+import { constants } from '../asset-swapper/constants';
 import {
     CHAIN_ID,
     getIntegratorByIdOrThrow,
     getIntegratorIdForApiKey,
     KAFKA_BROKERS,
     MATCHA_INTEGRATOR_ID,
-    PLP_API_KEY_WHITELIST,
     PROMETHEUS_REQUEST_BUCKETS,
     RFQT_API_KEY_WHITELIST,
     RFQT_INTEGRATOR_IDS,
     RFQT_REGISTRY_PASSWORDS,
+    ZERO_EX_GAS_API_URL,
 } from '../config';
 import {
     AFFILIATE_DATA_SELECTOR,
     DEFAULT_ENABLE_SLIPPAGE_PROTECTION,
+    DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     ONE_SECOND_MS,
     SWAP_DOCS_URL,
@@ -46,15 +42,14 @@ import {
     ValidationErrorReasons,
 } from '../errors';
 import { schemas } from '../schemas';
-import { SwapService } from '../services/swap_service';
-import { GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
+import { ISwapService, GetSwapPriceResponse, GetSwapQuoteParams, GetSwapQuoteResponse } from '../types';
 import { findTokenAddressOrThrowApiError } from '../utils/address_utils';
-import { paginationUtils } from '../utils/pagination_utils';
+import { estimateArbitrumL1CalldataGasCost } from '../utils/l2_gas_utils';
 import { parseUtils } from '../utils/parse_utils';
 import { priceComparisonUtils } from '../utils/price_comparison_utils';
-import { quoteReportUtils } from '../utils/quote_report_utils';
+import { publishQuoteReport } from '../utils/quote_report_utils';
 import { schemaUtils } from '../utils/schema_utils';
-import { serviceUtils } from '../utils/service_utils';
+import { GasPriceUtils } from '../asset-swapper';
 
 let kafkaProducer: Producer | undefined;
 if (KAFKA_BROKERS !== undefined) {
@@ -81,74 +76,56 @@ const HTTP_SWAP_RESPONSE_TIME = new Histogram({
     buckets: PROMETHEUS_REQUEST_BUCKETS,
 });
 
+const HTTP_SWAP_REQUESTS = new Counter({
+    name: 'swap_requests',
+    help: 'Total number of swap requests',
+    labelNames: ['endpoint', 'chain_id', 'api_key', 'integrator_id'],
+});
+
+const PRICE_IMPACT_PROTECTION_SPECIFIED = new Counter({
+    name: 'price_impact_protection_specified',
+    help: 'price impact protection was specified by client',
+});
+
 export class SwapHandlers {
-    private readonly _swapService: SwapService;
+    private readonly _swapService: ISwapService;
     public static root(_req: express.Request, res: express.Response): void {
         const message = `This is the root of the Swap API. Visit ${SWAP_DOCS_URL} for details about this API.`;
-        res.status(HttpStatus.OK).send({ message });
-    }
-    // tslint:disable-next-line:prefer-function-over-method
-    public static getTokens(_req: express.Request, res: express.Response): void {
-        const tokens = TokenMetadatasForChains.map((tm) => ({
-            symbol: tm.symbol,
-            address: tm.tokenAddresses[CHAIN_ID],
-            name: tm.name,
-            decimals: tm.decimals,
-        }));
-        const filteredTokens = tokens.filter((t) => t.address !== NULL_ADDRESS);
-        res.status(HttpStatus.OK).send({ records: filteredTokens });
+        res.status(StatusCodes.OK).send({ message });
     }
 
     public static getLiquiditySources(_req: express.Request, res: express.Response): void {
         const sources = SELL_SOURCE_FILTER_BY_CHAIN_ID[CHAIN_ID].sources
             .map((s) => (s === ERC20BridgeSource.Native ? '0x' : s))
             .sort((a, b) => a.localeCompare(b));
-        res.status(HttpStatus.OK).send({ records: sources });
+        res.status(StatusCodes.OK).send({ records: sources });
     }
 
     public static getRfqRegistry(req: express.Request, res: express.Response): void {
         const auth = req.header('Authorization');
         REGISTRY_ENDPOINT_FETCHED.labels(auth || 'N/A').inc();
         if (auth === undefined) {
-            return res.status(HttpStatus.UNAUTHORIZED).end();
+            return res.status(StatusCodes.UNAUTHORIZED).end();
         }
         const authTokenRegex = auth.match(BEARER_REGEX);
         if (!authTokenRegex) {
-            return res.status(HttpStatus.UNAUTHORIZED).end();
+            return res.status(StatusCodes.UNAUTHORIZED).end();
         }
         const authToken = authTokenRegex[1];
         if (!REGISTRY_SET.has(authToken)) {
-            return res.status(HttpStatus.UNAUTHORIZED).end();
+            return res.status(StatusCodes.UNAUTHORIZED).end();
         }
-        res.status(HttpStatus.OK).send(RFQT_INTEGRATOR_IDS).end();
+        res.status(StatusCodes.OK).send(RFQT_INTEGRATOR_IDS).end();
     }
 
-    constructor(swapService: SwapService) {
+    constructor(swapService: ISwapService) {
         this._swapService = swapService;
-    }
-
-    public async getTokenPricesAsync(req: express.Request, res: express.Response): Promise<void> {
-        const symbolOrAddress = (req.query.sellToken as string) || 'WETH';
-        const baseAsset = getTokenMetadataIfExists(symbolOrAddress, CHAIN_ID);
-        if (!baseAsset) {
-            throw new ValidationError([
-                {
-                    field: 'sellToken',
-                    code: ValidationErrorCodes.ValueOutOfRange,
-                    reason: `Could not find token ${symbolOrAddress}`,
-                },
-            ]);
-        }
-        const { page, perPage } = paginationUtils.parsePaginationConfig(req);
-        const unitAmount = new BigNumber(1);
-        const tokenPrices = await this._swapService.getTokenPricesAsync(baseAsset, unitAmount, page, perPage);
-        res.status(HttpStatus.OK).send(tokenPrices);
     }
 
     public async getQuoteAsync(req: express.Request, res: express.Response): Promise<void> {
         const begin = Date.now();
         const params = parseSwapQuoteRequestParams(req, 'quote');
-        const quote = await this._getSwapQuoteAsync(params, req);
+        const quote = await this._getSwapQuoteAsync(params);
         if (params.rfqt !== undefined) {
             req.log.info({
                 firmQuoteServed: {
@@ -167,51 +144,38 @@ export class SwapHandlers {
                     // makers: quote.orders.map(order => order.makerAddress),
                 },
             });
-            if (quote.quoteReport && params.rfqt && params.rfqt.intentOnFilling) {
-                quoteReportUtils.logQuoteReport(
-                    {
-                        quoteReport: quote.quoteReport,
-                        submissionBy: 'taker',
-                        decodedUniqueId: quote.decodedUniqueId,
-                        buyTokenAddress: quote.buyTokenAddress,
-                        sellTokenAddress: quote.sellTokenAddress,
-                        buyAmount: params.buyAmount,
-                        sellAmount: params.sellAmount,
-                        integratorId: params.integrator?.integratorId,
-                        blockNumber: quote.blockNumber,
-                        slippage: undefined,
-                        estimatedGas: quote.estimatedGas,
-                    },
-                    req.log,
-                );
-            }
+        }
 
-            if (quote.extendedQuoteReportSources && kafkaProducer) {
-                const quoteId = getQuoteIdFromSwapQuote(quote);
-                quoteReportUtils.publishQuoteReport(
-                    {
-                        quoteId,
-                        taker: params.takerAddress,
-                        quoteReportSources: quote.extendedQuoteReportSources,
-                        submissionBy: 'taker',
-                        decodedUniqueId: quote.decodedUniqueId,
-                        buyTokenAddress: quote.buyTokenAddress,
-                        sellTokenAddress: quote.sellTokenAddress,
-                        buyAmount: params.buyAmount,
-                        sellAmount: params.sellAmount,
-                        integratorId: params.integrator?.integratorId,
-                        blockNumber: quote.blockNumber,
-                        slippage: params.slippagePercentage,
-                        estimatedGas: quote.estimatedGas,
-                    },
-                    true,
-                    kafkaProducer,
-                );
-            }
+        if (quote.extendedQuoteReportSources && kafkaProducer) {
+            const quoteId = getQuoteIdFromSwapQuote(quote);
+            publishQuoteReport(
+                {
+                    quoteId,
+                    taker: params.takerAddress,
+                    quoteReportSources: quote.extendedQuoteReportSources,
+                    submissionBy: 'taker',
+                    decodedUniqueId: quote.decodedUniqueId,
+                    buyTokenAddress: quote.buyTokenAddress,
+                    sellTokenAddress: quote.sellTokenAddress,
+                    buyAmount: params.buyAmount,
+                    sellAmount: params.sellAmount,
+                    integratorId: params.integrator?.integratorId,
+                    blockNumber: quote.blockNumber,
+                    slippage: params.slippagePercentage,
+                    estimatedGas: quote.estimatedGas,
+                    enableSlippageProtection: params.enableSlippageProtection,
+                    expectedSlippage: quote.expectedSlippage,
+                    estimatedPriceImpact: quote.estimatedPriceImpact,
+                    priceImpactProtectionPercentage: params.priceImpactProtectionPercentage,
+                },
+                true,
+                kafkaProducer,
+            );
         }
         const response = _.omit(
             {
                 ...quote,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
                 orders: quote.orders.map((o: any) => _.omit(o, 'fills')),
             },
             'quoteReport',
@@ -231,14 +195,20 @@ export class SwapHandlers {
             response.priceComparisons = priceComparisons?.map((sc) => priceComparisonUtils.renameNative(sc));
         }
         const duration = (new Date().getTime() - begin) / ONE_SECOND_MS;
+
         HTTP_SWAP_RESPONSE_TIME.observe(duration);
-        res.status(HttpStatus.OK).send(response);
+        HTTP_SWAP_REQUESTS.labels(
+            'quote',
+            CHAIN_ID.toString(),
+            params.apiKey !== undefined ? params.apiKey : 'N/A',
+            params.integrator?.integratorId || 'N/A',
+        ).inc();
+        res.status(StatusCodes.OK).send(response);
     }
 
-    // tslint:disable-next-line:prefer-function-over-method
     public async getQuotePriceAsync(req: express.Request, res: express.Response): Promise<void> {
         const params = parseSwapQuoteRequestParams(req, 'price');
-        const quote = await this._getSwapQuoteAsync({ ...params }, req);
+        const quote = await this._getSwapQuoteAsync({ ...params });
         req.log.info({
             indicativeQuoteServed: {
                 taker: params.takerAddress,
@@ -294,7 +264,7 @@ export class SwapHandlers {
 
         if (quote.extendedQuoteReportSources && kafkaProducer) {
             const quoteId = getQuoteIdFromSwapQuote(quote);
-            quoteReportUtils.publishQuoteReport(
+            publishQuoteReport(
                 {
                     quoteId,
                     taker: params.takerAddress,
@@ -309,16 +279,27 @@ export class SwapHandlers {
                     slippage: params.slippagePercentage,
                     blockNumber: quote.blockNumber,
                     estimatedGas: quote.estimatedGas,
+                    enableSlippageProtection: params.enableSlippageProtection,
+                    expectedSlippage: quote.expectedSlippage,
+                    estimatedPriceImpact: quote.estimatedPriceImpact,
+                    priceImpactProtectionPercentage: params.priceImpactProtectionPercentage,
                 },
                 false,
                 kafkaProducer,
             );
         }
 
-        res.status(HttpStatus.OK).send(response);
+        HTTP_SWAP_REQUESTS.labels(
+            'price',
+            CHAIN_ID.toString(),
+            params.apiKey !== undefined ? params.apiKey : 'N/A',
+            params.integrator?.integratorId || 'N/A',
+        ).inc();
+
+        res.status(StatusCodes.OK).send(response);
     }
 
-    private async _getSwapQuoteAsync(params: GetSwapQuoteParams, req: express.Request): Promise<GetSwapQuoteResponse> {
+    private async _getSwapQuoteAsync(params: GetSwapQuoteParams): Promise<GetSwapQuoteResponse> {
         try {
             let swapQuote: GetSwapQuoteResponse;
             if (params.isUnwrap) {
@@ -328,6 +309,28 @@ export class SwapHandlers {
             } else {
                 swapQuote = await this._swapService.calculateSwapQuoteAsync(params);
             }
+
+            // Add additional L1 gas cost.
+            if (CHAIN_ID === ChainId.Arbitrum) {
+                const gasUtils = GasPriceUtils.getInstance(
+                    constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
+                    ZERO_EX_GAS_API_URL,
+                );
+                const gasPrices = await gasUtils.getGasPriceEstimationOrDefault({
+                    fast: 100_000_000, // 0.1 gwei in wei
+                });
+
+                const l1GasCostEstimate = new BigNumber(
+                    estimateArbitrumL1CalldataGasCost({
+                        l2GasPrice: gasPrices.fast,
+                        l1CalldataPricePerUnit: gasPrices.l1CalldataPricePerUnit,
+                        calldata: swapQuote.data,
+                    }),
+                );
+                swapQuote.estimatedGas = swapQuote.estimatedGas.plus(l1GasCostEstimate);
+                swapQuote.gas = swapQuote.gas.plus(l1GasCostEstimate);
+            }
+
             return swapQuote;
         } catch (e) {
             // If this is already a transformed error then just re-throw
@@ -349,6 +352,8 @@ export class SwapHandlers {
                         field: params.sellAmount ? 'sellAmount' : 'buyAmount',
                         code: ValidationErrorCodes.ValueOutOfRange,
                         reason: SwapQuoterError.InsufficientAssetLiquidity,
+                        description:
+                            'We are not able to fulfill an order for this token pair at the requested amount due to a lack of liquidity',
                     },
                 ]);
             }
@@ -368,6 +373,7 @@ export class SwapHandlers {
 
 const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | 'quote'): GetSwapQuoteParams => {
     // HACK typescript typing does not allow this valid json-schema
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     schemaUtils.validateSchema(req.query, schemas.swapQuoteRequestSchema as any);
     const apiKey: string | undefined = req.header('0x-api-key');
     const origin: string | undefined = req.header('origin');
@@ -380,7 +386,6 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     const { takerAddress, affiliateAddress } = req.query;
 
     // Parse boolean params and defaults
-    // tslint:disable:boolean-naming
 
     // The /quote and /price endpoints should have different default behavior on skip validation
     const defaultSkipValidation = endpoint === 'quote' ? false : true;
@@ -399,7 +404,6 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     // Whether the entire callers balance should be sold, used for contracts where the
     // amount available is non-deterministic
     const shouldSellEntireBalance = req.query.shouldSellEntireBalance === 'true' ? true : false;
-    // tslint:enable:boolean-naming
 
     // Parse tokens and eth wrap/unwraps
     const sellTokenRaw = req.query.sellToken as string;
@@ -462,8 +466,23 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         ]);
     }
 
+    let priceImpactProtectionPercentage = DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE;
+    if (req.query.priceImpactProtectionPercentage !== undefined) {
+        PRICE_IMPACT_PROTECTION_SPECIFIED.inc();
+        priceImpactProtectionPercentage = Number.parseFloat(req.query.priceImpactProtectionPercentage as string);
+        if (priceImpactProtectionPercentage > 1) {
+            throw new ValidationError([
+                {
+                    field: 'priceImpactProtectionPercentage',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: ValidationErrorReasons.PercentageOutOfRange,
+                    description: 'priceImpactProtectionPercentage should be between 0 and 1.0',
+                },
+            ]);
+        }
+    }
+
     // Parse sources
-    // tslint:disable-next-line: boolean-naming
     const { excludedSources, includedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
         {
             excludedSources: req.query.excludedSources as string | undefined,
@@ -476,15 +495,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         endpoint,
     );
 
-    // Determine if any other sources should be excluded. This usually has an effect
-    // if an API key is not present, or the API key is ineligible for PLP.
-    const updatedExcludedSources = serviceUtils.determineExcludedSources(
-        excludedSources,
-        apiKey,
-        PLP_API_KEY_WHITELIST,
-    );
-
-    const isAllExcluded = Object.values(ERC20BridgeSource).every((s) => updatedExcludedSources.includes(s));
+    const isAllExcluded = Object.values(ERC20BridgeSource).every((s) => excludedSources.includes(s));
     if (isAllExcluded) {
         throw new ValidationError([
             {
@@ -517,7 +528,6 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     const affiliateFee = parseUtils.parseAffiliateFeeOptions(req);
     const integrator = integratorId ? getIntegratorByIdOrThrow(integratorId) : undefined;
 
-    // tslint:disable:boolean-naming
     const enableSlippageProtection = parseOptionalBooleanParam(
         req.query.enableSlippageProtection as string,
         DEFAULT_ENABLE_SLIPPAGE_PROTECTION,
@@ -527,7 +537,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
     req.log.info({
         type: 'swapRequest',
         endpoint,
-        updatedExcludedSources,
+        excludedSources,
         nativeExclusivelyRFQT,
         // TODO (MKR-123): Remove once the log source has been updated.
         apiKey: integratorId || 'N/A',
@@ -535,6 +545,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         integratorLabel: integrator?.label || 'N/A',
         rawApiKey: apiKey || 'N/A',
         enableSlippageProtection,
+        priceImpactProtectionPercentage,
     });
 
     return {
@@ -544,7 +555,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         buyAmount,
         buyToken,
         endpoint,
-        excludedSources: updatedExcludedSources,
+        excludedSources,
         gasPrice,
         includePriceComparisons,
         includedSources,
@@ -563,6 +574,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         slippagePercentage,
         takerAddress: takerAddress as string,
         enableSlippageProtection,
+        priceImpactProtectionPercentage,
     };
 };
 

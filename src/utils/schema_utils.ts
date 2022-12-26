@@ -11,6 +11,7 @@ for (const schema of Object.values(schemas)) {
 }
 
 export const schemaUtils = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     validateSchema(instance: any, schema: object): void {
         const validationResult = schemaValidator.validate(instance, schema);
         if (!validationResult.errors || validationResult.errors.length === 0) {
@@ -27,7 +28,16 @@ export const schemaUtils = {
     },
 };
 
-function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject: AJV.ErrorObject): ValidationErrorItem {
+interface ValidationErrorObject extends AJV.ErrorObject {
+    description?: string;
+}
+
+function schemaValidationErrorToValidationErrorItem(
+    schemaValidationErrorObject: ValidationErrorObject,
+): ValidationErrorItem {
+    const description = schemaValidationErrorObject.description;
+    const reason = schemaValidationErrorObject.message || '';
+
     if (
         [
             'type',
@@ -47,7 +57,8 @@ function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject:
         return {
             field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.IncorrectFormat,
-            reason: schemaValidationErrorObject.message || '',
+            reason,
+            ...(description && { description }),
         };
     } else if (
         ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'enum', 'const'].includes(
@@ -57,19 +68,22 @@ function schemaValidationErrorToValidationErrorItem(schemaValidationErrorObject:
         return {
             field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.ValueOutOfRange,
-            reason: schemaValidationErrorObject.message || '',
+            reason,
+            ...(description && { description }),
         };
     } else if (schemaValidationErrorObject.keyword === 'required') {
         return {
             field: (schemaValidationErrorObject.params as AJV.RequiredParams).missingProperty,
             code: ValidationErrorCodes.RequiredField,
-            reason: schemaValidationErrorObject.message || '',
+            reason,
+            ...(description && { description }),
         };
     } else if (schemaValidationErrorObject.keyword === 'not') {
         return {
             field: schemaValidationErrorObject.dataPath.replace('.', ''),
             code: ValidationErrorCodes.UnsupportedOption,
-            reason: schemaValidationErrorObject.message || '',
+            reason,
+            ...(description && { description }),
         };
     } else {
         throw new Error(`Unknown schema validation error name: ${schemaValidationErrorObject.keyword}`);

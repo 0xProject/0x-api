@@ -1,6 +1,6 @@
 import { Check, Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
-export type BlockedAddressConstructorOpts = Pick<BlockedAddressEntity, 'address'> & Partial<BlockedAddressEntity>;
+type BlockedAddressConstructorOpts = Pick<BlockedAddressEntity, 'address'> & Partial<BlockedAddressEntity>;
 @Entity({ name: 'blocked_addresses' })
 export class BlockedAddressEntity {
     @PrimaryColumn({ name: 'address', type: 'varchar' })
@@ -20,7 +20,6 @@ export class BlockedAddressEntity {
     @Column({ name: 'ignore', type: 'boolean', default: () => false })
     public ignore: boolean;
 
-    // tslint:disable-next-line: no-object-literal-type-assertion
     constructor(opts: BlockedAddressConstructorOpts = {} as BlockedAddressConstructorOpts) {
         // allow createdAt overrides for testing
         if (opts.createdAt) {

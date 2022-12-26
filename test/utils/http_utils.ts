@@ -2,7 +2,7 @@ import * as httpRequest from 'supertest';
 
 const API_HTTP_ADDRESS = 'http://localhost:3000';
 
-export interface ProtoRoute {
+interface ProtoRoute {
     baseRoute: string;
     queryParams?: {
         [param: string]: string;
@@ -44,6 +44,7 @@ export async function httpPostAsync(input: {
     route: string;
     baseURL?: string;
     app?: Express.Application;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     body?: any;
     headers?: { [field: string]: string };
 }): Promise<httpRequest.Response> {

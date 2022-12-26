@@ -1,19 +1,9 @@
-import { assert } from '@0x/assert';
-import { AffiliateFeeType, ERC20BridgeSource } from '@0x/asset-swapper';
 import express from 'express';
 
+import { AffiliateFeeType, ERC20BridgeSource } from '../asset-swapper';
 import { NULL_ADDRESS } from '../constants';
 import { ValidationError, ValidationErrorCodes, ValidationErrorReasons } from '../errors';
-import {
-    AffiliateFee,
-    FeeParamTypes,
-    MetaTransactionDailyLimiterConfig,
-    MetaTransactionRateLimitConfig,
-    MetaTransactionRollingLimiterConfig,
-    MetaTransactionRollingValueLimiterConfig,
-} from '../types';
-
-import { AvailableRateLimiter, DatabaseKeysUsedForRateLimiter, RollingLimiterIntervalUnit } from './rate-limiters';
+import { AffiliateFee, FeeParamTypes } from '../types';
 
 interface ParseRequestForExcludedSourcesParams {
     takerAddress?: string;
@@ -23,7 +13,7 @@ interface ParseRequestForExcludedSourcesParams {
     apiKey?: string;
 }
 
-export interface ParseRequestForExcludedSourcesResult {
+interface ParseRequestForExcludedSourcesResult {
     excludedSources: ERC20BridgeSource[];
     includedSources: ERC20BridgeSource[];
     nativeExclusivelyRFQT: boolean;
@@ -137,55 +127,6 @@ export const parseUtils = {
             ),
         ) as ERC20BridgeSource[];
     },
-    parseJsonStringForMetaTransactionRateLimitConfigOrThrow(configString: string): MetaTransactionRateLimitConfig {
-        const parsedConfig: object = JSON.parse(configString);
-        Object.entries(parsedConfig).forEach((entry) => {
-            const [key, value] = entry;
-            assert.doesBelongToStringEnum('dbField', key, DatabaseKeysUsedForRateLimiter);
-            Object.entries(value).forEach((configEntry) => {
-                const [rateLimiterType, rateLimiterConfig] = configEntry;
-                switch (rateLimiterType) {
-                    case AvailableRateLimiter.Daily:
-                        const dailyConfig = rateLimiterConfig as MetaTransactionDailyLimiterConfig;
-                        if (dailyConfig === undefined) {
-                            throw new Error(`missing configuration for daily rate limiter: ${entry}`);
-                        }
-                        assert.isNumber('allowedDailyLimit', dailyConfig.allowedDailyLimit);
-                        break;
-                    case AvailableRateLimiter.Rolling:
-                        const rollingConfig = rateLimiterConfig as MetaTransactionRollingLimiterConfig;
-                        if (rollingConfig === undefined) {
-                            throw new Error(`missing configuration for rolling rate limiter: ${entry}`);
-                        }
-                        assert.isNumber('allowedLimit', rollingConfig.allowedLimit);
-                        assert.isNumber('intervalNumber', rollingConfig.intervalNumber);
-                        assert.doesBelongToStringEnum(
-                            'intervalUnit',
-                            rollingConfig.intervalUnit,
-                            RollingLimiterIntervalUnit,
-                        );
-                        break;
-                    case AvailableRateLimiter.RollingValue:
-                        const rollingValueConfig = rateLimiterConfig as MetaTransactionRollingValueLimiterConfig;
-                        if (rollingValueConfig === undefined) {
-                            throw new Error(`missing configuration for rolling value rate limiter: ${entry}`);
-                        }
-                        assert.isNumber('allowedLimitEth', rollingValueConfig.allowedLimitEth);
-                        assert.isNumber('intervalNumber', rollingValueConfig.intervalNumber);
-                        assert.doesBelongToStringEnum(
-                            'intervalUnit',
-                            rollingValueConfig.intervalUnit,
-                            RollingLimiterIntervalUnit,
-                        );
-                        break;
-                    default:
-                        throw new Error(`unsupported rate limiter type: ${key}`);
-                }
-            });
-        });
-
-        return parsedConfig;
-    },
     parseAssetDatasStringFromQueryParam(field: string): string | string[] {
         if (field.indexOf(',') !== -1) {
             const fields = field.split(',');
@@ -220,6 +161,8 @@ export const parseUtils = {
             feeType = AffiliateFeeType.PositiveSlippageFee;
         } else if (buyTokenPercentageFee > 0) {
             feeType = AffiliateFeeType.PercentageFee;
+        } else if (req.query.feeType === FeeParamTypes.GASLESS_FEE) {
+            feeType = AffiliateFeeType.GaslessFee;
         }
 
         if (feeType === AffiliateFeeType.PositiveSlippageFee) {

@@ -2,9 +2,6 @@ import { logUtils as log } from '@0x/utils';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as redis from 'redis';
-
-import { REDIS_URI } from '../../src/config';
 
 import { initDBConnectionAsync } from './db_connection';
 
@@ -12,20 +9,9 @@ import { initDBConnectionAsync } from './db_connection';
 const apiRootDir = path.normalize(path.resolve(`${__dirname}/../../../`));
 const dockerComposeFilename = 'docker-compose-test.yml';
 
-export enum LogType {
+enum LogType {
     Console,
     File,
-}
-
-/**
- * The configuration object that provides information on how verbose the logs
- * should be and where they should be located.
- * @param apiLogType The location where the API logs should be logged.
- * @param dependencyLogType The location where the API's dependency logs should be logged.
- */
-export interface LoggingConfig {
-    apiLogType?: LogType;
-    dependencyLogType?: LogType;
 }
 
 let didTearDown = false;
@@ -54,7 +40,6 @@ export async function setupDependenciesAsync(suiteName: string, logType?: LogTyp
     await waitForDependencyStartupAsync(up);
     await sleepAsync(10);
     await confirmPostgresConnectivityAsync();
-    await confirmRedisConnectivityAsync();
 }
 
 /**
@@ -137,7 +122,7 @@ async function waitForDependencyStartupAsync(logStream: ChildProcessWithoutNullS
     });
 }
 
-async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<void> {
+async function confirmPostgresConnectivityAsync(maxTries = 5): Promise<void> {
     try {
         await Promise.all([
             // delay before retrying
@@ -155,33 +140,6 @@ async function confirmPostgresConnectivityAsync(maxTries: number = 5): Promise<v
         }
     }
 }
-async function confirmRedisConnectivityAsync(maxTries: number = 5): Promise<void> {
-    try {
-        await Promise.all([
-            // delay before retrying
-            new Promise<void>((resolve) => setTimeout(resolve, 2000)),
-            async () => {
-                const redisClient = redis.createClient({ url: REDIS_URI });
-                return new Promise((resolve, reject) => {
-                    redisClient.ping((err, reply) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve(reply);
-                    });
-                });
-            },
-        ]);
-        return;
-    } catch (e) {
-        if (maxTries > 0) {
-            await confirmRedisConnectivityAsync(maxTries - 1);
-        } else {
-            throw e;
-        }
-    }
-}
-
 async function sleepAsync(timeSeconds: number): Promise<void> {
     return new Promise<void>((resolve) => {
         const secondsPerMillisecond = 1000;

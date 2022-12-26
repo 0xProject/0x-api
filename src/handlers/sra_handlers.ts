@@ -1,6 +1,6 @@
 import { BigNumber } from '@0x/utils';
 import * as express from 'express';
-import * as HttpStatus from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 import * as isValidUUID from 'uuid-validate';
 
 import { FEE_RECIPIENT_ADDRESS, TAKER_FEE_UNIT_AMOUNT, WHITELISTED_TOKENS } from '../config';
@@ -8,23 +8,22 @@ import { NULL_ADDRESS, SRA_DOCS_URL, ZERO } from '../constants';
 import { SignedOrderV4Entity } from '../entities';
 import { InvalidAPIKeyError, NotFoundError, ValidationError, ValidationErrorCodes } from '../errors';
 import { schemas } from '../schemas';
-import { OrderBookService } from '../services/orderbook_service';
-import { OrderConfigResponse, SignedLimitOrder } from '../types';
+import { OrderConfigResponse, SignedLimitOrder, IOrderBookService } from '../types';
 import { paginationUtils } from '../utils/pagination_utils';
 import { schemaUtils } from '../utils/schema_utils';
 
 export class SRAHandlers {
-    private readonly _orderBook: OrderBookService;
+    private readonly _orderBook: IOrderBookService;
     public static rootAsync(_req: express.Request, res: express.Response): void {
         const message = `This is the root of the Standard Relayer API. Visit ${SRA_DOCS_URL} for details about this API.`;
-        res.status(HttpStatus.OK).send({ message });
+        res.status(StatusCodes.OK).send({ message });
     }
     public static feeRecipients(req: express.Request, res: express.Response): void {
         const { page, perPage } = paginationUtils.parsePaginationConfig(req);
         const normalizedFeeRecipient = FEE_RECIPIENT_ADDRESS.toLowerCase();
         const feeRecipients = [normalizedFeeRecipient];
         const paginatedFeeRecipients = paginationUtils.paginate(feeRecipients, page, perPage);
-        res.status(HttpStatus.OK).send(paginatedFeeRecipients);
+        res.status(StatusCodes.OK).send(paginatedFeeRecipients);
     }
     public static orderConfig(req: express.Request, res: express.Response): void {
         schemaUtils.validateSchema(req.body, schemas.sraOrderConfigPayloadSchema);
@@ -33,9 +32,9 @@ export class SRAHandlers {
             feeRecipient: FEE_RECIPIENT_ADDRESS.toLowerCase(),
             takerTokenFeeAmount: TAKER_FEE_UNIT_AMOUNT,
         };
-        res.status(HttpStatus.OK).send(orderConfigResponse);
+        res.status(StatusCodes.OK).send(orderConfigResponse);
     }
-    constructor(orderBook: OrderBookService) {
+    constructor(orderBook: IOrderBookService) {
         this._orderBook = orderBook;
     }
     public async getOrderByHashAsync(req: express.Request, res: express.Response): Promise<void> {
@@ -43,7 +42,7 @@ export class SRAHandlers {
         if (orderIfExists === undefined) {
             throw new NotFoundError();
         } else {
-            res.status(HttpStatus.OK).send(orderIfExists);
+            res.status(StatusCodes.OK).send(orderIfExists);
         }
     }
     public async ordersAsync(req: express.Request, res: express.Response): Promise<void> {
@@ -60,7 +59,7 @@ export class SRAHandlers {
             orderFieldFilters,
             additionalFilters,
         );
-        res.status(HttpStatus.OK).send(paginatedOrders);
+        res.status(StatusCodes.OK).send(paginatedOrders);
     }
     public async orderbookAsync(req: express.Request, res: express.Response): Promise<void> {
         schemaUtils.validateSchema(req.query, schemas.sraOrderbookQuerySchema);
@@ -68,7 +67,7 @@ export class SRAHandlers {
         const baseToken = (req.query.baseToken as string).toLowerCase();
         const quoteToken = (req.query.quoteToken as string).toLowerCase();
         const orderbookResponse = await this._orderBook.getOrderBookAsync(page, perPage, baseToken, quoteToken);
-        res.status(HttpStatus.OK).send(orderbookResponse);
+        res.status(StatusCodes.OK).send(orderbookResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
@@ -80,11 +79,11 @@ export class SRAHandlers {
             validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
         }
         if (shouldSkipConfirmation) {
-            res.status(HttpStatus.OK).send();
+            res.status(StatusCodes.OK).send();
         }
         await this._orderBook.addOrderAsync(signedOrder);
         if (!shouldSkipConfirmation) {
-            res.status(HttpStatus.OK).send();
+            res.status(StatusCodes.OK).send();
         }
     }
     public async postOrdersAsync(req: express.Request, res: express.Response): Promise<void> {
@@ -99,18 +98,18 @@ export class SRAHandlers {
             }
         }
         if (shouldSkipConfirmation) {
-            res.status(HttpStatus.OK).send();
+            res.status(StatusCodes.OK).send();
         }
         await this._orderBook.addOrdersAsync(signedOrders);
         if (!shouldSkipConfirmation) {
-            res.status(HttpStatus.OK).send();
+            res.status(StatusCodes.OK).send();
         }
     }
 
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
         const apiKey = req.header('0x-api-key');
-        if (apiKey === undefined || !isValidUUID(apiKey) || !OrderBookService.isAllowedPersistentOrders(apiKey)) {
+        if (apiKey === undefined || !isValidUUID(apiKey) || !this._orderBook.isAllowedPersistentOrders(apiKey)) {
             throw new InvalidAPIKeyError();
         }
         schemaUtils.validateSchema(req.body, schemas.sraPostOrderPayloadSchema);
@@ -121,11 +120,11 @@ export class SRAHandlers {
             validateAssetTokenOrThrow(allowedTokens, signedOrder.takerToken, 'takerToken');
         }
         if (shouldSkipConfirmation) {
-            res.status(HttpStatus.OK).send();
+            res.status(StatusCodes.OK).send();
         }
         await this._orderBook.addPersistentOrdersAsync([signedOrder]);
         if (!shouldSkipConfirmation) {
-            res.status(HttpStatus.OK).send();
+            res.status(StatusCodes.OK).send();
         }
     }
 }
@@ -143,6 +142,7 @@ function validateAssetTokenOrThrow(allowedTokens: string[], tokenAddress: string
 }
 
 // As the order come in as JSON they need to be turned into the correct types such as BigNumber
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
 function unmarshallOrder(signedOrderRaw: any): SignedLimitOrder {
     const signedOrder: SignedLimitOrder = {
         // Defaults...
@@ -163,6 +163,7 @@ function unmarshallOrder(signedOrderRaw: any): SignedLimitOrder {
 }
 
 // As the orders come in as JSON they need to be turned into the correct types such as BigNumber
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
 function unmarshallOrders(signedOrdersRaw: any[]): SignedLimitOrder[] {
     return signedOrdersRaw.map((signedOrderRaw) => {
         return unmarshallOrder(signedOrderRaw);

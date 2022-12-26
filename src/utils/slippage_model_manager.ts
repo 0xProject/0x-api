@@ -1,8 +1,8 @@
-import { ERC20BridgeSource, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '@0x/asset-swapper';
 import { isNativeSymbolOrAddress } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import { Counter } from 'prom-client';
 
+import { ERC20BridgeSource, NATIVE_FEE_TOKEN_BY_CHAIN_ID } from '../asset-swapper';
 import {
     CHAIN_ID,
     SLIPPAGE_MODEL_REFRESH_INTERVAL_MS,
@@ -41,7 +41,10 @@ type SlippageModelCache = Map<string, SlippageModelCacheForPair>;
 /**
  * Create an in-memory cache for all slippage models loaded from file.
  */
-const createSlippageModelCache = (slippageModelFileContent: string, logLabels: {}): SlippageModelCache => {
+const createSlippageModelCache = (
+    slippageModelFileContent: string,
+    logLabels: Record<string, unknown>,
+): SlippageModelCache => {
     const slippageModelList: SlippageModel[] = JSON.parse(slippageModelFileContent);
     schemaUtils.validateSchema(slippageModelList, schemas.slippageModelFileSchema);
     const cache: SlippageModelCache = new Map();
@@ -63,6 +66,7 @@ const createSlippageModelCache = (slippageModelFileContent: string, logLabels: {
         if (!cache.has(pairKey)) {
             cache.set(pairKey, new Map());
         }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         cache.get(pairKey)!.set(slippageModel.source, {
             token0: slippageModel.token0.toLowerCase(),
             token1: slippageModel.token1.toLowerCase(),
@@ -220,10 +224,13 @@ export class SlippageModelManager {
      * if the file has been updated since `this._lastRefreshed`.
      */
     private async _refreshAsync(): Promise<void> {
-        const bucket: string = SLIPPAGE_MODEL_S3_BUCKET_NAME!;
+        const bucket = SLIPPAGE_MODEL_S3_BUCKET_NAME;
+        if (bucket === undefined) {
+            return;
+        }
+
         const fileName: string = SLIPPAGE_MODEL_S3_FILE_NAME;
         const refreshTime = new Date();
-
         try {
             const { exists: doesFileExist, lastModified } = await this._s3Client.hasFileAsync(bucket, fileName);
 
@@ -236,7 +243,7 @@ export class SlippageModelManager {
             // If the file exists but is stale which indicate the data exporting job failed to run on time,
             // reset the in-memory cache while log the warning msg, and increase the `slippage_model_file_stale`
             // counter to potentially trigger an alert.
-            if (lastModified! < new Date(refreshTime.getTime() - SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_MS)) {
+            if (lastModified < new Date(refreshTime.getTime() - SLIPPAGE_MODEL_S3_FILE_VALID_INTERVAL_MS)) {
                 logger.warn({ bucket, fileName, refreshTime }, `Slippage model file is stale.`);
                 SLIPPAGE_MODEL_FILE_STALE.labels(bucket, fileName).inc();
                 this._resetCache();
@@ -244,7 +251,7 @@ export class SlippageModelManager {
             }
 
             // If the file has been loaded, do nothing
-            if (lastModified! <= this._lastRefreshed) {
+            if (lastModified <= this._lastRefreshed) {
                 return;
             }
 
