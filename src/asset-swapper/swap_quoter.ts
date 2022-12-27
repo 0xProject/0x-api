@@ -222,7 +222,7 @@ export class SwapQuoter {
         );
 
         // Use the raw gas, not scaled by gas price
-        const exchangeProxyOverhead = opts.exchangeProxyOverhead(result.sourceFlags).toNumber();
+        const exchangeProxyOverhead = opts.exchangeProxyOverhead(result.path.sourceFlags).toNumber();
         swapQuote.bestCaseQuoteInfo.gas += exchangeProxyOverhead;
         swapQuote.worstCaseQuoteInfo.gas += exchangeProxyOverhead;
 
@@ -338,15 +338,15 @@ function createSwapQuote(
     slippage: number,
 ): SwapQuote {
     const {
-        optimizedOrders,
+        path,
         quoteReport,
         extendedQuoteReportSources,
-        sourceFlags,
         takerAmountPerEth,
         makerAmountPerEth,
         priceComparisonsReport,
     } = optimizerResult;
-    const isTwoHop = sourceFlags === SOURCE_FLAGS[ERC20BridgeSource.MultiHop];
+    const isTwoHop = path.sourceFlags === SOURCE_FLAGS[ERC20BridgeSource.MultiHop];
+    const optimizedOrders = path.createOrders();
 
     // Calculate quote info
     const { bestCaseQuoteInfo, worstCaseQuoteInfo, sourceBreakdown } = isTwoHop

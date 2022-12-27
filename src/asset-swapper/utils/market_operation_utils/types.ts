@@ -5,10 +5,8 @@ import { BigNumber } from '@0x/utils';
 import {
     NativeOrderWithFillableAmounts,
     ERC20BridgeSource,
-    OptimizedOrder,
     FillData,
     FeeSchedule,
-    Fill,
     FillAdjustor,
     ExchangeProxyOverhead,
     ExtendedQuoteReportSources,
@@ -16,6 +14,7 @@ import {
     QuoteReport,
 } from '../../types';
 import { V4RFQIndicativeQuoteMM } from '../../utils/quote_requestor';
+import { Path } from './path';
 
 import { SourceFilters } from './source_filters';
 
@@ -315,12 +314,8 @@ export interface SourceQuoteOperation<TFillData extends FillData = FillData> ext
 }
 
 export interface OptimizerResult {
-    optimizedOrders: OptimizedOrder[];
-    sourceFlags: bigint;
-    // TODO(kyu-c): `liquidityDelivered` is never `DexSample<MultiHopFillData>`.
-    liquidityDelivered: Readonly<Fill[] | DexSample<MultiHopFillData>>;
+    path: Path;
     marketSideLiquidity: MarketSideLiquidity;
-    adjustedRate: BigNumber;
     takerAmountPerEth: BigNumber;
     makerAmountPerEth: BigNumber;
 }
