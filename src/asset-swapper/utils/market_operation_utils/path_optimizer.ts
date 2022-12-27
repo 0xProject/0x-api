@@ -20,8 +20,8 @@ import {
 
 import { VIP_ERC20_BRIDGE_SOURCES_BY_CHAIN_ID, ZERO_AMOUNT } from './constants';
 import { dexSampleToFill, ethToOutputAmount, nativeOrderToFill, twoHopSampleToFill } from './fills';
-import { Path, PathContext, PathPenaltyOpts } from './path';
-import { DexSample, MultiHopFillData } from './types';
+import { Path, PathPenaltyOpts } from './path';
+import { DexSample, MultiHopFillData, PathContext } from './types';
 
 // NOTE: The Rust router will panic with less than 3 samples
 const MIN_NUM_SAMPLE_INPUTS = 3;

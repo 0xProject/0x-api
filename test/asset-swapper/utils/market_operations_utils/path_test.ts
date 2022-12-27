@@ -127,11 +127,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createOrders({
-                inputToken: 'fake-weth-address',
-                outputToken: 'fake-usdc-address',
-                side: MarketOperation.Sell,
-            });
+            const orders = path.createOrders();
 
             expect(orders).to.deep.eq([
                 {
@@ -185,11 +181,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createOrders({
-                inputToken: 'fake-weth-address',
-                outputToken: 'fake-usdc-address',
-                side: MarketOperation.Sell,
-            });
+            const orders = path.createOrders();
 
             expect(orders).to.deep.eq([
                 {
@@ -254,11 +246,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createOrders({
-                inputToken: 'fake-weth-address',
-                outputToken: 'fake-usdc-address',
-                side: MarketOperation.Sell,
-            });
+            const orders = path.createOrders();
 
             expect(orders).deep.eq([
                 {
