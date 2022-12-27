@@ -424,7 +424,7 @@ export class MarketOperationUtils {
 
         // Find the optimal path using Rust router.
         const pathOptimizer = new PathOptimizer({
-            side,
+            pathContext: orderOpts,
             feeSchedule: opts.feeSchedule,
             chainId: this._sampler.chainId,
             neonRouterNumSamples: opts.neonRouterNumSamples,

@@ -19,7 +19,11 @@ describe('Path', () => {
     describe('adjustedRate()', () => {
         it('Returns the adjusted rate based on adjustedOutput and exchange proxy overhead', () => {
             const path = Path.create(
-                MarketOperation.Sell,
+                {
+                    side: MarketOperation.Sell,
+                    inputToken: 'fake-input-token',
+                    outputToken: 'fake-output-token',
+                },
                 [createFakeFill({ input: ONE_ETHER, adjustedOutput: ONE_ETHER.times(990) })],
                 ONE_ETHER,
                 {
@@ -35,7 +39,11 @@ describe('Path', () => {
 
         it('Returns the adjusted rate without interpolating penalty when sum of the input amounts is greater than the target input amount', () => {
             const path = Path.create(
-                MarketOperation.Sell,
+                {
+                    side: MarketOperation.Sell,
+                    inputToken: 'fake-input-token',
+                    outputToken: 'fake-output-token',
+                },
                 [
                     createFakeFill({
                         input: ONE_ETHER,
@@ -63,7 +71,11 @@ describe('Path', () => {
     describe('source flags', () => {
         it('Returns merged source flags from fills', () => {
             const path = Path.create(
-                MarketOperation.Sell,
+                {
+                    side: MarketOperation.Sell,
+                    inputToken: 'fake-input-token',
+                    outputToken: 'fake-output-token',
+                },
                 [
                     createFakeFillWithFlags(BigInt(1)),
                     createFakeFillWithFlags(BigInt(2)),
@@ -84,7 +96,11 @@ describe('Path', () => {
     describe('createOrders()', () => {
         it('Returns a corresponding `OptimizedOrder` for a single native order (sell)', () => {
             const path = Path.create(
-                MarketOperation.Sell,
+                {
+                    side: MarketOperation.Sell,
+                    inputToken: 'fake-weth-address',
+                    outputToken: 'fake-usdc-address',
+                },
                 [
                     {
                         input: ONE_ETHER,
@@ -143,7 +159,11 @@ describe('Path', () => {
 
         it('Returns a corresponding `OptimizedOrder`s for a single bridge order (sell)', () => {
             const path = Path.create(
-                MarketOperation.Sell,
+                {
+                    side: MarketOperation.Sell,
+                    inputToken: 'fake-weth-address',
+                    outputToken: 'fake-usdc-address',
+                },
                 [
                     {
                         input: ONE_ETHER,
@@ -192,7 +212,11 @@ describe('Path', () => {
 
         it('Returns corresponding `OptimizedOrder`s for a two hop order (sell)', () => {
             const path = Path.create(
-                MarketOperation.Sell,
+                {
+                    side: MarketOperation.Sell,
+                    inputToken: 'fake-weth-address',
+                    outputToken: 'fake-usdc-address',
+                },
                 [
                     {
                         input: ONE_ETHER,
