@@ -19,6 +19,7 @@ import {
 import { RfqClient } from '../utils/rfq_client';
 import { QuoteRequestor } from './utils/quote_requestor';
 import { TokenAdjacencyGraph } from './utils/token_adjacency_graph';
+import { Path } from './utils/market_operation_utils/path';
 
 export interface QuoteReport {
     sourcesConsidered: QuoteReportEntry[];
@@ -248,15 +249,16 @@ interface SwapQuoteBase {
     takerToken: string;
     makerToken: string;
     gasPrice: BigNumber;
-    // TODO(kyu-c): replace `orders` with a `Path`
+    // TODO(kyu-c): replace its usage with `path.createOrders`.
     orders: OptimizedOrder[];
+    path: Path;
     bestCaseQuoteInfo: SwapQuoteInfo;
     worstCaseQuoteInfo: SwapQuoteInfo;
     sourceBreakdown: SwapQuoteOrdersBreakdown;
     quoteReport?: QuoteReport;
     extendedQuoteReportSources?: ExtendedQuoteReportSources;
     priceComparisonsReport?: PriceComparisonsReport;
-    // TODO(kyu-c): remove and derive from `Path`
+    // TODO(kyu-c): replace its usage with `path.hasTwoHop`
     isTwoHop: boolean;
     makerTokenDecimals: number;
     takerTokenDecimals: number;
