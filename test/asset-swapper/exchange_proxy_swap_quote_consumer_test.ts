@@ -185,7 +185,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
 
     type PlainOrder = Exclude<LimitOrderFields, ['chainId', 'exchangeAddress']>;
 
-    function cleanOrders(orders: OptimizedOrder[]): PlainOrder[] {
+    function cleanOrders(orders: readonly OptimizedOrder[]): PlainOrder[] {
         return orders.map(
             (o) =>
                 _.omit(

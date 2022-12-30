@@ -45,7 +45,7 @@ export function calculateQuoteInfo(params: {
 }
 
 function calculateSingleHopQuoteInfo(
-    optimizedOrders: OptimizedOrder[],
+    optimizedOrders: readonly OptimizedOrder[],
     operation: MarketOperation,
     assetFillAmount: BigNumber,
     gasPrice: BigNumber,
@@ -76,7 +76,7 @@ function calculateSingleHopQuoteInfo(
 }
 
 function calculateTwoHopQuoteInfo(
-    optimizedOrders: OptimizedOrder[],
+    optimizedOrders: readonly OptimizedOrder[],
     operation: MarketOperation,
     gasSchedule: GasSchedule,
     slippage: number,

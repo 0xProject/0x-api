@@ -64,7 +64,7 @@ export class Path implements IPath {
         return (this.sourceFlags & SOURCE_FLAGS[ERC20BridgeSource.MultiHop]) > 0;
     }
 
-    public createOrders(): OptimizedOrder[] {
+    public createOrders(): readonly OptimizedOrder[] {
         const { makerToken, takerToken } = getMakerTakerTokens(this.context);
         return _.flatMap(this.fills, (fill) => {
             // Internal BigInt flag field is not supported JSON and is tricky to remove upstream.
