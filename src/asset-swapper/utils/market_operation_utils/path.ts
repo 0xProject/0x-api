@@ -66,7 +66,7 @@ export class Path implements IPath {
         return (this.sourceFlags & SOURCE_FLAGS[ERC20BridgeSource.MultiHop]) > 0;
     }
 
-    public createOrders(): readonly OptimizedOrder[] {
+    public getOrders(): readonly OptimizedOrder[] {
         return this.orders;
     }
 
@@ -75,12 +75,12 @@ export class Path implements IPath {
      * @param maxSlippage maximum slippage. It must be [0, 1].
      * @returns orders with slippage applied.
      */
-    public createSlippedOrders(maxSlippage: number): OptimizedOrder[] {
+    public getSlippedOrders(maxSlippage: number): OptimizedOrder[] {
         if (maxSlippage < 0 || maxSlippage > 1) {
             throw new Error(`slippage must be [0, 1]. Given: ${maxSlippage}`);
         }
 
-        return this.createOrders().map((order) => {
+        return this.getOrders().map((order) => {
             if (order.source === ERC20BridgeSource.Native || maxSlippage === 0) {
                 return order;
             }

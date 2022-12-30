@@ -143,7 +143,7 @@ describe('Path', () => {
         });
     });
 
-    describe('createOrders()', () => {
+    describe('getOrders()', () => {
         it('Returns a corresponding `OptimizedOrder` for a single native order (sell)', () => {
             const path = Path.create(
                 {
@@ -177,7 +177,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createOrders();
+            const orders = path.getOrders();
 
             expect(orders).to.deep.eq([
                 {
@@ -231,7 +231,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createOrders();
+            const orders = path.getOrders();
 
             expect(orders).to.deep.eq([
                 {
@@ -290,7 +290,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createOrders();
+            const orders = path.getOrders();
 
             expect(orders).deep.eq([
                 {
@@ -327,7 +327,7 @@ describe('Path', () => {
         });
     });
 
-    describe('createSlippedOrders()', () => {
+    describe('getSlippedOrders()', () => {
         describe('Invalid `maxSlippage`', () => {
             const path = Path.create(
                 {
@@ -346,7 +346,7 @@ describe('Path', () => {
 
             [-1, -0.01, 1.01, 2].forEach((maxSlippage) => {
                 it(`Throws an error when maxSlippage is ${maxSlippage}`, () => {
-                    expect(() => path.createSlippedOrders(maxSlippage)).to.throw('slippage must be [0, 1]');
+                    expect(() => path.getSlippedOrders(maxSlippage)).to.throw('slippage must be [0, 1]');
                 });
             });
         });
@@ -372,7 +372,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createSlippedOrders(0.1);
+            const orders = path.getSlippedOrders(0.1);
 
             expect(orders).to.have.lengthOf(1);
             expect(orders[0].takerAmount).to.be.bignumber.eq(ONE_ETHER);
@@ -400,7 +400,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createSlippedOrders(0.01);
+            const orders = path.getSlippedOrders(0.01);
             expect(orders).to.have.lengthOf(1);
             expect(orders[0].takerAmount).to.be.bignumber.eq(ONE_ETHER);
             expect(orders[0].makerAmount).to.be.bignumber.eq(ONE_ETHER.times(990)); // 1000 * 0.99
@@ -427,7 +427,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createSlippedOrders(0);
+            const orders = path.getSlippedOrders(0);
             expect(orders).to.have.lengthOf(1);
             expect(orders[0].takerAmount).to.be.bignumber.eq(ONE_ETHER);
             expect(orders[0].makerAmount).to.be.bignumber.eq(ONE_ETHER.times(1000));
@@ -471,7 +471,7 @@ describe('Path', () => {
                 },
             );
 
-            const orders = path.createSlippedOrders(0.01);
+            const orders = path.getSlippedOrders(0.01);
             expect(orders).to.have.lengthOf(2);
 
             const [firstHopOrder, secondHopOrder] = orders;
