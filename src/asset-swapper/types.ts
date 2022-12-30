@@ -258,7 +258,7 @@ interface SwapQuoteBase {
     path: IPath;
     bestCaseQuoteInfo: SwapQuoteInfo;
     worstCaseQuoteInfo: SwapQuoteInfo;
-    sourceBreakdown: SwapQuoteOrdersBreakdown;
+    sourceBreakdown: SwapQuoteSourceBreakdown;
     quoteReport?: QuoteReport;
     extendedQuoteReportSources?: ExtendedQuoteReportSources;
     priceComparisonsReport?: PriceComparisonsReport;
@@ -310,7 +310,7 @@ export interface SwapQuoteInfo {
  * Percentage breakdown of each liquidity source used in quote.
  * Each multihop order is treated as a distinct source.
  */
-export type SwapQuoteOrdersBreakdown = {
+export type SwapQuoteSourceBreakdown = {
     singleSource: Partial<{
         [key in Exclude<ERC20BridgeSource, ERC20BridgeSource.MultiHop>]: BigNumber;
     }>;

@@ -6,16 +6,16 @@ import {
     MarketOperation,
     OptimizedOrder,
     SwapQuoteInfo,
-    SwapQuoteOrdersBreakdown,
+    SwapQuoteSourceBreakdown,
 } from '../types';
 import { QuoteFillResult, simulateBestCaseFill, simulateWorstCaseFill } from './quote_simulation';
 import * as _ from 'lodash';
 import { constants } from '../constants';
 
-export interface QuoteInfo {
+interface QuoteInfo {
     bestCaseQuoteInfo: SwapQuoteInfo;
     worstCaseQuoteInfo: SwapQuoteInfo;
-    sourceBreakdown: SwapQuoteOrdersBreakdown;
+    sourceBreakdown: SwapQuoteSourceBreakdown;
 }
 
 interface MultiHopFill {
@@ -170,7 +170,7 @@ function mergeSwapQuoteInfos(...swapQuoteInfos: readonly SwapQuoteInfo[]): SwapQ
 function calculateSwapQuoteOrdersBreakdown(
     fillAmountBySource: { [source: string]: BigNumber },
     multihopFills: MultiHopFill[],
-): SwapQuoteOrdersBreakdown {
+): SwapQuoteSourceBreakdown {
     const totalFillAmount = BigNumber.sum(
         ...Object.values(fillAmountBySource),
         ...multihopFills.map((fill) => fill.amount),

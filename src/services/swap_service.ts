@@ -483,7 +483,7 @@ export class SwapService implements ISwapService {
             sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellToken,
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
-            sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
+            sources: serviceUtils.convertToLiquiditySources(sourceBreakdown),
             orders: swapQuote.path.getOrders(),
             allowanceTarget,
             decodedUniqueId,
