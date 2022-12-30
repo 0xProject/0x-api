@@ -307,17 +307,19 @@ export interface SwapQuoteInfo {
 }
 
 /**
- * percentage breakdown of each liquidity source used in quote
+ * Percentage breakdown of each liquidity source used in quote.
+ * Each multihop order is treated as a distinct source.
  */
-export type SwapQuoteOrdersBreakdown = Partial<
-    { [key in Exclude<ERC20BridgeSource, typeof ERC20BridgeSource.MultiHop>]: BigNumber } & {
-        [ERC20BridgeSource.MultiHop]: {
-            proportion: BigNumber;
-            intermediateToken: string;
-            hops: ERC20BridgeSource[];
-        };
-    }
->;
+export type SwapQuoteOrdersBreakdown = {
+    singleSource: Partial<{
+        [key in Exclude<ERC20BridgeSource, ERC20BridgeSource.MultiHop>]: BigNumber;
+    }>;
+    multihop: {
+        proportion: BigNumber;
+        intermediateToken: string;
+        hops: ERC20BridgeSource[];
+    }[];
+};
 
 export interface RfqRequestOpts {
     takerAddress: string;

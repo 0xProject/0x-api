@@ -381,7 +381,7 @@ export class SwapService implements ISwapService {
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(affiliateFeeGasCost);
 
         // Cannot eth_gasEstimate for /price when RFQ Native liquidity is included
-        const isNativeIncluded = swapQuote.sourceBreakdown.Native !== undefined;
+        const isNativeIncluded = swapQuote.sourceBreakdown.singleSource.Native !== undefined;
         const isQuote = endpoint === 'quote';
         const canEstimateGas = isQuote || !isNativeIncluded;
 
