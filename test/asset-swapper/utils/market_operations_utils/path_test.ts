@@ -390,7 +390,6 @@ describe('Path', () => {
                     createFakeBridgeFill({
                         input: ONE_ETHER,
                         output: ONE_ETHER.times(1000),
-                        source: ERC20BridgeSource.UniswapV2,
                     }),
                 ],
                 ONE_ETHER,
@@ -418,7 +417,6 @@ describe('Path', () => {
                     createFakeBridgeFill({
                         input: ONE_ETHER,
                         output: ONE_ETHER.times(1000),
-                        source: ERC20BridgeSource.UniswapV2,
                     }),
                 ],
                 ONE_ETHER,
@@ -486,21 +484,19 @@ describe('Path', () => {
     });
 });
 
-function createFakeBridgeFill(params: {
-    input: BigNumber;
-    output?: BigNumber;
-    adjustedOutput?: BigNumber;
-    source?: ERC20BridgeSource;
-}): Fill {
-    const { input, output, adjustedOutput, source } = params;
+function createFakeBridgeFill(params: { input: BigNumber; output?: BigNumber; adjustedOutput?: BigNumber }): Fill {
+    const { input, output, adjustedOutput } = params;
     return {
         input,
         output: output || new BigNumber(0),
         adjustedOutput: adjustedOutput || new BigNumber(0),
         gas: 42,
-        source: source || ERC20BridgeSource.UniswapV3,
+        source: ERC20BridgeSource.UniswapV2,
         type: FillQuoteTransformerOrderType.Bridge,
-        fillData: {},
+        fillData: {
+            tokenAddressPath: ['fake-taker-token', 'fake_maker-token'],
+            router: 'fake-router',
+        },
         sourcePathId: 'fake-path-id',
         flags: BigInt(0),
     };
@@ -532,9 +528,12 @@ function createFakeFillWithFlags(flags: bigint): Fill {
         output: ONE_ETHER,
         adjustedOutput: ONE_ETHER,
         gas: 42,
-        source: ERC20BridgeSource.UniswapV3,
+        source: ERC20BridgeSource.UniswapV2,
         type: FillQuoteTransformerOrderType.Bridge,
-        fillData: {},
+        fillData: {
+            tokenAddressPath: ['fake-taker-token', 'fake_maker-token'],
+            router: 'fake-router',
+        },
         sourcePathId: 'fake-path-id',
         flags,
     };
