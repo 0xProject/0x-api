@@ -29,7 +29,7 @@ import {
     GetMarketOrdersOpts,
     FeeSchedule,
 } from '../../src/asset-swapper/types';
-import { MarketOperationUtils } from '../../src/asset-swapper/utils/market_operation_utils/';
+import { MarketOperationUtils, OptimizerResultWithReport } from '../../src/asset-swapper/utils/market_operation_utils/';
 import {
     BUY_SOURCE_FILTER_BY_CHAIN_ID,
     SELL_SOURCE_FILTER_BY_CHAIN_ID,
@@ -44,7 +44,6 @@ import {
     DexSample,
     GenerateOptimizedOrdersOpts,
     MarketSideLiquidity,
-    OptimizerResultWithReport,
 } from '../../src/asset-swapper/utils/market_operation_utils/types';
 import { RfqClient } from '../../src/utils/rfq_client';
 

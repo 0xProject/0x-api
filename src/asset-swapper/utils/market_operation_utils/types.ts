@@ -9,12 +9,8 @@ import {
     FeeSchedule,
     FillAdjustor,
     ExchangeProxyOverhead,
-    ExtendedQuoteReportSources,
-    PriceComparisonsReport,
-    QuoteReport,
 } from '../../types';
 import { V4RFQIndicativeQuoteMM } from '../../utils/quote_requestor';
-import { Path } from './path';
 
 import { SourceFilters } from './source_filters';
 
@@ -311,19 +307,6 @@ export interface BatchedOperation<TResult> {
 export interface SourceQuoteOperation<TFillData extends FillData = FillData> extends BatchedOperation<BigNumber[]> {
     readonly source: ERC20BridgeSource;
     fillData: TFillData;
-}
-
-export interface OptimizerResult {
-    path: Path;
-    marketSideLiquidity: MarketSideLiquidity;
-    takerAmountPerEth: BigNumber;
-    makerAmountPerEth: BigNumber;
-}
-
-export interface OptimizerResultWithReport extends OptimizerResult {
-    quoteReport?: QuoteReport;
-    extendedQuoteReportSources?: ExtendedQuoteReportSources;
-    priceComparisonsReport?: PriceComparisonsReport;
 }
 
 export interface MarketSideLiquidity {

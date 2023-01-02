@@ -23,7 +23,7 @@ import {
     SwapQuoterOpts,
     SwapQuoterRfqOpts,
 } from './types';
-import { MarketOperationUtils } from './utils/market_operation_utils';
+import { MarketOperationUtils, OptimizerResultWithReport } from './utils/market_operation_utils';
 import { BancorService } from './utils/market_operation_utils/bancor_service';
 import {
     BUY_SOURCE_FILTER_BY_CHAIN_ID,
@@ -34,7 +34,6 @@ import {
 } from './utils/market_operation_utils/constants';
 import { DexOrderSampler } from './utils/market_operation_utils/sampler';
 import { SourceFilters } from './utils/market_operation_utils/source_filters';
-import { OptimizerResultWithReport } from './utils/market_operation_utils/types';
 import { ERC20BridgeSource, FillData, GasSchedule, GetMarketOrdersOpts, OptimizedOrder, Orderbook } from './types';
 import { GasPriceUtils } from './utils/gas_price_utils';
 import { QuoteRequestor } from './utils/quote_requestor';

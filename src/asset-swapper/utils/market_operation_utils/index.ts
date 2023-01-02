@@ -44,22 +44,30 @@ import {
     ZERO_AMOUNT,
 } from './constants';
 import { IdentityFillAdjustor } from './identity_fill_adjustor';
+import { Path } from './path';
 import { PathOptimizer } from './path_optimizer';
 import { DexOrderSampler, getSampleAmounts } from './sampler';
 import { SourceFilters } from './source_filters';
-import {
-    AggregationError,
-    GenerateOptimizedOrdersOpts,
-    MarketSideLiquidity,
-    OptimizerResult,
-    OptimizerResultWithReport,
-} from './types';
+import { AggregationError, GenerateOptimizedOrdersOpts, MarketSideLiquidity } from './types';
 
 const NO_CONVERSION_TO_NATIVE_FOUND = new Counter({
     name: 'no_conversion_to_native_found',
     help: 'unable to get conversion to native token',
     labelNames: ['source', 'endpoint'],
 });
+
+interface OptimizerResult {
+    path: Path;
+    marketSideLiquidity: MarketSideLiquidity;
+    takerAmountPerEth: BigNumber;
+    makerAmountPerEth: BigNumber;
+}
+
+export interface OptimizerResultWithReport extends OptimizerResult {
+    quoteReport?: QuoteReport;
+    extendedQuoteReportSources?: ExtendedQuoteReportSources;
+    priceComparisonsReport?: PriceComparisonsReport;
+}
 
 export class MarketOperationUtils {
     private readonly _sellSources: SourceFilters;
