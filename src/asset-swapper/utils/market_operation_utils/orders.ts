@@ -3,7 +3,6 @@ import { AbiEncoder, BigNumber } from '@0x/utils';
 import _ = require('lodash');
 
 import {
-    AssetSwapperContractAddresses,
     MarketOperation,
     ERC20BridgeSource,
     Fill,
@@ -15,6 +14,7 @@ import {
     OptimizedMarketBridgeOrder,
     OptimizedOrder,
     OptimizedNativeOrder,
+    FillBase,
 } from '../../types';
 
 import { MAX_UINT256, ZERO_AMOUNT } from './constants';
@@ -51,14 +51,13 @@ export interface CreateOrderFromPathOpts {
     side: MarketOperation;
     inputToken: string;
     outputToken: string;
-    contractAddresses: AssetSwapperContractAddresses;
 }
 
 export function createOrdersFromTwoHopSample(
     sample: DexSample<MultiHopFillData>,
     opts: CreateOrderFromPathOpts,
 ): [OptimizedOrder, OptimizedOrder] {
-    const [makerToken, takerToken] = getMakerTakerTokens(opts);
+    const { makerToken, takerToken } = getMakerTakerTokens(opts);
     const { firstHopSource, secondHopSource, intermediateToken } = sample.fillData;
     const firstHopFill: Fill = {
         sourcePathId: '',
@@ -550,7 +549,7 @@ export function createNativeOptimizedOrder(fill: Fill<NativeFillData>, side: Mar
         makerAmount,
         takerAmount,
         fillData,
-        fill: cleanFillForExport(fill),
+        fill: toFillBase(fill),
     };
     switch (fill.type) {
         case FillQuoteTransformerOrderType.Rfq:
@@ -587,13 +586,12 @@ export function createBridgeOrder(
         makerAmount,
         takerAmount,
         fillData: createFinalBridgeOrderFillDataFromCollapsedFill(fill),
-        fill: cleanFillForExport(fill),
-        sourcePathId: fill.sourcePathId,
+        fill: toFillBase(fill),
     };
 }
 
-function cleanFillForExport(fill: Fill): Fill {
-    return _.omit(fill, ['flags', 'fillData', 'sourcePathId', 'source', 'type']) as Fill;
+function toFillBase(fill: Fill): FillBase {
+    return _.pick(fill, ['input', 'output', 'adjustedOutput', 'gas']);
 }
 
 function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {
@@ -632,8 +630,11 @@ function getBestUniswapV3PathAmountForInputAmount(
     return fillData.pathAmounts[fillData.pathAmounts.length - 1];
 }
 
-export function getMakerTakerTokens(opts: CreateOrderFromPathOpts): [string, string] {
+export function getMakerTakerTokens(opts: CreateOrderFromPathOpts): {
+    makerToken: string;
+    takerToken: string;
+} {
     const makerToken = opts.side === MarketOperation.Sell ? opts.outputToken : opts.inputToken;
     const takerToken = opts.side === MarketOperation.Sell ? opts.inputToken : opts.outputToken;
-    return [makerToken, takerToken];
+    return { makerToken, takerToken };
 }

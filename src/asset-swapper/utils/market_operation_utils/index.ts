@@ -44,7 +44,6 @@ import {
     ZERO_AMOUNT,
 } from './constants';
 import { IdentityFillAdjustor } from './identity_fill_adjustor';
-import { PathPenaltyOpts } from './path';
 import { PathOptimizer } from './path_optimizer';
 import { DexOrderSampler, getSampleAmounts } from './sampler';
 import { SourceFilters } from './source_filters';
@@ -405,7 +404,6 @@ export class MarketOperationUtils {
             side,
             inputToken,
             outputToken,
-            contractAddresses: this.contractAddresses,
         };
 
         const augmentedRfqtIndicativeQuotes: NativeOrderWithFillableAmounts[] = rfqtIndicativeQuotes.map(
@@ -420,14 +418,6 @@ export class MarketOperationUtils {
                 } as NativeOrderWithFillableAmounts),
         );
 
-        // Find the optimal path.
-        const pathPenaltyOpts: PathPenaltyOpts = {
-            outputAmountPerEth,
-            inputAmountPerEth,
-            exchangeProxyOverhead: opts.exchangeProxyOverhead || (() => ZERO_AMOUNT),
-            gasPrice: opts.gasPrice,
-        };
-
         // NOTE: For sell quotes input is the taker asset and for buy quotes input is the maker asset
         const takerAmountPerEth = side === MarketOperation.Sell ? inputAmountPerEth : outputAmountPerEth;
         const makerAmountPerEth = side === MarketOperation.Sell ? outputAmountPerEth : inputAmountPerEth;
@@ -439,7 +429,11 @@ export class MarketOperationUtils {
             chainId: this._sampler.chainId,
             neonRouterNumSamples: opts.neonRouterNumSamples,
             fillAdjustor: opts.fillAdjustor,
-            pathPenaltyOpts,
+            pathPenaltyOpts: {
+                outputAmountPerEth,
+                inputAmountPerEth,
+                exchangeProxyOverhead: opts.exchangeProxyOverhead || (() => ZERO_AMOUNT),
+            },
             inputAmount,
         });
         const optimalPath = pathOptimizer.findOptimalPathFromSamples(dexQuotes, twoHopQuotes, [
@@ -456,12 +450,10 @@ export class MarketOperationUtils {
             throw new Error(AggregationError.NoOptimalPath);
         }
 
-        const finalizedPath = optimalPath.finalize(orderOpts);
-
         return {
-            optimizedOrders: finalizedPath.orders,
-            liquidityDelivered: finalizedPath.fills,
-            sourceFlags: finalizedPath.sourceFlags,
+            optimizedOrders: optimalPath.createOrders(orderOpts),
+            liquidityDelivered: optimalPath.fills,
+            sourceFlags: optimalPath.sourceFlags,
             marketSideLiquidity,
             adjustedRate: optimalPathAdjustedRate,
             takerAmountPerEth,

@@ -355,9 +355,7 @@ export class PathOptimizer {
     private createFillFromTwoHopSample(sample: DexSample<MultiHopFillData>): Fill {
         const { fillData } = sample;
 
-        // TODO: remove below once `FeeSchedule` become non-Partial.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const multihopFeeEstimate = this.feeSchedule[ERC20BridgeSource.MultiHop]!;
+        const multihopFeeEstimate = this.feeSchedule[ERC20BridgeSource.MultiHop];
         const fill = twoHopSampleToFill(
             this.side,
             sample,
@@ -509,9 +507,7 @@ export class PathOptimizer {
             return undefined;
         }
 
-        const pathFromRustInputs = Path.create(this.side, adjustedFills, inputAmount, this.pathPenaltyOpts);
-
-        return pathFromRustInputs;
+        return Path.create(this.side, adjustedFills, inputAmount, this.pathPenaltyOpts);
     }
 }
 
