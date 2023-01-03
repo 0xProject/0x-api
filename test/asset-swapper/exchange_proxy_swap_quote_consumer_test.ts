@@ -31,6 +31,7 @@ import {
     NativeFillData,
     OptimizedLimitOrder,
     OptimizedOrder,
+    IPath,
 } from '../../src/asset-swapper/types';
 import { Path } from '../../src/asset-swapper/utils/market_operation_utils/path';
 
@@ -123,7 +124,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
                 createOrders: () => [order],
                 createSlippedOrders: (_maxSlippage: number) => [order],
                 hasTwoHop: () => false,
-            } as unknown as Path,
+            } as IPath,
             makerTokenDecimals: 18,
             takerTokenDecimals: 18,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!

@@ -19,7 +19,6 @@ import {
 import { RfqClient } from '../utils/rfq_client';
 import { QuoteRequestor } from './utils/quote_requestor';
 import { TokenAdjacencyGraph } from './utils/token_adjacency_graph';
-import { Path } from './utils/market_operation_utils/path';
 
 export interface QuoteReport {
     sourcesConsidered: QuoteReportEntry[];
@@ -237,6 +236,12 @@ export interface ExchangeProxyContractOpts {
     shouldSellEntireBalance: boolean;
 }
 
+export interface IPath {
+    hasTwoHop(): boolean;
+    createOrders(): OptimizedOrder[];
+    createSlippedOrders(maxSlippage: number): OptimizedOrder[];
+}
+
 /**
  * takerToken: Address of the taker asset.
  * makerToken: Address of the maker asset.
@@ -251,7 +256,7 @@ interface SwapQuoteBase {
     gasPrice: BigNumber;
     // TODO(kyu-c): replace its usage with `path.createOrders`.
     orders: OptimizedOrder[];
-    path: Path;
+    path: IPath;
     bestCaseQuoteInfo: SwapQuoteInfo;
     worstCaseQuoteInfo: SwapQuoteInfo;
     sourceBreakdown: SwapQuoteOrdersBreakdown;

@@ -8,6 +8,7 @@ import {
     ERC20BridgeSource,
     ExchangeProxyOverhead,
     Fill,
+    IPath,
 } from '../../types';
 
 import { MAX_UINT256, SOURCE_FLAGS, ZERO_AMOUNT } from './constants';
@@ -32,7 +33,7 @@ export interface PathPenaltyOpts {
     exchangeProxyOverhead: ExchangeProxyOverhead;
 }
 
-export class Path {
+export class Path implements IPath {
     public static create(
         context: PathContext,
         fills: readonly Fill[],
