@@ -178,8 +178,14 @@ export interface GenericRouterFillData extends FillData {
 }
 
 export interface MultiHopFillData extends FillData {
-    firstHopSource: SourceQuoteOperation;
-    secondHopSource: SourceQuoteOperation;
+    firstHopSource: {
+        source: ERC20BridgeSource;
+        fillData: FillData;
+    };
+    secondHopSource: {
+        source: ERC20BridgeSource;
+        fillData: FillData;
+    };
     intermediateToken: string;
 }
 
@@ -311,6 +317,7 @@ export interface SourceQuoteOperation<TFillData extends FillData = FillData> ext
 export interface OptimizerResult {
     optimizedOrders: OptimizedOrder[];
     sourceFlags: bigint;
+    // TODO(kyu-c): `liquidityDelivered` is never `DexSample<MultiHopFillData>`.
     liquidityDelivered: Readonly<Fill[] | DexSample<MultiHopFillData>>;
     marketSideLiquidity: MarketSideLiquidity;
     adjustedRate: BigNumber;
