@@ -20,7 +20,6 @@ import {
 } from './asset-swapper';
 import {
     DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
-    DEFAULT_LOCAL_POSTGRES_URI,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_META_TX_MIN_ALLOWED_SLIPPAGE,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
@@ -101,16 +100,12 @@ const getIntegratorIdFromLabel = (label: string): string | undefined => {
     }
 };
 
-type RfqWorkFlowType = 'rfqt' | 'rfqm';
 type RfqOrderType = 'rfq' | 'otc';
-
-export const RFQ_WORKFLOW: RfqWorkFlowType = 'rfqt'; // This code base currently only supports rfqt workflow.
-export const RFQ_PAIR_REFRESH_INTERVAL_MS: number = ONE_MINUTE_MS * 1;
 
 /**
  * The JSON config for each Market Maker, providing information including URIs, type of order supported and authentication.
  */
-export interface RfqMakerConfig {
+interface RfqMakerConfig {
     makerId: string;
     label: string;
     rfqmMakerUri: string;
@@ -119,27 +114,6 @@ export interface RfqMakerConfig {
     rfqtOrderTypes: RfqOrderType[];
     apiKeyHashes: string[];
 }
-
-/**
- * A Map type which map the makerId to the config object.
- */
-export type MakerIdsToConfigs = Map</* makerId */ string, RfqMakerConfig>;
-
-/**
- * Generate a map from MakerId to MakerConfig that support a given order type for a given workflow
- */
-const getMakerConfigMapForOrderType = (
-    orderType: RfqOrderType | 'any',
-    workflow: RfqWorkFlowType,
-): MakerIdsToConfigs => {
-    const typesField = workflow === 'rfqt' ? 'rfqtOrderTypes' : 'rfqmOrderTypes';
-    return RFQ_MAKER_CONFIGS.reduce((acc, curr) => {
-        if (orderType === 'any' || curr[typesField].includes(orderType)) {
-            acc.set(curr.makerId, curr);
-        }
-        return acc;
-    }, new Map<string, RfqMakerConfig>());
-};
 
 /**
  * A list of type RfqMakerConfig, read from the RFQ_MAKER_CONFIGS env variable
@@ -186,7 +160,7 @@ const HTTP_HEADERS_TIMEOUT = _.isEmpty(process.env.HTTP_HEADERS_TIMEOUT)
 
 // Default chain id to use when not specified
 export const CHAIN_ID: ChainId = _.isEmpty(process.env.CHAIN_ID)
-    ? ChainId.Kovan
+    ? ChainId.Mainnet
     : assertEnvVarType('CHAIN_ID', process.env.CHAIN_ID, EnvVarType.ChainId);
 
 // Whitelisted token addresses. Set to a '*' instead of an array to allow all tokens.
@@ -288,8 +262,8 @@ export const SRA_ORDER_EXPIRATION_BUFFER_SECONDS: number = _.isEmpty(process.env
           EnvVarType.KeepAliveTimeout,
       );
 
-export const POSTGRES_URI = _.isEmpty(process.env.POSTGRES_URI)
-    ? DEFAULT_LOCAL_POSTGRES_URI
+export const POSTGRES_URI: string | undefined = _.isEmpty(process.env.POSTGRES_URI)
+    ? undefined
     : assertEnvVarType('POSTGRES_URI', process.env.POSTGRES_URI, EnvVarType.Url);
 
 export const POSTGRES_READ_REPLICA_URIS: string[] | undefined = _.isEmpty(process.env.POSTGRES_READ_REPLICA_URIS)
@@ -310,9 +284,7 @@ export const RFQT_REGISTRY_PASSWORDS: string[] = resolveEnvVar<string[]>(
 const RFQT_INTEGRATORS: Integrator[] = INTEGRATORS_ACL.filter((i) => i.rfqt);
 export const RFQT_INTEGRATOR_IDS: string[] = INTEGRATORS_ACL.filter((i) => i.rfqt).map((i) => i.integratorId);
 export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('rfqt');
-export const RFQM_API_KEY_WHITELIST: Set<string> = new Set(getApiKeyWhitelistFromIntegratorsAcl('rfqm'));
 
-export const RFQT_MAKER_CONFIG_MAP_FOR_RFQ_ORDER: MakerIdsToConfigs = getMakerConfigMapForOrderType('rfq', 'rfqt');
 export const MATCHA_INTEGRATOR_ID: string | undefined = getIntegratorIdFromLabel('Matcha');
 
 export const RFQ_CLIENT_ROLLOUT_PERCENT: number = resolveEnvVar('RFQ_CLIENT_ROLLOUT_PERCENT', EnvVarType.Integer, 0);
@@ -371,7 +343,7 @@ export const PROMETHEUS_PORT: number = _.isEmpty(process.env.PROMETHEUS_PORT)
     : assertEnvVarType('PROMETHEUS_PORT', process.env.PROMETHEUS_PORT, EnvVarType.Port);
 
 // ZeroEx Gas API URL
-const ZERO_EX_GAS_API_URL: string = _.isEmpty(process.env.ZERO_EX_GAS_API_URL)
+export const ZERO_EX_GAS_API_URL: string = _.isEmpty(process.env.ZERO_EX_GAS_API_URL)
     ? DEFAULT_ZERO_EX_GAS_API_URL
     : assertEnvVarType('ZERO_EX_GAS_API_URL', process.env.ZERO_EX_GAS_API_URL, EnvVarType.Url);
 
@@ -501,10 +473,13 @@ export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP: Partial<SwapQuoteRequestOp
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_NO_VIP,
 };
 
+export const CHAIN_HAS_VIPS = (chainId: ChainId) => {
+    return [ChainId.Mainnet, ChainId.BSC].includes(chainId);
+};
+
 const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
     switch (CHAIN_ID) {
         case ChainId.Ganache:
-        case ChainId.Kovan:
             return { overrides: {}, block: BlockParamLiteral.Latest };
         default:
             return undefined;

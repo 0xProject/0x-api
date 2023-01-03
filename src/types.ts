@@ -195,6 +195,7 @@ interface SwapQuoteParamsBase {
     affiliateAddress?: string;
     affiliateFee: AffiliateFee;
     includePriceComparisons?: boolean;
+    priceImpactProtectionPercentage: number;
 }
 
 // GET /swap/quote
@@ -393,9 +394,9 @@ export interface ISwapService {
 
 export interface AppDependencies {
     contractAddresses: ContractAddresses;
-    connection: Connection;
+    connection?: Connection;
     kafkaClient?: Kafka;
-    orderBookService: IOrderBookService;
+    orderBookService?: IOrderBookService;
     swapService?: ISwapService;
     metaTransactionService?: IMetaTransactionService;
     provider: SupportedProvider;

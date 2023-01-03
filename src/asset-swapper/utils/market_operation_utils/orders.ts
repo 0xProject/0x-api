@@ -3,7 +3,6 @@ import { AbiEncoder, BigNumber } from '@0x/utils';
 import _ = require('lodash');
 
 import {
-    AssetSwapperContractAddresses,
     MarketOperation,
     ERC20BridgeSource,
     Fill,
@@ -15,6 +14,7 @@ import {
     OptimizedMarketBridgeOrder,
     OptimizedOrder,
     OptimizedNativeOrder,
+    FillBase,
 } from '../../types';
 
 import { MAX_UINT256, ZERO_AMOUNT } from './constants';
@@ -24,7 +24,6 @@ import {
     AggregationError,
     BalancerFillData,
     BalancerV2BatchSwapFillData,
-    BalancerV2FillData,
     BancorFillData,
     CompoundFillData,
     CurveFillData,
@@ -52,14 +51,13 @@ export interface CreateOrderFromPathOpts {
     side: MarketOperation;
     inputToken: string;
     outputToken: string;
-    contractAddresses: AssetSwapperContractAddresses;
 }
 
 export function createOrdersFromTwoHopSample(
     sample: DexSample<MultiHopFillData>,
     opts: CreateOrderFromPathOpts,
 ): [OptimizedOrder, OptimizedOrder] {
-    const [makerToken, takerToken] = getMakerTakerTokens(opts);
+    const { makerToken, takerToken } = getMakerTakerTokens(opts);
     const { firstHopSource, secondHopSource, intermediateToken } = sample.fillData;
     const firstHopFill: Fill = {
         sourcePathId: '',
@@ -168,7 +166,7 @@ export function getErc20BridgeSourceToBridgeSource(source: ERC20BridgeSource): s
         case ERC20BridgeSource.UbeSwap:
             return encodeBridgeSourceId(BridgeProtocol.UniswapV2, 'UbeSwap');
         case ERC20BridgeSource.Beethovenx:
-            return encodeBridgeSourceId(BridgeProtocol.BalancerV2, 'Beethovenx');
+            return encodeBridgeSourceId(BridgeProtocol.BalancerV2Batch, 'Beethovenx');
         case ERC20BridgeSource.SpiritSwap:
             return encodeBridgeSourceId(BridgeProtocol.UniswapV2, 'SpiritSwap');
         case ERC20BridgeSource.SpookySwap:
@@ -249,6 +247,7 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             bridgeData = encoder.encode([balancerFillData.poolAddress]);
             break;
         }
+        case ERC20BridgeSource.Beethovenx:
         case ERC20BridgeSource.BalancerV2:
             {
                 const balancerV2FillData = (order as OptimizedMarketBridgeOrder<BalancerV2BatchSwapFillData>).fillData;
@@ -259,12 +258,6 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
                 ]);
             }
             break;
-        case ERC20BridgeSource.Beethovenx: {
-            const beethovenFillData = (order as OptimizedMarketBridgeOrder<BalancerV2FillData>).fillData;
-            const { vault, poolId } = beethovenFillData;
-            bridgeData = encoder.encode([vault, poolId]);
-            break;
-        }
         case ERC20BridgeSource.Bancor: {
             const bancorFillData = (order as OptimizedMarketBridgeOrder<BancorFillData>).fillData;
             bridgeData = encoder.encode([bancorFillData.networkAddress, bancorFillData.path]);
@@ -442,9 +435,20 @@ const makerPsmEncoder = AbiEncoder.create([
     { name: 'psmAddress', type: 'address' },
     { name: 'gemTokenAddress', type: 'address' },
 ]);
-const balancerV2Encoder = AbiEncoder.create([
+const balancerV2BatchEncoder = AbiEncoder.create([
     { name: 'vault', type: 'address' },
-    { name: 'poolId', type: 'bytes32' },
+    {
+        name: 'swapSteps',
+        type: 'tuple[]',
+        components: [
+            { name: 'poolId', type: 'bytes32' },
+            { name: 'assetInIndex', type: 'uint256' },
+            { name: 'assetOutIndex', type: 'uint256' },
+            { name: 'amount', type: 'uint256' },
+            { name: 'userData', type: 'bytes' },
+        ],
+    },
+    { name: 'assets', type: 'address[]' },
 ]);
 const routerAddressPathEncoder = AbiEncoder.create('(address,address[])');
 
@@ -508,22 +512,8 @@ const BRIDGE_ENCODERS: {
     [ERC20BridgeSource.GMX]: AbiEncoder.create('(address,address,address,address[])'),
     [ERC20BridgeSource.Platypus]: AbiEncoder.create('(address,address[],address[])'),
     [ERC20BridgeSource.MakerPsm]: makerPsmEncoder,
-    [ERC20BridgeSource.BalancerV2]: AbiEncoder.create([
-        { name: 'vault', type: 'address' },
-        {
-            name: 'swapSteps',
-            type: 'tuple[]',
-            components: [
-                { name: 'poolId', type: 'bytes32' },
-                { name: 'assetInIndex', type: 'uint256' },
-                { name: 'assetOutIndex', type: 'uint256' },
-                { name: 'amount', type: 'uint256' },
-                { name: 'userData', type: 'bytes' },
-            ],
-        },
-        { name: 'assets', type: 'address[]' },
-    ]),
-    [ERC20BridgeSource.Beethovenx]: balancerV2Encoder,
+    [ERC20BridgeSource.BalancerV2]: balancerV2BatchEncoder,
+    [ERC20BridgeSource.Beethovenx]: balancerV2BatchEncoder,
     [ERC20BridgeSource.UniswapV3]: AbiEncoder.create([
         { name: 'router', type: 'address' },
         { name: 'path', type: 'bytes' },
@@ -559,7 +549,7 @@ export function createNativeOptimizedOrder(fill: Fill<NativeFillData>, side: Mar
         makerAmount,
         takerAmount,
         fillData,
-        fill: cleanFillForExport(fill),
+        fill: toFillBase(fill),
     };
     switch (fill.type) {
         case FillQuoteTransformerOrderType.Rfq:
@@ -596,13 +586,12 @@ export function createBridgeOrder(
         makerAmount,
         takerAmount,
         fillData: createFinalBridgeOrderFillDataFromCollapsedFill(fill),
-        fill: cleanFillForExport(fill),
-        sourcePathId: fill.sourcePathId,
+        fill: toFillBase(fill),
     };
 }
 
-function cleanFillForExport(fill: Fill): Fill {
-    return _.omit(fill, ['flags', 'fillData', 'sourcePathId', 'source', 'type']) as Fill;
+function toFillBase(fill: Fill): FillBase {
+    return _.pick(fill, ['input', 'output', 'adjustedOutput', 'gas']);
 }
 
 function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {
@@ -641,8 +630,11 @@ function getBestUniswapV3PathAmountForInputAmount(
     return fillData.pathAmounts[fillData.pathAmounts.length - 1];
 }
 
-export function getMakerTakerTokens(opts: CreateOrderFromPathOpts): [string, string] {
+export function getMakerTakerTokens(opts: CreateOrderFromPathOpts): {
+    makerToken: string;
+    takerToken: string;
+} {
     const makerToken = opts.side === MarketOperation.Sell ? opts.outputToken : opts.inputToken;
     const takerToken = opts.side === MarketOperation.Sell ? opts.inputToken : opts.outputToken;
-    return [makerToken, takerToken];
+    return { makerToken, takerToken };
 }

@@ -7,6 +7,7 @@ import { TxData, Web3Wrapper } from '@0x/web3-wrapper';
 import axios from 'axios';
 import { SupportedProvider } from 'ethereum-types';
 import * as _ from 'lodash';
+import { Counter } from 'prom-client';
 
 import {
     AffiliateFeeAmount,
@@ -36,6 +37,7 @@ import {
     ALT_RFQ_MM_ENDPOINT,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS,
     ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
+    CHAIN_HAS_VIPS,
     CHAIN_ID,
     RFQT_REQUEST_MAX_RESPONSE_MS,
     SWAP_QUOTER_OPTS,
@@ -52,7 +54,13 @@ import {
     ONE_MINUTE_MS,
     ZERO,
 } from '../constants';
-import { GasEstimationError, InsufficientFundsError } from '../errors';
+import {
+    GasEstimationError,
+    InsufficientFundsError,
+    ValidationError,
+    ValidationErrorCodes,
+    ValidationErrorReasons,
+} from '../errors';
 import { logger } from '../logger';
 import {
     AffiliateFee,
@@ -62,7 +70,6 @@ import {
     SwapQuoteResponsePartialTransaction,
 } from '../types';
 import { altMarketResponseToAltOfferings } from '../utils/alt_mm_utils';
-import { PairsManager } from '../utils/pairs_manager';
 import { createResultCache } from '../utils/result_cache';
 import { RfqClient } from '../utils/rfq_client';
 import { RfqDynamicBlacklist } from '../utils/rfq_dyanmic_blacklist';
@@ -70,6 +77,12 @@ import { serviceUtils, getBuyTokenPercentageFeeOrZero } from '../utils/service_u
 import { SlippageModelFillAdjustor } from '../utils/slippage_model_fill_adjustor';
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
+
+const PRICE_IMPACT_TOO_HIGH = new Counter({
+    name: 'price_impact_too_high',
+    help: 'The number of price impact events',
+    labelNames: ['reason'],
+});
 
 export class SwapService implements ISwapService {
     private readonly _provider: SupportedProvider;
@@ -188,7 +201,6 @@ export class SwapService implements ISwapService {
         private readonly _rfqClient: RfqClient,
         firmQuoteValidator?: RfqFirmQuoteValidator | undefined,
         rfqDynamicBlacklist?: RfqDynamicBlacklist,
-        private readonly _pairsManager?: PairsManager,
         readonly slippageModelManager?: SlippageModelManager,
     ) {
         this._provider = provider;
@@ -249,6 +261,7 @@ export class SwapService implements ISwapService {
             skipValidation,
             shouldSellEntireBalance,
             enableSlippageProtection,
+            priceImpactProtectionPercentage,
         } = params;
 
         let _rfqt: GetMarketOrdersRfqOpts | undefined;
@@ -287,7 +300,8 @@ export class SwapService implements ISwapService {
             isMetaTransaction ||
             shouldSellEntireBalance ||
             // Note: We allow VIP to continue ahead when positive slippage fee is enabled
-            affiliateFee.feeType === AffiliateFeeType.PercentageFee
+            affiliateFee.feeType === AffiliateFeeType.PercentageFee ||
+            !CHAIN_HAS_VIPS(CHAIN_ID)
         ) {
             swapQuoteRequestOpts = ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP;
         } else {
@@ -298,7 +312,7 @@ export class SwapService implements ISwapService {
             ...swapQuoteRequestOpts,
             bridgeSlippage: slippagePercentage,
             gasPrice: providedGasPrice,
-            excludedSources: swapQuoteRequestOpts.excludedSources?.concat(...(excludedSources || [])),
+            excludedSources: excludedSources.concat(swapQuoteRequestOpts.excludedSources || []),
             includedSources,
             rfqt: _rfqt,
             shouldGenerateQuoteReport,
@@ -312,6 +326,7 @@ export class SwapService implements ISwapService {
                           slippagePercentage || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
                       )
                     : new IdentityFillAdjustor(),
+            endpoint: endpoint,
         };
 
         const marketSide = sellAmount !== undefined ? MarketOperation.Sell : MarketOperation.Buy;
@@ -484,6 +499,24 @@ export class SwapService implements ISwapService {
             throw new InsufficientFundsError();
         }
 
+        if (
+            isQuote &&
+            apiSwapQuote.estimatedPriceImpact &&
+            apiSwapQuote.estimatedPriceImpact.gt(priceImpactProtectionPercentage * 100)
+        ) {
+            PRICE_IMPACT_TOO_HIGH.labels('ValueOutOfRange').inc();
+            throw new ValidationError([
+                {
+                    field: 'priceImpactProtectionPercentage',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: ValidationErrorReasons.PriceImpactTooHigh,
+                    description: `estimated price impact of ${
+                        apiSwapQuote.estimatedPriceImpact
+                    } is greater than priceImpactProtectionPercentage ${priceImpactProtectionPercentage * 100}`,
+                },
+            ]);
+        }
+
         // If the slippage Model is forced on for the integrator, or if they have opted in to slippage protection
         if (integrator?.slippageModel === true || enableSlippageProtection) {
             if (this.slippageModelManager) {
@@ -551,8 +584,8 @@ export class SwapService implements ISwapService {
             gasPrice,
             protocolFee: ZERO,
             minimumProtocolFee: ZERO,
-            buyTokenAddress: buyToken,
-            sellTokenAddress: sellToken,
+            buyTokenAddress: isUnwrap ? ETH_TOKEN_ADDRESS : buyToken,
+            sellTokenAddress: isUnwrap ? sellToken : ETH_TOKEN_ADDRESS,
             buyAmount: amount,
             sellAmount: amount,
             sources: [],

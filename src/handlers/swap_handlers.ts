@@ -24,10 +24,12 @@ import {
     RFQT_API_KEY_WHITELIST,
     RFQT_INTEGRATOR_IDS,
     RFQT_REGISTRY_PASSWORDS,
+    ZERO_EX_GAS_API_URL,
 } from '../config';
 import {
     AFFILIATE_DATA_SELECTOR,
     DEFAULT_ENABLE_SLIPPAGE_PROTECTION,
+    DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE,
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     ONE_SECOND_MS,
     SWAP_DOCS_URL,
@@ -78,6 +80,11 @@ const HTTP_SWAP_REQUESTS = new Counter({
     name: 'swap_requests',
     help: 'Total number of swap requests',
     labelNames: ['endpoint', 'chain_id', 'api_key', 'integrator_id'],
+});
+
+const PRICE_IMPACT_PROTECTION_SPECIFIED = new Counter({
+    name: 'price_impact_protection_specified',
+    help: 'price impact protection was specified by client',
 });
 
 export class SwapHandlers {
@@ -158,6 +165,8 @@ export class SwapHandlers {
                     estimatedGas: quote.estimatedGas,
                     enableSlippageProtection: params.enableSlippageProtection,
                     expectedSlippage: quote.expectedSlippage,
+                    estimatedPriceImpact: quote.estimatedPriceImpact,
+                    priceImpactProtectionPercentage: params.priceImpactProtectionPercentage,
                 },
                 true,
                 kafkaProducer,
@@ -272,6 +281,8 @@ export class SwapHandlers {
                     estimatedGas: quote.estimatedGas,
                     enableSlippageProtection: params.enableSlippageProtection,
                     expectedSlippage: quote.expectedSlippage,
+                    estimatedPriceImpact: quote.estimatedPriceImpact,
+                    priceImpactProtectionPercentage: params.priceImpactProtectionPercentage,
                 },
                 false,
                 kafkaProducer,
@@ -301,7 +312,10 @@ export class SwapHandlers {
 
             // Add additional L1 gas cost.
             if (CHAIN_ID === ChainId.Arbitrum) {
-                const gasUtils = GasPriceUtils.getInstance(constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
+                const gasUtils = GasPriceUtils.getInstance(
+                    constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS,
+                    ZERO_EX_GAS_API_URL,
+                );
                 const gasPrices = await gasUtils.getGasPriceEstimationOrDefault({
                     fast: 100_000_000, // 0.1 gwei in wei
                 });
@@ -452,6 +466,22 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         ]);
     }
 
+    let priceImpactProtectionPercentage = DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE;
+    if (req.query.priceImpactProtectionPercentage !== undefined) {
+        PRICE_IMPACT_PROTECTION_SPECIFIED.inc();
+        priceImpactProtectionPercentage = Number.parseFloat(req.query.priceImpactProtectionPercentage as string);
+        if (priceImpactProtectionPercentage > 1) {
+            throw new ValidationError([
+                {
+                    field: 'priceImpactProtectionPercentage',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: ValidationErrorReasons.PercentageOutOfRange,
+                    description: 'priceImpactProtectionPercentage should be between 0 and 1.0',
+                },
+            ]);
+        }
+    }
+
     // Parse sources
     const { excludedSources, includedSources, nativeExclusivelyRFQT } = parseUtils.parseRequestForExcludedSources(
         {
@@ -515,6 +545,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         integratorLabel: integrator?.label || 'N/A',
         rawApiKey: apiKey || 'N/A',
         enableSlippageProtection,
+        priceImpactProtectionPercentage,
     });
 
     return {
@@ -543,6 +574,7 @@ const parseSwapQuoteRequestParams = (req: express.Request, endpoint: 'price' | '
         slippagePercentage,
         takerAddress: takerAddress as string,
         enableSlippageProtection,
+        priceImpactProtectionPercentage,
     };
 };
 
