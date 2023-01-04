@@ -5,15 +5,10 @@ import { BigNumber } from '@0x/utils';
 import {
     NativeOrderWithFillableAmounts,
     ERC20BridgeSource,
-    OptimizedOrder,
     FillData,
     FeeSchedule,
-    Fill,
     FillAdjustor,
     ExchangeProxyOverhead,
-    ExtendedQuoteReportSources,
-    PriceComparisonsReport,
-    QuoteReport,
 } from '../../types';
 import { V4RFQIndicativeQuoteMM } from '../../utils/quote_requestor';
 
@@ -314,23 +309,6 @@ export interface SourceQuoteOperation<TFillData extends FillData = FillData> ext
     fillData: TFillData;
 }
 
-export interface OptimizerResult {
-    optimizedOrders: OptimizedOrder[];
-    sourceFlags: bigint;
-    // TODO(kyu-c): `liquidityDelivered` is never `DexSample<MultiHopFillData>`.
-    liquidityDelivered: Readonly<Fill[] | DexSample<MultiHopFillData>>;
-    marketSideLiquidity: MarketSideLiquidity;
-    adjustedRate: BigNumber;
-    takerAmountPerEth: BigNumber;
-    makerAmountPerEth: BigNumber;
-}
-
-export interface OptimizerResultWithReport extends OptimizerResult {
-    quoteReport?: QuoteReport;
-    extendedQuoteReportSources?: ExtendedQuoteReportSources;
-    priceComparisonsReport?: PriceComparisonsReport;
-}
-
 export interface MarketSideLiquidity {
     side: MarketOperation;
     inputAmount: BigNumber;
@@ -344,6 +322,12 @@ export interface MarketSideLiquidity {
     quotes: RawQuotes;
     isRfqSupported: boolean;
     blockNumber: number;
+}
+
+export interface PathContext {
+    side: MarketOperation;
+    inputToken: string;
+    outputToken: string;
 }
 
 export interface RawQuotes {

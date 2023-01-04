@@ -70,7 +70,7 @@
         "@types/ws": "^8.5.3",
         "@types/zen-observable": "^0.8.1",
         "@typescript-eslint/eslint-plugin": "^5.35.1",
-        "@typescript-eslint/parser": "^5.35.1",
+        "@typescript-eslint/parser": "^5.47.1",
         "@zapper-fi/eslint-plugin": "^1.4.0",
         "axios-mock-adapter": "^1.19.0",
         "chai": "^4.0.1",
@@ -119,7 +119,7 @@
         "@bancor/sdk": "0.2.10",
         "@ethersproject/abi": "^5.0.1",
         "@ethersproject/address": "^5.0.1",
-        "@ethersproject/contracts": "^5.0.1",
+        "@ethersproject/contracts": "^5.7.0",
         "@ethersproject/hdnode": "^5.2.0",
         "@ethersproject/providers": "^5.7.1",
         "@ethersproject/strings": "^5.0.10",
@@ -149,6 +149,6 @@
         "typeorm": "0.2.29",
         "uuid-validate": "^0.0.3",
         "ws": "^8.11.0",
-        "zen-observable": "^0.8.15"
+        "zen-observable": "^0.10.0"
     }
 }
