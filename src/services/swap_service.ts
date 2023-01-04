@@ -413,7 +413,7 @@ export class SwapService implements ISwapService {
                         accuracy: realGasEstimate.minus(fauxGasEstimate).dividedBy(realGasEstimate).toFixed(4),
                         buyToken,
                         sellToken,
-                        sources: Object.keys(swapQuote.sourceBreakdown),
+                        sources: _.uniq(swapQuote.path.getOrders().map((o) => o.source)),
                     },
                     'Improved gas estimate',
                 );
