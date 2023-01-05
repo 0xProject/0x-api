@@ -524,7 +524,7 @@ interface IntegratorShareFee extends GaslessFeeBase {
 }
 
 // Gasless fees returned to the caller of /meta_transaction/v2/price and /meta_transaction/v2/quote
-export interface GaslessFees {
+interface GaslessFees {
     integrator?: VolumeBasedFee;
     zeroex?: VolumeBasedFee | IntegratorShareFee;
     gas?: GasFee;

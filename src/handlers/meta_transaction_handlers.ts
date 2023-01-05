@@ -29,6 +29,7 @@ import {
     IMetaTransactionService,
     GaslessFeeConfigs,
     MetaTransactionV2QuoteRequestParams,
+    MetaTransactionV2PriceResponse,
 } from '../types';
 import { findTokenAddressOrThrowApiError } from '../utils/address_utils';
 import { parseUtils } from '../utils/parse_utils';
@@ -130,7 +131,7 @@ export class MetaTransactionHandlers {
                 isETHSell: false,
             });
 
-            const metaTransactionPriceResponse: MetaTransactionV1PriceResponse = {
+            const metaTransactionPriceResponse: MetaTransactionV2PriceResponse = {
                 ..._.omit(metaTransactionPriceCalculation, 'orders', 'quoteReport', 'estimatedGasTokenRefund'),
                 value: metaTransactionPriceCalculation.protocolFee,
                 gas: metaTransactionPriceCalculation.estimatedGas,
