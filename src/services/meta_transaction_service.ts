@@ -37,7 +37,9 @@ export class MetaTransactionService implements IMetaTransactionService {
         this._swapService = swapService;
     }
 
-    public async getMetaTransactionV1PriceAsync(params: MetaTransactionV1QuoteParams): Promise<MetaTransactionV1QuoteResult> {
+    public async getMetaTransactionV1PriceAsync(
+        params: MetaTransactionV1QuoteParams,
+    ): Promise<MetaTransactionV1QuoteResult> {
         return this._getMetaTransactionQuoteAsync(params, 'price');
     }
 
