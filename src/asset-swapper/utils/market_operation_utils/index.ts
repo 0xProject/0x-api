@@ -1,6 +1,7 @@
 import { FillQuoteTransformerOrderType, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as _ from 'lodash';
+import { last, sample } from 'lodash';
 import { Counter } from 'prom-client';
 
 import { SAMPLER_METRICS } from '../../../utils/sampler_metrics';
@@ -16,6 +17,7 @@ import {
     ExtendedQuoteReportSources,
     PriceComparisonsReport,
     QuoteReport,
+    FillData,
 } from '../../types';
 import { getAltMarketInfo } from '../alt_mm_implementation_utils';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from '../quote_requestor';
@@ -48,7 +50,14 @@ import { Path } from './path';
 import { PathOptimizer } from './path_optimizer';
 import { DexOrderSampler, getSampleAmounts } from './sampler';
 import { SourceFilters } from './source_filters';
-import { AggregationError, GenerateOptimizedOrdersOpts, MarketSideLiquidity } from './types';
+import {
+    AggregationError,
+    DexSample,
+    GenerateOptimizedOrdersOpts,
+    MarketSideLiquidity,
+    MultiHopFillData,
+} from './types';
+import * as fs from 'fs';
 
 const NO_CONVERSION_TO_NATIVE_FOUND = new Counter({
     name: 'no_conversion_to_native_found',
@@ -160,6 +169,7 @@ export class MarketOperationUtils {
         opts?: Partial<GetMarketOrdersOpts>,
     ): Promise<MarketSideLiquidity> {
         const _opts = { ...DEFAULT_GET_MARKET_ORDERS_OPTS, ...opts };
+        _opts.numSamples = 13;
         const sampleAmounts = getSampleAmounts(takerAmount, _opts.numSamples, _opts.sampleDistributionBase);
 
         const requestFilters = new SourceFilters().exclude(_opts.excludedSources).include(_opts.includedSources);
@@ -167,8 +177,37 @@ export class MarketOperationUtils {
 
         // Used to determine whether the tx origin is an EOA or a contract
         const txOrigin = (_opts.rfqt && _opts.rfqt.txOrigin) || NULL_ADDRESS;
+        const sampleSplit = 2;
+        const lastSplit = sampleAmounts.length % sampleSplit;
+        const index = Math.floor(sampleAmounts.length / sampleSplit);
+        const splitSampleAmounts: Array<Array<BigNumber>> = [];
+        for (let i = 0; i < sampleAmounts.length; i += index) {
+            let amount: Array<BigNumber> = [];
+            if (i + lastSplit === sampleAmounts.length) {
+                for (let j = i; j < i + lastSplit; j++) {
+                    amount.push(sampleAmounts[i]);
+                }
+                i = i + lastSplit;
+            } else {
+                for (let j = i; j < i + index; j++) {
+                    amount.push(sampleAmounts[i]);
+                }
+            }
+            splitSampleAmounts.push(amount);
+        }
 
-        // Call the sampler contract.
+        const batchSamplerPromise = splitSampleAmounts.map(async (sampleSplit) => {
+            return await this._sampler.executeAsync(
+                this._sampler.getSellQuotes(quoteSourceFilters.sources, makerToken, takerToken, sampleSplit),
+                this._sampler.getTwoHopSellQuotes(
+                    quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
+                    makerToken,
+                    takerToken,
+                    [takerAmount],
+                ),
+            );
+        });
+
         const samplerPromise = this._sampler.executeAsync(
             this._sampler.getBlockNumber(),
             this._sampler.getGasLeft(),
@@ -218,6 +257,9 @@ export class MarketOperationUtils {
             isTxOriginContract,
             gasAfter,
         ] = await samplerPromise;
+        // let singleTime = Date.now() - start;
+        // let log = `${_opts.numSamples},${sampleSplit},${splitTime - singleTime}, ${takerToken}, ${makerToken}`;
+        // fs.appendFileSync('log.csv', log + '\n');
 
         const defaultLabels = ['getMarketSellLiquidityAsync', opts?.endpoint || 'N/A'];
 

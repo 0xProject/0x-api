@@ -8,6 +8,7 @@ import { TokenAdjacencyGraph } from '../token_adjacency_graph';
 import { BancorService } from './bancor_service';
 import { PoolsCacheMap, SamplerOperations } from './sampler_operations';
 import { BatchedOperation } from './types';
+import * as fs from 'fs';
 
 /**
  * Generate sample amounts up to `maxFillAmount`.
@@ -180,10 +181,17 @@ export class DexOrderSampler extends SamplerOperations {
             ? this._samplerOverrides
             : { overrides: undefined, block: undefined };
 
-        // All operations are NOOPs
         if (callDatas.every((cd) => cd === NULL_BYTES)) {
             return callDatas.map((_callData, i) => ops[i].handleCallResults(NULL_BYTES));
         }
+        if (callDatas.length === 2) {
+            const samplerCalldata = callDatas.filter((cd) => cd !== NULL_BYTES);
+            const log = `[${samplerCalldata.toString()}],\n`;
+            fs.appendFileSync('calldata.csv', log);
+        }
+        // All operations are NOOPs
+
+        //console.log(samplerCalldata);
         // Execute all non-empty calldatas.
         const rawCallResults = await this._samplerContract
             .batchCall(callDatas.filter((cd) => cd !== NULL_BYTES))
@@ -193,6 +201,9 @@ export class DexOrderSampler extends SamplerOperations {
         return callDatas.map((callData, i) => {
             const { data, success } =
                 callData !== NULL_BYTES ? rawCallResults[rawCallResultsIdx++] : { success: true, data: NULL_BYTES };
+            if (success) {
+                //console.log(data);
+            }
             return success ? ops[i].handleCallResults(data) : ops[i].handleRevert(data);
         });
     }
