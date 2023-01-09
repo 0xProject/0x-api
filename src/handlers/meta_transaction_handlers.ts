@@ -427,7 +427,6 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
 
             parsedFeeConfigs.integrator = {
                 kind: 'volume',
-                feeToken: integratorFee.feeToken as string,
                 feeRecipient: integratorFee.feeRecipient as string,
                 volumePercentage,
             };
@@ -461,14 +460,12 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
             if (zeroexFee.kind === 'volume') {
                 parsedFeeConfigs.zeroex = {
                     kind: 'volume',
-                    feeToken: zeroexFee.feeToken as string,
                     feeRecipient: zeroexFee.feeRecipient as string,
                     volumePercentage: feePercentage,
                 };
             } else if (zeroexFee.kind === 'integrator_share') {
                 parsedFeeConfigs.zeroex = {
                     kind: 'integrator_share',
-                    feeToken: zeroexFee.feeToken as string,
                     feeRecipient: zeroexFee.feeRecipient as string,
                     integratorSharePercentage: new BigNumber(zeroexFee.integratorSharePercentage as string),
                 };
@@ -491,7 +488,6 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
 
             parsedFeeConfigs.gas = {
                 kind: 'gas',
-                feeToken: gasFee.feeToken as string,
                 feeRecipient: gasFee.feeRecipient as string,
             };
         }

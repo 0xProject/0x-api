@@ -475,7 +475,6 @@ export interface RfqtV2Request {
 }
 
 interface GaslessFeeConfigBase {
-    feeToken: string;
     feeRecipient?: string;
 }
 
