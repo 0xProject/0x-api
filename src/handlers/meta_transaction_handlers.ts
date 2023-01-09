@@ -464,6 +464,16 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
                     volumePercentage: feePercentage,
                 };
             } else if (zeroexFee.kind === 'integrator_share') {
+                if (!parsedFeeConfigs.integrator) {
+                    throw new ValidationError([
+                        {
+                            field: 'feeConfigs',
+                            code: ValidationErrorCodes.IncorrectFormat,
+                            reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                        },
+                    ]);
+                }
+
                 parsedFeeConfigs.zeroex = {
                     kind: 'integrator_share',
                     feeRecipient: zeroexFee.feeRecipient as string,
