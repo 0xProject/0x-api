@@ -530,7 +530,7 @@ export type ZeroexFee = VolumeBasedFee | IntegratorShareFee;
 
 // Gasless fees returned to the caller of /meta_transaction/v2/price and /meta_transaction/v2/quote
 export interface GaslessFees {
-    integrator?: VolumeBasedFee;
+    integrator?: IntegratorFee;
     zeroex?: ZeroexFee;
     gas?: GasFee;
 }
