@@ -514,7 +514,7 @@ interface GasFee extends GaslessFeeBase {
     kind: 'gas';
     gasPrice: BigNumber;
     estimatedGas: BigNumber;
-    feeTokenAmountPerNativeToken: BigNumber;
+    feeTokenAmountPerBaseUnitNativeToken: BigNumber;
 }
 
 interface IntegratorShareFee extends GaslessFeeBase {
