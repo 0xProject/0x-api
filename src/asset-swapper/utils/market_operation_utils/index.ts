@@ -169,7 +169,7 @@ export class MarketOperationUtils {
         opts?: Partial<GetMarketOrdersOpts>,
     ): Promise<MarketSideLiquidity> {
         const _opts = { ...DEFAULT_GET_MARKET_ORDERS_OPTS, ...opts };
-        _opts.numSamples = 13;
+        _opts.numSamples = Number(process.env.NUM_SAMPLES ?? 13);
         const sampleAmounts = getSampleAmounts(takerAmount, _opts.numSamples, _opts.sampleDistributionBase);
 
         const requestFilters = new SourceFilters().exclude(_opts.excludedSources).include(_opts.includedSources);
@@ -177,7 +177,7 @@ export class MarketOperationUtils {
 
         // Used to determine whether the tx origin is an EOA or a contract
         const txOrigin = (_opts.rfqt && _opts.rfqt.txOrigin) || NULL_ADDRESS;
-        const sampleSplit = 2;
+        const sampleSplit = Number(process.env.SAMPLE_SPLIT ?? 2);
         const lastSplit = sampleAmounts.length % sampleSplit;
         const index = Math.floor(sampleAmounts.length / sampleSplit);
         const splitSampleAmounts: Array<Array<BigNumber>> = [];
