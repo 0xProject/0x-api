@@ -6,7 +6,6 @@ import {
     GaslessFees,
     IntegratorFee,
     IntegratorFeeConfig,
-    VolumeBasedFee,
     ZeroexFee,
     ZeroExFeeConfig,
 } from '../types';
@@ -30,7 +29,7 @@ const TRANSFER_FROM_GAS = new BigNumber(72e3);
  *             quoteGasEstimate: The gas estimate to fill the quote.
  * @returns Gasless fees to charge.
  */
-export function calculateGaslessFee(
+function calculateGaslessFee(
     feeConfigs: GaslessFeeConfigs,
     opts: {
         sellToken: string;
@@ -74,7 +73,7 @@ function _calculateIntegratorFee(opts: {
     integratorFeeConfig?: IntegratorFeeConfig;
     sellToken: string;
     sellTokenAmount: BigNumber;
-}): VolumeBasedFee | undefined {
+}): IntegratorFee | undefined {
     if (!opts.integratorFeeConfig) {
         return undefined;
     }

@@ -478,7 +478,7 @@ interface GaslessFeeConfigBase {
     feeRecipient?: string;
 }
 
-export interface VolumeBasedFeeConfig extends GaslessFeeConfigBase {
+interface VolumeBasedFeeConfig extends GaslessFeeConfigBase {
     kind: 'volume';
     volumePercentage: BigNumber;
 }
@@ -487,7 +487,7 @@ export interface GasFeeConfig extends GaslessFeeConfigBase {
     kind: 'gas';
 }
 
-export interface IntegratorShareFeeConfig extends GaslessFeeConfigBase {
+interface IntegratorShareFeeConfig extends GaslessFeeConfigBase {
     kind: 'integrator_share';
     integratorSharePercentage: BigNumber;
 }
@@ -508,7 +508,7 @@ interface GaslessFeeBase {
     feeRecipient?: string;
 }
 
-export interface VolumeBasedFee extends GaslessFeeBase {
+interface VolumeBasedFee extends GaslessFeeBase {
     kind: 'volume';
     volumePercentage: BigNumber;
 }
@@ -520,7 +520,7 @@ export interface GasFee extends GaslessFeeBase {
     feeTokenAmountPerBaseUnitNativeToken: BigNumber;
 }
 
-export interface IntegratorShareFee extends GaslessFeeBase {
+interface IntegratorShareFee extends GaslessFeeBase {
     kind: 'integrator_share';
     integratorSharePercentage: BigNumber;
 }
