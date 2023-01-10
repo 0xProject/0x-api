@@ -478,24 +478,27 @@ interface GaslessFeeConfigBase {
     feeRecipient?: string;
 }
 
-interface VolumeBasedFeeConfig extends GaslessFeeConfigBase {
+export interface VolumeBasedFeeConfig extends GaslessFeeConfigBase {
     kind: 'volume';
     volumePercentage: BigNumber;
 }
 
-interface GasFeeConfig extends GaslessFeeConfigBase {
+export interface GasFeeConfig extends GaslessFeeConfigBase {
     kind: 'gas';
 }
 
-interface IntegratorShareFeeConfig extends GaslessFeeConfigBase {
+export interface IntegratorShareFeeConfig extends GaslessFeeConfigBase {
     kind: 'integrator_share';
     integratorSharePercentage: BigNumber;
 }
 
+export type IntegratorFeeConfig = VolumeBasedFeeConfig;
+export type ZeroExFeeConfig = VolumeBasedFeeConfig | IntegratorShareFeeConfig;
+
 // Gasless fee configs passed to /meta_transaction/v2/price and /meta_transaction/v2/quote
 export interface GaslessFeeConfigs {
-    integrator?: VolumeBasedFeeConfig;
-    zeroex?: VolumeBasedFeeConfig | IntegratorShareFeeConfig;
+    integrator?: IntegratorFeeConfig;
+    zeroex?: ZeroExFeeConfig;
     gas?: GasFeeConfig;
 }
 
@@ -505,26 +508,29 @@ interface GaslessFeeBase {
     feeRecipient?: string;
 }
 
-interface VolumeBasedFee extends GaslessFeeBase {
+export interface VolumeBasedFee extends GaslessFeeBase {
     kind: 'volume';
     volumePercentage: BigNumber;
 }
 
-interface GasFee extends GaslessFeeBase {
+export interface GasFee extends GaslessFeeBase {
     kind: 'gas';
     gasPrice: BigNumber;
     estimatedGas: BigNumber;
     feeTokenAmountPerBaseUnitNativeToken: BigNumber;
 }
 
-interface IntegratorShareFee extends GaslessFeeBase {
+export interface IntegratorShareFee extends GaslessFeeBase {
     kind: 'integrator_share';
     integratorSharePercentage: BigNumber;
 }
 
+export type IntegratorFee = VolumeBasedFee;
+export type ZeroexFee = VolumeBasedFee | IntegratorShareFee;
+
 // Gasless fees returned to the caller of /meta_transaction/v2/price and /meta_transaction/v2/quote
-interface GaslessFees {
+export interface GaslessFees {
     integrator?: VolumeBasedFee;
-    zeroex?: VolumeBasedFee | IntegratorShareFee;
+    zeroex?: ZeroexFee;
     gas?: GasFee;
 }
