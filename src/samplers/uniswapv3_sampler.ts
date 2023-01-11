@@ -26,10 +26,6 @@ export class UniswapV3Sampler implements BridgeContractSampler<UniswapV3FillData
         ({ quoter: this.quoterAddress, router: this.routerAddress } = UNISWAPV3_CONFIG_BY_CHAIN_ID[chainId]);
     }
 
-    // create(samplerContract: ERC20BridgeSamplerContract, chainId: ChainId) {
-    //     return new UniswapV3Sampler(samplerContract, chainId);
-    // }
-
     createSampleSellsOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
@@ -41,6 +37,7 @@ export class UniswapV3Sampler implements BridgeContractSampler<UniswapV3FillData
             amounts,
         );
     }
+
     createSampleBuysOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
@@ -53,7 +50,7 @@ export class UniswapV3Sampler implements BridgeContractSampler<UniswapV3FillData
         );
     }
 
-    private postProcessSamplerFunctionOutput(
+    _postProcessSamplerFunctionOutput(
         amounts: BigNumber[],
         paths: string[],
         gasUsed: BigNumber[],
@@ -86,7 +83,7 @@ export class UniswapV3Sampler implements BridgeContractSampler<UniswapV3FillData
                 >(samplerMethodName, callResults);
                 fillData.router = this.routerAddress;
                 fillData.tokenAddressPath = tokenAddressPath;
-                fillData.pathAmounts = this.postProcessSamplerFunctionOutput(amounts, paths, gasUsed);
+                fillData.pathAmounts = this._postProcessSamplerFunctionOutput(amounts, paths, gasUsed);
                 return samples;
             },
         });
