@@ -23,7 +23,6 @@ import {
     MarketSellSwapQuote,
     SwapQuote,
     SwapQuoteConsumer,
-    SwapQuoteGetOutputOpts,
 } from '../types';
 import { assert } from '../utils/utils';
 import {
@@ -118,11 +117,11 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumer {
 
     public getCalldataOrThrow(
         quote: MarketBuySwapQuote | MarketSellSwapQuote,
-        opts: Partial<SwapQuoteGetOutputOpts> = {},
+        opts: Partial<ExchangeProxyContractOpts> = {},
     ): CalldataInfo {
         const optsWithDefaults: ExchangeProxyContractOpts = {
             ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-            ...opts.extensionContractOpts,
+            ...opts,
         };
         const { refundReceiver, affiliateFee, isFromETH, isToETH, shouldSellEntireBalance } = optsWithDefaults;
 
