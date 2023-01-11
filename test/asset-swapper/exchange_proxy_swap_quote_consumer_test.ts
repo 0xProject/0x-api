@@ -43,7 +43,7 @@ const expect = chai.expect;
 const { NULL_ADDRESS } = constants;
 const { MAX_UINT256, ZERO_AMOUNT } = contractConstants;
 
-describe.only('ExchangeProxySwapQuoteConsumer', () => {
+describe('ExchangeProxySwapQuoteConsumer', () => {
     const CHAIN_ID = 1;
     const TAKER_TOKEN = randomAddress();
     const MAKER_TOKEN = randomAddress();
@@ -77,7 +77,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
     };
     let consumer: ExchangeProxySwapQuoteConsumer;
 
-    before(async () => {
+    before(() => {
         consumer = new ExchangeProxySwapQuoteConsumer(CHAIN_ID, contractAddresses);
     });
 
@@ -249,9 +249,9 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
     }
 
     describe('getCalldataOrThrow()', () => {
-        it('can produce a sell quote', async () => {
+        it('can produce a sell quote', () => {
             const quote = getRandomSellQuote();
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote);
+            const callInfo = consumer.getCalldataOrThrow(quote);
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             expect(callArgs.inputToken).to.eq(TAKER_TOKEN);
             expect(callArgs.outputToken).to.eq(MAKER_TOKEN);
@@ -274,9 +274,9 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
             expect(payTakerTransformerData.tokens).to.deep.eq([TAKER_TOKEN, ETH_TOKEN_ADDRESS]);
         });
 
-        it('can produce a buy quote', async () => {
+        it('can produce a buy quote', () => {
             const quote = getRandomBuyQuote();
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote);
+            const callInfo = consumer.getCalldataOrThrow(quote);
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             expect(callArgs.inputToken).to.eq(TAKER_TOKEN);
             expect(callArgs.outputToken).to.eq(MAKER_TOKEN);
@@ -303,17 +303,17 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
             expect(payTakerTransformerData.tokens).to.deep.eq([TAKER_TOKEN, ETH_TOKEN_ADDRESS]);
         });
 
-        it('ERC20 -> ERC20 does not have a WETH transformer', async () => {
+        it('ERC20 -> ERC20 does not have a WETH transformer', () => {
             const quote = getRandomSellQuote();
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote);
+            const callInfo = consumer.getCalldataOrThrow(quote);
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             const nonces = callArgs.transformations.map((t) => t.deploymentNonce);
             expect(nonces).to.not.include(TRANSFORMER_NONCES.wethTransformer);
         });
 
-        it('ETH -> ERC20 has a WETH transformer before the fill', async () => {
+        it('ETH -> ERC20 has a WETH transformer before the fill', () => {
             const quote = getRandomSellQuote();
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+            const callInfo = consumer.getCalldataOrThrow(quote, {
                 extensionContractOpts: { isFromETH: true },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
@@ -323,9 +323,9 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
             expect(wethTransformerData.token).to.eq(ETH_TOKEN_ADDRESS);
         });
 
-        it('ERC20 -> ETH has a WETH transformer after the fill', async () => {
+        it('ERC20 -> ETH has a WETH transformer after the fill', () => {
             const quote = getRandomSellQuote();
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+            const callInfo = consumer.getCalldataOrThrow(quote, {
                 extensionContractOpts: { isToETH: true },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
@@ -334,7 +334,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
             expect(wethTransformerData.amount).to.bignumber.eq(MAX_UINT256);
             expect(wethTransformerData.token).to.eq(contractAddresses.etherToken);
         });
-        it('Appends an affiliate fee transformer after the fill if a buy token affiliate fee is provided', async () => {
+        it('Appends an affiliate fee transformer after the fill if a buy token affiliate fee is provided', () => {
             const quote = getRandomSellQuote();
             const affiliateFee = {
                 recipient: randomAddress(),
@@ -342,7 +342,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 sellTokenFeeAmount: ZERO_AMOUNT,
                 feeType: AffiliateFeeType.PercentageFee,
             };
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+            const callInfo = consumer.getCalldataOrThrow(quote, {
                 extensionContractOpts: { affiliateFee },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
@@ -354,7 +354,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 { token: MAKER_TOKEN, amount: affiliateFee.buyTokenFeeAmount, recipient: affiliateFee.recipient },
             ]);
         });
-        it('Appends an affiliate fee transformer if conversion to native token is known', async () => {
+        it('Appends an affiliate fee transformer if conversion to native token is known', () => {
             const quote = getRandomSellQuote();
             quote.takerAmountPerEth = new BigNumber(0.5);
             const affiliateFee = {
@@ -363,7 +363,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 sellTokenFeeAmount: ZERO,
                 feeType: AffiliateFeeType.GaslessFee,
             };
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+            const callInfo = consumer.getCalldataOrThrow(quote, {
                 extensionContractOpts: { affiliateFee },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
@@ -375,7 +375,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 { token: MAKER_TOKEN, amount: affiliateFee.buyTokenFeeAmount, recipient: affiliateFee.recipient },
             ]);
         });
-        it('Appends an affiliate fee transformer if conversion to native token is unknown of 0.1%', async () => {
+        it('Appends an affiliate fee transformer if conversion to native token is unknown of 0.1%', () => {
             const quote = getRandomSellQuote();
             quote.takerAmountPerEth = new BigNumber(0);
             const affiliateFee = {
@@ -384,7 +384,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 sellTokenFeeAmount: ZERO,
                 feeType: AffiliateFeeType.GaslessFee,
             };
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+            const callInfo = consumer.getCalldataOrThrow(quote, {
                 extensionContractOpts: { affiliateFee },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
@@ -396,7 +396,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 { token: MAKER_TOKEN, amount: affiliateFee.buyTokenFeeAmount, recipient: affiliateFee.recipient },
             ]);
         });
-        it('Appends a positive slippage affiliate fee transformer after the fill if the positive slippage fee feeType is specified', async () => {
+        it('Appends a positive slippage affiliate fee transformer after the fill if the positive slippage fee feeType is specified', () => {
             const quote = getRandomSellQuote();
             const affiliateFee = {
                 recipient: randomAddress(),
@@ -404,7 +404,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 sellTokenFeeAmount: ZERO_AMOUNT,
                 feeType: AffiliateFeeType.PositiveSlippageFee,
             };
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+            const callInfo = consumer.getCalldataOrThrow(quote, {
                 extensionContractOpts: { affiliateFee },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
@@ -425,7 +425,7 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 recipient: affiliateFee.recipient,
             });
         });
-        it('Throws if a sell token affiliate fee is provided', async () => {
+        it('Throws if a sell token affiliate fee is provided', () => {
             const quote = getRandomSellQuote();
             const affiliateFee = {
                 recipient: randomAddress(),
@@ -433,15 +433,15 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
                 sellTokenFeeAmount: getRandomAmount(),
                 feeType: AffiliateFeeType.PercentageFee,
             };
-            expect(
-                consumer.getCalldataOrThrowAsync(quote, {
+            expect(() =>
+                consumer.getCalldataOrThrow(quote, {
                     extensionContractOpts: { affiliateFee },
                 }),
-            ).to.eventually.be.rejectedWith('Affiliate fees denominated in sell token are not yet supported');
+            ).to.throw('Affiliate fees denominated in sell token are not yet supported');
         });
-        it('Uses two `FillQuoteTransformer`s if given two-hop sell quote', async () => {
+        it('Uses two `FillQuoteTransformer`s if given two-hop sell quote', () => {
             const quote = getRandomTwoHopQuote(MarketOperation.Sell) as MarketSellSwapQuote;
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote);
+            const callInfo = consumer.getCalldataOrThrow(quote);
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             expect(callArgs.inputToken).to.eq(TAKER_TOKEN);
             expect(callArgs.outputToken).to.eq(MAKER_TOKEN);
@@ -475,9 +475,9 @@ describe.only('ExchangeProxySwapQuoteConsumer', () => {
             expect(payTakerTransformerData.tokens).to.deep.eq([TAKER_TOKEN, INTERMEDIATE_TOKEN, ETH_TOKEN_ADDRESS]);
         });
 
-        it('allows selling the entire balance for CFL', async () => {
+        it('allows selling the entire balance for CFL', () => {
             const quote = getRandomSellQuote();
-            const callInfo = await consumer.getCalldataOrThrowAsync(quote, {
+            const callInfo = consumer.getCalldataOrThrow(quote, {
                 extensionContractOpts: { shouldSellEntireBalance: true },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;

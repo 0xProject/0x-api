@@ -712,7 +712,7 @@ export class SwapService implements ISwapService {
             ethAmount: value,
             toAddress: to,
             gasOverhead,
-        } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, opts);
+        } = this._swapQuoteConsumer.getCalldataOrThrow(swapQuote, opts);
 
         const { affiliatedData, decodedUniqueId } = serviceUtils.attributeCallData(data, affiliateAddress);
         return {

@@ -116,10 +116,10 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumer {
         };
     }
 
-    public async getCalldataOrThrowAsync(
+    public getCalldataOrThrow(
         quote: MarketBuySwapQuote | MarketSellSwapQuote,
         opts: Partial<SwapQuoteGetOutputOpts> = {},
-    ): Promise<CalldataInfo> {
+    ): CalldataInfo {
         const optsWithDefaults: ExchangeProxyContractOpts = {
             ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
             ...opts.extensionContractOpts,
