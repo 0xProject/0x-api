@@ -43,23 +43,36 @@ const expect = chai.expect;
 const { NULL_ADDRESS } = constants;
 const { MAX_UINT256, ZERO_AMOUNT } = contractConstants;
 
-describe('ExchangeProxySwapQuoteConsumer', () => {
+describe.only('ExchangeProxySwapQuoteConsumer', () => {
     const CHAIN_ID = 1;
     const TAKER_TOKEN = randomAddress();
     const MAKER_TOKEN = randomAddress();
     const INTERMEDIATE_TOKEN = randomAddress();
     const TRANSFORMER_DEPLOYER = randomAddress();
+    const TRANSFORMER_NONCES = {
+        wethTransformer: 1,
+        payTakerTransformer: 2,
+        fillQuoteTransformer: 3,
+        affiliateFeeTransformer: 4,
+        positiveSlippageFeeTransformer: 5,
+    };
     const contractAddresses = {
         ...getContractAddressesForChainOrThrow(CHAIN_ID),
         exchangeProxy: randomAddress(),
         exchangeProxyAllowanceTarget: randomAddress(),
         exchangeProxyTransformerDeployer: TRANSFORMER_DEPLOYER,
         transformers: {
-            wethTransformer: getTransformerAddress(TRANSFORMER_DEPLOYER, 1),
-            payTakerTransformer: getTransformerAddress(TRANSFORMER_DEPLOYER, 2),
-            fillQuoteTransformer: getTransformerAddress(TRANSFORMER_DEPLOYER, 3),
-            affiliateFeeTransformer: getTransformerAddress(TRANSFORMER_DEPLOYER, 4),
-            positiveSlippageFeeTransformer: getTransformerAddress(TRANSFORMER_DEPLOYER, 5),
+            wethTransformer: getTransformerAddress(TRANSFORMER_DEPLOYER, TRANSFORMER_NONCES.wethTransformer),
+            payTakerTransformer: getTransformerAddress(TRANSFORMER_DEPLOYER, TRANSFORMER_NONCES.payTakerTransformer),
+            fillQuoteTransformer: getTransformerAddress(TRANSFORMER_DEPLOYER, TRANSFORMER_NONCES.fillQuoteTransformer),
+            affiliateFeeTransformer: getTransformerAddress(
+                TRANSFORMER_DEPLOYER,
+                TRANSFORMER_NONCES.affiliateFeeTransformer,
+            ),
+            positiveSlippageFeeTransformer: getTransformerAddress(
+                TRANSFORMER_DEPLOYER,
+                TRANSFORMER_NONCES.positiveSlippageFeeTransformer,
+            ),
         },
     };
     let consumer: ExchangeProxySwapQuoteConsumer;
@@ -245,14 +258,8 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             expect(callArgs.inputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.totalTakerAmount);
             expect(callArgs.minOutputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.makerAmount);
             expect(callArgs.transformations).to.be.length(2);
-            expect(
-                callArgs.transformations[0].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.fillQuoteTransformer,
-            );
-            expect(
-                callArgs.transformations[1].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.payTakerTransformer,
-            );
+            expect(callArgs.transformations[0].deploymentNonce.toNumber()).to.be.eq(3);
+            expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.be.eq(2);
             const fillQuoteTransformerData = decodeFillQuoteTransformerData(callArgs.transformations[0].data);
             expect(fillQuoteTransformerData.side).to.eq(FillQuoteTransformerSide.Sell);
             expect(fillQuoteTransformerData.fillAmount).to.bignumber.eq(quote.takerTokenFillAmount);
@@ -276,13 +283,11 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             expect(callArgs.inputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.totalTakerAmount);
             expect(callArgs.minOutputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.makerAmount);
             expect(callArgs.transformations).to.be.length(2);
-            expect(
-                callArgs.transformations[0].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.fillQuoteTransformer,
+            expect(callArgs.transformations[0].deploymentNonce.toNumber()).to.be.eq(
+                TRANSFORMER_NONCES.fillQuoteTransformer,
             );
-            expect(
-                callArgs.transformations[1].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.payTakerTransformer,
+            expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.be.eq(
+                TRANSFORMER_NONCES.payTakerTransformer,
             );
             const fillQuoteTransformerData = decodeFillQuoteTransformerData(callArgs.transformations[0].data);
             expect(fillQuoteTransformerData.side).to.eq(FillQuoteTransformerSide.Buy);
@@ -303,7 +308,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             const callInfo = await consumer.getCalldataOrThrowAsync(quote);
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             const nonces = callArgs.transformations.map((t) => t.deploymentNonce);
-            expect(nonces).to.not.include(consumer.transformerNonces.wethTransformer);
+            expect(nonces).to.not.include(TRANSFORMER_NONCES.wethTransformer);
         });
 
         it('ETH -> ERC20 has a WETH transformer before the fill', async () => {
@@ -312,9 +317,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
                 extensionContractOpts: { isFromETH: true },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
-            expect(callArgs.transformations[0].deploymentNonce.toNumber()).to.eq(
-                consumer.transformerNonces.wethTransformer,
-            );
+            expect(callArgs.transformations[0].deploymentNonce.toNumber()).to.eq(TRANSFORMER_NONCES.wethTransformer);
             const wethTransformerData = decodeWethTransformerData(callArgs.transformations[0].data);
             expect(wethTransformerData.amount).to.bignumber.eq(quote.worstCaseQuoteInfo.totalTakerAmount);
             expect(wethTransformerData.token).to.eq(ETH_TOKEN_ADDRESS);
@@ -326,9 +329,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
                 extensionContractOpts: { isToETH: true },
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
-            expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
-                consumer.transformerNonces.wethTransformer,
-            );
+            expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(TRANSFORMER_NONCES.wethTransformer);
             const wethTransformerData = decodeWethTransformerData(callArgs.transformations[1].data);
             expect(wethTransformerData.amount).to.bignumber.eq(MAX_UINT256);
             expect(wethTransformerData.token).to.eq(contractAddresses.etherToken);
@@ -346,7 +347,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
-                consumer.transformerNonces.affiliateFeeTransformer,
+                TRANSFORMER_NONCES.affiliateFeeTransformer,
             );
             const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
             expect(affiliateFeeTransformerData.fees).to.deep.equal([
@@ -367,7 +368,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
-                consumer.transformerNonces.affiliateFeeTransformer,
+                TRANSFORMER_NONCES.affiliateFeeTransformer,
             );
             const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
             expect(affiliateFeeTransformerData.fees).to.deep.equal([
@@ -388,7 +389,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
-                consumer.transformerNonces.affiliateFeeTransformer,
+                TRANSFORMER_NONCES.affiliateFeeTransformer,
             );
             const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
             expect(affiliateFeeTransformerData.fees).to.deep.equal([
@@ -408,7 +409,7 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             });
             const callArgs = transformERC20Encoder.decode(callInfo.calldataHexString) as TransformERC20Args;
             expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.eq(
-                consumer.transformerNonces.positiveSlippageFeeTransformer,
+                TRANSFORMER_NONCES.positiveSlippageFeeTransformer,
             );
             const positiveSlippageFeeTransformerData = decodePositiveSlippageFeeTransformerData(
                 callArgs.transformations[1].data,
@@ -447,18 +448,9 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             expect(callArgs.inputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.totalTakerAmount);
             expect(callArgs.minOutputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.makerAmount);
             expect(callArgs.transformations).to.be.length(3);
-            expect(
-                callArgs.transformations[0].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.fillQuoteTransformer,
-            );
-            expect(
-                callArgs.transformations[1].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.fillQuoteTransformer,
-            );
-            expect(
-                callArgs.transformations[2].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.payTakerTransformer,
-            );
+            expect(callArgs.transformations[0].deploymentNonce.toNumber() === TRANSFORMER_NONCES.fillQuoteTransformer);
+            expect(callArgs.transformations[1].deploymentNonce.toNumber() === TRANSFORMER_NONCES.fillQuoteTransformer);
+            expect(callArgs.transformations[2].deploymentNonce.toNumber() === TRANSFORMER_NONCES.payTakerTransformer);
             const [firstHopOrder, secondHopOrder] = quote.path.getOrders();
             const firstHopFillQuoteTransformerData = decodeFillQuoteTransformerData(callArgs.transformations[0].data);
             expect(firstHopFillQuoteTransformerData.side).to.eq(FillQuoteTransformerSide.Sell);
@@ -494,13 +486,11 @@ describe('ExchangeProxySwapQuoteConsumer', () => {
             expect(callArgs.inputTokenAmount).to.bignumber.eq(MAX_UINT256);
             expect(callArgs.minOutputTokenAmount).to.bignumber.eq(quote.worstCaseQuoteInfo.makerAmount);
             expect(callArgs.transformations).to.be.length(2);
-            expect(
-                callArgs.transformations[0].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.fillQuoteTransformer,
+            expect(callArgs.transformations[0].deploymentNonce.toNumber()).to.be.eq(
+                TRANSFORMER_NONCES.fillQuoteTransformer,
             );
-            expect(
-                callArgs.transformations[1].deploymentNonce.toNumber() ===
-                    consumer.transformerNonces.payTakerTransformer,
+            expect(callArgs.transformations[1].deploymentNonce.toNumber()).to.be.eq(
+                TRANSFORMER_NONCES.payTakerTransformer,
             );
             const fillQuoteTransformerData = decodeFillQuoteTransformerData(callArgs.transformations[0].data);
             expect(fillQuoteTransformerData.side).to.eq(FillQuoteTransformerSide.Sell);
