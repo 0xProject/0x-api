@@ -8,17 +8,17 @@ import {
     UniswapV3PathAmount,
 } from '../asset-swapper/utils/market_operation_utils/types';
 
-interface BridgeContractSampler<TFillData extends FillData> {
+interface BridgeSampler<TFillData extends FillData> {
     createSampleSellsOperation(tokenAddressPath: string[], amounts: BigNumber[]): SourceQuoteOperation<TFillData>;
     createSampleBuysOperation(tokenAddressPath: string[], amounts: BigNumber[]): SourceQuoteOperation<TFillData>;
 }
 
-export class UniswapV3Sampler implements BridgeContractSampler<UniswapV3FillData> {
-    readonly source: ERC20BridgeSource = ERC20BridgeSource.UniswapV3;
-    readonly samplerContract: ERC20BridgeSamplerContract;
-    readonly chainId: ChainId;
-    readonly quoterAddress: string;
-    readonly routerAddress: string;
+export class UniswapV3Sampler implements BridgeSampler<UniswapV3FillData> {
+    private readonly source: ERC20BridgeSource = ERC20BridgeSource.UniswapV3;
+    private readonly samplerContract: ERC20BridgeSamplerContract;
+    private readonly chainId: ChainId;
+    private readonly quoterAddress: string;
+    private readonly routerAddress: string;
 
     constructor(chainId: ChainId, samplerContract: ERC20BridgeSamplerContract) {
         this.chainId = chainId;
@@ -50,7 +50,7 @@ export class UniswapV3Sampler implements BridgeContractSampler<UniswapV3FillData
         );
     }
 
-    _postProcessSamplerFunctionOutput(
+    private static postProcessSamplerFunctionOutput(
         amounts: BigNumber[],
         paths: string[],
         gasUsed: BigNumber[],
@@ -62,7 +62,7 @@ export class UniswapV3Sampler implements BridgeContractSampler<UniswapV3FillData
         }));
     }
 
-    createSamplerOperation(
+    private createSamplerOperation(
         samplerFunction: (
             quoter: string,
             path: string[],
@@ -83,7 +83,7 @@ export class UniswapV3Sampler implements BridgeContractSampler<UniswapV3FillData
                 >(samplerMethodName, callResults);
                 fillData.router = this.routerAddress;
                 fillData.tokenAddressPath = tokenAddressPath;
-                fillData.pathAmounts = this._postProcessSamplerFunctionOutput(amounts, paths, gasUsed);
+                fillData.pathAmounts = UniswapV3Sampler.postProcessSamplerFunctionOutput(amounts, paths, gasUsed);
                 return samples;
             },
         });

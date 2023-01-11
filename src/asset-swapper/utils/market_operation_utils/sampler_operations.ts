@@ -3,7 +3,6 @@ import { LimitOrderFields } from '@0x/protocol-utils';
 import { BigNumber, logUtils } from '@0x/utils';
 import { formatBytes32String } from '@ethersproject/strings';
 import * as _ from 'lodash';
-import { UniswapV3SamplerContract } from '../../../../test/wrappers';
 import { UniswapV3Sampler } from '../../../samplers/uniswapv3_sampler';
 
 import { ERC20BridgeSamplerContract } from '../../../wrappers';
