@@ -169,7 +169,7 @@ export class MarketOperationUtils {
         opts?: Partial<GetMarketOrdersOpts>,
     ): Promise<MarketSideLiquidity> {
         const _opts = { ...DEFAULT_GET_MARKET_ORDERS_OPTS, ...opts };
-        _opts.numSamples = Number(process.env.NUM_SAMPLES ?? 13);
+        _opts.numSamples = Number(process.env.NUM_SAMPLES ?? 16);
         const sampleAmounts = getSampleAmounts(takerAmount, _opts.numSamples, _opts.sampleDistributionBase);
 
         const requestFilters = new SourceFilters().exclude(_opts.excludedSources).include(_opts.includedSources);
@@ -177,47 +177,17 @@ export class MarketOperationUtils {
 
         // Used to determine whether the tx origin is an EOA or a contract
         const txOrigin = (_opts.rfqt && _opts.rfqt.txOrigin) || NULL_ADDRESS;
-        const sampleSplit = Number(process.env.SAMPLE_SPLIT ?? 2);
-        const lastSplit = sampleAmounts.length % sampleSplit;
-        const index = Math.floor(sampleAmounts.length / sampleSplit);
-        const splitSampleAmounts: Array<Array<BigNumber>> = [];
-        for (let i = 0; i < sampleAmounts.length; i += index) {
-            let amount: Array<BigNumber> = [];
-            if (i + lastSplit === sampleAmounts.length) {
-                for (let j = i; j < i + lastSplit; j++) {
-                    amount.push(sampleAmounts[i]);
-                }
-                i = i + lastSplit;
-            } else {
-                for (let j = i; j < i + index; j++) {
-                    amount.push(sampleAmounts[i]);
-                }
-            }
-            splitSampleAmounts.push(amount);
-        }
+        const dexQuotes: DexSample[][] = [];
 
-        const batchSamplerPromise = splitSampleAmounts.map((sampleSplit) => {
-            return this._sampler
-                .executeAsync(
-                    this._sampler.getSellQuotes(quoteSourceFilters.sources, makerToken, takerToken, sampleSplit),
-                    this._sampler.getTwoHopSellQuotes(
-                        quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
-                        makerToken,
-                        takerToken,
-                        [takerAmount],
-                    ),
-                )
-                .then((res) => {
-                    return [res[0], res[1]];
-                });
-        });
-        let dexQuotes: DexSample<FillData>[][] = [];
-        let rawTwoHopQuotes: DexSample<MultiHopFillData>[] = [];
+        const sellQuotes = await Promise.all(
+            _.chunk(sampleAmounts, Number(process.env.NUM_SAMPLES_SPLIT ?? 8)).map((_samples) => {
+                return this._sampler.executeAsync(
+                    this._sampler.getSellQuotes(quoteSourceFilters.sources, makerToken, takerToken, _samples),
+                );
+            }),
+        );
 
-        (await Promise.all(batchSamplerPromise)).flatMap((val) => {
-            dexQuotes = dexQuotes.concat(val[0] as DexSample<FillData>[][]);
-            rawTwoHopQuotes = rawTwoHopQuotes.concat(val[1] as DexSample<MultiHopFillData>[]);
-        });
+        sellQuotes.forEach((elem) => dexQuotes.push(...elem[0]));
 
         const samplerPromise = this._sampler.executeAsync(
             this._sampler.getBlockNumber(),
@@ -241,6 +211,12 @@ export class MarketOperationUtils {
                 this._nativeFeeTokenAmount,
                 _opts.feeSchedule,
             ),
+            this._sampler.getTwoHopSellQuotes(
+                quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
+                makerToken,
+                takerToken,
+                [takerAmount],
+            ),
             this._sampler.isAddressContract(txOrigin),
             this._sampler.getGasLeft(),
         );
@@ -255,12 +231,10 @@ export class MarketOperationUtils {
             orderFillableTakerAmounts,
             outputAmountPerEth,
             inputAmountPerEth,
+            rawTwoHopQuotes,
             isTxOriginContract,
             gasAfter,
         ] = await samplerPromise;
-        // let singleTime = Date.now() - start;
-        // let log = `${_opts.numSamples},${sampleSplit},${splitTime - singleTime}, ${takerToken}, ${makerToken}`;
-        // fs.appendFileSync('log.csv', log + '\n');
 
         const defaultLabels = ['getMarketSellLiquidityAsync', opts?.endpoint || 'N/A'];
 
@@ -334,6 +308,7 @@ export class MarketOperationUtils {
         opts?: Partial<GetMarketOrdersOpts>,
     ): Promise<MarketSideLiquidity> {
         const _opts = { ...DEFAULT_GET_MARKET_ORDERS_OPTS, ...opts };
+        _opts.numSamples = Number(process.env.NUM_SAMPLES ?? 16);
         const sampleAmounts = getSampleAmounts(makerAmount, _opts.numSamples, _opts.sampleDistributionBase);
 
         const requestFilters = new SourceFilters().exclude(_opts.excludedSources).include(_opts.includedSources);
@@ -341,47 +316,18 @@ export class MarketOperationUtils {
 
         // Used to determine whether the tx origin is an EOA or a contract
         const txOrigin = (_opts.rfqt && _opts.rfqt.txOrigin) || NULL_ADDRESS;
-        const sampleSplit = 2;
-        const lastSplit = sampleAmounts.length % sampleSplit;
-        const index = Math.floor(sampleAmounts.length / sampleSplit);
-        const splitSampleAmounts: Array<Array<BigNumber>> = [];
-        for (let i = 0; i < sampleAmounts.length; i += index) {
-            let amount: Array<BigNumber> = [];
-            if (i + lastSplit === sampleAmounts.length) {
-                for (let j = i; j < i + lastSplit; j++) {
-                    amount.push(sampleAmounts[i]);
-                }
-                i = i + lastSplit;
-            } else {
-                for (let j = i; j < i + index; j++) {
-                    amount.push(sampleAmounts[i]);
-                }
-            }
-            splitSampleAmounts.push(amount);
-        }
 
-        const batchSamplerPromise = splitSampleAmounts.map((sampleSplit) => {
-            return this._sampler
-                .executeAsync(
-                    this._sampler.getSellQuotes(quoteSourceFilters.sources, makerToken, takerToken, sampleSplit),
-                    this._sampler.getTwoHopSellQuotes(
-                        quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
-                        makerToken,
-                        takerToken,
-                        [makerAmount],
-                    ),
-                )
-                .then((res) => {
-                    return [res[0], res[1]];
-                });
-        });
-        let dexQuotes: DexSample<FillData>[][] = [];
-        let rawTwoHopQuotes: DexSample<MultiHopFillData>[] = [];
+        const dexQuotes: DexSample[][] = [];
 
-        (await Promise.all(batchSamplerPromise)).flatMap((val) => {
-            dexQuotes = dexQuotes.concat(val[0] as DexSample<FillData>[][]);
-            rawTwoHopQuotes = rawTwoHopQuotes.concat(val[1] as DexSample<MultiHopFillData>[]);
-        });
+        const sellQuotes = await Promise.all(
+            _.chunk(sampleAmounts, Number(process.env.NUM_SAMPLES_SPLIT ?? 8)).map((_samples) => {
+                return this._sampler.executeAsync(
+                    this._sampler.getSellQuotes(quoteSourceFilters.sources, makerToken, takerToken, _samples),
+                );
+            }),
+        );
+
+        sellQuotes.forEach((elem) => dexQuotes.push(...elem[0]));
 
         // Call the sampler contract.
         const samplerPromise = this._sampler.executeAsync(
@@ -406,6 +352,12 @@ export class MarketOperationUtils {
                 this._nativeFeeTokenAmount,
                 _opts.feeSchedule,
             ),
+            this._sampler.getTwoHopSellQuotes(
+                quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
+                makerToken,
+                takerToken,
+                [makerAmount],
+            ),
             this._sampler.isAddressContract(txOrigin),
             this._sampler.getGasLeft(),
         );
@@ -420,6 +372,7 @@ export class MarketOperationUtils {
             orderFillableMakerAmounts,
             ethToMakerAssetRate,
             ethToTakerAssetRate,
+            rawTwoHopQuotes,
             isTxOriginContract,
             gasAfter,
         ] = await samplerPromise;
