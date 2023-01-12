@@ -74,11 +74,57 @@ interface IUniswapV3Pool {
     function token1() external view returns (IERC20TokenV06);
 
     function fee() external view returns (uint24);
+
+    function slot0()
+    external
+    view
+    returns (
+        uint160 sqrtPriceX96,
+        int24 tick,
+        uint16 observationIndex,
+        uint16 observationCardinality,
+        uint16 observationCardinalityNext,
+        uint8 feeProtocol,
+        bool unlocked
+    );
+
+    function tickBitmap(int16 wordPosition) external view returns (uint256);
+    
+    function tickSpacing() external view returns (int24);
+
+    function ticks(int24 tick)
+        external
+        view
+        returns (
+            uint128 liquidityGross,
+            int128 liquidityNet,
+            uint256 feeGrowthOutside0X128,
+            uint256 feeGrowthOutside1X128,
+            int56 tickCumulativeOutside,
+            uint160 secondsPerLiquidityOutsideX128,
+            uint32 secondsOutside,
+            bool initialized
+        );
+}
+
+struct TickInfo {
+    int24 tick;
+    int128 liquidityNet;
+    uint128 liquidityGross;
+}
+
+struct PoolInterpolationData {
+    TickInfo[] interpolationTicks;
+    uint160 sqrtPriceX96;
 }
 
 contract UniswapV3Sampler {
     /// @dev Gas limit for UniswapV3 calls. This is 100% a guess.
     uint256 private constant QUOTE_GAS = 700e3;
+    /// @dev The minimum tick for any given UniswapV3 pool, computed from log base 1.0001 of 2**-128
+    int24 internal constant MIN_TICK = -887272;
+    /// @dev The maximum tick for any given UniswapV3 pool, computed from log base 1.0001 of 2**128
+    int24 internal constant MAX_TICK = -MIN_TICK;
 
     /// @dev Sample sell quotes from UniswapV3.
     /// @param quoter UniswapV3 Quoter contract.
@@ -136,6 +182,54 @@ contract UniswapV3Sampler {
                 break;
             }
             makerTokenAmounts[i] = topBuyAmount;
+        }
+    }
+
+    /// @dev Get interpolated pool data for Uniswap V3 sells.
+    /// @param quoter UniswapV3 Quoter contract.
+    /// @param path Token route. Should be takerToken -> makerToken (at most two hops).
+    /// @param takerTokenAmount Taker token sell amount for sample.
+    /// @return uniswapPaths The encoded uniswap path for each poolData array.
+    /// @return poolData The pool data required for interpolation indexed by path and then pool.
+    function getSellInterpolationDataFromUniswapV3(
+        IUniswapV3QuoterV2 quoter,
+        IERC20TokenV06[] memory path,
+        uint256 takerTokenAmount
+    )
+        public
+        returns (bytes[] memory uniswapPaths, PoolInterpolationData[][] memory poolData)
+    {
+        IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
+            quoter,
+            path,
+            takerTokenAmount
+        );
+
+        uniswapPaths = new bytes[](poolPaths.length);
+        poolData = new PoolInterpolationData[][](poolPaths.length);
+
+        for (uint256 i = 0; i < poolPaths.length; ++i) {
+            if (!isValidPoolPath(poolPaths[i])) {
+                continue;
+            }
+
+            bytes memory uniswapPath = _toUniswapPath(path, poolPaths[i]);
+            uniswapPaths[i] = uniswapPath;
+            poolData[i] = new PoolInterpolationData[](poolPaths[i].length);
+
+            try quoter.quoteExactInput{gas: QUOTE_GAS}(uniswapPath, takerTokenAmount) returns (
+                uint256 /* amountOut */,
+                uint160[] memory /* sqrtPriceX96AfterList */,
+                uint32[] memory initializedTicksCrossedList,
+                uint256 /* gasEstimate */
+            ) {
+                for (uint256 j = 0; j < poolPaths[i].length; ++j) {
+                    // token0 is always first alphabetically
+                    bool zeroForOne = address(path[j]) < address(path[j + 1]);
+                    // we want to get initializedTicksCrossedlist + 1 since _getPoolInterpolationData includes the current tick
+                    poolData[i][j] = _getPoolInterpolationData(poolPaths[i][j], initializedTicksCrossedList[j] + 1, zeroForOne);
+                }
+            } catch {}
         }
     }
 
@@ -198,6 +292,56 @@ contract UniswapV3Sampler {
                 break;
             }
             takerTokenAmounts[i] = topSellAmount;
+        }
+    }
+
+    /// @dev Get interpolated pool data for Uniswap V3 buys.
+    /// @param quoter UniswapV3 Quoter contract.
+    /// @param path Token route. Should be takerToken -> makerToken (at most two hops).
+    /// @param makerTokenAmount Maker token buy amount for sample.
+    /// @return uniswapPaths The encoded uniswap path for each poolData array.
+    /// @return poolData The pool data required for interpolation indexed by path and then pool.
+    function getBuyInterpolationDataFromUniswapV3(
+        IUniswapV3QuoterV2 quoter,
+        IERC20TokenV06[] memory path,
+        uint256 makerTokenAmount
+    )
+        public
+        returns (bytes[] memory uniswapPaths, PoolInterpolationData[][] memory poolData)
+    {
+        IERC20TokenV06[] memory reversedPath = _reverseTokenPath(path);
+        IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
+            quoter,
+            reversedPath,
+            makerTokenAmount
+        );
+
+        uniswapPaths = new bytes[](poolPaths.length);
+        poolData = new PoolInterpolationData[][](poolPaths.length);
+
+        for (uint256 i = 0; i < poolPaths.length; ++i) {
+            if (!isValidPoolPath(poolPaths[i])) {
+                continue;
+            }
+
+            bytes memory uniswapPath = _toUniswapPath(reversedPath, poolPaths[i]);
+            uniswapPaths[i] = _toUniswapPath(path, _reversePoolPath(poolPaths[i]));
+            poolData[i] = new PoolInterpolationData[](poolPaths[i].length);
+
+            try quoter.quoteExactOutput{gas: QUOTE_GAS}(uniswapPath, makerTokenAmount) returns (
+                uint256 /* amountOut */,
+                uint160[] memory /* sqrtPriceX96AfterList */,
+                uint32[] memory initializedTicksCrossedList,
+                uint256 /* gasEstimate */
+            ) {
+                for (uint256 j = 0; j < poolPaths[i].length; ++j) {
+                    // token0 is always first alphabetically
+                    bool zeroForOne = address(path[j]) < address(path[j + 1]);
+                    // we want to get initializedTicksCrossedlist + 1 since _getPoolInterpolationData includes the current tick
+                    uint256 reversedIndex = poolPaths[i].length - j - 1;
+                    poolData[i][j] = _getPoolInterpolationData(poolPaths[i][reversedIndex], initializedTicksCrossedList[reversedIndex] + 1, zeroForOne);
+                }
+            } catch {}
         }
     }
 
@@ -391,6 +535,61 @@ contract UniswapV3Sampler {
             assembly {
                 mstore(o, shl(96, token))
                 o := add(o, 20)
+            }
+        }
+    }
+
+    function _getPoolInterpolationData(
+        IUniswapV3Pool pool,
+        uint32 numTicksToGet,
+        bool zeroForOne
+    ) private returns (PoolInterpolationData memory data) {
+        (uint160 sqrtPriceX96, int24 tick,,,,,) = pool.slot0();
+        data.sqrtPriceX96 = sqrtPriceX96;
+        data.interpolationTicks = new TickInfo[](numTicksToGet);
+        uint32 currNumTicks = 0;
+
+        int24 tickSpacing = pool.tickSpacing();
+        int24 compressed = tick/tickSpacing;
+        int16 wordOffset = int16(compressed >> 8);
+        uint8 bitOffset = uint8(tick % 256);
+
+        while (currNumTicks < numTicksToGet) {
+            if (wordOffset < int16(MIN_TICK >> 8) || wordOffset > int16(MAX_TICK >> 8)) {
+                return data;
+            }
+
+            uint256 bitmap = pool.tickBitmap(wordOffset);
+            uint256 i = bitOffset;
+            // search right to left if zeroForOne, else search left to right
+            while ((zeroForOne && i >= 0) || (!zeroForOne && i < 256)) {
+                if (currNumTicks == numTicksToGet) {
+                    return data;
+                }
+
+                if (bitmap & (1 << i) > 0) {
+                    int24 populatedTick = ((int24(wordOffset) << 8) + int24(i)) * tickSpacing;
+                    (uint128 liquidityGross, int128 liquidityNet, , , , , , ) = pool.ticks(populatedTick);
+                        data.interpolationTicks[++currNumTicks] = TickInfo({
+                            tick: populatedTick,
+                            liquidityNet: liquidityNet,
+                            liquidityGross: liquidityGross
+                        });
+                }
+
+                if (zeroForOne) {
+                    --i;
+                } else {
+                    ++i;
+                }
+            }
+
+            if (zeroForOne) {
+                --wordOffset;
+                bitOffset = 255;
+            } else {
+                ++wordOffset;
+                bitOffset = 0;
             }
         }
     }
