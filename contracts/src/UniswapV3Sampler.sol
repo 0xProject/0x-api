@@ -76,23 +76,25 @@ interface IUniswapV3Pool {
     function fee() external view returns (uint24);
 
     function slot0()
-    external
-    view
-    returns (
-        uint160 sqrtPriceX96,
-        int24 tick,
-        uint16 observationIndex,
-        uint16 observationCardinality,
-        uint16 observationCardinalityNext,
-        uint8 feeProtocol,
-        bool unlocked
-    );
+        external
+        view
+        returns (
+            uint160 sqrtPriceX96,
+            int24 tick,
+            uint16 observationIndex,
+            uint16 observationCardinality,
+            uint16 observationCardinalityNext,
+            uint8 feeProtocol,
+            bool unlocked
+        );
 
     function tickBitmap(int16 wordPosition) external view returns (uint256);
-    
+
     function tickSpacing() external view returns (int24);
 
-    function ticks(int24 tick)
+    function ticks(
+        int24 tick
+    )
         external
         view
         returns (
@@ -195,15 +197,8 @@ contract UniswapV3Sampler {
         IUniswapV3QuoterV2 quoter,
         IERC20TokenV06[] memory path,
         uint256 takerTokenAmount
-    )
-        public
-        returns (bytes[] memory uniswapPaths, PoolInterpolationData[][] memory poolData)
-    {
-        IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
-            quoter,
-            path,
-            takerTokenAmount
-        );
+    ) public returns (bytes[] memory uniswapPaths, PoolInterpolationData[][] memory poolData) {
+        IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(quoter, path, takerTokenAmount);
 
         uniswapPaths = new bytes[](poolPaths.length);
         poolData = new PoolInterpolationData[][](poolPaths.length);
@@ -227,7 +222,11 @@ contract UniswapV3Sampler {
                     // token0 is always first alphabetically
                     bool zeroForOne = address(path[j]) < address(path[j + 1]);
                     // we want to get initializedTicksCrossedlist + 1 since _getPoolInterpolationData includes the current tick
-                    poolData[i][j] = _getPoolInterpolationData(poolPaths[i][j], initializedTicksCrossedList[j] + 1, zeroForOne);
+                    poolData[i][j] = _getPoolInterpolationData(
+                        poolPaths[i][j],
+                        initializedTicksCrossedList[j] + 1,
+                        zeroForOne
+                    );
                 }
             } catch {}
         }
@@ -305,16 +304,9 @@ contract UniswapV3Sampler {
         IUniswapV3QuoterV2 quoter,
         IERC20TokenV06[] memory path,
         uint256 makerTokenAmount
-    )
-        public
-        returns (bytes[] memory uniswapPaths, PoolInterpolationData[][] memory poolData)
-    {
+    ) public returns (bytes[] memory uniswapPaths, PoolInterpolationData[][] memory poolData) {
         IERC20TokenV06[] memory reversedPath = _reverseTokenPath(path);
-        IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
-            quoter,
-            reversedPath,
-            makerTokenAmount
-        );
+        IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(quoter, reversedPath, makerTokenAmount);
 
         uniswapPaths = new bytes[](poolPaths.length);
         poolData = new PoolInterpolationData[][](poolPaths.length);
@@ -339,7 +331,11 @@ contract UniswapV3Sampler {
                     bool zeroForOne = address(path[j]) < address(path[j + 1]);
                     // we want to get initializedTicksCrossedlist + 1 since _getPoolInterpolationData includes the current tick
                     uint256 reversedIndex = poolPaths[i].length - j - 1;
-                    poolData[i][j] = _getPoolInterpolationData(poolPaths[i][reversedIndex], initializedTicksCrossedList[reversedIndex] + 1, zeroForOne);
+                    poolData[i][j] = _getPoolInterpolationData(
+                        poolPaths[i][reversedIndex],
+                        initializedTicksCrossedList[reversedIndex] + 1,
+                        zeroForOne
+                    );
                 }
             } catch {}
         }
@@ -544,13 +540,13 @@ contract UniswapV3Sampler {
         uint32 numTicksToGet,
         bool zeroForOne
     ) private returns (PoolInterpolationData memory data) {
-        (uint160 sqrtPriceX96, int24 tick,,,,,) = pool.slot0();
+        (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
         data.sqrtPriceX96 = sqrtPriceX96;
         data.interpolationTicks = new TickInfo[](numTicksToGet);
         uint32 currNumTicks = 0;
 
         int24 tickSpacing = pool.tickSpacing();
-        int24 compressed = tick/tickSpacing;
+        int24 compressed = tick / tickSpacing;
         int16 wordOffset = int16(compressed >> 8);
         uint8 bitOffset = uint8(tick % 256);
 
@@ -570,11 +566,11 @@ contract UniswapV3Sampler {
                 if (bitmap & (1 << i) > 0) {
                     int24 populatedTick = ((int24(wordOffset) << 8) + int24(i)) * tickSpacing;
                     (uint128 liquidityGross, int128 liquidityNet, , , , , , ) = pool.ticks(populatedTick);
-                        data.interpolationTicks[++currNumTicks] = TickInfo({
-                            tick: populatedTick,
-                            liquidityNet: liquidityNet,
-                            liquidityGross: liquidityGross
-                        });
+                    data.interpolationTicks[++currNumTicks] = TickInfo({
+                        tick: populatedTick,
+                        liquidityNet: liquidityNet,
+                        liquidityGross: liquidityGross
+                    });
                 }
 
                 if (zeroForOne) {
