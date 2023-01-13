@@ -156,19 +156,9 @@ export interface CalldataInfo {
 /**
  * Interface that varying SwapQuoteConsumers adhere to (exchange consumer, router consumer, forwarder consumer, coordinator consumer)
  * getCalldataOrThrow: Get CalldataInfo to swap for tokens with provided SwapQuote. Throws if invalid SwapQuote is provided.
- * executeSwapQuoteOrThrowAsync: Executes a web3 transaction to swap for tokens with provided SwapQuote. Throws if invalid SwapQuote is provided.
  */
-export interface SwapQuoteConsumerBase {
-    getCalldataOrThrowAsync(quote: SwapQuote, opts: Partial<SwapQuoteGetOutputOpts>): Promise<CalldataInfo>;
-    executeSwapQuoteOrThrowAsync(quote: SwapQuote, opts: Partial<SwapQuoteExecutionOpts>): Promise<string>;
-}
-
-/**
- * chainId: The chainId that the desired orders should be for.
- */
-export interface SwapQuoteConsumerOpts {
-    chainId: number;
-    contractAddresses?: ContractAddresses;
+export interface SwapQuoteConsumer {
+    getCalldataOrThrow(quote: SwapQuote, opts: Partial<SwapQuoteGetOutputOpts>): CalldataInfo;
 }
 
 /**
@@ -177,17 +167,6 @@ export interface SwapQuoteConsumerOpts {
 export interface SwapQuoteGetOutputOpts {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
     extensionContractOpts?: ExchangeProxyContractOpts | any;
-}
-
-/**
- * ethAmount: The amount of eth sent with the execution of a swap.
- * takerAddress: The address to perform the buy. Defaults to the first available address from the provider.
- * gasLimit: The amount of gas to send with a transaction (in Gwei). Defaults to an eth_estimateGas rpc call.
- */
-export interface SwapQuoteExecutionOpts extends SwapQuoteGetOutputOpts {
-    ethAmount?: BigNumber;
-    takerAddress?: string;
-    gasLimit?: number;
 }
 
 export enum AffiliateFeeType {
@@ -238,8 +217,9 @@ export interface ExchangeProxyContractOpts {
 
 export interface IPath {
     hasTwoHop(): boolean;
-    createOrders(): OptimizedOrder[];
-    createSlippedOrders(maxSlippage: number): OptimizedOrder[];
+    getOrdersByType(): OptimizedOrdersByType;
+    getOrders(): readonly OptimizedOrder[];
+    getSlippedOrders(maxSlippage: number): OptimizedOrder[];
 }
 
 /**
@@ -257,7 +237,7 @@ interface SwapQuoteBase {
     path: IPath;
     bestCaseQuoteInfo: SwapQuoteInfo;
     worstCaseQuoteInfo: SwapQuoteInfo;
-    sourceBreakdown: SwapQuoteOrdersBreakdown;
+    sourceBreakdown: SwapQuoteSourceBreakdown;
     quoteReport?: QuoteReport;
     extendedQuoteReportSources?: ExtendedQuoteReportSources;
     priceComparisonsReport?: PriceComparisonsReport;
@@ -306,17 +286,19 @@ export interface SwapQuoteInfo {
 }
 
 /**
- * percentage breakdown of each liquidity source used in quote
+ * Percentage breakdown of each liquidity source used in quote.
+ * Each multihop order is treated as a distinct source.
  */
-export type SwapQuoteOrdersBreakdown = Partial<
-    { [key in Exclude<ERC20BridgeSource, typeof ERC20BridgeSource.MultiHop>]: BigNumber } & {
-        [ERC20BridgeSource.MultiHop]: {
-            proportion: BigNumber;
-            intermediateToken: string;
-            hops: ERC20BridgeSource[];
-        };
-    }
->;
+export type SwapQuoteSourceBreakdown = {
+    singleSource: Partial<{
+        [key in Exclude<ERC20BridgeSource, ERC20BridgeSource.MultiHop>]: BigNumber;
+    }>;
+    multihop: {
+        proportion: BigNumber;
+        intermediateToken: string;
+        hops: ERC20BridgeSource[];
+    }[];
+};
 
 export interface RfqRequestOpts {
     takerAddress: string;
@@ -745,7 +727,13 @@ export interface OptimizedOtcOrder extends OptimizedMarketOrderBase<NativeOtcOrd
 
 export type OptimizedNativeOrder = OptimizedLimitOrder | OptimizedRfqOrder | OptimizedOtcOrder;
 
-export type OptimizedOrder = OptimizedMarketBridgeOrder<FillData> | OptimizedNativeOrder;
+export type OptimizedOrder = OptimizedMarketBridgeOrder | OptimizedNativeOrder;
+
+export interface OptimizedOrdersByType {
+    nativeOrders: readonly OptimizedNativeOrder[];
+    twoHopOrders: readonly { firstHopOrder: OptimizedOrder; secondHopOrder: OptimizedOrder }[];
+    bridgeOrders: readonly OptimizedMarketBridgeOrder[];
+}
 
 // TODO: `SignedNativeOrder` should be `SignedLimitOrder`.
 export abstract class Orderbook {

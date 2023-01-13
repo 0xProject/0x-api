@@ -32,6 +32,7 @@ import {
     SwapQuoterOpts,
     ZERO_AMOUNT,
 } from '../asset-swapper';
+import { ExchangeProxySwapQuoteConsumer } from '../asset-swapper/quote_consumers/exchange_proxy_swap_quote_consumer';
 import {
     ALT_RFQ_MM_API_KEY,
     ALT_RFQ_MM_ENDPOINT,
@@ -230,7 +231,7 @@ export class SwapService implements ISwapService {
         }
         this._swapQuoter = new SwapQuoter(this._provider, orderbook, this._swapQuoterOpts);
 
-        this._swapQuoteConsumer = new SwapQuoteConsumer(this._swapQuoterOpts);
+        this._swapQuoteConsumer = ExchangeProxySwapQuoteConsumer.create(CHAIN_ID);
         this._web3Wrapper = new Web3Wrapper(this._provider);
 
         this._contractAddresses = contractAddresses;
@@ -363,7 +364,7 @@ export class SwapService implements ISwapService {
         } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
 
         // Grab the encoded version of the swap quote
-        const { to, value, data, decodedUniqueId, gasOverhead } = await this._getSwapQuotePartialTransactionAsync(
+        const { to, value, data, decodedUniqueId, gasOverhead } = this.getSwapQuotePartialTransaction(
             swapQuote,
             isETHSell,
             isETHBuy,
@@ -381,7 +382,7 @@ export class SwapService implements ISwapService {
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(affiliateFeeGasCost);
 
         // Cannot eth_gasEstimate for /price when RFQ Native liquidity is included
-        const isNativeIncluded = swapQuote.sourceBreakdown.Native !== undefined;
+        const isNativeIncluded = swapQuote.sourceBreakdown.singleSource.Native !== undefined;
         const isQuote = endpoint === 'quote';
         const canEstimateGas = isQuote || !isNativeIncluded;
 
@@ -413,7 +414,7 @@ export class SwapService implements ISwapService {
                         accuracy: realGasEstimate.minus(fauxGasEstimate).dividedBy(realGasEstimate).toFixed(4),
                         buyToken,
                         sellToken,
-                        sources: Object.keys(swapQuote.sourceBreakdown),
+                        sources: _.uniq(swapQuote.path.getOrders().map((o) => o.source)),
                     },
                     'Improved gas estimate',
                 );
@@ -483,8 +484,8 @@ export class SwapService implements ISwapService {
             sellTokenAddress: isETHSell ? ETH_TOKEN_ADDRESS : sellToken,
             buyAmount: makerAmount.minus(buyTokenFeeAmount),
             sellAmount: totalTakerAmount,
-            sources: serviceUtils.convertSourceBreakdownToArray(sourceBreakdown),
-            orders: swapQuote.path.createOrders(),
+            sources: serviceUtils.convertToLiquiditySources(sourceBreakdown),
+            orders: swapQuote.path.getOrders(),
             allowanceTarget,
             decodedUniqueId,
             extendedQuoteReportSources,
@@ -693,7 +694,7 @@ export class SwapService implements ISwapService {
         return gasEstimate;
     }
 
-    private async _getSwapQuotePartialTransactionAsync(
+    private getSwapQuotePartialTransaction(
         swapQuote: SwapQuote,
         isFromETH: boolean,
         isToETH: boolean,
@@ -701,7 +702,7 @@ export class SwapService implements ISwapService {
         shouldSellEntireBalance: boolean,
         affiliateAddress: string | undefined,
         affiliateFee: AffiliateFeeAmount,
-    ): Promise<SwapQuoteResponsePartialTransaction & { gasOverhead: BigNumber }> {
+    ): SwapQuoteResponsePartialTransaction & { gasOverhead: BigNumber } {
         const opts: Partial<SwapQuoteGetOutputOpts> = {
             extensionContractOpts: { isFromETH, isToETH, isMetaTransaction, shouldSellEntireBalance, affiliateFee },
         };
@@ -711,7 +712,7 @@ export class SwapService implements ISwapService {
             ethAmount: value,
             toAddress: to,
             gasOverhead,
-        } = await this._swapQuoteConsumer.getCalldataOrThrowAsync(swapQuote, opts);
+        } = this._swapQuoteConsumer.getCalldataOrThrow(swapQuote, opts);
 
         const { affiliatedData, decodedUniqueId } = serviceUtils.attributeCallData(data, affiliateAddress);
         return {
