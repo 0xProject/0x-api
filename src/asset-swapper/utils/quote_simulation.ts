@@ -30,6 +30,7 @@ export interface QuoteFillResult {
     // Fill amounts by source.
     // For sells, this is the taker assets sold.
     // For buys, this is the maker assets bought.
+    // TODO: key should be ERC20BridgeSource
     fillAmountBySource: { [source: string]: BigNumber };
 }
 
@@ -49,6 +50,7 @@ interface IntermediateQuoteFillResult {
     // (Estimated) gas used.
     gas: number;
     // Input amounts filled by sources.
+    // TODO: key should be ERC20BridgeSource
     inputBySource: { [source: string]: BigNumber };
 }
 
@@ -62,7 +64,7 @@ const EMPTY_QUOTE_INTERMEDIATE_FILL_RESULT = {
 };
 
 interface QuoteFillInfo {
-    orders: OptimizedOrder[];
+    orders: readonly OptimizedOrder[];
     fillAmount: BigNumber;
     gasPrice: BigNumber;
     side: MarketOperation;
@@ -111,6 +113,7 @@ export function simulateBestCaseFill(quoteInfo: QuoteFillInfo): QuoteFillResult 
 }
 
 // Simulates filling a quote in the worst case.
+// NOTES: this isn't correct as it applies slippage to native orders as well.
 export function simulateWorstCaseFill(quoteInfo: QuoteFillInfo): QuoteFillResult {
     const opts = {
         ...DEFAULT_SIMULATED_FILL_QUOTE_INFO_OPTS,
@@ -298,6 +301,6 @@ function fromIntermediateQuoteFillResult(ir: IntermediateQuoteFillResult, quoteI
     };
 }
 
-function getTotalGasUsedByFills(orders: OptimizedOrder[], gasSchedule: GasSchedule): number {
+function getTotalGasUsedByFills(orders: readonly OptimizedOrder[], gasSchedule: GasSchedule): number {
     return _.sum(orders.map((order) => gasSchedule[order.source](order.fillData)));
 }
