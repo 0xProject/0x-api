@@ -1,17 +1,17 @@
 import { isAPIError, isRevertError } from '@0x/api-utils';
 import { isNativeSymbolOrAddress } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
-import { ParsedQs } from 'qs';
 import * as express from 'express';
 import { StatusCodes } from 'http-status-codes';
 import * as _ from 'lodash';
 
-import { SwapQuoterError } from '../asset-swapper';
+import { AffiliateFeeType, SwapQuoterError } from '../asset-swapper';
 import { CHAIN_ID, META_TX_MIN_ALLOWED_SLIPPAGE } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     META_TRANSACTION_DOCS_URL,
     DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE,
+    NULL_ADDRESS,
 } from '../constants';
 import {
     EthSellNotSupportedError,
@@ -51,9 +51,9 @@ export class MetaTransactionHandlers {
      * Handler for the /meta_transaction/v2/quote endpoint
      */
     public async getV2QuoteAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema);
+        schemaUtils.validateSchema(req.body, schemas.metaTransactionQuoteRequestSchema);
         // parse query prams
-        const params = parseV2RequestParams(req);
+        const params = parseV2RequestBody(req);
         const { buyTokenAddress, sellTokenAddress } = params;
         const isETHBuy = isNativeSymbolOrAddress(buyTokenAddress, CHAIN_ID);
 
@@ -112,9 +112,9 @@ export class MetaTransactionHandlers {
      * Handler for the /meta_transaction/v2/price endpoint
      */
     public async getV2PriceAsync(req: express.Request, res: express.Response): Promise<void> {
-        schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema);
+        schemaUtils.validateSchema(req.body, schemas.metaTransactionQuoteRequestSchema);
         // parse query params
-        const params = parseV2RequestParams(req);
+        const params = parseV2RequestBody(req);
         const { buyTokenAddress, sellTokenAddress } = params;
 
         // ETH selling isn't supported.
@@ -375,15 +375,80 @@ function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteReque
 }
 
 /**
- * Parse meta-transaction v2 quote and price params. The function calls `parseV1RequestParams` to parse
- * shared params with v1 and then parses the fee configs param introduced in v2.
+ * Parse meta-transaction v2 quote and price body.
  */
-function parseV2RequestParams(req: express.Request): MetaTransactionV2QuoteRequestParams {
-    const sharedV1RequestParams = parseV1RequestParams(req);
+function parseV2RequestBody(req: express.Request): MetaTransactionV2QuoteRequestParams {
+    const affiliateAddress = req.body.affiliateAddress as string | undefined;
+    const affiliateFee = {
+        feeType: AffiliateFeeType.None,
+        recipient: NULL_ADDRESS,
+        sellTokenPercentageFee: 0,
+        buyTokenPercentageFee: 0,
+    };
+    const buyAmount = req.body.buyAmount === undefined ? undefined : new BigNumber(req.body.buyAmount as string);
+    const buyToken = req.body.buyToken as string;
+    const buyTokenAddress = findTokenAddressOrThrowApiError(buyToken, 'buyToken', CHAIN_ID);
+    const integratorId = req.body.integratorId as string;
+    const quoteUniqueId = req.body.quoteUniqueId as string | undefined;
+    const sellAmount = req.body.sellAmount === undefined ? undefined : new BigNumber(req.body.sellAmount as string);
+    const sellToken = req.body.sellToken as string;
+    const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
+    const takerAddress = (req.body.takerAddress as string).toLowerCase();
+
+    const slippagePercentage = parseFloat(req.body.slippagePercentage as string) || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE;
+    if (slippagePercentage >= 1) {
+        throw new ValidationError([
+            {
+                field: 'slippagePercentage',
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: ValidationErrorReasons.PercentageOutOfRange,
+            },
+        ]);
+    }
+    if (slippagePercentage < META_TX_MIN_ALLOWED_SLIPPAGE) {
+        throw new ValidationError([
+            {
+                field: 'slippagePercentage',
+                code: ValidationErrorCodes.ValueOutOfRange,
+                reason: ValidationErrorReasons.MinSlippageTooLow,
+            },
+        ]);
+    }
+
+    const priceImpactProtectionPercentage =
+        req.body.priceImpactProtectionPercentage === undefined
+            ? DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE
+            : Number.parseFloat(req.body.priceImpactProtectionPercentage as string);
+
+    // Note: no RFQT config is passed through here so RFQT is excluded
+    const excludedSources =
+        req.body.excludedSources === undefined
+            ? []
+            : parseUtils.parseStringArrForERC20BridgeSources((req.body.excludedSources as string).split(','));
+
+    const includedSources =
+        req.body.includedSources === undefined
+            ? undefined
+            : parseUtils.parseStringArrForERC20BridgeSources((req.body.includedSources as string).split(','));
+
+    const includePriceComparisons = false;
     const parsedFeeConfigs = _parseFeeConfigs(req);
 
     return {
-        ...sharedV1RequestParams,
+        takerAddress,
+        sellTokenAddress,
+        buyTokenAddress,
+        sellAmount,
+        buyAmount,
+        slippagePercentage,
+        excludedSources,
+        includedSources,
+        includePriceComparisons,
+        affiliateFee,
+        affiliateAddress,
+        integratorId,
+        quoteUniqueId,
+        priceImpactProtectionPercentage,
         feeConfigs: parsedFeeConfigs,
     };
 }
@@ -394,13 +459,13 @@ function parseV2RequestParams(req: express.Request): MetaTransactionV2QuoteReque
 function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
     let parsedFeeConfigs: GaslessFeeConfigs | undefined;
 
-    if (req.query.feeConfigs) {
-        const feeConfigs = req.query.feeConfigs as ParsedQs;
+    if (req.body.feeConfigs) {
+        const feeConfigs = req.body.feeConfigs;
         parsedFeeConfigs = {};
 
         // Parse the integrator fee config
         if (feeConfigs.integrator) {
-            const integratorFee: ParsedQs = feeConfigs.integrator as ParsedQs;
+            const integratorFee = feeConfigs.integrator;
 
             if (integratorFee.kind !== 'volume') {
                 throw new ValidationError([
@@ -415,7 +480,7 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
             // ASK: 0x-api has been using 0-1 for percentage instead of 0-100. Should we use
             //      0-1 here to be consistent with other fields?
             const volumePercentage = new BigNumber(integratorFee.volumePercentage as string);
-            if (volumePercentage.gt(1)) {
+            if (volumePercentage.gte(1)) {
                 throw new ValidationError([
                     {
                         field: 'feeConfigs',
@@ -434,7 +499,7 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
 
         // Parse the 0x fee config
         if (feeConfigs.zeroex) {
-            const zeroexFee: ParsedQs = feeConfigs.zeroex as ParsedQs;
+            const zeroexFee = feeConfigs.zeroex;
 
             if (zeroexFee.kind !== 'volume' && zeroexFee.kind !== 'integrator_share') {
                 throw new ValidationError([
@@ -446,18 +511,18 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
                 ]);
             }
 
-            const feePercentage = new BigNumber(zeroexFee.volumePercentage as string);
-            if (feePercentage.gt(1)) {
-                throw new ValidationError([
-                    {
-                        field: 'feeConfigs',
-                        code: ValidationErrorCodes.ValueOutOfRange,
-                        reason: ValidationErrorReasons.PercentageOutOfRange,
-                    },
-                ]);
-            }
-
             if (zeroexFee.kind === 'volume') {
+                const feePercentage = new BigNumber(zeroexFee.volumePercentage as string);
+                if (feePercentage.gte(1)) {
+                    throw new ValidationError([
+                        {
+                            field: 'feeConfigs',
+                            code: ValidationErrorCodes.ValueOutOfRange,
+                            reason: ValidationErrorReasons.PercentageOutOfRange,
+                        },
+                    ]);
+                }
+
                 parsedFeeConfigs.zeroex = {
                     kind: 'volume',
                     feeRecipient: zeroexFee.feeRecipient as string,
@@ -474,24 +539,35 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
                     ]);
                 }
 
+                const feePercentage = new BigNumber(zeroexFee.integratorSharePercentage as string);
+                if (feePercentage.gte(1)) {
+                    throw new ValidationError([
+                        {
+                            field: 'feeConfigs',
+                            code: ValidationErrorCodes.ValueOutOfRange,
+                            reason: ValidationErrorReasons.PercentageOutOfRange,
+                        },
+                    ]);
+                }
+
                 parsedFeeConfigs.zeroex = {
                     kind: 'integrator_share',
                     feeRecipient: zeroexFee.feeRecipient as string,
-                    integratorSharePercentage: new BigNumber(zeroexFee.integratorSharePercentage as string),
+                    integratorSharePercentage: feePercentage,
                 };
             }
         }
 
         // Parse the gas fee config
         if (feeConfigs.gas) {
-            const gasFee: ParsedQs = feeConfigs.gas as ParsedQs;
+            const gasFee = feeConfigs.gas;
 
             if (gasFee.kind !== 'gas') {
                 throw new ValidationError([
                     {
                         field: 'feeConfigs',
                         code: ValidationErrorCodes.IncorrectFormat,
-                        reason: ValidationErrorReasons.MinSlippageTooLow,
+                        reason: ValidationErrorReasons.InvalidGaslessFeeKind,
                     },
                 ]);
             }
