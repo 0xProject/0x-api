@@ -52,7 +52,7 @@ import {
     UNISWAPV1_ROUTER_BY_CHAIN_ID,
     UNISWAPV3_CONFIG_BY_CHAIN_ID,
     VELODROME_ROUTER_BY_CHAIN_ID,
-    WOOFI_POOL_BY_CHAIN_ID,
+    WOOFI_ROUTER_BY_CHAIN_ID,
     WOOFI_SUPPORTED_TOKENS,
     ZERO_AMOUNT,
 } from './constants';
@@ -1877,7 +1877,7 @@ export class SamplerOperations {
                             return [];
                         }
                         return this.getWOOFiSellQuotes(
-                            WOOFI_POOL_BY_CHAIN_ID[this.chainId],
+                            WOOFI_ROUTER_BY_CHAIN_ID[this.chainId],
                             takerToken,
                             makerToken,
                             takerFillAmounts,
@@ -2209,7 +2209,7 @@ export class SamplerOperations {
                             return [];
                         }
                         return this.getWOOFiBuyQuotes(
-                            WOOFI_POOL_BY_CHAIN_ID[this.chainId],
+                            WOOFI_ROUTER_BY_CHAIN_ID[this.chainId],
                             takerToken,
                             makerToken,
                             makerFillAmounts,
