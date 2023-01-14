@@ -47,6 +47,7 @@ import {
 import {
     createExchangeProxyWithoutProvider,
     getFQTTransformerDataFromOptimizedOrders,
+    getMaxQuoteSlippageRate,
     getTransformerNonces,
     isBuyQuote,
     isDirectSwapCompatible,
@@ -695,8 +696,4 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumer {
                 .getABIEncodedTransactionData();
         }
     }
-}
-
-function getMaxQuoteSlippageRate(quote: MarketBuySwapQuote | MarketSellSwapQuote): number {
-    return quote.worstCaseQuoteInfo.slippage;
 }
