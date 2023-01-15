@@ -22,7 +22,7 @@ export const createMetaTransactionV2Router = (metaTransactionService: IMetaTrans
 
     // V2 handlers
     router.get('', asyncHandler(MetaTransactionHandlers.rootAsync.bind(MetaTransactionHandlers)));
-    router.get('/price', asyncHandler(handlers.getV2PriceAsync.bind(handlers)));
-    router.get('/quote', asyncHandler(handlers.getV2QuoteAsync.bind(handlers)));
+    router.post('/price', asyncHandler(handlers.getV2PriceAsync.bind(handlers)));
+    router.post('/quote', asyncHandler(handlers.getV2QuoteAsync.bind(handlers)));
     return router;
 };

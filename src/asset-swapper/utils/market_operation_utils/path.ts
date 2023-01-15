@@ -9,6 +9,7 @@ import {
     ExchangeProxyOverhead,
     Fill,
     IPath,
+    OptimizedOrdersByType,
 } from '../../types';
 
 import { MAX_UINT256, SOURCE_FLAGS, ZERO_AMOUNT } from './constants';
@@ -44,6 +45,7 @@ export class Path implements IPath {
         return new Path(
             context,
             fills,
+            createOrdersByType(fills, context),
             targetInput,
             pathPenaltyOpts,
             sourceFlags,
@@ -53,7 +55,8 @@ export class Path implements IPath {
 
     private constructor(
         private readonly context: PathContext,
-        public fills: readonly Fill[],
+        public readonly fills: readonly Fill[],
+        private readonly ordersByType: OptimizedOrdersByType,
         protected readonly targetInput: BigNumber,
         public readonly pathPenaltyOpts: PathPenaltyOpts,
         public readonly sourceFlags: bigint,
@@ -64,23 +67,37 @@ export class Path implements IPath {
         return (this.sourceFlags & SOURCE_FLAGS[ERC20BridgeSource.MultiHop]) > 0;
     }
 
-    public createOrders(): OptimizedOrder[] {
-        const { makerToken, takerToken } = getMakerTakerTokens(this.context);
-        return _.flatMap(this.fills, (fill) => {
-            // Internal BigInt flag field is not supported JSON and is tricky to remove upstream.
-            const normalizedFill = _.omit(fill, 'flags') as Fill;
-            if (fill.source === ERC20BridgeSource.Native) {
-                return [createNativeOptimizedOrder(normalizedFill as Fill<NativeFillData>, this.context.side)];
-            } else if (fill.source === ERC20BridgeSource.MultiHop) {
-                const [firstHopOrder, secondHopOrder] = createOrdersFromTwoHopSample(
-                    normalizedFill as Fill<MultiHopFillData>,
-                    this.context,
-                );
-                return [firstHopOrder, secondHopOrder];
-            } else {
-                return [createBridgeOrder(normalizedFill, makerToken, takerToken, this.context.side)];
-            }
-        });
+    public getOrdersByType(): OptimizedOrdersByType {
+        return this.ordersByType;
+    }
+
+    public getOrders(): readonly OptimizedOrder[] {
+        const twoHopOrders = _.flatMap(this.ordersByType.twoHopOrders, ({ firstHopOrder, secondHopOrder }) => [
+            firstHopOrder,
+            secondHopOrder,
+        ]);
+
+        return [...this.ordersByType.nativeOrders, ...this.ordersByType.bridgeOrders, ...twoHopOrders];
+    }
+
+    /**
+     * Returns `OptimizedOrdersByType` with slippage applied (Native orders do not have slippage).
+     * @param maxSlippage maximum slippage. It must be [0, 1].
+     * @returns orders by type by with slippage applied when applicable.
+     */
+    public getSlippedOrdersByType(maxSlippage: number): OptimizedOrdersByType {
+        checkSlippage(maxSlippage);
+
+        const { nativeOrders, twoHopOrders, bridgeOrders } = this.getOrdersByType();
+        const slipOrder = createSlipOrderFunction(maxSlippage, this.context.side);
+        return {
+            nativeOrders: nativeOrders,
+            twoHopOrders: twoHopOrders.map((twoHopOrder) => ({
+                firstHopOrder: slipOrder(twoHopOrder.firstHopOrder),
+                secondHopOrder: slipOrder(twoHopOrder.secondHopOrder),
+            })),
+            bridgeOrders: bridgeOrders.map(createSlipOrderFunction(maxSlippage, this.context.side)),
+        };
     }
 
     /**
@@ -88,31 +105,10 @@ export class Path implements IPath {
      * @param maxSlippage maximum slippage. It must be [0, 1].
      * @returns orders with slippage applied.
      */
-    public createSlippedOrders(maxSlippage: number): OptimizedOrder[] {
-        if (maxSlippage < 0 || maxSlippage > 1) {
-            throw new Error(`slippage must be [0, 1]. Given: ${maxSlippage}`);
-        }
-
-        return this.createOrders().map((order) => {
-            if (order.source === ERC20BridgeSource.Native || maxSlippage === 0) {
-                return order;
-            }
-
-            return {
-                ...order,
-                ...(this.context.side === MarketOperation.Sell
-                    ? {
-                          makerAmount: order.makerAmount.eq(MAX_UINT256)
-                              ? MAX_UINT256
-                              : order.makerAmount.times(1 - maxSlippage).integerValue(BigNumber.ROUND_DOWN),
-                      }
-                    : {
-                          takerAmount: order.takerAmount.eq(MAX_UINT256)
-                              ? MAX_UINT256
-                              : order.takerAmount.times(1 + maxSlippage).integerValue(BigNumber.ROUND_UP),
-                      }),
-            };
-        });
+    public getSlippedOrders(maxSlippage: number): OptimizedOrder[] {
+        checkSlippage(maxSlippage);
+        const slipOrder = createSlipOrderFunction(maxSlippage, this.context.side);
+        return this.getOrders().map(slipOrder);
     }
 
     /**
@@ -194,4 +190,56 @@ function createAdjustedSize(targetInput: BigNumber, fills: readonly Fill[]): Pat
 
 function mergeSourceFlags(flags: bigint[]): bigint {
     return flags.reduce((mergedFlags, currentFlags) => mergedFlags | currentFlags, BigInt(0));
+}
+
+function createOrdersByType(fills: readonly Fill[], context: PathContext): OptimizedOrdersByType {
+    // Internal BigInt flag field is not supported JSON and is tricky to remove upstream.
+    const normalizedFills = fills.map((fill) => _.omit(fill, 'flags') as Fill);
+
+    const nativeOrders = normalizedFills
+        .filter((fill) => fill.source === ERC20BridgeSource.Native)
+        .map((fill) => createNativeOptimizedOrder(fill as Fill<NativeFillData>, context.side));
+
+    const twoHopOrders = normalizedFills
+        .filter((fill) => fill.source === ERC20BridgeSource.MultiHop)
+        .map((fill) => createOrdersFromTwoHopSample(fill as Fill<MultiHopFillData>, context));
+
+    const { makerToken, takerToken } = getMakerTakerTokens(context);
+    const bridgeOrders = normalizedFills
+        .filter((fill) => fill.source !== ERC20BridgeSource.Native && fill.source !== ERC20BridgeSource.MultiHop)
+        .map((fill) => createBridgeOrder(fill, makerToken, takerToken, context.side));
+
+    return { nativeOrders, twoHopOrders, bridgeOrders };
+}
+
+function checkSlippage(maxSlippage: number) {
+    if (maxSlippage < 0 || maxSlippage > 1) {
+        throw new Error(`slippage must be [0, 1]. Given: ${maxSlippage}`);
+    }
+}
+
+function createSlipOrderFunction<O extends OptimizedOrder>(
+    maxSlippage: number,
+    side: MarketOperation,
+): (order: O) => O {
+    return (order: O) => {
+        if (order.source === ERC20BridgeSource.Native || maxSlippage === 0) {
+            return order;
+        }
+
+        return {
+            ...order,
+            ...(side === MarketOperation.Sell
+                ? {
+                      makerAmount: order.makerAmount.eq(MAX_UINT256)
+                          ? MAX_UINT256
+                          : order.makerAmount.times(1 - maxSlippage).integerValue(BigNumber.ROUND_DOWN),
+                  }
+                : {
+                      takerAmount: order.takerAmount.eq(MAX_UINT256)
+                          ? MAX_UINT256
+                          : order.takerAmount.times(1 + maxSlippage).integerValue(BigNumber.ROUND_UP),
+                  }),
+        };
+    };
 }
