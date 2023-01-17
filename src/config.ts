@@ -38,6 +38,9 @@ import { schemas } from './schemas';
 import { HttpServiceConfig, Integrator } from './types';
 import { schemaUtils } from './utils/schema_utils';
 
+import { config } from 'dotenv';
+config({ path: '.env' });
+
 enum EnvVarType {
     AddressList,
     StringList,

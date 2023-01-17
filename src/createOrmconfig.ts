@@ -1,6 +1,6 @@
 import { DataSourceOptions } from 'typeorm';
 
-// import { POSTGRES_READ_REPLICA_URIS, POSTGRES_URI } from './config';
+import { POSTGRES_URI } from './config';
 import {
     BlockedAddressEntity,
     KeyValueEntity,
@@ -33,7 +33,7 @@ const entities = [
     OrderWatcherSignedOrderEntity,
 ];
 const POSTGRES_READ_REPLICA_URIS: any = undefined;
-export const createConfig = (postgresUri: string = 'postgresql://api:api@localhost/api'): DataSourceOptions => ({
+export const createConfig = (postgresUri: string = POSTGRES_URI!): DataSourceOptions => ({
     type: 'postgres',
     entities,
     synchronize: false,
