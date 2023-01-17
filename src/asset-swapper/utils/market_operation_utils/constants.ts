@@ -906,8 +906,8 @@ const PLATYPUS_AVALANCHE_POOLS = {
 export const WOOFI_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     {
         [ChainId.BSC]: '0xc90bfe9951a4efbf20aca5ecd9966b2bf8a01294',
-        [ChainId.Fantom]: '0x382a9b0ba5d29e96c3a0b81ce9c64d6c8f150efb',
-        [ChainId.Avalanche]: '0xc22fbb3133df781e6c25ea6acebe2d2Bb8cea2f9',
+        [ChainId.Fantom]: '0x382a9b0bc5d29e96c3a0b81ce9c64d6c8f150efb',
+        [ChainId.Avalanche]: '0xc22fbb3133df781e6c25ea6acebe2d2bb8cea2f9',
         [ChainId.Polygon]: '0x817eb46d60762442da3d931ff51a30334ca39b74',
     },
     NULL_ADDRESS,
