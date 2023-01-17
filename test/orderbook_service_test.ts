@@ -9,7 +9,7 @@ import { Connection } from 'typeorm';
 const { color, symbols } = Mocha.reporters.Base;
 
 import { DEFAULT_PAGE, DEFAULT_PER_PAGE } from '../src/constants';
-import { getDBConnectionOrThrow } from '../src/db_connection';
+import { getDbDataSourceAsync } from '../src/db_connection';
 import { OrderWatcherSignedOrderEntity, PersistentSignedOrderV4Entity } from '../src/entities';
 import { OrderBookService } from '../src/services/orderbook_service';
 import { OrderEventEndState, PaginatedCollection, SRAOrder, SRAOrderMetaData } from '../src/types';
@@ -93,7 +93,7 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        connection = await getDBConnectionOrThrow();
+        connection = await getDbDataSourceAsync();
         await connection.runMigrations();
         orderBookService = new OrderBookService(connection, new MockOrderWatcher(connection));
         provider = getProvider();
@@ -245,7 +245,9 @@ describe(SUITE_NAME, () => {
 
             // should not save to persistent orders table
             const result = await connection.manager.find(PersistentSignedOrderV4Entity, {
-                hash: apiOrder.metaData.orderHash,
+                where: {
+                    hash: apiOrder.metaData.orderHash,
+                },
             });
             expect(result).to.deep.equal([]);
 
@@ -256,7 +258,9 @@ describe(SUITE_NAME, () => {
             await orderBookService.addPersistentOrdersAsync([apiOrder.order]);
 
             const result = await connection.manager.find(PersistentSignedOrderV4Entity, {
-                hash: apiOrder.metaData.orderHash,
+                where: {
+                    hash: apiOrder.metaData.orderHash,
+                },
             });
             const expected = orderUtils.serializePersistentOrder(apiOrder);
             expected.createdAt = result[0].createdAt; // createdAt is saved in the PersistentOrders table directly

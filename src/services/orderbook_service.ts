@@ -1,6 +1,6 @@
 import { LimitOrderFields } from '@0x/protocol-utils';
 import * as _ from 'lodash';
-import { Connection, In, MoreThanOrEqual } from 'typeorm';
+import { DataSource, In, MoreThanOrEqual } from 'typeorm';
 
 import { LimitOrder } from '../asset-swapper';
 import {
@@ -25,18 +25,18 @@ import { OrderWatcher, OrderWatcherInterface } from '../utils/order_watcher';
 import { paginationUtils } from '../utils/pagination_utils';
 
 export class OrderBookService implements IOrderBookService {
-    private readonly _connection: Connection;
+    private readonly _dataSource: DataSource;
     private readonly _orderWatcher: OrderWatcherInterface;
 
-    public static create(connection: Connection | undefined): OrderBookService | undefined {
-        if (connection === undefined) {
+    public static create(dataSource: DataSource | undefined): OrderBookService | undefined {
+        if (dataSource === undefined) {
             return undefined;
         }
-        return new OrderBookService(connection, new OrderWatcher());
+        return new OrderBookService(dataSource, new OrderWatcher());
     }
 
-    constructor(connection: Connection, orderWatcher: OrderWatcherInterface) {
-        this._connection = connection;
+    constructor(dataSource: DataSource, orderWatcher: OrderWatcherInterface) {
+        this._dataSource = dataSource;
         this._orderWatcher = orderWatcher;
     }
 
@@ -45,9 +45,13 @@ export class OrderBookService implements IOrderBookService {
     }
     public async getOrderByHashIfExistsAsync(orderHash: string): Promise<SRAOrder | undefined> {
         let signedOrderEntity;
-        signedOrderEntity = await this._connection.manager.findOne(SignedOrderV4Entity, orderHash);
+        signedOrderEntity = await this._dataSource.manager.findOne(SignedOrderV4Entity, {
+            where: { hash: orderHash },
+        });
         if (!signedOrderEntity) {
-            signedOrderEntity = await this._connection.manager.findOne(PersistentSignedOrderV4Entity, orderHash);
+            signedOrderEntity = await this._dataSource.manager.findOne(PersistentSignedOrderV4Entity, {
+                where: { hash: orderHash },
+            });
         }
         if (signedOrderEntity === undefined) {
             return undefined;
@@ -61,7 +65,7 @@ export class OrderBookService implements IOrderBookService {
         baseToken: string,
         quoteToken: string,
     ): Promise<OrderbookResponse> {
-        const orderEntities = await this._connection.manager.find(SignedOrderV4Entity, {
+        const orderEntities = await this._dataSource.manager.find(SignedOrderV4Entity, {
             where: {
                 takerToken: In([baseToken, quoteToken]),
                 makerToken: In([baseToken, quoteToken]),
@@ -110,7 +114,7 @@ export class OrderBookService implements IOrderBookService {
         const filters = [];
 
         // Pre-filters; exists in the entity verbatim
-        const columnNames = this._connection.getMetadata(SignedOrderV4Entity).columns.map((x) => x.propertyName);
+        const columnNames = this._dataSource.getMetadata(SignedOrderV4Entity).columns.map((x) => x.propertyName);
         const orderFilter = _.pickBy(orderFieldFilters, (v, k) => {
             return columnNames.includes(k);
         });
@@ -134,14 +138,14 @@ export class OrderBookService implements IOrderBookService {
         const minExpiryTime = Math.floor(Date.now() / ONE_SECOND_MS) + SRA_ORDER_EXPIRATION_BUFFER_SECONDS;
         const filtersWithExpirationCheck = filters.map((filter) => ({
             ...filter,
-            expiry: MoreThanOrEqual(minExpiryTime),
+            // expiry: MoreThanOrEqual(minExpiryTime),
         }));
 
         const [signedOrderCount, signedOrderEntities] = await Promise.all([
-            this._connection.manager.count(SignedOrderV4Entity, {
+            this._dataSource.manager.count(SignedOrderV4Entity, {
                 where: filtersWithExpirationCheck,
             }),
-            this._connection.manager.find(SignedOrderV4Entity, {
+            this._dataSource.manager.find(SignedOrderV4Entity, {
                 where: filtersWithExpirationCheck,
                 ...paginationUtils.paginateDBFilters(page, perPage),
                 order: {
@@ -171,10 +175,10 @@ export class OrderBookService implements IOrderBookService {
             }));
             let persistentOrderEntities = [];
             [persistentOrdersCount, persistentOrderEntities] = await Promise.all([
-                this._connection.manager.count(PersistentSignedOrderV4Entity, {
+                this._dataSource.manager.count(PersistentSignedOrderV4Entity, {
                     where: filtersWithoutDuplicateSignedOrders,
                 }),
-                this._connection.manager.find(PersistentSignedOrderV4Entity, {
+                this._dataSource.manager.find(PersistentSignedOrderV4Entity, {
                     where: filtersWithoutDuplicateSignedOrders,
                     ...paginationUtils.paginateDBFilters(page, perPage),
                     order: {
@@ -204,7 +208,7 @@ export class OrderBookService implements IOrderBookService {
             makerToken: In(makerTokens),
             takerToken: In(takerTokens),
         };
-        const signedOrderEntities = (await this._connection.manager.find(SignedOrderV4Entity, {
+        const signedOrderEntities = (await this._dataSource.manager.find(SignedOrderV4Entity, {
             where: filterObject,
         })) as Required<SignedOrderV4Entity>[];
         const apiOrders = signedOrderEntities.map(orderUtils.deserializeOrderToSRAOrder);
@@ -230,7 +234,7 @@ export class OrderBookService implements IOrderBookService {
             const limitOrder = new LimitOrder(o as LimitOrderFields);
             return limitOrder.getHash();
         });
-        const addedOrders = await this._connection.manager.find(SignedOrderV4Entity, {
+        const addedOrders = await this._dataSource.manager.find(SignedOrderV4Entity, {
             where: { hash: In(hashes) },
         });
         // MAX SQL variable size is 999. This limit is imposed via Sqlite.
@@ -238,7 +242,7 @@ export class OrderBookService implements IOrderBookService {
         // so we need to leave space for the attributes on the model represented
         // as SQL variables in the "AS" syntax. We leave 99 free for the
         // signedOrders model
-        await this._connection
+        await this._dataSource
             .getRepository(PersistentSignedOrderV4Entity)
             .save(addedOrders, { chunk: DB_ORDERS_UPDATE_CHUNK_SIZE });
     }

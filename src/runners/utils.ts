@@ -21,7 +21,7 @@ import {
     SLIPPAGE_MODEL_S3_API_VERSION,
     WEBSOCKET_ORDER_UPDATES_PATH,
 } from '../config';
-import { getDBConnection } from '../db_connection';
+import { getDbDataSourceAsync } from '../db_connection';
 import { logger } from '../logger';
 import { MetaTransactionService } from '../services/meta_transaction_service';
 import { OrderBookService } from '../services/orderbook_service';
@@ -125,7 +125,7 @@ export async function getDefaultAppDependenciesAsync(
     config: HttpServiceConfig,
 ): Promise<AppDependencies> {
     const contractAddresses = await getContractAddressesForNetworkOrThrowAsync(provider, CHAIN_ID);
-    const connection = await getDBConnection();
+    const connection = await getDbDataSourceAsync();
 
     let kafkaClient: Kafka | undefined;
     if (config.kafkaBrokers !== undefined) {

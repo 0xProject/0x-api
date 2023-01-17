@@ -17,7 +17,7 @@ import { AppDependencies } from '../src/types';
 import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ChainId, ERC20BridgeSource, LimitOrderFields } from '../src/asset-swapper';
 import * as config from '../src/config';
 import { AFFILIATE_FEE_TRANSFORMER_GAS, GAS_LIMIT_BUFFER_MULTIPLIER, SWAP_PATH } from '../src/constants';
-import { getDBConnectionOrThrow } from '../src/db_connection';
+import { getDbDataSourceAsync } from '../src/db_connection';
 import { ValidationErrorCodes, ValidationErrorItem, ValidationErrorReasons } from '../src/errors';
 import { GetSwapQuoteResponse, SignedLimitOrder } from '../src/types';
 
@@ -75,7 +75,7 @@ describe(SUITE_NAME, () => {
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
-        const connection = await getDBConnectionOrThrow();
+        const connection = await getDbDataSourceAsync();
         await connection.runMigrations();
         provider = getProvider();
         const web3Wrapper = new Web3Wrapper(provider);

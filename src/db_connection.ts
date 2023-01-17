@@ -1,25 +1,20 @@
-import { Connection, createConnection } from 'typeorm';
-import { getOrmConfig } from './ormconfig';
+import { DataSource } from 'typeorm';
 
-let connection: Connection | undefined;
+// import { POSTGRES_URI } from './config';
+import { createConfig } from './createOrmConfig';
 
-export async function getDBConnection(): Promise<Connection | undefined> {
-    if (connection !== undefined) {
-        return connection;
+let dataSource: DataSource;
+
+/**
+ * Creates the DB connnection to use in an app
+ */
+export async function getDbDataSourceAsync(
+    postgresUri: string = 'postgresql://api:api@localhost/api',
+): Promise<DataSource> {
+    if (!dataSource) {
+        const config = createConfig(postgresUri);
+        dataSource = new DataSource(config);
+        await dataSource.initialize();
     }
-
-    const ormConfig = getOrmConfig();
-    if (ormConfig === undefined) {
-        return undefined;
-    }
-    connection = await createConnection(ormConfig);
-    return connection;
-}
-
-export async function getDBConnectionOrThrow(): Promise<Connection> {
-    const connection = await getDBConnection();
-    if (connection === undefined) {
-        throw new Error('Could not get a DB connection');
-    }
-    return connection;
+    return dataSource;
 }
