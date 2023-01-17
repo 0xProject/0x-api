@@ -10,16 +10,10 @@ interface IWooPP {
     /// @param toToken the to token
     /// @param fromAmount the amount of fromToken to swap
     /// @return toAmount the predicted amount to receive
-    function querySwap(
-        address fromToken,
-        address toToken,
-        uint256 fromAmount
-    ) external view returns (uint256 toAmount);
-
+    function querySwap(address fromToken, address toToken, uint256 fromAmount) external view returns (uint256 toAmount);
 }
 
 contract WooPPSampler is SamplerUtils, ApproximateBuys {
-
     /// @dev Sample sell quotes from WooFI.
     /// @param router Address of the router we are sampling from
     /// @param takerToken Address of the taker token (what to sell).
@@ -28,7 +22,7 @@ contract WooPPSampler is SamplerUtils, ApproximateBuys {
     /// @return makerTokenAmounts Maker amounts bought at each taker token
     ///         amount.
     function sampleSellsFromWooPP(
-        iWooPP router,
+        IWooPP router,
         address takerToken,
         address makerToken,
         uint256[] memory takerTokenAmounts
@@ -45,14 +39,14 @@ contract WooPPSampler is SamplerUtils, ApproximateBuys {
     }
 
     /// @dev Sample buy quotes from WooFI.
-    /// @param pool Address of the pool we are sampling from
+    /// @param router Address of the router we are sampling from
     /// @param takerToken Address of the taker token (what to sell).
     /// @param makerToken Address of the maker token (what to buy).
     /// @param makerTokenAmounts Maker token sell amount for each sample (sorted in ascending order).
     /// @return takerTokenAmounts Taker amounts bought at each taker token
     ///         amount.
     function sampleBuysFromWooPP(
-        iWooPP router,
+        IWooPP router,
         address takerToken,
         address makerToken,
         uint256[] memory makerTokenAmounts
@@ -73,9 +67,9 @@ contract WooPPSampler is SamplerUtils, ApproximateBuys {
         bytes memory makerTokenData,
         uint256 sellAmount
     ) internal view returns (uint256) {
-        (iWooPP _router, address _takerToken, address _makerToken) = abi.decode(
+        (IWooPP _router, address _takerToken, address _makerToken) = abi.decode(
             takerTokenData,
-            (iWooPP, address, address)
+            (IWooPP, address, address)
         );
         (bool success, bytes memory resultData) = address(this).staticcall(
             abi.encodeWithSelector(

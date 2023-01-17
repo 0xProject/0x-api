@@ -1427,34 +1427,34 @@ export class SamplerOperations {
         });
     }
     public getWOOFiSellQuotes(
-        poolAddress: string,
+        router: string,
         takerToken: string,
         makerToken: string,
         makerFillAmounts: BigNumber[],
     ): SourceQuoteOperation<WOOFiFillData> {
         const chainId = this.chainId;
         return new SamplerContractOperation({
-            fillData: { poolAddress, takerToken, makerToken, chainId },
+            fillData: { router, takerToken, makerToken, chainId },
             source: ERC20BridgeSource.WOOFi,
             contract: this._samplerContract,
             function: this._samplerContract.sampleSellsFromWooPP,
-            params: [poolAddress, takerToken, makerToken, makerFillAmounts],
+            params: [router, takerToken, makerToken, makerFillAmounts],
         });
     }
 
     public getWOOFiBuyQuotes(
-        poolAddress: string,
+        router: string,
         takerToken: string,
         makerToken: string,
         makerFillAmounts: BigNumber[],
     ): SourceQuoteOperation<WOOFiFillData> {
         const chainId = this.chainId;
         return new SamplerContractOperation({
-            fillData: { poolAddress, takerToken, makerToken, chainId },
+            fillData: { router, takerToken, makerToken, chainId },
             source: ERC20BridgeSource.WOOFi,
             contract: this._samplerContract,
             function: this._samplerContract.sampleBuysFromWooPP,
-            params: [poolAddress, takerToken, makerToken, makerFillAmounts],
+            params: [router, takerToken, makerToken, makerFillAmounts],
         });
     }
 

@@ -914,7 +914,7 @@ export const WOOFI_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
 );
 
 export const WOOFI_SUPPORTED_TOKENS = new Set([
-    BSC_TOKENS.USDT,
+    BSC_TOKENS.BUSD,
     BSC_TOKENS.WBNB,
     BSC_TOKENS.WOO,
     BSC_TOKENS.WETH,
@@ -2828,7 +2828,7 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     [ERC20BridgeSource.ACryptos]: (fillData) => (fillData as CurveFillData).pool.gasSchedule,
     [ERC20BridgeSource.WOOFi]: (fillData?: FillData) => {
         const woofiFillData = fillData as WOOFiFillData;
-        const quoteTokenAddresses = [BSC_TOKENS.USDT, AVALANCHE_TOKENS.nUSDC, FANTOM_TOKENS.USDC, POLYGON_TOKENS.USDC];
+        const quoteTokenAddresses = [BSC_TOKENS.BUSD, AVALANCHE_TOKENS.nUSDC, FANTOM_TOKENS.USDC, POLYGON_TOKENS.USDC];
         const hasQuoteToken =
             quoteTokenAddresses.includes(woofiFillData.takerToken) ||
             quoteTokenAddresses.includes(woofiFillData.makerToken);
