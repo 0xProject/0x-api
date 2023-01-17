@@ -30,16 +30,14 @@ const TRANSFER_FROM_GAS = new BigNumber(72e3);
  *             quoteGasEstimate: The gas estimate to fill the quote.
  * @returns Gasless fees object and the total fee amount.
  */
-export function calculateGaslessFees(
-    opts: {
-        feeConfigs: GaslessFeeConfigs,
-        sellToken: string;
-        sellTokenAmount: BigNumber;
-        sellTokenAmountPerBaseUnitNativeToken: BigNumber;
-        gasPrice: BigNumber;
-        quoteGasEstimate: BigNumber;
-    },
-): { fees: GaslessFees; totalChargedFeeAmount: BigNumber } {
+export function calculateGaslessFees(opts: {
+    feeConfigs: GaslessFeeConfigs;
+    sellToken: string;
+    sellTokenAmount: BigNumber;
+    sellTokenAmountPerBaseUnitNativeToken: BigNumber;
+    gasPrice: BigNumber;
+    quoteGasEstimate: BigNumber;
+}): { fees: GaslessFees; totalChargedFeeAmount: BigNumber } {
     const integratorFee = _calculateIntegratorFee({
         integratorFeeConfig: opts.feeConfigs.integrator,
         sellToken: opts.sellToken,
@@ -66,7 +64,7 @@ export function calculateGaslessFees(
     const fees = {
         integrator: integratorFee,
         zeroex: zeroexFee,
-        gas: gasFee
+        gas: gasFee,
     };
 
     return {
@@ -85,7 +83,7 @@ function _calculateTotalChargedFeeAmount(fees: GaslessFees): BigNumber {
     // 0x fee
     if (fees.zeroex && fees.zeroex.feeRecipient) {
         // If the fee kind is integrator_share, the 0x amount has already been included in integrator amount
-        if (fees.zeroex.kind !== 'integrator_share') {
+        if (fees.zeroex.kind !== 'integrator_share') {
             totalFeeAmount.plus(fees.zeroex.feeAmount);
         }
     }
