@@ -210,6 +210,7 @@ describe('calculateGaslessFees', () => {
                         },
                         gas: {
                             kind: 'gas',
+                            feeRecipient: null,
                         },
                     },
                     sellToken: WETH_TOKEN_ADDRESS,
@@ -223,7 +224,7 @@ describe('calculateGaslessFees', () => {
                     kind: 'gas',
                     feeToken: WETH_TOKEN_ADDRESS,
                     feeAmount: new BigNumber(1.64e15),
-                    feeRecipient: undefined,
+                    feeRecipient: null,
                     feeTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
                     gasPrice: new BigNumber(10e9),
                     estimatedGas: new BigNumber(164e3),
