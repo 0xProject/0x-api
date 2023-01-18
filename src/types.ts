@@ -475,7 +475,7 @@ export interface RfqtV2Request {
 }
 
 interface GaslessFeeConfigBase {
-    feeRecipient?: string;
+    feeRecipient: string | null;
 }
 
 interface VolumeBasedFeeConfig extends GaslessFeeConfigBase {
@@ -505,7 +505,7 @@ export interface GaslessFeeConfigs {
 interface GaslessFeeBase {
     feeToken: string;
     feeAmount: BigNumber;
-    feeRecipient?: string;
+    feeRecipient: string | null;
 }
 
 interface VolumeBasedFee extends GaslessFeeBase {
