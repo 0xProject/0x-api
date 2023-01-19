@@ -19,15 +19,15 @@ describe('calculateGaslessFees', () => {
                 quoteGasEstimate: new BigNumber(20e3),
             });
 
-            expect(fees.integrator).to.be.undefined;
+            expect(fees.integratorFee).to.be.undefined;
             expect(totalChargedFeeAmount.eq(ZERO));
         });
 
         it('returns correct integrator fee and total fee amount if integrator fee config is present', () => {
             const { fees, totalChargedFeeAmount } = calculateGaslessFees({
                 feeConfigs: {
-                    integrator: {
-                        kind: 'volume',
+                    integratorFee: {
+                        type: 'volume',
                         feeRecipient: RANDOM_ADDRESS1,
                         volumePercentage: new BigNumber(0.1),
                     },
@@ -39,8 +39,8 @@ describe('calculateGaslessFees', () => {
                 quoteGasEstimate: new BigNumber(20e3),
             });
 
-            expect(fees.integrator).to.eql({
-                kind: 'volume',
+            expect(fees.integratorFee).to.eql({
+                type: 'volume',
                 feeToken: WETH_TOKEN_ADDRESS,
                 feeAmount: new BigNumber(1e3),
                 feeRecipient: RANDOM_ADDRESS1,
@@ -61,15 +61,15 @@ describe('calculateGaslessFees', () => {
                 quoteGasEstimate: new BigNumber(20e3),
             });
 
-            expect(fees.integrator).to.be.undefined;
+            expect(fees.integratorFee).to.be.undefined;
             expect(totalChargedFeeAmount.eq(ZERO));
         });
 
-        it('returns correct 0x fee and total fee amount if 0x fee config is present and the kind is volume', () => {
+        it('returns correct 0x fee and total fee amount if 0x fee config is present and the type is volume', () => {
             const { fees, totalChargedFeeAmount } = calculateGaslessFees({
                 feeConfigs: {
-                    zeroex: {
-                        kind: 'volume',
+                    zeroexFee: {
+                        type: 'volume',
                         feeRecipient: RANDOM_ADDRESS1,
                         volumePercentage: new BigNumber(0.1),
                     },
@@ -81,8 +81,8 @@ describe('calculateGaslessFees', () => {
                 quoteGasEstimate: new BigNumber(20e3),
             });
 
-            expect(fees.zeroex).to.eql({
-                kind: 'volume',
+            expect(fees.zeroexFee).to.eql({
+                type: 'volume',
                 feeToken: WETH_TOKEN_ADDRESS,
                 feeAmount: new BigNumber(1e3),
                 feeRecipient: RANDOM_ADDRESS1,
@@ -91,16 +91,16 @@ describe('calculateGaslessFees', () => {
             expect(totalChargedFeeAmount.eq(new BigNumber(1e3)));
         });
 
-        it('returns correct 0x fee and total fee amount if 0x fee config is present and the kind is integrator_share', () => {
+        it('returns correct 0x fee and total fee amount if 0x fee config is present and the type is integrator_share', () => {
             const { fees, totalChargedFeeAmount } = calculateGaslessFees({
                 feeConfigs: {
-                    integrator: {
-                        kind: 'volume',
+                    integratorFee: {
+                        type: 'volume',
                         feeRecipient: RANDOM_ADDRESS1,
                         volumePercentage: new BigNumber(0.1),
                     },
-                    zeroex: {
-                        kind: 'integrator_share',
+                    zeroexFee: {
+                        type: 'integrator_share',
                         feeRecipient: RANDOM_ADDRESS2,
                         integratorSharePercentage: new BigNumber(0.05),
                     },
@@ -112,8 +112,8 @@ describe('calculateGaslessFees', () => {
                 quoteGasEstimate: new BigNumber(20e3),
             });
 
-            expect(fees.zeroex).to.eql({
-                kind: 'integrator_share',
+            expect(fees.zeroexFee).to.eql({
+                type: 'integrator_share',
                 feeToken: WETH_TOKEN_ADDRESS,
                 feeAmount: new BigNumber(50),
                 feeRecipient: RANDOM_ADDRESS2,
@@ -122,12 +122,12 @@ describe('calculateGaslessFees', () => {
             expect(totalChargedFeeAmount.eq(new BigNumber(1e3)));
         });
 
-        it('throws if 0x fee kind is integrator_share but integrator fee config is not present', () => {
+        it('throws if 0x fee type is integrator_share but integrator fee config is not present', () => {
             expect(() => {
                 calculateGaslessFees({
                     feeConfigs: {
-                        zeroex: {
-                            kind: 'integrator_share',
+                        zeroexFee: {
+                            type: 'integrator_share',
                             feeRecipient: RANDOM_ADDRESS2,
                             integratorSharePercentage: new BigNumber(0.05),
                         },
@@ -153,7 +153,7 @@ describe('calculateGaslessFees', () => {
                 quoteGasEstimate: new BigNumber(20e3),
             });
 
-            expect(fees.integrator).to.be.undefined;
+            expect(fees.integratorFee).to.be.undefined;
             expect(totalChargedFeeAmount.eq(ZERO));
         });
 
@@ -161,18 +161,18 @@ describe('calculateGaslessFees', () => {
             it('returns correct result if integrator fee, 0x and gas fee all have fee recipient', () => {
                 const { fees, totalChargedFeeAmount } = calculateGaslessFees({
                     feeConfigs: {
-                        integrator: {
-                            kind: 'volume',
+                        integratorFee: {
+                            type: 'volume',
                             feeRecipient: RANDOM_ADDRESS1,
                             volumePercentage: new BigNumber(0.01),
                         },
-                        zeroex: {
-                            kind: 'integrator_share',
+                        zeroexFee: {
+                            type: 'integrator_share',
                             feeRecipient: RANDOM_ADDRESS2,
                             integratorSharePercentage: new BigNumber(0.05),
                         },
-                        gas: {
-                            kind: 'gas',
+                        gasFee: {
+                            type: 'gas',
                             feeRecipient: RANDOM_ADDRESS2,
                         },
                     },
@@ -183,8 +183,8 @@ describe('calculateGaslessFees', () => {
                     quoteGasEstimate: new BigNumber(20e3),
                 });
 
-                expect(fees.gas).to.eql({
-                    kind: 'gas',
+                expect(fees.gasFee).to.eql({
+                    type: 'gas',
                     feeToken: WETH_TOKEN_ADDRESS,
                     feeAmount: new BigNumber(1.64e15),
                     feeRecipient: RANDOM_ADDRESS2,
@@ -198,18 +198,18 @@ describe('calculateGaslessFees', () => {
             it('returns correct result if gas fee do not have fee recipient', () => {
                 const { fees, totalChargedFeeAmount } = calculateGaslessFees({
                     feeConfigs: {
-                        integrator: {
-                            kind: 'volume',
+                        integratorFee: {
+                            type: 'volume',
                             feeRecipient: RANDOM_ADDRESS1,
                             volumePercentage: new BigNumber(0.01),
                         },
-                        zeroex: {
-                            kind: 'volume',
+                        zeroexFee: {
+                            type: 'volume',
                             feeRecipient: RANDOM_ADDRESS2,
                             volumePercentage: new BigNumber(0.01),
                         },
-                        gas: {
-                            kind: 'gas',
+                        gasFee: {
+                            type: 'gas',
                             feeRecipient: null,
                         },
                     },
@@ -220,8 +220,8 @@ describe('calculateGaslessFees', () => {
                     quoteGasEstimate: new BigNumber(20e3),
                 });
 
-                expect(fees.gas).to.eql({
-                    kind: 'gas',
+                expect(fees.gasFee).to.eql({
+                    type: 'gas',
                     feeToken: WETH_TOKEN_ADDRESS,
                     feeAmount: new BigNumber(1.64e15),
                     feeRecipient: null,

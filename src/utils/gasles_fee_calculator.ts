@@ -39,20 +39,20 @@ export function calculateGaslessFees(opts: {
     quoteGasEstimate: BigNumber;
 }): { fees: GaslessFees; totalChargedFeeAmount: BigNumber } {
     const integratorFee = _calculateIntegratorFee({
-        integratorFeeConfig: opts.feeConfigs.integrator,
+        integratorFeeConfig: opts.feeConfigs.integratorFee,
         sellToken: opts.sellToken,
         sellTokenAmount: opts.sellTokenAmount,
     });
 
     const zeroexFee = _calculateZeroexFee({
-        zeroexFeeConfig: opts.feeConfigs.zeroex,
+        zeroexFeeConfig: opts.feeConfigs.zeroexFee,
         sellToken: opts.sellToken,
         sellTokenAmount: opts.sellTokenAmount,
         integratorFee,
     });
 
     const gasFee = _calculateGasFee({
-        gasFeeConfig: opts.feeConfigs.gas,
+        gasFeeConfig: opts.feeConfigs.gasFee,
         sellToken: opts.sellToken,
         sellTokenAmountPerBaseUnitNativeToken: opts.sellTokenAmountPerBaseUnitNativeToken,
         gasPrice: opts.gasPrice,
@@ -62,9 +62,9 @@ export function calculateGaslessFees(opts: {
     });
 
     const fees = {
-        integrator: integratorFee,
-        zeroex: zeroexFee,
-        gas: gasFee,
+        integratorFee,
+        zeroexFee,
+        gasFee,
     };
 
     return {
@@ -77,19 +77,19 @@ function _calculateTotalChargedFeeAmount(fees: GaslessFees): BigNumber {
     const totalFeeAmount = ZERO;
 
     // Integrator fee
-    if (fees.integrator && fees.integrator.feeRecipient) {
-        totalFeeAmount.plus(fees.integrator.feeAmount);
+    if (fees.integratorFee && fees.integratorFee.feeRecipient) {
+        totalFeeAmount.plus(fees.integratorFee.feeAmount);
     }
     // 0x fee
-    if (fees.zeroex && fees.zeroex.feeRecipient) {
+    if (fees.zeroexFee && fees.zeroexFee.feeRecipient) {
         // If the fee kind is integrator_share, the 0x amount has already been included in integrator amount
-        if (fees.zeroex.kind !== 'integrator_share') {
-            totalFeeAmount.plus(fees.zeroex.feeAmount);
+        if (fees.zeroexFee.type !== 'integrator_share') {
+            totalFeeAmount.plus(fees.zeroexFee.feeAmount);
         }
     }
     // Gas fee
-    if (fees.gas && fees.gas.feeRecipient) {
-        totalFeeAmount.plus(fees.gas.feeAmount);
+    if (fees.gasFee && fees.gasFee.feeRecipient) {
+        totalFeeAmount.plus(fees.gasFee.feeAmount);
     }
 
     return totalFeeAmount;
@@ -105,7 +105,7 @@ function _calculateIntegratorFee(opts: {
     }
 
     return {
-        kind: 'volume',
+        type: 'volume',
         feeToken: opts.sellToken,
         feeAmount: opts.sellTokenAmount
             .times(opts.integratorFeeConfig.volumePercentage)
@@ -125,10 +125,10 @@ function _calculateZeroexFee(opts: {
         return undefined;
     }
 
-    switch (opts.zeroexFeeConfig.kind) {
+    switch (opts.zeroexFeeConfig.type) {
         case 'volume':
             return {
-                kind: 'volume',
+                type: 'volume',
                 feeToken: opts.sellToken,
                 feeAmount: opts.sellTokenAmount
                     .times(opts.zeroexFeeConfig.volumePercentage)
@@ -143,7 +143,7 @@ function _calculateZeroexFee(opts: {
             }
 
             return {
-                kind: 'integrator_share',
+                type: 'integrator_share',
                 feeToken: opts.sellToken,
                 feeAmount: opts.integratorFee.feeAmount
                     .times(opts.zeroexFeeConfig.integratorSharePercentage)
@@ -186,7 +186,7 @@ function _calculateGasFee(opts: {
     const estimatedGas = opts.quoteGasEstimate.plus(TRANSFER_FROM_GAS.times(numTransferFromForFee));
 
     return {
-        kind: 'gas',
+        type: 'gas',
         feeToken: opts.sellToken,
         feeAmount: opts.sellTokenAmountPerBaseUnitNativeToken
             .times(opts.gasPrice)

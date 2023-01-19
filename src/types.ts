@@ -483,7 +483,7 @@ interface VolumeBasedFeeConfig extends GaslessFeeConfigBase {
     volumePercentage: BigNumber;
 }
 
-interface GasFeeConfig extends GaslessFeeConfigBase {
+export interface GasFeeConfig extends GaslessFeeConfigBase {
     type: 'gas';
 }
 
@@ -513,7 +513,7 @@ interface VolumeBasedFee extends GaslessFeeBase {
     volumePercentage: BigNumber;
 }
 
-interface GasFee extends GaslessFeeBase {
+export interface GasFee extends GaslessFeeBase {
     type: 'gas';
     gasPrice: BigNumber;
     estimatedGas: BigNumber;
@@ -529,7 +529,7 @@ export type IntegratorFee = VolumeBasedFee;
 export type ZeroexFee = VolumeBasedFee | IntegratorShareFee;
 
 // Gasless fees returned to the caller of /meta_transaction/v2/price and /meta_transaction/v2/quote
-interface GaslessFees {
+export interface GaslessFees {
     integratorFee?: VolumeBasedFee;
     zeroexFee?: VolumeBasedFee | IntegratorShareFee;
     gasFee?: GasFee;
