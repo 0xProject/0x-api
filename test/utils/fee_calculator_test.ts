@@ -1,7 +1,7 @@
 import { expect } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
 import { ZERO } from '../../src/constants';
-import { calculateGaslessFees } from '../../src/utils/gasles_fee_calculator';
+import { calculateFees } from '../../src/utils/fee_calculator';
 import { WETH_TOKEN_ADDRESS } from '../constants';
 
 const RANDOM_ADDRESS1 = '0x70a9f34f9b34c64957b9c401a97bfed35b95049e';
@@ -10,7 +10,7 @@ const RANDOM_ADDRESS2 = '0x70a9f34f9b34c64957b9c401a97bfed35b95049f';
 describe('calculateGaslessFees', () => {
     describe('integrator fee', () => {
         it('returns undefined for integrator field if integrator fee config is not present', () => {
-            const { fees, totalChargedFeeAmount } = calculateGaslessFees({
+            const { fees, totalChargedFeeAmount } = calculateFees({
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
@@ -24,7 +24,7 @@ describe('calculateGaslessFees', () => {
         });
 
         it('returns correct integrator fee and total fee amount if integrator fee config is present', () => {
-            const { fees, totalChargedFeeAmount } = calculateGaslessFees({
+            const { fees, totalChargedFeeAmount } = calculateFees({
                 feeConfigs: {
                     integratorFee: {
                         type: 'volume',
@@ -52,7 +52,7 @@ describe('calculateGaslessFees', () => {
 
     describe('0x fee', () => {
         it('returns undefined for zeroex field if 0x fee config is not present', () => {
-            const { fees, totalChargedFeeAmount } = calculateGaslessFees({
+            const { fees, totalChargedFeeAmount } = calculateFees({
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
@@ -66,7 +66,7 @@ describe('calculateGaslessFees', () => {
         });
 
         it('returns correct 0x fee and total fee amount if 0x fee config is present and the type is volume', () => {
-            const { fees, totalChargedFeeAmount } = calculateGaslessFees({
+            const { fees, totalChargedFeeAmount } = calculateFees({
                 feeConfigs: {
                     zeroexFee: {
                         type: 'volume',
@@ -92,7 +92,7 @@ describe('calculateGaslessFees', () => {
         });
 
         it('returns correct 0x fee and total fee amount if 0x fee config is present and the type is integrator_share', () => {
-            const { fees, totalChargedFeeAmount } = calculateGaslessFees({
+            const { fees, totalChargedFeeAmount } = calculateFees({
                 feeConfigs: {
                     integratorFee: {
                         type: 'volume',
@@ -124,7 +124,7 @@ describe('calculateGaslessFees', () => {
 
         it('throws if 0x fee type is integrator_share but integrator fee config is not present', () => {
             expect(() => {
-                calculateGaslessFees({
+                calculateFees({
                     feeConfigs: {
                         zeroexFee: {
                             type: 'integrator_share',
@@ -144,7 +144,7 @@ describe('calculateGaslessFees', () => {
 
     describe('gas fee', () => {
         it('returns undefined for zeroex field if 0x fee config is not present', () => {
-            const { fees, totalChargedFeeAmount } = calculateGaslessFees({
+            const { fees, totalChargedFeeAmount } = calculateFees({
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
@@ -159,7 +159,7 @@ describe('calculateGaslessFees', () => {
 
         describe('returns correct gas fee and total fee amount if gas fee config is present', () => {
             it('returns correct result if integrator fee, 0x and gas fee all have fee recipient', () => {
-                const { fees, totalChargedFeeAmount } = calculateGaslessFees({
+                const { fees, totalChargedFeeAmount } = calculateFees({
                     feeConfigs: {
                         integratorFee: {
                             type: 'volume',
@@ -196,7 +196,7 @@ describe('calculateGaslessFees', () => {
             });
 
             it('returns correct result if gas fee do not have fee recipient', () => {
-                const { fees, totalChargedFeeAmount } = calculateGaslessFees({
+                const { fees, totalChargedFeeAmount } = calculateFees({
                     feeConfigs: {
                         integratorFee: {
                             type: 'volume',

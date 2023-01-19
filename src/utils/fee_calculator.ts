@@ -3,12 +3,12 @@ import { ZERO } from '../constants';
 import {
     GasFee,
     GasFeeConfig,
-    GaslessFeeConfigs,
-    GaslessFees,
-    IntegratorFee,
-    IntegratorFeeConfig,
-    ZeroexFee,
-    ZeroExFeeConfig,
+    FeeConfigs,
+    Fees,
+    IntegratorShareFee,
+    IntegratorShareFeeConfig,
+    VolumeBasedFee,
+    VolumeBasedFeeConfig,
 } from '../types';
 
 /**
@@ -20,24 +20,24 @@ import {
 const TRANSFER_FROM_GAS = new BigNumber(72e3);
 
 /**
- * Calculate gasless fees object which contains total fee amount and a breakdown of integrator, 0x and gas fees.
+ * Calculate fees object which contains total fee amount and a breakdown of integrator, 0x and gas fees.
  *
- * @param feeConfigs Gasless fee configs parsed from input.
+ * @param feeConfigs Fee configs parsed from input.
  * @param opts sellToken: Address of the sell token.
  *             sellTokenAmount: Amount of the sell token.
  *             sellTokenAmountPerBaseUnitNativeToken: Amount of sell token per base unit native token.
  *             gasPrice: Estimated gas price.
  *             quoteGasEstimate: The gas estimate to fill the quote.
- * @returns Gasless fees object and the total fee amount.
+ * @returns Fee object and the total fee amount.
  */
-export function calculateGaslessFees(opts: {
-    feeConfigs: GaslessFeeConfigs;
+export function calculateFees(opts: {
+    feeConfigs: FeeConfigs;
     sellToken: string;
     sellTokenAmount: BigNumber;
     sellTokenAmountPerBaseUnitNativeToken: BigNumber;
     gasPrice: BigNumber;
     quoteGasEstimate: BigNumber;
-}): { fees: GaslessFees; totalChargedFeeAmount: BigNumber } {
+}): { fees: Fees; totalChargedFeeAmount: BigNumber } {
     const integratorFee = _calculateIntegratorFee({
         integratorFeeConfig: opts.feeConfigs.integratorFee,
         sellToken: opts.sellToken,
@@ -73,7 +73,7 @@ export function calculateGaslessFees(opts: {
     };
 }
 
-function _calculateTotalChargedFeeAmount(fees: GaslessFees): BigNumber {
+function _calculateTotalChargedFeeAmount(fees: Fees): BigNumber {
     const totalFeeAmount = ZERO;
 
     // Integrator fee
@@ -96,10 +96,10 @@ function _calculateTotalChargedFeeAmount(fees: GaslessFees): BigNumber {
 }
 
 function _calculateIntegratorFee(opts: {
-    integratorFeeConfig?: IntegratorFeeConfig;
+    integratorFeeConfig?: VolumeBasedFeeConfig;
     sellToken: string;
     sellTokenAmount: BigNumber;
-}): IntegratorFee | undefined {
+}): VolumeBasedFee | undefined {
     if (!opts.integratorFeeConfig) {
         return undefined;
     }
@@ -116,11 +116,11 @@ function _calculateIntegratorFee(opts: {
 }
 
 function _calculateZeroexFee(opts: {
-    zeroexFeeConfig?: ZeroExFeeConfig;
+    zeroexFeeConfig?: VolumeBasedFeeConfig | IntegratorShareFeeConfig;
     sellToken: string;
     sellTokenAmount: BigNumber;
-    integratorFee?: IntegratorFee;
-}): ZeroexFee | undefined {
+    integratorFee?: VolumeBasedFee;
+}): VolumeBasedFee | IntegratorShareFee | undefined {
     if (!opts.zeroexFeeConfig) {
         return undefined;
     }
@@ -162,8 +162,8 @@ function _calculateGasFee(opts: {
     sellTokenAmountPerBaseUnitNativeToken: BigNumber;
     gasPrice: BigNumber;
     quoteGasEstimate: BigNumber;
-    integratorFee?: IntegratorFee;
-    zeroexFee?: ZeroexFee;
+    integratorFee?: VolumeBasedFee;
+    zeroexFee?: VolumeBasedFee | IntegratorShareFee;
 }): GasFee | undefined {
     if (!opts.gasFeeConfig) {
         return undefined;
