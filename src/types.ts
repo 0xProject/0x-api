@@ -479,16 +479,16 @@ interface GaslessFeeConfigBase {
 }
 
 interface VolumeBasedFeeConfig extends GaslessFeeConfigBase {
-    kind: 'volume';
+    type: 'volume';
     volumePercentage: BigNumber;
 }
 
-export interface GasFeeConfig extends GaslessFeeConfigBase {
-    kind: 'gas';
+interface GasFeeConfig extends GaslessFeeConfigBase {
+    type: 'gas';
 }
 
 interface IntegratorShareFeeConfig extends GaslessFeeConfigBase {
-    kind: 'integrator_share';
+    type: 'integrator_share';
     integratorSharePercentage: BigNumber;
 }
 
@@ -497,9 +497,9 @@ export type ZeroExFeeConfig = VolumeBasedFeeConfig | IntegratorShareFeeConfig;
 
 // Gasless fee configs passed to /meta_transaction/v2/price and /meta_transaction/v2/quote
 export interface GaslessFeeConfigs {
-    integrator?: IntegratorFeeConfig;
-    zeroex?: ZeroExFeeConfig;
-    gas?: GasFeeConfig;
+    integratorFee?: VolumeBasedFeeConfig;
+    zeroexFee?: VolumeBasedFeeConfig | IntegratorShareFeeConfig;
+    gasFee?: GasFeeConfig;
 }
 
 interface GaslessFeeBase {
@@ -509,19 +509,19 @@ interface GaslessFeeBase {
 }
 
 interface VolumeBasedFee extends GaslessFeeBase {
-    kind: 'volume';
+    type: 'volume';
     volumePercentage: BigNumber;
 }
 
-export interface GasFee extends GaslessFeeBase {
-    kind: 'gas';
+interface GasFee extends GaslessFeeBase {
+    type: 'gas';
     gasPrice: BigNumber;
     estimatedGas: BigNumber;
     feeTokenAmountPerBaseUnitNativeToken: BigNumber;
 }
 
 interface IntegratorShareFee extends GaslessFeeBase {
-    kind: 'integrator_share';
+    type: 'integrator_share';
     integratorSharePercentage: BigNumber;
 }
 
@@ -529,8 +529,8 @@ export type IntegratorFee = VolumeBasedFee;
 export type ZeroexFee = VolumeBasedFee | IntegratorShareFee;
 
 // Gasless fees returned to the caller of /meta_transaction/v2/price and /meta_transaction/v2/quote
-export interface GaslessFees {
-    integrator?: IntegratorFee;
-    zeroex?: ZeroexFee;
-    gas?: GasFee;
+interface GaslessFees {
+    integratorFee?: VolumeBasedFee;
+    zeroexFee?: VolumeBasedFee | IntegratorShareFee;
+    gasFee?: GasFee;
 }
