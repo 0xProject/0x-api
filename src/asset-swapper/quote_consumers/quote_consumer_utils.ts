@@ -1,4 +1,6 @@
-import { FillQuoteTransformerData, FillQuoteTransformerOrderType } from '@0x/protocol-utils';
+import { ContractAddresses } from '@0x/contract-addresses';
+import { IZeroExContract } from '@0x/contract-wrappers';
+import { FillQuoteTransformerData, FillQuoteTransformerOrderType, findTransformerNonce } from '@0x/protocol-utils';
 
 import {
     ExchangeProxyContractOpts,
@@ -17,6 +19,7 @@ import {
     createBridgeDataForBridgeOrder,
     getErc20BridgeSourceToBridgeSource,
 } from '../utils/market_operation_utils/orders';
+import { TransformerNonces } from './types';
 
 const MULTIPLEX_BATCH_FILL_SOURCES = [
     ERC20BridgeSource.UniswapV2,
@@ -24,6 +27,15 @@ const MULTIPLEX_BATCH_FILL_SOURCES = [
     ERC20BridgeSource.Native,
     ERC20BridgeSource.UniswapV3,
 ];
+
+export function createExchangeProxyWithoutProvider(exchangeProxyAddress: string): IZeroExContract {
+    const fakeProvider = {
+        sendAsync(): void {
+            return;
+        },
+    };
+    return new IZeroExContract(exchangeProxyAddress, fakeProvider);
+}
 
 /**
  * Returns true iff a quote can be filled via `MultiplexFeature.batchFill`.
@@ -56,16 +68,25 @@ const MULTIPLEX_MULTIHOP_FILL_SOURCES = [
 ];
 
 /**
- * Returns true iff a quote can be filled via `MultiplexFeature.multiHopFill`.
+ * Returns true if a path can be filled via `MultiplexFeature.multiplexMultiHop*`.
  */
-export function isMultiplexMultiHopFillCompatible(quote: SwapQuote, opts: ExchangeProxyContractOpts): boolean {
+export function isMultiplexMultiHopFillCompatible(path: IPath, opts: ExchangeProxyContractOpts): boolean {
     if (requiresTransformERC20(opts)) {
         return false;
     }
-    if (!quote.path.hasTwoHop()) {
+    const { bridgeOrders, nativeOrders, twoHopOrders } = path.getOrdersByType();
+
+    // Path shouldn't have any other type of order.
+    if (bridgeOrders.length !== 0 || nativeOrders.length !== 0) {
         return false;
     }
-    const [firstHopOrder, secondHopOrder] = quote.path.getOrders();
+
+    // MultiplexFeature only supports single two hop order.
+    if (twoHopOrders.length !== 1) {
+        return false;
+    }
+
+    const { firstHopOrder, secondHopOrder } = twoHopOrders[0];
     return (
         MULTIPLEX_MULTIHOP_FILL_SOURCES.includes(firstHopOrder.source) &&
         MULTIPLEX_MULTIHOP_FILL_SOURCES.includes(secondHopOrder.source)
@@ -97,9 +118,10 @@ export function isDirectSwapCompatible(
     return true;
 }
 
-/**
- * Whether a quote is a market buy or not.
- */
+export function getMaxQuoteSlippageRate(quote: SwapQuote): number {
+    return quote.worstCaseQuoteInfo.slippage;
+}
+
 export function isBuyQuote(quote: SwapQuote): quote is MarketBuySwapQuote {
     return quote.type === MarketOperation.Buy;
 }
@@ -174,7 +196,7 @@ export function getFQTTransformerDataFromOptimizedOrders(
 }
 
 /**
- * Returns true if swap quote must go through `tranformERC20`.
+ * Returns true if swap quote must go through `transformERC20`.
  */
 export function requiresTransformERC20(opts: ExchangeProxyContractOpts): boolean {
     // Is a mtx.
@@ -190,4 +212,29 @@ export function requiresTransformERC20(opts: ExchangeProxyContractOpts): boolean
         return true;
     }
     return false;
+}
+
+export function getTransformerNonces(contractAddresses: ContractAddresses): TransformerNonces {
+    return {
+        wethTransformer: findTransformerNonce(
+            contractAddresses.transformers.wethTransformer,
+            contractAddresses.exchangeProxyTransformerDeployer,
+        ),
+        payTakerTransformer: findTransformerNonce(
+            contractAddresses.transformers.payTakerTransformer,
+            contractAddresses.exchangeProxyTransformerDeployer,
+        ),
+        fillQuoteTransformer: findTransformerNonce(
+            contractAddresses.transformers.fillQuoteTransformer,
+            contractAddresses.exchangeProxyTransformerDeployer,
+        ),
+        affiliateFeeTransformer: findTransformerNonce(
+            contractAddresses.transformers.affiliateFeeTransformer,
+            contractAddresses.exchangeProxyTransformerDeployer,
+        ),
+        positiveSlippageFeeTransformer: findTransformerNonce(
+            contractAddresses.transformers.positiveSlippageFeeTransformer,
+            contractAddresses.exchangeProxyTransformerDeployer,
+        ),
+    };
 }
