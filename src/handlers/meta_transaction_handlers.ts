@@ -464,21 +464,19 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
         parsedFeeConfigs = {};
 
         // Parse the integrator fee config
-        if (feeConfigs.integrator) {
-            const integratorFee = feeConfigs.integrator;
+        if (feeConfigs.integratorFee) {
+            const integratorFee = feeConfigs.integratorFee;
 
-            if (integratorFee.kind !== 'volume') {
+            if (integratorFee.type !== 'volume') {
                 throw new ValidationError([
                     {
                         field: 'feeConfigs',
                         code: ValidationErrorCodes.IncorrectFormat,
-                        reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                        reason: ValidationErrorReasons.InvalidGaslessFeeType,
                     },
                 ]);
             }
 
-            // ASK: 0x-api has been using 0-1 for percentage instead of 0-100. Should we use
-            //      0-1 here to be consistent with other fields?
             const volumePercentage = new BigNumber(integratorFee.volumePercentage as string);
             if (volumePercentage.gte(1)) {
                 throw new ValidationError([
@@ -490,28 +488,28 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
                 ]);
             }
 
-            parsedFeeConfigs.integrator = {
-                kind: 'volume',
+            parsedFeeConfigs.integratorFee = {
+                type: 'volume',
                 feeRecipient: integratorFee.feeRecipient,
                 volumePercentage,
             };
         }
 
         // Parse the 0x fee config
-        if (feeConfigs.zeroex) {
-            const zeroexFee = feeConfigs.zeroex;
+        if (feeConfigs.zeroexFee) {
+            const zeroexFee = feeConfigs.zeroexFee;
 
-            if (zeroexFee.kind !== 'volume' && zeroexFee.kind !== 'integrator_share') {
+            if (zeroexFee.type !== 'volume' && zeroexFee.type !== 'integrator_share') {
                 throw new ValidationError([
                     {
                         field: 'feeConfigs',
                         code: ValidationErrorCodes.IncorrectFormat,
-                        reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                        reason: ValidationErrorReasons.InvalidGaslessFeeType,
                     },
                 ]);
             }
 
-            if (zeroexFee.kind === 'volume') {
+            if (zeroexFee.type === 'volume') {
                 const feePercentage = new BigNumber(zeroexFee.volumePercentage as string);
                 if (feePercentage.gte(1)) {
                     throw new ValidationError([
@@ -523,18 +521,18 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
                     ]);
                 }
 
-                parsedFeeConfigs.zeroex = {
-                    kind: 'volume',
+                parsedFeeConfigs.zeroexFee = {
+                    type: 'volume',
                     feeRecipient: zeroexFee.feeRecipient,
                     volumePercentage: feePercentage,
                 };
-            } else if (zeroexFee.kind === 'integrator_share') {
-                if (!parsedFeeConfigs.integrator) {
+            } else if (zeroexFee.type === 'integrator_share') {
+                if (!parsedFeeConfigs.integratorFee) {
                     throw new ValidationError([
                         {
                             field: 'feeConfigs',
                             code: ValidationErrorCodes.IncorrectFormat,
-                            reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                            reason: ValidationErrorReasons.InvalidGaslessFeeType,
                         },
                     ]);
                 }
@@ -550,8 +548,8 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
                     ]);
                 }
 
-                parsedFeeConfigs.zeroex = {
-                    kind: 'integrator_share',
+                parsedFeeConfigs.zeroexFee = {
+                    type: 'integrator_share',
                     feeRecipient: zeroexFee.feeRecipient,
                     integratorSharePercentage: feePercentage,
                 };
@@ -559,21 +557,21 @@ function _parseFeeConfigs(req: express.Request): GaslessFeeConfigs | undefined {
         }
 
         // Parse the gas fee config
-        if (feeConfigs.gas) {
-            const gasFee = feeConfigs.gas;
+        if (feeConfigs.gasFee) {
+            const gasFee = feeConfigs.gasFee;
 
-            if (gasFee.kind !== 'gas') {
+            if (gasFee.type !== 'gas') {
                 throw new ValidationError([
                     {
                         field: 'feeConfigs',
                         code: ValidationErrorCodes.IncorrectFormat,
-                        reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                        reason: ValidationErrorReasons.InvalidGaslessFeeType,
                     },
                 ]);
             }
 
-            parsedFeeConfigs.gas = {
-                kind: 'gas',
+            parsedFeeConfigs.gasFee = {
+                type: 'gas',
                 feeRecipient: gasFee.feeRecipient,
             };
         }

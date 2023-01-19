@@ -189,13 +189,13 @@ describe(SUITE_NAME, () => {
                     integratorId: INTEGRATOR_ID,
                     takerAddress: TAKER_ADDRESS,
                     feeConfigs: {
-                        integrator: { kind: 'volume', volumePercentage: '0.1' },
+                        integrator: { type: 'volume', volumePercentage: '0.1' },
                         zeroex: {
-                            kind: 'integrator_share',
+                            type: 'integrator_share',
                             integratorSharePercentage: '0.2',
                             feeRecipient: TAKER_ADDRESS,
                         },
-                        gas: { kind: 'gas' },
+                        gas: { type: 'gas' },
                     },
                 },
                 {
@@ -205,9 +205,9 @@ describe(SUITE_NAME, () => {
                     integratorId: INTEGRATOR_ID,
                     takerAddress: TAKER_ADDRESS,
                     feeConfigs: {
-                        integrator: { kind: 'volume', volumePercentage: '0.1', feeRecipient: TAKER_ADDRESS },
-                        zeroex: {
-                            kind: 'integrator_share',
+                        integratorFee: { type: 'volume', volumePercentage: '0.1', feeRecipient: TAKER_ADDRESS },
+                        zeroexFee: {
+                            type: 'integrator_share',
                             integratorSharePercentage: '0.2',
                             feeRecipient: TAKER_ADDRESS,
                         },
@@ -220,8 +220,8 @@ describe(SUITE_NAME, () => {
                     integratorId: INTEGRATOR_ID,
                     takerAddress: TAKER_ADDRESS,
                     feeConfigs: {
-                        integrator: { kind: 'volume', volumePercentage: '0.1' },
-                        gas: { kind: 'gas', feeRecipient: TAKER_ADDRESS },
+                        integratorFee: { type: 'volume', volumePercentage: '0.1' },
+                        gasFee: { type: 'gas', feeRecipient: TAKER_ADDRESS },
                     },
                 },
                 {
@@ -230,7 +230,7 @@ describe(SUITE_NAME, () => {
                     buyAmount: ZRX_BUY_AMOUNT,
                     integratorId: INTEGRATOR_ID,
                     takerAddress: TAKER_ADDRESS,
-                    feeConfigs: { integrator: { kind: 'volume', volumePercentage: '0.1' } },
+                    feeConfigs: { integratorFee: { type: 'volume', volumePercentage: '0.1' } },
                 },
                 {
                     buyToken: ZRX_TOKEN_ADDRESS,
@@ -238,7 +238,7 @@ describe(SUITE_NAME, () => {
                     buyAmount: ZRX_BUY_AMOUNT,
                     integratorId: INTEGRATOR_ID,
                     takerAddress: TAKER_ADDRESS,
-                    feeConfigs: { gas: { kind: 'gas', feeRecipient: TAKER_ADDRESS } },
+                    feeConfigs: { gasFee: { type: 'gas', feeRecipient: TAKER_ADDRESS } },
                 },
             ];
 
@@ -265,7 +265,7 @@ describe(SUITE_NAME, () => {
                 buyAmount: '10000000000000000000000000000000',
                 integratorId: 'integrator',
                 takerAddress: TAKER_ADDRESS,
-                feeConfigs: { integrator: { kind: 'volume', volumePercentage: '0.1' } },
+                feeConfigs: { integratorFee: { type: 'volume', volumePercentage: '0.1' } },
             });
             expectSwapError(response, {
                 validationErrors: [
@@ -286,13 +286,13 @@ describe(SUITE_NAME, () => {
                 integratorId: INTEGRATOR_ID,
                 takerAddress: TAKER_ADDRESS,
                 feeConfigs: {
-                    integrator: { kind: 'volume', volumePercentage: '0.1' },
-                    zeroex: {
-                        kind: 'integrator_share',
+                    integratorFee: { type: 'volume', volumePercentage: '0.1' },
+                    zeroexFee: {
+                        type: 'integrator_share',
                         integratorSharePercentage: '0.2',
                         feeRecipient: TAKER_ADDRESS,
                     },
-                    gas: { kind: 'gas' },
+                    gasFee: { type: 'gas' },
                 },
             });
             expectCorrectQuoteResponse(response, { buyAmount: new BigNumber(1234) });
@@ -306,13 +306,13 @@ describe(SUITE_NAME, () => {
                 integratorId: INTEGRATOR_ID,
                 takerAddress: TAKER_ADDRESS,
                 feeConfigs: {
-                    integrator: { kind: 'volume', volumePercentage: '0.1' },
-                    zeroex: {
-                        kind: 'integrator_share',
+                    integratorFee: { type: 'volume', volumePercentage: '0.1' },
+                    zeroexFee: {
+                        type: 'integrator_share',
                         integratorSharePercentage: '0.2',
                         feeRecipient: TAKER_ADDRESS,
                     },
-                    gas: { kind: 'gas' },
+                    gasFee: { type: 'gas' },
                 },
             });
             expectCorrectQuoteResponse(response, { sellAmount: new BigNumber(1234) });
@@ -328,7 +328,7 @@ describe(SUITE_NAME, () => {
                         integratorId: INTEGRATOR_ID,
                         takerAddress: TAKER_ADDRESS,
                         feeConfigs: {
-                            integrator: { kind: 'random', volumePercentage: '0.1' },
+                            integratorFee: { type: 'random', volumePercentage: '0.1' },
                         },
                     });
 
@@ -337,7 +337,7 @@ describe(SUITE_NAME, () => {
                             {
                                 field: 'feeConfigs',
                                 code: ValidationErrorCodes.IncorrectFormat,
-                                reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                                reason: ValidationErrorReasons.InvalidGaslessFeeType,
                             },
                         ],
                     });
@@ -351,7 +351,7 @@ describe(SUITE_NAME, () => {
                         integratorId: INTEGRATOR_ID,
                         takerAddress: TAKER_ADDRESS,
                         feeConfigs: {
-                            integrator: { kind: 'volume', volumePercentage: '1000' },
+                            integratorFee: { type: 'volume', volumePercentage: '1000' },
                         },
                     });
 
@@ -376,7 +376,7 @@ describe(SUITE_NAME, () => {
                         integratorId: INTEGRATOR_ID,
                         takerAddress: TAKER_ADDRESS,
                         feeConfigs: {
-                            zeroex: { kind: 'random', volumePercentage: '0.1' },
+                            zeroexFee: { type: 'random', volumePercentage: '0.1' },
                         },
                     });
 
@@ -385,7 +385,7 @@ describe(SUITE_NAME, () => {
                             {
                                 field: 'feeConfigs',
                                 code: ValidationErrorCodes.IncorrectFormat,
-                                reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                                reason: ValidationErrorReasons.InvalidGaslessFeeType,
                             },
                         ],
                     });
@@ -399,7 +399,7 @@ describe(SUITE_NAME, () => {
                         integratorId: INTEGRATOR_ID,
                         takerAddress: TAKER_ADDRESS,
                         feeConfigs: {
-                            zeroex: { kind: 'volume', volumePercentage: '1000' },
+                            zeroexFee: { type: 'volume', volumePercentage: '1000' },
                         },
                     });
 
@@ -422,7 +422,7 @@ describe(SUITE_NAME, () => {
                         integratorId: INTEGRATOR_ID,
                         takerAddress: TAKER_ADDRESS,
                         feeConfigs: {
-                            zeroex: { kind: 'integrator_share', integratorSharePercentage: '1000' },
+                            zeroexFee: { type: 'integrator_share', integratorSharePercentage: '1000' },
                         },
                     });
 
@@ -431,7 +431,7 @@ describe(SUITE_NAME, () => {
                             {
                                 field: 'feeConfigs',
                                 code: ValidationErrorCodes.IncorrectFormat,
-                                reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                                reason: ValidationErrorReasons.InvalidGaslessFeeType,
                             },
                         ],
                     });
@@ -444,8 +444,8 @@ describe(SUITE_NAME, () => {
                             integratorId: INTEGRATOR_ID,
                             takerAddress: TAKER_ADDRESS,
                             feeConfigs: {
-                                integrator: { kind: 'volume', volumePercentage: '0.1' },
-                                zeroex: { kind: 'integrator_share', integratorSharePercentage: '1000' },
+                                integratorFee: { type: 'volume', volumePercentage: '0.1' },
+                                zeroexFee: { type: 'integrator_share', integratorSharePercentage: '1000' },
                             },
                         });
 
@@ -471,7 +471,7 @@ describe(SUITE_NAME, () => {
                         integratorId: INTEGRATOR_ID,
                         takerAddress: TAKER_ADDRESS,
                         feeConfigs: {
-                            gas: { kind: 'random' },
+                            gasFee: { type: 'random' },
                         },
                     });
 
@@ -480,7 +480,7 @@ describe(SUITE_NAME, () => {
                             {
                                 field: 'feeConfigs',
                                 code: ValidationErrorCodes.IncorrectFormat,
-                                reason: ValidationErrorReasons.InvalidGaslessFeeKind,
+                                reason: ValidationErrorReasons.InvalidGaslessFeeType,
                             },
                         ],
                     });
@@ -510,24 +510,24 @@ async function requestSwap(
         integratorId: string;
         quoteUniqueId?: string;
         feeConfigs?: {
-            integrator?: {
-                kind: string;
+            integratorFee?: {
+                type: string;
                 volumePercentage: string;
                 feeRecipient?: string;
             };
-            zeroex?:
+            zeroexFee?:
                 | {
-                      kind: string;
+                      type: string;
                       volumePercentage: string;
                       feeRecipient?: string;
                   }
                 | {
-                      kind: string;
+                      type: string;
                       integratorSharePercentage: string;
                       feeRecipient?: string;
                   };
-            gas?: {
-                kind: string;
+            gasFee?: {
+                type: string;
                 feeRecipient?: string;
             };
         };

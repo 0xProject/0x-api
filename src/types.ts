@@ -479,24 +479,24 @@ interface GaslessFeeConfigBase {
 }
 
 interface VolumeBasedFeeConfig extends GaslessFeeConfigBase {
-    kind: 'volume';
+    type: 'volume';
     volumePercentage: BigNumber;
 }
 
 interface GasFeeConfig extends GaslessFeeConfigBase {
-    kind: 'gas';
+    type: 'gas';
 }
 
 interface IntegratorShareFeeConfig extends GaslessFeeConfigBase {
-    kind: 'integrator_share';
+    type: 'integrator_share';
     integratorSharePercentage: BigNumber;
 }
 
 // Gasless fee configs passed to /meta_transaction/v2/price and /meta_transaction/v2/quote
 export interface GaslessFeeConfigs {
-    integrator?: VolumeBasedFeeConfig;
-    zeroex?: VolumeBasedFeeConfig | IntegratorShareFeeConfig;
-    gas?: GasFeeConfig;
+    integratorFee?: VolumeBasedFeeConfig;
+    zeroexFee?: VolumeBasedFeeConfig | IntegratorShareFeeConfig;
+    gasFee?: GasFeeConfig;
 }
 
 interface GaslessFeeBase {
@@ -506,25 +506,25 @@ interface GaslessFeeBase {
 }
 
 interface VolumeBasedFee extends GaslessFeeBase {
-    kind: 'volume';
+    type: 'volume';
     volumePercentage: BigNumber;
 }
 
 interface GasFee extends GaslessFeeBase {
-    kind: 'gas';
+    type: 'gas';
     gasPrice: BigNumber;
     estimatedGas: BigNumber;
     feeTokenAmountPerBaseUnitNativeToken: BigNumber;
 }
 
 interface IntegratorShareFee extends GaslessFeeBase {
-    kind: 'integrator_share';
+    type: 'integrator_share';
     integratorSharePercentage: BigNumber;
 }
 
 // Gasless fees returned to the caller of /meta_transaction/v2/price and /meta_transaction/v2/quote
 interface GaslessFees {
-    integrator?: VolumeBasedFee;
-    zeroex?: VolumeBasedFee | IntegratorShareFee;
-    gas?: GasFee;
+    integratorFee?: VolumeBasedFee;
+    zeroexFee?: VolumeBasedFee | IntegratorShareFee;
+    gasFee?: GasFee;
 }
