@@ -203,4 +203,11 @@ export class RfqClient {
             return [];
         }
     }
+
+    /**
+     * Returns true if RFQt service is available
+     */
+    public isRfqtEnabled(): boolean {
+        return this._rfqApiUrl.length !== 0;
+    }
 }
