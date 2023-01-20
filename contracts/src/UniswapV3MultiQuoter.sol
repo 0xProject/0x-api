@@ -142,7 +142,7 @@ contract UniswapV3MultiQuoter {
         bool zeroForOne,
         int256[] memory amounts,
         uint160 sqrtPriceLimitX96
-    ) internal returns (MultiSwapResult memory result) {
+    ) private returns (MultiSwapResult memory result) {
         result.gasEstimates = new uint256[](amounts.length);
         result.amounts0 = new int256[](amounts.length);
         result.amounts1 = new int256[](amounts.length);
@@ -260,7 +260,7 @@ contract UniswapV3MultiQuoter {
         int24 tick,
         int24 tickSpacing,
         bool lte
-    ) internal view returns (int24 next, bool initialized) {
+    ) private view returns (int24 next, bool initialized) {
         int24 compressed = tick / tickSpacing;
         if (tick < 0 && tick % tickSpacing != 0) compressed--; // round towards negative infinity
 
