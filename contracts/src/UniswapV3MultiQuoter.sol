@@ -88,7 +88,10 @@ contract UniswapV3MultiQuoter {
         uint256[] memory amountsIn
     ) public returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
         for (uint256 i = 0; i < amountsIn.length - 1; ++i) {
-            require(amountsIn[i] <= amountsIn[i + 1], "UniswapV3MultiQuoter/amountsIn must be monotonically increasing");
+            require(
+                amountsIn[i] <= amountsIn[i + 1],
+                "UniswapV3MultiQuoter/amountsIn must be monotonically increasing"
+            );
         }
 
         gasEstimate = new uint256[](amountsIn.length);
