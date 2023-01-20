@@ -23,7 +23,6 @@ import "@uniswap/v3-core/contracts/libraries/BitMath.sol";
 import "@uniswap/v3-core/contracts/libraries/SafeCast.sol";
 import "@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol";
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 import "./interfaces/IUniswapV3.sol";
 
 /// @title Provides quotes for multiple swap amounts
