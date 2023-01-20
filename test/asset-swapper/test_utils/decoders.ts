@@ -30,3 +30,7 @@ interface TransformERC20Args {
 export function decodeTransformERC20(calldata: string): TransformERC20Args {
     return transformERC20Encoder.decode(calldata) as TransformERC20Args;
 }
+
+export function getTransformerNonces(args: TransformERC20Args): number[] {
+    return args.transformations.map((t) => t.deploymentNonce.toNumber());
+}
