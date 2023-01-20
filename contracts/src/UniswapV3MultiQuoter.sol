@@ -45,7 +45,7 @@ contract UniswapV3MultiQuoter {
         // the current liquidity in range
         uint128 liquidity;
         // the current quote amount we are querying liquidity for
-        uint amountsIndex;
+        uint256 amountsIndex;
     }
 
     // the intermediate calculations for each tick and quote amount
@@ -88,7 +88,7 @@ contract UniswapV3MultiQuoter {
         uint256[] memory amountsIn
     ) public returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
         for (uint256 i = 0; i < amountsIn.length - 1; ++i) {
-            require(amountsIn[i] < amountsIn[i+1], "UniswapV3MultiQuoter/amountsIn must be strictly increasing");
+            require(amountsIn[i] < amountsIn[i + 1], "UniswapV3MultiQuoter/amountsIn must be strictly increasing");
         }
 
         gasEstimate = new uint256[](amountsIn.length);
@@ -236,9 +236,11 @@ contract UniswapV3MultiQuoter {
             }
         }
 
-        (result.amounts0[state.amountsIndex], result.amounts1[state.amountsIndex]) = zeroForOne == exactInput
-            ? (amounts[state.amountsIndex] - state.amountSpecifiedRemaining, state.amountCalculated)
-            : (state.amountCalculated, amounts[state.amountsIndex] - state.amountSpecifiedRemaining);
+        for (uint256 i = state.amountsIndex; i < amounts.length; ++i) {
+            (result.amounts0[i], result.amounts1[i]) = zeroForOne == exactInput
+                ? (amounts[i] - state.amountSpecifiedRemaining, state.amountCalculated)
+                : (state.amountCalculated, amounts[i] - state.amountSpecifiedRemaining);
+        }
 
         result.gasEstimates[state.amountsIndex] = gasBefore - gasleft();
     }
