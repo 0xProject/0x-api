@@ -1,17 +1,15 @@
 pragma solidity >=0.6;
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
-
 interface IUniswapV3QuoterV2 {
-    function factory() external view returns (IUniswapV3Factory factory);
+    function factory() external view returns (IUniswapV3Factory);
 
-    // @notice Returns the amount out received for a given exact input swap without executing the swap
-    // @param path The path of the swap, i.e. each token pair and the pool fee
-    // @param amountIn The amount of the first token to swap
-    // @return amountOut The amount of the last token that would be received
-    // @return sqrtPriceX96AfterList List of the sqrt price after the swap for each pool in the path
-    // @return initializedTicksCrossedList List of the initialized ticks that the swap crossed for each pool in the path
-    // @return gasEstimate The estimate of the gas that the swap consumes
+    /// @notice Returns the amount out received for a given exact input swap without executing the swap
+    /// @param path The path of the swap, i.e. each token pair and the pool fee
+    /// @param amountIn The amount of the first token to swap
+    /// @return amountOut The amount of the last token that would be received
+    /// @return sqrtPriceX96AfterList List of the sqrt price after the swap for each pool in the path
+    /// @return initializedTicksCrossedList List of the initialized ticks that the swap crossed for each pool in the path
+    /// @return gasEstimate The estimate of the gas that the swap consumes
     function quoteExactInput(
         bytes memory path,
         uint256 amountIn
@@ -24,13 +22,13 @@ interface IUniswapV3QuoterV2 {
             uint256 gasEstimate
         );
 
-    // @notice Returns the amount in required for a given exact output swap without executing the swap
-    // @param path The path of the swap, i.e. each token pair and the pool fee. Path must be provided in reverse order
-    // @param amountOut The amount of the last token to receive
-    // @return amountIn The amount of first token required to be paid
-    // @return sqrtPriceX96AfterList List of the sqrt price after the swap for each pool in the path
-    // @return initializedTicksCrossedList List of the initialized ticks that the swap crossed for each pool in the path
-    // @return gasEstimate The estimate of the gas that the swap consumes
+    /// @notice Returns the amount in required for a given exact output swap without executing the swap
+    /// @param path The path of the swap, i.e. each token pair and the pool fee. Path must be provided in reverse order
+    /// @param amountOut The amount of the last token to receive
+    /// @return amountIn The amount of first token required to be paid
+    /// @return sqrtPriceX96AfterList List of the sqrt price after the swap for each pool in the path
+    /// @return initializedTicksCrossedList List of the initialized ticks that the swap crossed for each pool in the path
+    /// @return gasEstimate The estimate of the gas that the swap consumes
     function quoteExactOutput(
         bytes memory path,
         uint256 amountOut
@@ -45,9 +43,9 @@ interface IUniswapV3QuoterV2 {
 }
 
 interface IUniswapV3Pool {
-    function token0() external view returns (IERC20TokenV06);
+    function token0() external view returns (address);
 
-    function token1() external view returns (IERC20TokenV06);
+    function token1() external view returns (address);
 
     function fee() external view returns (uint24);
 
