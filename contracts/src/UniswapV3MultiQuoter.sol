@@ -125,10 +125,6 @@ contract UniswapV3MultiQuoter {
         }
     }
 
-    /// amounts must be monotonically increasing
-    /// TODO: double check behavior of loop when we cross sqrtPriceLimitX96
-    /// TODO make sure that interfaces are in separate file
-
     /// @notice swap multiple amounts of token0 for token1 or token1 for token1
     /// @dev The results of multiswap includes slight rounding issues resulting from rounding up/rounding down in SqrtPriceMath library
     /// @param pool The UniswapV3 pool to simulate each of the swap amounts for
