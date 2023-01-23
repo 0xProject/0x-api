@@ -5,7 +5,7 @@ import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 
 import "forge-std/Test.sol";
 import "../src/UniswapV3MultiQuoter.sol";
-import "../src//UniswapV3Common.sol";
+import "../src/UniswapV3Common.sol";
 
 contract TestUniswapV3Sampler is Test, UniswapV3Common {
     /// @dev error threshold in wei for comparison between MultiQuoter and UniswapV3's official QuoterV2.
@@ -157,8 +157,8 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 /* gasEstimate */
             ) {
-                assertTrue(multiQuoterAmountsOut[i] < uniQuoterAmountOut + ERROR_THRESHOLD);
-                assertTrue(multiQuoterAmountsOut[i] > uniQuoterAmountOut - ERROR_THRESHOLD);
+                assertLt(multiQuoterAmountsOut[i], uniQuoterAmountOut + ERROR_THRESHOLD, "compareQuoterSells: MultiQuoter amount is too high compared to UniQuoter amount");
+                assertGt(multiQuoterAmountsOut[i], uniQuoterAmountOut - ERROR_THRESHOLD, "compareQuoterSells: MultiQuoter amount is too low compared to UniQuoter amount");
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);
@@ -179,8 +179,8 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 /* gasEstimate */
             ) {
-                assertTrue(multiQuoterAmountsIn[i] < uniQuoterAmountIn + ERROR_THRESHOLD);
-                assertTrue(multiQuoterAmountsIn[i] > uniQuoterAmountIn - ERROR_THRESHOLD);
+                assertLt(multiQuoterAmountsIn[i], uniQuoterAmountIn + ERROR_THRESHOLD, "compareQuoterBuys: MultiQuoter amount is too high compared to UniQuoter amount");
+                assertGt(multiQuoterAmountsIn[i], uniQuoterAmountIn - ERROR_THRESHOLD, "compareQuoterBuys: MultiQuoter amount is too low compared to UniQuoter mamount");
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);
