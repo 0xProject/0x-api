@@ -12,17 +12,24 @@
   limitations under the License.
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import {IPool, IFactory} from "./interfaces/IKyberSwapElastic.sol";
-
-import "@kyber-elastic/libraries/TickMath.sol";
-import "@kyber-elastic/libraries/SwapMath.sol";
+import {IPool, IFactory} from "./kyber/interfaces/IPool.sol";
+import "./kyber/libraries/TickMath.sol";
+import "./kyber/libraries/SwapMath.sol";
+import "./kyber/libraries/Linkedlist.sol";
+import "./kyber/periphery/libraries/PathHelper.sol";
+import {LiqDeltaMath} from "./kyber/libraries/LiqDeltaMath.sol";
+import "@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol";
 
 /// @title Provides quotes for multiple swap amounts
 /// @notice Allows getting the expected amount out or amount in for multiple given swap amounts without executing the swap
 contract KyberElasticMultiQuoter {
+    using SafeCast for uint256;
+    using LowGasSafeMath for int256;
+    using SafeCast for int128;
+
     // temporary swap variables, some of which will be used to update the pool state
     struct SwapData {
         int256 specifiedAmount; // the specified amount (could be tokenIn or tokenOut)
@@ -56,10 +63,10 @@ contract KyberElasticMultiQuoter {
     ) public returns (uint256[] memory amountOut, uint256[] memory gasEstimate) {
         gasEstimate = new uint256[](amountsIn.length);
         while (true) {
-            (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
+            (address tokenIn, address tokenOut, uint24 fee) = PathHelper.decodeFirstPool(path);
 
             bool zeroForOne = tokenIn < tokenOut;
-            IPool pool = factory.getPool(tokenIn, tokenOut, fee);
+            IPool pool = IPool(factory.getPool(tokenIn, tokenOut, fee));
 
             // multiswap only accepts int256[] for input amounts
             int256[] memory amounts = new int256[](amountsIn.length);
@@ -80,8 +87,8 @@ contract KyberElasticMultiQuoter {
             }
 
             // decide whether to continue or terminate
-            if (path.hasMultiplePools()) {
-                path = path.skipToken();
+            if (PathHelper.hasMultiplePools(path)) {
+                path = PathHelper.skipToken(path);
             } else {
                 return (amountsIn, gasEstimate);
             }
@@ -99,14 +106,12 @@ contract KyberElasticMultiQuoter {
         IPool pool,
         bool willUpTick
     ) internal view returns (uint128 baseL, uint128 reinvestL, uint160 sqrtP, int24 currentTick, int24 nextTick) {
-        int24 nearestCurrentTick;
-        (sqrtP, currentTick, nearestCurrentTick) = pool.getPoolState();
+        (sqrtP, currentTick, nextTick, ) = pool.getPoolState();
 
-        (baseL, reinvestL) = pool.getLiquidityState();
+        (baseL, reinvestL, ) = pool.getLiquidityState();
 
-        nextTick = nearestCurrentTick;
         if (willUpTick) {
-            nextTick = pool.initializedTicks[nextTick].next;
+            (, nextTick) = pool.initializedTicks(nextTick);
         }
     }
 
@@ -115,7 +120,7 @@ contract KyberElasticMultiQuoter {
         IPool pool,
         bool isToken0,
         int256[] memory amounts,
-        uint160 sqrtPriceLimitX96
+        uint160 limitSqrtP
     ) private returns (MultiSwapResult memory result) {
         // TODO: check if all amounts are not zero?
         // require(swapQty != 0, '0 swapQty');
@@ -129,6 +134,7 @@ contract KyberElasticMultiQuoter {
         swapData.specifiedAmount = amounts[0];
         swapData.isToken0 = isToken0;
         swapData.isExactInput = swapData.specifiedAmount > 0;
+
         // tick (token1Qty/token0Qty) will increase for swapping from token1 to token0
         bool willUpTick = (swapData.isExactInput != isToken0);
         (
@@ -147,6 +153,8 @@ contract KyberElasticMultiQuoter {
             require(limitSqrtP < swapData.sqrtP && limitSqrtP > TickMath.MIN_SQRT_RATIO, "bad limitSqrtP");
         }
 
+        uint24 swapFeeUnits = pool.swapFeeUnits();
+
         // continue swapping while specified input/output isn't satisfied or price limit not reached
         while (swapData.specifiedAmount != 0 && swapData.sqrtP != limitSqrtP) {
             // math calculations work with the assumption that the price diff is capped to 5%
@@ -161,7 +169,6 @@ contract KyberElasticMultiQuoter {
 
             swapData.nextSqrtP = TickMath.getSqrtRatioAtTick(tempNextTick);
 
-            // local scope for targetSqrtP, usedAmount, returnedAmount and deltaL
             {
                 uint160 targetSqrtP = swapData.nextSqrtP;
                 // ensure next sqrtP (and its corresponding tick) does not exceed price limit
@@ -172,6 +179,7 @@ contract KyberElasticMultiQuoter {
                 int256 usedAmount;
                 int256 returnedAmount;
                 uint256 deltaL;
+                // local scope for targetSqrtP, usedAmount, returnedAmount and deltaL
                 (usedAmount, returnedAmount, deltaL, swapData.sqrtP) = SwapMath.computeSwapStep(
                     swapData.baseL + swapData.reinvestL,
                     swapData.sqrtP,
@@ -190,54 +198,60 @@ contract KyberElasticMultiQuoter {
             // if price has not reached the next sqrt price
             if (swapData.sqrtP != swapData.nextSqrtP) {
                 swapData.currentTick = TickMath.getTickAtSqrtRatio(swapData.sqrtP);
-                break;
+                if (swapData.amountsIndex == amounts.length - 1) {
+                    break;
+                }
+            } else {
+                swapData.currentTick = willUpTick ? tempNextTick : tempNextTick - 1;
+
+                // if tempNextTick is not next initialized tick
+                if (tempNextTick == swapData.nextTick) {
+                    (swapData.baseL, swapData.nextTick) = _updateLiquidityAndCrossTick(
+                        pool,
+                        swapData.nextTick,
+                        swapData.baseL,
+                        willUpTick
+                    );
+                }
             }
-            swapData.currentTick = willUpTick ? tempNextTick : tempNextTick - 1;
-            // if tempNextTick is not next initialized tick
-            if (tempNextTick != swapData.nextTick) continue;
-
-            (swapData.baseL, swapData.nextTick) = _updateLiquidityAndCrossTick(
-                swapData.nextTick,
-                swapData.baseL,
-                willUpTick
-            );
-
             if (swapData.specifiedAmount == 0) {
-                (result.amounts0[swapData.amountsIndex], result.amounts1[swapData.amountsIndex]) = zeroForOne == exactInput
+                (result.amounts0[swapData.amountsIndex], result.amounts1[swapData.amountsIndex]) = isToken0 ==
+                    swapData.isExactInput
                     ? (amounts[swapData.amountsIndex], swapData.returnedAmount)
-                    : (state.returnedAmount, amounts[swapData.amountsIndex]);
+                    : (swapData.returnedAmount, amounts[swapData.amountsIndex]);
 
-                result.gasEstimates[state.amountsIndex] = gasBefore - gasleft();
+                result.gasEstimates[swapData.amountsIndex] = gasBefore - gasleft();
 
                 if (swapData.amountsIndex == amounts.length - 1) {
                     return (result);
                 }
 
                 swapData.amountsIndex += 1;
-                swapData.amountSpecifiedRemaining = amounts[swapData.amountsIndex].sub(amounts[swapData.amountsIndex - 1]);
+                swapData.specifiedAmount = amounts[swapData.amountsIndex].sub(amounts[swapData.amountsIndex - 1]);
             }
         }
 
         for (uint256 i = swapData.amountsIndex; i < amounts.length; ++i) {
-            (result.amounts0[i], result.amounts1[i]) = zeroForOne == exactInput
+            (result.amounts0[i], result.amounts1[i]) = isToken0 == swapData.isExactInput
                 ? (amounts[i] - swapData.specifiedAmount, swapData.returnedAmount)
-                : (state.returnedAmount, amounts[i] - state.specifiedAmount);
+                : (swapData.returnedAmount, amounts[i] - swapData.specifiedAmount);
         }
 
-        result.gasEstimates[state.amountsIndex] = gasBefore - gasleft();
+        result.gasEstimates[swapData.amountsIndex] = gasBefore - gasleft();
     }
 
     /// @dev Update liquidity net data and do cross tick
     function _updateLiquidityAndCrossTick(
+        IPool pool,
         int24 nextTick,
         uint128 currentLiquidity,
         bool willUpTick
     ) internal returns (uint128 newLiquidity, int24 newNextTick) {
-        int128 liquidityNet = ticks[nextTick].liquidityNet;
+        (, int128 liquidityNet, , ) = pool.ticks(nextTick);
         if (willUpTick) {
-            newNextTick = initializedTicks[nextTick].next;
+            (, newNextTick) = pool.initializedTicks(nextTick);
         } else {
-            newNextTick = initializedTicks[nextTick].previous;
+            (newNextTick, ) = pool.initializedTicks(nextTick);
             liquidityNet = -liquidityNet;
         }
         newLiquidity = LiqDeltaMath.applyLiquidityDelta(
