@@ -157,8 +157,16 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 /* gasEstimate */
             ) {
-                assertLt(multiQuoterAmountsOut[i], uniQuoterAmountOut + ERROR_THRESHOLD, "compareQuoterSells: MultiQuoter amount is too high compared to UniQuoter amount");
-                assertGt(multiQuoterAmountsOut[i], uniQuoterAmountOut - ERROR_THRESHOLD, "compareQuoterSells: MultiQuoter amount is too low compared to UniQuoter amount");
+                assertLt(
+                    multiQuoterAmountsOut[i],
+                    uniQuoterAmountOut + ERROR_THRESHOLD,
+                    "compareQuoterSells: MultiQuoter amount is too high compared to UniQuoter amount"
+                );
+                assertGt(
+                    multiQuoterAmountsOut[i],
+                    uniQuoterAmountOut - ERROR_THRESHOLD,
+                    "compareQuoterSells: MultiQuoter amount is too low compared to UniQuoter amount"
+                );
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);
@@ -179,8 +187,16 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 /* gasEstimate */
             ) {
-                assertLt(multiQuoterAmountsIn[i], uniQuoterAmountIn + ERROR_THRESHOLD, "compareQuoterBuys: MultiQuoter amount is too high compared to UniQuoter amount");
-                assertGt(multiQuoterAmountsIn[i], uniQuoterAmountIn - ERROR_THRESHOLD, "compareQuoterBuys: MultiQuoter amount is too low compared to UniQuoter mamount");
+                assertLt(
+                    multiQuoterAmountsIn[i],
+                    uniQuoterAmountIn + ERROR_THRESHOLD,
+                    "compareQuoterBuys: MultiQuoter amount is too high compared to UniQuoter amount"
+                );
+                assertGt(
+                    multiQuoterAmountsIn[i],
+                    uniQuoterAmountIn - ERROR_THRESHOLD,
+                    "compareQuoterBuys: MultiQuoter amount is too low compared to UniQuoter mamount"
+                );
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);
