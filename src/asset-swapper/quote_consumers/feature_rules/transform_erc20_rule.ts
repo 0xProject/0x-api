@@ -82,45 +82,8 @@ export class TransformERC20Rule extends AbstractFeatureRule {
         // If it's two hop we have an intermediate token this is needed to encode the individual FQT
         // and we also want to ensure no dust amount is left in the flash wallet
         const intermediateToken = quote.path.hasTwoHop() ? slippedOrders[0].makerToken : NULL_ADDRESS;
-        // This transformer will fill the quote.
-        if (quote.path.hasTwoHop()) {
-            const [firstHopOrder, secondHopOrder] = slippedOrders;
-            transformations.push({
-                deploymentNonce: this.transformerNonces.fillQuoteTransformer,
-                data: encodeFillQuoteTransformerData({
-                    side: FillQuoteTransformerSide.Sell,
-                    sellToken,
-                    buyToken: intermediateToken,
-                    ...getFQTTransformerDataFromOptimizedOrders([firstHopOrder]),
-                    refundReceiver: refundReceiver || NULL_ADDRESS,
-                    fillAmount: shouldSellEntireBalance ? MAX_UINT256 : firstHopOrder.takerAmount,
-                }),
-            });
-            transformations.push({
-                deploymentNonce: this.transformerNonces.fillQuoteTransformer,
-                data: encodeFillQuoteTransformerData({
-                    side: FillQuoteTransformerSide.Sell,
-                    buyToken,
-                    sellToken: intermediateToken,
-                    ...getFQTTransformerDataFromOptimizedOrders([secondHopOrder]),
-                    refundReceiver: refundReceiver || NULL_ADDRESS,
-                    fillAmount: MAX_UINT256,
-                }),
-            });
-        } else {
-            const fillAmount = isBuyQuote(quote) ? quote.makerTokenFillAmount : quote.takerTokenFillAmount;
-            transformations.push({
-                deploymentNonce: this.transformerNonces.fillQuoteTransformer,
-                data: encodeFillQuoteTransformerData({
-                    side: isBuyQuote(quote) ? FillQuoteTransformerSide.Buy : FillQuoteTransformerSide.Sell,
-                    sellToken,
-                    buyToken,
-                    ...getFQTTransformerDataFromOptimizedOrders(slippedOrders),
-                    refundReceiver: refundReceiver || NULL_ADDRESS,
-                    fillAmount: !isBuyQuote(quote) && shouldSellEntireBalance ? MAX_UINT256 : fillAmount,
-                }),
-            });
-        }
+        transformations.push(...this.createFillQuoteTransformations(quote, opts));
+
         // Create a WETH unwrapper if going to ETH.
         // Dont add the wethTransformer on CELO. There is no wrap/unwrap logic for CELO.
         if (isToETH && this.chainId !== ChainId.Celo) {
@@ -238,5 +201,58 @@ export class TransformERC20Rule extends AbstractFeatureRule {
             allowanceTarget: this.exchangeProxy.address,
             gasOverhead,
         };
+    }
+
+    private createFillQuoteTransformations(quote: SwapQuote, opts: ExchangeProxyContractOpts): ERC20Transformation[] {
+        const { refundReceiver, shouldSellEntireBalance } = opts;
+        const { sellToken, buyToken, maxSlippage } = this.getSwapContext(quote, opts);
+        const slippedOrders = quote.path.getSlippedOrders(maxSlippage);
+
+        const transformations = [] as ERC20Transformation[];
+
+        // If it's two hop we have an intermediate token this is needed to encode the individual FQT
+        // and we also want to ensure no dust amount is left in the flash wallet
+        const intermediateToken = quote.path.hasTwoHop() ? slippedOrders[0].makerToken : NULL_ADDRESS;
+        // This transformer will fill the quote.
+        if (quote.path.hasTwoHop()) {
+            const [firstHopOrder, secondHopOrder] = slippedOrders;
+            transformations.push({
+                deploymentNonce: this.transformerNonces.fillQuoteTransformer,
+                data: encodeFillQuoteTransformerData({
+                    side: FillQuoteTransformerSide.Sell,
+                    sellToken,
+                    buyToken: intermediateToken,
+                    ...getFQTTransformerDataFromOptimizedOrders([firstHopOrder]),
+                    refundReceiver: refundReceiver || NULL_ADDRESS,
+                    fillAmount: shouldSellEntireBalance ? MAX_UINT256 : firstHopOrder.takerAmount,
+                }),
+            });
+            transformations.push({
+                deploymentNonce: this.transformerNonces.fillQuoteTransformer,
+                data: encodeFillQuoteTransformerData({
+                    side: FillQuoteTransformerSide.Sell,
+                    buyToken,
+                    sellToken: intermediateToken,
+                    ...getFQTTransformerDataFromOptimizedOrders([secondHopOrder]),
+                    refundReceiver: refundReceiver || NULL_ADDRESS,
+                    fillAmount: MAX_UINT256,
+                }),
+            });
+        } else {
+            const fillAmount = isBuyQuote(quote) ? quote.makerTokenFillAmount : quote.takerTokenFillAmount;
+            transformations.push({
+                deploymentNonce: this.transformerNonces.fillQuoteTransformer,
+                data: encodeFillQuoteTransformerData({
+                    side: isBuyQuote(quote) ? FillQuoteTransformerSide.Buy : FillQuoteTransformerSide.Sell,
+                    sellToken,
+                    buyToken,
+                    ...getFQTTransformerDataFromOptimizedOrders(slippedOrders),
+                    refundReceiver: refundReceiver || NULL_ADDRESS,
+                    fillAmount: !isBuyQuote(quote) && shouldSellEntireBalance ? MAX_UINT256 : fillAmount,
+                }),
+            });
+        }
+
+        return transformations;
     }
 }
