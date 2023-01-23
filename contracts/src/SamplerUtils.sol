@@ -17,17 +17,17 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
-import "@0x/contracts-erc20/contracts/src/v06/LibERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/LibERC20TokenV08.sol";
 
 contract SamplerUtils {
     /// @dev Overridable way to get token decimals.
     /// @param tokenAddress Address of the token.
     /// @return decimals The decimal places for the token.
     function _getTokenDecimals(address tokenAddress) internal view virtual returns (uint8 decimals) {
-        return LibERC20TokenV06.compatDecimals(IERC20TokenV06(tokenAddress));
+        return LibERC20TokenV08.compatDecimals(IERC20TokenV08(tokenAddress));
     }
 
     function _toSingleValueArray(uint256 v) internal pure returns (uint256[] memory arr) {

@@ -1,6 +1,6 @@
-pragma solidity >=0.6;
+pragma solidity ^0.8;
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/IERC20TokenV08.sol";
 
 interface IUniswapV3QuoterV2 {
     function factory() external view returns (IUniswapV3Factory factory);

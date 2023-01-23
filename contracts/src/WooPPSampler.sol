@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 import "./SamplerUtils.sol";
 import "./ApproximateBuys.sol";

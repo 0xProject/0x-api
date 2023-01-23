@@ -1,5 +1,5 @@
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
+pragma experimental ABIEncoderV2; //TODO: remove this
 
 interface IGMX {
     function getMaxAmountIn(IVault _vault, address _tokenIn, address _tokenOut) external view returns (uint256);

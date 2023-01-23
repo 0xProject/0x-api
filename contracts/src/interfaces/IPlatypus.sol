@@ -1,4 +1,4 @@
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 
 interface IPlatypus {
     function quotePotentialSwap(

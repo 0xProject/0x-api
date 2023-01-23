@@ -12,7 +12,7 @@
   limitations under the License.
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";

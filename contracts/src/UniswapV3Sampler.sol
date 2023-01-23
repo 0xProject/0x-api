@@ -17,10 +17,10 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/IERC20TokenV08.sol";
 
 interface IUniswapV3QuoterV2 {
     function factory() external view returns (IUniswapV3Factory factory);
@@ -65,13 +65,13 @@ interface IUniswapV3QuoterV2 {
 }
 
 interface IUniswapV3Factory {
-    function getPool(IERC20TokenV06 a, IERC20TokenV06 b, uint24 fee) external view returns (IUniswapV3Pool pool);
+    function getPool(IERC20TokenV08 a, IERC20TokenV08 b, uint24 fee) external view returns (IUniswapV3Pool pool);
 }
 
 interface IUniswapV3Pool {
-    function token0() external view returns (IERC20TokenV06);
+    function token0() external view returns (IERC20TokenV08);
 
-    function token1() external view returns (IERC20TokenV06);
+    function token1() external view returns (IERC20TokenV08);
 
     function fee() external view returns (uint24);
 }
@@ -89,7 +89,7 @@ contract UniswapV3Sampler {
     /// @return makerTokenAmounts Maker amounts bought at each taker token amount.
     function sampleSellsFromUniswapV3(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256[] memory takerTokenAmounts
     )
         public
@@ -148,13 +148,13 @@ contract UniswapV3Sampler {
     /// @return takerTokenAmounts Taker amounts sold at each maker token amount.
     function sampleBuysFromUniswapV3(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256[] memory makerTokenAmounts
     )
         public
         returns (bytes[] memory uniswapPaths, uint256[] memory uniswapGasUsed, uint256[] memory takerTokenAmounts)
     {
-        IERC20TokenV06[] memory reversedPath = _reverseTokenPath(path);
+        IERC20TokenV08[] memory reversedPath = _reverseTokenPath(path);
         IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
             quoter,
             reversedPath,
@@ -204,7 +204,7 @@ contract UniswapV3Sampler {
     /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
     function _getPoolPaths(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[][] memory poolPaths) {
         if (path.length == 2) {
@@ -218,7 +218,7 @@ contract UniswapV3Sampler {
 
     function _getPoolPathSingleHop(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256 inputAmount
     ) public returns (IUniswapV3Pool[][] memory poolPaths) {
         poolPaths = new IUniswapV3Pool[][](2);
@@ -241,7 +241,7 @@ contract UniswapV3Sampler {
 
     function _getPoolPathTwoHop(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[][] memory poolPaths) {
         IUniswapV3Factory factory = quoter.factory();
@@ -278,11 +278,11 @@ contract UniswapV3Sampler {
     function _getTopTwoPools(
         IUniswapV3QuoterV2 quoter,
         IUniswapV3Factory factory,
-        IERC20TokenV06 inputToken,
-        IERC20TokenV06 outputToken,
+        IERC20TokenV08 inputToken,
+        IERC20TokenV08 outputToken,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[2] memory topPools, uint256[2] memory outputAmounts) {
-        IERC20TokenV06[] memory path = new IERC20TokenV06[](2);
+        IERC20TokenV08[] memory path = new IERC20TokenV08[](2);
         path[0] = inputToken;
         path[1] = outputToken;
 
@@ -317,9 +317,9 @@ contract UniswapV3Sampler {
     }
 
     function _reverseTokenPath(
-        IERC20TokenV06[] memory tokenPath
-    ) private pure returns (IERC20TokenV06[] memory reversed) {
-        reversed = new IERC20TokenV06[](tokenPath.length);
+        IERC20TokenV08[] memory tokenPath
+    ) private pure returns (IERC20TokenV08[] memory reversed) {
+        reversed = new IERC20TokenV08[](tokenPath.length);
         for (uint256 i = 0; i < tokenPath.length; ++i) {
             reversed[i] = tokenPath[tokenPath.length - i - 1];
         }
@@ -365,7 +365,7 @@ contract UniswapV3Sampler {
     }
 
     function _toUniswapPath(
-        IERC20TokenV06[] memory tokenPath,
+        IERC20TokenV08[] memory tokenPath,
         IUniswapV3Pool[] memory poolPath
     ) private view returns (bytes memory uniswapPath) {
         require(
@@ -387,7 +387,7 @@ contract UniswapV3Sampler {
                     o := add(o, 3)
                 }
             }
-            IERC20TokenV06 token = tokenPath[i];
+            IERC20TokenV08 token = tokenPath[i];
             assembly {
                 mstore(o, shl(96, token))
                 o := add(o, 20)

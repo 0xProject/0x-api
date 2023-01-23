@@ -17,13 +17,13 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
-import "@0x/contracts-utils/contracts/src/v06/LibBytesV06.sol";
+import "@0x/contracts-utils/contracts/src/v08/LibBytesV08.sol";
 
 contract TwoHopSampler {
-    using LibBytesV06 for bytes;
+    using LibBytesV08 for bytes;
 
     struct HopInfo {
         uint256 sourceIndex;
@@ -81,12 +81,12 @@ contract TwoHopSampler {
     ) public returns (HopInfo memory firstHop, HopInfo memory secondHop, uint256[] memory sellAmounts) {
         sellAmounts = new uint256[](numSamples);
         for (uint256 i = 0; i < numSamples; i++) {
-            sellAmounts[i] = uint256(-1);
+            sellAmounts[i] = type(uint256).max;
         }
 
         uint256[] memory intermediateAmounts = new uint256[](numSamples);
         for (uint256 i = 0; i < numSamples; i++) {
-            intermediateAmounts[i] = uint256(-1);
+            intermediateAmounts[i] = type(uint256).max;
         }
 
         for (uint256 i = 0; i < secondHopCalls.length; i++) {
@@ -106,7 +106,7 @@ contract TwoHopSampler {
             }
         }
 
-        if (intermediateAmounts[numSamples - 1] == uint256(-1)) {
+        if (intermediateAmounts[numSamples - 1] == type(uint256).max) {
             return (firstHop, secondHop, sellAmounts);
         }
 

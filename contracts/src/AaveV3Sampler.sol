@@ -17,7 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
 // Minimal Aave V3 L2Encoder interface

@@ -17,7 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 
 interface IUniswapExchangeQuotes {
     function getEthToTokenInputPrice(uint256 ethSold) external view returns (uint256 tokensBought);

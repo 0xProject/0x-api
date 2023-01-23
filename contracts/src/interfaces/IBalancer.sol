@@ -17,7 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 
 interface IBalancer {
     function isBound(address t) external view returns (bool);

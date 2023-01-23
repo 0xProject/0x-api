@@ -17,11 +17,11 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
 import "./SamplerUtils.sol";
-import "@0x/contracts-utils/contracts/src/v06/LibMathV06.sol";
+import "@0x/contracts-utils/contracts/src/v08/LibMathV08.sol";
 
 interface IPSM {
     // @dev Get the fee for selling USDC to DAI in PSM
@@ -70,7 +70,7 @@ interface IVAT {
 }
 
 contract MakerPSMSampler is SamplerUtils {
-    using LibSafeMathV06 for uint256;
+    using LibSafeMathV08 for uint256;
 
     /// @dev Information about which PSM module to use
     struct MakerPsmInfo {

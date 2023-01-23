@@ -1,7 +1,7 @@
-pragma solidity >=0.6.5;
+pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/IERC20TokenV08.sol";
 
 import "forge-std/Test.sol";
 import "../UniswapV3MultiQuoter.sol";
