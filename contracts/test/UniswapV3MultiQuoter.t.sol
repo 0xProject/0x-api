@@ -4,8 +4,8 @@ pragma experimental ABIEncoderV2;
 import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 
 import "forge-std/Test.sol";
-import "../UniswapV3MultiQuoter.sol";
-import "../UniswapV3Common.sol";
+import "../src/UniswapV3MultiQuoter.sol";
+import "../src//UniswapV3Common.sol";
 
 contract TestUniswapV3Sampler is Test, UniswapV3Common {
     /// @dev error threshold in wei for comparison between MultiQuoter and UniswapV3's official QuoterV2.
