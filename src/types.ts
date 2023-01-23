@@ -249,7 +249,7 @@ export type GetSwapPriceResponse = BasePriceResponse;
 /**
  * Response type for /meta_transaction/v1/quote endpoint
  */
-export interface MetaTransactionQuoteResponse extends BasePriceResponse {
+export interface MetaTransactionV1QuoteResponse extends BasePriceResponse {
     metaTransactionHash: string;
     metaTransaction: ExchangeProxyMetaTransaction;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
@@ -257,9 +257,26 @@ export interface MetaTransactionQuoteResponse extends BasePriceResponse {
 }
 
 /**
+ * Response type for /meta_transaction/v2/quote endpoint
+ */
+export interface MetaTransactionV2QuoteResponse extends BasePriceResponse {
+    metaTransactionHash: string;
+    // TODO(vic): Update to MetaTransactionV2 when it's ready
+    metaTransaction: ExchangeProxyMetaTransaction;
+    fees?: Fees;
+}
+
+/**
  * Response type for the /meta_transaction/v1/price endpoint
  */
-export type MetaTransactionPriceResponse = BasePriceResponse;
+export type MetaTransactionV1PriceResponse = BasePriceResponse;
+
+/**
+ * Response type for the /meta_transaction/v2/price endpoint
+ */
+export interface MetaTransactionV2PriceResponse extends BasePriceResponse {
+    fees?: Fees;
+}
 
 // Request params
 
@@ -267,7 +284,7 @@ export type MetaTransactionPriceResponse = BasePriceResponse;
  * Request type for /meta_transaction/v1/price and /meta_transaction/v1/quote.
  * Reflected in `meta_transaction_quote_request_schema.json`.
  */
-export interface MetaTransactionQuoteRequestParams extends SwapQuoteParamsBase {
+export interface MetaTransactionV1QuoteRequestParams extends SwapQuoteParamsBase {
     buyTokenAddress: string;
     integratorId: string;
     quoteUniqueId?: string; // ID to use for the quote report `decodedUniqueId`
@@ -276,9 +293,16 @@ export interface MetaTransactionQuoteRequestParams extends SwapQuoteParamsBase {
 }
 
 /**
- * Parameters for the Meta Transaction Service price and quote functions.
+ * Request type for /meta_transaction/v2/price and /meta_transaction/v2/quote
  */
-export interface MetaTransactionQuoteParams extends SwapQuoteParamsBase {
+export interface MetaTransactionV2QuoteRequestParams extends MetaTransactionV1QuoteRequestParams {
+    feeConfigs?: FeeConfigs;
+}
+
+/**
+ * Parameters for the V1 Meta Transaction Service price and quote functions.
+ */
+export interface MetaTransactionV1QuoteParams extends SwapQuoteParamsBase {
     buyTokenAddress: string;
     from: string;
     integratorId: string;
@@ -287,6 +311,13 @@ export interface MetaTransactionQuoteParams extends SwapQuoteParamsBase {
     quoteUniqueId?: string; // ID to use for the quote report `decodedUniqueId`
     sellTokenAddress: string;
     takerAddress: string;
+}
+
+/**
+ * Parameters for the V2 Meta Transaction Service price and quote functions.
+ */
+export interface MetaTransactionV2QuoteParams extends MetaTransactionV1QuoteParams {
+    feeConfigs?: FeeConfigs;
 }
 
 /** End /swap types */
@@ -337,16 +368,22 @@ export interface Integrator {
     slippageModel?: boolean;
 }
 
-export interface MetaTransactionQuoteResult extends QuoteBase {
+export interface MetaTransactionV1QuoteResult extends QuoteBase {
     buyTokenAddress: string;
     callData: string;
     sellTokenAddress: string;
     taker: string;
 }
 
+export interface MetaTransactionV2QuoteResult extends MetaTransactionV1QuoteResult {
+    fees?: Fees;
+}
+
 export interface IMetaTransactionService {
-    getMetaTransactionPriceAsync(params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResult>;
-    getMetaTransactionQuoteAsync(params: MetaTransactionQuoteParams): Promise<MetaTransactionQuoteResponse>;
+    getMetaTransactionV1PriceAsync(params: MetaTransactionV1QuoteParams): Promise<MetaTransactionV1QuoteResult>;
+    getMetaTransactionV1QuoteAsync(params: MetaTransactionV1QuoteParams): Promise<MetaTransactionV1QuoteResponse>;
+    getMetaTransactionV2PriceAsync(params: MetaTransactionV2QuoteParams): Promise<MetaTransactionV2QuoteResult>;
+    getMetaTransactionV2QuoteAsync(params: MetaTransactionV2QuoteParams): Promise<MetaTransactionV2QuoteResponse>;
 }
 
 export interface IOrderBookService {
@@ -435,4 +472,59 @@ export interface RfqtV2Request {
     takerAddress: string;
     takerToken: string;
     txOrigin: string;
+}
+
+interface FeeConfigBase {
+    feeRecipient: string | null;
+}
+
+export interface VolumeBasedFeeConfig extends FeeConfigBase {
+    type: 'volume';
+    volumePercentage: BigNumber;
+}
+
+export interface GasFeeConfig extends FeeConfigBase {
+    type: 'gas';
+}
+
+export interface IntegratorShareFeeConfig extends FeeConfigBase {
+    type: 'integrator_share';
+    integratorSharePercentage: BigNumber;
+}
+
+// Fee configs passed to /meta_transaction/v2/price and /meta_transaction/v2/quote
+export interface FeeConfigs {
+    integratorFee?: VolumeBasedFeeConfig;
+    zeroexFee?: VolumeBasedFeeConfig | IntegratorShareFeeConfig;
+    gasFee?: GasFeeConfig;
+}
+
+interface FeeBase {
+    feeToken: string;
+    feeAmount: BigNumber;
+    feeRecipient: string | null;
+}
+
+export interface VolumeBasedFee extends FeeBase {
+    type: 'volume';
+    volumePercentage: BigNumber;
+}
+
+export interface GasFee extends FeeBase {
+    type: 'gas';
+    gasPrice: BigNumber;
+    estimatedGas: BigNumber;
+    feeTokenAmountPerBaseUnitNativeToken: BigNumber;
+}
+
+export interface IntegratorShareFee extends FeeBase {
+    type: 'integrator_share';
+    integratorSharePercentage: BigNumber;
+}
+
+// Fees returned to the caller of /meta_transaction/v2/price and /meta_transaction/v2/quote
+export interface Fees {
+    integratorFee?: VolumeBasedFee;
+    zeroexFee?: VolumeBasedFee | IntegratorShareFee;
+    gasFee?: GasFee;
 }
