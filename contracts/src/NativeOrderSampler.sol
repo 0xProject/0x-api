@@ -188,7 +188,7 @@ contract NativeOrderSampler {
         if (
             orderInfo.status != IExchange.OrderStatus.FILLABLE ||
             !isSignatureValid ||
-            address(order.makerToken) == address(0)
+            order.makerToken == IERC20TokenV08(address(0))
         ) {
             return 0;
         }
