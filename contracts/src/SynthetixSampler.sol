@@ -17,8 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
 interface IReadProxyAddressResolver {
     function target() external view returns (address);

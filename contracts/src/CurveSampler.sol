@@ -17,8 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
 import "./interfaces/ICurve.sol";
 import "./ApproximateBuys.sol";
@@ -52,7 +51,7 @@ contract CurveSampler is SamplerUtils, ApproximateBuys {
         uint256 numSamples = takerTokenAmounts.length;
         makerTokenAmounts = new uint256[](numSamples);
         for (uint256 i = 0; i < numSamples; i++) {
-            (bool didSucceed, bytes memory resultData) = curveInfo.poolAddress.staticcall.gas(CURVE_CALL_GAS)(
+            (bool didSucceed, bytes memory resultData) = curveInfo.poolAddress.staticcall{gas: CURVE_CALL_GAS}(
                 abi.encodeWithSelector(
                     curveInfo.sellQuoteFunctionSelector,
                     fromTokenIdx,
@@ -100,7 +99,7 @@ contract CurveSampler is SamplerUtils, ApproximateBuys {
         uint256 numSamples = makerTokenAmounts.length;
         takerTokenAmounts = new uint256[](numSamples);
         for (uint256 i = 0; i < numSamples; i++) {
-            (bool didSucceed, bytes memory resultData) = curveInfo.poolAddress.staticcall.gas(CURVE_CALL_GAS)(
+            (bool didSucceed, bytes memory resultData) = curveInfo.poolAddress.staticcall{gas: CURVE_CALL_GAS}(
                 abi.encodeWithSelector(
                     curveInfo.buyQuoteFunctionSelector,
                     fromTokenIdx,

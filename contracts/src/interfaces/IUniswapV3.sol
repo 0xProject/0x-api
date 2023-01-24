@@ -1,4 +1,4 @@
-pragma solidity >=0.6;
+pragma solidity ^0.8;
 
 interface IUniswapV3QuoterV2 {
     function factory() external view returns (IUniswapV3Factory);

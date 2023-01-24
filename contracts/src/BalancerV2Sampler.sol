@@ -17,8 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
 import "./SamplerUtils.sol";
 import "./interfaces/IBalancerV2Vault.sol";

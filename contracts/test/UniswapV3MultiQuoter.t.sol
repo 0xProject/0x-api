@@ -1,20 +1,19 @@
-pragma solidity >=0.6.5;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/IERC20TokenV08.sol";
 
 import "forge-std/Test.sol";
-import "../UniswapV3MultiQuoter.sol";
-import "../UniswapV3Common.sol";
+import "../src/UniswapV3MultiQuoter.sol";
+import "../src/UniswapV3Common.sol";
 
 contract TestUniswapV3Sampler is Test, UniswapV3Common {
     /// @dev error threshold in wei for comparison between MultiQuoter and UniswapV3's official QuoterV2.
     /// MultiQuoter results in some rounding errors due to SqrtPriceMath library.
     uint256 constant ERROR_THRESHOLD = 125;
 
-    IERC20TokenV06 constant DAI = IERC20TokenV06(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-    IERC20TokenV06 constant FRAX = IERC20TokenV06(0x853d955aCEf822Db058eb8505911ED77F175b99e);
-    IERC20TokenV06 constant RAI = IERC20TokenV06(0x03ab458634910AaD20eF5f1C8ee96F1D6ac54919);
+    IERC20TokenV08 constant DAI = IERC20TokenV08(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    IERC20TokenV08 constant FRAX = IERC20TokenV08(0x853d955aCEf822Db058eb8505911ED77F175b99e);
+    IERC20TokenV08 constant RAI = IERC20TokenV08(0x03ab458634910AaD20eF5f1C8ee96F1D6ac54919);
 
     IUniswapV3Pool constant DAI_FRAX_POOL_5_BIP = IUniswapV3Pool(0x97e7d56A0408570bA1a7852De36350f7713906ec);
     IUniswapV3Pool constant RAI_FRAX_POOL_30_BIP = IUniswapV3Pool(0xd3f3bf0b928551661503Ce43BC456BBdF725986a);
@@ -60,7 +59,7 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
     }
 
     function testSingleHopQuotesForLiquidPools() public {
-        IERC20TokenV06[] memory tokenPath = new IERC20TokenV06[](2);
+        IERC20TokenV08[] memory tokenPath = new IERC20TokenV08[](2);
         tokenPath[0] = DAI;
         tokenPath[1] = FRAX;
 
@@ -71,7 +70,7 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
     }
 
     function testSingleHopQuotesForIlliquidPools() public {
-        IERC20TokenV06[] memory tokenPath = new IERC20TokenV06[](2);
+        IERC20TokenV08[] memory tokenPath = new IERC20TokenV08[](2);
         tokenPath[0] = RAI;
         tokenPath[1] = FRAX;
 
@@ -82,7 +81,7 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
     }
 
     function testMultiHopQuotes() public {
-        IERC20TokenV06[] memory tokenPath = new IERC20TokenV06[](3);
+        IERC20TokenV08[] memory tokenPath = new IERC20TokenV08[](3);
         tokenPath[0] = DAI;
         tokenPath[1] = FRAX;
         tokenPath[2] = RAI;
@@ -95,7 +94,7 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
     }
 
     function testAllAmountsAndPathsForBuysAndSells(
-        IERC20TokenV06[] memory tokenPath,
+        IERC20TokenV08[] memory tokenPath,
         IUniswapV3Pool[] memory poolPath
     ) private {
         uint256 uniQuoterGasUsage;
@@ -157,8 +156,46 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 /* gasEstimate */
             ) {
-                assertTrue(multiQuoterAmountsOut[i] < uniQuoterAmountOut + ERROR_THRESHOLD);
-                assertTrue(multiQuoterAmountsOut[i] > uniQuoterAmountOut - ERROR_THRESHOLD);
+                assertLt(
+                    multiQuoterAmountsOut[i],
+                    uniQuoterAmountOut + ERROR_THRESHOLD,
+                    "compareQuoterSells: MultiQuoter amount is too high compared to UniQuoter amount"
+                );
+                assertGt(
+                    multiQuoterAmountsOut[i],
+                    uniQuoterAmountOut - ERROR_THRESHOLD,
+                    "compareQuoterSells: MultiQuoter amount is too low compared to UniQuoter amount"
+                );
+            } catch {}
+        }
+        return (gas1 - gasleft(), gas0 - gas1);
+    }
+
+    function compareQuoterBuys(
+        bytes memory path,
+        uint256[] memory amountsOut
+    ) private returns (uint256 uniQuoterGasUsage, uint256 multiQuoterGasUsage) {
+        uint256 gas0 = gasleft();
+        (uint256[] memory multiQuoterAmountsIn, ) = multiQuoter.quoteExactMultiOutput(factory, path, amountsOut);
+        uint256 gas1 = gasleft();
+
+        for (uint256 i = 0; i < amountsOut.length; ++i) {
+            try uniQuoter.quoteExactOutput(path, amountsOut[i]) returns (
+                uint256 uniQuoterAmountIn,
+                uint160[] memory /* sqrtPriceX96AfterList */,
+                uint32[] memory /* initializedTicksCrossedList */,
+                uint256 /* gasEstimate */
+            ) {
+                assertLt(
+                    multiQuoterAmountsIn[i],
+                    uniQuoterAmountIn + ERROR_THRESHOLD,
+                    "compareQuoterBuys: MultiQuoter amount is too high compared to UniQuoter amount"
+                );
+                assertGt(
+                    multiQuoterAmountsIn[i],
+                    uniQuoterAmountIn - ERROR_THRESHOLD,
+                    "compareQuoterBuys: MultiQuoter amount is too low compared to UniQuoter mamount"
+                );
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);

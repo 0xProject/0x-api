@@ -17,7 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 
 interface IMooniswapRegistry {
     function pools(address token1, address token2) external view returns (address);

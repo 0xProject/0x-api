@@ -17,10 +17,9 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/IERC20TokenV08.sol";
 import "./UniswapV3Common.sol";
 import "./interfaces/IUniswapV3.sol";
 
@@ -37,7 +36,7 @@ contract UniswapV3Sampler is UniswapV3Common {
     /// @return makerTokenAmounts Maker amounts bought at each taker token amount.
     function sampleSellsFromUniswapV3(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256[] memory takerTokenAmounts
     )
         public
@@ -96,13 +95,13 @@ contract UniswapV3Sampler is UniswapV3Common {
     /// @return takerTokenAmounts Taker amounts sold at each maker token amount.
     function sampleBuysFromUniswapV3(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256[] memory makerTokenAmounts
     )
         public
         returns (bytes[] memory uniswapPaths, uint256[] memory uniswapGasUsed, uint256[] memory takerTokenAmounts)
     {
-        IERC20TokenV06[] memory reversedPath = reverseTokenPath(path);
+        IERC20TokenV08[] memory reversedPath = reverseTokenPath(path);
         IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
             quoter,
             reversedPath,
@@ -152,7 +151,7 @@ contract UniswapV3Sampler is UniswapV3Common {
     /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
     function _getPoolPaths(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[][] memory poolPaths) {
         if (path.length == 2) {
@@ -166,7 +165,7 @@ contract UniswapV3Sampler is UniswapV3Common {
 
     function _getPoolPathSingleHop(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256 inputAmount
     ) public returns (IUniswapV3Pool[][] memory poolPaths) {
         poolPaths = new IUniswapV3Pool[][](2);
@@ -189,7 +188,7 @@ contract UniswapV3Sampler is UniswapV3Common {
 
     function _getPoolPathTwoHop(
         IUniswapV3QuoterV2 quoter,
-        IERC20TokenV06[] memory path,
+        IERC20TokenV08[] memory path,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[][] memory poolPaths) {
         IUniswapV3Factory factory = quoter.factory();
@@ -226,11 +225,11 @@ contract UniswapV3Sampler is UniswapV3Common {
     function _getTopTwoPools(
         IUniswapV3QuoterV2 quoter,
         IUniswapV3Factory factory,
-        IERC20TokenV06 inputToken,
-        IERC20TokenV06 outputToken,
+        IERC20TokenV08 inputToken,
+        IERC20TokenV08 outputToken,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[2] memory topPools, uint256[2] memory outputAmounts) {
-        IERC20TokenV06[] memory path = new IERC20TokenV06[](2);
+        IERC20TokenV08[] memory path = new IERC20TokenV08[](2);
         path[0] = inputToken;
         path[1] = outputToken;
 
@@ -276,10 +275,10 @@ contract UniswapV3Sampler is UniswapV3Common {
             }
         }
         // Must have a balance of both tokens.
-        if (IERC20TokenV06(pool.token0()).balanceOf(address(pool)) == 0) {
+        if (IERC20TokenV08(pool.token0()).balanceOf(address(pool)) == 0) {
             return false;
         }
-        if (IERC20TokenV06(pool.token1()).balanceOf(address(pool)) == 0) {
+        if (IERC20TokenV08(pool.token1()).balanceOf(address(pool)) == 0) {
             return false;
         }
         return true;

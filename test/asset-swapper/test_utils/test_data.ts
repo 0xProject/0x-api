@@ -1,3 +1,4 @@
+import { randomAddress } from '@0x/contracts-test-utils';
 import {
     BigNumber,
     ERC20BridgeSource,
@@ -10,12 +11,16 @@ import {
     AffiliateFeeType,
     FillBase,
     IPath,
+    MarketBuySwapQuote,
     MarketOperation,
     MarketSellSwapQuote,
     OptimizedMarketBridgeOrder,
     OptimizedOrdersByType,
+    SwapQuote,
+    TwoHopOrder,
 } from '../../../src/asset-swapper/types';
-import { VelodromeFillData } from '../../../src/asset-swapper/utils/market_operation_utils/types';
+import { MAX_UINT256 } from '../../../src/asset-swapper/utils/market_operation_utils/constants';
+import { DODOFillData, VelodromeFillData } from '../../../src/asset-swapper/utils/market_operation_utils/types';
 import { NULL_ADDRESS } from '../../constants';
 
 export const ONE_ETHER = new BigNumber(1e18);
@@ -28,9 +33,11 @@ export const NO_AFFILIATE_FEE: AffiliateFeeAmount = {
 };
 
 const testConstants = {
-    UNISWAP_V2_ROUTER: '0xf164fc0ec4e93095b804a4795bbe1e041497b92a',
-    SUSHI_SWAP_ROUTER: '0x1b02da8cb0d097eb8d57a175b88c7d8b47997506',
-    VELODROME_ROUTER: '0xa132dab612db5cb9fc9ac426a0cc215a3423f9c9',
+    UNISWAP_V2_ROUTER: randomAddress(),
+    SUSHI_SWAP_ROUTER: randomAddress(),
+    VELODROME_ROUTER: randomAddress(),
+    DODO_POOL_ADDRESS: randomAddress(),
+    DODO_HELPER_ADDRESS: randomAddress(),
 };
 
 function createFillData({
@@ -54,6 +61,14 @@ function createFillData({
             };
             return fillData;
         }
+        case ERC20BridgeSource.Dodo: {
+            const fillData: DODOFillData = {
+                poolAddress: testConstants.DODO_POOL_ADDRESS,
+                isSellBase: false,
+                helperAddress: testConstants.DODO_HELPER_ADDRESS,
+            };
+            return fillData;
+        }
         case ERC20BridgeSource.Velodrome: {
             const fillData: VelodromeFillData = {
                 router: testConstants.VELODROME_ROUTER,
@@ -67,19 +82,21 @@ function createFillData({
     }
 }
 
+interface BridgeOrderParams {
+    source: ERC20BridgeSource;
+    takerToken: string;
+    makerToken: string;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+}
+
 function createBridgeOrder({
     source,
     takerToken,
     makerToken,
     takerAmount,
     makerAmount,
-}: {
-    source: ERC20BridgeSource;
-    takerToken: string;
-    makerToken: string;
-    takerAmount: BigNumber;
-    makerAmount: BigNumber;
-}): OptimizedMarketBridgeOrder {
+}: BridgeOrderParams): OptimizedMarketBridgeOrder {
     return {
         source,
         takerToken,
@@ -93,7 +110,49 @@ function createBridgeOrder({
     };
 }
 
-function createPath(ordersByType: OptimizedOrdersByType): IPath {
+interface TwoHopOrderParams {
+    takerToken: string;
+    intermediateToken: string;
+    makerToken: string;
+    firstHopSource: ERC20BridgeSource;
+    secondHopSource: ERC20BridgeSource;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+}
+function createTwoHopOrder({
+    takerToken,
+    intermediateToken,
+    makerAmount,
+    firstHopSource,
+    secondHopSource,
+    takerAmount,
+    makerToken,
+}: TwoHopOrderParams): TwoHopOrder {
+    const firstHopOrder = createBridgeOrder({
+        source: firstHopSource,
+        takerToken,
+        makerToken: intermediateToken,
+        takerAmount,
+        makerAmount: new BigNumber(0),
+    });
+
+    const secondHopOrder = createBridgeOrder({
+        source: secondHopSource,
+        takerToken: intermediateToken,
+        makerToken,
+        takerAmount: MAX_UINT256,
+        makerAmount,
+    });
+    return { firstHopOrder, secondHopOrder };
+}
+
+function createPathFromOrders(partialOrdersByType: Partial<OptimizedOrdersByType>): IPath {
+    const ordersByType = {
+        bridgeOrders: [],
+        nativeOrders: [],
+        twoHopOrders: [],
+        ...partialOrdersByType,
+    };
     const { bridgeOrders, nativeOrders, twoHopOrders } = ordersByType;
     const twoHopIndividualOrders = twoHopOrders.flatMap(({ firstHopOrder, secondHopOrder }) => [
         firstHopOrder,
@@ -110,34 +169,55 @@ function createPath(ordersByType: OptimizedOrdersByType): IPath {
     };
 }
 
-export function createSimpleSellSwapQuoteWithBridgeOrder({
-    source,
+interface CreatePathParams {
+    bridgeOrderParams?: BridgeOrderParams[];
+    twoHopOrderParams?: TwoHopOrderParams[];
+    // TODO: support native
+}
+
+function createPath(params: CreatePathParams): IPath {
+    const bridgeOrderParams = params.bridgeOrderParams || [];
+    const twoHopOrderParams = params.twoHopOrderParams || [];
+
+    return createPathFromOrders({
+        bridgeOrders: bridgeOrderParams.map(createBridgeOrder),
+        twoHopOrders: twoHopOrderParams.map(createTwoHopOrder),
+    });
+}
+
+export function createSwapQuote({
+    side,
     takerToken,
     makerToken,
     takerAmount,
     makerAmount,
+    createPathParams,
     slippage,
+    takerAmountPerEth,
+    makerAmountPerEth,
+    gasPrice,
 }: {
-    source: ERC20BridgeSource;
+    side: MarketOperation;
     takerToken: string;
     makerToken: string;
     takerAmount: BigNumber;
     makerAmount: BigNumber;
-    slippage: number;
-}): MarketSellSwapQuote {
+    createPathParams: CreatePathParams;
+    slippage?: number;
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): SwapQuote {
     // NOTES: consider using `slippage` to generate different amounts for `worstCaseQuoteInfo` and
     // slipped orders of `path`.
     return {
-        type: MarketOperation.Sell,
-        takerTokenFillAmount: takerAmount,
+        ...(side === MarketOperation.Buy
+            ? { type: MarketOperation.Buy, makerTokenFillAmount: makerAmount }
+            : { type: MarketOperation.Sell, takerTokenFillAmount: takerAmount }),
         takerToken,
         makerToken,
-        gasPrice: new BigNumber(42000000),
-        path: createPath({
-            bridgeOrders: [createBridgeOrder({ source, takerToken, makerToken, takerAmount, makerAmount })],
-            nativeOrders: [],
-            twoHopOrders: [],
-        }),
+        gasPrice: new BigNumber(gasPrice || 0),
+        path: createPath(createPathParams),
         bestCaseQuoteInfo: {
             takerAmount,
             makerAmount,
@@ -152,14 +232,146 @@ export function createSimpleSellSwapQuoteWithBridgeOrder({
             totalTakerAmount: takerAmount,
             protocolFeeInWeiAmount: new BigNumber(0),
             gas: 42,
-            slippage,
+            slippage: slippage || 0,
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sourceBreakdown: {} as any,
         makerTokenDecimals: 18,
         takerTokenDecimals: 18,
-        takerAmountPerEth: new BigNumber(0),
-        makerAmountPerEth: new BigNumber(0),
+        takerAmountPerEth: takerAmountPerEth || new BigNumber(0),
+        makerAmountPerEth: makerAmountPerEth || new BigNumber(0),
         blockNumber: 424242,
     };
+}
+
+function createSimpleSwapQuoteWithBridgeOrder({
+    side,
+    source,
+    takerToken,
+    makerToken,
+    takerAmount,
+    makerAmount,
+    slippage,
+    takerAmountPerEth,
+    makerAmountPerEth,
+    gasPrice,
+}: {
+    side: MarketOperation;
+    source: ERC20BridgeSource;
+    takerToken: string;
+    makerToken: string;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+    slippage: number;
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): SwapQuote {
+    return createSwapQuote({
+        side,
+        takerToken,
+        makerToken,
+        takerAmount,
+        makerAmount,
+        createPathParams: {
+            bridgeOrderParams: [
+                {
+                    takerToken,
+                    makerToken,
+                    takerAmount,
+                    makerAmount,
+                    source,
+                },
+            ],
+        },
+        slippage,
+        takerAmountPerEth,
+        makerAmountPerEth,
+        gasPrice,
+    });
+}
+
+export function createSimpleSellSwapQuoteWithBridgeOrder(params: {
+    source: ERC20BridgeSource;
+    takerToken: string;
+    makerToken: string;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+    slippage: number;
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): MarketSellSwapQuote {
+    return createSimpleSwapQuoteWithBridgeOrder({
+        side: MarketOperation.Sell,
+        ...params,
+    }) as MarketSellSwapQuote;
+}
+
+export function createSimpleBuySwapQuoteWithBridgeOrder(params: {
+    source: ERC20BridgeSource;
+    takerToken: string;
+    makerToken: string;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+    slippage: number;
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): MarketBuySwapQuote {
+    return createSimpleSwapQuoteWithBridgeOrder({
+        side: MarketOperation.Buy,
+        ...params,
+    }) as MarketBuySwapQuote;
+}
+
+export function createTwoHopSellQuote({
+    takerToken,
+    intermediateToken,
+    makerToken,
+    firstHopSource,
+    secondHopSource,
+    takerAmount,
+    makerAmount,
+    slippage,
+    takerAmountPerEth,
+    makerAmountPerEth,
+    gasPrice,
+}: {
+    takerToken: string;
+    intermediateToken: string;
+    makerToken: string;
+    firstHopSource: ERC20BridgeSource;
+    secondHopSource: ERC20BridgeSource;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+    slippage?: number;
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): MarketSellSwapQuote {
+    return createSwapQuote({
+        side: MarketOperation.Sell,
+        takerToken,
+        makerToken,
+        takerAmount,
+        makerAmount,
+        createPathParams: {
+            twoHopOrderParams: [
+                {
+                    takerToken,
+                    intermediateToken,
+                    makerToken,
+                    firstHopSource,
+                    secondHopSource,
+                    takerAmount,
+                    makerAmount,
+                },
+            ],
+        },
+        slippage,
+        takerAmountPerEth,
+        makerAmountPerEth,
+        gasPrice,
+    }) as MarketSellSwapQuote;
 }

@@ -17,7 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
+pragma solidity ^0.8;
 
 interface IShell {
     function viewOriginSwap(address from, address to, uint256 fromAmount) external view returns (uint256 toAmount);

@@ -17,10 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
-
-import "@0x/contracts-utils/contracts/src/v06/LibMathV06.sol";
+pragma solidity ^0.8;
 
 contract ApproximateBuys {
     /// @dev Information computing buy quotes for sources that do not have native

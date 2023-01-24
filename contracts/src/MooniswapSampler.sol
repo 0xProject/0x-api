@@ -17,8 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
 import "./interfaces/IMooniswap.sol";
 import "./ApproximateBuys.sol";
@@ -77,7 +76,7 @@ contract MooniswapSampler is SamplerUtils, ApproximateBuys {
         }
         uint256 poolBalance = mooniswapTakerToken == address(0)
             ? address(pool).balance
-            : IERC20TokenV06(mooniswapTakerToken).balanceOf(address(pool));
+            : IERC20TokenV08(mooniswapTakerToken).balanceOf(address(pool));
         // If the pool balance is smaller than the sell amount
         // don't sample to avoid multiplication overflow in buys
         if (poolBalance < takerTokenAmount) {

@@ -17,16 +17,15 @@
 
 */
 
-pragma solidity >=0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/IERC20TokenV08.sol";
 
 import "./interfaces/IUniswapV3.sol";
 
 contract UniswapV3Common {
     function toUniswapPath(
-        IERC20TokenV06[] memory tokenPath,
+        IERC20TokenV08[] memory tokenPath,
         IUniswapV3Pool[] memory poolPath
     ) internal view returns (bytes memory uniswapPath) {
         require(
@@ -48,7 +47,7 @@ contract UniswapV3Common {
                     o := add(o, 3)
                 }
             }
-            IERC20TokenV06 token = tokenPath[i];
+            IERC20TokenV08 token = tokenPath[i];
             assembly {
                 mstore(o, shl(96, token))
                 o := add(o, 20)
@@ -57,9 +56,9 @@ contract UniswapV3Common {
     }
 
     function reverseTokenPath(
-        IERC20TokenV06[] memory tokenPath
-    ) internal pure returns (IERC20TokenV06[] memory reversed) {
-        reversed = new IERC20TokenV06[](tokenPath.length);
+        IERC20TokenV08[] memory tokenPath
+    ) internal pure returns (IERC20TokenV08[] memory reversed) {
+        reversed = new IERC20TokenV08[](tokenPath.length);
         for (uint256 i = 0; i < tokenPath.length; ++i) {
             reversed[i] = tokenPath[tokenPath.length - i - 1];
         }

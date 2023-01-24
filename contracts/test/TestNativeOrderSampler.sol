@@ -16,8 +16,7 @@
   limitations under the License.
 
 */
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
 import "../src/NativeOrderSampler.sol";
 import "../src/UtilitySampler.sol";
@@ -33,6 +32,8 @@ contract TestNativeOrderSamplerToken {
 }
 
 contract TestNativeOrderSampler is NativeOrderSampler, UtilitySampler {
+    using LibMathV08 for uint256;
+
     uint8 private constant MAX_ORDER_STATUS = uint8(IExchange.OrderStatus.CANCELLED) + 1;
     bytes32 private constant VALID_SIGNATURE_HASH = bytes32(hex"01");
 
@@ -76,25 +77,25 @@ contract TestNativeOrderSampler is NativeOrderSampler, UtilitySampler {
         orderInfo.takerTokenFilledAmount = uint128(order.expiry);
 
         // Calculate how much is fillable in maker terms given the filled taker amount
-        uint256 fillableMakerTokenAmount = LibMathV06.getPartialAmountFloor(
+        uint256 fillableMakerTokenAmount = LibMathV08.getPartialAmountFloor(
             uint256(order.takerAmount - orderInfo.takerTokenFilledAmount),
             uint256(order.takerAmount),
             uint256(order.makerAmount)
         );
 
         // Take the min of the balance/allowance and the fillable maker amount
-        fillableMakerTokenAmount = LibSafeMathV06.min256(
+        fillableMakerTokenAmount = LibMathV08.min256(
             fillableMakerTokenAmount,
             _getSpendableERC20BalanceOf(order.makerToken, order.maker)
         );
 
         // Convert to taker terms
-        actualFillableTakerTokenAmount = LibMathV06
+        actualFillableTakerTokenAmount = LibMathV08
             .getPartialAmountCeil(fillableMakerTokenAmount, uint256(order.makerAmount), uint256(order.takerAmount))
             .safeDowncastToUint128();
     }
 
-    function _getSpendableERC20BalanceOf(IERC20TokenV06 token, address owner) internal view returns (uint256) {
-        return LibSafeMathV06.min256(token.allowance(owner, address(this)), token.balanceOf(owner));
+    function _getSpendableERC20BalanceOf(IERC20TokenV08 token, address owner) internal view returns (uint256) {
+        return LibMathV08.min256(token.allowance(owner, address(this)), token.balanceOf(owner));
     }
 }

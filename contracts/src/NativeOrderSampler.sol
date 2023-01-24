@@ -17,13 +17,11 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import "@0x/contracts-erc20/contracts/src/v06/LibERC20TokenV06.sol";
-import "@0x/contracts-utils/contracts/src/v06/LibMathV06.sol";
-import "@0x/contracts-utils/contracts/src/v06/LibBytesV06.sol";
-import "@0x/contracts-utils/contracts/src/v06/LibSafeMathV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/LibERC20TokenV08.sol";
+import "@0x/contracts-utils/contracts/src/v08/LibMathV08.sol";
+import "@0x/contracts-utils/contracts/src/v08/LibBytesV08.sol";
 
 interface IExchange {
     enum OrderStatus {
@@ -36,8 +34,8 @@ interface IExchange {
 
     /// @dev A standard OTC or OO limit order.
     struct LimitOrder {
-        IERC20TokenV06 makerToken;
-        IERC20TokenV06 takerToken;
+        IERC20TokenV08 makerToken;
+        IERC20TokenV08 takerToken;
         uint128 makerAmount;
         uint128 takerAmount;
         uint128 takerTokenFeeAmount;
@@ -52,8 +50,8 @@ interface IExchange {
 
     /// @dev An RFQ limit order.
     struct RfqOrder {
-        IERC20TokenV06 makerToken;
-        IERC20TokenV06 takerToken;
+        IERC20TokenV08 makerToken;
+        IERC20TokenV08 takerToken;
         uint128 makerAmount;
         uint128 takerAmount;
         address maker;
@@ -111,8 +109,7 @@ interface IExchange {
 }
 
 contract NativeOrderSampler {
-    using LibSafeMathV06 for uint256;
-    using LibBytesV06 for bytes;
+    using LibBytesV08 for bytes;
 
     /// @dev Gas limit for calls to `getOrderFillableTakerAmount()`.
     uint256 internal constant DEFAULT_CALL_GAS = 200e3; // 200k
@@ -160,7 +157,7 @@ contract NativeOrderSampler {
         // convert them to maker asset amounts.
         for (uint256 i = 0; i < orders.length; ++i) {
             if (orderFillableMakerAssetAmounts[i] != 0) {
-                orderFillableMakerAssetAmounts[i] = LibMathV06.getPartialAmountCeil(
+                orderFillableMakerAssetAmounts[i] = LibMathV08.getPartialAmountCeil(
                     orderFillableMakerAssetAmounts[i],
                     orders[i].takerAmount,
                     orders[i].makerAmount
@@ -191,7 +188,7 @@ contract NativeOrderSampler {
         if (
             orderInfo.status != IExchange.OrderStatus.FILLABLE ||
             !isSignatureValid ||
-            order.makerToken == IERC20TokenV06(0)
+            order.makerToken == IERC20TokenV08(address(0))
         ) {
             return 0;
         }

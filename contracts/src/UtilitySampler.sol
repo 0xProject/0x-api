@@ -17,17 +17,16 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
-import "@0x/contracts-erc20/contracts/src/v06/LibERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/LibERC20TokenV08.sol";
 
 contract UtilitySampler {
-    using LibERC20TokenV06 for IERC20TokenV06;
+    using LibERC20TokenV08 for IERC20TokenV08;
 
-    IERC20TokenV06 private immutable UTILITY_ETH_ADDRESS = IERC20TokenV06(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    IERC20TokenV08 private immutable UTILITY_ETH_ADDRESS = IERC20TokenV08(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
-    function getTokenDecimals(IERC20TokenV06[] memory tokens) public view returns (uint256[] memory decimals) {
+    function getTokenDecimals(IERC20TokenV08[] memory tokens) public view returns (uint256[] memory decimals) {
         decimals = new uint256[](tokens.length);
         for (uint256 i = 0; i != tokens.length; i++) {
             decimals[i] = tokens[i] == UTILITY_ETH_ADDRESS ? 18 : tokens[i].compatDecimals();
@@ -35,7 +34,7 @@ contract UtilitySampler {
     }
 
     function getBalanceOf(
-        IERC20TokenV06[] memory tokens,
+        IERC20TokenV08[] memory tokens,
         address account
     ) public view returns (uint256[] memory balances) {
         balances = new uint256[](tokens.length);
@@ -45,7 +44,7 @@ contract UtilitySampler {
     }
 
     function getAllowanceOf(
-        IERC20TokenV06[] memory tokens,
+        IERC20TokenV08[] memory tokens,
         address account,
         address spender
     ) public view returns (uint256[] memory allowances) {

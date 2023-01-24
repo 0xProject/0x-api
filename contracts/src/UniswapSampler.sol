@@ -17,8 +17,7 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
 import "./interfaces/IUniswapExchangeQuotes.sol";
 import "./SamplerUtils.sol";
@@ -51,10 +50,10 @@ contract UniswapSampler is SamplerUtils {
         makerTokenAmounts = new uint256[](numSamples);
 
         IUniswapExchangeQuotes takerTokenExchange = takerToken == address(0)
-            ? IUniswapExchangeQuotes(0)
+            ? IUniswapExchangeQuotes(address(0))
             : _getUniswapExchange(router, takerToken);
         IUniswapExchangeQuotes makerTokenExchange = makerToken == address(0)
-            ? IUniswapExchangeQuotes(0)
+            ? IUniswapExchangeQuotes(address(0))
             : _getUniswapExchange(router, makerToken);
         for (uint256 i = 0; i < numSamples; i++) {
             bool didSucceed = true;
@@ -111,10 +110,10 @@ contract UniswapSampler is SamplerUtils {
         takerTokenAmounts = new uint256[](numSamples);
 
         IUniswapExchangeQuotes takerTokenExchange = takerToken == address(0)
-            ? IUniswapExchangeQuotes(0)
+            ? IUniswapExchangeQuotes(address(0))
             : _getUniswapExchange(router, takerToken);
         IUniswapExchangeQuotes makerTokenExchange = makerToken == address(0)
-            ? IUniswapExchangeQuotes(0)
+            ? IUniswapExchangeQuotes(address(0))
             : _getUniswapExchange(router, makerToken);
         for (uint256 i = 0; i < numSamples; i++) {
             bool didSucceed = true;
@@ -169,7 +168,7 @@ contract UniswapSampler is SamplerUtils {
             return (outputAmount, didSucceed);
         }
         bytes memory resultData;
-        (didSucceed, resultData) = uniswapExchangeAddress.staticcall.gas(UNISWAP_CALL_GAS)(
+        (didSucceed, resultData) = uniswapExchangeAddress.staticcall{gas: UNISWAP_CALL_GAS}(
             abi.encodeWithSelector(functionSelector, inputAmount)
         );
         if (didSucceed) {

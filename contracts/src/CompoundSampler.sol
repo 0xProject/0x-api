@@ -17,11 +17,10 @@
 
 */
 
-pragma solidity ^0.6;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
 import "./SamplerUtils.sol";
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
+import "@0x/contracts-erc20/contracts/src/v08/IERC20TokenV08.sol";
 
 // Minimal CToken interface
 interface ICToken {
@@ -41,8 +40,8 @@ contract CompoundSampler is SamplerUtils {
 
     function sampleSellsFromCompound(
         ICToken cToken,
-        IERC20TokenV06 takerToken,
-        IERC20TokenV06 makerToken,
+        IERC20TokenV08 takerToken,
+        IERC20TokenV08 makerToken,
         uint256[] memory takerTokenAmounts
     ) public view returns (uint256[] memory makerTokenAmounts) {
         uint256 numSamples = takerTokenAmounts.length;
@@ -70,8 +69,8 @@ contract CompoundSampler is SamplerUtils {
 
     function sampleBuysFromCompound(
         ICToken cToken,
-        IERC20TokenV06 takerToken,
-        IERC20TokenV06 makerToken,
+        IERC20TokenV08 takerToken,
+        IERC20TokenV08 makerToken,
         uint256[] memory makerTokenAmounts
     ) public view returns (uint256[] memory takerTokenAmounts) {
         uint256 numSamples = makerTokenAmounts.length;
