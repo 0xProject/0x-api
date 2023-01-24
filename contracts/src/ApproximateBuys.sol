@@ -18,7 +18,6 @@
 */
 
 pragma solidity ^0.8;
-pragma experimental ABIEncoderV2;
 
 contract ApproximateBuys {
     /// @dev Information computing buy quotes for sources that do not have native

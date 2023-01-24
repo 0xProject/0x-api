@@ -18,7 +18,6 @@
 */
 
 pragma solidity ^0.8;
-pragma experimental ABIEncoderV2;
 
 contract AaveV2Sampler {
     /// @dev Sample sell quotes from AaveV2.

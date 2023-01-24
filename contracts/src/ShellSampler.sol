@@ -18,7 +18,6 @@
 */
 
 pragma solidity ^0.8;
-pragma experimental ABIEncoderV2;
 
 import "./ApproximateBuys.sol";
 import "./interfaces/IShell.sol";

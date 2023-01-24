@@ -18,7 +18,6 @@
 */
 
 pragma solidity ^0.8;
-pragma experimental ABIEncoderV2;
 
 import "@0x/contracts-erc20/contracts/src/v08/IERC20TokenV08.sol";
 

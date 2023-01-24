@@ -17,7 +17,6 @@
 
 */
 pragma solidity ^0.8;
-pragma experimental ABIEncoderV2;
 
 import "../src/NativeOrderSampler.sol";
 import "../src/UtilitySampler.sol";

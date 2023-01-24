@@ -1,5 +1,4 @@
 pragma solidity ^0.8;
-pragma experimental ABIEncoderV2;
 
 import "./interfaces/IGMX.sol";
 import "./ApproximateBuys.sol";

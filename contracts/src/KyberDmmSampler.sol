@@ -18,7 +18,6 @@
 */
 
 pragma solidity ^0.8;
-pragma experimental ABIEncoderV2;
 
 interface IKyberDmmPool {
     function totalSupply() external view returns (uint256);
