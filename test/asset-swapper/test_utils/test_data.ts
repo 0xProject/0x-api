@@ -10,11 +10,14 @@ import {
     AffiliateFeeType,
     FillBase,
     IPath,
+    MarketBuySwapQuote,
     MarketOperation,
     MarketSellSwapQuote,
     OptimizedMarketBridgeOrder,
     OptimizedOrdersByType,
+    SwapQuote,
 } from '../../../src/asset-swapper/types';
+import { MAX_UINT256 } from '../../../src/asset-swapper/utils/market_operation_utils/constants';
 import { VelodromeFillData } from '../../../src/asset-swapper/utils/market_operation_utils/types';
 import { NULL_ADDRESS } from '../../constants';
 
@@ -93,7 +96,13 @@ function createBridgeOrder({
     };
 }
 
-function createPath(ordersByType: OptimizedOrdersByType): IPath {
+function createPath(partialOrdersByType: Partial<OptimizedOrdersByType>): IPath {
+    const ordersByType = {
+        bridgeOrders: [],
+        nativeOrders: [],
+        twoHopOrders: [],
+        ...partialOrdersByType,
+    };
     const { bridgeOrders, nativeOrders, twoHopOrders } = ordersByType;
     const twoHopIndividualOrders = twoHopOrders.flatMap(({ firstHopOrder, secondHopOrder }) => [
         firstHopOrder,
@@ -110,33 +119,40 @@ function createPath(ordersByType: OptimizedOrdersByType): IPath {
     };
 }
 
-export function createSimpleSellSwapQuoteWithBridgeOrder({
+function createSimpleSwapQuoteWithBridgeOrder({
+    side,
     source,
     takerToken,
     makerToken,
     takerAmount,
     makerAmount,
     slippage,
+    takerAmountPerEth,
+    makerAmountPerEth,
+    gasPrice,
 }: {
+    side: MarketOperation;
     source: ERC20BridgeSource;
     takerToken: string;
     makerToken: string;
     takerAmount: BigNumber;
     makerAmount: BigNumber;
     slippage: number;
-}): MarketSellSwapQuote {
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): SwapQuote {
     // NOTES: consider using `slippage` to generate different amounts for `worstCaseQuoteInfo` and
     // slipped orders of `path`.
     return {
-        type: MarketOperation.Sell,
-        takerTokenFillAmount: takerAmount,
+        ...(side === MarketOperation.Buy
+            ? { type: MarketOperation.Buy, makerTokenFillAmount: makerAmount }
+            : { type: MarketOperation.Sell, takerTokenFillAmount: takerAmount }),
         takerToken,
         makerToken,
-        gasPrice: new BigNumber(42000000),
+        gasPrice: new BigNumber(gasPrice || 0),
         path: createPath({
             bridgeOrders: [createBridgeOrder({ source, takerToken, makerToken, takerAmount, makerAmount })],
-            nativeOrders: [],
-            twoHopOrders: [],
         }),
         bestCaseQuoteInfo: {
             takerAmount,
@@ -158,8 +174,118 @@ export function createSimpleSellSwapQuoteWithBridgeOrder({
         sourceBreakdown: {} as any,
         makerTokenDecimals: 18,
         takerTokenDecimals: 18,
-        takerAmountPerEth: new BigNumber(0),
-        makerAmountPerEth: new BigNumber(0),
+        takerAmountPerEth: takerAmountPerEth || new BigNumber(0),
+        makerAmountPerEth: makerAmountPerEth || new BigNumber(0),
+        blockNumber: 424242,
+    };
+}
+
+export function createSimpleSellSwapQuoteWithBridgeOrder(params: {
+    source: ERC20BridgeSource;
+    takerToken: string;
+    makerToken: string;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+    slippage: number;
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): MarketSellSwapQuote {
+    return createSimpleSwapQuoteWithBridgeOrder({
+        side: MarketOperation.Sell,
+        ...params,
+    }) as MarketSellSwapQuote;
+}
+
+export function createSimpleBuySwapQuoteWithBridgeOrder(params: {
+    source: ERC20BridgeSource;
+    takerToken: string;
+    makerToken: string;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+    slippage: number;
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): MarketBuySwapQuote {
+    return createSimpleSwapQuoteWithBridgeOrder({
+        side: MarketOperation.Buy,
+        ...params,
+    }) as MarketBuySwapQuote;
+}
+
+export function createTwoHopSellQuote({
+    takerToken,
+    intermediateToken,
+    makerToken,
+    firstHopSource,
+    secondHopSource,
+    takerAmount,
+    makerAmount,
+    slippage,
+    takerAmountPerEth,
+    makerAmountPerEth,
+    gasPrice,
+}: {
+    takerToken: string;
+    intermediateToken: string;
+    makerToken: string;
+    firstHopSource: ERC20BridgeSource;
+    secondHopSource: ERC20BridgeSource;
+    takerAmount: BigNumber;
+    makerAmount: BigNumber;
+    slippage?: number;
+    takerAmountPerEth?: BigNumber;
+    makerAmountPerEth?: BigNumber;
+    gasPrice?: number;
+}): MarketSellSwapQuote {
+    const firstHopOrder = createBridgeOrder({
+        source: firstHopSource,
+        takerToken,
+        makerToken: intermediateToken,
+        takerAmount,
+        makerAmount: new BigNumber(0),
+    });
+
+    const secondHopOrder = createBridgeOrder({
+        source: secondHopSource,
+        takerToken: intermediateToken,
+        makerToken,
+        takerAmount: MAX_UINT256,
+        makerAmount,
+    });
+
+    return {
+        type: MarketOperation.Sell,
+        takerTokenFillAmount: takerAmount,
+        takerToken,
+        makerToken,
+        gasPrice: new BigNumber(gasPrice || 0),
+        path: createPath({
+            twoHopOrders: [{ firstHopOrder, secondHopOrder }],
+        }),
+        bestCaseQuoteInfo: {
+            takerAmount,
+            makerAmount,
+            totalTakerAmount: takerAmount,
+            protocolFeeInWeiAmount: new BigNumber(0),
+            gas: 42,
+            slippage: 0,
+        },
+        worstCaseQuoteInfo: {
+            takerAmount,
+            makerAmount,
+            totalTakerAmount: takerAmount,
+            protocolFeeInWeiAmount: new BigNumber(0),
+            gas: 42,
+            slippage: slippage || 0,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sourceBreakdown: {} as any,
+        makerTokenDecimals: 18,
+        takerTokenDecimals: 18,
+        takerAmountPerEth: takerAmountPerEth || new BigNumber(0),
+        makerAmountPerEth: makerAmountPerEth || new BigNumber(0),
         blockNumber: 424242,
     };
 }
