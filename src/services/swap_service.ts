@@ -268,7 +268,8 @@ export class SwapService implements ISwapService {
 
         let _rfqt: GetMarketOrdersRfqOpts | undefined;
 
-        if (rfqt && !this._rfqClient.isRfqtEnabled()) {
+        // If rfqt is exclusively asked but the service is unavailable, throw an explicit error.
+        if (rfqt && _.isEqual(includedSources, ['RFQT']) && !this._rfqClient.isRfqtEnabled()) {
             throw new ServiceDisabledError('RFQt Service is not available');
         }
 
