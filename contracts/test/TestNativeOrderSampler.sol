@@ -33,8 +33,8 @@ contract TestNativeOrderSamplerToken {
 }
 
 contract TestNativeOrderSampler is NativeOrderSampler, UtilitySampler {
-    using LibSafeMathV08 for uint256;
-    
+    using LibMathV08 for uint256;
+
     uint8 private constant MAX_ORDER_STATUS = uint8(IExchange.OrderStatus.CANCELLED) + 1;
     bytes32 private constant VALID_SIGNATURE_HASH = bytes32(hex"01");
 
@@ -85,7 +85,7 @@ contract TestNativeOrderSampler is NativeOrderSampler, UtilitySampler {
         );
 
         // Take the min of the balance/allowance and the fillable maker amount
-        fillableMakerTokenAmount = LibSafeMathV08.min256(
+        fillableMakerTokenAmount = LibMathV08.min256(
             fillableMakerTokenAmount,
             _getSpendableERC20BalanceOf(order.makerToken, order.maker)
         );
@@ -97,6 +97,6 @@ contract TestNativeOrderSampler is NativeOrderSampler, UtilitySampler {
     }
 
     function _getSpendableERC20BalanceOf(IERC20TokenV08 token, address owner) internal view returns (uint256) {
-        return LibSafeMathV08.min256(token.allowance(owner, address(this)), token.balanceOf(owner));
+        return LibMathV08.min256(token.allowance(owner, address(this)), token.balanceOf(owner));
     }
 }

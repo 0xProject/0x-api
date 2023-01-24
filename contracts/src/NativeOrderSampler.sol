@@ -23,7 +23,6 @@ pragma experimental ABIEncoderV2;
 import "@0x/contracts-erc20/contracts/src/v08/LibERC20TokenV08.sol";
 import "@0x/contracts-utils/contracts/src/v08/LibMathV08.sol";
 import "@0x/contracts-utils/contracts/src/v08/LibBytesV08.sol";
-import "@0x/contracts-utils/contracts/src/v08/LibSafeMathV08.sol";
 
 interface IExchange {
     enum OrderStatus {
@@ -111,7 +110,6 @@ interface IExchange {
 }
 
 contract NativeOrderSampler {
-    using LibSafeMathV08 for uint256;
     using LibBytesV08 for bytes;
 
     /// @dev Gas limit for calls to `getOrderFillableTakerAmount()`.
