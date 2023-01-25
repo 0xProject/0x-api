@@ -25,12 +25,6 @@ export interface QuoteReport {
     sourcesDelivered: QuoteReportEntry[];
 }
 
-export interface PriceComparisonsReport {
-    dexSources: BridgeQuoteReportEntry[];
-    multiHopSources: MultiHopQuoteReportEntry[];
-    nativeSources: (NativeLimitOrderQuoteReportEntry | NativeRfqOrderQuoteReportEntry)[];
-}
-
 export interface IndicativeRfqOrderQuoteReportEntry extends QuoteReportEntryBase {
     liquiditySource: ERC20BridgeSource.Native;
     fillableTakerAmount: BigNumber;
@@ -234,7 +228,6 @@ interface SwapQuoteBase {
     sourceBreakdown: SwapQuoteSourceBreakdown;
     quoteReport?: QuoteReport;
     extendedQuoteReportSources?: ExtendedQuoteReportSources;
-    priceComparisonsReport?: PriceComparisonsReport;
     makerTokenDecimals: number;
     takerTokenDecimals: number;
     takerAmountPerEth: BigNumber;
@@ -664,11 +657,6 @@ export interface GetMarketOrdersOpts {
      * Whether to generate a quote report
      */
     shouldGenerateQuoteReport: boolean;
-
-    /**
-     * Whether to include price comparison data in the quote
-     */
-    shouldIncludePriceComparisonsReport: boolean;
     /**
      * Token addresses with a list of adjacent intermediary tokens to consider
      * hopping to. E.g DAI->USDC via an adjacent token WETH
@@ -723,24 +711,28 @@ export type OptimizedNativeOrder = OptimizedLimitOrder | OptimizedRfqOrder | Opt
 
 export type OptimizedOrder = OptimizedMarketBridgeOrder | OptimizedNativeOrder;
 
+export interface TwoHopOrder {
+    firstHopOrder: OptimizedOrder;
+    secondHopOrder: OptimizedOrder;
+}
+
 export interface OptimizedOrdersByType {
     nativeOrders: readonly OptimizedNativeOrder[];
-    twoHopOrders: readonly { firstHopOrder: OptimizedOrder; secondHopOrder: OptimizedOrder }[];
+    twoHopOrders: readonly TwoHopOrder[];
     bridgeOrders: readonly OptimizedMarketBridgeOrder[];
 }
 
-// TODO: `SignedNativeOrder` should be `SignedLimitOrder`.
 export abstract class Orderbook {
     public abstract getOrdersAsync(
         makerToken: string,
         takerToken: string,
-        pruneFn?: (o: SignedNativeOrder) => boolean,
-    ): Promise<SignedNativeOrder[]>;
+        pruneFn?: (o: SignedLimitOrder) => boolean,
+    ): Promise<SignedLimitOrder[]>;
     public abstract getBatchOrdersAsync(
         makerTokens: string[],
         takerToken: string,
-        pruneFn?: (o: SignedNativeOrder) => boolean,
-    ): Promise<SignedNativeOrder[][]>;
+        pruneFn?: (o: SignedLimitOrder) => boolean,
+    ): Promise<SignedLimitOrder[][]>;
     public async destroyAsync(): Promise<void> {
         return;
     }

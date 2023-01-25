@@ -31,6 +31,11 @@ export class GasEstimationError extends BadRequestError<APIErrorCodes> {
     public generalErrorCode = APIErrorCodes.GasEstimationFailed;
 }
 
+export class ServiceDisabledError extends BadRequestError<APIErrorCodes> {
+    public statusCode = StatusCodes.BAD_REQUEST;
+    public generalErrorCode = APIErrorCodes.ServiceDisabled;
+}
+
 export enum APIErrorCodes {
     OrderSubmissionDisabled = 102,
     UnableToSubmitOnBehalfOfTaker = 106,
@@ -62,6 +67,7 @@ export enum ValidationErrorReasons {
     FeeRecipientMissing = 'FEE_RECIPIENT_MISSING',
     MinSlippageTooLow = 'MINIMUM_SLIPPAGE_IS_TOO_LOW',
     PriceImpactTooHigh = 'PRICE_IMPACT_TOO_HIGH',
+    InvalidGaslessFeeType = 'INVALID_GASLESS_FEE_TYPE',
 }
 
 export class ExpiredOrderError extends AlertError {

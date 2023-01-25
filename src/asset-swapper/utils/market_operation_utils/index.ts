@@ -10,12 +10,11 @@ import {
     AssetSwapperContractAddresses,
     MarketOperation,
     NativeOrderWithFillableAmounts,
-    SignedNativeOrder,
     ERC20BridgeSource,
     GetMarketOrdersOpts,
     ExtendedQuoteReportSources,
-    PriceComparisonsReport,
     QuoteReport,
+    SignedLimitOrder,
 } from '../../types';
 import { getAltMarketInfo } from '../alt_mm_implementation_utils';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from '../quote_requestor';
@@ -26,13 +25,7 @@ import {
     getNativeAdjustedMakerFillAmount,
 } from '../utils';
 
-import {
-    dexSampleToReportSource,
-    generateExtendedQuoteReportSources,
-    generateQuoteReport,
-    multiHopSampleToReportSource,
-    nativeOrderToReportEntry,
-} from './../quote_report_generator';
+import { generateExtendedQuoteReportSources, generateQuoteReport } from './../quote_report_generator';
 import { getComparisonPrices } from './comparison_price';
 import {
     BUY_SOURCE_FILTER_BY_CHAIN_ID,
@@ -66,7 +59,6 @@ interface OptimizerResult {
 export interface OptimizerResultWithReport extends OptimizerResult {
     quoteReport?: QuoteReport;
     extendedQuoteReportSources?: ExtendedQuoteReportSources;
-    priceComparisonsReport?: PriceComparisonsReport;
 }
 
 export class MarketOperationUtils {
@@ -110,28 +102,6 @@ export class MarketOperationUtils {
         );
     }
 
-    private static _computePriceComparisonsReport(
-        quoteRequestor: QuoteRequestor | undefined,
-        marketSideLiquidity: MarketSideLiquidity,
-        comparisonPrice?: BigNumber | undefined,
-    ): PriceComparisonsReport {
-        const { side, quotes } = marketSideLiquidity;
-        const dexSources = _.flatten(quotes.dexQuotes).map((quote) => dexSampleToReportSource(quote, side));
-        const multiHopSources = quotes.twoHopQuotes.map((quote) => multiHopSampleToReportSource(quote, side));
-        const nativeSources = quotes.nativeOrders.map((order) =>
-            nativeOrderToReportEntry(
-                order.type,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
-                order as any,
-                order.fillableTakerAmount,
-                comparisonPrice,
-                quoteRequestor,
-            ),
-        );
-
-        return { dexSources, multiHopSources, nativeSources };
-    }
-
     constructor(
         private readonly _sampler: DexOrderSampler,
         private readonly contractAddresses: AssetSwapperContractAddresses,
@@ -147,7 +117,7 @@ export class MarketOperationUtils {
      * Gets the liquidity available for a market sell operation
      * @param makerToken Maker token address
      * @param takerToken Taker token address
-     * @param nativeOrders Native orders. Assumes LimitOrders not RfqOrders
+     * @param limitOrders Native limit orders.
      * @param takerAmount Amount of taker asset to sell.
      * @param opts Options object.
      * @return MarketSideLiquidity.
@@ -155,7 +125,7 @@ export class MarketOperationUtils {
     public async getMarketSellLiquidityAsync(
         makerToken: string,
         takerToken: string,
-        nativeOrders: SignedNativeOrder[],
+        limitOrders: SignedLimitOrder[],
         takerAmount: BigNumber,
         opts?: Partial<GetMarketOrdersOpts>,
     ): Promise<MarketSideLiquidity> {
@@ -174,7 +144,7 @@ export class MarketOperationUtils {
             this._sampler.getGasLeft(),
             this._sampler.getTokenDecimals([makerToken, takerToken]),
             // Get native order fillable amounts.
-            this._sampler.getLimitOrderFillableTakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
+            this._sampler.getLimitOrderFillableTakerAmounts(limitOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> maker token price.
             this._sampler.getBestNativeTokenSellRate(
                 this._feeSources,
@@ -248,7 +218,7 @@ export class MarketOperationUtils {
         const [makerTokenDecimals, takerTokenDecimals] = tokenDecimals;
 
         const isRfqSupported = !!(_opts.rfqt && !isTxOriginContract);
-        const limitOrdersWithFillableAmounts = nativeOrders.map((order, i) => ({
+        const limitOrdersWithFillableAmounts = limitOrders.map((order, i) => ({
             ...order,
             ...getNativeAdjustedFillableAmountsFromTakerAmount(order, orderFillableTakerAmounts[i]),
         }));
@@ -278,7 +248,7 @@ export class MarketOperationUtils {
      * Gets the liquidity available for a market buy operation
      * @param makerToken Maker token address
      * @param takerToken Taker token address
-     * @param nativeOrders Native orders. Assumes LimitOrders not RfqOrders
+     * @param limitOrders Native limit orders
      * @param makerAmount Amount of maker asset to buy.
      * @param opts Options object.
      * @return MarketSideLiquidity.
@@ -286,7 +256,7 @@ export class MarketOperationUtils {
     public async getMarketBuyLiquidityAsync(
         makerToken: string,
         takerToken: string,
-        nativeOrders: SignedNativeOrder[],
+        limitOrders: SignedLimitOrder[],
         makerAmount: BigNumber,
         opts?: Partial<GetMarketOrdersOpts>,
     ): Promise<MarketSideLiquidity> {
@@ -305,7 +275,7 @@ export class MarketOperationUtils {
             this._sampler.getGasLeft(),
             this._sampler.getTokenDecimals([makerToken, takerToken]),
             // Get native order fillable amounts.
-            this._sampler.getLimitOrderFillableMakerAmounts(nativeOrders, this.contractAddresses.exchangeProxy),
+            this._sampler.getLimitOrderFillableMakerAmounts(limitOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> makerToken token price.
             this._sampler.getBestNativeTokenSellRate(
                 this._feeSources,
@@ -378,7 +348,7 @@ export class MarketOperationUtils {
         const [makerTokenDecimals, takerTokenDecimals] = tokenDecimals;
         const isRfqSupported = !isTxOriginContract;
 
-        const limitOrdersWithFillableAmounts = nativeOrders.map((order, i) => ({
+        const limitOrdersWithFillableAmounts = limitOrders.map((order, i) => ({
             ...order,
             ...getNativeAdjustedFillableAmountsFromMakerAmount(order, orderFillableMakerAmounts[i]),
         }));
@@ -466,13 +436,10 @@ export class MarketOperationUtils {
         };
     }
 
-    /**
-     * @param nativeOrders: Assumes LimitOrders not RfqOrders
-     */
     public async getOptimizerResultAsync(
         makerToken: string,
         takerToken: string,
-        nativeOrders: SignedNativeOrder[],
+        limitOrders: SignedLimitOrder[],
         amount: BigNumber,
         side: MarketOperation,
         opts: Partial<GetMarketOrdersOpts> & { gasPrice: BigNumber },
@@ -492,7 +459,7 @@ export class MarketOperationUtils {
             marketSideLiquidity = await this.getMarketSellLiquidityAsync(
                 makerToken,
                 takerToken,
-                nativeOrders,
+                limitOrders,
                 amount,
                 _opts,
             );
@@ -500,7 +467,7 @@ export class MarketOperationUtils {
             marketSideLiquidity = await this.getMarketBuyLiquidityAsync(
                 makerToken,
                 takerToken,
-                nativeOrders,
+                limitOrders,
                 amount,
                 _opts,
             );
@@ -790,15 +757,7 @@ export class MarketOperationUtils {
                 wholeOrderPrice,
             );
 
-        let priceComparisonsReport: PriceComparisonsReport | undefined;
-        if (_opts.shouldIncludePriceComparisonsReport) {
-            priceComparisonsReport = MarketOperationUtils._computePriceComparisonsReport(
-                _opts.rfqt ? _opts.rfqt.quoteRequestor : undefined,
-                marketSideLiquidity,
-                wholeOrderPrice,
-            );
-        }
-        return { ...optimizerResult, quoteReport, extendedQuoteReportSources, priceComparisonsReport };
+        return { ...optimizerResult, quoteReport, extendedQuoteReportSources };
     }
 
     private async _refreshPoolCacheIfRequiredAsync(takerToken: string, makerToken: string): Promise<void> {

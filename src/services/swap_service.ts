@@ -58,6 +58,7 @@ import {
 import {
     GasEstimationError,
     InsufficientFundsError,
+    ServiceDisabledError,
     ValidationError,
     ValidationErrorCodes,
     ValidationErrorReasons,
@@ -258,7 +259,6 @@ export class SwapService implements ISwapService {
             rfqt,
             affiliateAddress,
             affiliateFee,
-            includePriceComparisons,
             skipValidation,
             shouldSellEntireBalance,
             enableSlippageProtection,
@@ -266,6 +266,12 @@ export class SwapService implements ISwapService {
         } = params;
 
         let _rfqt: GetMarketOrdersRfqOpts | undefined;
+
+        // If rfqt is exclusively asked but the service is unavailable, throw an explicit error.
+        if (rfqt && _.isEqual(includedSources, ['RFQT']) && !this._rfqClient.isRfqtEnabled()) {
+            throw new ServiceDisabledError('RFQt Service is not available');
+        }
+
         // Only enable RFQT if there's an API key and either (a) it's a
         // forwarder transaction (isETHSell===true), (b) there's a taker
         // address present, or (c) it's an indicative quote.
@@ -317,7 +323,6 @@ export class SwapService implements ISwapService {
             includedSources,
             rfqt: _rfqt,
             shouldGenerateQuoteReport,
-            shouldIncludePriceComparisonsReport: !!includePriceComparisons,
             fillAdjustor:
                 enableSlippageProtection && this.slippageModelManager
                     ? new SlippageModelFillAdjustor(
@@ -354,8 +359,7 @@ export class SwapService implements ISwapService {
             protocolFeeInWeiAmount: bestCaseProtocolFee,
         } = swapQuote.bestCaseQuoteInfo;
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = swapQuote.worstCaseQuoteInfo;
-        const { gasPrice, sourceBreakdown, quoteReport, priceComparisonsReport, extendedQuoteReportSources } =
-            swapQuote;
+        const { gasPrice, sourceBreakdown, quoteReport, extendedQuoteReportSources } = swapQuote;
 
         const {
             gasCost: affiliateFeeGasCost,
@@ -492,7 +496,6 @@ export class SwapService implements ISwapService {
             sellTokenToEthRate,
             buyTokenToEthRate,
             quoteReport,
-            priceComparisonsReport,
             blockNumber: swapQuote.blockNumber,
         };
 
