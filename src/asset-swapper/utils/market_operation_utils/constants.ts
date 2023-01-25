@@ -934,7 +934,7 @@ export const WOOFI_SUPPORTED_TOKENS = new Set([
     POLYGON_TOKENS.WBTC,
     POLYGON_TOKENS.WETH,
     POLYGON_TOKENS.WOO,
-);
+]);
 
 export const DEFAULT_INTERMEDIATE_TOKENS_BY_CHAIN_ID: Record<ChainId, string[]> = {
     [ChainId.Mainnet]: [
