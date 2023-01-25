@@ -89,7 +89,10 @@ export class SwapQuoter {
         // Allow address of the Sampler to be overridden, i.e in Ganache where overrides do not work
         const samplerAddress = (options.samplerOverrides && options.samplerOverrides.to) || SAMPLER_ADDRESS;
         // Allow the UniV3 MultiQuoter bytecode to be written to a specic address
-        const uniV3MultiQuoterBytecode = _.get(artifacts.UniswapV3MultiQuoter, 'compilerOutput.evm.deployedBytecode.object');
+        const uniV3MultiQuoterBytecode = _.get(
+            artifacts.UniswapV3MultiQuoter,
+            'compilerOutput.evm.deployedBytecode.object',
+        );
 
         const defaultCodeOverrides = samplerBytecode
             ? {

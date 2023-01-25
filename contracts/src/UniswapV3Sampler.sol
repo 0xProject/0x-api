@@ -29,7 +29,9 @@ contract UniswapV3Sampler is UniswapV3Common {
     /// @dev Gas limit for UniswapV3 calls. This is 100% a guess.
     uint256 private constant QUOTE_GAS = 700e3;
 
-    IUniswapV3MultiQuoter private constant multiQuoter = IUniswapV3MultiQuoter(0x5555555555555555555555555555555555555556);
+    IUniswapV3MultiQuoter private constant multiQuoter =
+        IUniswapV3MultiQuoter(0x5555555555555555555555555555555555555556);
+
     // TODO: remove IUniswapV3QuoterV2 and instead pass in IUniswapV3Factory
     /// @dev Sample sell quotes from UniswapV3.
     /// @param quoter UniswapV3 Quoter contract.
@@ -65,7 +67,8 @@ contract UniswapV3Sampler is UniswapV3Common {
             (uint256[] memory amountsOut, uint256[] memory gasEstimate) = multiQuoter.quoteExactMultiInput(
                 quoter.factory(),
                 uniswapPath,
-                takerTokenAmounts);
+                takerTokenAmounts
+            );
 
             for (uint256 j = 0; j < amountsOut.length; ++j) {
                 if (makerTokenAmounts[j] < amountsOut[j]) {
@@ -112,7 +115,8 @@ contract UniswapV3Sampler is UniswapV3Common {
             (uint256[] memory amountsIn, uint256[] memory gasEstimate) = multiQuoter.quoteExactMultiOutput(
                 quoter.factory(),
                 uniswapPath,
-                makerTokenAmounts);
+                makerTokenAmounts
+            );
 
             for (uint256 j = 0; j < amountsIn.length; ++j) {
                 if (takerTokenAmounts[j] == 0 || takerTokenAmounts[j] > amountsIn[j]) {
