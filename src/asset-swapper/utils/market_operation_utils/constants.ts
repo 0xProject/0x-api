@@ -913,7 +913,7 @@ export const WOOFI_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     NULL_ADDRESS,
 );
 
-export const WOOFI_SUPPORTED_TOKENS = new Set([
+export const WOOFI_SUPPORTED_TOKENS = Set.of(
     BSC_TOKENS.BUSD,
     BSC_TOKENS.WBNB,
     BSC_TOKENS.WOO,
@@ -934,7 +934,7 @@ export const WOOFI_SUPPORTED_TOKENS = new Set([
     POLYGON_TOKENS.WBTC,
     POLYGON_TOKENS.WETH,
     POLYGON_TOKENS.WOO,
-]);
+);
 
 export const DEFAULT_INTERMEDIATE_TOKENS_BY_CHAIN_ID: Record<ChainId, string[]> = {
     [ChainId.Mainnet]: [
