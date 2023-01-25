@@ -1,6 +1,5 @@
 pragma solidity >=0.6;
 
-import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 
 interface IUniswapV3QuoterV2 {
     function factory() external view returns (IUniswapV3Factory factory);
@@ -45,9 +44,9 @@ interface IUniswapV3QuoterV2 {
 }
 
 interface IUniswapV3Pool {
-    function token0() external view returns (IERC20TokenV06);
+    function token0() external view returns (address);
 
-    function token1() external view returns (IERC20TokenV06);
+    function token1() external view returns (address);
 
     function fee() external view returns (uint24);
 
