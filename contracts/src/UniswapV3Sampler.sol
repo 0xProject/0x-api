@@ -29,6 +29,8 @@ contract UniswapV3Sampler is UniswapV3Common {
     /// @dev Gas limit for UniswapV3 calls. This is 100% a guess.
     uint256 private constant QUOTE_GAS = 700e3;
 
+    IUniswapV3MultiQuoter private constant multiQuoter = IUniswapV3MultiQuoter(0x5555555555555555555555555555555555555556);
+    // TODO: remove IUniswapV3QuoterV2 and instead pass in IUniswapV3Factory
     /// @dev Sample sell quotes from UniswapV3.
     /// @param quoter UniswapV3 Quoter contract.
     /// @param path Token route. Should be takerToken -> makerToken (at most two hops).
@@ -54,37 +56,24 @@ contract UniswapV3Sampler is UniswapV3Common {
         uniswapPaths = new bytes[](takerTokenAmounts.length);
         uniswapGasUsed = new uint256[](takerTokenAmounts.length);
 
-        for (uint256 i = 0; i < takerTokenAmounts.length; ++i) {
-            // Pick the best result from the pool paths.
-            uint256 topBuyAmount = 0;
-            for (uint256 j = 0; j < poolPaths.length; ++j) {
-                if (!isValidPoolPath(poolPaths[j])) {
-                    continue;
-                }
+        for (uint256 i = 0; i < poolPaths.length; ++i) {
+            if (!isValidPoolPath(poolPaths[i])) {
+                continue;
+            }
 
-                bytes memory uniswapPath = toUniswapPath(path, poolPaths[j]);
-                try quoter.quoteExactInput{gas: QUOTE_GAS}(uniswapPath, takerTokenAmounts[i]) returns (
-                    uint256 buyAmount,
-                    uint160[] memory /* sqrtPriceX96AfterList */,
-                    uint32[] memory /* initializedTicksCrossedList */,
-                    uint256 gasUsed
-                ) {
-                    if (topBuyAmount <= buyAmount) {
-                        topBuyAmount = buyAmount;
-                        uniswapPaths[i] = uniswapPath;
-                        uniswapGasUsed[i] = gasUsed;
-                    }
-                } catch {}
+            bytes memory uniswapPath = toUniswapPath(path, poolPaths[i]);
+            (uint256[] memory amountsOut, uint256[] memory gasEstimate) = multiQuoter.quoteExactMultiInput(
+                quoter.factory(),
+                uniswapPath,
+                takerTokenAmounts);
+
+            for (uint256 j = 0; j < amountsOut.length; ++j) {
+                if (makerTokenAmounts[j] < amountsOut[j]) {
+                    makerTokenAmounts[j] = amountsOut[j];
+                    uniswapPaths[j] = uniswapPath;
+                    uniswapGasUsed[j] = gasEstimate[j];
+                }
             }
-            // Break early if we can't complete the sells.
-            if (topBuyAmount == 0) {
-                // HACK(kimpers): To avoid too many local variables, paths and gas used is set directly in the loop
-                // then reset if no valid valid quote was found
-                uniswapPaths[i] = "";
-                uniswapGasUsed[i] = 0;
-                break;
-            }
-            makerTokenAmounts[i] = topBuyAmount;
         }
     }
 
@@ -114,39 +103,24 @@ contract UniswapV3Sampler is UniswapV3Common {
         uniswapPaths = new bytes[](makerTokenAmounts.length);
         uniswapGasUsed = new uint256[](makerTokenAmounts.length);
 
-        for (uint256 i = 0; i < makerTokenAmounts.length; ++i) {
-            // Pick the best result from the pool paths.
-            uint256 topSellAmount = 0;
-            for (uint256 j = 0; j < poolPaths.length; ++j) {
-                if (!isValidPoolPath(poolPaths[j])) {
-                    continue;
-                }
+        for (uint256 i = 0; i < poolPaths.length; ++i) {
+            if (!isValidPoolPath(poolPaths[i])) {
+                continue;
+            }
 
-                // quoter requires path to be reversed for buys.
-                bytes memory uniswapPath = toUniswapPath(reversedPath, poolPaths[j]);
-                try quoter.quoteExactOutput{gas: QUOTE_GAS}(uniswapPath, makerTokenAmounts[i]) returns (
-                    uint256 sellAmount,
-                    uint160[] memory /* sqrtPriceX96AfterList */,
-                    uint32[] memory /* initializedTicksCrossedList */,
-                    uint256 gasUsed
-                ) {
-                    if (topSellAmount == 0 || topSellAmount >= sellAmount) {
-                        topSellAmount = sellAmount;
-                        // But the output path should still be encoded for sells.
-                        uniswapPaths[i] = toUniswapPath(path, reversePoolPath(poolPaths[j]));
-                        uniswapGasUsed[i] = gasUsed;
-                    }
-                } catch {}
+            bytes memory uniswapPath = toUniswapPath(reversedPath, poolPaths[i]);
+            (uint256[] memory amountsIn, uint256[] memory gasEstimate) = multiQuoter.quoteExactMultiOutput(
+                quoter.factory(),
+                uniswapPath,
+                makerTokenAmounts);
+
+            for (uint256 j = 0; j < amountsIn.length; ++j) {
+                if (takerTokenAmounts[j] == 0 || takerTokenAmounts[j] > amountsIn[j]) {
+                    takerTokenAmounts[j] = amountsIn[j];
+                    uniswapPaths[j] = toUniswapPath(path, reversePoolPath(poolPaths[i]));
+                    uniswapGasUsed[j] = gasEstimate[j];
+                }
             }
-            // Break early if we can't complete the buys.
-            if (topSellAmount == 0) {
-                // HACK(kimpers): To avoid too many local variables, paths and gas used is set directly in the loop
-                // then reset if no valid valid quote was found
-                uniswapPaths[i] = "";
-                uniswapGasUsed[i] = 0;
-                break;
-            }
-            takerTokenAmounts[i] = topSellAmount;
         }
     }
 
