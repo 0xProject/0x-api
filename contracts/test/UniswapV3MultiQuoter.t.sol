@@ -167,7 +167,9 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                     uniQuoterAmountOut - ERROR_THRESHOLD,
                     "compareQuoterSells: MultiQuoter amount is too low compared to UniQuoter amount"
                 );
-            } catch {}
+            } catch {
+                assertEq(multiQuoterAmountsOut[i], 0, "compareQuoterSells: MultiQuoter amount should be 0 when UniQuoter reverts");
+            }
         }
         return (gas1 - gasleft(), gas0 - gas1);
     }
@@ -197,7 +199,9 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                     uniQuoterAmountIn - ERROR_THRESHOLD,
                     "compareQuoterBuys: MultiQuoter amount is too low compared to UniQuoter mamount"
                 );
-            } catch {}
+            } catch {
+                assertEq(multiQuoterAmountsIn[i], 0, "compareQuoterBuys: MultiQuoter amount should be 0 when UniQuoter reverts");
+            }
         }
         return (gas1 - gasleft(), gas0 - gas1);
     }

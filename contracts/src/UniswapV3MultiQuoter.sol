@@ -93,7 +93,6 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                 "UniswapV3MultiQuoter/amountsIn must be monotonically increasing"
             );
         }
-
         gasEstimate = new uint256[](amountsIn.length);
 
         while (true) {
@@ -139,6 +138,9 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
         bytes memory path,
         uint256[] memory amountsOut
     ) public view override returns (uint256[] memory amountsIn, uint256[] memory gasEstimate) {
+        amountsIn = new uint256[](amountsOut.length);
+        gasEstimate = new uint256[](amountsOut.length);
+
         for (uint256 i = 0; i < amountsOut.length - 1; ++i) {
             require(
                 amountsOut[i] <= amountsOut[i + 1],
@@ -146,16 +148,15 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
             );
         }
 
-        gasEstimate = new uint256[](amountsOut.length);
-
+        uint256 nextAmountsLength = amountsOut.length;
         while (true) {
             (address tokenOut, address tokenIn, uint24 fee) = path.decodeFirstPool();
             bool zeroForOne = tokenIn < tokenOut;
             IUniswapV3Pool pool = factory.getPool(tokenIn, tokenOut, fee);
 
             // multiswap only accepts int256[] for output amounts
-            int256[] memory amounts = new int256[](amountsOut.length);
-            for (uint256 i = 0; i < amountsOut.length; ++i) {
+            int256[] memory amounts = new int256[](nextAmountsLength);
+            for (uint256 i = 0; i < nextAmountsLength; ++i) {
                 amounts[i] = -int256(amountsOut[i]);
             }
 
@@ -166,22 +167,39 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                 zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1
             );
 
-            for (uint256 i = 0; i < amountsOut.length; ++i) {
-                amountsOut[i] = zeroForOne ? uint256(result.amounts0[i]) : uint256(result.amounts1[i]);
-                gasEstimate[i] += result.gasEstimates[i];
+            for (uint256 i = 0; i < nextAmountsLength; ++i) {
+                uint256 amountReceived = zeroForOne ? uint256(-result.amounts1[i]) : uint256(-result.amounts0[i]);
+                if (amountReceived != amountsOut[i]) {
+                    // for exact output swaps we need to check whether we would receive the full amount due to 
+                    // multiswap behavior when hitting the limit
+                    nextAmountsLength = i;
+                    break;
+                } else {
+                    // populate amountsOut for the next pool
+                    amountsOut[i] = zeroForOne ? uint256(result.amounts0[i]) : uint256(result.amounts1[i]);
+                    gasEstimate[i] += result.gasEstimates[i];
+                }
             }
 
-            // decide whether to continue or terminate
-            if (path.hasMultiplePools()) {
-                path = path.skipToken();
-            } else {
-                return (amountsOut, gasEstimate);
+            if (!path.hasMultiplePools() || nextAmountsLength == 0) {
+                for (uint256 i = 0; i < amountsIn.length; ++i) {
+                    if (i < nextAmountsLength) {
+                        amountsIn[i] = amountsOut[i];
+                    } else {
+                        amountsIn[i] = 0;
+                    }
+                }
+                return (amountsIn, gasEstimate);
             }
+
+            path = path.skipToken();
         }
     }
 
     /// @notice swap multiple amounts of token0 for token1 or token1 for token1
-    /// @dev The results of multiswap includes slight rounding issues resulting from rounding up/rounding down in SqrtPriceMath library
+    /// @dev The results of multiswap includes slight rounding issues resulting from rounding up/rounding down in SqrtPriceMath library. Additionally,
+    /// it should be noted that multiswap requires a monotonically increasing list of amounts for exact inputs and monotonically decreasing list of
+    /// amounts for exact outputs.
     /// @param pool The UniswapV3 pool to simulate each of the swap amounts for
     /// @param zeroForOne The direction of the swap, true for token0 to token1, false for token1 to token0
     /// @param amounts The amounts of the swaps, positive values indicate exactInput and negative values indicate exact output
