@@ -27,7 +27,7 @@ import "./interfaces/IUniswapV3.sol";
 
 /// @title Provides quotes for multiple swap amounts
 /// @notice Allows getting the expected amount out or amount in for multiple given swap amounts without executing the swap
-contract UniswapV3MultiQuoter {
+contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
     using Path for bytes;
     using SafeCast for uint256;
     using LowGasSafeMath for int256;
@@ -86,7 +86,7 @@ contract UniswapV3MultiQuoter {
         IUniswapV3Factory factory,
         bytes memory path,
         uint256[] memory amountsIn
-    ) public returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
+    ) public view override returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
         for (uint256 i = 0; i < amountsIn.length - 1; ++i) {
             require(
                 amountsIn[i] <= amountsIn[i + 1],
@@ -138,7 +138,7 @@ contract UniswapV3MultiQuoter {
         IUniswapV3Factory factory,
         bytes memory path,
         uint256[] memory amountsOut
-    ) public returns (uint256[] memory amountsIn, uint256[] memory gasEstimate) {
+    ) public view override returns (uint256[] memory amountsIn, uint256[] memory gasEstimate) {
         for (uint256 i = 0; i < amountsOut.length - 1; ++i) {
             require(
                 amountsOut[i] <= amountsOut[i + 1],
@@ -193,7 +193,7 @@ contract UniswapV3MultiQuoter {
         bool zeroForOne,
         int256[] memory amounts,
         uint160 sqrtPriceLimitX96
-    ) private returns (MultiSwapResult memory result) {
+    ) private view returns (MultiSwapResult memory result) {
         result.gasEstimates = new uint256[](amounts.length);
         result.amounts0 = new int256[](amounts.length);
         result.amounts1 = new int256[](amounts.length);

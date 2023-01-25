@@ -1,8 +1,7 @@
 pragma solidity >=0.6;
 
-
 interface IUniswapV3QuoterV2 {
-    function factory() external view returns (IUniswapV3Factory factory);
+    function factory() external view returns (IUniswapV3Factory);
 
     // @notice Returns the amount out received for a given exact input swap without executing the swap
     // @param path The path of the swap, i.e. each token pair and the pool fee
@@ -110,4 +109,30 @@ interface IUniswapV3Pool {
 
 interface IUniswapV3Factory {
     function getPool(address a, address b, uint24 fee) external view returns (IUniswapV3Pool pool);
+}
+
+interface IUniswapV3MultiQuoter {
+    // @notice Returns the amounts out received for a given set of exact input swaps without executing the swap
+    /// @param factory The factory contract managing UniswapV3 pools
+    /// @param path The path of the swap, i.e. each token pair and the pool fee
+    /// @param amountsIn The amounts in of the first token to swap
+    /// @return amountsOut The amounts of the last token that would be received
+    /// @return gasEstimate The estimates of the gas that the swap consumes
+    function quoteExactMultiInput(
+        IUniswapV3Factory factory,
+        bytes memory path,
+        uint256[] memory amountsIn
+    ) external returns (uint256[] memory amountsOut, uint256[] memory gasEstimate);
+
+    /// @notice Returns the amounts in received for a given set of exact output swaps without executing the swap
+    /// @param factory The factory contract managing UniswapV3 pools
+    /// @param path The path of the swap, i.e. each token pair and the pool fee. Path must be provided in reverse order
+    /// @param amountsOut The amounts out of the last token to receive
+    /// @return amountsIn The amounts of the first token swap
+    /// @return gasEstimate The estimates of the gas that the swap consumes
+    function quoteExactMultiOutput(
+        IUniswapV3Factory factory,
+        bytes memory path,
+        uint256[] memory amountsOut
+    ) external returns (uint256[] memory amountsIn, uint256[] memory gasEstimate);
 }
