@@ -351,14 +351,14 @@ function parseV1RequestParams(req: express.Request, endpoint: 'price' | 'quote')
     // Parse sources
     let excludedSources: ERC20BridgeSource[], includedSources: ERC20BridgeSource[];
     let rfqt: Pick<RfqRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQ'> | undefined;
+    const intentOnFilling = endpoint === 'quote' && txOrigin ? true : false;
     if (ENABLE_GASLESS_RFQT) {
         // if Gasless RFQt is enabled, parse RFQt params
-        // TODO: implement RFQt parsing logic
         const parsedSourcesResult = parseUtils.parseRequestForExcludedSources(
             {
                 excludedSources: req.query.excludedSources as string | undefined,
                 includedSources: req.query.includedSources as string | undefined,
-                intentOnFilling: req.query.intentOnFilling as string | undefined,
+                intentOnFilling: intentOnFilling ? 'true' : 'false',
                 takerAddress,
                 txOrigin, // Gasless RFQt requires txOrigin in addition to takerAddress
                 apiKey,
@@ -379,24 +379,11 @@ function parseV1RequestParams(req: express.Request, endpoint: 'price' | 'quote')
             ]);
         }
 
-        rfqt = (() => {
-            if (apiKey) {
-                if (endpoint === 'quote' && txOrigin) {
-                    return {
-                        intentOnFilling: true,
-                        isIndicative: false,
-                        nativeExclusivelyRFQT: parsedSourcesResult.nativeExclusivelyRFQT,
-                    };
-                } else if (endpoint === 'price') {
-                    return {
-                        intentOnFilling: false,
-                        isIndicative: true,
-                        nativeExclusivelyRFQT: parsedSourcesResult.nativeExclusivelyRFQT,
-                    };
-                }
-            }
-            return undefined;
-        })();
+        rfqt = {
+            intentOnFilling,
+            isIndicative: !intentOnFilling,
+            nativeExclusivelyRFQ: parsedSourcesResult.nativeExclusivelyRFQT,
+        };
     } else {
         // Note: no RFQT config is passed through here so RFQT is excluded
         excludedSources =
