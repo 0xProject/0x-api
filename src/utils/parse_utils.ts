@@ -7,6 +7,7 @@ import { AffiliateFee, FeeParamTypes } from '../types';
 
 interface ParseRequestForExcludedSourcesParams {
     takerAddress?: string;
+    txOrigin?: string;
     excludedSources?: string;
     includedSources?: string;
     intentOnFilling?: string;
@@ -24,6 +25,7 @@ export const parseUtils = {
         request: ParseRequestForExcludedSourcesParams,
         validApiKeys: string[],
         endpoint: 'price' | 'quote',
+        gasless = false,
     ): ParseRequestForExcludedSourcesResult {
         const excludedIds = request.excludedSources ? request.excludedSources.split(',') : [];
         const includedIds = request.includedSources ? request.includedSources.split(',') : [];
@@ -57,14 +59,23 @@ export const parseUtils = {
 
         // Is RFQT is being explicitly requested?
         if (includedIds.includes('RFQT')) {
-            // We assume that if a `takerAddress` key is present, it's value was already validated by the JSON
-            // schema.
+            // We assume that if a `takerAddress` or a `txOrigin` key is present, its value was already validated by
+            // the JSON schema.
             if (request.takerAddress === undefined) {
                 throw new ValidationError([
                     {
                         field: 'takerAddress',
                         code: ValidationErrorCodes.RequiredField,
                         reason: ValidationErrorReasons.TakerAddressInvalid,
+                    },
+                ]);
+            }
+            if (gasless && request.txOrigin === undefined) {
+                throw new ValidationError([
+                    {
+                        field: 'txOrigin',
+                        code: ValidationErrorCodes.RequiredField,
+                        reason: ValidationErrorReasons.InvalidTxOrigin,
                     },
                 ]);
             }

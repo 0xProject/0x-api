@@ -277,6 +277,7 @@ export interface MetaTransactionV1QuoteRequestParams extends SwapQuoteParamsBase
     sellTokenAddress: string;
     takerAddress: string;
     txOrigin?: string; // Is registry address for Gasless RFQt
+    rfqt?: Pick<RfqRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQ'>;
 }
 
 /**
@@ -299,6 +300,7 @@ export interface MetaTransactionV1QuoteParams extends SwapQuoteParamsBase {
     sellTokenAddress: string;
     takerAddress: string;
     txOrigin?: string;
+    rfqt?: Pick<RfqRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQ'>;
 }
 
 /**
