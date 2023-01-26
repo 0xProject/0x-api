@@ -317,6 +317,7 @@ function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteReque
     const sellToken = req.query.sellToken as string;
     const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
     const takerAddress = (req.query.takerAddress as string).toLowerCase();
+    const txOrigin = req.query.txOrigin === undefined ? undefined : (req.query.txOrigin as string).toLowerCase();
 
     const slippagePercentage = parseFloat(req.query.slippagePercentage as string) || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE;
     if (slippagePercentage >= 1) {
@@ -364,6 +365,7 @@ function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteReque
 
     return {
         takerAddress,
+        txOrigin,
         sellTokenAddress,
         buyTokenAddress,
         sellAmount,

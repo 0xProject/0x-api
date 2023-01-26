@@ -276,6 +276,7 @@ export interface MetaTransactionV1QuoteRequestParams extends SwapQuoteParamsBase
     quoteUniqueId?: string; // ID to use for the quote report `decodedUniqueId`
     sellTokenAddress: string;
     takerAddress: string;
+    txOrigin?: string; // Is registry address for Gasless RFQt
 }
 
 /**
@@ -297,6 +298,7 @@ export interface MetaTransactionV1QuoteParams extends SwapQuoteParamsBase {
     quoteUniqueId?: string; // ID to use for the quote report `decodedUniqueId`
     sellTokenAddress: string;
     takerAddress: string;
+    txOrigin?: string;
 }
 
 /**
