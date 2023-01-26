@@ -1440,6 +1440,13 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
+"@kybernetwork/ks-elastic-sc@KyberNetwork/ks-elastic-sc#362d9b6a726bcb286cc47c082c46f6259a5ae82d":
+  version "1.0.0"
+  resolved "https://codeload.github.com/KyberNetwork/ks-elastic-sc/tar.gz/362d9b6a726bcb286cc47c082c46f6259a5ae82d"
+  dependencies:
+    dotenv "8.2.0"
+    solhint "3.3.2"
+
 "@ledgerhq/cryptoassets@^5.53.0":
   version "5.53.0"
   resolved "https://registry.yarnpkg.com/@ledgerhq/cryptoassets/-/cryptoassets-5.53.0.tgz#11dcc93211960c6fd6620392e4dd91896aaabe58"
@@ -8287,13 +8294,6 @@ klaw-sync@^6.0.0:
   integrity sha512-nIeuVSzdCCs6TDPTqI8w1Yre34sSq7AkZ4B3sfOBbI2CgVSB4Du4aLQijFU2+lhAFCwt9+42Hel6lQNIv6AntQ==
   dependencies:
     graceful-fs "^4.1.11"
-
-kyberswap-elastic@KyberNetwork/ks-elastic-sc#362d9b6a726bcb286cc47c082c46f6259a5ae82d:
-  version "1.0.0"
-  resolved "https://codeload.github.com/KyberNetwork/ks-elastic-sc/tar.gz/362d9b6a726bcb286cc47c082c46f6259a5ae82d"
-  dependencies:
-    dotenv "8.2.0"
-    solhint "3.3.2"
 
 latest-version@^3.0.0:
   version "3.1.0"
