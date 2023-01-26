@@ -196,7 +196,7 @@ enum ExchangeProxyRefundReceiver {
 export interface ExchangeProxyContractOpts {
     isFromETH: boolean;
     isToETH: boolean;
-    affiliateFee: AffiliateFeeAmount;
+    affiliateFees: AffiliateFeeAmount[];
     refundReceiver: string | ExchangeProxyRefundReceiver;
     isMetaTransaction: boolean;
     shouldSellEntireBalance: boolean;
