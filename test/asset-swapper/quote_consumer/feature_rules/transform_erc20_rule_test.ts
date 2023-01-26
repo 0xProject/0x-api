@@ -211,12 +211,14 @@ describe('TransformERC20Rule', () => {
 
                 {
                     ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                    affiliateFee: {
-                        recipient,
-                        buyTokenFeeAmount: ONE_ETHER.times(0.01),
-                        sellTokenFeeAmount: ZERO_AMOUNT,
-                        feeType: AffiliateFeeType.PercentageFee,
-                    },
+                    affiliateFees: [
+                        {
+                            recipient,
+                            buyTokenFeeAmount: ONE_ETHER.times(0.01),
+                            sellTokenFeeAmount: ZERO_AMOUNT,
+                            feeType: AffiliateFeeType.PercentageFee,
+                        },
+                    ],
                 },
             );
 
@@ -239,12 +241,14 @@ describe('TransformERC20Rule', () => {
 
             const callInfo = rule.createCalldata(quote, {
                 ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                affiliateFee: {
-                    recipient,
-                    buyTokenFeeAmount: ONE_ETHER.times(0.01),
-                    sellTokenFeeAmount: ZERO,
-                    feeType: AffiliateFeeType.GaslessFee,
-                },
+                affiliateFees: [
+                    {
+                        recipient,
+                        buyTokenFeeAmount: ONE_ETHER.times(0.01),
+                        sellTokenFeeAmount: ZERO,
+                        feeType: AffiliateFeeType.GaslessFee,
+                    },
+                ],
             });
 
             const callArgs = decodeTransformERC20(callInfo.calldataHexString);
@@ -277,12 +281,14 @@ describe('TransformERC20Rule', () => {
 
             const callInfo = rule.createCalldata(quote, {
                 ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                affiliateFee: {
-                    recipient,
-                    buyTokenFeeAmount: ZERO_AMOUNT,
-                    sellTokenFeeAmount: ZERO_AMOUNT,
-                    feeType: AffiliateFeeType.PositiveSlippageFee,
-                },
+                affiliateFees: [
+                    {
+                        recipient,
+                        buyTokenFeeAmount: ZERO_AMOUNT,
+                        sellTokenFeeAmount: ZERO_AMOUNT,
+                        feeType: AffiliateFeeType.PositiveSlippageFee,
+                    },
+                ],
             });
 
             const callArgs = decodeTransformERC20(callInfo.calldataHexString);
@@ -310,12 +316,14 @@ describe('TransformERC20Rule', () => {
             expect(() =>
                 rule.createCalldata(UNI_V2_SELL_QUOTE, {
                     ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                    affiliateFee: {
-                        recipient: randomAddress(),
-                        buyTokenFeeAmount: ZERO_AMOUNT,
-                        sellTokenFeeAmount: getRandomAmount(),
-                        feeType: AffiliateFeeType.PercentageFee,
-                    },
+                    affiliateFees: [
+                        {
+                            recipient: randomAddress(),
+                            buyTokenFeeAmount: ZERO_AMOUNT,
+                            sellTokenFeeAmount: getRandomAmount(),
+                            feeType: AffiliateFeeType.PercentageFee,
+                        },
+                    ],
                 }),
             ).to.throw('Affiliate fees denominated in sell token are not yet supported');
         });
