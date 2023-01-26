@@ -5,8 +5,8 @@ import * as express from 'express';
 import { StatusCodes } from 'http-status-codes';
 import * as _ from 'lodash';
 
-import { AffiliateFeeType, SwapQuoterError } from '../asset-swapper';
-import { CHAIN_ID, META_TX_MIN_ALLOWED_SLIPPAGE } from '../config';
+import { AffiliateFeeType, ERC20BridgeSource, SwapQuoterError } from '../asset-swapper';
+import { CHAIN_ID, ENABLE_GASLESS_RFQT, META_TX_MIN_ALLOWED_SLIPPAGE } from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     META_TRANSACTION_DOCS_URL,
@@ -343,16 +343,24 @@ function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteReque
             ? DEFAULT_PRICE_IMPACT_PROTECTION_PERCENTAGE
             : Number.parseFloat(req.query.priceImpactProtectionPercentage as string);
 
-    // Note: no RFQT config is passed through here so RFQT is excluded
-    const excludedSources =
-        req.query.excludedSources === undefined
-            ? []
-            : parseUtils.parseStringArrForERC20BridgeSources((req.query.excludedSources as string).split(','));
+    // Parse sources
+    let excludedSources: ERC20BridgeSource[], includedSources: ERC20BridgeSource[];
+    if (ENABLE_GASLESS_RFQT) {
+        // if Gasless RFQt is enabled, parse RFQt params
+        // TODO: implement RFQt parsing logic
+        (excludedSources = []), (includedSources = []);
+    } else {
+        // Note: no RFQT config is passed through here so RFQT is excluded
+        excludedSources =
+            req.query.excludedSources === undefined
+                ? []
+                : parseUtils.parseStringArrForERC20BridgeSources((req.query.excludedSources as string).split(','));
 
-    const includedSources =
-        req.query.includedSources === undefined
-            ? undefined
-            : parseUtils.parseStringArrForERC20BridgeSources((req.query.includedSources as string).split(','));
+        includedSources =
+            req.query.includedSources === undefined
+                ? []
+                : parseUtils.parseStringArrForERC20BridgeSources((req.query.includedSources as string).split(','));
+    }
 
     return {
         takerAddress,
