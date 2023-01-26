@@ -298,6 +298,9 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                     ? (amounts[state.amountsIndex], state.amountCalculated)
                     : (state.amountCalculated, amounts[state.amountsIndex]);
 
+                // TODO: this is actually a really bad way to measure gas since we can reach
+                // multiple prices in the same tick. So this will actually overestimate gas by
+                // a considerable amount.
                 result.gasEstimates[state.amountsIndex] = gasBefore - gasleft();
 
                 if (state.amountsIndex == amounts.length - 1) {

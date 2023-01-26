@@ -119,7 +119,7 @@ contract UniswapV3Sampler is UniswapV3Common {
             );
 
             for (uint256 j = 0; j < amountsIn.length; ++j) {
-                if (takerTokenAmounts[j] == 0 || takerTokenAmounts[j] > amountsIn[j]) {
+                if (amountsIn[j] > 0 && (takerTokenAmounts[j] == 0 || takerTokenAmounts[j] > amountsIn[j])) {
                     takerTokenAmounts[j] = amountsIn[j];
                     uniswapPaths[j] = toUniswapPath(path, reversePoolPath(poolPaths[i]));
                     uniswapGasUsed[j] = gasEstimate[j];
