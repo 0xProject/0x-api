@@ -202,6 +202,7 @@ contract UniswapV3Sampler is UniswapV3Common {
 
     /// @dev Returns top 0-2 pools and corresponding output amounts based on swaping `inputAmount`.
     /// Addresses in `topPools` can be zero addresses when there are pool isn't available.
+    // TODO: test how our gas usage and latency would be affected if we got rid of 2 pool filtering.
     function _getTopTwoPools(
         IUniswapV3QuoterV2 quoter,
         IUniswapV3Factory factory,
@@ -223,23 +224,26 @@ contract UniswapV3Sampler is UniswapV3Common {
             IUniswapV3Pool[] memory poolPath = new IUniswapV3Pool[](1);
             poolPath[0] = pool;
             bytes memory uniswapPath = toUniswapPath(path, poolPath);
-            try quoter.quoteExactInput{gas: QUOTE_GAS}(uniswapPath, inputAmount) returns (
-                uint256 outputAmount,
-                uint160[] memory /* sqrtPriceX96AfterList */,
-                uint32[] memory /* initializedTicksCrossedList */,
-                uint256 /* gasUsed */
-            ) {
-                // Keeping track of the top 2 pools.
-                if (outputAmount > outputAmounts[0]) {
-                    outputAmounts[1] = outputAmounts[0];
-                    topPools[1] = topPools[0];
-                    outputAmounts[0] = outputAmount;
-                    topPools[0] = pool;
-                } else if (outputAmount > outputAmounts[1]) {
-                    outputAmounts[1] = outputAmount;
-                    topPools[1] = pool;
-                }
-            } catch {}
+            
+            uint256[] amountsIn = new uint256[](1);
+            amountsIn[0] = inputAmount;
+
+            (uint256[] memory amountsOut,) = multiQuoter.quoteExactMultiInput(
+                quoter.factory(),
+                uniswapPath,
+                takerTokenAmounts
+            );
+
+            // Keeping track of the top 2 pools.
+            if (amountsOut[0] > outputAmounts[0]) {
+                outputAmounts[1] = outputAmounts[0];
+                topPools[1] = topPools[0];
+                outputAmounts[0] = amountsOut[0];
+                topPools[0] = pool;
+            } else if (amountsOut[0] > outputAmounts[1]) {
+                outputAmounts[1] = amountsOut[0];
+                topPools[1] = pool;
+            }
         }
     }
 
