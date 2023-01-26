@@ -160,7 +160,7 @@ const mockPoolsCache = new MockPoolsCache((_takerToken: string, _makerToken: str
     ];
 });
 
-describe.only('MarketOperationUtils tests', () => {
+describe('MarketOperationUtils tests', () => {
     const CHAIN_ID = ChainId.Mainnet;
     const contractAddresses = {
         ...getContractAddressesForChainOrThrow(CHAIN_ID),

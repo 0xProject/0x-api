@@ -15,6 +15,8 @@ import {
     ExtendedQuoteReportSources,
     QuoteReport,
     SignedLimitOrder,
+    FeeEstimate,
+    ExchangeProxyOverhead,
 } from '../../types';
 import { getAltMarketInfo } from '../alt_mm_implementation_utils';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from '../quote_requestor';
@@ -475,35 +477,14 @@ export class MarketOperationUtils {
 
         // Phase 1 Routing
         // We find an optimized path for ALL the DEX and open-orderbook liquidity (no RFQ liquidity)
-        let optimizerResult: OptimizerResult | undefined;
-        try {
-            optimizerResult = await this.generateOptimizedOrders(marketSideLiquidity, {
-                ...optimizerOpts,
-                fillAdjustor: new IdentityFillAdjustor(),
-            });
-        } catch (e) {
-            // If no on-chain or off-chain Open Orderbook orders are present, a `NoOptimalPath` will be thrown.
-            // If this happens at this stage, there is still a chance that an RFQ order is fillable, therefore
-            // we catch the error and continue.
-            if (e.message !== AggregationError.NoOptimalPath) {
-                throw e;
-            }
-            //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
-            DEFAULT_INFO_LOGGER({}, 'NoOptimalPath caught in phase 1 routing');
-        }
-
-        // Calculate a suggested price. For now, this is simply the overall price of the aggregation.
-        // We can use this as a comparison price for RFQ
-        let wholeOrderPrice: BigNumber | undefined;
-        if (optimizerResult) {
-            wholeOrderPrice = getComparisonPrices(
-                optimizerResult.path.adjustedRate(),
-                amount,
-                marketSideLiquidity,
-                _opts.feeSchedule.Native,
-                _opts.exchangeProxyOverhead,
-            ).wholeOrder;
-        }
+        const phaseOneResult = this.getPhaseOneRoutingResult({
+            marketSideLiquidity,
+            amount,
+            optimizerOpts: { ...optimizerOpts, fillAdjustor: new IdentityFillAdjustor() },
+            nativeOrderFeeEstimate: _opts.feeSchedule.Native,
+            exchangeProxyOverhead: _opts.exchangeProxyOverhead,
+        });
+        let { optimizerResult } = phaseOneResult;
 
         // If RFQ liquidity is enabled, make a request to check RFQ liquidity against the first optimizer result
 
@@ -552,7 +533,7 @@ export class MarketOperationUtils {
                                       altRfqAssetOfferings: filteredOfferings,
                                       assetFillAmount: amount,
                                       chainId: this.sampler.chainId,
-                                      comparisonPrice: wholeOrderPrice,
+                                      comparisonPrice: phaseOneResult.wholeOrderPrice,
                                       integratorId: rfqt.integrator.integratorId,
                                       intentOnFilling: rfqt.intentOnFilling,
                                       makerToken,
@@ -625,7 +606,7 @@ export class MarketOperationUtils {
                                       altRfqAssetOfferings: filteredOfferings,
                                       assetFillAmount: amount,
                                       chainId: this.sampler.chainId,
-                                      comparisonPrice: wholeOrderPrice,
+                                      comparisonPrice: phaseOneResult.wholeOrderPrice,
                                       integratorId: rfqt.integrator.integratorId,
                                       intentOnFilling: rfqt.intentOnFilling,
                                       makerToken,
@@ -720,10 +701,7 @@ export class MarketOperationUtils {
                             ),
                         },
                     };
-                    optimizerResult = await this.generateOptimizedOrders(
-                        phase2MarketSideLiquidity,
-                        phaseTwoOptimizerOpts,
-                    );
+                    optimizerResult = this.generateOptimizedOrders(phase2MarketSideLiquidity, phaseTwoOptimizerOpts);
                 }
             }
         }
@@ -743,7 +721,7 @@ export class MarketOperationUtils {
                 _opts.rfqt ? _opts.rfqt.quoteRequestor : undefined,
                 marketSideLiquidity,
                 optimizerResult,
-                wholeOrderPrice,
+                phaseOneResult.wholeOrderPrice,
             );
         }
 
@@ -754,10 +732,50 @@ export class MarketOperationUtils {
                 marketSideLiquidity,
                 amount,
                 optimizerResult,
-                wholeOrderPrice,
+                phaseOneResult.wholeOrderPrice,
             );
 
         return { ...optimizerResult, quoteReport, extendedQuoteReportSources };
+    }
+
+    private getPhaseOneRoutingResult({
+        marketSideLiquidity,
+        amount,
+        optimizerOpts,
+        nativeOrderFeeEstimate,
+        exchangeProxyOverhead,
+    }: {
+        marketSideLiquidity: MarketSideLiquidity;
+        amount: BigNumber;
+        optimizerOpts: GenerateOptimizedOrdersOpts;
+        nativeOrderFeeEstimate: FeeEstimate;
+        exchangeProxyOverhead: ExchangeProxyOverhead;
+    }): { optimizerResult?: OptimizerResult; wholeOrderPrice?: BigNumber } {
+        let optimizerResult: OptimizerResult | undefined;
+        try {
+            optimizerResult = this.generateOptimizedOrders(marketSideLiquidity, optimizerOpts);
+        } catch (e) {
+            // If no on-chain or off-chain Open Orderbook orders are present, a `NoOptimalPath` will be thrown.
+            // If this happens at this stage, there is still a chance that an RFQ order is fillable, therefore
+            // we catch the error and continue.
+            if (e.message !== AggregationError.NoOptimalPath) {
+                throw e;
+            }
+            //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
+            DEFAULT_INFO_LOGGER({}, 'NoOptimalPath caught in phase 1 routing');
+        }
+
+        let wholeOrderPrice: BigNumber | undefined;
+        if (optimizerResult) {
+            wholeOrderPrice = getComparisonPrices(
+                optimizerResult.path.adjustedRate(),
+                amount,
+                marketSideLiquidity,
+                nativeOrderFeeEstimate,
+                exchangeProxyOverhead,
+            ).wholeOrder;
+        }
+        return { optimizerResult, wholeOrderPrice };
     }
 
     private async _refreshPoolCacheIfRequiredAsync(takerToken: string, makerToken: string): Promise<void> {
