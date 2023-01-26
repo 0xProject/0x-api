@@ -216,22 +216,25 @@ contract UniswapV3Sampler is UniswapV3Common {
 
         uint24[4] memory validPoolFees = [uint24(0.0001e6), uint24(0.0005e6), uint24(0.003e6), uint24(0.01e6)];
         for (uint256 i = 0; i < validPoolFees.length; ++i) {
-            IUniswapV3Pool pool = factory.getPool(address(inputToken), address(outputToken), validPoolFees[i]);
-            if (!_isValidPool(pool)) {
-                continue;
-            }
+            IUniswapV3Pool pool;
+            bytes memory uniswapPath;
+            {
+                pool = factory.getPool(address(inputToken), address(outputToken), validPoolFees[i]);
+                if (!_isValidPool(pool)) {
+                    continue;
+                }
 
-            IUniswapV3Pool[] memory poolPath = new IUniswapV3Pool[](1);
-            poolPath[0] = pool;
-            bytes memory uniswapPath = toUniswapPath(path, poolPath);
-            
-            uint256[] amountsIn = new uint256[](1);
+                IUniswapV3Pool[] memory poolPath = new IUniswapV3Pool[](1);
+                poolPath[0] = pool;
+                uniswapPath = toUniswapPath(path, poolPath);
+            }
+            uint256[] memory amountsIn = new uint256[](1);
             amountsIn[0] = inputAmount;
 
             (uint256[] memory amountsOut,) = multiQuoter.quoteExactMultiInput(
                 quoter.factory(),
                 uniswapPath,
-                takerTokenAmounts
+                amountsIn
             );
 
             // Keeping track of the top 2 pools.
