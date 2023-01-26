@@ -1,26 +1,32 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-  Copyright 2021 ZeroEx Intl.
+
+  Copyright 2022 ZeroEx Intl.
+
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
+
 */
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.9;
 pragma experimental ABIEncoderV2;
 
-import {IPool, IFactory} from "./kyber/interfaces/IPool.sol";
-import "./kyber/libraries/TickMath.sol";
-import "./kyber/libraries/SwapMath.sol";
-import "./kyber/libraries/Linkedlist.sol";
-import "./kyber/periphery/libraries/PathHelper.sol";
-import {LiqDeltaMath} from "./kyber/libraries/LiqDeltaMath.sol";
+import "./interfaces/IKyberSwapElastic.sol";
+import "@kyberelastic/interfaces/IFactory.sol";
+import "@kyberelastic/libraries/TickMath.sol";
+import "@kyberelastic/libraries/SwapMath.sol";
+import "@kyberelastic/libraries/Linkedlist.sol";
+import "@kyberelastic/libraries/LiqDeltaMath.sol";
+import "@kyberelastic/periphery/libraries/PathHelper.sol";
 import "@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol";
 
 /// @title Provides quotes for multiple swap amounts
@@ -60,7 +66,7 @@ contract KyberElasticMultiQuoter {
         IFactory factory,
         bytes memory path,
         uint256[] memory amountsIn
-    ) public returns (uint256[] memory amountOut, uint256[] memory gasEstimate) {
+    ) public returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
         gasEstimate = new uint256[](amountsIn.length);
         while (true) {
             (address tokenIn, address tokenOut, uint24 fee) = PathHelper.decodeFirstPool(path);
@@ -91,6 +97,46 @@ contract KyberElasticMultiQuoter {
                 path = PathHelper.skipToken(path);
             } else {
                 return (amountsIn, gasEstimate);
+            }
+        }
+    }
+
+    // TODO: same as uniswapv3 multiquoter logic. see if we can make generic.
+    function quoteExactMultiOutput(
+        IFactory factory,
+        bytes memory path,
+        uint256[] memory amountsOut
+    ) public returns (uint256[] memory amountIn, uint256[] memory gasEstimate) {
+        gasEstimate = new uint256[](amountsOut.length);
+        while (true) {
+            (address tokenOut, address tokenIn, uint24 fee) = PathHelper.decodeFirstPool(path);
+
+            bool zeroForOne = tokenIn < tokenOut;
+            IPool pool = IPool(factory.getPool(tokenIn, tokenOut, fee));
+
+            // multiswap only accepts int256[] for input amounts
+            int256[] memory amounts = new int256[](amountsOut.length);
+            for (uint256 i = 0; i < amountsOut.length; ++i) {
+                amounts[i] = int256(amountsOut[i]);
+            }
+
+            MultiSwapResult memory result = multiswap(
+                pool,
+                zeroForOne,
+                amounts,
+                zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1
+            );
+
+            for (uint256 i = 0; i < amountsOut.length; ++i) {
+                amountsOut[i] = zeroForOne ? uint256(result.amounts0[i]) : uint256(result.amounts1[i]);
+                gasEstimate[i] += result.gasEstimates[i];
+            }
+
+            // decide whether to continue or terminate
+            if (PathHelper.hasMultiplePools(path)) {
+                path = PathHelper.skipToken(path);
+            } else {
+                return (amountsOut, gasEstimate);
             }
         }
     }

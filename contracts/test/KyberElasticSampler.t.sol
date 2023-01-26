@@ -1,15 +1,12 @@
 pragma solidity >=0.6.0;
 pragma experimental ABIEncoderV2;
 
-// import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
-
 import "forge-std/Test.sol";
 import "../src/KyberElasticMultiQuoter.sol";
 
-import "../src/kyber/interfaces/IPool.sol";
-import "../src/kyber/interfaces/IFactory.sol";
-import "../src/kyber/interfaces/periphery/IQuoterV2.sol";
-
+import {IPool} from "../src/interfaces/IKyberSwapElastic.sol";
+import "@kyberelastic/interfaces/IFactory.sol";
+import "@kyberelastic/interfaces/periphery/IQuoterV2.sol";
 
 contract TestKyberElasticSampler is Test {
     /// @dev error threshold in wei for comparison between MultiQuoter and Kyber's official QuoterV2.
@@ -62,7 +59,7 @@ contract TestKyberElasticSampler is Test {
     }
 
     function testKyber() public {
-        IERC20TokenV06[] memory tokenPath = new IERC20TokenV06[](2);
+        address[] memory tokenPath = new address[](2);
         tokenPath[0] = ETH;
         tokenPath[1] = KNC;
 
@@ -103,7 +100,6 @@ contract TestKyberElasticSampler is Test {
         }
     }
 
-
     // TODO: abstract this out to reuse for all types of MultiQuoters (Uniswap, Kyber, etc.)
     function compareQuoterSells(
         bytes memory path,
@@ -122,12 +118,12 @@ contract TestKyberElasticSampler is Test {
             ) {
                 assertLt(
                     multiQuoterAmountsOut[i],
-                    uniQuoterAmountOut + ERROR_THRESHOLD,
+                    kyberQuoterAmountOut + ERROR_THRESHOLD,
                     "compareQuoterSells: MultiQuoter amount is too high compared to Quoter amount"
                 );
                 assertGt(
                     multiQuoterAmountsOut[i],
-                    uniQuoterAmountOut - ERROR_THRESHOLD,
+                    kyberQuoterAmountOut - ERROR_THRESHOLD,
                     "compareQuoterSells: MultiQuoter amount is too low compared to Quoter amount"
                 );
             } catch {}
@@ -135,14 +131,8 @@ contract TestKyberElasticSampler is Test {
         return (gas1 - gasleft(), gas0 - gas1);
     }
 
-    function toPath(
-        address[] memory tokenPath,
-        IPool[] memory poolPath
-    ) internal view returns (bytes memory path) {
-        require(
-            tokenPath.length >= 2 && tokenPath.length == poolPath.length + 1,
-            "invalid path lengths"
-        );
+    function toPath(address[] memory tokenPath, IPool[] memory poolPath) internal view returns (bytes memory path) {
+        require(tokenPath.length >= 2 && tokenPath.length == poolPath.length + 1, "invalid path lengths");
         // paths are tightly packed as:
         // [token0, token0token1PairFee, token1, token1Token2PairFee, token2, ...]
         path = new bytes(tokenPath.length * 20 + poolPath.length * 3);
