@@ -170,7 +170,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
             for (uint256 i = 0; i < nextAmountsLength; ++i) {
                 uint256 amountReceived = zeroForOne ? uint256(-result.amounts1[i]) : uint256(-result.amounts0[i]);
                 if (amountReceived != amountsOut[i]) {
-                    // for exact output swaps we need to check whether we would receive the full amount due to 
+                    // for exact output swaps we need to check whether we would receive the full amount due to
                     // multiswap behavior when hitting the limit
                     nextAmountsLength = i;
                     break;
@@ -299,7 +299,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                     : (state.amountCalculated, amounts[state.amountsIndex]);
 
                 // TODO: find a better way to estimate gas. This is not an ideal way to measure gas
-                // since we can reach multiple prices in the same tick. So this will actually overestimate 
+                // since we can reach multiple prices in the same tick. So this will actually overestimate
                 // gas by a considerable amount.
                 result.gasEstimates[state.amountsIndex] = gasBefore - gasleft();
 
