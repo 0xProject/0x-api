@@ -66,12 +66,14 @@ contract KyberElasticMultiQuoter {
         IFactory factory,
         bytes memory path,
         uint256[] memory amountsIn
-    ) public returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
+    ) public view returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
         gasEstimate = new uint256[](amountsIn.length);
         while (true) {
             (address tokenIn, address tokenOut, uint24 fee) = PathHelper.decodeFirstPool(path);
 
-            bool zeroForOne = tokenIn < tokenOut;
+            // NOTE: this is equivalent to UniswapV3's zeroForOne.
+            // if tokenIn < tokenOut, token input and specified token is token0, swap from 0 to 1
+            bool isToken0 = tokenIn < tokenOut;
             IPool pool = IPool(factory.getPool(tokenIn, tokenOut, fee));
 
             // multiswap only accepts int256[] for input amounts
@@ -82,13 +84,13 @@ contract KyberElasticMultiQuoter {
 
             MultiSwapResult memory result = multiswap(
                 pool,
-                zeroForOne,
+                isToken0,
                 amounts,
-                zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1
+                isToken0 ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1
             );
 
             for (uint256 i = 0; i < amountsIn.length; ++i) {
-                amountsIn[i] = zeroForOne ? uint256(-result.amounts1[i]) : uint256(-result.amounts0[i]);
+                amountsIn[i] = isToken0 ? uint256(-result.amounts1[i]) : uint256(-result.amounts0[i]);
                 gasEstimate[i] += result.gasEstimates[i];
             }
 
@@ -106,29 +108,31 @@ contract KyberElasticMultiQuoter {
         IFactory factory,
         bytes memory path,
         uint256[] memory amountsOut
-    ) public returns (uint256[] memory amountIn, uint256[] memory gasEstimate) {
+    ) public view returns (uint256[] memory amountsIn, uint256[] memory gasEstimate) {
         gasEstimate = new uint256[](amountsOut.length);
         while (true) {
             (address tokenOut, address tokenIn, uint24 fee) = PathHelper.decodeFirstPool(path);
-
-            bool zeroForOne = tokenIn < tokenOut;
+            
+            // NOTE: this is equivalent to UniswapV3's zeroForOne.
+            // if tokenIn > tokenOut, output token and specified token is token0, swap from token1 to token0
+            bool isToken0 = tokenIn > tokenOut;
             IPool pool = IPool(factory.getPool(tokenIn, tokenOut, fee));
 
             // multiswap only accepts int256[] for input amounts
             int256[] memory amounts = new int256[](amountsOut.length);
             for (uint256 i = 0; i < amountsOut.length; ++i) {
-                amounts[i] = int256(amountsOut[i]);
+                amounts[i] = -int256(amountsOut[i]);
             }
 
             MultiSwapResult memory result = multiswap(
                 pool,
-                zeroForOne,
+                isToken0,
                 amounts,
-                zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1
+                isToken0 ? TickMath.MAX_SQRT_RATIO - 1 : TickMath.MIN_SQRT_RATIO + 1
             );
 
             for (uint256 i = 0; i < amountsOut.length; ++i) {
-                amountsOut[i] = zeroForOne ? uint256(result.amounts0[i]) : uint256(result.amounts1[i]);
+                amountsOut[i] = isToken0 ? uint256(result.amounts0[i]) : uint256(result.amounts1[i]);
                 gasEstimate[i] += result.gasEstimates[i];
             }
 
@@ -167,7 +171,7 @@ contract KyberElasticMultiQuoter {
         bool isToken0,
         int256[] memory amounts,
         uint160 limitSqrtP
-    ) private returns (MultiSwapResult memory result) {
+    ) private view returns (MultiSwapResult memory result) {
         // TODO: check if all amounts are not zero?
         // require(swapQty != 0, '0 swapQty');
 
@@ -292,7 +296,7 @@ contract KyberElasticMultiQuoter {
         int24 nextTick,
         uint128 currentLiquidity,
         bool willUpTick
-    ) internal returns (uint128 newLiquidity, int24 newNextTick) {
+    ) internal view returns (uint128 newLiquidity, int24 newNextTick) {
         (, int128 liquidityNet, , ) = pool.ticks(nextTick);
         if (willUpTick) {
             (, newNextTick) = pool.initializedTicks(nextTick);
@@ -307,3 +311,4 @@ contract KyberElasticMultiQuoter {
         );
     }
 }
+

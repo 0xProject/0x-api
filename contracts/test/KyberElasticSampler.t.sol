@@ -3,22 +3,22 @@ pragma experimental ABIEncoderV2;
 
 import "forge-std/Test.sol";
 import "../src/KyberElasticMultiQuoter.sol";
-
 import {IPool} from "../src/interfaces/IKyberSwapElastic.sol";
 import "@kyberelastic/interfaces/IFactory.sol";
 import "@kyberelastic/interfaces/periphery/IQuoterV2.sol";
 
 contract TestKyberElasticSampler is Test {
-    /// @dev error threshold in wei for comparison between MultiQuoter and Kyber's official QuoterV2.
-    /// MultiQuoter results in some rounding errors due to SqrtPriceMath library.
-    uint256 constant ERROR_THRESHOLD = 50;
+    // NOTE: Example test command: forge test --fork-url $ETH_RPC_URL --fork-block-number 16400073 --etherscan-api-key $ETHERSCAN_API_KEY --match-contract "KyberElastic"
+    // TODO: investigate small swap amounts ~$20 showing differences of ~$.01 (5 bps).
+    uint256 constant ERROR_THRESHOLD_10_BPS = .001e18;
 
     address constant KNC = 0xdeFA4e8a7bcBA345F687a2f1456F5Edd9CE97202;
     address constant ETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address constant LINK = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
 
     IPool constant ETH_KNC_POOL_100_BIP = IPool(0xB5e643250FF59311071C5008f722488543DD7b3C);
     IPool constant ETH_KNC_POOL_30_BIP = IPool(0xa38a0165e82B7a5E8650109E9e54087a34C93020);
-
+    IPool constant LINK_ETH_POOL_30_BIP = IPool(0x8990b58Ab653C9954415f4544e8deB72c2b12ED8);
     IQuoterV2 constant kyberQuoter = IQuoterV2(0x0D125c15D54cA1F8a813C74A81aEe34ebB508C1f);
     IFactory constant factory = IFactory(0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a);
 
@@ -58,13 +58,37 @@ contract TestKyberElasticSampler is Test {
         }
     }
 
-    function testKyber() public {
+    function testLiquidPool() public {
         address[] memory tokenPath = new address[](2);
         tokenPath[0] = ETH;
         tokenPath[1] = KNC;
 
         IPool[] memory poolPath = new IPool[](1);
         poolPath[0] = ETH_KNC_POOL_100_BIP;
+
+        testAllAmountsAndPathsForSells(tokenPath, poolPath);
+    }
+    
+    function testIlliquidPool() public {
+        address[] memory tokenPath = new address[](2);
+        tokenPath[0] = ETH;
+        tokenPath[1] = KNC;
+
+        IPool[] memory poolPath = new IPool[](1);
+        poolPath[0] = ETH_KNC_POOL_30_BIP;
+
+        testAllAmountsAndPathsForSells(tokenPath, poolPath);
+    }
+
+    function testMultiHop() public {
+        address[] memory tokenPath = new address[](3);
+        tokenPath[0] = ETH;
+        tokenPath[1] = KNC;
+        tokenPath[2] = LINK;
+
+        IPool[] memory poolPath = new IPool[](2);
+        poolPath[0] = ETH_KNC_POOL_100_BIP;
+        poolPath[1] = LINK_ETH_POOL_30_BIP;
 
         testAllAmountsAndPathsForSells(tokenPath, poolPath);
     }
@@ -76,8 +100,8 @@ contract TestKyberElasticSampler is Test {
         bytes memory path = toPath(tokenPath, poolPath);
         bytes memory reversePath = toPath(reverseTokenPath(tokenPath), reversePoolPath(poolPath));
 
-        console.log("Quoter Gas Comparison ");
-        console.log("Token Path: ");
+        console.log("Quoter Gas Comparison");
+        console.log("Token Path:");
         for (uint256 i = 0; i < tokenPath.length; ++i) {
             console.logAddress(address(tokenPath[i]));
         }
@@ -85,14 +109,28 @@ contract TestKyberElasticSampler is Test {
         for (uint256 i = 0; i < testAmounts.length; ++i) {
             (kyberQuoterGasUsage, multiQuoterGasUsage) = compareQuoterSells(path, testAmounts[i]);
             console.log(
-                "Normal Path: test=%d, kyberQuoterGasUsage=%d, multiQuoterGasUsage=%d",
+                "Normal Path Sell: test=%d, kyberQuoterGasUsage=%d, multiQuoterGasUsage=%d",
                 i + 1,
                 kyberQuoterGasUsage,
                 multiQuoterGasUsage
             );
             (kyberQuoterGasUsage, multiQuoterGasUsage) = compareQuoterSells(reversePath, testAmounts[i]);
             console.log(
-                "Reverse Path: test=%d, kyberQuoterGasUsage=%d, multiQuoterGasUsage=%d",
+                "Reverse Path Sell: test=%d, kyberQuoterGasUsage=%d, multiQuoterGasUsage=%d",
+                i + 1,
+                kyberQuoterGasUsage,
+                multiQuoterGasUsage
+            );
+            (kyberQuoterGasUsage, multiQuoterGasUsage) = compareQuoterBuys(path, testAmounts[i]);
+            console.log(
+                "Normal Path Buy: test=%d, kyberQuoterGasUsage=%d, multiQuoterGasUsage=%d",
+                i + 1,
+                kyberQuoterGasUsage,
+                multiQuoterGasUsage
+            );
+            (kyberQuoterGasUsage, multiQuoterGasUsage) = compareQuoterBuys(reversePath, testAmounts[i]);
+            console.log(
+                "Reverse Path Buy: test=%d, kyberQuoterGasUsage=%d, multiQuoterGasUsage=%d",
                 i + 1,
                 kyberQuoterGasUsage,
                 multiQuoterGasUsage
@@ -100,7 +138,6 @@ contract TestKyberElasticSampler is Test {
         }
     }
 
-    // TODO: abstract this out to reuse for all types of MultiQuoters (Uniswap, Kyber, etc.)
     function compareQuoterSells(
         bytes memory path,
         uint256[] memory amountsIn
@@ -116,20 +153,34 @@ contract TestKyberElasticSampler is Test {
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 /* gasEstimate */
             ) {
-                assertLt(
-                    multiQuoterAmountsOut[i],
-                    kyberQuoterAmountOut + ERROR_THRESHOLD,
-                    "compareQuoterSells: MultiQuoter amount is too high compared to Quoter amount"
-                );
-                assertGt(
-                    multiQuoterAmountsOut[i],
-                    kyberQuoterAmountOut - ERROR_THRESHOLD,
-                    "compareQuoterSells: MultiQuoter amount is too low compared to Quoter amount"
-                );
+                assertApproxEqRel(multiQuoterAmountsOut[i], kyberQuoterAmountOut, ERROR_THRESHOLD_10_BPS); 
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);
     }
+    
+    function compareQuoterBuys(
+        bytes memory path,
+        uint256[] memory amountsOut
+    ) private returns (uint256 kyberQuoterGasUsage, uint256 multiQuoterGasUsage) {
+        uint256 gas0 = gasleft();
+        (uint256[] memory multiQuoterAmountsIn, ) = multiQuoter.quoteExactMultiOutput(factory, path, amountsOut);
+        uint256 gas1 = gasleft();
+
+        for (uint256 i = 0; i < amountsOut.length; ++i) {
+            try kyberQuoter.quoteExactOutput(path, amountsOut[i]) returns (
+                uint256 kyberQuoterAmountIn,
+                uint160[] memory /* sqrtPriceX96AfterList */,
+                uint32[] memory /* initializedTicksCrossedList */,
+                uint256 /* gasEstimate */
+            ) {
+                assertApproxEqRel(multiQuoterAmountsIn[i], kyberQuoterAmountIn, ERROR_THRESHOLD_10_BPS); 
+            } catch {}
+        }
+        return (gas1 - gasleft(), gas0 - gas1);
+    }
+
+    // TODO: the helper functions below are very similar to those in UniswapV3Common, refactor.
 
     function toPath(address[] memory tokenPath, IPool[] memory poolPath) internal view returns (bytes memory path) {
         require(tokenPath.length >= 2 && tokenPath.length == poolPath.length + 1, "invalid path lengths");
