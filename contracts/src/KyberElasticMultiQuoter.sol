@@ -67,6 +67,9 @@ contract KyberElasticMultiQuoter {
         bytes memory path,
         uint256[] memory amountsIn
     ) public view returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
+        for (uint256 i = 1; i < amountsIn.length; ++i) {
+            require(amountsIn[i] >= amountsIn[i - 1], "multiswap amounts must be monotonically increasing");
+        }
         gasEstimate = new uint256[](amountsIn.length);
         while (true) {
             (address tokenIn, address tokenOut, uint24 fee) = PathHelper.decodeFirstPool(path);
@@ -109,10 +112,13 @@ contract KyberElasticMultiQuoter {
         bytes memory path,
         uint256[] memory amountsOut
     ) public view returns (uint256[] memory amountsIn, uint256[] memory gasEstimate) {
+        for (uint256 i = 1; i < amountsOut.length; ++i) {
+            require(amountsOut[i] >= amountsOut[i - 1], "multiswap amounts must be monotonically inreasing");
+        }
         gasEstimate = new uint256[](amountsOut.length);
         while (true) {
             (address tokenOut, address tokenIn, uint24 fee) = PathHelper.decodeFirstPool(path);
-            
+
             // NOTE: this is equivalent to UniswapV3's zeroForOne.
             // if tokenIn > tokenOut, output token and specified token is token0, swap from token1 to token0
             bool isToken0 = tokenIn > tokenOut;
@@ -172,9 +178,6 @@ contract KyberElasticMultiQuoter {
         int256[] memory amounts,
         uint160 limitSqrtP
     ) private view returns (MultiSwapResult memory result) {
-        // TODO: check if all amounts are not zero?
-        // require(swapQty != 0, '0 swapQty');
-
         result.gasEstimates = new uint256[](amounts.length);
         result.amounts0 = new int256[](amounts.length);
         result.amounts1 = new int256[](amounts.length);
@@ -311,4 +314,3 @@ contract KyberElasticMultiQuoter {
         );
     }
 }
-

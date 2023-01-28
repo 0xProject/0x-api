@@ -68,7 +68,7 @@ contract TestKyberElasticSampler is Test {
 
         testAllAmountsAndPathsForSells(tokenPath, poolPath);
     }
-    
+
     function testIlliquidPool() public {
         address[] memory tokenPath = new address[](2);
         tokenPath[0] = ETH;
@@ -153,12 +153,12 @@ contract TestKyberElasticSampler is Test {
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 /* gasEstimate */
             ) {
-                assertApproxEqRel(multiQuoterAmountsOut[i], kyberQuoterAmountOut, ERROR_THRESHOLD_10_BPS); 
+                assertApproxEqRel(multiQuoterAmountsOut[i], kyberQuoterAmountOut, ERROR_THRESHOLD_10_BPS);
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);
     }
-    
+
     function compareQuoterBuys(
         bytes memory path,
         uint256[] memory amountsOut
@@ -174,7 +174,7 @@ contract TestKyberElasticSampler is Test {
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 /* gasEstimate */
             ) {
-                assertApproxEqRel(multiQuoterAmountsIn[i], kyberQuoterAmountIn, ERROR_THRESHOLD_10_BPS); 
+                assertApproxEqRel(multiQuoterAmountsIn[i], kyberQuoterAmountIn, ERROR_THRESHOLD_10_BPS);
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);
