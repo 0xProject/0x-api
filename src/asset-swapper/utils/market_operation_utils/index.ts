@@ -240,6 +240,8 @@ export class MarketOperationUtils {
         SAMPLER_METRICS.logGasDetails({ side: 'sell', gasBefore, gasAfter });
         SAMPLER_METRICS.logBlockNumber(blockNumber);
 
+        DEFAULT_INFO_LOGGER({gasUsed: gasBefore.minus(gasAfter)});
+
         // Filter out any invalid two hop quotes where we couldn't find a route
         const twoHopQuotes = rawTwoHopQuotes.filter(
             (q) => q && q.fillData && q.fillData.firstHopSource && q.fillData.secondHopSource,
@@ -369,6 +371,8 @@ export class MarketOperationUtils {
 
         SAMPLER_METRICS.logGasDetails({ side: 'buy', gasBefore, gasAfter });
         SAMPLER_METRICS.logBlockNumber(blockNumber);
+
+        DEFAULT_INFO_LOGGER({gasUsed: gasBefore.minus(gasAfter)});
 
         // Filter out any invalid two hop quotes where we couldn't find a route
         const twoHopQuotes = rawTwoHopQuotes.filter(

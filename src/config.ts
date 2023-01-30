@@ -461,7 +461,7 @@ const SAMPLE_DISTRIBUTION_BASE: number = _.isEmpty(process.env.SAMPLE_DISTRIBUTI
 export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
     bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
-    numSamples: 13,
+    numSamples: 100,
     sampleDistributionBase: SAMPLE_DISTRIBUTION_BASE,
     neonRouterNumSamples: NEON_ROUTER_NUM_SAMPLES,
     exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
