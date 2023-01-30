@@ -745,7 +745,7 @@ export const CURVE_POOLS = {
     rsr: '0x6a6283ab6e31c2aec3fa08697a8f806b740660b2',
     DOLAFRAX: '0xe57180685e3348589e9521aa53af0bcd497e884d',
     crvfrax: '0xdcef968d416a41cdac0ed8702fac8128a64241a2',
-    // NEW CURVE POOL ADDRESS HERE
+    // NEW CURVE POOL ADDRESSES HERE
 };
 
 export const CURVE_V2_POOLS = {
