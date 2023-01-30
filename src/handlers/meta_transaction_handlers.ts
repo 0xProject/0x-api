@@ -6,7 +6,13 @@ import { StatusCodes } from 'http-status-codes';
 import * as _ from 'lodash';
 
 import { AffiliateFeeType, ERC20BridgeSource, RfqRequestOpts, SwapQuoterError } from '../asset-swapper';
-import { CHAIN_ID, ENABLE_GASLESS_RFQT, META_TX_MIN_ALLOWED_SLIPPAGE, RFQT_API_KEY_WHITELIST } from '../config';
+import {
+    CHAIN_ID,
+    ENABLE_GASLESS_RFQT,
+    getIntegratorByIdOrThrow,
+    META_TX_MIN_ALLOWED_SLIPPAGE,
+    RFQT_API_KEY_WHITELIST,
+} from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     META_TRANSACTION_DOCS_URL,
@@ -68,6 +74,7 @@ export class MetaTransactionHandlers {
                 isETHBuy,
                 isETHSell: false,
                 from: params.takerAddress,
+                integrator: getIntegratorByIdOrThrow(params.integratorId),
             });
 
             res.status(StatusCodes.OK).send(metaTransactionQuote);
@@ -129,6 +136,7 @@ export class MetaTransactionHandlers {
                 from: params.takerAddress,
                 isETHBuy,
                 isETHSell: false,
+                integrator: getIntegratorByIdOrThrow(params.integratorId),
             });
 
             const metaTransactionPriceResponse: MetaTransactionV2PriceResponse = {
@@ -194,9 +202,10 @@ export class MetaTransactionHandlers {
         try {
             const metaTransactionQuote = await this._metaTransactionService.getMetaTransactionV1QuoteAsync({
                 ...params,
+                from: params.takerAddress,
                 isETHBuy,
                 isETHSell: false,
-                from: params.takerAddress,
+                integrator: getIntegratorByIdOrThrow(params.integratorId),
             });
 
             res.status(StatusCodes.OK).send(metaTransactionQuote);
@@ -258,6 +267,7 @@ export class MetaTransactionHandlers {
                 from: params.takerAddress,
                 isETHBuy,
                 isETHSell: false,
+                integrator: getIntegratorByIdOrThrow(params.integratorId),
             });
 
             const metaTransactionPriceResponse: MetaTransactionV1PriceResponse = {

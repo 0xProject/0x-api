@@ -293,7 +293,7 @@ export interface MetaTransactionV2QuoteRequestParams extends MetaTransactionV1Qu
 export interface MetaTransactionV1QuoteParams extends SwapQuoteParamsBase {
     buyTokenAddress: string;
     from: string;
-    integratorId: string;
+    integrator: Integrator;
     isETHBuy: boolean;
     isETHSell: boolean;
     quoteUniqueId?: string; // ID to use for the quote report `decodedUniqueId`
