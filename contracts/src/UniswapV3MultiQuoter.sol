@@ -46,6 +46,8 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
         uint128 liquidity;
         // the current quote amount we are querying liquidity for
         uint256 amountsIndex;
+        // the current aggregate gas estimate for multi swap
+        uint256 gasAggregate;
     }
 
     // the intermediate calculations for each tick and quote amount
@@ -64,6 +66,8 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
         uint256 amountOut;
         // how much fee is being paid in
         uint256 feeAmount;
+        // how much gas was left before the current step
+        uint256 gasBefore;
     }
 
     // the result of multiswap
@@ -229,12 +233,14 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
             sqrtPriceX96: sqrtPriceX96Start,
             tick: tickStart,
             liquidity: pool.liquidity(),
-            amountsIndex: 0
+            amountsIndex: 0,
+            gasAggregate: gasBefore - gasleft()
         });
 
         // continue swapping as long as we haven't used the entire input/output and haven't reached the price limit
         while (state.amountSpecifiedRemaining != 0 && state.sqrtPriceX96 != sqrtPriceLimitX96) {
             StepComputations memory step;
+            step.gasBefore = gasleft();
 
             step.sqrtPriceStartX96 = state.sqrtPriceX96;
 
@@ -288,6 +294,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                 }
 
                 state.tick = zeroForOne ? step.tickNext - 1 : step.tickNext;
+                state.gasAggregate += step.gasBefore - gasleft();
             } else if (state.sqrtPriceX96 != step.sqrtPriceStartX96) {
                 // recompute unless we're on a lower tick boundary (i.e. already transitioned ticks), and haven't moved
                 state.tick = TickMath.getTickAtSqrtRatio(state.sqrtPriceX96);
@@ -298,10 +305,12 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                     ? (amounts[state.amountsIndex], state.amountCalculated)
                     : (state.amountCalculated, amounts[state.amountsIndex]);
 
-                // TODO: find a better way to estimate gas. This is not an ideal way to measure gas
-                // since we can reach multiple prices in the same tick. So this will actually overestimate
-                // gas by a considerable amount.
-                result.gasEstimates[state.amountsIndex] = gasBefore - gasleft();
+                if (state.sqrtPriceX96 != step.sqrtPriceNextX96) {
+                    result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(state.gasAggregate + (step.gasBefore - gasleft()));
+                } else {
+                    // we are moving to the next tick
+                    result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(state.gasAggregate); 
+                }
 
                 if (state.amountsIndex == amounts.length - 1) {
                     return (result);
@@ -316,9 +325,17 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
             (result.amounts0[i], result.amounts1[i]) = zeroForOne == exactInput
                 ? (amounts[i] - state.amountSpecifiedRemaining, state.amountCalculated)
                 : (state.amountCalculated, amounts[i] - state.amountSpecifiedRemaining);
+            result.gasEstimates[i] = scaleMultiswapGasEstimate(state.gasAggregate);
         }
+    }
 
-        result.gasEstimates[state.amountsIndex] = gasBefore - gasleft();
+    /// @notice Returns the multiswap gas estimate scaled to UniswapV3Pool:swap estimates
+    /// @dev These parameters have been determined by running a linear regression between UniswapV3QuoterV2
+    /// gas estimates and the unscaled gas estimates from multiswap
+    /// @param multiSwapEstimate the gas estimate from multiswap
+    /// @return swapEstimate the gas estimate equivalent for UniswapV3Pool:swap
+    function scaleMultiswapGasEstimate(uint256 multiSwapEstimate) private view returns (uint256 swapEstimate) {
+        return 11 * multiSwapEstimate / 10 + 65000;
     }
 
     /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either
