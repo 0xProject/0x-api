@@ -378,7 +378,7 @@ export class SwapService implements ISwapService {
         ];
 
         // By default, add a positive slippage fee.
-        // Integrators may turn this off by positiveSlippagePercent to 0
+        // Integrators may turn this off by setting positiveSlippagePercent to 0
         // NOTE that we do not yet allow for a specified percent of the positive slippage to be taken, it's all or nothing.
         // TODO: customize the positive slippage by the percent
         const isDefaultPositiveSlippageFee = integrator?.positiveSlippagePercent === undefined; // Beware that 0 is falsy, must check undefined explicitly

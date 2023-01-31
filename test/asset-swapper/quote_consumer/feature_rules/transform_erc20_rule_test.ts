@@ -205,6 +205,7 @@ describe('TransformERC20Rule', () => {
 
         it('Appends an affiliate fee transformer when buyTokenFeeAmount is provided (Gasless)', () => {
             const recipient = randomAddress();
+            const buyTokenFeeAmount = ONE_ETHER.times(0.01);
 
             const callInfo = rule.createCalldata(
                 UNI_V2_SELL_QUOTE,
@@ -214,7 +215,7 @@ describe('TransformERC20Rule', () => {
                     affiliateFees: [
                         {
                             recipient,
-                            buyTokenFeeAmount: ONE_ETHER.times(0.01),
+                            buyTokenFeeAmount,
                             sellTokenFeeAmount: ZERO_AMOUNT,
                             feeType: AffiliateFeeType.PercentageFee,
                         },
@@ -231,12 +232,13 @@ describe('TransformERC20Rule', () => {
 
             const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
             expect(affiliateFeeTransformerData.fees).to.deep.equal([
-                { token: MAKER_TOKEN, amount: ONE_ETHER.times(0.01), recipient },
+                { token: MAKER_TOKEN, amount: buyTokenFeeAmount, recipient },
             ]);
         });
 
         it('Appends an affiliate fee transformer when buyTokenFeeAmount is provided (Gasless) ', () => {
             const recipient = randomAddress();
+            const buyTokenFeeAmount = ONE_ETHER.times(0.01);
             const quote = { ...UNI_V2_SELL_QUOTE, takerAmountPerEth: new BigNumber(0.5) };
 
             const callInfo = rule.createCalldata(quote, {
@@ -244,7 +246,7 @@ describe('TransformERC20Rule', () => {
                 affiliateFees: [
                     {
                         recipient,
-                        buyTokenFeeAmount: ONE_ETHER.times(0.01),
+                        buyTokenFeeAmount,
                         sellTokenFeeAmount: ZERO,
                         feeType: AffiliateFeeType.GaslessFee,
                     },
@@ -260,7 +262,7 @@ describe('TransformERC20Rule', () => {
 
             const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
             expect(affiliateFeeTransformerData.fees).to.deep.equal([
-                { token: MAKER_TOKEN, amount: ONE_ETHER.times(0.01), recipient },
+                { token: MAKER_TOKEN, amount: buyTokenFeeAmount, recipient },
             ]);
         });
 
@@ -310,6 +312,75 @@ describe('TransformERC20Rule', () => {
                 bestCaseAmount: ONE_ETHER.times(2).plus(gasOverhead),
                 recipient,
             });
+        });
+
+        it('Appends an affiliate fee and positive slippage fee transformer if both are specified', () => {
+            const gasPrice = 20_000_000_000;
+            const makerAmountPerEth = new BigNumber(2);
+            const quote = createSimpleSellSwapQuoteWithBridgeOrder({
+                source: ERC20BridgeSource.UniswapV2,
+                takerToken: TAKER_TOKEN,
+                makerToken: MAKER_TOKEN,
+                takerAmount: ONE_ETHER,
+                makerAmount: ONE_ETHER.times(2),
+                makerAmountPerEth,
+                gasPrice,
+                slippage: 0,
+            });
+            const integratorRecipient = randomAddress();
+            const zeroExRecipient = randomAddress();
+            const buyTokenFeeAmount = ONE_ETHER.times(0.01);
+
+            const callInfo = rule.createCalldata(quote, {
+                ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
+                affiliateFees: [
+                    {
+                        recipient: integratorRecipient,
+                        buyTokenFeeAmount,
+                        sellTokenFeeAmount: ZERO_AMOUNT,
+                        feeType: AffiliateFeeType.PercentageFee,
+                    },
+                    {
+                        recipient: zeroExRecipient,
+                        buyTokenFeeAmount: ZERO_AMOUNT,
+                        sellTokenFeeAmount: ZERO_AMOUNT,
+                        feeType: AffiliateFeeType.PositiveSlippageFee,
+                    },
+                ],
+            });
+
+            const callArgs = decodeTransformERC20(callInfo.calldataHexString);
+            expect(getTransformerNonces(callArgs)).to.deep.eq(
+                [
+                    NONCES.fillQuoteTransformer,
+                    NONCES.affiliateFeeTransformer,
+                    NONCES.positiveSlippageFeeTransformer,
+                    NONCES.payTakerTransformer,
+                ],
+                'Correct ordering of the transformers',
+            );
+
+            const positiveSlippageFeeTransformerData = decodePositiveSlippageFeeTransformerData(
+                callArgs.transformations[2].data,
+            );
+
+            const gasOverhead = POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS.multipliedBy(gasPrice).multipliedBy(
+                quote.makerAmountPerEth,
+            );
+            const affiliateFeeTransformerData = decodeAffiliateFeeTransformerData(callArgs.transformations[1].data);
+            expect(affiliateFeeTransformerData.fees).to.deep.equal(
+                [{ token: MAKER_TOKEN, amount: buyTokenFeeAmount, recipient: integratorRecipient }],
+                'Affiliate Fee',
+            );
+
+            expect(positiveSlippageFeeTransformerData).to.deep.equal(
+                {
+                    token: MAKER_TOKEN,
+                    bestCaseAmount: ONE_ETHER.times(2).plus(gasOverhead),
+                    recipient: zeroExRecipient,
+                },
+                'Positive Slippage Fee',
+            );
         });
 
         it('Throws if a sell token affiliate fee is provided', () => {
