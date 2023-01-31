@@ -66,7 +66,7 @@ contract TestKyberElasticSampler is Test {
         IPool[] memory poolPath = new IPool[](1);
         poolPath[0] = ETH_KNC_POOL_100_BIP;
 
-        testAllAmountsAndPathsForSells(tokenPath, poolPath);
+        testAllAmountsAndPaths(tokenPath, poolPath);
     }
 
     function testIlliquidPool() public {
@@ -77,7 +77,7 @@ contract TestKyberElasticSampler is Test {
         IPool[] memory poolPath = new IPool[](1);
         poolPath[0] = ETH_KNC_POOL_30_BIP;
 
-        testAllAmountsAndPathsForSells(tokenPath, poolPath);
+        testAllAmountsAndPaths(tokenPath, poolPath);
     }
 
     function testMultiHop() public {
@@ -90,10 +90,10 @@ contract TestKyberElasticSampler is Test {
         poolPath[0] = ETH_KNC_POOL_100_BIP;
         poolPath[1] = LINK_ETH_POOL_30_BIP;
 
-        testAllAmountsAndPathsForSells(tokenPath, poolPath);
+        testAllAmountsAndPaths(tokenPath, poolPath);
     }
 
-    function testAllAmountsAndPathsForSells(address[] memory tokenPath, IPool[] memory poolPath) private {
+    function testAllAmountsAndPaths(address[] memory tokenPath, IPool[] memory poolPath) private {
         uint256 kyberQuoterGasUsage;
         uint256 multiQuoterGasUsage;
 

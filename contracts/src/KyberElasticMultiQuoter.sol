@@ -17,10 +17,10 @@
 
 */
 
-pragma solidity 0.8.9;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8;
 
 import "./interfaces/IKyberSwapElastic.sol";
+import "./libraries/Multiswap.sol";
 import "@kyberelastic/interfaces/IFactory.sol";
 import "@kyberelastic/libraries/TickMath.sol";
 import "@kyberelastic/libraries/SwapMath.sol";
@@ -51,16 +51,6 @@ contract KyberElasticMultiQuoter {
         uint256 amountsIndex;
     }
 
-    // the result of multiswap
-    struct MultiSwapResult {
-        // the gas estimate for each of swap amounts
-        uint256[] gasEstimates;
-        // the token0 delta for each swap amount, positive indicates sent and negative indicates receipt
-        int256[] amounts0;
-        // the token1 delta for each swap amount, positive indicates sent and negative indicates receipt
-        int256[] amounts1;
-    }
-
     // TODO: same as uniswapv3 multiquoter logic. see if we can make generic.
     function quoteExactMultiInput(
         IFactory factory,
@@ -85,7 +75,7 @@ contract KyberElasticMultiQuoter {
                 amounts[i] = int256(amountsIn[i]);
             }
 
-            MultiSwapResult memory result = multiswap(
+            Multiswap.Result memory result = multiswap(
                 pool,
                 isToken0,
                 amounts,
@@ -130,7 +120,7 @@ contract KyberElasticMultiQuoter {
                 amounts[i] = -int256(amountsOut[i]);
             }
 
-            MultiSwapResult memory result = multiswap(
+            Multiswap.Result memory result = multiswap(
                 pool,
                 isToken0,
                 amounts,
@@ -171,13 +161,13 @@ contract KyberElasticMultiQuoter {
         }
     }
 
-    /// @notice swap multiple amounts of token0 for token1 or token1 for token1
+    /// @notice swap multiple amounts of token0 for token1 or token1 for token0
     function multiswap(
         IPool pool,
         bool isToken0,
         int256[] memory amounts,
         uint160 limitSqrtP
-    ) private view returns (MultiSwapResult memory result) {
+    ) private view returns (Multiswap.Result memory result) {
         result.gasEstimates = new uint256[](amounts.length);
         result.amounts0 = new int256[](amounts.length);
         result.amounts1 = new int256[](amounts.length);
