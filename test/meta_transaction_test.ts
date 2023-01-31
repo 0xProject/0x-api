@@ -263,7 +263,7 @@ describe(SUITE_NAME, () => {
                 buyToken: ZRX_TOKEN_ADDRESS,
                 sellToken: WETH_TOKEN_ADDRESS,
                 buyAmount: '10000000000000000000000000000000',
-                integratorId: 'integrator',
+                integratorId: INTEGRATOR_ID,
                 takerAddress: TAKER_ADDRESS,
                 feeConfigs: { integratorFee: { type: 'volume', volumePercentage: '0.1' } },
             });
