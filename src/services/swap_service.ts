@@ -67,6 +67,7 @@ import {
 import { logger } from '../logger';
 import {
     AffiliateFee,
+    FunctionSelector,
     GetSwapQuoteParams,
     GetSwapQuoteResponse,
     ISwapService,
@@ -390,8 +391,8 @@ export class SwapService implements ISwapService {
         );
         const functionSelector = firstPassCalldata.slice(0, 10);
 
-        // Add positive slippage fee if it's not a VIP
-        if (!isVIP(functionSelector)) {
+        // Add positive slippage fee only if already transformERC20
+        if (functionSelector === FunctionSelector.TransformERC20) {
             // By default, add a positive slippage fee.
             // Integrators may turn this off by positiveSlippagePercent to 0
             // NOTE that we do not yet allow for a specified percent of the positive slippage to be taken, it's all or nothing.

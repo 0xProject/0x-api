@@ -343,6 +343,29 @@ export enum OrderEventEndState {
     StoppedWatching = 'STOPPED_WATCHING',
 }
 
+export enum FunctionSelector {
+    BatchFillRfqOrders = '0x75103cb9',
+    FillRfqOrder = '0xaa77476c',
+    FillOtcOrder = '0xdac748d4',
+    FillOtcOrderForEth = '0xa578efaf',
+    FillOtcOrderWithEth = '0x706394d5',
+    FillTakerSignedOtcOrder = '0x4f948110',
+    FillTakerSignedOtcOrderForEth = '0x724d3953',
+    MultiplexBatchSellEthForToken = '0xf35b4733',
+    MultiplexBatchSellTokenForEth = '0x77725df6',
+    MultiplexBatchSellTokenForToken = '0x7a1eb1b9',
+    MultiplexMultiHopSellEthForToken = '0x5161b966',
+    MultiplexMultiHopSellTokenForEth = '0x9a2967d2',
+    MultiplexMultiHopSellTokenForToken = '0x0f3b31b2',
+    SellEthForTokenToUniswapV3 = '0x3598d8ab',
+    SellToLiquidityProvider = '0xf7fcd384',
+    SellToPancakeSwap = '0xc43c9ef6',
+    SellToUniswap = '0xd9627aa4',
+    SellTokenForEthToUniswapV3 = '0x803ba26d',
+    SellTokenForTokenToUniswapV3 = '0x6af479b2',
+    TransformERC20 = '0x415565b0',
+}
+
 export interface Integrator {
     apiKeys: string[];
     integratorId: string;
