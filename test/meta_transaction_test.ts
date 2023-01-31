@@ -48,7 +48,7 @@ const ONE_THOUSAND_IN_BASE = new BigNumber('1000000000000000000000');
 
 const ZERO_EX_SOURCE = { name: '0x', proportion: new BigNumber('1') };
 
-const INTEGRATOR_ID = 'integrator';
+const INTEGRATOR_ID = 'test-integrator-id-1';
 const TAKER_ADDRESS = '0x70a9f34f9b34c64957b9c401a97bfed35b95049e';
 
 describe(SUITE_NAME, () => {
@@ -164,7 +164,7 @@ describe(SUITE_NAME, () => {
                 sellToken: 'WETH',
                 buyToken: 'ZRX',
                 sellAmount: '10000',
-                integratorId: 'integrator',
+                integratorId: INTEGRATOR_ID,
             });
             expect(swapResponse.statusCode).eq(HttpStatus.StatusCodes.OK);
         });
