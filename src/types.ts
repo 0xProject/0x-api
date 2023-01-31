@@ -227,6 +227,7 @@ export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
     origin?: string;
     // Whether the optimal route accounts for expected slippage for each liquidity source
     enableSlippageProtection?: boolean;
+    txOrigin?: string;
 }
 
 // GET /swap/price
