@@ -122,7 +122,7 @@ export class TransformERC20Rule extends AbstractFeatureRule {
                     deploymentNonce: this.transformerNonces.positiveSlippageFeeTransformer,
                     data: encodePositiveSlippageFeeTransformerData({
                         token: isToETH ? ETH_TOKEN_ADDRESS : buyToken,
-                        bestCaseAmount: BigNumber.max(bestCaseAmountWithSurplus, quote.bestCaseQuoteInfo.makerAmount),
+                        bestCaseAmount: bestCaseAmountWithSurplus,
                         recipient: feeRecipient,
                     }),
                 });
