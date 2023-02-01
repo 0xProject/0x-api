@@ -65,7 +65,7 @@ export class TransformERC20Rule extends AbstractFeatureRule {
 
     public createCalldata(quote: SwapQuote, opts: ExchangeProxyContractOpts): CalldataInfo {
         // TODO(kyu-c): further breakdown calldata creation logic.
-        const { affiliateFees, isFromETH, isToETH, shouldSellEntireBalance } = opts;
+        const { affiliateFees, positiveSlippageFee, isFromETH, isToETH, shouldSellEntireBalance } = opts;
 
         const swapContext = this.getSwapContext(quote, opts);
         const { sellToken, buyToken, sellAmount, ethAmount } = swapContext;
@@ -100,8 +100,10 @@ export class TransformERC20Rule extends AbstractFeatureRule {
         }
 
         let gasOverhead = ZERO_AMOUNT;
-        affiliateFees.forEach((affiliateFee) => {
-            const { feeType, buyTokenFeeAmount, sellTokenFeeAmount, recipient: feeRecipient } = affiliateFee;
+        const fees = affiliateFees;
+        positiveSlippageFee && fees.push(positiveSlippageFee); // Append positive slippage fee if present
+        fees.forEach((fee) => {
+            const { feeType, buyTokenFeeAmount, sellTokenFeeAmount, recipient: feeRecipient } = fee;
             if (feeRecipient === NULL_ADDRESS) {
                 return;
             } else if (feeType === AffiliateFeeType.None) {

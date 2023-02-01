@@ -381,18 +381,18 @@ export class SwapService implements ISwapService {
         // Integrators may turn this off by setting positiveSlippagePercent to 0
         // NOTE that we do not yet allow for a specified percent of the positive slippage to be taken, it's all or nothing.
         // TODO: customize the positive slippage by the percent
-        const isDefaultPositiveSlippageFee = integrator?.positiveSlippagePercent === undefined; // Beware that 0 is falsy, must check undefined explicitly
-        if (
-            isDefaultPositiveSlippageFee ||
-            (integrator?.positiveSlippagePercent && integrator.positiveSlippagePercent > 0)
-        ) {
-            affiliateFeeAmounts.push({
-                recipient: integrator?.feeRecipient || ZERO_EX_FEE_RECIPIENT_ADDRESS,
-                feeType: AffiliateFeeType.PositiveSlippageFee,
-                buyTokenFeeAmount: ZERO, // we don't need this for positive slippage fee
-                sellTokenFeeAmount: ZERO, // we don't need this for positive slippage fee
-            });
-        }
+        const isDefaultPositiveSlippageFee = integrator?.positiveSlippagePercent === undefined;
+        const isPostiveSlippageEnabled =
+            integrator?.positiveSlippagePercent !== undefined && integrator.positiveSlippagePercent > 0; // 0 is falsy, must check undefined explicitly
+        const positiveSlippageFee =
+            isDefaultPositiveSlippageFee || isPostiveSlippageEnabled
+                ? {
+                      recipient: integrator?.feeRecipient || ZERO_EX_FEE_RECIPIENT_ADDRESS,
+                      feeType: AffiliateFeeType.PositiveSlippageFee,
+                      buyTokenFeeAmount: ZERO, // we don't need this for positive slippage fee
+                      sellTokenFeeAmount: ZERO, // we don't need this for positive slippage fee
+                  }
+                : undefined;
 
         // Grab the encoded version of the swap quote
         const { to, value, data, decodedUniqueId, gasOverhead } = this.getSwapQuotePartialTransaction(
@@ -403,6 +403,7 @@ export class SwapService implements ISwapService {
             shouldSellEntireBalance,
             affiliateAddress,
             affiliateFeeAmounts,
+            positiveSlippageFee,
         );
 
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(affiliateFeeGasCost);
@@ -727,6 +728,7 @@ export class SwapService implements ISwapService {
         shouldSellEntireBalance: boolean,
         affiliateAddress: string | undefined,
         affiliateFees: AffiliateFeeAmount[],
+        positiveSlippageFee?: AffiliateFeeAmount,
     ): SwapQuoteResponsePartialTransaction & { gasOverhead: BigNumber } {
         const opts: Partial<ExchangeProxyContractOpts> = {
             isFromETH,
@@ -734,6 +736,7 @@ export class SwapService implements ISwapService {
             isMetaTransaction,
             shouldSellEntireBalance,
             affiliateFees,
+            positiveSlippageFee,
         };
 
         const {

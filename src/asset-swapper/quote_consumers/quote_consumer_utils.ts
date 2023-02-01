@@ -14,7 +14,6 @@ import {
     OptimizedRfqOrder,
     OptimizedLimitOrder,
     IPath,
-    AffiliateFeeType,
 } from '../types';
 import {
     createBridgeDataForBridgeOrder,
@@ -205,13 +204,7 @@ export function requiresTransformERC20(opts: ExchangeProxyContractOpts): boolean
         return true;
     }
     // Has an affiliate fee.
-    if (
-        opts.affiliateFees.some((f) => {
-            const hasNonZeroFee = f.buyTokenFeeAmount.isGreaterThan(0) || f.sellTokenFeeAmount.isGreaterThan(0);
-            const hasPositiveSlippageFee = f.feeType === AffiliateFeeType.PositiveSlippageFee;
-            return hasNonZeroFee || hasPositiveSlippageFee;
-        })
-    ) {
+    if (opts.affiliateFees.some((f) => f.buyTokenFeeAmount.isGreaterThan(0) || f.sellTokenFeeAmount.isGreaterThan(0))) {
         return true;
     }
 

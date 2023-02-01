@@ -340,13 +340,13 @@ describe('TransformERC20Rule', () => {
                         sellTokenFeeAmount: ZERO_AMOUNT,
                         feeType: AffiliateFeeType.PercentageFee,
                     },
-                    {
-                        recipient: zeroExRecipient,
-                        buyTokenFeeAmount: ZERO_AMOUNT,
-                        sellTokenFeeAmount: ZERO_AMOUNT,
-                        feeType: AffiliateFeeType.PositiveSlippageFee,
-                    },
                 ],
+                positiveSlippageFee: {
+                    recipient: zeroExRecipient,
+                    buyTokenFeeAmount: ZERO_AMOUNT,
+                    sellTokenFeeAmount: ZERO_AMOUNT,
+                    feeType: AffiliateFeeType.PositiveSlippageFee,
+                },
             });
 
             const callArgs = decodeTransformERC20(callInfo.calldataHexString);
