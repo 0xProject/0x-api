@@ -31,7 +31,6 @@ contract WooPPSampler is SamplerUtils, ApproximateBuys {
         makerTokenAmounts = new uint256[](numSamples);
         for (uint256 i = 0; i < numSamples; i++) {
             makerTokenAmounts[i] = router.querySwap(takerToken, makerToken, takerTokenAmounts[i]);
-
             if (makerTokenAmounts[i] == 0) {
                 break;
             }
