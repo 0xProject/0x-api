@@ -653,6 +653,7 @@ const FANTOM_TOKENS = {
 };
 
 const OPTIMISM_TOKENS = {
+    ETH: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
     WETH: '0x4200000000000000000000000000000000000006',
     USDC: '0x7f5c764cbc14f9669b88837ca1490cca17c31607',
     USDT: '0x94b008aa00579c1307b0ef2c499ad98a8ce58e58',
@@ -676,6 +677,7 @@ const OPTIMISM_TOKENS = {
 };
 
 const ARBITRUM_TOKENS = {
+    ETH: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
     USDT: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
     USDC: '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8',
     FRAX: '0x17fc002b466eec40dae837fc4be5c67993ddbd6f',
@@ -942,10 +944,12 @@ export const WOOFI_SUPPORTED_TOKENS = Set.of(
     POLYGON_TOKENS.WBTC,
     POLYGON_TOKENS.WETH,
     POLYGON_TOKENS.WOO,
+    ARBITRUM_TOKENS.ETH,
     ARBITRUM_TOKENS.USDC,
     ARBITRUM_TOKENS.WETH,
     ARBITRUM_TOKENS.WBTC,
     ARBITRUM_TOKENS.WOO,
+    OPTIMISM_TOKENS.ETH,
     OPTIMISM_TOKENS.USDC,
     OPTIMISM_TOKENS.WETH,
     OPTIMISM_TOKENS.WBTC,
@@ -2844,7 +2848,14 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     [ERC20BridgeSource.ACryptos]: (fillData) => (fillData as CurveFillData).pool.gasSchedule,
     [ERC20BridgeSource.WOOFi]: (fillData?: FillData) => {
         const woofiFillData = fillData as WOOFiFillData;
-        const quoteTokenAddresses = [BSC_TOKENS.BUSD, AVALANCHE_TOKENS.nUSDC, FANTOM_TOKENS.USDC, POLYGON_TOKENS.USDC, ARBITRUM_TOKENS.USDC, OPTIMISM_TOKENS.USDC];
+        const quoteTokenAddresses = [
+            BSC_TOKENS.BUSD,
+            AVALANCHE_TOKENS.nUSDC,
+            FANTOM_TOKENS.USDC,
+            POLYGON_TOKENS.USDC,
+            ARBITRUM_TOKENS.USDC,
+            OPTIMISM_TOKENS.USDC,
+        ];
         const hasQuoteToken =
             quoteTokenAddresses.includes(woofiFillData.takerToken) ||
             quoteTokenAddresses.includes(woofiFillData.makerToken);
