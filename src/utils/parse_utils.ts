@@ -25,7 +25,7 @@ export const parseUtils = {
         request: ParseRequestForExcludedSourcesParams,
         validApiKeys: string[],
         endpoint: 'price' | 'quote',
-        gasless = false,
+        isMetaTransaction = false,
     ): ParseRequestForExcludedSourcesResult {
         const excludedIds = request.excludedSources ? request.excludedSources.split(',') : [];
         const includedIds = request.includedSources ? request.includedSources.split(',') : [];
@@ -70,7 +70,7 @@ export const parseUtils = {
                     },
                 ]);
             }
-            if (gasless && request.txOrigin === undefined) {
+            if (isMetaTransaction && request.txOrigin === undefined) {
                 throw new ValidationError([
                     {
                         field: 'txOrigin',
