@@ -463,6 +463,8 @@ export interface RfqtV2Request {
     takerAddress: string;
     takerToken: string;
     txOrigin: string;
+    trader?: string;
+    gasless?: boolean;
 }
 
 interface FeeConfigBase {

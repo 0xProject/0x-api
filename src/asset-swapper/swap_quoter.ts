@@ -274,7 +274,7 @@ export class SwapQuoter {
         if (!rfqt) {
             return rfqt;
         }
-        const { integrator, nativeExclusivelyRFQ, intentOnFilling, txOrigin } = rfqt;
+        const { integrator, nativeExclusivelyRFQ, intentOnFilling, txOrigin, trader, gasless } = rfqt;
         // If RFQ-T is enabled and `nativeExclusivelyRFQ` is set, then `ERC20BridgeSource.Native` should
         // never be excluded.
         if (nativeExclusivelyRFQ === true && !sourceFilters.isAllowed(ERC20BridgeSource.Native)) {
@@ -315,6 +315,9 @@ export class SwapQuoter {
         ) {
             if (!txOrigin || txOrigin === constants.NULL_ADDRESS) {
                 throw new Error('RFQ-T firm quote requests must specify a tx origin');
+            }
+            if (gasless && (!trader || trader === constants.NULL_ADDRESS)) {
+                throw new Error('RFQ-T firm quote MetaTransaction requests must specify the trader');
             }
         }
 

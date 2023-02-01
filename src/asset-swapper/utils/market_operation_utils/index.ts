@@ -568,6 +568,8 @@ export class MarketOperationUtils {
                                   takerAddress: rfqt.takerAddress,
                                   takerToken,
                                   txOrigin: rfqt.txOrigin,
+                                  trader: rfqt.trader,
+                                  gasless: rfqt.gasless,
                               }),
                           ]);
 
@@ -641,6 +643,8 @@ export class MarketOperationUtils {
                                   takerAddress: rfqt.takerAddress,
                                   takerToken,
                                   txOrigin: rfqt.txOrigin,
+                                  trader: rfqt.trader,
+                                  gasless: rfqt.gasless,
                               }),
                           ]);
 
