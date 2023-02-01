@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "forge-std/Test.sol";
 import "../src/KyberElasticMultiQuoter.sol";
-import {IPool} from "../src/interfaces/IKyberSwapElastic.sol";
+import {IPool} from "../src/interfaces/IKyberElastic.sol";
 import "@kyberelastic/interfaces/IFactory.sol";
 import "@kyberelastic/interfaces/periphery/IQuoterV2.sol";
 

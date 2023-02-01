@@ -1,4 +1,18 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.6;
+
+interface IFactory {
+  /// @notice Returns the pool address for a given pair of tokens and a swap fee
+  /// @dev Token order does not matter
+  /// @param tokenA Contract address of either token0 or token1
+  /// @param tokenB Contract address of the other token
+  /// @param swapFeeUnits Fee to be collected upon every swap in the pool, in fee units
+  /// @return pool The pool address. Returns null address if it does not exist
+  function getPool(
+    address tokenA,
+    address tokenB,
+    uint24 swapFeeUnits
+  ) external view returns (address pool);
+}
 
 interface IPool {
     /// @notice The fee to be charged for a swap in basis points

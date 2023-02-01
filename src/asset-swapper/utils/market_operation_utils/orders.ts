@@ -515,6 +515,10 @@ const BRIDGE_ENCODERS: {
         { name: 'router', type: 'address' },
         { name: 'path', type: 'bytes' },
     ]),
+    [ERC20BridgeSource.KyberElastic]: AbiEncoder.create([
+        { name: 'router', type: 'address' },
+        { name: 'path', type: 'bytes' },
+    ]),
     [ERC20BridgeSource.KyberDmm]: AbiEncoder.create('(address,address[],address[])'),
     [ERC20BridgeSource.Lido]: AbiEncoder.create('(address,address)'),
     [ERC20BridgeSource.AaveV2]: AbiEncoder.create('(address,address)'),

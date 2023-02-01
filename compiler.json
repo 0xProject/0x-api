@@ -20,6 +20,7 @@
         "./contracts/src/FakeTaker.sol",
         "./contracts/src/GMXSampler.sol",
         "./contracts/src/KyberDmmSampler.sol",
+        "./contracts/src/KyberElasticSampler.sol",
         "./contracts/src/LidoSampler.sol",
         "./contracts/src/MStableSampler.sol",
         "./contracts/src/MakerPSMSampler.sol",

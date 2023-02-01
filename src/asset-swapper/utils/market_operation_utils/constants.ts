@@ -1431,6 +1431,16 @@ export const KYBER_DMM_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     NULL_ADDRESS,
 );
 
+export const KYBER_ELASTIC_CONFIG_BY_CHAIN_ID = valueByChainId(
+    {
+        [ChainId.Mainnet]: {
+            factory: '0x5f1dddbf348ac2fbe22a163e30f99f9ece3dd50a',
+            router: '0xc1e7dfe73e1598e3910ef4c7845b68a9ab6f4c83',
+        },
+    },
+    { factory: NULL_ADDRESS, router: NULL_ADDRESS },
+    );
+
 export const BISWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     {
         [ChainId.BSC]: '0x3a6d8ca21d1cf76f653a67577fa0d27453350dd8',
@@ -2010,6 +2020,8 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
         return gas;
     },
     [ERC20BridgeSource.BancorV3]: () => 250e3, // revisit gas costs with wrap/unwrap
+
+    [ERC20BridgeSource.KyberElastic]: () => 250e3, // TODO: fix, but do we even need this with accurate gas estimates from the sampler contract?
     [ERC20BridgeSource.KyberDmm]: (fillData?: FillData) => {
         let gas = 170e3;
         const path = (fillData as UniswapV2FillData).tokenAddressPath;

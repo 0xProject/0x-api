@@ -19,8 +19,8 @@
 
 pragma solidity ^0.8;
 
-import "./interfaces/IKyberSwapElastic.sol";
 import "./libraries/Multiswap.sol";
+import "@kyberelastic/interfaces/IPool.sol";
 import "@kyberelastic/interfaces/IFactory.sol";
 import "@kyberelastic/libraries/TickMath.sol";
 import "@kyberelastic/libraries/SwapMath.sol";
@@ -31,7 +31,7 @@ import "@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol";
 
 /// @title Provides quotes for multiple swap amounts
 /// @notice Allows getting the expected amount out or amount in for multiple given swap amounts without executing the swap
-contract KyberElasticMultiQuoter {
+contract KyberElasticMultiQuoter is IMultiQuoter {
     using SafeCast for uint256;
     using LowGasSafeMath for int256;
     using SafeCast for int128;
