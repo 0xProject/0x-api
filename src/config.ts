@@ -322,9 +322,7 @@ export const RFQT_REQUEST_MAX_RESPONSE_MS: number = _.isEmpty(process.env.RFQT_R
     ? 600
     : assertEnvVarType('RFQT_REQUEST_MAX_RESPONSE_MS', process.env.RFQT_REQUEST_MAX_RESPONSE_MS, EnvVarType.Integer);
 
-export const ENABLE_GASLESS_RFQT: boolean = _.isEmpty(process.env.ENABLE_GASLESS_RFQT)
-    ? false
-    : assertEnvVarType('ENABLE_GASLESS_RFQT', process.env.ENABLE_GASLESS_RFQT, EnvVarType.Boolean);
+export const ENABLE_GASLESS_RFQT: boolean = resolveEnvVar<boolean>('ENABLE_GASLESS_RFQT', EnvVarType.Boolean, false);
 
 // Whitelisted 0x API keys that can post orders to the SRA and have them persist indefinitely
 export const SRA_PERSISTENT_ORDER_POSTING_WHITELISTED_API_KEYS: string[] =
