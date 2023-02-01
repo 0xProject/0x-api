@@ -26,22 +26,21 @@ import "./UniswapV3Common.sol";
 import "./interfaces/IUniswapV3.sol";
 
 contract UniswapV3Sampler is UniswapV3Common {
-    /// @dev Gas limit for UniswapV3 calls. This is 100% a guess.
-    uint256 private constant QUOTE_GAS = 700e3;
+    /// @dev Gas limit for UniswapV3 calls
+    uint256 private constant QUOTE_GAS = 400e3;
 
     IUniswapV3MultiQuoter private constant multiQuoter =
         IUniswapV3MultiQuoter(0x5555555555555555555555555555555555555556);
 
-    // TODO: remove IUniswapV3QuoterV2 and instead pass in IUniswapV3Factory
     /// @dev Sample sell quotes from UniswapV3.
-    /// @param quoter UniswapV3 Quoter contract.
+    /// @param factory UniswapV3 Factory contract.
     /// @param path Token route. Should be takerToken -> makerToken (at most two hops).
     /// @param takerTokenAmounts Taker token sell amount for each sample.
     /// @return uniswapPaths The encoded uniswap path for each sample.
     /// @return uniswapGasUsed Estimated amount of gas used
     /// @return makerTokenAmounts Maker amounts bought at each taker token amount.
     function sampleSellsFromUniswapV3(
-        IUniswapV3QuoterV2 quoter,
+        IUniswapV3Factory factory,
         IERC20TokenV06[] memory path,
         uint256[] memory takerTokenAmounts
     )
@@ -49,7 +48,7 @@ contract UniswapV3Sampler is UniswapV3Common {
         returns (bytes[] memory uniswapPaths, uint256[] memory uniswapGasUsed, uint256[] memory makerTokenAmounts)
     {
         IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
-            quoter,
+            factory,
             path,
             takerTokenAmounts[takerTokenAmounts.length - 1]
         );
@@ -64,8 +63,9 @@ contract UniswapV3Sampler is UniswapV3Common {
             }
 
             bytes memory uniswapPath = toUniswapPath(path, poolPaths[i]);
+
             (uint256[] memory amountsOut, uint256[] memory gasEstimate) = multiQuoter.quoteExactMultiInput(
-                quoter.factory(),
+                factory,
                 uniswapPath,
                 takerTokenAmounts
             );
@@ -81,14 +81,14 @@ contract UniswapV3Sampler is UniswapV3Common {
     }
 
     /// @dev Sample buy quotes from UniswapV3.
-    /// @param quoter UniswapV3 Quoter contract.
+    /// @param factory UniswapV3 Factory contract.
     /// @param path Token route. Should be takerToken -> makerToken (at most two hops).
     /// @param makerTokenAmounts Maker token buy amount for each sample.
     /// @return uniswapPaths The encoded uniswap path for each sample.
     /// @return uniswapGasUsed Estimated amount of gas used
     /// @return takerTokenAmounts Taker amounts sold at each maker token amount.
     function sampleBuysFromUniswapV3(
-        IUniswapV3QuoterV2 quoter,
+        IUniswapV3Factory factory,
         IERC20TokenV06[] memory path,
         uint256[] memory makerTokenAmounts
     )
@@ -97,7 +97,7 @@ contract UniswapV3Sampler is UniswapV3Common {
     {
         IERC20TokenV06[] memory reversedPath = reverseTokenPath(path);
         IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
-            quoter,
+            factory,
             reversedPath,
             makerTokenAmounts[makerTokenAmounts.length - 1]
         );
@@ -112,8 +112,9 @@ contract UniswapV3Sampler is UniswapV3Common {
             }
 
             bytes memory uniswapPath = toUniswapPath(reversedPath, poolPaths[i]);
+
             (uint256[] memory amountsIn, uint256[] memory gasEstimate) = multiQuoter.quoteExactMultiOutput(
-                quoter.factory(),
+                factory,
                 uniswapPath,
                 makerTokenAmounts
             );
@@ -130,32 +131,26 @@ contract UniswapV3Sampler is UniswapV3Common {
 
     /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
     function _getPoolPaths(
-        IUniswapV3QuoterV2 quoter,
+        IUniswapV3Factory factory,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[][] memory poolPaths) {
         if (path.length == 2) {
-            return _getPoolPathSingleHop(quoter, path, inputAmount);
+            return _getPoolPathSingleHop(factory, path, inputAmount);
         }
         if (path.length == 3) {
-            return _getPoolPathTwoHop(quoter, path, inputAmount);
+            return _getPoolPathTwoHop(factory, path, inputAmount);
         }
         revert("UniswapV3Sampler/unsupported token path length");
     }
 
     function _getPoolPathSingleHop(
-        IUniswapV3QuoterV2 quoter,
+        IUniswapV3Factory factory,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
     ) public returns (IUniswapV3Pool[][] memory poolPaths) {
         poolPaths = new IUniswapV3Pool[][](2);
-        (IUniswapV3Pool[2] memory topPools, ) = _getTopTwoPools(
-            quoter,
-            quoter.factory(),
-            path[0],
-            path[1],
-            inputAmount
-        );
+        (IUniswapV3Pool[2] memory topPools, ) = _getTopTwoPools(factory, path[0], path[1], inputAmount);
 
         uint256 pathCount = 0;
         for (uint256 i = 0; i < 2; i++) {
@@ -167,26 +162,18 @@ contract UniswapV3Sampler is UniswapV3Common {
     }
 
     function _getPoolPathTwoHop(
-        IUniswapV3QuoterV2 quoter,
+        IUniswapV3Factory factory,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[][] memory poolPaths) {
-        IUniswapV3Factory factory = quoter.factory();
         poolPaths = new IUniswapV3Pool[][](4);
         (IUniswapV3Pool[2] memory firstHopTopPools, uint256[2] memory firstHopAmounts) = _getTopTwoPools(
-            quoter,
             factory,
             path[0],
             path[1],
             inputAmount
         );
-        (IUniswapV3Pool[2] memory secondHopTopPools, ) = _getTopTwoPools(
-            quoter,
-            factory,
-            path[1],
-            path[2],
-            firstHopAmounts[0]
-        );
+        (IUniswapV3Pool[2] memory secondHopTopPools, ) = _getTopTwoPools(factory, path[1], path[2], firstHopAmounts[0]);
 
         uint256 pathCount = 0;
         for (uint256 i = 0; i < 2; i++) {
@@ -202,9 +189,7 @@ contract UniswapV3Sampler is UniswapV3Common {
 
     /// @dev Returns top 0-2 pools and corresponding output amounts based on swaping `inputAmount`.
     /// Addresses in `topPools` can be zero addresses when there are pool isn't available.
-    // TODO: test how our gas usage and latency would be affected if we got rid of 2 pool filtering.
     function _getTopTwoPools(
-        IUniswapV3QuoterV2 quoter,
         IUniswapV3Factory factory,
         IERC20TokenV06 inputToken,
         IERC20TokenV06 outputToken,
@@ -213,6 +198,9 @@ contract UniswapV3Sampler is UniswapV3Common {
         IERC20TokenV06[] memory path = new IERC20TokenV06[](2);
         path[0] = inputToken;
         path[1] = outputToken;
+
+        uint256[] memory inputAmounts = new uint256[](1);
+        inputAmounts[0] = inputAmount;
 
         uint24[4] memory validPoolFees = [uint24(0.0001e6), uint24(0.0005e6), uint24(0.003e6), uint24(0.01e6)];
         for (uint256 i = 0; i < validPoolFees.length; ++i) {
@@ -224,20 +212,19 @@ contract UniswapV3Sampler is UniswapV3Common {
             IUniswapV3Pool[] memory poolPath = new IUniswapV3Pool[](1);
             poolPath[0] = pool;
             bytes memory uniswapPath = toUniswapPath(path, poolPath);
-            try quoter.quoteExactInput{gas: QUOTE_GAS}(uniswapPath, inputAmount) returns (
-                uint256 outputAmount,
-                uint160[] memory /* sqrtPriceX96AfterList */,
-                uint32[] memory /* initializedTicksCrossedList */,
-                uint256 /* gasUsed */
+
+            try multiQuoter.quoteExactMultiInput{gas: QUOTE_GAS}(factory, uniswapPath, inputAmounts) returns (
+                uint256[] memory amountsOut,
+                uint256[] memory /* gasEstimate */
             ) {
                 // Keeping track of the top 2 pools.
-                if (outputAmount > outputAmounts[0]) {
+                if (amountsOut[0] > outputAmounts[0]) {
                     outputAmounts[1] = outputAmounts[0];
                     topPools[1] = topPools[0];
-                    outputAmounts[0] = outputAmount;
+                    outputAmounts[0] = amountsOut[0];
                     topPools[0] = pool;
-                } else if (outputAmount > outputAmounts[1]) {
-                    outputAmounts[1] = outputAmount;
+                } else if (amountsOut[0] > outputAmounts[1]) {
+                    outputAmounts[1] = amountsOut[0];
                     topPools[1] = pool;
                 }
             } catch {}

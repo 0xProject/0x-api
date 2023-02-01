@@ -88,18 +88,25 @@ export class SwapQuoter {
         const samplerBytecode = _.get(artifacts.ERC20BridgeSampler, 'compilerOutput.evm.deployedBytecode.object');
         // Allow address of the Sampler to be overridden, i.e in Ganache where overrides do not work
         const samplerAddress = (options.samplerOverrides && options.samplerOverrides.to) || SAMPLER_ADDRESS;
-        // Allow the UniV3 MultiQuoter bytecode to be written to a specic address
-        const uniV3MultiQuoterBytecode = _.get(
-            artifacts.UniswapV3MultiQuoter,
-            'compilerOutput.evm.deployedBytecode.object',
-        );
 
         const defaultCodeOverrides = samplerBytecode
             ? {
                   [samplerAddress]: { code: samplerBytecode },
-                  [UNISWAP_V3_MULTIQUOTER_ADDRESS]: { code: uniV3MultiQuoterBytecode },
               }
             : {};
+
+        if (
+            SELL_SOURCE_FILTER_BY_CHAIN_ID[this.chainId].isAllowed(ERC20BridgeSource.UniswapV3) ||
+            BUY_SOURCE_FILTER_BY_CHAIN_ID[this.chainId].isAllowed(ERC20BridgeSource.UniswapV3)
+        ) {
+            // Allow the UniV3 MultiQuoter bytecode to be written to a specic address
+            const uniV3MultiQuoterBytecode = _.get(
+                artifacts.UniswapV3MultiQuoter,
+                'compilerOutput.evm.deployedBytecode.object',
+            );
+            defaultCodeOverrides[UNISWAP_V3_MULTIQUOTER_ADDRESS] = { code: uniV3MultiQuoterBytecode };
+        }
+
         const samplerOverrides = _.assign(
             { block: BlockParamLiteral.Latest, overrides: defaultCodeOverrides },
             options.samplerOverrides,

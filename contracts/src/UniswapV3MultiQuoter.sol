@@ -186,12 +186,8 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
             }
 
             if (!path.hasMultiplePools() || nextAmountsLength == 0) {
-                for (uint256 i = 0; i < amountsIn.length; ++i) {
-                    if (i < nextAmountsLength) {
-                        amountsIn[i] = amountsOut[i];
-                    } else {
-                        amountsIn[i] = 0;
-                    }
+                for (uint256 i = 0; i < nextAmountsLength; ++i) {
+                    amountsIn[i] = amountsOut[i];
                 }
                 return (amountsIn, gasEstimate);
             }
@@ -306,10 +302,12 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                     : (state.amountCalculated, amounts[state.amountsIndex]);
 
                 if (state.sqrtPriceX96 != step.sqrtPriceNextX96) {
-                    result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(state.gasAggregate + (step.gasBefore - gasleft()));
+                    result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(
+                        state.gasAggregate + (step.gasBefore - gasleft())
+                    );
                 } else {
                     // we are moving to the next tick
-                    result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(state.gasAggregate); 
+                    result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(state.gasAggregate);
                 }
 
                 if (state.amountsIndex == amounts.length - 1) {
@@ -335,7 +333,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
     /// @param multiSwapEstimate the gas estimate from multiswap
     /// @return swapEstimate the gas estimate equivalent for UniswapV3Pool:swap
     function scaleMultiswapGasEstimate(uint256 multiSwapEstimate) private view returns (uint256 swapEstimate) {
-        return 11 * multiSwapEstimate / 10 + 65000;
+        return (11 * multiSwapEstimate) / 10 + 65000;
     }
 
     /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either
