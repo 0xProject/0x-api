@@ -100,7 +100,7 @@ export class TransformERC20Rule extends AbstractFeatureRule {
         }
 
         let gasOverhead = ZERO_AMOUNT;
-        const fees = affiliateFees;
+        const fees = [...affiliateFees];
         positiveSlippageFee && fees.push(positiveSlippageFee); // Append positive slippage fee if present
         fees.forEach((fee) => {
             const { feeType, buyTokenFeeAmount, sellTokenFeeAmount, recipient: feeRecipient } = fee;
