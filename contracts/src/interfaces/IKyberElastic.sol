@@ -1,5 +1,6 @@
 pragma solidity ^0.6;
 
+import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 interface IFactory {
   /// @notice Returns the pool address for a given pair of tokens and a swap fee
   /// @dev Token order does not matter
@@ -15,6 +16,10 @@ interface IFactory {
 }
 
 interface IPool {
+
+    function token0() external view returns (IERC20TokenV06);
+
+    function token1() external view returns (IERC20TokenV06);
     /// @notice The fee to be charged for a swap in basis points
     /// @return The swap fee in basis points
     function swapFeeUnits() external view returns (uint24);

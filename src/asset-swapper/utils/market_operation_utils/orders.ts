@@ -136,6 +136,8 @@ export function getErc20BridgeSourceToBridgeSource(source: ERC20BridgeSource): s
             return encodeBridgeSourceId(BridgeProtocol.UniswapV2, 'ApeSwap');
         case ERC20BridgeSource.UniswapV3:
             return encodeBridgeSourceId(BridgeProtocol.UniswapV3, 'UniswapV3');
+        case ERC20BridgeSource.KyberElastic:
+            return encodeBridgeSourceId(BridgeProtocol.KyberElastic, 'KyberElastic');
         case ERC20BridgeSource.KyberDmm:
             return encodeBridgeSourceId(BridgeProtocol.KyberDmm, 'KyberDmm');
         case ERC20BridgeSource.QuickSwap:
@@ -329,6 +331,11 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
         case ERC20BridgeSource.UniswapV3: {
             const uniswapV3FillData = (order as OptimizedMarketBridgeOrder<FinalTickDEXMultiPathFillData>).fillData;
             bridgeData = encoder.encode([uniswapV3FillData.router, uniswapV3FillData.path]);
+            break;
+        }
+        case ERC20BridgeSource.KyberElastic: {
+            const uniswapV3FillData = (order as OptimizedMarketBridgeOrder<FinalUniswapV3FillData>).fillData;
+            bridgeData = encoder.encode([uniswapV3FillData.router, uniswapV3FillData.uniswapPath]);
             break;
         }
         case ERC20BridgeSource.KyberDmm: {
@@ -597,6 +604,7 @@ function toFillBase(fill: Fill): FillBase {
 
 function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {
     switch (fill.source) {
+        case ERC20BridgeSource.KyberElastic:
         case ERC20BridgeSource.UniswapV3: {
             const fd = fill.fillData as TickDEXMultiPathFillData;
             const { path: uniswapPath, gasUsed } = getBestUniswapV3PathAmountForInputAmount(fd, fill.input);

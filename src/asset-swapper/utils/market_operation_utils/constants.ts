@@ -42,6 +42,7 @@ const NULL_BYTES = '0x';
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const SAMPLER_ADDRESS = '0x5555555555555555555555555555555555555555';
 export const UNISWAP_V3_MULTIQUOTER_ADDRESS = '0x5555555555555555555555555555555555555556';
+export const KYBER_ELASTIC_MULTI_QUOTER_ADDRESS = '0x5555555555555555555555555555555555555557';
 export const COMPARISON_PRICE_DECIMALS = 10;
 
 // TODO(kimpers): Consolidate this implementation with the one in @0x/token-metadata
@@ -95,6 +96,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID: Record<ChainId, SourceFilters> = {
         ERC20BridgeSource.Synthetix,
         ERC20BridgeSource.AaveV2,
         ERC20BridgeSource.Compound,
+        ERC20BridgeSource.KyberElastic,
     ]),
     [ChainId.Goerli]: new SourceFilters([
         ERC20BridgeSource.Native,
@@ -248,6 +250,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID: Record<ChainId, SourceFilters> = {
         ERC20BridgeSource.Synthetix,
         ERC20BridgeSource.AaveV2,
         ERC20BridgeSource.Compound,
+        ERC20BridgeSource.KyberElastic,
     ]),
     [ChainId.Goerli]: new SourceFilters([
         ERC20BridgeSource.Native,
