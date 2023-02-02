@@ -28,7 +28,7 @@
         "slippageModel": {
             "type": "boolean"
         },
-        "positiveSlippagePercentage": {
+        "positiveSlippagePercent": {
             "type": "number"
         },
         "feeRecipient": {

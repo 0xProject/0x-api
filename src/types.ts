@@ -351,7 +351,7 @@ export interface Integrator {
     rfqm: boolean;
     rfqt: boolean;
     slippageModel?: boolean;
-    positiveSlippagePercentage?: number; // units in percent, i.e. 1 = 1%
+    positiveSlippagePercent?: number; // units in percent, i.e. 1 = 1%
     feeRecipient?: string;
 }
 
