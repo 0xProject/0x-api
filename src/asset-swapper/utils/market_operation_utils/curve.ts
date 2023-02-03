@@ -1,4 +1,4 @@
-import { CurveFillData, CurveFunctionSelectors, CurveInfo } from './types';
+import { CurveFunctionSelectors, CurveInfo } from './types';
 import {
     MAINNET_TOKENS,
     AVALANCHE_TOKENS,
@@ -17,7 +17,7 @@ const CURVE_POLYGON_ATRICRYPTO_TOKENS = [POLYGON_TOKENS.amDAI, POLYGON_TOKENS.am
 const CURVE_FANTOM_TWO_POOL_TOKENS = [FANTOM_TOKENS.DAI, FANTOM_TOKENS.USDC];
 const CURVE_ARBITRUM_TWO_POOL_TOKENS = [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT];
 
-export const CURVE_POOLS = {
+const CURVE_POOLS = {
     compound: '0xa2b47e3d5c44877cca798226b7b8118f9bfb7a56', // 0.Compound
     // 1.USDT is dead
     PAX: '0x06364f10b501e868329afbc005b3492902d6c763', // 2.PAX
@@ -81,31 +81,31 @@ export const CURVE_POOLS = {
     crvfrax: '0xdcef968d416a41cdac0ed8702fac8128a64241a2',
 };
 
-export const CURVE_V2_POOLS = {
+const CURVE_V2_POOLS = {
     tricrypto: '0x80466c64868e1ab14a1ddf27a676c3fcbe638fe5',
     tricrypto2: '0xd51a44d3fae010294c616388b506acda1bfaae46',
 };
 
-export const CURVE_POLYGON_POOLS = {
+const CURVE_POLYGON_POOLS = {
     aave: '0x445fe580ef8d70ff569ab36e80c647af338db351',
     ren: '0xc2d95eef97ec6c17551d45e77b590dc1f9117c67',
 };
 
-export const CURVE_V2_POLYGON_POOLS = {
+const CURVE_V2_POLYGON_POOLS = {
     atricrypto3: '0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8',
 };
 
-export const CURVE_AVALANCHE_POOLS = {
+const CURVE_AVALANCHE_POOLS = {
     aave: '0x7f90122bf0700f9e7e1f688fe926940e8839f353',
     mim: '0xaea2e71b631fa93683bcf256a8689dfa0e094fcd',
     USDC: '0x3a43a5851a3e3e0e25a3c1089670269786be1577',
 };
 
-export const CURVE_V2_AVALANCHE_POOLS = {
+const CURVE_V2_AVALANCHE_POOLS = {
     atricrypto: '0x58e57ca18b7a47112b877e31929798cd3d703b0f',
 };
 
-export const CURVE_FANTOM_POOLS = {
+const CURVE_FANTOM_POOLS = {
     fUSDT: '0x92d5ebf3593a92888c25c0abef126583d4b5312e',
     twoPool: '0x27e611fd27b276acbd5ffd632e5eaebec9761e40',
     ren: '0x3ef6a01a0f81d6046290f3e2a8c5b843e738e604',
@@ -114,15 +114,15 @@ export const CURVE_FANTOM_POOLS = {
     FRAX_twoPool: '0x7a656b342e14f745e2b164890e88017e27ae7320',
 };
 
-export const CURVE_V2_FANTOM_POOLS = {
+const CURVE_V2_FANTOM_POOLS = {
     tricrypto: '0x3a1659ddcf2339be3aea159ca010979fb49155ff',
 };
 
-export const CURVE_OPTIMISM_POOLS = {
+const CURVE_OPTIMISM_POOLS = {
     tri: '0x1337bedc9d22ecbe766df105c9623922a27963ec',
 };
 
-export const CURVE_V2_ARBITRUM_POOLS = {
+const CURVE_V2_ARBITRUM_POOLS = {
     tri: '0x960ea3e3c7fb317332d990873d354e18d7645590',
     twoPool: '0x7f90122bf0700f9e7e1f688fe926940e8839f353',
     vstFrax: '0x59bf0545fca0e5ad48e13da269facd2e8c886ba4',
@@ -145,7 +145,7 @@ const ACRYPTOS_POOLS = {
     acs3btc: '0xbe7caa236544d1b9a0e7f91e94b9f5bfd3b5ca81',
 };
 
-export const createCurveExchangePool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+const createCurveExchangePool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
@@ -155,7 +155,7 @@ export const createCurveExchangePool = (info: { tokens: string[]; pool: string; 
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveExchangeUnderlyingPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+const createCurveExchangeUnderlyingPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
@@ -165,7 +165,7 @@ export const createCurveExchangeUnderlyingPool = (info: { tokens: string[]; pool
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveMetaTriPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+const createCurveMetaTriPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
@@ -175,7 +175,7 @@ export const createCurveMetaTriPool = (info: { tokens: string[]; pool: string; g
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveMetaTriBtcPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+const createCurveMetaTriBtcPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
@@ -185,7 +185,7 @@ export const createCurveMetaTriBtcPool = (info: { tokens: string[]; pool: string
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveMetaTwoPoolFantom = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+const createCurveMetaTwoPoolFantom = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
@@ -195,7 +195,7 @@ export const createCurveMetaTwoPoolFantom = (info: { tokens: string[]; pool: str
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveMetaTwoPoolArbitrum = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+const createCurveMetaTwoPoolArbitrum = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
@@ -205,7 +205,7 @@ export const createCurveMetaTwoPoolArbitrum = (info: { tokens: string[]; pool: s
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveExchangeV2Pool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+const createCurveExchangeV2Pool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_v2,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_v2,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
@@ -215,7 +215,7 @@ export const createCurveExchangeV2Pool = (info: { tokens: string[]; pool: string
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveV2MetaTriPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+const createCurveV2MetaTriPool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying_v2,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying_v2,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
@@ -225,11 +225,7 @@ export const createCurveV2MetaTriPool = (info: { tokens: string[]; pool: string;
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveFactoryCryptoExchangePool = (info: {
-    tokens: string[];
-    pool: string;
-    gasSchedule: number;
-}) => ({
+const createCurveFactoryCryptoExchangePool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying_uint256,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_uint256,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
