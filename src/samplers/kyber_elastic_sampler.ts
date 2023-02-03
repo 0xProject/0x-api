@@ -1,4 +1,5 @@
 import { ContractTxFunctionObj } from '@0x/base-contract';
+import { assert } from '@0x/assert';
 import { BigNumber, ChainId, ERC20BridgeSamplerContract, ERC20BridgeSource, FillData } from '../asset-swapper';
 import { KYBER_ELASTIC_CONFIG_BY_CHAIN_ID } from '../asset-swapper/utils/market_operation_utils/constants';
 import { SamplerContractOperation } from '../asset-swapper/utils/market_operation_utils/sampler_contract_operation';
@@ -7,6 +8,7 @@ import {
     UniswapV3FillData,
     UniswapV3PathAmount,
 } from '../asset-swapper/utils/market_operation_utils/types';
+import { NULL_ADDRESS } from '@0x/utils';
 
 interface BridgeSampler<TFillData extends FillData> {
     createSampleSellsOperation(tokenAddressPath: string[], amounts: BigNumber[]): SourceQuoteOperation<TFillData>;
@@ -16,12 +18,16 @@ interface BridgeSampler<TFillData extends FillData> {
 export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
     private readonly source: ERC20BridgeSource = ERC20BridgeSource.KyberElastic;
     private readonly samplerContract: ERC20BridgeSamplerContract;
+    private readonly quoterAddress: string;
     private readonly factoryAddress: string;
     private readonly routerAddress: string;
 
     constructor(chainId: ChainId, samplerContract: ERC20BridgeSamplerContract) {
         this.samplerContract = samplerContract;
-        ({ factory: this.factoryAddress, router: this.routerAddress } = KYBER_ELASTIC_CONFIG_BY_CHAIN_ID[chainId]);
+        ({ quoter: this.quoterAddress, factory: this.factoryAddress, router: this.routerAddress } = KYBER_ELASTIC_CONFIG_BY_CHAIN_ID[chainId]);
+        assert.assert(this.quoterAddress != NULL_ADDRESS, "KyberElastic sampler must have non-null quoter address.");
+        assert.assert(this.factoryAddress != NULL_ADDRESS, "KyberElastic sampler must have non-null factory address.");
+        assert.assert(this.routerAddress != NULL_ADDRESS, "KyberElastic sampler must have non-null sampler address.");
     }
 
     createSampleSellsOperation(
@@ -63,6 +69,7 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
     private createSamplerOperation(
         samplerFunction: (
             quoter: string,
+            factory: string,
             path: string[],
             takerTokenAmounts: BigNumber[],
         ) => ContractTxFunctionObj<[string[], BigNumber[], BigNumber[]]>,
@@ -74,7 +81,7 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
             source: this.source,
             contract: this.samplerContract,
             function: samplerFunction,
-            params: [this.factoryAddress, tokenAddressPath, amounts],
+            params: [this.quoterAddress, this.factoryAddress, tokenAddressPath, amounts],
             callback: (callResults: string, fillData: UniswapV3FillData): BigNumber[] => {
                 const [paths, gasUsed, samples] = this.samplerContract.getABIDecodedReturnData<
                     [string[], BigNumber[], BigNumber[]]

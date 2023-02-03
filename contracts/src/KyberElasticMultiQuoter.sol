@@ -17,11 +17,10 @@
 
 */
 
-pragma solidity ^0.8;
+pragma solidity >=0.8;
 
 import "./libraries/Multiswap.sol";
-import "@kyberelastic/interfaces/IPool.sol";
-import "@kyberelastic/interfaces/IFactory.sol";
+import "./interfaces/IMultiQuoter.sol";
 import "@kyberelastic/libraries/TickMath.sol";
 import "@kyberelastic/libraries/SwapMath.sol";
 import "@kyberelastic/libraries/Linkedlist.sol";

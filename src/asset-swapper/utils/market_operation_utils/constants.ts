@@ -1437,11 +1437,12 @@ export const KYBER_DMM_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
 export const KYBER_ELASTIC_CONFIG_BY_CHAIN_ID = valueByChainId(
     {
         [ChainId.Mainnet]: {
+            quoter: KYBER_ELASTIC_MULTI_QUOTER_ADDRESS,
             factory: '0x5f1dddbf348ac2fbe22a163e30f99f9ece3dd50a',
             router: '0xc1e7dfe73e1598e3910ef4c7845b68a9ab6f4c83',
         },
     },
-    { factory: NULL_ADDRESS, router: NULL_ADDRESS },
+    { quoter: NULL_ADDRESS, factory: NULL_ADDRESS, router: NULL_ADDRESS },
     );
 
 export const BISWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
