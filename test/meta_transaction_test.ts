@@ -2,10 +2,14 @@ import { WETH9Contract } from '@0x/contract-wrappers';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { assertRoughlyEquals, expect } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, Web3ProviderEngine, Web3Wrapper } from '@0x/dev-utils';
+import { OtcOrder } from '@0x/protocol-utils';
 import { isNativeSymbolOrAddress } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
+import axios from 'axios';
+import AxiosMockAdapter from 'axios-mock-adapter';
 import { Server } from 'http';
 import * as HttpStatus from 'http-status-codes';
+import * as _ from 'lodash';
 import 'mocha';
 import supertest from 'supertest';
 
@@ -14,7 +18,7 @@ import { getDefaultAppDependenciesAsync } from '../src/runners/utils';
 import { AppDependencies } from '../src/types';
 import { LimitOrderFields } from '../src/asset-swapper';
 import * as config from '../src/config';
-import { META_TRANSACTION_V1_PATH, META_TRANSACTION_V2_PATH } from '../src/constants';
+import { META_TRANSACTION_V1_PATH, META_TRANSACTION_V2_PATH, ONE_SECOND_MS } from '../src/constants';
 import { getDBConnectionOrThrow } from '../src/db_connection';
 import { ValidationErrorCodes, ValidationErrorItem, ValidationErrorReasons } from '../src/errors';
 import { GetSwapQuoteResponse, SignedLimitOrder } from '../src/types';
@@ -32,10 +36,10 @@ import {
     ZRX_TOKEN_ADDRESS,
 } from './constants';
 import { setupDependenciesAsync, teardownDependenciesAsync } from './utils/deployment';
-import { httpPostAsync } from './utils/http_utils';
+import { constructRoute, httpGetAsync, httpPostAsync } from './utils/http_utils';
 import { MockOrderWatcher } from './utils/mock_order_watcher';
 import { getRandomSignedLimitOrderAsync } from './utils/orders';
-import { StatusCodes } from 'http-status-codes';
+import { before } from 'mocha';
 
 // Force reload of the app avoid variables being polluted between test suites
 // Warning: You probably don't want to move this
@@ -51,6 +55,8 @@ const ZERO_EX_SOURCE = { name: '0x', proportion: new BigNumber('1') };
 const INTEGRATOR_ID = 'test-integrator-id-1';
 const TAKER_ADDRESS = '0x70a9f34f9b34c64957b9c401a97bfed35b95049e';
 
+const RFQ_API_URL = 'https://mock-rfqt1.club';
+
 describe(SUITE_NAME, () => {
     let app: Express.Application;
     let server: Server;
@@ -58,10 +64,12 @@ describe(SUITE_NAME, () => {
     let accounts: string[];
     let takerAddress: string;
     let makerAddress: string;
+    let txOrigin: string;
     const invalidTakerAddress = '0x0000000000000000000000000000000000000001';
 
     let blockchainLifecycle: BlockchainLifecycle;
     let provider: Web3ProviderEngine;
+    let mockAxios: AxiosMockAdapter;
 
     before(async () => {
         await setupDependenciesAsync(SUITE_NAME);
@@ -71,9 +79,11 @@ describe(SUITE_NAME, () => {
         const web3Wrapper = new Web3Wrapper(provider);
         blockchainLifecycle = new BlockchainLifecycle(web3Wrapper);
 
+        mockAxios = new AxiosMockAdapter(axios);
+
         const mockOrderWatcher = new MockOrderWatcher(connection);
         accounts = await web3Wrapper.getAvailableAddressesAsync();
-        [, makerAddress, takerAddress] = accounts;
+        [, makerAddress, takerAddress, txOrigin] = accounts;
 
         // Set up liquidity.
         await blockchainLifecycle.startAsync();
@@ -154,6 +164,225 @@ describe(SUITE_NAME, () => {
             });
         });
         await teardownDependenciesAsync(SUITE_NAME);
+    });
+
+    describe('v1 /price', async () => {
+        it('should respond with 200 OK even if the the takerAddress cannot complete a trade', async () => {
+            // The taker does not have an allowance
+            const swapResponse = await requestSwap(app, 'price', 'v1', {
+                takerAddress: invalidTakerAddress,
+                sellToken: 'WETH',
+                buyToken: 'ZRX',
+                sellAmount: '10000',
+                integratorId: INTEGRATOR_ID,
+            });
+            expect(swapResponse.statusCode).eq(HttpStatus.StatusCodes.OK);
+        });
+    });
+
+    describe('v1 /quote', async () => {
+        it('should handle valid request body permutations', async () => {
+            const WETH_BUY_AMOUNT = MAKER_WETH_AMOUNT.div(10).toString();
+            const ZRX_BUY_AMOUNT = ONE_THOUSAND_IN_BASE.div(10).toString();
+            const bodyPermutations = [
+                {
+                    buyToken: 'ZRX',
+                    sellToken: 'WETH',
+                    buyAmount: ZRX_BUY_AMOUNT,
+                    integratorId: INTEGRATOR_ID,
+                    takerAddress: TAKER_ADDRESS,
+                },
+                {
+                    buyToken: 'WETH',
+                    sellToken: 'ZRX',
+                    buyAmount: WETH_BUY_AMOUNT,
+                    integratorId: INTEGRATOR_ID,
+                    takerAddress: TAKER_ADDRESS,
+                },
+                {
+                    buyToken: ZRX_TOKEN_ADDRESS,
+                    sellToken: 'WETH',
+                    buyAmount: ZRX_BUY_AMOUNT,
+                    integratorId: INTEGRATOR_ID,
+                    takerAddress: TAKER_ADDRESS,
+                },
+                {
+                    buyToken: ZRX_TOKEN_ADDRESS,
+                    sellToken: WETH_TOKEN_ADDRESS,
+                    buyAmount: ZRX_BUY_AMOUNT,
+                    integratorId: INTEGRATOR_ID,
+                    takerAddress: TAKER_ADDRESS,
+                },
+            ];
+
+            for (const body of bodyPermutations) {
+                const response = await requestSwap(app, 'quote', 'v1', body);
+                expectCorrectQuoteResponse(response, {
+                    buyAmount: new BigNumber(body.buyAmount),
+                    sellTokenAddress: body.sellToken.startsWith('0x')
+                        ? body.sellToken
+                        : SYMBOL_TO_ADDRESS[body.sellToken],
+                    buyTokenAddress: body.buyToken.startsWith('0x') ? body.buyToken : SYMBOL_TO_ADDRESS[body.buyToken],
+                    allowanceTarget: isNativeSymbolOrAddress(body.sellToken, CHAIN_ID)
+                        ? NULL_ADDRESS
+                        : CONTRACT_ADDRESSES.exchangeProxy,
+                    sources: [ZERO_EX_SOURCE],
+                });
+            }
+        });
+
+        it("should respond with INSUFFICIENT_ASSET_LIQUIDITY when there's no liquidity", async () => {
+            const response = await requestSwap(app, 'quote', 'v1', {
+                buyToken: ZRX_TOKEN_ADDRESS,
+                sellToken: WETH_TOKEN_ADDRESS,
+                buyAmount: '10000000000000000000000000000000',
+                integratorId: INTEGRATOR_ID,
+                takerAddress: TAKER_ADDRESS,
+            });
+            expectSwapError(response, {
+                validationErrors: [
+                    {
+                        code: ValidationErrorCodes.ValueOutOfRange,
+                        field: 'buyAmount',
+                        reason: 'INSUFFICIENT_ASSET_LIQUIDITY',
+                    },
+                ],
+            });
+        });
+
+        it('should respect buyAmount', async () => {
+            const response = await requestSwap(app, 'quote', 'v1', {
+                buyToken: 'ZRX',
+                sellToken: 'WETH',
+                buyAmount: '1234',
+                integratorId: INTEGRATOR_ID,
+                takerAddress: TAKER_ADDRESS,
+            });
+            expectCorrectQuoteResponse(response, { buyAmount: new BigNumber(1234) });
+        });
+
+        it('should respect sellAmount', async () => {
+            const response = await requestSwap(app, 'quote', 'v1', {
+                buyToken: 'ZRX',
+                sellToken: 'WETH',
+                sellAmount: '1234',
+                integratorId: INTEGRATOR_ID,
+                takerAddress: TAKER_ADDRESS,
+            });
+            expectCorrectQuoteResponse(response, { sellAmount: new BigNumber(1234) });
+        });
+
+        describe('with rfqt', () => {
+            const WETH_SELL_AMOUNT = MAKER_WETH_AMOUNT.div(10).toString();
+            const ZRX_BUY_AMOUNT = ONE_THOUSAND_IN_BASE.div(10).toString();
+            const fiveMinutesLaterMs = new BigNumber(Math.round(Date.now() / ONE_SECOND_MS) + 300);
+
+            before(async () => {
+                const order = new OtcOrder({
+                    txOrigin,
+                    makerToken: ZRX_TOKEN_ADDRESS,
+                    makerAmount: new BigNumber(ZRX_BUY_AMOUNT),
+                    takerToken: WETH_TOKEN_ADDRESS,
+                    takerAmount: new BigNumber(WETH_SELL_AMOUNT),
+                    expiryAndNonce: OtcOrder.encodeExpiryAndNonce(
+                        fiveMinutesLaterMs,
+                        new BigNumber(1),
+                        new BigNumber(1),
+                    ),
+                    maker: makerAddress,
+                    taker: NULL_ADDRESS,
+                    chainId: 1337,
+                    verifyingContract: CONTRACT_ADDRESSES.exchangeProxy,
+                });
+                const signature = await order.getSignatureWithProviderAsync(provider);
+                const responseData = {
+                    quotes: [
+                        {
+                            fillableMakerAmount: new BigNumber(ZRX_BUY_AMOUNT),
+                            fillableTakerAmount: new BigNumber(WETH_SELL_AMOUNT),
+                            fillableTakerFeeAmount: new BigNumber(0),
+                            makerId: 'maker1',
+                            makerUri: 'https://maker-uri',
+                            order,
+                            signature,
+                        },
+                    ],
+                };
+                mockAxios
+                    .onPost(`${RFQ_API_URL}/internal/rfqt/v2/quotes`)
+                    .replyOnce(HttpStatus.StatusCodes.OK, responseData);
+            });
+
+            it('should handle rfqt requests', async () => {
+                const response = await requestSwap(
+                    app,
+                    'quote',
+                    'v1',
+                    {
+                        buyToken: 'ZRX',
+                        sellToken: 'WETH',
+                        sellAmount: WETH_SELL_AMOUNT,
+                        integratorId: INTEGRATOR_ID,
+                        takerAddress: TAKER_ADDRESS,
+                        txOrigin,
+                        includedSources: 'RFQT',
+                    },
+                    {
+                        '0x-api-key': 'test-api-key-1',
+                    },
+                );
+                expectCorrectQuoteResponse(response, { sellAmount: new BigNumber(WETH_SELL_AMOUNT) });
+            });
+
+            it('should throw if txOrigin is empty', async () => {
+                const response = await requestSwap(
+                    app,
+                    'quote',
+                    'v1',
+                    {
+                        buyToken: 'ZRX',
+                        sellToken: 'WETH',
+                        sellAmount: WETH_SELL_AMOUNT,
+                        integratorId: INTEGRATOR_ID,
+                        takerAddress: TAKER_ADDRESS,
+                        includedSources: 'RFQT',
+                    },
+                    {
+                        '0x-api-key': 'test-api-key-1',
+                    },
+                );
+                expectSwapError(response, {
+                    validationErrors: [
+                        {
+                            code: ValidationErrorCodes.RequiredField,
+                            field: 'txOrigin',
+                            reason: ValidationErrorReasons.InvalidTxOrigin,
+                        },
+                    ],
+                });
+            });
+
+            it('should throw if api key is empty', async () => {
+                const response = await requestSwap(app, 'quote', 'v1', {
+                    buyToken: 'ZRX',
+                    sellToken: 'WETH',
+                    sellAmount: WETH_SELL_AMOUNT,
+                    integratorId: INTEGRATOR_ID,
+                    takerAddress: TAKER_ADDRESS,
+                    txOrigin,
+                    includedSources: 'RFQT',
+                });
+                expectSwapError(response, {
+                    validationErrors: [
+                        {
+                            code: ValidationErrorCodes.RequiredField,
+                            field: '0x-api-key',
+                            reason: ValidationErrorReasons.InvalidApiKey,
+                        },
+                    ],
+                });
+            });
+        });
     });
 
     describe('v2 /price', async () => {
@@ -506,6 +735,8 @@ async function requestSwap(
         sellToken: string;
         sellAmount?: string;
         takerAddress: string;
+        txOrigin?: string;
+        includedSources?: string;
         slippagePercentage?: string;
         integratorId: string;
         quoteUniqueId?: string;
@@ -532,31 +763,42 @@ async function requestSwap(
             };
         };
     },
+    headers?: {
+        '0x-api-key': string;
+    },
 ): Promise<supertest.Response> {
-    const metaTransactionPath = version === 'v1' ? META_TRANSACTION_V1_PATH : META_TRANSACTION_V2_PATH;
-    const route = `${metaTransactionPath}/${endpoint}`;
-
-    return await httpPostAsync({ app, route, body });
+    if (version === 'v1') {
+        const filteredParams = _.pickBy(body);
+        delete filteredParams.feeConfigs;
+        const route = constructRoute({
+            baseRoute: `${META_TRANSACTION_V1_PATH}/${endpoint}`,
+            queryParams: filteredParams as { [param: string]: string | undefined },
+        });
+        return await httpGetAsync({ app, route, headers });
+    } else {
+        const route = `${META_TRANSACTION_V2_PATH}/${endpoint}`;
+        return await httpPostAsync({ app, route, body });
+    }
 }
 
 async function expectSwapError(swapResponse: supertest.Response, swapErrors: SwapErrors) {
     expect(swapResponse.type).to.be.eq('application/json');
-    expect(swapResponse.statusCode).not.eq(StatusCodes.OK);
+    expect(swapResponse.statusCode).not.eq(HttpStatus.StatusCodes.OK);
 
     if (swapErrors.revertErrorReason) {
-        expect(swapResponse.status).to.be.eq(StatusCodes.BAD_REQUEST);
+        expect(swapResponse.status).to.be.eq(HttpStatus.StatusCodes.BAD_REQUEST);
         expect(swapResponse.body.code).to.eq(105);
         expect(swapResponse.body.reason).to.be.eql(swapErrors.revertErrorReason);
         return swapResponse;
     }
     if (swapErrors.validationErrors) {
-        expect(swapResponse.status).to.be.eq(StatusCodes.BAD_REQUEST);
+        expect(swapResponse.status).to.be.eq(HttpStatus.StatusCodes.BAD_REQUEST);
         expect(swapResponse.body.code).to.eq(100);
         expect(swapResponse.body.validationErrors).to.be.eql(swapErrors.validationErrors);
         return swapResponse;
     }
     if (swapErrors.generalUserError) {
-        expect(swapResponse.status).to.be.eq(StatusCodes.BAD_REQUEST);
+        expect(swapResponse.status).to.be.eq(HttpStatus.StatusCodes.BAD_REQUEST);
         return swapResponse;
     }
 }
@@ -567,7 +809,7 @@ function expectCorrectQuoteResponse(
     expectedResponse: Partial<GetSwapQuoteResponse>,
 ): void {
     expect(response.type).to.be.eq('application/json');
-    expect(response.statusCode).eq(StatusCodes.OK);
+    expect(response.statusCode).eq(HttpStatus.StatusCodes.OK);
     const quoteResponse = response.body as GetSwapQuoteResponse;
 
     for (const prop of Object.keys(expectedResponse)) {
