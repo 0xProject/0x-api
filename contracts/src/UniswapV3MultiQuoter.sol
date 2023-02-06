@@ -185,7 +185,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                 }
             }
 
-            if (!path.hasMultiplePools() || nextAmountsLength == 0) {
+            if (nextAmountsLength == 0 || !path.hasMultiplePools()) {
                 for (uint256 i = 0; i < nextAmountsLength; ++i) {
                     amountsIn[i] = amountsOut[i];
                 }
