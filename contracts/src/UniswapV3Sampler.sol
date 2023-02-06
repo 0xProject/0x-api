@@ -47,8 +47,9 @@ contract UniswapV3Sampler is UniswapV3Common {
         public
         returns (bytes[] memory uniswapPaths, uint256[] memory uniswapGasUsed, uint256[] memory makerTokenAmounts)
     {
-        IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
+        IUniswapV3Pool[][] memory poolPaths = getPoolPaths(
             factory,
+            multiQuoter,
             path,
             takerTokenAmounts[takerTokenAmounts.length - 1]
         );
@@ -96,8 +97,9 @@ contract UniswapV3Sampler is UniswapV3Common {
         returns (bytes[] memory uniswapPaths, uint256[] memory uniswapGasUsed, uint256[] memory takerTokenAmounts)
     {
         IERC20TokenV06[] memory reversedPath = reverseTokenPath(path);
-        IUniswapV3Pool[][] memory poolPaths = _getPoolPaths(
+        IUniswapV3Pool[][] memory poolPaths = getPoolPaths(
             factory,
+            multiQuoter,
             reversedPath,
             makerTokenAmounts[makerTokenAmounts.length - 1]
         );
@@ -127,137 +129,5 @@ contract UniswapV3Sampler is UniswapV3Common {
                 }
             }
         }
-    }
-
-    /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
-    function _getPoolPaths(
-        IUniswapV3Factory factory,
-        IERC20TokenV06[] memory path,
-        uint256 inputAmount
-    ) private returns (IUniswapV3Pool[][] memory poolPaths) {
-        if (path.length == 2) {
-            return _getPoolPathSingleHop(factory, path, inputAmount);
-        }
-        if (path.length == 3) {
-            return _getPoolPathTwoHop(factory, path, inputAmount);
-        }
-        revert("UniswapV3Sampler/unsupported token path length");
-    }
-
-    function _getPoolPathSingleHop(
-        IUniswapV3Factory factory,
-        IERC20TokenV06[] memory path,
-        uint256 inputAmount
-    ) public returns (IUniswapV3Pool[][] memory poolPaths) {
-        poolPaths = new IUniswapV3Pool[][](2);
-        (IUniswapV3Pool[2] memory topPools, ) = _getTopTwoPools(factory, path[0], path[1], inputAmount);
-
-        uint256 pathCount = 0;
-        for (uint256 i = 0; i < 2; i++) {
-            IUniswapV3Pool topPool = topPools[i];
-            poolPaths[pathCount] = new IUniswapV3Pool[](1);
-            poolPaths[pathCount][0] = topPool;
-            pathCount++;
-        }
-    }
-
-    function _getPoolPathTwoHop(
-        IUniswapV3Factory factory,
-        IERC20TokenV06[] memory path,
-        uint256 inputAmount
-    ) private returns (IUniswapV3Pool[][] memory poolPaths) {
-        poolPaths = new IUniswapV3Pool[][](4);
-        (IUniswapV3Pool[2] memory firstHopTopPools, uint256[2] memory firstHopAmounts) = _getTopTwoPools(
-            factory,
-            path[0],
-            path[1],
-            inputAmount
-        );
-        (IUniswapV3Pool[2] memory secondHopTopPools, ) = _getTopTwoPools(factory, path[1], path[2], firstHopAmounts[0]);
-
-        uint256 pathCount = 0;
-        for (uint256 i = 0; i < 2; i++) {
-            for (uint256 j = 0; j < 2; j++) {
-                poolPaths[pathCount] = new IUniswapV3Pool[](2);
-                IUniswapV3Pool[] memory currentPath = poolPaths[pathCount];
-                currentPath[0] = firstHopTopPools[i];
-                currentPath[1] = secondHopTopPools[j];
-                pathCount++;
-            }
-        }
-    }
-
-    /// @dev Returns top 0-2 pools and corresponding output amounts based on swaping `inputAmount`.
-    /// Addresses in `topPools` can be zero addresses when there are pool isn't available.
-    function _getTopTwoPools(
-        IUniswapV3Factory factory,
-        IERC20TokenV06 inputToken,
-        IERC20TokenV06 outputToken,
-        uint256 inputAmount
-    ) private returns (IUniswapV3Pool[2] memory topPools, uint256[2] memory outputAmounts) {
-        IERC20TokenV06[] memory path = new IERC20TokenV06[](2);
-        path[0] = inputToken;
-        path[1] = outputToken;
-
-        uint256[] memory inputAmounts = new uint256[](1);
-        inputAmounts[0] = inputAmount;
-
-        uint24[4] memory validPoolFees = [uint24(0.0001e6), uint24(0.0005e6), uint24(0.003e6), uint24(0.01e6)];
-        for (uint256 i = 0; i < validPoolFees.length; ++i) {
-            IUniswapV3Pool pool = factory.getPool(address(inputToken), address(outputToken), validPoolFees[i]);
-            if (!_isValidPool(pool)) {
-                continue;
-            }
-
-            IUniswapV3Pool[] memory poolPath = new IUniswapV3Pool[](1);
-            poolPath[0] = pool;
-            bytes memory uniswapPath = toUniswapPath(path, poolPath);
-
-            try multiQuoter.quoteExactMultiInput{gas: QUOTE_GAS}(factory, uniswapPath, inputAmounts) returns (
-                uint256[] memory amountsOut,
-                uint256[] memory /* gasEstimate */
-            ) {
-                // Keeping track of the top 2 pools.
-                if (amountsOut[0] > outputAmounts[0]) {
-                    outputAmounts[1] = outputAmounts[0];
-                    topPools[1] = topPools[0];
-                    outputAmounts[0] = amountsOut[0];
-                    topPools[0] = pool;
-                } else if (amountsOut[0] > outputAmounts[1]) {
-                    outputAmounts[1] = amountsOut[0];
-                    topPools[1] = pool;
-                }
-            } catch {}
-        }
-    }
-
-    function _isValidPool(IUniswapV3Pool pool) private view returns (bool isValid) {
-        // Check if it has been deployed.
-        {
-            uint256 codeSize;
-            assembly {
-                codeSize := extcodesize(pool)
-            }
-            if (codeSize == 0) {
-                return false;
-            }
-        }
-        // Must have a balance of both tokens.
-        if (IERC20TokenV06(pool.token0()).balanceOf(address(pool)) == 0) {
-            return false;
-        }
-        if (IERC20TokenV06(pool.token1()).balanceOf(address(pool)) == 0) {
-            return false;
-        }
-        return true;
-    }
-
-    function isValidPoolPath(IUniswapV3Pool[] memory poolPaths) private pure returns (bool) {
-        for (uint256 i = 0; i < poolPaths.length; i++) {
-            if (address(poolPaths[i]) == address(0)) {
-                return false;
-            }
-        }
-        return true;
     }
 }
