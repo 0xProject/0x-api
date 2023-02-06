@@ -24,16 +24,21 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
 
     constructor(chainId: ChainId, samplerContract: ERC20BridgeSamplerContract) {
         this.samplerContract = samplerContract;
-        ({ quoter: this.quoterAddress, factory: this.factoryAddress, router: this.routerAddress } = KYBER_ELASTIC_CONFIG_BY_CHAIN_ID[chainId]);
-        assert.assert(this.quoterAddress != NULL_ADDRESS, "KyberElastic sampler must have non-null quoter address.");
-        assert.assert(this.factoryAddress != NULL_ADDRESS, "KyberElastic sampler must have non-null factory address.");
-        assert.assert(this.routerAddress != NULL_ADDRESS, "KyberElastic sampler must have non-null sampler address.");
+        ({
+            quoter: this.quoterAddress,
+            factory: this.factoryAddress,
+            router: this.routerAddress,
+        } = KYBER_ELASTIC_CONFIG_BY_CHAIN_ID[chainId]);
+        assert.assert(this.quoterAddress != NULL_ADDRESS, 'KyberElastic sampler must have non-null quoter address.');
+        assert.assert(this.factoryAddress != NULL_ADDRESS, 'KyberElastic sampler must have non-null factory address.');
+        assert.assert(this.routerAddress != NULL_ADDRESS, 'KyberElastic sampler must have non-null sampler address.');
     }
 
     createSampleSellsOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<UniswapV3FillData> { // TODO: rename UniswapV3FillData
+    ): SourceQuoteOperation<UniswapV3FillData> {
+        // TODO: rename UniswapV3FillData
         return this.createSamplerOperation(
             this.samplerContract.sampleSellsFromKyberElastic,
             'sampleSellsFromKyberElastic',
@@ -58,7 +63,8 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
         amounts: BigNumber[],
         paths: string[],
         gasUsed: BigNumber[],
-    ): UniswapV3PathAmount[] { // TODO: rename
+    ): UniswapV3PathAmount[] {
+        // TODO: rename
         return paths.map((uniswapPath, i) => ({
             uniswapPath,
             inputAmount: amounts[i],

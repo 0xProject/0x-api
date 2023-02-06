@@ -124,8 +124,11 @@ export class SwapQuoter {
         this._sellSources = SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId];
     }
 
-    private static createSamplerOverrides(chainId: ChainId, samplerAddress: string, options: Partial<SwapQuoterOpts>) : SamplerOverrides {
-
+    private static createSamplerOverrides(
+        chainId: ChainId,
+        samplerAddress: string,
+        options: Partial<SwapQuoterOpts>,
+    ): SamplerOverrides {
         // Allow the sampler bytecode to be overwritten using geths override functionality
         const samplerBytecode = _.get(artifacts.ERC20BridgeSampler, 'compilerOutput.evm.deployedBytecode.object');
         // Allow address of the Sampler to be overridden, i.e in Ganache where overrides do not work
@@ -135,6 +138,7 @@ export class SwapQuoter {
               }
             : {};
 
+<<<<<<< HEAD
         if (SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3) ||
             BUY_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3)
         ) {
@@ -147,6 +151,10 @@ export class SwapQuoter {
         }
 
         if (SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic) ||
+=======
+        if (
+            SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic) ||
+>>>>>>> 3cf1c0f (implement sell quotes)
             BUY_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic)
         ) {
             const kyberElasticQuoterBytecode = _.get(
@@ -155,6 +163,10 @@ export class SwapQuoter {
             );
             defaultCodeOverrides[KYBER_ELASTIC_MULTI_QUOTER_ADDRESS] = { code: kyberElasticQuoterBytecode };
         }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3cf1c0f (implement sell quotes)
         const samplerOverrides = _.assign(
             { block: BlockParamLiteral.Latest, overrides: defaultCodeOverrides },
             options.samplerOverrides,

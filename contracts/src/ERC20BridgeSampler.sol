@@ -50,7 +50,6 @@ import "./WooPPSampler.sol";
 import "./UtilitySampler.sol";
 import "./KyberElasticSampler.sol";
 
-
 contract ERC20BridgeSampler is
     AaveV2Sampler,
     AaveV3Sampler,

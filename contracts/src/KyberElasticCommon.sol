@@ -1,15 +1,15 @@
-
 pragma solidity >=0.6;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IKyberElastic.sol";
 import "./interfaces/IMultiQuoter.sol";
+
 // import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 
 contract KyberElasticCommon {
-
     /// @dev Gas limit for UniswapV3 calls
     uint256 private constant QUOTE_GAS = 10000e3;
+
     /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
     function _getPoolPaths(
         IMultiQuoter quoter,
@@ -146,6 +146,7 @@ contract KyberElasticCommon {
         }
         return true;
     }
+
     function _toPath(address[] memory tokenPath, IPool[] memory poolPath) internal view returns (bytes memory path) {
         require(tokenPath.length >= 2 && tokenPath.length == poolPath.length + 1, "invalid path lengths");
         // paths are tightly packed as:
@@ -168,6 +169,20 @@ contract KyberElasticCommon {
                 mstore(o, shl(96, token))
                 o := add(o, 20)
             }
+        }
+    }
+
+    function _reverseTokenPath(address[] memory tokenPath) internal pure returns (address[] memory reversed) {
+        reversed = new address[](tokenPath.length);
+        for (uint256 i = 0; i < tokenPath.length; ++i) {
+            reversed[i] = tokenPath[tokenPath.length - i - 1];
+        }
+    }
+
+    function _reversePoolPath(IPool[] memory poolPath) internal pure returns (IPool[] memory reversed) {
+        reversed = new IPool[](poolPath.length);
+        for (uint256 i = 0; i < poolPath.length; ++i) {
+            reversed[i] = poolPath[poolPath.length - i - 1];
         }
     }
 }

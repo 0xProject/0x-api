@@ -102,13 +102,8 @@ contract TestKyberElasticSampler is Test, KyberElasticCommon {
         address poo = factory.getPool(ETH, KNC, uint24(0.01e6));
 
         emit log_named_address("poo", poo);
-        
-        IPool[][] memory poolPaths = _getPoolPaths(
-            multiQuoter,
-            factory,
-            tokenPath,
-            1 ether
-        );
+
+        IPool[][] memory poolPaths = _getPoolPaths(multiQuoter, factory, tokenPath, 1 ether);
         emit log_named_uint("length", poolPaths.length);
         for (uint256 i; i < poolPaths.length; ++i) {
             for (uint256 j; j < poolPaths[i].length; ++j) {
@@ -126,7 +121,7 @@ contract TestKyberElasticSampler is Test, KyberElasticCommon {
         uint256 multiQuoterGasUsage;
 
         bytes memory path = _toPath(tokenPath, poolPath);
-        bytes memory reversePath = _toPath(reverseTokenPath(tokenPath), reversePoolPath(poolPath));
+        bytes memory reversePath = _toPath(_reverseTokenPath(tokenPath), _reversePoolPath(poolPath));
 
         console.log("Quoter Gas Comparison");
         console.log("Token Path:");
@@ -206,46 +201,5 @@ contract TestKyberElasticSampler is Test, KyberElasticCommon {
             } catch {}
         }
         return (gas1 - gasleft(), gas0 - gas1);
-    }
-
-    // TODO: the helper functions below are very similar to those in UniswapV3Common, refactor.
-
-    // function toPath(address[] memory tokenPath, IPool[] memory poolPath) internal view returns (bytes memory path) {
-    //     require(tokenPath.length >= 2 && tokenPath.length == poolPath.length + 1, "invalid path lengths");
-    //     // paths are tightly packed as:
-    //     // [token0, token0token1PairFee, token1, token1Token2PairFee, token2, ...]
-    //     path = new bytes(tokenPath.length * 20 + poolPath.length * 3);
-    //     uint256 o;
-    //     assembly {
-    //         o := add(path, 32)
-    //     }
-    //     for (uint256 i = 0; i < tokenPath.length; ++i) {
-    //         if (i > 0) {
-    //             uint24 poolFee = poolPath[i - 1].swapFeeUnits();
-    //             assembly {
-    //                 mstore(o, shl(232, poolFee))
-    //                 o := add(o, 3)
-    //             }
-    //         }
-    //         address token = tokenPath[i];
-    //         assembly {
-    //             mstore(o, shl(96, token))
-    //             o := add(o, 20)
-    //         }
-    //     }
-    // }
-
-    function reverseTokenPath(address[] memory tokenPath) internal pure returns (address[] memory reversed) {
-        reversed = new address[](tokenPath.length);
-        for (uint256 i = 0; i < tokenPath.length; ++i) {
-            reversed[i] = tokenPath[tokenPath.length - i - 1];
-        }
-    }
-
-    function reversePoolPath(IPool[] memory poolPath) internal pure returns (IPool[] memory reversed) {
-        reversed = new IPool[](poolPath.length);
-        for (uint256 i = 0; i < poolPath.length; ++i) {
-            reversed[i] = poolPath[poolPath.length - i - 1];
-        }
     }
 }

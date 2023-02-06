@@ -1443,7 +1443,7 @@ export const KYBER_ELASTIC_CONFIG_BY_CHAIN_ID = valueByChainId(
         },
     },
     { quoter: NULL_ADDRESS, factory: NULL_ADDRESS, router: NULL_ADDRESS },
-    );
+);
 
 export const BISWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     {

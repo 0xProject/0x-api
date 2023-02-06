@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: Apache-2.0
 /*
 
@@ -23,7 +22,6 @@ pragma solidity >=0.6;
 import "./IKyberElastic.sol";
 
 interface IMultiQuoter {
-
     function quoteExactMultiInput(
         IFactory factory,
         bytes memory path,

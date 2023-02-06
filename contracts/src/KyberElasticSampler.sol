@@ -23,10 +23,10 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IMultiQuoter.sol";
 import "./interfaces/IKyberElastic.sol";
 import "./KyberElasticCommon.sol";
+
 // import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 
 contract KyberElasticSampler is KyberElasticCommon {
-
     /// @dev Sample sell quotes from KyberElastic.
     /// @param factory KyberElastic factory contract.
     /// @param path Token route. Should be takerToken -> makerToken (at most two hops).
@@ -34,16 +34,17 @@ contract KyberElasticSampler is KyberElasticCommon {
     /// @return paths The encoded KyberElastic path for each sample.
     /// @return gasEstimates Estimated amount of gas used
     /// @return outputAmounts Maker amounts bought at each taker token amount.
-    function sampleSellsFromKyberElastic(IMultiQuoter quoter, IFactory factory, address[] memory path, uint256[] memory inputAmounts) 
-        public view
-        returns (bytes[] memory paths, uint256[] memory gasEstimates, uint256[] memory outputAmounts) {
-
-        IPool[][] memory poolPaths = _getPoolPaths(quoter, factory, path, inputAmounts[inputAmounts.length - 1]);
-
+    function sampleSellsFromKyberElastic(
+        IMultiQuoter quoter,
+        IFactory factory,
+        address[] memory path,
+        uint256[] memory inputAmounts
+    ) public view returns (bytes[] memory paths, uint256[] memory gasEstimates, uint256[] memory outputAmounts) {
         outputAmounts = new uint256[](inputAmounts.length);
         paths = new bytes[](inputAmounts.length);
         gasEstimates = new uint256[](inputAmounts.length);
 
+        IPool[][] memory poolPaths = _getPoolPaths(quoter, factory, path, inputAmounts[inputAmounts.length - 1]);
         for (uint256 i = 0; i < poolPaths.length; ++i) {
             if (!_isValidPoolPath(poolPaths[i])) {
                 continue;
@@ -70,25 +71,48 @@ contract KyberElasticSampler is KyberElasticCommon {
     /// @dev Sample buy quotes from KyberElastic.
     /// @param factory KyberElastic factory contract.
     /// @param path Token route. Should be takerToken -> makerToken (at most two hops).
-    /// @param inputAmounts Taker token sell amount for each sample.
+    /// @param inputAmounts Maker token buy amount for each sample.
     /// @return paths The encoded KyberElastic path for each sample.
     /// @return gasEstimates Estimated amount of gas used
-    /// @return outputAmounts Maker amounts bought at each taker token amount.
+    /// @return outputAmounts Taker amounts sold at each maker token amount.
     function sampleBuysFromKyberElastic(
         IMultiQuoter quoter,
         IFactory factory,
         address[] memory path,
         uint256[] memory inputAmounts
-    )
-        public view
-        returns (bytes[] memory paths, uint256[] memory gasEstimates, uint256[] memory outputAmounts)
-    {
-
+    ) public view returns (bytes[] memory paths, uint256[] memory gasEstimates, uint256[] memory outputAmounts) {
         outputAmounts = new uint256[](inputAmounts.length);
         paths = new bytes[](inputAmounts.length);
         gasEstimates = new uint256[](inputAmounts.length);
 
+        address[] memory reversedPath = _reverseTokenPath(path);
+        IPool[][] memory poolPaths = _getPoolPaths(
+            quoter,
+            factory,
+            reversedPath,
+            inputAmounts[inputAmounts.length - 1]
+        );
+
+        for (uint256 i = 0; i < poolPaths.length; ++i) {
+            if (!_isValidPoolPath(poolPaths[i])) {
+                continue;
+            }
+
+            bytes memory poolPath = _toPath(reversedPath, poolPaths[i]);
+
+            (uint256[] memory amountsOut, uint256[] memory gasEstimate) = quoter.quoteExactMultiOutput(
+                factory,
+                poolPath,
+                inputAmounts
+            );
+
+            for (uint256 j = 0; j < amountsOut.length; ++j) {
+                if (amountsOut[j] > 0 && (outputAmounts[j] == 0 || outputAmounts[j] < amountsOut[j])) {
+                    outputAmounts[j] = amountsOut[j];
+                    paths[j] = _toPath(path, _reversePoolPath(poolPaths[i]));
+                    gasEstimates[j] = gasEstimate[j];
+                }
+            }
+        }
     }
-
-
 }

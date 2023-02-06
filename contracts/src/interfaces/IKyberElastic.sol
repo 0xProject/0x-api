@@ -2,37 +2,25 @@ pragma solidity >=0.6;
 pragma experimental ABIEncoderV2;
 
 interface IFactory {
-  /// @notice Returns the pool address for a given pair of tokens and a swap fee
-  /// @dev Token order does not matter
-  /// @param tokenA Contract address of either token0 or token1
-  /// @param tokenB Contract address of the other token
-  /// @param swapFeeUnits Fee to be collected upon every swap in the pool, in fee units
-  /// @return pool The pool address. Returns null address if it does not exist
-  function getPool(
-    address tokenA,
-    address tokenB,
-    uint24 swapFeeUnits
-  ) external view returns (address pool);
+    /// @notice Returns the pool address for a given pair of tokens and a swap fee
+    /// @dev Token order does not matter
+    /// @param tokenA Contract address of either token0 or token1
+    /// @param tokenB Contract address of the other token
+    /// @param swapFeeUnits Fee to be collected upon every swap in the pool, in fee units
+    /// @return pool The pool address. Returns null address if it does not exist
+    function getPool(address tokenA, address tokenB, uint24 swapFeeUnits) external view returns (address pool);
 
-
-  function parameters()
-    external
-    view
-    returns (
-      address factory,
-      address token0,
-      address token1,
-      uint24 swapFeeUnits,
-      int24 tickDistance
-    );
-
+    function parameters()
+        external
+        view
+        returns (address factory, address token0, address token1, uint24 swapFeeUnits, int24 tickDistance);
 }
 
 interface IPool {
-
     function token0() external view returns (address);
 
     function token1() external view returns (address);
+
     /// @notice The fee to be charged for a swap in basis points
     /// @return The swap fee in basis points
     function swapFeeUnits() external view returns (uint24);
@@ -105,81 +93,83 @@ interface IPool {
 /// @dev These functions are not marked view because they rely on calling non-view functions and reverting
 /// to compute the result. They are also not gas efficient and should not be called on-chain.
 interface IQuoterV2 {
-  struct QuoteOutput {
-    uint256 usedAmount;
-    uint256 returnedAmount;
-    uint160 afterSqrtP;
-    uint32 initializedTicksCrossed;
-    uint256 gasEstimate;
-  }
+    struct QuoteOutput {
+        uint256 usedAmount;
+        uint256 returnedAmount;
+        uint160 afterSqrtP;
+        uint32 initializedTicksCrossed;
+        uint256 gasEstimate;
+    }
 
-  /// @notice Returns the amount out received for a given exact input swap without executing the swap
-  /// @param path The path of the swap, i.e. each token pair and the pool fee
-  /// @param amountIn The amount of the first token to swap
-  /// @return amountOut The amount of the last token that would be received
-  /// @return afterSqrtPList List of the sqrt price after the swap for each pool in the path
-  /// @return initializedTicksCrossedList List of the initialized ticks that the swap crossed for each pool in the path
-  /// @return gasEstimate The estimate of the gas that the swap consumes
-  function quoteExactInput(bytes memory path, uint256 amountIn)
-    external
-    returns (
-      uint256 amountOut,
-      uint160[] memory afterSqrtPList,
-      uint32[] memory initializedTicksCrossedList,
-      uint256 gasEstimate
-    );
+    /// @notice Returns the amount out received for a given exact input swap without executing the swap
+    /// @param path The path of the swap, i.e. each token pair and the pool fee
+    /// @param amountIn The amount of the first token to swap
+    /// @return amountOut The amount of the last token that would be received
+    /// @return afterSqrtPList List of the sqrt price after the swap for each pool in the path
+    /// @return initializedTicksCrossedList List of the initialized ticks that the swap crossed for each pool in the path
+    /// @return gasEstimate The estimate of the gas that the swap consumes
+    function quoteExactInput(
+        bytes memory path,
+        uint256 amountIn
+    )
+        external
+        returns (
+            uint256 amountOut,
+            uint160[] memory afterSqrtPList,
+            uint32[] memory initializedTicksCrossedList,
+            uint256 gasEstimate
+        );
 
-  struct QuoteExactInputSingleParams {
-    address tokenIn;
-    address tokenOut;
-    uint256 amountIn;
-    uint24 feeUnits;
-    uint160 limitSqrtP;
-  }
+    struct QuoteExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint256 amountIn;
+        uint24 feeUnits;
+        uint160 limitSqrtP;
+    }
 
-  /// @notice Returns the amount out received for a given exact input but for a swap of a single pool
-  /// @param params The params for the quote, encoded as `QuoteExactInputSingleParams`
-  /// tokenIn The token being swapped in
-  /// tokenOut The token being swapped out
-  /// fee The fee of the token pool to consider for the pair
-  /// amountIn The desired input amount
-  /// limitSqrtP The price limit of the pool that cannot be exceeded by the swap
-  function quoteExactInputSingle(QuoteExactInputSingleParams memory params)
-    external
-    returns (QuoteOutput memory);
+    /// @notice Returns the amount out received for a given exact input but for a swap of a single pool
+    /// @param params The params for the quote, encoded as `QuoteExactInputSingleParams`
+    /// tokenIn The token being swapped in
+    /// tokenOut The token being swapped out
+    /// fee The fee of the token pool to consider for the pair
+    /// amountIn The desired input amount
+    /// limitSqrtP The price limit of the pool that cannot be exceeded by the swap
+    function quoteExactInputSingle(QuoteExactInputSingleParams memory params) external returns (QuoteOutput memory);
 
-  /// @notice Returns the amount in required for a given exact output swap without executing the swap
-  /// @param path The path of the swap, i.e. each token pair and the pool fee. Path must be provided in reverse order
-  /// @param amountOut The amount of the last token to receive
-  /// @return amountIn The amount of first token required to be paid
-  /// @return afterSqrtPList List of the sqrt price after the swap for each pool in the path
-  /// @return initializedTicksCrossedList List of the initialized ticks that the swap crossed for each pool in the path
-  /// @return gasEstimate The estimate of the gas that the swap consumes
-  function quoteExactOutput(bytes memory path, uint256 amountOut)
-    external
-    returns (
-      uint256 amountIn,
-      uint160[] memory afterSqrtPList,
-      uint32[] memory initializedTicksCrossedList,
-      uint256 gasEstimate
-    );
+    /// @notice Returns the amount in required for a given exact output swap without executing the swap
+    /// @param path The path of the swap, i.e. each token pair and the pool fee. Path must be provided in reverse order
+    /// @param amountOut The amount of the last token to receive
+    /// @return amountIn The amount of first token required to be paid
+    /// @return afterSqrtPList List of the sqrt price after the swap for each pool in the path
+    /// @return initializedTicksCrossedList List of the initialized ticks that the swap crossed for each pool in the path
+    /// @return gasEstimate The estimate of the gas that the swap consumes
+    function quoteExactOutput(
+        bytes memory path,
+        uint256 amountOut
+    )
+        external
+        returns (
+            uint256 amountIn,
+            uint160[] memory afterSqrtPList,
+            uint32[] memory initializedTicksCrossedList,
+            uint256 gasEstimate
+        );
 
-  struct QuoteExactOutputSingleParams {
-    address tokenIn;
-    address tokenOut;
-    uint256 amount;
-    uint24 feeUnits;
-    uint160 limitSqrtP;
-  }
+    struct QuoteExactOutputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint256 amount;
+        uint24 feeUnits;
+        uint160 limitSqrtP;
+    }
 
-  /// @notice Returns the amount in required to receive the given exact output amount but for a swap of a single pool
-  /// @param params The params for the quote, encoded as `QuoteExactOutputSingleParams`
-  /// tokenIn The token being swapped in
-  /// tokenOut The token being swapped out
-  /// fee The fee of the token pool to consider for the pair
-  /// amountOut The desired output amount
-  /// limitSqrtP The price limit of the pool that cannot be exceeded by the swap
-  function quoteExactOutputSingle(QuoteExactOutputSingleParams memory params)
-    external
-    returns (QuoteOutput memory);
+    /// @notice Returns the amount in required to receive the given exact output amount but for a swap of a single pool
+    /// @param params The params for the quote, encoded as `QuoteExactOutputSingleParams`
+    /// tokenIn The token being swapped in
+    /// tokenOut The token being swapped out
+    /// fee The fee of the token pool to consider for the pair
+    /// amountOut The desired output amount
+    /// limitSqrtP The price limit of the pool that cannot be exceeded by the swap
+    function quoteExactOutputSingle(QuoteExactOutputSingleParams memory params) external returns (QuoteOutput memory);
 }
