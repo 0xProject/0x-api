@@ -295,7 +295,9 @@ export class SwapService implements ISwapService {
                 takerAddress: NULL_ADDRESS,
                 // txOrigin is explicitly passed in for MetaTransactions
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-                txOrigin: txOrigin ? txOrigin : takerAddress!,
+                txOrigin: isMetaTransaction && txOrigin ? txOrigin : takerAddress!,
+                trader: takerAddress,
+                gasless: isMetaTransaction,
                 firmQuoteValidator: this._firmQuoteValidator,
                 altRfqAssetOfferings,
             };
