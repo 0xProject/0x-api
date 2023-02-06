@@ -17,7 +17,7 @@ const CURVE_POLYGON_ATRICRYPTO_TOKENS = [POLYGON_TOKENS.amDAI, POLYGON_TOKENS.am
 const CURVE_FANTOM_TWO_POOL_TOKENS = [FANTOM_TOKENS.DAI, FANTOM_TOKENS.USDC];
 const CURVE_ARBITRUM_TWO_POOL_TOKENS = [ARBITRUM_TOKENS.USDC, ARBITRUM_TOKENS.USDT];
 
-const CURVE_POOLS = {
+export const CURVE_POOLS = {
     compound: '0xa2b47e3d5c44877cca798226b7b8118f9bfb7a56', // 0.Compound
     // 1.USDT is dead
     PAX: '0x06364f10b501e868329afbc005b3492902d6c763', // 2.PAX
@@ -81,31 +81,31 @@ const CURVE_POOLS = {
     crvfrax: '0xdcef968d416a41cdac0ed8702fac8128a64241a2',
 };
 
-const CURVE_V2_POOLS = {
+export const CURVE_V2_POOLS = {
     tricrypto: '0x80466c64868e1ab14a1ddf27a676c3fcbe638fe5',
     tricrypto2: '0xd51a44d3fae010294c616388b506acda1bfaae46',
 };
 
-const CURVE_POLYGON_POOLS = {
+export const CURVE_POLYGON_POOLS = {
     aave: '0x445fe580ef8d70ff569ab36e80c647af338db351',
     ren: '0xc2d95eef97ec6c17551d45e77b590dc1f9117c67',
 };
 
-const CURVE_V2_POLYGON_POOLS = {
+export const CURVE_V2_POLYGON_POOLS = {
     atricrypto3: '0x1d8b86e3d88cdb2d34688e87e72f388cb541b7c8',
 };
 
-const CURVE_AVALANCHE_POOLS = {
+export const CURVE_AVALANCHE_POOLS = {
     aave: '0x7f90122bf0700f9e7e1f688fe926940e8839f353',
     mim: '0xaea2e71b631fa93683bcf256a8689dfa0e094fcd',
     USDC: '0x3a43a5851a3e3e0e25a3c1089670269786be1577',
 };
 
-const CURVE_V2_AVALANCHE_POOLS = {
+export const CURVE_V2_AVALANCHE_POOLS = {
     atricrypto: '0x58e57ca18b7a47112b877e31929798cd3d703b0f',
 };
 
-const CURVE_FANTOM_POOLS = {
+export const CURVE_FANTOM_POOLS = {
     fUSDT: '0x92d5ebf3593a92888c25c0abef126583d4b5312e',
     twoPool: '0x27e611fd27b276acbd5ffd632e5eaebec9761e40',
     ren: '0x3ef6a01a0f81d6046290f3e2a8c5b843e738e604',
@@ -114,15 +114,15 @@ const CURVE_FANTOM_POOLS = {
     FRAX_twoPool: '0x7a656b342e14f745e2b164890e88017e27ae7320',
 };
 
-const CURVE_V2_FANTOM_POOLS = {
+export const CURVE_V2_FANTOM_POOLS = {
     tricrypto: '0x3a1659ddcf2339be3aea159ca010979fb49155ff',
 };
 
-const CURVE_OPTIMISM_POOLS = {
+export const CURVE_OPTIMISM_POOLS = {
     tri: '0x1337bedc9d22ecbe766df105c9623922a27963ec',
 };
 
-const CURVE_V2_ARBITRUM_POOLS = {
+export const CURVE_V2_ARBITRUM_POOLS = {
     tri: '0x960ea3e3c7fb317332d990873d354e18d7645590',
     twoPool: '0x7f90122bf0700f9e7e1f688fe926940e8839f353',
     vstFrax: '0x59bf0545fca0e5ad48e13da269facd2e8c886ba4',
@@ -130,15 +130,15 @@ const CURVE_V2_ARBITRUM_POOLS = {
     fraxBP: '0xc9b8a3fdecb9d5b218d02555a8baf332e5b740d5',
 };
 
-const BELT_POOLS = {
+export const BELT_POOLS = {
     vPool: '0xf16d312d119c13dd27fd0dc814b0bcdcaaa62dfd',
 };
 
-const ELLIPSIS_POOLS = {
+export const ELLIPSIS_POOLS = {
     threePool: '0x160caed03795365f3a589f10c379ffa7d75d4e76',
 };
 
-const ACRYPTOS_POOLS = {
+export const ACRYPTOS_POOLS = {
     acs4usd: '0xb3f0c9ea1f05e312093fdb031e789a756659b0ac',
     acs4vai: '0x191409d5a4effe25b0f4240557ba2192d18a191e',
     acs4ust: '0x99c92765efc472a9709ced86310d64c4573c4b77',
