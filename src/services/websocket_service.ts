@@ -109,6 +109,7 @@ export class WebsocketService {
                     return;
                 }
                 const messageString = message.value.toString();
+                logger.info('received message from order watcher', { messageString });
                 try {
                     const jsonMessage: OrderWatcherEvent = JSON.parse(messageString);
                     const sraOrders: SRAOrder[] = [orderWatcherEventToSRAOrder(jsonMessage)];
@@ -121,6 +122,7 @@ export class WebsocketService {
     }
 
     public async destroyAsync(): Promise<void> {
+        logger.info('terminating ws server')
         clearInterval(this._pongIntervalId);
         for (const ws of this._server.clients) {
             ws.terminate();
@@ -165,6 +167,8 @@ export class WebsocketService {
             }
             for (const [requestId, orders] of Object.entries(requestIdToOrders)) {
                 const ws = this._requestIdToSocket.get(requestId);
+
+                logger.info('send order to ws', { requestId });
                 if (ws) {
                     ws.send(JSON.stringify({ ...response, payload: Array.from(orders), requestId }));
                 }
@@ -177,6 +181,7 @@ export class WebsocketService {
         ws.on(WebsocketConnectionEventType.Close, this._closeHandler(ws).bind(this));
         ws.isAlive = true;
         ws.requestIds = new Set<string>();
+        logger.info('connection request received', { req: _req });
     }
     private _processMessage(ws: WrappedWebSocket, data: WebSocket.Data): void {
         let message: OrderChannelRequest;
@@ -188,6 +193,7 @@ export class WebsocketService {
 
         schemaUtils.validateSchema(message, schemas.sraOrdersChannelSubscribeSchema);
         const { requestId, payload, type } = message;
+        logger.info('received message from ws client', { requestId, payload, type });
         switch (type) {
             case MessageTypes.Subscribe: {
                 ws.requestIds.add(requestId);
@@ -210,6 +216,7 @@ export class WebsocketService {
             } else {
                 (ws as WrappedWebSocket).isAlive = false;
                 ws.ping();
+                logger.info('ping sent', { requestIds: JSON.stringify((ws as WrappedWebSocket).requestIds) });
             }
         }
     }
@@ -229,6 +236,7 @@ export class WebsocketService {
     }
     private _pongHandler(ws: WrappedWebSocket): () => void {
         return () => {
+            logger.info('pong received', { requestIds: JSON.stringify(ws.requestIds) });
             ws.isAlive = true;
         };
     }
