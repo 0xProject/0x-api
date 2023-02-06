@@ -216,7 +216,6 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
         result.amounts0 = new int256[](amounts.length);
         result.amounts1 = new int256[](amounts.length);
 
-        uint256 gasBefore = gasleft();
         (uint160 sqrtPriceX96Start, int24 tickStart, , , , , ) = pool.slot0();
         int24 tickSpacing = pool.tickSpacing();
         uint24 fee = pool.fee();
@@ -230,7 +229,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
             tick: tickStart,
             liquidity: pool.liquidity(),
             amountsIndex: 0,
-            gasAggregate: gasBefore - gasleft()
+            gasAggregate: 0
         });
 
         // continue swapping as long as we haven't used the entire input/output and haven't reached the price limit
@@ -333,7 +332,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
     /// @param multiSwapEstimate the gas estimate from multiswap
     /// @return swapEstimate the gas estimate equivalent for UniswapV3Pool:swap
     function scaleMultiswapGasEstimate(uint256 multiSwapEstimate) private view returns (uint256 swapEstimate) {
-        return (11 * multiSwapEstimate) / 10 + 65000;
+        return 173 * multiSwapEstimate / 100 + 47500;
     }
 
     /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either

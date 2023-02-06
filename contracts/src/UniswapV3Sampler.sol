@@ -27,7 +27,7 @@ import "./interfaces/IUniswapV3.sol";
 
 contract UniswapV3Sampler is UniswapV3Common {
     /// @dev Gas limit for UniswapV3 calls
-    uint256 private constant QUOTE_GAS = 400e3;
+    uint256 private constant QUOTE_GAS = 450e3;
 
     IUniswapV3MultiQuoter private constant multiQuoter =
         IUniswapV3MultiQuoter(0x5555555555555555555555555555555555555556);
