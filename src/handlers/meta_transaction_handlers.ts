@@ -371,7 +371,7 @@ function parseV1RequestParams(req: express.Request, endpoint: 'price' | 'quote')
                 intentOnFilling: intentOnFilling ? 'true' : 'false',
                 takerAddress,
                 txOrigin, // Gasless RFQt requires txOrigin in addition to takerAddress
-                apiKey,
+                apiKey, // api key is solely used for securing the endpoint, not for integrator lookup
             },
             RFQT_API_KEY_WHITELIST,
             endpoint,
