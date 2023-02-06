@@ -53,7 +53,7 @@ import {
     UNISWAPV1_ROUTER_BY_CHAIN_ID,
     UNISWAPV3_CONFIG_BY_CHAIN_ID,
     VELODROME_ROUTER_BY_CHAIN_ID,
-    WOOFI_POOL_BY_CHAIN_ID,
+    WOOFI_ROUTER_BY_CHAIN_ID,
     WOOFI_SUPPORTED_TOKENS,
     ZERO_AMOUNT,
 } from './constants';
@@ -722,7 +722,7 @@ export class SamplerOperations {
         makerToken: string,
         takerToken: string,
         sellAmounts: BigNumber[],
-    ): BatchedOperation<DexSample<MultiHopFillData>[]> {
+    ): BatchedOperation<DexSample<MultiHopFillData>[][]> {
         const _sources = TWO_HOP_SOURCE_FILTERS.getAllowed(sources);
         if (_sources.length === 0) {
             return SamplerOperations.constant([]);
@@ -769,14 +769,13 @@ export class SamplerOperations {
         return this._createBatch(
             subOps,
             (samples: BigNumber[][]) => {
-                return subOps.map((op, i) => {
-                    // TODO(kyu-c): make it return DexSample<MultiHopFillData>[][] once it actually samples more than 1 point.
-                    return {
+                return subOps.map((op, subOpsIndex) => {
+                    return samples[subOpsIndex].map((output, sampleIndex) => ({
                         source: op.source,
-                        output: samples[i][0],
-                        input: sellAmounts[0],
+                        output,
+                        input: sellAmounts[sampleIndex],
                         fillData: op.fillData,
-                    };
+                    }));
                 });
             },
             () => {
@@ -791,7 +790,7 @@ export class SamplerOperations {
         makerToken: string,
         takerToken: string,
         buyAmounts: BigNumber[],
-    ): BatchedOperation<DexSample<MultiHopFillData>[]> {
+    ): BatchedOperation<DexSample<MultiHopFillData>[][]> {
         const _sources = TWO_HOP_SOURCE_FILTERS.getAllowed(sources);
         if (_sources.length === 0) {
             return SamplerOperations.constant([]);
@@ -836,14 +835,15 @@ export class SamplerOperations {
         return this._createBatch(
             subOps,
             (samples: BigNumber[][]) => {
-                // TODO(kyu-c): make it return DexSample<MultiHopFillData>[][] once it actually samples more than 1 point.
-                return subOps.map((op, i) => {
-                    return {
-                        source: op.source,
-                        output: samples[i][0],
-                        input: buyAmounts[0],
-                        fillData: op.fillData,
-                    };
+                return subOps.map((op, subOpIndex) => {
+                    return samples[subOpIndex].map((output, sampleIndex) => {
+                        return {
+                            source: op.source,
+                            output,
+                            input: buyAmounts[sampleIndex],
+                            fillData: op.fillData,
+                        };
+                    });
                 });
             },
             () => {
@@ -1374,34 +1374,34 @@ export class SamplerOperations {
         });
     }
     public getWOOFiSellQuotes(
-        poolAddress: string,
+        router: string,
         takerToken: string,
         makerToken: string,
         makerFillAmounts: BigNumber[],
     ): SourceQuoteOperation<WOOFiFillData> {
         const chainId = this.chainId;
         return new SamplerContractOperation({
-            fillData: { poolAddress, takerToken, makerToken, chainId },
+            fillData: { router, takerToken, makerToken, chainId },
             source: ERC20BridgeSource.WOOFi,
             contract: this._samplerContract,
             function: this._samplerContract.sampleSellsFromWooPP,
-            params: [poolAddress, takerToken, makerToken, makerFillAmounts],
+            params: [router, takerToken, makerToken, makerFillAmounts],
         });
     }
 
     public getWOOFiBuyQuotes(
-        poolAddress: string,
+        router: string,
         takerToken: string,
         makerToken: string,
         makerFillAmounts: BigNumber[],
     ): SourceQuoteOperation<WOOFiFillData> {
         const chainId = this.chainId;
         return new SamplerContractOperation({
-            fillData: { poolAddress, takerToken, makerToken, chainId },
+            fillData: { router, takerToken, makerToken, chainId },
             source: ERC20BridgeSource.WOOFi,
             contract: this._samplerContract,
             function: this._samplerContract.sampleBuysFromWooPP,
-            params: [poolAddress, takerToken, makerToken, makerFillAmounts],
+            params: [router, takerToken, makerToken, makerFillAmounts],
         });
     }
 
@@ -1824,7 +1824,7 @@ export class SamplerOperations {
                             return [];
                         }
                         return this.getWOOFiSellQuotes(
-                            WOOFI_POOL_BY_CHAIN_ID[this.chainId],
+                            WOOFI_ROUTER_BY_CHAIN_ID[this.chainId],
                             takerToken,
                             makerToken,
                             takerFillAmounts,
@@ -2156,7 +2156,7 @@ export class SamplerOperations {
                             return [];
                         }
                         return this.getWOOFiBuyQuotes(
-                            WOOFI_POOL_BY_CHAIN_ID[this.chainId],
+                            WOOFI_ROUTER_BY_CHAIN_ID[this.chainId],
                             takerToken,
                             makerToken,
                             makerFillAmounts,
