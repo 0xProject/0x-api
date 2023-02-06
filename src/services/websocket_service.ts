@@ -122,7 +122,7 @@ export class WebsocketService {
     }
 
     public async destroyAsync(): Promise<void> {
-        logger.info('terminating ws server')
+        logger.info('terminating ws server');
         clearInterval(this._pongIntervalId);
         for (const ws of this._server.clients) {
             ws.terminate();
