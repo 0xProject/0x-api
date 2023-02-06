@@ -107,7 +107,8 @@ contract UniswapV3Common {
                 inputToken: path[0],
                 outputToken: path[1],
                 inputAmount: inputAmount
-            }));
+            })
+        );
 
         uint256 pathCount = 0;
         for (uint256 i = 0; i < 2; i++) {
@@ -132,7 +133,8 @@ contract UniswapV3Common {
                 inputToken: path[0],
                 outputToken: path[1],
                 inputAmount: inputAmount
-            }));
+            })
+        );
 
         (IUniswapV3Pool[2] memory secondHopTopPools, ) = getTopTwoPools(
             GetTopTwoPoolsParams({
@@ -141,7 +143,8 @@ contract UniswapV3Common {
                 inputToken: path[1],
                 outputToken: path[2],
                 inputAmount: firstHopAmounts[0]
-            }));
+            })
+        );
 
         uint256 pathCount = 0;
         for (uint256 i = 0; i < 2; i++) {
@@ -177,7 +180,11 @@ contract UniswapV3Common {
 
         uint24[4] memory validPoolFees = [uint24(0.0001e6), uint24(0.0005e6), uint24(0.003e6), uint24(0.01e6)];
         for (uint256 i = 0; i < validPoolFees.length; ++i) {
-            IUniswapV3Pool pool = params.factory.getPool(address(params.inputToken), address(params.outputToken), validPoolFees[i]);
+            IUniswapV3Pool pool = params.factory.getPool(
+                address(params.inputToken),
+                address(params.outputToken),
+                validPoolFees[i]
+            );
             if (!isValidPool(pool)) {
                 continue;
             }
@@ -186,10 +193,13 @@ contract UniswapV3Common {
             poolPath[0] = pool;
             bytes memory uniswapPath = toUniswapPath(path, poolPath);
 
-            try params.multiQuoter.quoteExactMultiInput{gas: POOL_FILTERING_GAS_LIMIT}(params.factory, uniswapPath, inputAmounts) returns (
-                uint256[] memory amountsOut,
-                uint256[] memory /* gasEstimate */
-            ) {
+            try
+                params.multiQuoter.quoteExactMultiInput{gas: POOL_FILTERING_GAS_LIMIT}(
+                    params.factory,
+                    uniswapPath,
+                    inputAmounts
+                )
+            returns (uint256[] memory amountsOut, uint256[] memory /* gasEstimate */) {
                 // Keeping track of the top 2 pools.
                 if (amountsOut[0] > outputAmounts[0]) {
                     outputAmounts[1] = outputAmounts[0];

@@ -332,7 +332,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
     /// @param multiSwapEstimate the gas estimate from multiswap
     /// @return swapEstimate the gas estimate equivalent for UniswapV3Pool:swap
     function scaleMultiswapGasEstimate(uint256 multiSwapEstimate) private view returns (uint256 swapEstimate) {
-        return 173 * multiSwapEstimate / 100 + 47500;
+        return (173 * multiSwapEstimate) / 100 + 47500;
     }
 
     /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either

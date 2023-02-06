@@ -219,7 +219,6 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         string memory headers = "path,amount,isInput,ticksCrossed,mqGasEstimate,uqGasEstimate";
         vm.writeLine(filePath, headers);
 
-
         address[12] memory tokenList;
         tokenList[0] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // USDC
         tokenList[1] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // WETH
@@ -238,7 +237,7 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         for (uint256 i = 0; i < amountsList.length; ++i) {
             amountsList[i] = new uint256[](10);
             for (uint256 j = 0; j < amountsList[i].length; ++j) {
-                amountsList[i][j] = (j+1) * 10**(2 * i +4);
+                amountsList[i][j] = (j + 1) * 10 ** (2 * i + 4);
             }
         }
 
@@ -256,7 +255,12 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 tokenPath[1] = IERC20TokenV06(tokenList[j]);
 
                 for (uint256 k = 0; k < amountsList.length; ++k) {
-                    IUniswapV3Pool[][] memory poolPaths = getPoolPaths(factory, multiQuoter, tokenPath, amountsList[k][amountsList[k].length - 1]);
+                    IUniswapV3Pool[][] memory poolPaths = getPoolPaths(
+                        factory,
+                        multiQuoter,
+                        tokenPath,
+                        amountsList[k][amountsList[k].length - 1]
+                    );
 
                     for (uint256 l = 0; l < poolPaths.length; ++l) {
                         if (!isValidPoolPath(poolPaths[l])) {
@@ -273,12 +277,12 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         }
     }
 
-    function writeGasEstimateDataForInput(bytes memory uniswapPath, uint256[] memory amounts, string memory filePath) private {
-        (, uint256[] memory mqInputGasEst) = multiQuoter.quoteExactMultiInput(
-            factory,
-            uniswapPath,
-            amounts
-        );
+    function writeGasEstimateDataForInput(
+        bytes memory uniswapPath,
+        uint256[] memory amounts,
+        string memory filePath
+    ) private {
+        (, uint256[] memory mqInputGasEst) = multiQuoter.quoteExactMultiInput(factory, uniswapPath, amounts);
 
         for (uint256 i = 0; i < amounts.length; ++i) {
             try uniQuoter.quoteExactInput{gas: 700e3}(uniswapPath, amounts[i]) returns (
@@ -292,30 +296,32 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 string memory ticksCrossedStr = toHexString(abi.encodePacked(ticksCrossed[0]));
                 string memory mqGasEstimateStr = toHexString(abi.encodePacked(mqInputGasEst[i]));
                 string memory uqGasEstimateStr = toHexString(abi.encodePacked(uqInputGasEst));
-                string memory row = string(abi.encodePacked(
-                    pathStr,
-                    ',',
-                    amountStr,
-                    ',',
-                    'TRUE',
-                    ',',
-                    ticksCrossedStr,
-                    ',',
-                    mqGasEstimateStr,
-                    ',',
-                    uqGasEstimateStr));
+                string memory row = string(
+                    abi.encodePacked(
+                        pathStr,
+                        ",",
+                        amountStr,
+                        ",",
+                        "TRUE",
+                        ",",
+                        ticksCrossedStr,
+                        ",",
+                        mqGasEstimateStr,
+                        ",",
+                        uqGasEstimateStr
+                    )
+                );
                 vm.writeLine(filePath, row);
-            } catch {
-            }
+            } catch {}
         }
     }
 
-    function writeGasEstimateDataForOutput(bytes memory uniswapPath, uint256[] memory amounts, string memory filePath) private {
-        (, uint256[] memory mqOutputGasEst) = multiQuoter.quoteExactMultiOutput(
-            factory,
-            uniswapPath,
-            amounts
-        );
+    function writeGasEstimateDataForOutput(
+        bytes memory uniswapPath,
+        uint256[] memory amounts,
+        string memory filePath
+    ) private {
+        (, uint256[] memory mqOutputGasEst) = multiQuoter.quoteExactMultiOutput(factory, uniswapPath, amounts);
 
         for (uint256 i = 0; i < amounts.length; ++i) {
             try uniQuoter.quoteExactOutput{gas: 700e3}(uniswapPath, amounts[i]) returns (
@@ -329,23 +335,25 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 string memory ticksCrossedStr = toHexString(abi.encodePacked(ticksCrossed[0]));
                 string memory mqGasEstimateStr = toHexString(abi.encodePacked(mqOutputGasEst[i]));
                 string memory uqGasEstimateStr = toHexString(abi.encodePacked(uqOutputGasEst));
-                string memory row = string(abi.encodePacked(
-                    pathStr,
-                    ',',
-                    amountStr,
-                    ',',
-                    'FALSE',
-                    ',',
-                    ticksCrossedStr,
-                    ',',
-                    mqGasEstimateStr,
-                    ',',
-                    uqGasEstimateStr));
+                string memory row = string(
+                    abi.encodePacked(
+                        pathStr,
+                        ",",
+                        amountStr,
+                        ",",
+                        "FALSE",
+                        ",",
+                        ticksCrossedStr,
+                        ",",
+                        mqGasEstimateStr,
+                        ",",
+                        uqGasEstimateStr
+                    )
+                );
                 vm.writeLine(filePath, row);
             } catch {}
         }
     }
-
 
     function toHexString(bytes memory buffer) private pure returns (string memory) {
         // Fixed buffer size for hexadecimal convertion
