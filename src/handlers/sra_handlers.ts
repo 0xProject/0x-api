@@ -73,10 +73,7 @@ export class SRAHandlers {
             orderFieldFilters,
             additionalFilters,
         );
-        ORDERS_GET_REQUESTS.labels(
-            'orders',
-            CHAIN_ID.toString(),
-        ).inc();
+        ORDERS_GET_REQUESTS.labels('orders', CHAIN_ID.toString()).inc();
         res.status(StatusCodes.OK).send(paginatedOrders);
     }
     public async orderbookAsync(req: express.Request, res: express.Response): Promise<void> {
@@ -85,10 +82,7 @@ export class SRAHandlers {
         const baseToken = (req.query.baseToken as string).toLowerCase();
         const quoteToken = (req.query.quoteToken as string).toLowerCase();
         const orderbookResponse = await this._orderBook.getOrderBookAsync(page, perPage, baseToken, quoteToken);
-        ORDERS_GET_REQUESTS.labels(
-            'book',
-            CHAIN_ID.toString(),
-        ).inc();
+        ORDERS_GET_REQUESTS.labels('book', CHAIN_ID.toString()).inc();
         res.status(StatusCodes.OK).send(orderbookResponse);
     }
     public async postOrderAsync(req: express.Request, res: express.Response): Promise<void> {
@@ -107,10 +101,7 @@ export class SRAHandlers {
         if (!shouldSkipConfirmation) {
             res.status(StatusCodes.OK).send();
         }
-        ORDERS_POST_REQUESTS.labels(
-            'single',
-            CHAIN_ID.toString(),
-        ).inc();
+        ORDERS_POST_REQUESTS.labels('single', CHAIN_ID.toString()).inc();
     }
     public async postOrdersAsync(req: express.Request, res: express.Response): Promise<void> {
         const shouldSkipConfirmation = req.query.skipConfirmation === 'true';
@@ -130,10 +121,7 @@ export class SRAHandlers {
         if (!shouldSkipConfirmation) {
             res.status(StatusCodes.OK).send();
         }
-        ORDERS_POST_REQUESTS.labels(
-            'multi',
-            CHAIN_ID.toString(),
-        ).inc();
+        ORDERS_POST_REQUESTS.labels('multi', CHAIN_ID.toString()).inc();
     }
 
     public async postPersistentOrderAsync(req: express.Request, res: express.Response): Promise<void> {
