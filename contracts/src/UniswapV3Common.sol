@@ -80,22 +80,22 @@ contract UniswapV3Common {
     /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
     function getPoolPaths(
         IUniswapV3Factory factory,
-        IUniswapV3MultiQuoter multiQuoter,
+        IUniswapV3QuoterV2 uniQuoter,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
     ) internal returns (IUniswapV3Pool[][] memory poolPaths) {
         if (path.length == 2) {
-            return getPoolPathSingleHop(factory, multiQuoter, path, inputAmount);
+            return getPoolPathSingleHop(factory, uniQuoter, path, inputAmount);
         }
         if (path.length == 3) {
-            return getPoolPathTwoHop(factory, multiQuoter, path, inputAmount);
+            return getPoolPathTwoHop(factory, uniQuoter, path, inputAmount);
         }
         revert("UniswapV3Sampler/unsupported token path length");
     }
 
     function getPoolPathSingleHop(
         IUniswapV3Factory factory,
-        IUniswapV3MultiQuoter multiQuoter,
+        IUniswapV3QuoterV2 uniQuoter,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[][] memory poolPaths) {
@@ -103,7 +103,7 @@ contract UniswapV3Common {
         (IUniswapV3Pool[2] memory topPools, ) = getTopTwoPools(
             GetTopTwoPoolsParams({
                 factory: factory,
-                multiQuoter: multiQuoter,
+                uniQuoter: uniQuoter,
                 inputToken: path[0],
                 outputToken: path[1],
                 inputAmount: inputAmount
@@ -121,7 +121,7 @@ contract UniswapV3Common {
 
     function getPoolPathTwoHop(
         IUniswapV3Factory factory,
-        IUniswapV3MultiQuoter multiQuoter,
+        IUniswapV3QuoterV2 uniQuoter,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
     ) private returns (IUniswapV3Pool[][] memory poolPaths) {
@@ -129,7 +129,7 @@ contract UniswapV3Common {
         (IUniswapV3Pool[2] memory firstHopTopPools, uint256[2] memory firstHopAmounts) = getTopTwoPools(
             GetTopTwoPoolsParams({
                 factory: factory,
-                multiQuoter: multiQuoter,
+                uniQuoter: uniQuoter,
                 inputToken: path[0],
                 outputToken: path[1],
                 inputAmount: inputAmount
@@ -139,7 +139,7 @@ contract UniswapV3Common {
         (IUniswapV3Pool[2] memory secondHopTopPools, ) = getTopTwoPools(
             GetTopTwoPoolsParams({
                 factory: factory,
-                multiQuoter: multiQuoter,
+                uniQuoter: uniQuoter,
                 inputToken: path[1],
                 outputToken: path[2],
                 inputAmount: firstHopAmounts[0]
@@ -160,7 +160,7 @@ contract UniswapV3Common {
 
     struct GetTopTwoPoolsParams {
         IUniswapV3Factory factory;
-        IUniswapV3MultiQuoter multiQuoter;
+        IUniswapV3QuoterV2 uniQuoter;
         IERC20TokenV06 inputToken;
         IERC20TokenV06 outputToken;
         uint256 inputAmount;
@@ -193,28 +193,28 @@ contract UniswapV3Common {
             poolPath[0] = pool;
             bytes memory uniswapPath = toUniswapPath(path, poolPath);
 
-            try
-                params.multiQuoter.quoteExactMultiInput{gas: POOL_FILTERING_GAS_LIMIT}(
-                    params.factory,
-                    uniswapPath,
-                    inputAmounts
-                )
-            returns (uint256[] memory amountsOut, uint256[] memory /* gasEstimate */) {
+            // TODO replace with constant
+            try params.uniQuoter.quoteExactInput{gas: 700e3}(uniswapPath, params.inputAmount) returns (
+                uint256 outputAmount,
+                uint160[] memory /* sqrtPriceX96AfterList */,
+                uint32[] memory /* initializedTicksCrossedList */,
+                uint256 /* gasUsed */
+            ) {
                 // Keeping track of the top 2 pools.
-                if (amountsOut[0] > outputAmounts[0]) {
+                if (outputAmount > outputAmounts[0]) {
                     outputAmounts[1] = outputAmounts[0];
                     topPools[1] = topPools[0];
-                    outputAmounts[0] = amountsOut[0];
+                    outputAmounts[0] = outputAmount;
                     topPools[0] = pool;
-                } else if (amountsOut[0] > outputAmounts[1]) {
-                    outputAmounts[1] = amountsOut[0];
+                } else if (outputAmount > outputAmounts[1]) {
+                    outputAmounts[1] = outputAmount;
                     topPools[1] = pool;
                 }
             } catch {}
         }
     }
 
-    function isValidPool(IUniswapV3Pool pool) private view returns (bool isValid) {
+    function isValidPool(IUniswapV3Pool pool) internal view returns (bool isValid) {
         // Check if it has been deployed.
         {
             uint256 codeSize;

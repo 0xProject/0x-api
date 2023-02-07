@@ -49,7 +49,7 @@ contract UniswapV3Sampler is UniswapV3Common {
     {
         IUniswapV3Pool[][] memory poolPaths = getPoolPaths(
             factory,
-            multiQuoter,
+            IUniswapV3QuoterV2(0x61fFE014bA17989E743c5F6cB21bF9697530B21e),
             path,
             takerTokenAmounts[takerTokenAmounts.length - 1]
         );
@@ -99,7 +99,7 @@ contract UniswapV3Sampler is UniswapV3Common {
         IERC20TokenV06[] memory reversedPath = reverseTokenPath(path);
         IUniswapV3Pool[][] memory poolPaths = getPoolPaths(
             factory,
-            multiQuoter,
+            IUniswapV3QuoterV2(0x61fFE014bA17989E743c5F6cB21bF9697530B21e),
             reversedPath,
             makerTokenAmounts[makerTokenAmounts.length - 1]
         );
