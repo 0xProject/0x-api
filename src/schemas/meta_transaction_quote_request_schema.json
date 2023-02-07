@@ -24,6 +24,9 @@
         },
         "quoteUniqueId": {
             "type": "string"
+        },
+        "txOrigin": {
+            "type": "string"
         }
     },
     "required": ["sellToken", "buyToken", "takerAddress", "integratorId"],

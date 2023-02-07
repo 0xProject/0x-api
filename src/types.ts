@@ -227,6 +227,7 @@ export interface GetSwapQuoteParams extends SwapQuoteParamsBase {
     origin?: string;
     // Whether the optimal route accounts for expected slippage for each liquidity source
     enableSlippageProtection?: boolean;
+    txOrigin?: string;
 }
 
 // GET /swap/price
@@ -276,6 +277,8 @@ export interface MetaTransactionV1QuoteRequestParams extends SwapQuoteParamsBase
     quoteUniqueId?: string; // ID to use for the quote report `decodedUniqueId`
     sellTokenAddress: string;
     takerAddress: string;
+    txOrigin?: string; // Is registry address for Gasless RFQt
+    rfqt?: Pick<RfqRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQ'>;
 }
 
 /**
@@ -291,12 +294,14 @@ export interface MetaTransactionV2QuoteRequestParams extends MetaTransactionV1Qu
 export interface MetaTransactionV1QuoteParams extends SwapQuoteParamsBase {
     buyTokenAddress: string;
     from: string;
-    integratorId: string;
+    integrator: Integrator;
     isETHBuy: boolean;
     isETHSell: boolean;
     quoteUniqueId?: string; // ID to use for the quote report `decodedUniqueId`
     sellTokenAddress: string;
     takerAddress: string;
+    txOrigin?: string;
+    rfqt?: Pick<RfqRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQ'>;
 }
 
 /**
@@ -458,6 +463,8 @@ export interface RfqtV2Request {
     takerAddress: string;
     takerToken: string;
     txOrigin: string;
+    trader?: string;
+    gasless?: boolean;
 }
 
 interface FeeConfigBase {

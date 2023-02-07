@@ -5,8 +5,14 @@ import * as express from 'express';
 import { StatusCodes } from 'http-status-codes';
 import * as _ from 'lodash';
 
-import { AffiliateFeeType, ERC20BridgeSource, SwapQuoterError } from '../asset-swapper';
-import { CHAIN_ID, ENABLE_GASLESS_RFQT, META_TX_MIN_ALLOWED_SLIPPAGE } from '../config';
+import { AffiliateFeeType, ERC20BridgeSource, RfqRequestOpts, SwapQuoterError } from '../asset-swapper';
+import {
+    CHAIN_ID,
+    ENABLE_GASLESS_RFQT,
+    getIntegratorByIdOrThrow,
+    META_TX_MIN_ALLOWED_SLIPPAGE,
+    RFQT_API_KEY_WHITELIST,
+} from '../config';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     META_TRANSACTION_DOCS_URL,
@@ -68,6 +74,7 @@ export class MetaTransactionHandlers {
                 isETHBuy,
                 isETHSell: false,
                 from: params.takerAddress,
+                integrator: getIntegratorByIdOrThrow(params.integratorId),
             });
 
             res.status(StatusCodes.OK).send(metaTransactionQuote);
@@ -129,6 +136,7 @@ export class MetaTransactionHandlers {
                 from: params.takerAddress,
                 isETHBuy,
                 isETHSell: false,
+                integrator: getIntegratorByIdOrThrow(params.integratorId),
             });
 
             const metaTransactionPriceResponse: MetaTransactionV2PriceResponse = {
@@ -182,7 +190,7 @@ export class MetaTransactionHandlers {
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema);
 
         // parse query params
-        const params = parseV1RequestParams(req);
+        const params = parseV1RequestParams(req, 'quote');
         const { buyTokenAddress, sellTokenAddress } = params;
         const isETHBuy = isNativeSymbolOrAddress(buyTokenAddress, CHAIN_ID);
 
@@ -194,9 +202,10 @@ export class MetaTransactionHandlers {
         try {
             const metaTransactionQuote = await this._metaTransactionService.getMetaTransactionV1QuoteAsync({
                 ...params,
+                from: params.takerAddress,
                 isETHBuy,
                 isETHSell: false,
-                from: params.takerAddress,
+                integrator: getIntegratorByIdOrThrow(params.integratorId),
             });
 
             res.status(StatusCodes.OK).send(metaTransactionQuote);
@@ -243,7 +252,7 @@ export class MetaTransactionHandlers {
     public async getV1PriceAsync(req: express.Request, res: express.Response): Promise<void> {
         schemaUtils.validateSchema(req.query, schemas.metaTransactionQuoteRequestSchema);
         // parse query params
-        const params = parseV1RequestParams(req);
+        const params = parseV1RequestParams(req, 'price');
         const { buyTokenAddress, sellTokenAddress } = params;
 
         // ETH selling isn't supported.
@@ -258,6 +267,7 @@ export class MetaTransactionHandlers {
                 from: params.takerAddress,
                 isETHBuy,
                 isETHSell: false,
+                integrator: getIntegratorByIdOrThrow(params.integratorId),
             });
 
             const metaTransactionPriceResponse: MetaTransactionV1PriceResponse = {
@@ -305,7 +315,11 @@ export class MetaTransactionHandlers {
     }
 }
 
-function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteRequestParams {
+function parseV1RequestParams(req: express.Request, endpoint: 'price' | 'quote'): MetaTransactionV1QuoteRequestParams {
+    // Parse headers
+    const apiKey = req.header('0x-api-key') as string | undefined;
+
+    // Parse query params
     const affiliateAddress = req.query.affiliateAddress as string | undefined;
     const affiliateFee = parseUtils.parseAffiliateFeeOptions(req);
     const buyAmount = req.query.buyAmount === undefined ? undefined : new BigNumber(req.query.buyAmount as string);
@@ -317,6 +331,7 @@ function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteReque
     const sellToken = req.query.sellToken as string;
     const sellTokenAddress = findTokenAddressOrThrowApiError(sellToken, 'sellToken', CHAIN_ID);
     const takerAddress = (req.query.takerAddress as string).toLowerCase();
+    const txOrigin = req.query.txOrigin === undefined ? undefined : (req.query.txOrigin as string).toLowerCase();
 
     const slippagePercentage = parseFloat(req.query.slippagePercentage as string) || DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE;
     if (slippagePercentage >= 1) {
@@ -345,10 +360,40 @@ function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteReque
 
     // Parse sources
     let excludedSources: ERC20BridgeSource[], includedSources: ERC20BridgeSource[];
+    let rfqt: Pick<RfqRequestOpts, 'intentOnFilling' | 'isIndicative' | 'nativeExclusivelyRFQ'> | undefined;
+    const intentOnFilling = endpoint === 'quote' && txOrigin ? true : false;
     if (ENABLE_GASLESS_RFQT) {
         // if Gasless RFQt is enabled, parse RFQt params
-        // TODO: implement RFQt parsing logic
-        (excludedSources = []), (includedSources = []);
+        const parsedSourcesResult = parseUtils.parseRequestForExcludedSources(
+            {
+                excludedSources: req.query.excludedSources as string | undefined,
+                includedSources: req.query.includedSources as string | undefined,
+                intentOnFilling: intentOnFilling ? 'true' : 'false',
+                takerAddress,
+                txOrigin, // Gasless RFQt requires txOrigin in addition to takerAddress
+                apiKey, // api key is solely used for securing the endpoint, not for integrator lookup
+            },
+            RFQT_API_KEY_WHITELIST,
+            endpoint,
+            true,
+        );
+        ({ excludedSources, includedSources } = parsedSourcesResult);
+
+        if (Object.values(ERC20BridgeSource).every((s) => excludedSources.includes(s))) {
+            throw new ValidationError([
+                {
+                    field: 'excludedSources',
+                    code: ValidationErrorCodes.ValueOutOfRange,
+                    reason: 'Request excluded all sources',
+                },
+            ]);
+        }
+
+        rfqt = {
+            intentOnFilling,
+            isIndicative: !intentOnFilling,
+            nativeExclusivelyRFQ: parsedSourcesResult.nativeExclusivelyRFQT,
+        };
     } else {
         // Note: no RFQT config is passed through here so RFQT is excluded
         excludedSources =
@@ -364,6 +409,7 @@ function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteReque
 
     return {
         takerAddress,
+        txOrigin,
         sellTokenAddress,
         buyTokenAddress,
         sellAmount,
@@ -371,6 +417,7 @@ function parseV1RequestParams(req: express.Request): MetaTransactionV1QuoteReque
         slippagePercentage,
         excludedSources,
         includedSources,
+        rfqt,
         affiliateFee,
         affiliateAddress,
         integratorId,

@@ -256,6 +256,7 @@ export class SwapService implements ISwapService {
             excludedSources,
             includedSources,
             integrator,
+            txOrigin,
             rfqt,
             affiliateAddress,
             affiliateFee,
@@ -292,8 +293,11 @@ export class SwapService implements ISwapService {
                 makerEndpointMaxResponseTimeMs: RFQT_REQUEST_MAX_RESPONSE_MS,
                 // Note 0xAPI maps takerAddress query parameter to txOrigin as takerAddress is always Exchange Proxy or a VIP
                 takerAddress: NULL_ADDRESS,
+                // txOrigin is explicitly passed in for MetaTransactions
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-                txOrigin: takerAddress!,
+                txOrigin: isMetaTransaction && txOrigin ? txOrigin : takerAddress!,
+                trader: takerAddress,
+                gasless: isMetaTransaction,
                 firmQuoteValidator: this._firmQuoteValidator,
                 altRfqAssetOfferings,
             };

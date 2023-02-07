@@ -5,7 +5,7 @@ const API_HTTP_ADDRESS = 'http://localhost:3000';
 interface ProtoRoute {
     baseRoute: string;
     queryParams?: {
-        [param: string]: string;
+        [param: string]: string | undefined;
     };
 }
 
@@ -31,8 +31,15 @@ export async function httpGetAsync(input: {
     route: string;
     baseURL?: string;
     app?: Express.Application;
+    headers?: { [field: string]: string };
 }): Promise<httpRequest.Response> {
-    return httpRequest(input.app || input.baseURL || API_HTTP_ADDRESS).get(input.route);
+    const request = httpRequest(input.app || input.baseURL || API_HTTP_ADDRESS).get(input.route);
+    if (input.headers) {
+        for (const [field, value] of Object.entries(input.headers)) {
+            request.set(field, value);
+        }
+    }
+    return request;
 }
 
 /**

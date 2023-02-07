@@ -290,6 +290,8 @@ export type SwapQuoteSourceBreakdown = {
 export interface RfqRequestOpts {
     takerAddress: string;
     txOrigin: string;
+    trader?: string;
+    gasless?: boolean;
     integrator: Integrator;
     intentOnFilling: boolean;
     isIndicative?: boolean;
