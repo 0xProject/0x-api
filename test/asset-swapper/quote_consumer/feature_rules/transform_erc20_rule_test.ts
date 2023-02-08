@@ -212,7 +212,7 @@ describe('TransformERC20Rule', () => {
 
                 {
                     ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                    affiliateFees: [
+                    buyTokenAffiliateFees: [
                         {
                             recipient,
                             buyTokenFeeAmount,
@@ -243,7 +243,7 @@ describe('TransformERC20Rule', () => {
 
             const callInfo = rule.createCalldata(quote, {
                 ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                affiliateFees: [
+                buyTokenAffiliateFees: [
                     {
                         recipient,
                         buyTokenFeeAmount,
@@ -283,7 +283,7 @@ describe('TransformERC20Rule', () => {
 
             const callInfo = rule.createCalldata(quote, {
                 ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                affiliateFees: [
+                buyTokenAffiliateFees: [
                     {
                         recipient,
                         buyTokenFeeAmount: ZERO_AMOUNT,
@@ -333,7 +333,7 @@ describe('TransformERC20Rule', () => {
 
             const callInfo = rule.createCalldata(quote, {
                 ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                affiliateFees: [
+                buyTokenAffiliateFees: [
                     {
                         recipient: integratorRecipient,
                         buyTokenFeeAmount,
@@ -387,7 +387,7 @@ describe('TransformERC20Rule', () => {
             expect(() =>
                 rule.createCalldata(UNI_V2_SELL_QUOTE, {
                     ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                    affiliateFees: [
+                    buyTokenAffiliateFees: [
                         {
                             recipient: randomAddress(),
                             buyTokenFeeAmount: ZERO_AMOUNT,

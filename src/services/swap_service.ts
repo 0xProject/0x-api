@@ -749,7 +749,7 @@ export class SwapService implements ISwapService {
             isToETH,
             isMetaTransaction,
             shouldSellEntireBalance,
-            affiliateFees,
+            buyTokenAffiliateFees: affiliateFees,
             positiveSlippageFee,
         };
 
