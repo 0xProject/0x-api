@@ -114,15 +114,12 @@ async function generateCurveInfoMainnet(pool: CurvePool) {
     // Connect to Ethereum network
     const provider = ethers.getDefaultProvider();
     // Get the contract bytecode
-    const bytecode = await provider.getCode(pool.address);
+    let bytecode = await provider.getCode(pool.address);
+	bytecode = bytecode.toLowerCase()
 
-	CURVE_MAINNET_INFOS[pool.address] = createCurveFactoryCryptoExchangePool({
-		tokens: pool.coinsAddresses,
-		pool: pool.address,
-		gasSchedule: 600e3,
-	})
 	//classify curve pool
 	if (bytecode.includes(CurveFunctionSelectors.exchange_underlying_uint256) && bytecode.includes(CurveFunctionSelectors.get_dy_uint256)) {
+		console.log('yay')
 		CURVE_MAINNET_INFOS[pool.address] = createCurveFactoryCryptoExchangePool({
 			tokens: pool.coinsAddresses,
 			pool: pool.address,
@@ -130,6 +127,7 @@ async function generateCurveInfoMainnet(pool: CurvePool) {
 		})
 	}
 	else if (bytecode.includes(CurveFunctionSelectors.exchange_v2) && bytecode.includes(CurveFunctionSelectors.get_dy_v2)){
+		console.log('yay')
 		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangeV2Pool({
 			tokens: pool.coinsAddresses,
 			pool: pool.address,
@@ -137,6 +135,7 @@ async function generateCurveInfoMainnet(pool: CurvePool) {
 		})
 	}
 	else if (bytecode.includes(CurveFunctionSelectors.exchange_underlying) && bytecode.includes(CurveFunctionSelectors.get_dy_underlying)){
+		console.log('yay')
 		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangeUnderlyingPool({
 			tokens: pool.coinsAddresses,
 			pool: pool.address,
@@ -144,6 +143,7 @@ async function generateCurveInfoMainnet(pool: CurvePool) {
 		})
 	}
 	else if (bytecode.includes(CurveFunctionSelectors.exchange) && bytecode.includes(CurveFunctionSelectors.get_dy)){
+		console.log('yay')
 		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangePool({
 			tokens: pool.coinsAddresses,
 			pool: pool.address,
@@ -155,9 +155,7 @@ async function generateCurveInfoMainnet(pool: CurvePool) {
 getCurvePools().then((curvePools: {[name: string]: CurvePool}) => {
 	//console.log(`Retrieved ${Object.keys(curvePools).length} Curve Pools`);
 	for (const pool in curvePools){
-		console.log(curvePools[pool])
 		generateCurveInfoMainnet(curvePools[pool])
 	}
-	console.log(CURVE_MAINNET_INFOS)
 	return curvePools
 });
