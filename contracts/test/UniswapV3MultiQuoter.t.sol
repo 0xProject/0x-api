@@ -215,75 +215,6 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         return (gas1 - gasleft(), gas0 - gas1);
     }
 
-    function testGetGasEstimateData() public {
-        string memory filePath = "UniswapV3MultiQuoterGasEstimates.csv";
-        string memory headers = "path,amount,isInput,ticksCrossed,mqGasEstimate,uqGasEstimate";
-        vm.writeLine(filePath, headers);
-
-        address[12] memory tokenList;
-        tokenList[0] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // USDC
-        tokenList[1] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // WETH
-        tokenList[2] = 0xdAC17F958D2ee523a2206206994597C13D831ec7; // USDT
-        tokenList[3] = 0x6B175474E89094C44Da98b954EedeAC495271d0F; // DAI
-        tokenList[4] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599; // WBTC
-        tokenList[5] = 0xD533a949740bb3306d119CC777fa900bA034cd52; // CRV
-        tokenList[6] = 0x111111111117dC0aa78b770fA6A738034120C302; // 1INCH
-        tokenList[7] = 0xE41d2489571d322189246DaFA5ebDe1F4699F498; // ZRX
-        tokenList[8] = 0x4d224452801ACEd8B2F0aebE155379bb5D594381; // APE
-        tokenList[9] = 0x03ab458634910AaD20eF5f1C8ee96F1D6ac54919; // RAI
-        tokenList[10] = 0x3845badAde8e6dFF049820680d1F14bD3903a5d0; // SAND
-        tokenList[11] = 0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0; // MATIC
-
-        uint256[][] memory amountsList = new uint256[][](10);
-        for (uint256 i = 0; i < amountsList.length; ++i) {
-            amountsList[i] = new uint256[](10);
-            for (uint256 j = 0; j < amountsList[i].length; ++j) {
-                amountsList[i][j] = (j + 1) * 10 ** (2 * i + 4);
-            }
-        }
-
-        UniswapV3GasEstimateWriter ge = new UniswapV3GasEstimateWriter();
-
-        for (uint256 i = 0; i < tokenList.length; ++i) {
-            for (uint256 j = 0; j < tokenList.length; ++j) {
-                console.log("Processing i=%d, j=%d", i + 1, j + 1);
-                console.log("--- %d / %d", i * tokenList.length + j + 1, tokenList.length * tokenList.length);
-
-                if (i == j) {
-                    continue;
-                }
-
-                IERC20TokenV06[] memory tokenPath = new IERC20TokenV06[](2);
-                tokenPath[0] = IERC20TokenV06(tokenList[i]);
-                tokenPath[1] = IERC20TokenV06(tokenList[j]);
-
-                for (uint256 k = 0; k < amountsList.length; ++k) {
-                    IUniswapV3Pool[][] memory poolPaths = getPoolPaths(
-                        factory,
-                        uniQuoter,
-                        tokenPath,
-                        amountsList[k][amountsList[k].length - 1]
-                    );
-
-                    for (uint256 l = 0; l < poolPaths.length; ++l) {
-                        if (!isValidPoolPath(poolPaths[l])) {
-                            continue;
-                        }
-
-                        bytes memory uniswapPath = toUniswapPath(tokenPath, poolPaths[l]);
-
-                        try 
-                            ge.writeGasEstimateDataForInput(uniswapPath, amountsList[k], filePath, uniQuoter, multiQuoter, factory)
-                        {} catch {}
-                        try
-                            ge.writeGasEstimateDataForOutput(uniswapPath, amountsList[k], filePath, uniQuoter, multiQuoter, factory)
-                        {} catch {}
-                    }
-                }
-            }
-        }
-    }
-
     function testWarmStorage() public {
         IERC20TokenV06[] memory tokenPath = new IERC20TokenV06[](3);
         tokenPath[0] = IERC20TokenV06(0x03ab458634910AaD20eF5f1C8ee96F1D6ac54919); // RAI
@@ -293,15 +224,16 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         uint256 inputAmount = 228852900000000000000000;
         uint256[] memory amounts = new uint256[](13);
         for (uint256 i = 0; i < amounts.length; ++i) {
-            amounts[i] = (i+1) * (inputAmount / 13);
+            amounts[i] = (i + 1) * (inputAmount / 13);
         }
 
-        bytes memory path = hex"03ab458634910aad20ef5f1c8ee96f1d6ac549190001f46b175474e89094c44da98b954eedeac495271d0f002710111111111117dc0aa78b770fa6a738034120c302";
+        bytes
+            memory path = hex"03ab458634910aad20ef5f1c8ee96f1d6ac549190001f46b175474e89094c44da98b954eedeac495271d0f002710111111111117dc0aa78b770fa6a738034120c302";
 
         console.log("UQ Cold Read");
         for (uint256 i = 0; i < amounts.length; ++i) {
             try uniQuoter.quoteExactInput(path, amounts[i]) returns (
-                uint256,
+                uint256 /* amountOut */,
                 uint160[] memory /* sqrtPriceX96AfterList */,
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 uqGasEstimate
@@ -314,7 +246,7 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
 
         for (uint256 i = 0; i < amounts.length; ++i) {
             try uniQuoter.quoteExactInput(path, amounts[i]) returns (
-                uint256,
+                uint256 /* amountOut */,
                 uint160[] memory /* sqrtPriceX96AfterList */,
                 uint32[] memory /* initializedTicksCrossedList */,
                 uint256 uqGasEstimate
@@ -331,7 +263,7 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
                 console.log("MQ Gas Estimates: i=%d, MQ: %d", i, mqGasEstimates[i]);
             }
         }
-        
+
         console.log("MQ Warm Read");
 
         {

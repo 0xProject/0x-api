@@ -1695,8 +1695,8 @@ export class SamplerOperations {
                         if (REBASING_TOKENS.has(takerToken) || REBASING_TOKENS.has(makerToken)) {
                             return [];
                         }
-                        const { factory, router } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId];
-                        if (!isValidAddress(router) || !isValidAddress(factory)) {
+                        const { quoter, router } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId];
+                        if (!isValidAddress(router) || !isValidAddress(quoter)) {
                             return [];
                         }
                         return [
@@ -2035,8 +2035,8 @@ export class SamplerOperations {
                         if (REBASING_TOKENS.has(takerToken) || REBASING_TOKENS.has(makerToken)) {
                             return [];
                         }
-                        const { factory, router } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId];
-                        if (!isValidAddress(router) || !isValidAddress(factory)) {
+                        const { quoter, router } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId];
+                        if (!isValidAddress(router) || !isValidAddress(quoter)) {
                             return [];
                         }
                         return [

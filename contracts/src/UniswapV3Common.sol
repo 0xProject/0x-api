@@ -26,7 +26,7 @@ import "./interfaces/IUniswapV3.sol";
 
 contract UniswapV3Common {
     /// @dev Gas limit for UniswapV3 calls
-    uint256 private constant POOL_FILTERING_GAS_LIMIT = 450e3;
+    uint256 private constant POOL_FILTERING_GAS_LIMIT = 700e3;
 
     function toUniswapPath(
         IERC20TokenV06[] memory tokenPath,
@@ -193,8 +193,9 @@ contract UniswapV3Common {
             poolPath[0] = pool;
             bytes memory uniswapPath = toUniswapPath(path, poolPath);
 
-            // TODO replace with constant
-            try params.uniQuoter.quoteExactInput{gas: 700e3}(uniswapPath, params.inputAmount) returns (
+            try
+                params.uniQuoter.quoteExactInput{gas: POOL_FILTERING_GAS_LIMIT}(uniswapPath, params.inputAmount)
+            returns (
                 uint256 outputAmount,
                 uint160[] memory /* sqrtPriceX96AfterList */,
                 uint32[] memory /* initializedTicksCrossedList */,
