@@ -1,3 +1,4 @@
+import { ChainId } from '@0x/contract-addresses';
 import { FillQuoteTransformerOrderType, RfqOrder } from '@0x/protocol-utils';
 import { BigNumber, NULL_ADDRESS } from '@0x/utils';
 import * as _ from 'lodash';
@@ -15,6 +16,9 @@ import {
     ExtendedQuoteReportSources,
     QuoteReport,
     SignedLimitOrder,
+    FeeEstimate,
+    ExchangeProxyOverhead,
+    FillData,
 } from '../../types';
 import { getAltMarketInfo } from '../alt_mm_implementation_utils';
 import { QuoteRequestor, V4RFQIndicativeQuoteMM } from '../quote_requestor';
@@ -109,14 +113,29 @@ export class MarketOperationUtils {
     }
 
     constructor(
-        private readonly _sampler: DexOrderSampler,
+        private readonly sampler: DexOrderSampler,
         private readonly contractAddresses: AssetSwapperContractAddresses,
     ) {
-        this._buySources = BUY_SOURCE_FILTER_BY_CHAIN_ID[_sampler.chainId];
-        this._sellSources = SELL_SOURCE_FILTER_BY_CHAIN_ID[_sampler.chainId];
-        this._feeSources = FEE_QUOTE_SOURCES_BY_CHAIN_ID[_sampler.chainId];
-        this._nativeFeeToken = NATIVE_FEE_TOKEN_BY_CHAIN_ID[_sampler.chainId];
-        this._nativeFeeTokenAmount = NATIVE_FEE_TOKEN_AMOUNT_BY_CHAIN_ID[_sampler.chainId];
+        this._buySources = BUY_SOURCE_FILTER_BY_CHAIN_ID[sampler.chainId];
+        this._sellSources = SELL_SOURCE_FILTER_BY_CHAIN_ID[sampler.chainId];
+        this._feeSources = FEE_QUOTE_SOURCES_BY_CHAIN_ID[sampler.chainId];
+        this._nativeFeeToken = NATIVE_FEE_TOKEN_BY_CHAIN_ID[sampler.chainId];
+        this._nativeFeeTokenAmount = NATIVE_FEE_TOKEN_AMOUNT_BY_CHAIN_ID[sampler.chainId];
+    }
+
+    private async getMarketLiquidity(
+        side: MarketOperation,
+        makerToken: string,
+        takerToken: string,
+        limitOrders: SignedLimitOrder[],
+        amount: BigNumber,
+        opts?: Partial<GetMarketOrdersOpts>,
+    ): Promise<MarketSideLiquidity> {
+        if (side === MarketOperation.Sell) {
+            return this.getMarketSellLiquidity(makerToken, takerToken, limitOrders, amount, opts);
+        }
+
+        return this.getMarketBuyLiquidity(makerToken, takerToken, limitOrders, amount, opts);
     }
 
     /**
@@ -128,7 +147,7 @@ export class MarketOperationUtils {
      * @param opts Options object.
      * @return MarketSideLiquidity.
      */
-    public async getMarketSellLiquidityAsync(
+    private async getMarketSellLiquidity(
         makerToken: string,
         takerToken: string,
         limitOrders: SignedLimitOrder[],
@@ -145,14 +164,14 @@ export class MarketOperationUtils {
         const txOrigin = (_opts.rfqt && _opts.rfqt.txOrigin) || NULL_ADDRESS;
 
         // Call the sampler contract.
-        const samplerPromise = this._sampler.executeAsync(
-            this._sampler.getBlockNumber(),
-            this._sampler.getGasLeft(),
-            this._sampler.getTokenDecimals([makerToken, takerToken]),
+        const samplerPromise = this.sampler.executeAsync(
+            this.sampler.getBlockNumber(),
+            this.sampler.getGasLeft(),
+            this.sampler.getTokenDecimals([makerToken, takerToken]),
             // Get native order fillable amounts.
-            this._sampler.getLimitOrderFillableTakerAmounts(limitOrders, this.contractAddresses.exchangeProxy),
+            this.sampler.getLimitOrderFillableTakerAmounts(limitOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> maker token price.
-            this._sampler.getBestNativeTokenSellRate(
+            this.sampler.getBestNativeTokenSellRate(
                 this._feeSources,
                 makerToken,
                 this._nativeFeeToken,
@@ -160,7 +179,7 @@ export class MarketOperationUtils {
                 _opts.feeSchedule,
             ),
             // Get ETH -> taker token price.
-            this._sampler.getBestNativeTokenSellRate(
+            this.sampler.getBestNativeTokenSellRate(
                 this._feeSources,
                 takerToken,
                 this._nativeFeeToken,
@@ -168,15 +187,15 @@ export class MarketOperationUtils {
                 _opts.feeSchedule,
             ),
             // Get sell quotes for taker -> maker.
-            this._sampler.getSellQuotes(quoteSourceFilters.sources, makerToken, takerToken, sampleAmounts),
-            this._sampler.getTwoHopSellQuotes(
+            this.sampler.getSellQuotes(quoteSourceFilters.sources, makerToken, takerToken, sampleAmounts),
+            this.sampler.getTwoHopSellQuotes(
                 quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
                 makerToken,
                 takerToken,
                 [takerAmount],
             ),
-            this._sampler.isAddressContract(txOrigin),
-            this._sampler.getGasLeft(),
+            this.sampler.isAddressContract(txOrigin),
+            this.sampler.getGasLeft(),
         );
 
         // Refresh the cached pools asynchronously if required
@@ -187,6 +206,7 @@ export class MarketOperationUtils {
             gasBefore,
             tokenDecimals,
             orderFillableTakerAmounts,
+            // TODO: rename inputAmountPerEth, outputAmountPerEth (the unit is wei and also it's per native token)
             outputAmountPerEth,
             inputAmountPerEth,
             dexQuotes,
@@ -217,7 +237,7 @@ export class MarketOperationUtils {
         SAMPLER_METRICS.logBlockNumber(blockNumber);
 
         const [makerTokenDecimals, takerTokenDecimals] = tokenDecimals;
-
+        const isMicroSwap = this.isMicroSwap(takerAmount, inputAmountPerEth);
         const isRfqSupported = !!(_opts.rfqt && !isTxOriginContract);
         const limitOrdersWithFillableAmounts = limitOrders.map((order, i) => ({
             ...order,
@@ -237,8 +257,8 @@ export class MarketOperationUtils {
             quotes: {
                 nativeOrders: limitOrdersWithFillableAmounts,
                 rfqtIndicativeQuotes: [],
-                twoHopQuotes: MarketOperationUtils.filterInvalidTwoHopQuotes(rawTwoHopQuotes),
-                dexQuotes,
+                twoHopQuotes: MarketOperationUtils.filterTwoHopQuotes(rawTwoHopQuotes, isMicroSwap),
+                dexQuotes: this.filterOutDexQuotes(dexQuotes, isMicroSwap),
             },
             isRfqSupported,
             blockNumber: blockNumber.toNumber(),
@@ -254,7 +274,7 @@ export class MarketOperationUtils {
      * @param opts Options object.
      * @return MarketSideLiquidity.
      */
-    public async getMarketBuyLiquidityAsync(
+    private async getMarketBuyLiquidity(
         makerToken: string,
         takerToken: string,
         limitOrders: SignedLimitOrder[],
@@ -271,14 +291,14 @@ export class MarketOperationUtils {
         const txOrigin = (_opts.rfqt && _opts.rfqt.txOrigin) || NULL_ADDRESS;
 
         // Call the sampler contract.
-        const samplerPromise = this._sampler.executeAsync(
-            this._sampler.getBlockNumber(),
-            this._sampler.getGasLeft(),
-            this._sampler.getTokenDecimals([makerToken, takerToken]),
+        const samplerPromise = this.sampler.executeAsync(
+            this.sampler.getBlockNumber(),
+            this.sampler.getGasLeft(),
+            this.sampler.getTokenDecimals([makerToken, takerToken]),
             // Get native order fillable amounts.
-            this._sampler.getLimitOrderFillableMakerAmounts(limitOrders, this.contractAddresses.exchangeProxy),
+            this.sampler.getLimitOrderFillableMakerAmounts(limitOrders, this.contractAddresses.exchangeProxy),
             // Get ETH -> makerToken token price.
-            this._sampler.getBestNativeTokenSellRate(
+            this.sampler.getBestNativeTokenSellRate(
                 this._feeSources,
                 makerToken,
                 this._nativeFeeToken,
@@ -286,7 +306,7 @@ export class MarketOperationUtils {
                 _opts.feeSchedule,
             ),
             // Get ETH -> taker token price.
-            this._sampler.getBestNativeTokenSellRate(
+            this.sampler.getBestNativeTokenSellRate(
                 this._feeSources,
                 takerToken,
                 this._nativeFeeToken,
@@ -294,15 +314,15 @@ export class MarketOperationUtils {
                 _opts.feeSchedule,
             ),
             // Get buy quotes for taker -> maker.
-            this._sampler.getBuyQuotes(quoteSourceFilters.sources, makerToken, takerToken, sampleAmounts),
-            this._sampler.getTwoHopBuyQuotes(
+            this.sampler.getBuyQuotes(quoteSourceFilters.sources, makerToken, takerToken, sampleAmounts),
+            this.sampler.getTwoHopBuyQuotes(
                 quoteSourceFilters.isAllowed(ERC20BridgeSource.MultiHop) ? quoteSourceFilters.sources : [],
                 makerToken,
                 takerToken,
                 [makerAmount],
             ),
-            this._sampler.isAddressContract(txOrigin),
-            this._sampler.getGasLeft(),
+            this.sampler.isAddressContract(txOrigin),
+            this.sampler.getGasLeft(),
         );
 
         // Refresh the cached pools asynchronously if required
@@ -342,6 +362,7 @@ export class MarketOperationUtils {
         SAMPLER_METRICS.logBlockNumber(blockNumber);
 
         const [makerTokenDecimals, takerTokenDecimals] = tokenDecimals;
+        const isMicroSwap = this.isMicroSwap(makerAmount, ethToMakerAssetRate);
         const isRfqSupported = !isTxOriginContract;
 
         const limitOrdersWithFillableAmounts = limitOrders.map((order, i) => ({
@@ -362,18 +383,18 @@ export class MarketOperationUtils {
             quotes: {
                 nativeOrders: limitOrdersWithFillableAmounts,
                 rfqtIndicativeQuotes: [],
-                twoHopQuotes: MarketOperationUtils.filterInvalidTwoHopQuotes(rawTwoHopQuotes),
-                dexQuotes,
+                twoHopQuotes: MarketOperationUtils.filterTwoHopQuotes(rawTwoHopQuotes, isMicroSwap),
+                dexQuotes: this.filterOutDexQuotes(dexQuotes, isMicroSwap),
             },
             isRfqSupported,
             blockNumber: blockNumber.toNumber(),
         };
     }
 
-    public async _generateOptimizedOrdersAsync(
+    public generateOptimizedOrders(
         marketSideLiquidity: MarketSideLiquidity,
         opts: GenerateOptimizedOrdersOpts,
-    ): Promise<OptimizerResult> {
+    ): OptimizerResult {
         const { inputToken, outputToken, side, inputAmount, quotes, outputAmountPerEth, inputAmountPerEth } =
             marketSideLiquidity;
         const { nativeOrders, rfqtIndicativeQuotes, dexQuotes, twoHopQuotes } = quotes;
@@ -402,7 +423,7 @@ export class MarketOperationUtils {
                 outputToken,
             },
             feeSchedule: opts.feeSchedule,
-            chainId: this._sampler.chainId,
+            chainId: this.sampler.chainId,
             neonRouterNumSamples: opts.neonRouterNumSamples,
             fillAdjustor: opts.fillAdjustor,
             pathPenaltyOpts: {
@@ -449,57 +470,25 @@ export class MarketOperationUtils {
             fillAdjustor: _opts.fillAdjustor,
         };
 
-        // Compute an optimized path for on-chain DEX and open-orderbook. This should not include RFQ liquidity.
-        let marketSideLiquidity: MarketSideLiquidity;
-        if (side === MarketOperation.Sell) {
-            marketSideLiquidity = await this.getMarketSellLiquidityAsync(
-                makerToken,
-                takerToken,
-                limitOrders,
-                amount,
-                _opts,
-            );
-        } else {
-            marketSideLiquidity = await this.getMarketBuyLiquidityAsync(
-                makerToken,
-                takerToken,
-                limitOrders,
-                amount,
-                _opts,
-            );
-        }
+        const marketSideLiquidity = await this.getMarketLiquidity(
+            side,
+            makerToken,
+            takerToken,
+            limitOrders,
+            amount,
+            _opts,
+        );
 
         // Phase 1 Routing
-        // We find an optimized path for ALL the DEX and open-orderbook liquidity
-        let optimizerResult: OptimizerResult | undefined;
-        try {
-            optimizerResult = await this._generateOptimizedOrdersAsync(marketSideLiquidity, {
-                ...optimizerOpts,
-                fillAdjustor: new IdentityFillAdjustor(),
-            });
-        } catch (e) {
-            // If no on-chain or off-chain Open Orderbook orders are present, a `NoOptimalPath` will be thrown.
-            // If this happens at this stage, there is still a chance that an RFQ order is fillable, therefore
-            // we catch the error and continue.
-            if (e.message !== AggregationError.NoOptimalPath) {
-                throw e;
-            }
-            //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
-            DEFAULT_INFO_LOGGER({}, 'NoOptimalPath caught in phase 1 routing');
-        }
-
-        // Calculate a suggested price. For now, this is simply the overall price of the aggregation.
-        // We can use this as a comparison price for RFQ
-        let wholeOrderPrice: BigNumber | undefined;
-        if (optimizerResult) {
-            wholeOrderPrice = getComparisonPrices(
-                optimizerResult.path.adjustedRate(),
-                amount,
-                marketSideLiquidity,
-                _opts.feeSchedule.Native,
-                _opts.exchangeProxyOverhead,
-            ).wholeOrder;
-        }
+        // We find an optimized path for ALL the DEX and open-orderbook liquidity (no RFQ liquidity)
+        const phaseOneResult = this.getPhaseOneRoutingResult({
+            marketSideLiquidity,
+            amount,
+            optimizerOpts: { ...optimizerOpts, fillAdjustor: new IdentityFillAdjustor() },
+            nativeOrderFeeEstimate: _opts.feeSchedule.Native,
+            exchangeProxyOverhead: _opts.exchangeProxyOverhead,
+        });
+        let { optimizerResult } = phaseOneResult;
 
         // If RFQ liquidity is enabled, make a request to check RFQ liquidity against the first optimizer result
 
@@ -547,8 +536,8 @@ export class MarketOperationUtils {
                                   .getV1PricesAsync({
                                       altRfqAssetOfferings: filteredOfferings,
                                       assetFillAmount: amount,
-                                      chainId: this._sampler.chainId,
-                                      comparisonPrice: wholeOrderPrice,
+                                      chainId: this.sampler.chainId,
+                                      comparisonPrice: phaseOneResult.wholeOrderPrice,
                                       integratorId: rfqt.integrator.integratorId,
                                       intentOnFilling: rfqt.intentOnFilling,
                                       makerToken,
@@ -560,7 +549,7 @@ export class MarketOperationUtils {
                                   .then((res) => res.prices),
                               rfqt.rfqClient.getV2PricesAsync({
                                   assetFillAmount: amount,
-                                  chainId: this._sampler.chainId,
+                                  chainId: this.sampler.chainId,
                                   integratorId: rfqt.integrator.integratorId,
                                   intentOnFilling: rfqt.intentOnFilling,
                                   makerToken,
@@ -605,7 +594,7 @@ export class MarketOperationUtils {
                         },
                     };
 
-                    optimizerResult = await this._generateOptimizedOrdersAsync(
+                    optimizerResult = await this.generateOptimizedOrders(
                         phase2MarketSideLiquidity,
                         phaseTwoOptimizerOpts,
                     );
@@ -622,8 +611,8 @@ export class MarketOperationUtils {
                                   .getV1QuotesAsync({
                                       altRfqAssetOfferings: filteredOfferings,
                                       assetFillAmount: amount,
-                                      chainId: this._sampler.chainId,
-                                      comparisonPrice: wholeOrderPrice,
+                                      chainId: this.sampler.chainId,
+                                      comparisonPrice: phaseOneResult.wholeOrderPrice,
                                       integratorId: rfqt.integrator.integratorId,
                                       intentOnFilling: rfqt.intentOnFilling,
                                       makerToken,
@@ -635,7 +624,7 @@ export class MarketOperationUtils {
                                   .then((res) => res.quotes),
                               rfqt.rfqClient.getV2QuotesAsync({
                                   assetFillAmount: amount,
-                                  chainId: this._sampler.chainId,
+                                  chainId: this.sampler.chainId,
                                   integratorId: rfqt.integrator.integratorId,
                                   intentOnFilling: rfqt.intentOnFilling,
                                   makerToken,
@@ -720,10 +709,7 @@ export class MarketOperationUtils {
                             ),
                         },
                     };
-                    optimizerResult = await this._generateOptimizedOrdersAsync(
-                        phase2MarketSideLiquidity,
-                        phaseTwoOptimizerOpts,
-                    );
+                    optimizerResult = this.generateOptimizedOrders(phase2MarketSideLiquidity, phaseTwoOptimizerOpts);
                 }
             }
         }
@@ -743,7 +729,7 @@ export class MarketOperationUtils {
                 _opts.rfqt ? _opts.rfqt.quoteRequestor : undefined,
                 marketSideLiquidity,
                 optimizerResult,
-                wholeOrderPrice,
+                phaseOneResult.wholeOrderPrice,
             );
         }
 
@@ -754,25 +740,103 @@ export class MarketOperationUtils {
                 marketSideLiquidity,
                 amount,
                 optimizerResult,
-                wholeOrderPrice,
+                phaseOneResult.wholeOrderPrice,
             );
 
         return { ...optimizerResult, quoteReport, extendedQuoteReportSources };
     }
 
+    private getPhaseOneRoutingResult({
+        marketSideLiquidity,
+        amount,
+        optimizerOpts,
+        nativeOrderFeeEstimate,
+        exchangeProxyOverhead,
+    }: {
+        marketSideLiquidity: MarketSideLiquidity;
+        amount: BigNumber;
+        optimizerOpts: GenerateOptimizedOrdersOpts;
+        nativeOrderFeeEstimate: FeeEstimate;
+        exchangeProxyOverhead: ExchangeProxyOverhead;
+    }): { optimizerResult?: OptimizerResult; wholeOrderPrice?: BigNumber } {
+        let optimizerResult: OptimizerResult | undefined;
+        try {
+            optimizerResult = this.generateOptimizedOrders(marketSideLiquidity, optimizerOpts);
+        } catch (e) {
+            // If no on-chain or off-chain Open Orderbook orders are present, a `NoOptimalPath` will be thrown.
+            // If this happens at this stage, there is still a chance that an RFQ order is fillable, therefore
+            // we catch the error and continue.
+            if (e.message !== AggregationError.NoOptimalPath) {
+                throw e;
+            }
+            //temporary logging for INSUFFICIENT_ASSET_LIQUIDITY
+            DEFAULT_INFO_LOGGER({}, 'NoOptimalPath caught in phase 1 routing');
+        }
+
+        let wholeOrderPrice: BigNumber | undefined;
+        if (optimizerResult) {
+            wholeOrderPrice = getComparisonPrices(
+                optimizerResult.path.adjustedRate(),
+                amount,
+                marketSideLiquidity,
+                nativeOrderFeeEstimate,
+                exchangeProxyOverhead,
+            ).wholeOrder;
+        }
+        return { optimizerResult, wholeOrderPrice };
+    }
+
+    /**
+     * Returns whether a swap is considered extremely small (for simpler routing to avoid over optimization which causes high revert rate)
+     *
+     * @param inputAmount : taker amount for sell, maker amount for buy
+     * @param inputAmountPerNativeWei : taker amount per native token in (wei) for sell, maker amount per native token in (wei) for buy
+     */
+    private isMicroSwap(inputAmount: BigNumber, inputAmountPerNativeWei: BigNumber): boolean {
+        // Only enable it on Optimism as it's experimental.
+        if (this.sampler.chainId !== ChainId.Optimism) {
+            return false;
+        }
+        const inputTokenValueInNativeWei = inputAmount.div(inputAmountPerNativeWei);
+
+        // If the value of input token amount is less than 1/100 of `this._nativeFeeTokenAmount`
+        // then it is considered as a micro swap.
+        // NOTE: gt is used because `inputTokenValueInNativeWei` can be 0 when it's not available.
+        return this._nativeFeeTokenAmount.times(0.01).gt(inputTokenValueInNativeWei);
+    }
+
     private async _refreshPoolCacheIfRequiredAsync(takerToken: string, makerToken: string): Promise<void> {
-        _.values(this._sampler.poolsCaches)
+        _.values(this.sampler.poolsCaches)
             .filter((cache) => cache !== undefined && !cache.isFresh(takerToken, makerToken))
             .forEach((cache) => cache?.getFreshPoolsForPairAsync(takerToken, makerToken));
     }
 
-    private static filterInvalidTwoHopQuotes(
+    private static filterTwoHopQuotes(
         twoHopQuotesList: DexSample<MultiHopFillData>[][],
+        isMicroSwap: boolean,
     ): DexSample<MultiHopFillData>[][] {
+        if (isMicroSwap) {
+            return [];
+        }
+
         return twoHopQuotesList
             .map((twoHopQuotes) =>
                 twoHopQuotes.filter((q) => q && q.fillData && q.fillData.firstHopSource && q.fillData.secondHopSource),
             )
             .filter((quotes) => quotes.length > 0);
+    }
+
+    private filterOutDexQuotes(dexQuotes: DexSample<FillData>[][], isMicroSwap: boolean): DexSample<FillData>[][] {
+        return dexQuotes.filter((samples) => {
+            if (samples.length == 0) {
+                return false;
+            }
+            if (!isMicroSwap) {
+                return true;
+            }
+
+            // Only use fee sources if it's a micro swap.
+            return this._feeSources.includes(samples[0].source);
+        });
     }
 }

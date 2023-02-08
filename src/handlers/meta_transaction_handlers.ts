@@ -110,7 +110,7 @@ export class MetaTransactionHandlers {
                     },
                 ]);
             }
-            logger.info('Uncaught error', e);
+            logger.info({ errorMessage, stack: e.stack }, 'Uncaught error in `getV2QuoteAsync`');
             throw e;
         }
     }
@@ -178,7 +178,7 @@ export class MetaTransactionHandlers {
                     },
                 ]);
             }
-            logger.info('Uncaught error', e);
+            logger.info({ errorMessage, stack: e.stack }, 'Uncaught error in `getV2PriceAsync`');
             throw new InternalServerError(e.message);
         }
     }
@@ -241,7 +241,7 @@ export class MetaTransactionHandlers {
                     },
                 ]);
             }
-            logger.info('Uncaught error', e);
+            logger.info({ errorMessage, stack: e.stack }, 'Uncaught error in `getV1QuoteAsync`');
             throw e;
         }
     }
@@ -309,7 +309,7 @@ export class MetaTransactionHandlers {
                     },
                 ]);
             }
-            logger.info('Uncaught error', e);
+            logger.info({ errorMessage, stack: e.stack }, 'Uncaught error in `getV1PriceAsync`');
             throw new InternalServerError(e.message);
         }
     }
