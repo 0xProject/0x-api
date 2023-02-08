@@ -225,7 +225,11 @@ export const createCurveV2MetaTriPool = (info: { tokens: string[]; pool: string;
     gasSchedule: info.gasSchedule,
 });
 
-export const createCurveFactoryCryptoExchangePool = (info: { tokens: string[]; pool: string; gasSchedule: number }) => ({
+export const createCurveFactoryCryptoExchangePool = (info: {
+    tokens: string[];
+    pool: string;
+    gasSchedule: number;
+}) => ({
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying_uint256,
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_uint256,
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
