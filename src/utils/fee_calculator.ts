@@ -175,10 +175,20 @@ function _calculateGasFee(opts: {
 
     // Check the number of `transferFrom` necessary for fee
     const feeRecipients = new Set<string>();
-    if (opts.integratorFee && opts.integratorFee.billingType === 'on-chain' && opts.integratorFee.feeRecipient && opts.integratorFee.feeAmount.gt(0)) {
+    if (
+        opts.integratorFee &&
+        opts.integratorFee.billingType === 'on-chain' &&
+        opts.integratorFee.feeRecipient &&
+        opts.integratorFee.feeAmount.gt(0)
+    ) {
         feeRecipients.add(opts.integratorFee.feeRecipient);
     }
-    if (opts.zeroexFee && opts.zeroexFee.billingType === 'on-chain' && opts.zeroexFee.feeRecipient && opts.zeroexFee.feeAmount.gt(0)) {
+    if (
+        opts.zeroexFee &&
+        opts.zeroexFee.billingType === 'on-chain' &&
+        opts.zeroexFee.feeRecipient &&
+        opts.zeroexFee.feeAmount.gt(0)
+    ) {
         feeRecipients.add(opts.zeroexFee.feeRecipient);
     }
     if (opts.gasFeeConfig && opts.gasFeeConfig.billingType === 'on-chain' && opts.gasFeeConfig.feeRecipient) {
