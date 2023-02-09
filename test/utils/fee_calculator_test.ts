@@ -10,7 +10,7 @@ const RANDOM_ADDRESS2 = '0x70a9f34f9b34c64957b9c401a97bfed35b95049f';
 describe('calculateGaslessFees', () => {
     describe('integrator fee', () => {
         it('returns undefined for integrator field if integrator fee config is not present', () => {
-            const { fees, totalOnChainChargedFeeAmount: totalChargedFeeAmount } = calculateFees({
+            const { fees, totalOnChainChargedFeeAmount } = calculateFees({
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
@@ -20,11 +20,11 @@ describe('calculateGaslessFees', () => {
             });
 
             expect(fees.integratorFee).to.be.undefined;
-            expect(totalChargedFeeAmount).to.eql(ZERO);
+            expect(totalOnChainChargedFeeAmount).to.eql(ZERO);
         });
 
         it('returns correct integrator fee and total fee amount if integrator fee config is present', () => {
-            const { fees, totalOnChainChargedFeeAmount: totalChargedFeeAmount } = calculateFees({
+            const { fees, totalOnChainChargedFeeAmount } = calculateFees({
                 feeConfigs: {
                     integratorFee: {
                         type: 'volume',
@@ -48,13 +48,13 @@ describe('calculateGaslessFees', () => {
                 billingType: 'on-chain',
                 volumePercentage: new BigNumber(0.1),
             });
-            expect(totalChargedFeeAmount).to.eql(new BigNumber(1e3));
+            expect(totalOnChainChargedFeeAmount).to.eql(new BigNumber(1e3));
         });
     });
 
     describe('0x fee', () => {
         it('returns undefined for zeroex field if 0x fee config is not present', () => {
-            const { fees, totalOnChainChargedFeeAmount: totalChargedFeeAmount } = calculateFees({
+            const { fees, totalOnChainChargedFeeAmount } = calculateFees({
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
@@ -64,11 +64,11 @@ describe('calculateGaslessFees', () => {
             });
 
             expect(fees.integratorFee).to.be.undefined;
-            expect(totalChargedFeeAmount).to.eql(ZERO);
+            expect(totalOnChainChargedFeeAmount).to.eql(ZERO);
         });
 
         it('returns correct 0x fee and total fee amount if 0x fee config is present and the type is volume', () => {
-            const { fees, totalOnChainChargedFeeAmount: totalChargedFeeAmount } = calculateFees({
+            const { fees, totalOnChainChargedFeeAmount } = calculateFees({
                 feeConfigs: {
                     zeroexFee: {
                         type: 'volume',
@@ -92,11 +92,11 @@ describe('calculateGaslessFees', () => {
                 billingType: 'on-chain',
                 volumePercentage: new BigNumber(0.1),
             });
-            expect(totalChargedFeeAmount).to.eql(new BigNumber(1e3));
+            expect(totalOnChainChargedFeeAmount).to.eql(new BigNumber(1e3));
         });
 
         it('returns correct 0x fee and total fee amount if 0x fee config is present and the type is integrator_share', () => {
-            const { fees, totalOnChainChargedFeeAmount: totalChargedFeeAmount } = calculateFees({
+            const { fees, totalOnChainChargedFeeAmount } = calculateFees({
                 feeConfigs: {
                     integratorFee: {
                         type: 'volume',
@@ -126,7 +126,7 @@ describe('calculateGaslessFees', () => {
                 feeRecipient: RANDOM_ADDRESS2,
                 integratorSharePercentage: new BigNumber(0.05),
             });
-            expect(totalChargedFeeAmount).to.eql(new BigNumber(1e3));
+            expect(totalOnChainChargedFeeAmount).to.eql(new BigNumber(1e3));
         });
 
         it('throws if 0x fee type is integrator_share but integrator fee config is not present', () => {
@@ -152,7 +152,7 @@ describe('calculateGaslessFees', () => {
 
     describe('gas fee', () => {
         it('returns undefined for zeroex field if 0x fee config is not present', () => {
-            const { fees, totalOnChainChargedFeeAmount: totalChargedFeeAmount } = calculateFees({
+            const { fees, totalOnChainChargedFeeAmount } = calculateFees({
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
@@ -162,12 +162,12 @@ describe('calculateGaslessFees', () => {
             });
 
             expect(fees.integratorFee).to.be.undefined;
-            expect(totalChargedFeeAmount).to.eql(ZERO);
+            expect(totalOnChainChargedFeeAmount).to.eql(ZERO);
         });
 
         describe('returns correct gas fee and total fee amount if gas fee config is present', () => {
             it('returns correct result if integrator fee, 0x and gas fee all have fee recipient', () => {
-                const { fees, totalOnChainChargedFeeAmount: totalChargedFeeAmount } = calculateFees({
+                const { fees, totalOnChainChargedFeeAmount } = calculateFees({
                     feeConfigs: {
                         integratorFee: {
                             type: 'volume',
@@ -204,11 +204,11 @@ describe('calculateGaslessFees', () => {
                     gasPrice: new BigNumber(10e9),
                     estimatedGas: new BigNumber(164e3),
                 });
-                expect(totalChargedFeeAmount).to.eql(new BigNumber(1.74e15));
+                expect(totalOnChainChargedFeeAmount).to.eql(new BigNumber(1.74e15));
             });
 
             it('returns correct result if gas fee do not have fee recipient', () => {
-                const { fees, totalOnChainChargedFeeAmount: totalChargedFeeAmount } = calculateFees({
+                const { fees, totalOnChainChargedFeeAmount } = calculateFees({
                     feeConfigs: {
                         integratorFee: {
                             type: 'volume',
@@ -245,7 +245,7 @@ describe('calculateGaslessFees', () => {
                     gasPrice: new BigNumber(10e9),
                     estimatedGas: new BigNumber(164e3),
                 });
-                expect(totalChargedFeeAmount).to.eql(new BigNumber(1.84e15));
+                expect(totalOnChainChargedFeeAmount).to.eql(new BigNumber(2e14));
             });
         });
     });
