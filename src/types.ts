@@ -463,6 +463,7 @@ export interface RfqtV2Request {
 
 interface FeeConfigBase {
     feeRecipient: string | null;
+    billingType: 'on-chain' | 'off-chain';
 }
 
 export interface VolumeBasedFeeConfig extends FeeConfigBase {
@@ -482,7 +483,7 @@ export interface IntegratorShareFeeConfig extends FeeConfigBase {
 // Fee configs passed to /meta_transaction/v2/price and /meta_transaction/v2/quote
 export interface FeeConfigs {
     integratorFee?: VolumeBasedFeeConfig;
-    zeroexFee?: VolumeBasedFeeConfig | IntegratorShareFeeConfig;
+    zeroExFee?: VolumeBasedFeeConfig | IntegratorShareFeeConfig;
     gasFee?: GasFeeConfig;
 }
 
@@ -490,6 +491,7 @@ interface FeeBase {
     feeToken: string;
     feeAmount: BigNumber;
     feeRecipient: string | null;
+    billingType: 'on-chain' | 'off-chain';
 }
 
 export interface VolumeBasedFee extends FeeBase {
@@ -512,6 +514,6 @@ export interface IntegratorShareFee extends FeeBase {
 // Fees returned to the caller of /meta_transaction/v2/price and /meta_transaction/v2/quote
 export interface Fees {
     integratorFee?: VolumeBasedFee;
-    zeroexFee?: VolumeBasedFee | IntegratorShareFee;
+    zeroExFee?: VolumeBasedFee | IntegratorShareFee;
     gasFee?: GasFee;
 }
