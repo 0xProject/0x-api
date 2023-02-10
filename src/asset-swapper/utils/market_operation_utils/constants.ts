@@ -1641,31 +1641,31 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
 export const UNISWAPV3_CONFIG_BY_CHAIN_ID = valueByChainId(
     {
         [ChainId.Mainnet]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Goerli]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.PolygonMumbai]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Polygon]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Optimism]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Arbitrum]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
     },
-    { quoter: NULL_ADDRESS, router: NULL_ADDRESS },
+    { factory: NULL_ADDRESS, router: NULL_ADDRESS },
 );
 
 export const AAVE_V2_SUBGRAPH_URL_BY_CHAIN_ID = valueByChainId(

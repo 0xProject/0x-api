@@ -12,7 +12,7 @@ import "../src/UniswapV3Common.sol";
 /// being called from a clean slate (no warm storage reads). UniswapV3QuoterV2 reverts at the end of the quote
 /// function while UniswapV3MultiQuoter doesn't. Hence, after very call to UniswapV3MultiQuoter's quote function,
 /// the data writer's functions revert.
-contract UniswapV3GasDataWriter is Script {
+contract UniswapV3GasDataWriter is Script, UniswapV3Common {
     string private filePath;
     IUniswapV3QuoterV2 private immutable uniQuoter;
     IUniswapV3MultiQuoter private immutable multiQuoter;
@@ -54,7 +54,10 @@ contract UniswapV3GasDataWriter is Script {
             } catch {}
         }
 
-        (, uint256[] memory mqInputGasEst) = multiQuoter.quoteExactMultiInput(factory, uniswapPath, amounts);
+        uint256[] memory mqInputGasEst;
+        try multiQuoter.quoteExactMultiInput(factory, uniswapPath, amounts) {} catch (bytes memory reason) {
+            (, , mqInputGasEst) = catchMultiSwapResult(reason);
+        }
 
         for (uint256 i = 0; i < amounts.length; ++i) {
             if (mqInputGasEst[i] == 0 || uqInputGasEst[i] == 0) {
@@ -105,7 +108,10 @@ contract UniswapV3GasDataWriter is Script {
             } catch {}
         }
 
-        (, uint256[] memory mqOutputGasEst) = multiQuoter.quoteExactMultiOutput(factory, uniswapPath, amounts);
+        uint256[] memory mqOutputGasEst;
+        try multiQuoter.quoteExactMultiOutput(factory, uniswapPath, amounts) {} catch (bytes memory reason) {
+            (, , mqOutputGasEst) = catchMultiSwapResult(reason);
+        }
 
         for (uint256 i = 0; i < amounts.length; ++i) {
             if (mqOutputGasEst[i] == 0 || uqOutputGasEst[i] == 0) {
@@ -210,7 +216,7 @@ contract UniswapV3GasDataCollector is Script, UniswapV3Common {
                 for (uint256 k = 0; k < amountsList.length; ++k) {
                     IUniswapV3Pool[][] memory poolPaths = getPoolPaths(
                         factory,
-                        uniQuoter,
+                        multiQuoter,
                         tokenPath,
                         amountsList[k][amountsList[k].length - 1]
                     );

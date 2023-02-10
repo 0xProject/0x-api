@@ -6,7 +6,6 @@ import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 import "forge-std/Test.sol";
 import "../src/UniswapV3MultiQuoter.sol";
 import "../src/UniswapV3Common.sol";
-import "./UniswapV3GasEstimator.t.sol";
 
 contract TestUniswapV3Sampler is Test, UniswapV3Common {
     /// @dev error threshold in wei for comparison between MultiQuoter and UniswapV3's official QuoterV2.
@@ -148,7 +147,10 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         uint256[] memory amountsIn
     ) private returns (uint256 uniQuoterGasUsage, uint256 multiQuoterGasUsage) {
         uint256 gas0 = gasleft();
-        (uint256[] memory multiQuoterAmountsOut, ) = multiQuoter.quoteExactMultiInput(factory, path, amountsIn);
+        uint256[] memory multiQuoterAmountsOut;
+        try multiQuoter.quoteExactMultiInput(factory, path, amountsIn) {} catch (bytes memory reason) {
+            (, multiQuoterAmountsOut, ) = catchMultiSwapResult(reason);
+        }
         uint256 gas1 = gasleft();
 
         for (uint256 i = 0; i < amountsIn.length; ++i) {
@@ -184,7 +186,10 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         uint256[] memory amountsOut
     ) private returns (uint256 uniQuoterGasUsage, uint256 multiQuoterGasUsage) {
         uint256 gas0 = gasleft();
-        (uint256[] memory multiQuoterAmountsIn, ) = multiQuoter.quoteExactMultiOutput(factory, path, amountsOut);
+        uint256[] memory multiQuoterAmountsIn;
+        try multiQuoter.quoteExactMultiOutput(factory, path, amountsOut) {} catch (bytes memory reason) {
+            (, multiQuoterAmountsIn, ) = catchMultiSwapResult(reason);
+        }
         uint256 gas1 = gasleft();
 
         for (uint256 i = 0; i < amountsOut.length; ++i) {
@@ -258,7 +263,10 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         console.log("MQ Cold Read");
 
         {
-            (, uint256[] memory mqGasEstimates) = multiQuoter.quoteExactMultiInput(factory, path, amounts);
+            uint256[] memory mqGasEstimates;
+            try multiQuoter.quoteExactMultiInput(factory, path, amounts) {} catch (bytes memory reason) {
+                (, , mqGasEstimates) = catchMultiSwapResult(reason);
+            }
             for (uint256 i = 0; i < amounts.length; ++i) {
                 console.log("MQ Gas Estimates: i=%d, MQ: %d", i, mqGasEstimates[i]);
             }
@@ -267,7 +275,10 @@ contract TestUniswapV3Sampler is Test, UniswapV3Common {
         console.log("MQ Warm Read");
 
         {
-            (, uint256[] memory mqGasEstimates) = multiQuoter.quoteExactMultiInput(factory, path, amounts);
+            uint256[] memory mqGasEstimates;
+            try multiQuoter.quoteExactMultiInput(factory, path, amounts) {} catch (bytes memory reason) {
+                (, , mqGasEstimates) = catchMultiSwapResult(reason);
+            }
             for (uint256 i = 0; i < amounts.length; ++i) {
                 console.log("MQ Gas Estimates: i=%d, MQ: %d", i, mqGasEstimates[i]);
             }

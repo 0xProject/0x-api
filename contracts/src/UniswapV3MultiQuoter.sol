@@ -28,6 +28,12 @@ import "./interfaces/IUniswapV3.sol";
 /// @title Provides quotes for multiple swap amounts
 /// @notice Allows getting the expected amount out or amount in for multiple given swap amounts without executing the swap
 contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
+    // TODO: both quoteExactMultiInput and quoteExactMultiOutput revert at the end of the quoting logic
+    // and return results encodied into a revert reason. The revert should be removed and replaced with
+    // a normal return statement whenever UniswapV3Sampler stops having the two pool filtering logic.
+    // The two pool filtering logic causes pool's storage slots to be warmed up, causing gas estimates 
+    // to be significantly below the gas used during settlement. Additionally, per the following EIP
+    // this revert logic might not clear warm storage slots in the future: https://eips.ethereum.org/EIPS/eip-3978
     using Path for bytes;
     using SafeCast for uint256;
     using LowGasSafeMath for int256;
@@ -80,24 +86,24 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
         int256[] amounts1;
     }
 
-    /// @notice Returns the amounts out received for a given set of exact input swaps without executing the swap
+    /// @notice Quotes amounts out for a set of exact input swaps and provides results encoded into a revert reason
     /// @param factory The factory contract managing UniswapV3 pools
     /// @param path The path of the swap, i.e. each token pair and the pool fee
     /// @param amountsIn The amounts in of the first token to swap
-    /// @return amountsOut The amounts of the last token that would be received
-    /// @return gasEstimate The estimates of the gas that the swap consumes
+    /// @dev This function reverts at the end of the quoting logic and encodes (uint256[] amountsOut, uint256[] gasEstimates) 
+    /// into the revert reason. See additional documentation below.
     function quoteExactMultiInput(
         IUniswapV3Factory factory,
         bytes memory path,
         uint256[] memory amountsIn
-    ) public view override returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
+    ) public view override {
         for (uint256 i = 0; i < amountsIn.length - 1; ++i) {
             require(
                 amountsIn[i] <= amountsIn[i + 1],
                 "UniswapV3MultiQuoter/amountsIn must be monotonically increasing"
             );
         }
-        gasEstimate = new uint256[](amountsIn.length);
+        uint256[] memory gasEstimates = new uint256[](amountsIn.length);
 
         while (true) {
             (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
@@ -119,31 +125,43 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
 
             for (uint256 i = 0; i < amountsIn.length; ++i) {
                 amountsIn[i] = zeroForOne ? uint256(-result.amounts1[i]) : uint256(-result.amounts0[i]);
-                gasEstimate[i] += result.gasEstimates[i];
+                gasEstimates[i] += result.gasEstimates[i];
             }
 
             // decide whether to continue or terminate
             if (path.hasMultiplePools()) {
                 path = path.skipToken();
             } else {
-                return (amountsIn, gasEstimate);
+
+                // quote results must be encoded into a revert because otherwise subsequent calls
+                // to UniswapV3MultiQuoter result in multiswap hitting pool storage slots that are
+                // already warm. This results in very inaccurate gas estimates when estimating gas
+                // usage for settlement.
+                bytes memory revertResult = abi.encodeWithSignature(
+                    "result(uint256[],uint256[])",
+                    amountsIn,
+                    gasEstimates
+                );
+                assembly {
+                    revert(add(revertResult, 0x20), mload(revertResult))
+                }
             }
         }
     }
 
-    /// @notice Returns the amounts in received for a given set of exact output swaps without executing the swap
+    /// @notice Quotes amounts in a set of exact output swaps and provides results encoded into a revert reason
     /// @param factory The factory contract managing UniswapV3 pools
     /// @param path The path of the swap, i.e. each token pair and the pool fee. Path must be provided in reverse order
     /// @param amountsOut The amounts out of the last token to receive
-    /// @return amountsIn The amounts of the first token swap
-    /// @return gasEstimate The estimates of the gas that the swap consumes
+    /// @dev This function reverts at the end of the quoting logic and encodes (uint256[] amountsIn, uint256[] gasEstimates) 
+    /// into the revert reason. See additional documentation below.
     function quoteExactMultiOutput(
         IUniswapV3Factory factory,
         bytes memory path,
         uint256[] memory amountsOut
-    ) public view override returns (uint256[] memory amountsIn, uint256[] memory gasEstimate) {
-        amountsIn = new uint256[](amountsOut.length);
-        gasEstimate = new uint256[](amountsOut.length);
+    ) public view override {
+        uint256[] memory amountsIn = new uint256[](amountsOut.length);
+        uint256[] memory gasEstimates = new uint256[](amountsOut.length);
 
         for (uint256 i = 0; i < amountsOut.length - 1; ++i) {
             require(
@@ -181,7 +199,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                 } else {
                     // populate amountsOut for the next pool
                     amountsOut[i] = zeroForOne ? uint256(result.amounts0[i]) : uint256(result.amounts1[i]);
-                    gasEstimate[i] += result.gasEstimates[i];
+                    gasEstimates[i] += result.gasEstimates[i];
                 }
             }
 
@@ -189,7 +207,19 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
                 for (uint256 i = 0; i < nextAmountsLength; ++i) {
                     amountsIn[i] = amountsOut[i];
                 }
-                return (amountsIn, gasEstimate);
+
+                // quote results must be encoded into a revert because otherwise subsequent calls
+                // to UniswapV3MultiQuoter result in multiswap hitting pool storage slots that are
+                // already warm. This results in very inaccurate gas estimates when estimating gas
+                // usage for settlement.
+                bytes memory revertResult = abi.encodeWithSignature(
+                    "result(uint256[],uint256[])",
+                    amountsIn,
+                    gasEstimates
+                );
+                assembly {
+                    revert(add(revertResult, 0x20), mload(revertResult))
+                }
             }
 
             path = path.skipToken();
@@ -331,8 +361,8 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
     /// gas estimates and the unscaled gas estimates from multiswap
     /// @param multiSwapEstimate the gas estimate from multiswap
     /// @return swapEstimate the gas estimate equivalent for UniswapV3Pool:swap
-    function scaleMultiswapGasEstimate(uint256 multiSwapEstimate) private view returns (uint256 swapEstimate) {
-        return (156 * multiSwapEstimate) / 100 + 50500;
+    function scaleMultiswapGasEstimate(uint256 multiSwapEstimate) private pure returns (uint256 swapEstimate) {
+        return (166 * multiSwapEstimate) / 100 + 50000;
     }
 
     /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either

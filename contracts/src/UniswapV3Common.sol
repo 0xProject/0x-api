@@ -26,7 +26,7 @@ import "./interfaces/IUniswapV3.sol";
 
 contract UniswapV3Common {
     /// @dev Gas limit for UniswapV3 calls
-    uint256 private constant POOL_FILTERING_GAS_LIMIT = 700e3;
+    uint256 private constant POOL_FILTERING_GAS_LIMIT = 450e3;
 
     function toUniswapPath(
         IERC20TokenV06[] memory tokenPath,
@@ -80,30 +80,30 @@ contract UniswapV3Common {
     /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
     function getPoolPaths(
         IUniswapV3Factory factory,
-        IUniswapV3QuoterV2 uniQuoter,
+        IUniswapV3MultiQuoter multiQuoter,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
-    ) internal returns (IUniswapV3Pool[][] memory poolPaths) {
+    ) internal view returns (IUniswapV3Pool[][] memory poolPaths) {
         if (path.length == 2) {
-            return getPoolPathSingleHop(factory, uniQuoter, path, inputAmount);
+            return getPoolPathSingleHop(factory, multiQuoter, path, inputAmount);
         }
         if (path.length == 3) {
-            return getPoolPathTwoHop(factory, uniQuoter, path, inputAmount);
+            return getPoolPathTwoHop(factory, multiQuoter, path, inputAmount);
         }
         revert("UniswapV3Sampler/unsupported token path length");
     }
 
     function getPoolPathSingleHop(
         IUniswapV3Factory factory,
-        IUniswapV3QuoterV2 uniQuoter,
+        IUniswapV3MultiQuoter multiQuoter,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
-    ) private returns (IUniswapV3Pool[][] memory poolPaths) {
+    ) private view returns (IUniswapV3Pool[][] memory poolPaths) {
         poolPaths = new IUniswapV3Pool[][](2);
         (IUniswapV3Pool[2] memory topPools, ) = getTopTwoPools(
             GetTopTwoPoolsParams({
                 factory: factory,
-                uniQuoter: uniQuoter,
+                multiQuoter: multiQuoter,
                 inputToken: path[0],
                 outputToken: path[1],
                 inputAmount: inputAmount
@@ -121,15 +121,15 @@ contract UniswapV3Common {
 
     function getPoolPathTwoHop(
         IUniswapV3Factory factory,
-        IUniswapV3QuoterV2 uniQuoter,
+        IUniswapV3MultiQuoter multiQuoter,
         IERC20TokenV06[] memory path,
         uint256 inputAmount
-    ) private returns (IUniswapV3Pool[][] memory poolPaths) {
+    ) private view returns (IUniswapV3Pool[][] memory poolPaths) {
         poolPaths = new IUniswapV3Pool[][](4);
         (IUniswapV3Pool[2] memory firstHopTopPools, uint256[2] memory firstHopAmounts) = getTopTwoPools(
             GetTopTwoPoolsParams({
                 factory: factory,
-                uniQuoter: uniQuoter,
+                multiQuoter: multiQuoter,
                 inputToken: path[0],
                 outputToken: path[1],
                 inputAmount: inputAmount
@@ -139,7 +139,7 @@ contract UniswapV3Common {
         (IUniswapV3Pool[2] memory secondHopTopPools, ) = getTopTwoPools(
             GetTopTwoPoolsParams({
                 factory: factory,
-                uniQuoter: uniQuoter,
+                multiQuoter: multiQuoter,
                 inputToken: path[1],
                 outputToken: path[2],
                 inputAmount: firstHopAmounts[0]
@@ -160,7 +160,7 @@ contract UniswapV3Common {
 
     struct GetTopTwoPoolsParams {
         IUniswapV3Factory factory;
-        IUniswapV3QuoterV2 uniQuoter;
+        IUniswapV3MultiQuoter multiQuoter;
         IERC20TokenV06 inputToken;
         IERC20TokenV06 outputToken;
         uint256 inputAmount;
@@ -170,7 +170,7 @@ contract UniswapV3Common {
     /// Addresses in `topPools` can be zero addresses when there are pool isn't available.
     function getTopTwoPools(
         GetTopTwoPoolsParams memory params
-    ) private returns (IUniswapV3Pool[2] memory topPools, uint256[2] memory outputAmounts) {
+    ) private view returns (IUniswapV3Pool[2] memory topPools, uint256[2] memory topOutputAmounts) {
         IERC20TokenV06[] memory path = new IERC20TokenV06[](2);
         path[0] = params.inputToken;
         path[1] = params.outputToken;
@@ -194,24 +194,26 @@ contract UniswapV3Common {
             bytes memory uniswapPath = toUniswapPath(path, poolPath);
 
             try
-                params.uniQuoter.quoteExactInput{gas: POOL_FILTERING_GAS_LIMIT}(uniswapPath, params.inputAmount)
-            returns (
-                uint256 outputAmount,
-                uint160[] memory /* sqrtPriceX96AfterList */,
-                uint32[] memory /* initializedTicksCrossedList */,
-                uint256 /* gasUsed */
-            ) {
-                // Keeping track of the top 2 pools.
-                if (outputAmount > outputAmounts[0]) {
-                    outputAmounts[1] = outputAmounts[0];
-                    topPools[1] = topPools[0];
-                    outputAmounts[0] = outputAmount;
-                    topPools[0] = pool;
-                } else if (outputAmount > outputAmounts[1]) {
-                    outputAmounts[1] = outputAmount;
-                    topPools[1] = pool;
+                params.multiQuoter.quoteExactMultiInput{gas: POOL_FILTERING_GAS_LIMIT}(
+                    params.factory,
+                    uniswapPath,
+                    inputAmounts
+                )
+            {} catch (bytes memory reason) {
+                (bool success, uint256[] memory outputAmounts, ) = catchMultiSwapResult(reason);
+                if (success) {
+                    // Keeping track of the top 2 pools.
+                    if (outputAmounts[0] > topOutputAmounts[0]) {
+                        topOutputAmounts[1] = topOutputAmounts[0];
+                        topPools[1] = topPools[0];
+                        topOutputAmounts[0] = outputAmounts[0];
+                        topPools[0] = pool;
+                    } else if (outputAmounts[0] > topOutputAmounts[1]) {
+                        topOutputAmounts[1] = outputAmounts[0];
+                        topPools[1] = pool;
+                    }
                 }
-            } catch {}
+            }
         }
     }
 
@@ -243,5 +245,26 @@ contract UniswapV3Common {
             }
         }
         return true;
+    }
+
+    function catchMultiSwapResult(
+        bytes memory revertReason
+    ) internal pure returns (bool success, uint256[] memory amounts, uint256[] memory gasEstimates) {
+        bytes4 selector;
+        assembly {
+            selector := mload(add(revertReason, 32))
+        }
+
+        if (selector != bytes4(keccak256("result(uint256[],uint256[])"))) {
+            return (false, amounts, gasEstimates);
+        }
+
+        assembly {
+            let length := sub(mload(revertReason), 4)
+            revertReason := add(revertReason, 4)
+            mstore(revertReason, length)
+        }
+        (amounts, gasEstimates) = abi.decode(revertReason, (uint256[], uint256[]));
+        return (true, amounts, gasEstimates);
     }
 }
