@@ -363,18 +363,21 @@ export class SwapService implements ISwapService {
         const { protocolFeeInWeiAmount: protocolFee, gas: worstCaseGas } = swapQuote.worstCaseQuoteInfo;
         const { gasPrice, sourceBreakdown, quoteReport, extendedQuoteReportSources } = swapQuote;
 
-        const {
-            gasCost: affiliateFeeGasCost,
-            buyTokenFeeAmount,
-            sellTokenFeeAmount,
-        } = serviceUtils.getAffiliateFeeAmounts(swapQuote, affiliateFee);
+        // Prepare Sell Token Fees
+        const sellTokenFeeAmounts: AffiliateFeeAmount[] = [];
 
-        const affiliateFeeAmounts: AffiliateFeeAmount[] = [
+        // Prepare Buy Token Fees
+        const { gasCost: affiliateFeeGasCost, buyTokenFeeAmount } = serviceUtils.getBuyTokenFeeAmounts(
+            swapQuote,
+            affiliateFee,
+        );
+
+        const buyTokenFeeAmounts: AffiliateFeeAmount[] = [
             {
                 recipient: affiliateFee.recipient,
                 feeType: affiliateFee.feeType,
                 buyTokenFeeAmount,
-                sellTokenFeeAmount,
+                sellTokenFeeAmount: ZERO,
             },
         ];
 
@@ -416,7 +419,8 @@ export class SwapService implements ISwapService {
             isMetaTransaction,
             shouldSellEntireBalance,
             affiliateAddress,
-            affiliateFeeAmounts,
+            buyTokenFeeAmounts,
+            sellTokenFeeAmounts,
             positiveSlippageFee,
         );
 
@@ -741,7 +745,8 @@ export class SwapService implements ISwapService {
         isMetaTransaction: boolean,
         shouldSellEntireBalance: boolean,
         affiliateAddress: string | undefined,
-        affiliateFees: AffiliateFeeAmount[],
+        buyTokenAffiliateFees: AffiliateFeeAmount[],
+        sellTokenAffiliateFees: AffiliateFeeAmount[],
         positiveSlippageFee?: AffiliateFeeAmount,
     ): SwapQuoteResponsePartialTransaction & { gasOverhead: BigNumber } {
         const opts: Partial<ExchangeProxyContractOpts> = {
@@ -749,7 +754,8 @@ export class SwapService implements ISwapService {
             isToETH,
             isMetaTransaction,
             shouldSellEntireBalance,
-            buyTokenAffiliateFees: affiliateFees,
+            buyTokenAffiliateFees,
+            sellTokenAffiliateFees,
             positiveSlippageFee,
         };
 
