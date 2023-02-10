@@ -383,22 +383,6 @@ describe('TransformERC20Rule', () => {
             );
         });
 
-        it('Throws if a sell token affiliate fee is provided', () => {
-            expect(() =>
-                rule.createCalldata(UNI_V2_SELL_QUOTE, {
-                    ...constants.DEFAULT_EXCHANGE_PROXY_EXTENSION_CONTRACT_OPTS,
-                    buyTokenAffiliateFees: [
-                        {
-                            recipient: randomAddress(),
-                            buyTokenFeeAmount: ZERO_AMOUNT,
-                            sellTokenFeeAmount: getRandomAmount(),
-                            feeType: AffiliateFeeType.PercentageFee,
-                        },
-                    ],
-                }),
-            ).to.throw('Affiliate fees denominated in sell token are not yet supported');
-        });
-
         it('Uses two `FillQuoteTransformer`s when given a two-hop sell quote', () => {
             const quote = createTwoHopSellQuote({
                 takerToken: TAKER_TOKEN,
