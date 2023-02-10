@@ -80,6 +80,25 @@ export class TransformERC20Rule extends AbstractFeatureRule {
 
         // Build up the transformations.
         const transformations = [] as ERC20Transformation[];
+
+        // Create an AffiliateFeeTransformer if there are fees in sell token.
+        // Must be before the FillQuoteTransformer.
+        // Also prefer to take fees in ETH if possible, so must be before the WETH transformer.
+        if (sellTokenAffiliateFees.length > 0) {
+            transformations.push({
+                deploymentNonce: this.transformerNonces.affiliateFeeTransformer,
+                data: encodeAffiliateFeeTransformerData({
+                    fees: sellTokenAffiliateFees
+                        .filter((fee) => fee.sellTokenFeeAmount.gt(0))
+                        .map((fee) => ({
+                            token: isFromETH ? ETH_TOKEN_ADDRESS : sellToken,
+                            amount: fee.sellTokenFeeAmount,
+                            recipient: fee.recipient,
+                        })),
+                }),
+            });
+        }
+
         // Create a WETH wrapper if coming from ETH.
         // Don't add the wethTransformer to CELO. There is no wrap/unwrap logic for CELO.
         if (isFromETH && this.chainId !== ChainId.Celo) {
@@ -88,23 +107,6 @@ export class TransformERC20Rule extends AbstractFeatureRule {
                 data: encodeWethTransformerData({
                     token: ETH_TOKEN_ADDRESS,
                     amount: shouldSellEntireBalance ? MAX_UINT256 : sellAmount,
-                }),
-            });
-        }
-
-        // Create an AffiliateFeeTransformer if there are fees in sell token.
-        // Must be before the FillQuoteTransformer.
-        if (sellTokenAffiliateFees.length > 0) {
-            transformations.push({
-                deploymentNonce: this.transformerNonces.affiliateFeeTransformer,
-                data: encodeAffiliateFeeTransformerData({
-                    fees: sellTokenAffiliateFees
-                        .filter((fee) => fee.sellTokenFeeAmount.gt(0))
-                        .map((fee) => ({
-                            token: sellToken, // TODO: handle native token
-                            amount: fee.sellTokenFeeAmount,
-                            recipient: fee.recipient,
-                        })),
                 }),
             });
         }
