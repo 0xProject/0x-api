@@ -89,10 +89,10 @@ export class MetaTransactionService implements IMetaTransactionService {
                 );
                 return {
                     ...commonQuoteFields,
-                    metaTransaction: {
-                        kind: 'v1',
+                    trade: {
+                        kind: 'metatransaction',
                         hash: metaTransaction.getHash(),
-                        object: metaTransaction,
+                        metaTransaction,
                     },
                 };
             }

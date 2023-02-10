@@ -245,16 +245,16 @@ export interface MetaTransactionV1QuoteResponse extends BasePriceResponse {
  * Response type for /meta_transaction/v2/quote endpoint
  */
 export interface MetaTransactionV2QuoteResponse extends BasePriceResponse {
-    metaTransaction: MetaTransactionField;
+    trade: TradeContext;
     fees?: Fees;
 }
 
-type MetaTransactionField = MetaTransactionV1Field /* add meta-transaction v2 when it's ready */;
+type TradeContext = MetaTransactionV1TradeContext /* add MetaTransactionV2TradeContext when it's ready */;
 
-interface MetaTransactionV1Field {
-    kind: 'v1';
+interface MetaTransactionV1TradeContext {
+    kind: 'metatransaction';
     hash: string;
-    object: MetaTransaction;
+    metaTransaction: MetaTransaction;
 }
 
 /**

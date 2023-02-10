@@ -290,7 +290,7 @@ describe(SUITE_NAME, () => {
                 buyAmount: '1234',
                 integratorId: INTEGRATOR_ID,
                 takerAddress: TAKER_ADDRESS,
-                metaTransactionVersion: 'v2',
+                metaTransactionVersion: 'v1',
                 feeConfigs: {
                     integratorFee: { type: 'volume', volumePercentage: '0.1' },
                     zeroExFee: {
@@ -324,6 +324,27 @@ describe(SUITE_NAME, () => {
             });
             expectCorrectQuoteResponse(response, { sellAmount: new BigNumber(1234) });
         });
+
+        it('should returns the correct trade kind', async () => {
+            const response = await requestSwap(app, 'quote', 'v2', {
+                buyToken: 'ZRX',
+                sellToken: 'WETH',
+                sellAmount: '1234',
+                integratorId: INTEGRATOR_ID,
+                takerAddress: TAKER_ADDRESS,
+                metaTransactionVersion: 'v1',
+                feeConfigs: {
+                    integratorFee: { type: 'volume', volumePercentage: '0.1' },
+                    zeroExFee: {
+                        type: 'integrator_share',
+                        integratorSharePercentage: '0.2',
+                        feeRecipient: TAKER_ADDRESS,
+                    },
+                    gasFee: { type: 'gas' },
+                },
+            });
+            expect(response.body.trade.kind).to.eql('metatransaction');
+        });        
 
         describe('fee configs', async () => {
             describe('integrator', async () => {
