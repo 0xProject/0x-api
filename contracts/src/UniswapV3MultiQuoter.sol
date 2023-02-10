@@ -31,7 +31,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
     // TODO: both quoteExactMultiInput and quoteExactMultiOutput revert at the end of the quoting logic
     // and return results encodied into a revert reason. The revert should be removed and replaced with
     // a normal return statement whenever UniswapV3Sampler stops having the two pool filtering logic.
-    // The two pool filtering logic causes pool's storage slots to be warmed up, causing gas estimates 
+    // The two pool filtering logic causes pool's storage slots to be warmed up, causing gas estimates
     // to be significantly below the gas used during settlement. Additionally, per the following EIP
     // this revert logic might not clear warm storage slots in the future: https://eips.ethereum.org/EIPS/eip-3978
     using Path for bytes;
@@ -90,7 +90,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
     /// @param factory The factory contract managing UniswapV3 pools
     /// @param path The path of the swap, i.e. each token pair and the pool fee
     /// @param amountsIn The amounts in of the first token to swap
-    /// @dev This function reverts at the end of the quoting logic and encodes (uint256[] amountsOut, uint256[] gasEstimates) 
+    /// @dev This function reverts at the end of the quoting logic and encodes (uint256[] amountsOut, uint256[] gasEstimates)
     /// into the revert reason. See additional documentation below.
     function quoteExactMultiInput(
         IUniswapV3Factory factory,
@@ -132,7 +132,6 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
             if (path.hasMultiplePools()) {
                 path = path.skipToken();
             } else {
-
                 // quote results must be encoded into a revert because otherwise subsequent calls
                 // to UniswapV3MultiQuoter result in multiswap hitting pool storage slots that are
                 // already warm. This results in very inaccurate gas estimates when estimating gas
@@ -153,7 +152,7 @@ contract UniswapV3MultiQuoter is IUniswapV3MultiQuoter {
     /// @param factory The factory contract managing UniswapV3 pools
     /// @param path The path of the swap, i.e. each token pair and the pool fee. Path must be provided in reverse order
     /// @param amountsOut The amounts out of the last token to receive
-    /// @dev This function reverts at the end of the quoting logic and encodes (uint256[] amountsIn, uint256[] gasEstimates) 
+    /// @dev This function reverts at the end of the quoting logic and encodes (uint256[] amountsIn, uint256[] gasEstimates)
     /// into the revert reason. See additional documentation below.
     function quoteExactMultiOutput(
         IUniswapV3Factory factory,
