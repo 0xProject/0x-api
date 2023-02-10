@@ -344,7 +344,7 @@ describe(SUITE_NAME, () => {
                 },
             });
             expect(response.body.trade.kind).to.eql('metatransaction');
-        });        
+        });
 
         describe('fee configs', async () => {
             describe('integrator', async () => {
