@@ -31,7 +31,7 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
         } = KYBER_ELASTIC_CONFIG_BY_CHAIN_ID[chainId]);
         assert.assert(this.quoterAddress != NULL_ADDRESS, 'KyberElastic sampler must have non-null quoter address.');
         assert.assert(this.factoryAddress != NULL_ADDRESS, 'KyberElastic sampler must have non-null factory address.');
-        assert.assert(this.routerAddress != NULL_ADDRESS, 'KyberElastic sampler must have non-null sampler address.');
+        assert.assert(this.routerAddress != NULL_ADDRESS, 'KyberElastic sampler must have non-null router address.');
     }
 
     createSampleSellsOperation(

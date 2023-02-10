@@ -55,7 +55,7 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
         IFactory factory,
         bytes memory path,
         uint256[] memory amountsIn
-    ) public view returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
+    ) public view returns (amountsIn, uint256[] memory gasEstimate) {
         for (uint256 i = 1; i < amountsIn.length; ++i) {
             require(amountsIn[i] >= amountsIn[i - 1], "multiswap amounts must be monotonically increasing");
         }
@@ -100,7 +100,7 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
         IFactory factory,
         bytes memory path,
         uint256[] memory amountsOut
-    ) public view returns (uint256[] memory amountsIn, uint256[] memory gasEstimate) {
+    ) public view returns (amountsOut, uint256[] memory gasEstimate) {
         for (uint256 i = 1; i < amountsOut.length; ++i) {
             require(amountsOut[i] >= amountsOut[i - 1], "multiswap amounts must be monotonically inreasing");
         }
@@ -275,8 +275,8 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
 
         for (uint256 i = swapData.amountsIndex; i < amounts.length; ++i) {
             (result.amounts0[i], result.amounts1[i]) = isToken0 == swapData.isExactInput
-                ? (amounts[i] - swapData.specifiedAmount, swapData.returnedAmount)
-                : (swapData.returnedAmount, amounts[i] - swapData.specifiedAmount);
+                ? (amounts[i], swapData.returnedAmount)
+                : (swapData.returnedAmount, amounts[i]);
         }
 
         result.gasEstimates[swapData.amountsIndex] = gasBefore - gasleft();
