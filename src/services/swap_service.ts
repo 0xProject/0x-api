@@ -252,12 +252,12 @@ export class SwapService implements ISwapService {
             sellToken,
             slippagePercentage,
             gasPrice: providedGasPrice,
-            isMetaTransaction,
             isETHSell,
             isETHBuy,
             excludedSources,
             includedSources,
             integrator,
+            metaTransactionVersion,
             rfqt,
             affiliateAddress,
             affiliateFee,
@@ -306,7 +306,8 @@ export class SwapService implements ISwapService {
 
         let swapQuoteRequestOpts: Partial<SwapQuoteRequestOpts>;
         if (
-            isMetaTransaction ||
+            // Is a MetaTransaction
+            metaTransactionVersion !== undefined ||
             shouldSellEntireBalance ||
             // Note: We allow VIP to continue ahead when positive slippage fee is enabled
             affiliateFee.feeType === AffiliateFeeType.PercentageFee ||
@@ -416,12 +417,12 @@ export class SwapService implements ISwapService {
             swapQuote,
             isETHSell,
             isETHBuy,
-            isMetaTransaction,
             shouldSellEntireBalance,
             affiliateAddress,
             buyTokenFeeAmounts,
             sellTokenFeeAmounts,
             positiveSlippageFee,
+            metaTransactionVersion,
         );
 
         let conservativeBestCaseGasEstimate = new BigNumber(worstCaseGas).plus(affiliateFeeGasCost);
@@ -742,17 +743,17 @@ export class SwapService implements ISwapService {
         swapQuote: SwapQuote,
         isFromETH: boolean,
         isToETH: boolean,
-        isMetaTransaction: boolean,
         shouldSellEntireBalance: boolean,
         affiliateAddress: string | undefined,
         buyTokenAffiliateFees: AffiliateFeeAmount[],
         sellTokenAffiliateFees: AffiliateFeeAmount[],
         positiveSlippageFee?: AffiliateFeeAmount,
+        metaTransactionVersion?: 'v1' | 'v2',
     ): SwapQuoteResponsePartialTransaction & { gasOverhead: BigNumber } {
         const opts: Partial<ExchangeProxyContractOpts> = {
             isFromETH,
             isToETH,
-            isMetaTransaction,
+            metaTransactionVersion,
             shouldSellEntireBalance,
             buyTokenAffiliateFees,
             sellTokenAffiliateFees,

@@ -200,7 +200,7 @@ export interface ExchangeProxyContractOpts {
     buyTokenAffiliateFees: readonly AffiliateFeeAmount[];
     positiveSlippageFee?: AffiliateFeeAmount; // TODO: use a different type to represent Positive Slippage Fee
     refundReceiver: string | ExchangeProxyRefundReceiver;
-    isMetaTransaction: boolean;
+    metaTransactionVersion?: 'v1' | 'v2'; // Only present if this is a MetaTransaction
     shouldSellEntireBalance: boolean;
 }
 
