@@ -211,9 +211,7 @@ export interface KyberDmmFillData extends UniswapV2FillData {
 /**
  * Determines whether FillData is UniswapV3FillData or FinalUniswapV3FillData
  */
-export function isFinalPathFillData(
-    data: MultiPathFillData | FinalPathFillData,
-): data is FinalPathFillData {
+export function isFinalPathFillData(data: MultiPathFillData | FinalPathFillData): data is FinalPathFillData {
     return !!(data as FinalPathFillData).path;
 }
 
