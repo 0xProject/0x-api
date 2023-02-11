@@ -193,16 +193,15 @@ export interface HopInfo {
     returnData: string;
 }
 
-export interface UniswapV3PathAmount {
-    uniswapPath: string;
+export interface PathAmount {
+    path: string;
     inputAmount: BigNumber;
     gasUsed: number;
 }
-export interface UniswapV3FillData extends FillData {
+export interface MultiPathFillData extends FillData {
     tokenAddressPath: string[];
     router: string;
-    pathAmounts: UniswapV3PathAmount[];
-    // Only needed for gas estimation.
+    pathAmounts: PathAmount[];
 }
 
 export interface KyberDmmFillData extends UniswapV2FillData {
@@ -212,15 +211,15 @@ export interface KyberDmmFillData extends UniswapV2FillData {
 /**
  * Determines whether FillData is UniswapV3FillData or FinalUniswapV3FillData
  */
-export function isFinalUniswapV3FillData(
-    data: UniswapV3FillData | FinalUniswapV3FillData,
-): data is FinalUniswapV3FillData {
-    return !!(data as FinalUniswapV3FillData).uniswapPath;
+export function isFinalPathFillData(
+    data: MultiPathFillData | FinalPathFillData,
+): data is FinalPathFillData {
+    return !!(data as FinalPathFillData).path;
 }
 
-export interface FinalUniswapV3FillData extends Omit<UniswapV3FillData, 'pathAmounts'> {
-    // The uniswap-encoded path that can fll the maximum input amount.
-    uniswapPath: string;
+export interface FinalPathFillData extends Omit<MultiPathFillData, 'pathAmounts'> {
+    // The encoded path that can fll the maximum input amount.
+    path: string;
     gasUsed: number;
 }
 
