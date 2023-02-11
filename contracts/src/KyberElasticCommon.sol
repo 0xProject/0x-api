@@ -4,11 +4,10 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IKyberElastic.sol";
 import "./interfaces/IMultiQuoter.sol";
 
-// import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
 
 contract KyberElasticCommon {
-    /// @dev Gas limit for UniswapV3 calls
-    uint256 private constant QUOTE_GAS = 10000e3;
+    /// @dev Arbitrary gas limit for KyberElastic calls (TODO: revisit)
+    uint256 private constant QUOTE_GAS = 700e3;
 
     /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
     function _getPoolPaths(
@@ -23,7 +22,7 @@ contract KyberElasticCommon {
         if (path.length == 3) {
             return _getPoolPathTwoHop(quoter, factory, path, inputAmount);
         }
-        revert("UniswapV3Sampler/unsupported token path length");
+        revert("KyberElastic sampler: unsupported token path length");
     }
 
     function _getPoolPathSingleHop(
@@ -119,23 +118,11 @@ contract KyberElasticCommon {
 
     function _isValidPool(IPool pool) internal view returns (bool isValid) {
         // Check if it has been deployed.
-        {
-            uint256 codeSize;
-            assembly {
-                codeSize := extcodesize(pool)
-            }
-            if (codeSize == 0) {
-                return false;
-            }
+        uint256 codeSize;
+        assembly {
+            codeSize := extcodesize(pool)
         }
-        // // Must have a balance of both tokens.
-        // if (IERC20TokenV06(pool.token0()).balanceOf(address(pool)) == 0) {
-        //     return false;
-        // }
-        // if (IERC20TokenV06(pool.token1()).balanceOf(address(pool)) == 0) {
-        //     return false;
-        // }
-        return true;
+        return codeSize != 0;
     }
 
     function _isValidPoolPath(IPool[] memory poolPaths) internal pure returns (bool) {

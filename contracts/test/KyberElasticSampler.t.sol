@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import "forge-std/Test.sol";
 import "../src/KyberElasticMultiQuoter.sol";
 import "../src/KyberElasticCommon.sol";
-import {IPool} from "../src/interfaces/IKyberElastic.sol";
+import {IPool, IFactory} from "../src/interfaces/IKyberElastic.sol";
 
 contract TestKyberElasticSampler is Test, KyberElasticCommon {
     // NOTE: Example test command: forge test --fork-url $ETH_RPC_URL --fork-block-number 16400073 --etherscan-api-key $ETHERSCAN_API_KEY --match-contract "KyberElastic"
@@ -92,26 +92,24 @@ contract TestKyberElasticSampler is Test, KyberElasticCommon {
     }
 
     function testPool() public {
-        factory.parameters();
-        emit log_named_address("poo", ETH_KNC_POOL_100_BIP.token0());
+        assert(ETH_KNC_POOL_100_BIP.token0() == ETH);
+        assert(ETH_KNC_POOL_100_BIP.token1() == KNC);
+
+        address testPool = factory.getPool(ETH, KNC, uint16(1000));
+        assert(testPool == address(ETH_KNC_POOL_100_BIP));
 
         address[] memory tokenPath = new address[](2);
-        tokenPath[0] = KNC;
-        tokenPath[1] = ETH;
-
-        address poo = factory.getPool(ETH, KNC, uint24(0.01e6));
-
-        emit log_named_address("poo", poo);
+        tokenPath[0] = ETH;
+        tokenPath[1] = KNC;
 
         IPool[][] memory poolPaths = _getPoolPaths(multiQuoter, factory, tokenPath, 1 ether);
-        emit log_named_uint("length", poolPaths.length);
+        assert(poolPaths.length == 2);
         for (uint256 i; i < poolPaths.length; ++i) {
             for (uint256 j; j < poolPaths[i].length; ++j) {
-                // bytes memory uniswapPath = toPath(tokenPath, poolPaths[i]);
-                // emit log_named_bytes("pool", uniswapPath);
-                emit log_named_address("poo", poolPaths[i][j].token0());
-                emit log_named_address("poo", poolPaths[i][j].token1());
-                emit log_named_uint("poo", poolPaths[i][j].swapFeeUnits());
+                address token0 = poolPaths[i][j].token0();
+                assert(token0 == ETH);
+                address token1 = poolPaths[i][j].token1();
+                assert(token1 == KNC);
             }
         }
     }

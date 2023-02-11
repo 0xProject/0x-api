@@ -16,17 +16,17 @@
   limitations under the License.
 
 */
-
-pragma solidity >=0.8;
+// transitive dependencies PathHelper.sol and BytesLib.sol require 0.8.9
+pragma solidity 0.8.9; 
 
 import "./libraries/Multiswap.sol";
 import "./interfaces/IMultiQuoter.sol";
-import "@kyberelastic/libraries/TickMath.sol";
-import "@kyberelastic/libraries/SwapMath.sol";
-import "@kyberelastic/libraries/Linkedlist.sol";
-import "@kyberelastic/libraries/LiqDeltaMath.sol";
-import "@kyberelastic/periphery/libraries/PathHelper.sol";
 import "@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol";
+import "@kybernetwork/ks-elastic-sc/contracts/libraries/TickMath.sol";
+import "@kybernetwork/ks-elastic-sc/contracts/libraries/SwapMath.sol";
+import "@kybernetwork/ks-elastic-sc/contracts/libraries/Linkedlist.sol";
+import "@kybernetwork/ks-elastic-sc/contracts/libraries/LiqDeltaMath.sol";
+import "@kybernetwork/ks-elastic-sc/contracts/periphery/libraries/PathHelper.sol";
 
 /// @title Provides quotes for multiple swap amounts
 /// @notice Allows getting the expected amount out or amount in for multiple given swap amounts without executing the swap
@@ -55,7 +55,7 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
         IFactory factory,
         bytes memory path,
         uint256[] memory amountsIn
-    ) public view returns (amountsIn, uint256[] memory gasEstimate) {
+    ) public view returns (uint256[] memory amountsOut, uint256[] memory gasEstimate) {
         for (uint256 i = 1; i < amountsIn.length; ++i) {
             require(amountsIn[i] >= amountsIn[i - 1], "multiswap amounts must be monotonically increasing");
         }
@@ -100,7 +100,7 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
         IFactory factory,
         bytes memory path,
         uint256[] memory amountsOut
-    ) public view returns (amountsOut, uint256[] memory gasEstimate) {
+    ) public view returns (uint256[] memory amountsIn, uint256[] memory gasEstimate) {
         for (uint256 i = 1; i < amountsOut.length; ++i) {
             require(amountsOut[i] >= amountsOut[i - 1], "multiswap amounts must be monotonically inreasing");
         }
