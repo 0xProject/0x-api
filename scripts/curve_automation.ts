@@ -11,8 +11,9 @@ import {
     CURVE_V2_POLYGON_POOLS, CURVE_AVALANCHE_POOLS, CURVE_V2_AVALANCHE_POOLS, 
     CURVE_FANTOM_POOLS, CURVE_V2_FANTOM_POOLS, CURVE_OPTIMISM_POOLS, CURVE_V2_ARBITRUM_POOLS}
 from '../src/asset-swapper/utils/market_operation_utils/curve'
-
 import { CurveFunctionSelectors, CurveInfo } from "../src/asset-swapper/utils/market_operation_utils/types";
+
+const apiKey = 'IMIH2ZQPYANP7KUYW3GFGUK637XD81BMCU'
 
 let CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {}
 
@@ -111,39 +112,33 @@ export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 
 //takes in a curve pool and updates CURVE_MAINNET_INFOS
 async function generateCurveInfoMainnet(pool: CurvePool) {
-    // Connect to Ethereum network
-    const provider = ethers.getDefaultProvider();
-    // Get the contract bytecode
-    let bytecode = await provider.getCode(pool.address);
-	bytecode = bytecode.toLowerCase()
+	//getting rate limited on etherscan even with Pro API Key
+	// Connect to Ethereum network
+    //const provider = ethers.getDefaultProvider();
+
+	//get contract abi
+	//const address = pool.address
+	//const url = `https://api.etherscan.io/api?module=contract&action=getabi&address=${address}&apikey=${apiKey}`
+	//const res = await axios.get(url)
+	//const abi = JSON.parse(res.data.result)
+
 
 	//classify curve pool
-	if (bytecode.includes(CurveFunctionSelectors.exchange_underlying_uint256) && bytecode.includes(CurveFunctionSelectors.get_dy_uint256)) {
-		console.log('yay')
-		CURVE_MAINNET_INFOS[pool.address] = createCurveFactoryCryptoExchangePool({
-			tokens: pool.coinsAddresses,
-			pool: pool.address,
-			gasSchedule: 600e3,
-		})
-	}
-	else if (bytecode.includes(CurveFunctionSelectors.exchange_v2) && bytecode.includes(CurveFunctionSelectors.get_dy_v2)){
-		console.log('yay')
-		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangeV2Pool({
-			tokens: pool.coinsAddresses,
-			pool: pool.address,
-			gasSchedule: 330e3,
-		})
-	}
-	else if (bytecode.includes(CurveFunctionSelectors.exchange_underlying) && bytecode.includes(CurveFunctionSelectors.get_dy_underlying)){
-		console.log('yay')
+	if (pool.isMetaPool) {
 		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangeUnderlyingPool({
 			tokens: pool.coinsAddresses,
 			pool: pool.address,
 			gasSchedule: 600e3,
 		})
 	}
-	else if (bytecode.includes(CurveFunctionSelectors.exchange) && bytecode.includes(CurveFunctionSelectors.get_dy)){
-		console.log('yay')
+	else if (pool.id.includes('v2')){
+		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangeV2Pool({
+			tokens: pool.coinsAddresses,
+			pool: pool.address,
+			gasSchedule: 330e3,
+		})
+	}
+	else {
 		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangePool({
 			tokens: pool.coinsAddresses,
 			pool: pool.address,
@@ -153,9 +148,11 @@ async function generateCurveInfoMainnet(pool: CurvePool) {
 }
 
 getCurvePools().then((curvePools: {[name: string]: CurvePool}) => {
-	//console.log(`Retrieved ${Object.keys(curvePools).length} Curve Pools`);
+
 	for (const pool in curvePools){
 		generateCurveInfoMainnet(curvePools[pool])
 	}
+	console.log(CURVE_MAINNET_INFOS)
 	return curvePools
+	
 });
