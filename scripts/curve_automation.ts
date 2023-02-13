@@ -1,5 +1,3 @@
-//WIP
-
 import { ethers } from "ethers";
 import axios from "axios";
 const curve_factory_crypto = "https://api.curve.fi/api/getPools/ethereum/factory-crypto";
@@ -121,7 +119,6 @@ async function generateCurveInfoMainnet(pool: CurvePool) {
 	//const url = `https://api.etherscan.io/api?module=contract&action=getabi&address=${address}&apikey=${apiKey}`
 	//const res = await axios.get(url)
 	//const abi = JSON.parse(res.data.result)
-
 
 	//classify curve pool
 	if (pool.isMetaPool) {
