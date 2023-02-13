@@ -200,13 +200,14 @@ export function getFQTTransformerDataFromOptimizedOrders(
  */
 export function requiresTransformERC20(opts: ExchangeProxyContractOpts): boolean {
     // Is a mtx.
-    if (opts.isMetaTransaction) {
+    if (opts.metaTransactionVersion !== undefined) {
         return true;
     }
     // Has an affiliate fee.
-    if (!opts.affiliateFee.buyTokenFeeAmount.eq(0) || !opts.affiliateFee.sellTokenFeeAmount.eq(0)) {
+    if (opts.affiliateFees.some((f) => f.buyTokenFeeAmount.isGreaterThan(0) || f.sellTokenFeeAmount.isGreaterThan(0))) {
         return true;
     }
+
     // VIP does not support selling the entire balance
     if (opts.shouldSellEntireBalance) {
         return true;
