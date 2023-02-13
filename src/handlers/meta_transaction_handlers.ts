@@ -486,15 +486,16 @@ function _parseFeeConfigs(req: express.Request): FeeConfigs | undefined {
             parsedFeeConfigs.integratorFee = {
                 type: 'volume',
                 feeRecipient: integratorFee.feeRecipient,
+                billingType: integratorFee.billingType,
                 volumePercentage,
             };
         }
 
         // Parse the 0x fee config
-        if (feeConfigs.zeroexFee) {
-            const zeroexFee = feeConfigs.zeroexFee;
+        if (feeConfigs.zeroExFee) {
+            const zeroExFee = feeConfigs.zeroExFee;
 
-            if (zeroexFee.type !== 'volume' && zeroexFee.type !== 'integrator_share') {
+            if (zeroExFee.type !== 'volume' && zeroExFee.type !== 'integrator_share') {
                 throw new ValidationError([
                     {
                         field: 'feeConfigs',
@@ -504,8 +505,8 @@ function _parseFeeConfigs(req: express.Request): FeeConfigs | undefined {
                 ]);
             }
 
-            if (zeroexFee.type === 'volume') {
-                const feePercentage = new BigNumber(zeroexFee.volumePercentage as string);
+            if (zeroExFee.type === 'volume') {
+                const feePercentage = new BigNumber(zeroExFee.volumePercentage as string);
                 if (feePercentage.gte(1)) {
                     throw new ValidationError([
                         {
@@ -516,12 +517,13 @@ function _parseFeeConfigs(req: express.Request): FeeConfigs | undefined {
                     ]);
                 }
 
-                parsedFeeConfigs.zeroexFee = {
+                parsedFeeConfigs.zeroExFee = {
                     type: 'volume',
-                    feeRecipient: zeroexFee.feeRecipient,
+                    feeRecipient: zeroExFee.feeRecipient,
+                    billingType: zeroExFee.billingType,
                     volumePercentage: feePercentage,
                 };
-            } else if (zeroexFee.type === 'integrator_share') {
+            } else if (zeroExFee.type === 'integrator_share') {
                 if (!parsedFeeConfigs.integratorFee) {
                     throw new ValidationError([
                         {
@@ -532,7 +534,7 @@ function _parseFeeConfigs(req: express.Request): FeeConfigs | undefined {
                     ]);
                 }
 
-                const feePercentage = new BigNumber(zeroexFee.integratorSharePercentage as string);
+                const feePercentage = new BigNumber(zeroExFee.integratorSharePercentage as string);
                 if (feePercentage.gte(1)) {
                     throw new ValidationError([
                         {
@@ -543,9 +545,10 @@ function _parseFeeConfigs(req: express.Request): FeeConfigs | undefined {
                     ]);
                 }
 
-                parsedFeeConfigs.zeroexFee = {
+                parsedFeeConfigs.zeroExFee = {
                     type: 'integrator_share',
-                    feeRecipient: zeroexFee.feeRecipient,
+                    feeRecipient: zeroExFee.feeRecipient,
+                    billingType: zeroExFee.billingType,
                     integratorSharePercentage: feePercentage,
                 };
             }
@@ -568,6 +571,7 @@ function _parseFeeConfigs(req: express.Request): FeeConfigs | undefined {
             parsedFeeConfigs.gasFee = {
                 type: 'gas',
                 feeRecipient: gasFee.feeRecipient,
+                billingType: gasFee.billingType,
             };
         }
     }
