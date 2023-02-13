@@ -4,7 +4,7 @@ import { UNISWAPV3_CONFIG_BY_CHAIN_ID } from '../asset-swapper/utils/market_oper
 import { SamplerContractOperation } from '../asset-swapper/utils/market_operation_utils/sampler_contract_operation';
 import {
     SourceQuoteOperation,
-    MultiPathFillData,
+    TickDEXMultiPathFillData,
     PathAmount,
 } from '../asset-swapper/utils/market_operation_utils/types';
 
@@ -13,7 +13,7 @@ interface BridgeSampler<TFillData extends FillData> {
     createSampleBuysOperation(tokenAddressPath: string[], amounts: BigNumber[]): SourceQuoteOperation<TFillData>;
 }
 
-export class UniswapV3Sampler implements BridgeSampler<MultiPathFillData> {
+export class UniswapV3Sampler implements BridgeSampler<TickDEXMultiPathFillData> {
     private readonly source: ERC20BridgeSource = ERC20BridgeSource.UniswapV3;
     private readonly samplerContract: ERC20BridgeSamplerContract;
     private readonly chainId: ChainId;
@@ -29,7 +29,7 @@ export class UniswapV3Sampler implements BridgeSampler<MultiPathFillData> {
     createSampleSellsOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<MultiPathFillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         return this.createSamplerOperation(
             this.samplerContract.sampleSellsFromUniswapV3,
             'sampleSellsFromUniswapV3',
@@ -41,7 +41,7 @@ export class UniswapV3Sampler implements BridgeSampler<MultiPathFillData> {
     createSampleBuysOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<MultiPathFillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         return this.createSamplerOperation(
             this.samplerContract.sampleBuysFromUniswapV3,
             'sampleBuysFromUniswapV3',
@@ -71,13 +71,13 @@ export class UniswapV3Sampler implements BridgeSampler<MultiPathFillData> {
         samplerMethodName: string,
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<MultiPathFillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         return new SamplerContractOperation({
             source: this.source,
             contract: this.samplerContract,
             function: samplerFunction,
             params: [this.factoryAddress, tokenAddressPath, amounts],
-            callback: (callResults: string, fillData: MultiPathFillData): BigNumber[] => {
+            callback: (callResults: string, fillData: TickDEXMultiPathFillData): BigNumber[] => {
                 const [paths, gasUsed, samples] = this.samplerContract.getABIDecodedReturnData<
                     [string[], BigNumber[], BigNumber[]]
                 >(samplerMethodName, callResults);

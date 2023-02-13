@@ -24,7 +24,7 @@ import {
     CURVE_LIQUIDITY_PROVIDER_BY_CHAIN_ID,
     NATIVE_FEE_TOKEN_BY_CHAIN_ID,
 } from '../utils/market_operation_utils/constants';
-import { CurveFillData, FinalPathFillData, UniswapV2FillData } from '../utils/market_operation_utils/types';
+import { CurveFillData, FinalTickDEXMultiPathFillData, UniswapV2FillData } from '../utils/market_operation_utils/types';
 
 import {
     ERC20BridgeSource,
@@ -119,7 +119,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumer {
             this.chainId === ChainId.Mainnet &&
             isDirectSwapCompatible(quote.path, optsWithDefaults, [ERC20BridgeSource.UniswapV3])
         ) {
-            const fillData = (slippedOrders[0] as OptimizedMarketBridgeOrder<FinalPathFillData>).fillData;
+            const fillData = (slippedOrders[0] as OptimizedMarketBridgeOrder<FinalTickDEXMultiPathFillData>).fillData;
             let _calldataHexString;
             if (isFromETH) {
                 _calldataHexString = this.exchangeProxy
@@ -365,7 +365,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumer {
                     });
                     break switch_statement;
                 case ERC20BridgeSource.UniswapV3: {
-                    const fillData = (order as OptimizedMarketBridgeOrder<FinalPathFillData>).fillData;
+                    const fillData = (order as OptimizedMarketBridgeOrder<FinalTickDEXMultiPathFillData>).fillData;
                     subcalls.push({
                         id: MultiplexSubcall.UniswapV3,
                         sellAmount: order.takerAmount,
@@ -458,7 +458,7 @@ export class ExchangeProxySwapQuoteConsumer implements SwapQuoteConsumer {
                 case ERC20BridgeSource.UniswapV3:
                     subcalls.push({
                         id: MultiplexSubcall.UniswapV3,
-                        data: (order.fillData as FinalPathFillData).path,
+                        data: (order.fillData as FinalTickDEXMultiPathFillData).path,
                     });
                     break;
                 default:

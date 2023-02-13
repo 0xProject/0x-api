@@ -16,7 +16,7 @@ import {
     CurveFunctionSelectors,
     CurveInfo,
     DODOFillData,
-    FinalPathFillData,
+    FinalTickDEXMultiPathFillData,
     isFinalPathFillData,
     LidoFillData,
     LidoInfo,
@@ -26,7 +26,7 @@ import {
     PsmInfo,
     SynthetixFillData,
     UniswapV2FillData,
-    MultiPathFillData,
+    TickDEXMultiPathFillData,
     WOOFiFillData,
 } from './types';
 
@@ -2019,7 +2019,7 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
         return gas;
     },
     [ERC20BridgeSource.UniswapV3]: (fillData?: FillData) => {
-        const uniFillData = fillData as MultiPathFillData | FinalPathFillData;
+        const uniFillData = fillData as TickDEXMultiPathFillData | FinalTickDEXMultiPathFillData;
         // NOTE: This base value was heuristically chosen by looking at how much it generally
         // underestimated gas usage
         const base = 34e3; // 34k base

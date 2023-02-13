@@ -29,7 +29,7 @@ import {
     CurveFillData,
     DexSample,
     DODOFillData,
-    FinalPathFillData,
+    FinalTickDEXMultiPathFillData,
     GenericRouterFillData,
     GMXFillData,
     KyberDmmFillData,
@@ -42,7 +42,7 @@ import {
     ShellFillData,
     SynthetixFillData,
     UniswapV2FillData,
-    MultiPathFillData,
+    TickDEXMultiPathFillData,
     PathAmount,
     VelodromeFillData,
     WOOFiFillData,
@@ -327,7 +327,7 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             break;
         }
         case ERC20BridgeSource.UniswapV3: {
-            const uniswapV3FillData = (order as OptimizedMarketBridgeOrder<FinalPathFillData>).fillData;
+            const uniswapV3FillData = (order as OptimizedMarketBridgeOrder<FinalTickDEXMultiPathFillData>).fillData;
             bridgeData = encoder.encode([uniswapV3FillData.router, uniswapV3FillData.path]);
             break;
         }
@@ -594,9 +594,9 @@ function toFillBase(fill: Fill): FillBase {
 function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {
     switch (fill.source) {
         case ERC20BridgeSource.UniswapV3: {
-            const fd = fill.fillData as MultiPathFillData;
+            const fd = fill.fillData as TickDEXMultiPathFillData;
             const { path: uniswapPath, gasUsed } = getBestUniswapV3PathAmountForInputAmount(fd, fill.input);
-            const finalFillData: FinalPathFillData = {
+            const finalFillData: FinalTickDEXMultiPathFillData = {
                 router: fd.router,
                 tokenAddressPath: fd.tokenAddressPath,
                 path: uniswapPath,
@@ -610,7 +610,7 @@ function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {
     return fill.fillData;
 }
 
-function getBestUniswapV3PathAmountForInputAmount(fillData: MultiPathFillData, inputAmount: BigNumber): PathAmount {
+function getBestUniswapV3PathAmountForInputAmount(fillData: TickDEXMultiPathFillData, inputAmount: BigNumber): PathAmount {
     if (fillData.pathAmounts.length === 0) {
         throw new Error(`No Uniswap V3 paths`);
     }

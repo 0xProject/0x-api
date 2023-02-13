@@ -198,7 +198,7 @@ export interface PathAmount {
     inputAmount: BigNumber;
     gasUsed: number;
 }
-export interface MultiPathFillData extends FillData {
+export interface TickDEXMultiPathFillData extends FillData {
     tokenAddressPath: string[];
     router: string;
     pathAmounts: PathAmount[];
@@ -211,11 +211,11 @@ export interface KyberDmmFillData extends UniswapV2FillData {
 /**
  * Determines whether FillData is UniswapV3FillData or FinalUniswapV3FillData
  */
-export function isFinalPathFillData(data: MultiPathFillData | FinalPathFillData): data is FinalPathFillData {
-    return !!(data as FinalPathFillData).path;
+export function isFinalPathFillData(data: TickDEXMultiPathFillData | FinalTickDEXMultiPathFillData): data is FinalTickDEXMultiPathFillData {
+    return !!(data as FinalTickDEXMultiPathFillData).path;
 }
 
-export interface FinalPathFillData extends Omit<MultiPathFillData, 'pathAmounts'> {
+export interface FinalTickDEXMultiPathFillData extends Omit<TickDEXMultiPathFillData, 'pathAmounts'> {
     // The encoded path that can fll the maximum input amount.
     path: string;
     gasUsed: number;
