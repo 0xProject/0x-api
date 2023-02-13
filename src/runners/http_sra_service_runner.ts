@@ -86,9 +86,7 @@ async function runHttpServiceAsync(
             includeStatusCode: true,
             includePath: true,
             customLabels: { chainId: undefined },
-            normalizePath: [
-                ['/order/.*', '/order/#orderHash'],
-            ],
+            normalizePath: [['/order/.*', '/order/#orderHash']],
             transformLabels: (labels, req, _res) => {
                 Object.assign(labels, { chainId: req.header('0x-chain-id') || 1 });
             },
