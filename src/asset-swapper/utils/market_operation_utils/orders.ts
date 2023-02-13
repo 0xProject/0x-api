@@ -610,7 +610,10 @@ function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {
     return fill.fillData;
 }
 
-function getBestUniswapV3PathAmountForInputAmount(fillData: TickDEXMultiPathFillData, inputAmount: BigNumber): PathAmount {
+function getBestUniswapV3PathAmountForInputAmount(
+    fillData: TickDEXMultiPathFillData,
+    inputAmount: BigNumber,
+): PathAmount {
     if (fillData.pathAmounts.length === 0) {
         throw new Error(`No Uniswap V3 paths`);
     }
