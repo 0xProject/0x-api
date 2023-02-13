@@ -73,15 +73,15 @@ function SantizeCurvePool(name: string){
 	return name.trim();
 }
 
-let CurvePools_: {[name: string]: CurvePool} = {};
 
 //queries all curve pools and filters by TVL
 export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
+	const curvePools: {[name: string]: CurvePool} = {};
 	await axios.get(curve_factory_crypto).then((res) => {
 		let response: CurveApiResponse = res.data.data;
 		response.poolData.forEach((pool: CurvePoolData) => {
 			if (pool.usdTotal >MIN_TVL && !(integrated_addresses.includes(pool.address))){
-				CurvePools_[SantizeCurvePool(`${pool.name}`)] = pool;
+				curvePools[SantizeCurvePool(`${pool.name}`)] = pool;
 			}
 		});
 
@@ -90,7 +90,7 @@ export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 		let response: CurveApiResponse = res.data.data;
 		response.poolData.forEach((pool: CurvePoolData) => {
 			if (pool.usdTotal >MIN_TVL && !(integrated_addresses.includes(pool.address))){
-				CurvePools_[SantizeCurvePool(`${pool.name}`)] = pool;
+				curvePools[SantizeCurvePool(`${pool.name}`)] = pool;
 			}
 		});
 
@@ -99,16 +99,16 @@ export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 		let response: CurveApiResponse = res.data.data;
 		response.poolData.forEach((pool: CurvePoolData) => {
 			if (pool.usdTotal >MIN_TVL && !(integrated_addresses.includes(pool.address))){
-				CurvePools_[SantizeCurvePool(`${pool.name}`)] = pool;
+				curvePools[SantizeCurvePool(`${pool.name}`)] = pool;
 			}
 		});
 	});
 
-	return CurvePools_
+	return curvePools
 }
 
 //takes in a curve pool and updates CURVE_MAINNET_INFOS
-async function generateCurveInfoMainnet(pool: CurvePool) {
+async function generateCurveInfoMainnet(pools: CurvePool[]) {
 	//getting rate limited on etherscan even with Pro API Key
 	// Connect to Ethereum network
     //const provider = ethers.getDefaultProvider();
@@ -120,35 +120,39 @@ async function generateCurveInfoMainnet(pool: CurvePool) {
 	//const abi = JSON.parse(res.data.result)
 
 	//classify curve pool
-	if (pool.isMetaPool) {
-		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangeUnderlyingPool({
-			tokens: pool.coinsAddresses,
-			pool: pool.address,
-			gasSchedule: 600e3,
-		})
-	}
-	else if (pool.id.includes('v2')){
-		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangeV2Pool({
-			tokens: pool.coinsAddresses,
-			pool: pool.address,
-			gasSchedule: 330e3,
-		})
-	}
-	else {
-		CURVE_MAINNET_INFOS[pool.address] = createCurveExchangePool({
-			tokens: pool.coinsAddresses,
-			pool: pool.address,
-			gasSchedule: 600e3,
-		})
-	} 
+
+	const curveInfos: {[name: string]: CurveInfo} = {}
+	pools.forEach(pool => {
+		if (pool.isMetaPool) {
+			curveInfos[pool.address] = createCurveExchangeUnderlyingPool({
+				tokens: pool.coinsAddresses,
+				pool: pool.address,
+				gasSchedule: 600e3,
+			})
+		}
+		else if (pool.id.includes('v2')){
+			curveInfos[pool.address] = createCurveExchangeV2Pool({
+				tokens: pool.coinsAddresses,
+				pool: pool.address,
+				gasSchedule: 330e3,
+			})
+		}
+		else {
+			curveInfos[pool.address] = createCurveExchangePool({
+				tokens: pool.coinsAddresses,
+				pool: pool.address,
+				gasSchedule: 600e3,
+			})
+		} 
+	})
+	return curveInfos;
 }
 
-getCurvePools().then((curvePools: {[name: string]: CurvePool}) => {
+getCurvePools().then(async (curvePools: {[name: string]: CurvePool}) => {
 
-	for (const pool in curvePools){
-		generateCurveInfoMainnet(curvePools[pool])
-	}
-	console.log(CURVE_MAINNET_INFOS)
-	return curvePools
+	const curveInfos = await generateCurveInfoMainnet(Object.values(curvePools));
+	//JSON.stringify(curveInfos)
+	console.log(JSON.stringify(curveInfos, null, 2))
+	//return curvePools
 	
 });
