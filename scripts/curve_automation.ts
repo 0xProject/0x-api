@@ -11,8 +11,7 @@ import {
 from '../src/asset-swapper/utils/market_operation_utils/curve'
 import { CurveFunctionSelectors, CurveInfo } from "../src/asset-swapper/utils/market_operation_utils/types";
 
-const apiKey = 'IMIH2ZQPYANP7KUYW3GFGUK637XD81BMCU'
-
+const MIN_TVL = 500000
 let CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {}
 
 const integrated_addresses = [
@@ -81,7 +80,7 @@ export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 	await axios.get(curve_factory_crypto).then((res) => {
 		let response: CurveApiResponse = res.data.data;
 		response.poolData.forEach((pool: CurvePoolData) => {
-			if (pool.usdTotal >500000 && !(integrated_addresses.includes(pool.address))){
+			if (pool.usdTotal >MIN_TVL && !(integrated_addresses.includes(pool.address))){
 				CurvePools_[SantizeCurvePool(`${pool.name}`)] = pool;
 			}
 		});
@@ -90,7 +89,7 @@ export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 	await axios.get(curve_factory).then((res) => {
 		let response: CurveApiResponse = res.data.data;
 		response.poolData.forEach((pool: CurvePoolData) => {
-			if (pool.usdTotal >500000 && !(integrated_addresses.includes(pool.address))){
+			if (pool.usdTotal >MIN_TVL && !(integrated_addresses.includes(pool.address))){
 				CurvePools_[SantizeCurvePool(`${pool.name}`)] = pool;
 			}
 		});
@@ -99,7 +98,7 @@ export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 	await axios.get(curve_crypto).then((res) => {
 		let response: CurveApiResponse = res.data.data;
 		response.poolData.forEach((pool: CurvePoolData) => {
-			if (pool.usdTotal >500000 && !(integrated_addresses.includes(pool.address))){
+			if (pool.usdTotal >MIN_TVL && !(integrated_addresses.includes(pool.address))){
 				CurvePools_[SantizeCurvePool(`${pool.name}`)] = pool;
 			}
 		});
