@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { readFileSync, writeFileSync } from "fs";
 import axios from "axios";
 const curve_factory_crypto = "https://api.curve.fi/api/getPools/ethereum/factory-crypto";
 const curve_factory = "https://api.curve.fi/api/getPools/ethereum/factory";
@@ -10,9 +11,9 @@ import {
     CURVE_FANTOM_POOLS, CURVE_V2_FANTOM_POOLS, CURVE_OPTIMISM_POOLS, CURVE_V2_ARBITRUM_POOLS}
 from '../src/asset-swapper/utils/market_operation_utils/curve'
 import { CurveFunctionSelectors, CurveInfo } from "../src/asset-swapper/utils/market_operation_utils/types";
+import { version } from "uuid-validate";
 
 const MIN_TVL = 500000
-let CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {}
 
 const integrated_addresses = [
     Object.values(CURVE_POOLS),
@@ -108,7 +109,7 @@ export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 }
 
 //takes in a curve pool and updates CURVE_MAINNET_INFOS
-async function generateCurveInfoMainnet(pools: CurvePool[]) {
+function generateCurveInfoMainnet(pools: CurvePool[]) {
 	//getting rate limited on etherscan even with Pro API Key
 	// Connect to Ethereum network
     //const provider = ethers.getDefaultProvider();
@@ -148,11 +149,57 @@ async function generateCurveInfoMainnet(pools: CurvePool[]) {
 	return curveInfos;
 }
 
-getCurvePools().then(async (curvePools: {[name: string]: CurvePool}) => {
+const generateTokenList = (tokens: string[]) => {
+	const inner = tokens.map(token => `'${token}'`).join(",")
+	return `[${inner}]`
+}
 
-	const curveInfos = await generateCurveInfoMainnet(Object.values(curvePools));
-	//JSON.stringify(curveInfos)
-	console.log(JSON.stringify(curveInfos, null, 2))
-	//return curvePools
+const generateCodeBlock = (pool: CurvePool, fnName: string, gas: string) => {
+return `
+    '${pool.address}': ${fnName}({
+        tokens: ${generateTokenList(pool.coinsAddresses)},
+        pool: '${pool.address}',
+        gasSechedule: ${gas},
+    }),`
+}
+
+const generateCodeSnippets = (pools: CurvePool[]) => {
+	const versionAddressPool: {[version: string]: {[address: string]: string} } = {};
+	versionAddressPool['v1'] = {};
+	versionAddressPool['v2'] = {};
+	pools.forEach(pool => {
+		if (pool.isMetaPool) {
+			versionAddressPool['v1'][pool.address] = generateCodeBlock(pool, 'createCurveExchangeUnderlyingPool', '600e3');
+		}
+		else if (pool.id.includes('v2')){
+			versionAddressPool['v2'][pool.address] = generateCodeBlock(pool, 'createCurveExchangeV2Pool', '330e3');
+		}
+		else {
+			versionAddressPool['v1'][pool.address] = generateCodeBlock(pool, 'createCurveExchangePool', '600e3');
+		} 
+	})
+	return versionAddressPool;
+}
+
+const CURVE_SOURCE_FILE = '../src/asset-swapper/utils/market_operation_utils/curve.ts'
+const addCodeToSource = (version: string, snippets: string[]) => {
+	const anchorString = `\/\/ ANCHOR FOR MAINNET ${version.toUpperCase()} DO NOT DELETE`;
+	const anchor = new RegExp(`${anchorString}`, 'g');
+	const sourceToModify = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
+	const codeToAdd = `${snippets.join('')}\n    ${anchorString}`
+	const newSource = sourceToModify.replace(anchor, codeToAdd);
+	console.log(newSource);
+	writeFileSync(CURVE_SOURCE_FILE, newSource);
+}
+
+getCurvePools().then((curvePools: {[name: string]: CurvePool}) => {
+
+	const curveInfos = generateCurveInfoMainnet(Object.values(curvePools));
+
+	const versionAddressPool = generateCodeSnippets(Object.values(curvePools));
+	// Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
+	// 	Object.values(addressPool).forEach(code => console.log(code));
+	// })
+	addCodeToSource('v1', Object.values(versionAddressPool['v1']));
 	
 });

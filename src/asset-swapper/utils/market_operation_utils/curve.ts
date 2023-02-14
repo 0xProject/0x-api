@@ -541,6 +541,7 @@ export const CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {
         pool: CURVE_POOLS.DOLAFRAX,
         gasSchedule: 260e3,
     }),
+    // ANCHOR FOR MAINNET V1 DO NOT DELETE
 };
 
 export const CURVE_V2_MAINNET_INFOS: { [name: string]: CurveInfo } = {
@@ -554,6 +555,7 @@ export const CURVE_V2_MAINNET_INFOS: { [name: string]: CurveInfo } = {
         pool: CURVE_V2_POOLS.tricrypto2,
         gasSchedule: 300e3,
     }),
+    // ANCHOR FOR MAINNET V2 DO NOT DELETE
 };
 
 export const CURVE_POLYGON_INFOS: { [name: string]: CurveInfo } = {
