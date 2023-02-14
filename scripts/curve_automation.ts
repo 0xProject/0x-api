@@ -155,11 +155,10 @@ const generateTokenList = (tokens: string[]) => {
 }
 
 const generateCodeBlock = (pool: CurvePool, fnName: string, gas: string) => {
-return `
-    '${pool.address}': ${fnName}({
+return `    '${pool.address}': ${fnName}({
         tokens: ${generateTokenList(pool.coinsAddresses)},
         pool: '${pool.address}',
-        gasSechedule: ${gas},
+        gasSchedule: ${gas},
     }),`
 }
 
@@ -184,9 +183,9 @@ const generateCodeSnippets = (pools: CurvePool[]) => {
 const CURVE_SOURCE_FILE = '../src/asset-swapper/utils/market_operation_utils/curve.ts'
 const addCodeToSource = (version: string, snippets: string[]) => {
 	const anchorString = `\/\/ ANCHOR FOR MAINNET ${version.toUpperCase()} DO NOT DELETE`;
-	const anchor = new RegExp(`${anchorString}`, 'g');
+	const anchor = new RegExp(`.*${anchorString}`, 'g');
 	const sourceToModify = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
-	const codeToAdd = `${snippets.join('')}\n    ${anchorString}`
+	const codeToAdd = `${snippets.join('\n')}\n    ${anchorString}`
 	const newSource = sourceToModify.replace(anchor, codeToAdd);
 	console.log(newSource);
 	writeFileSync(CURVE_SOURCE_FILE, newSource);
@@ -197,9 +196,8 @@ getCurvePools().then((curvePools: {[name: string]: CurvePool}) => {
 	const curveInfos = generateCurveInfoMainnet(Object.values(curvePools));
 
 	const versionAddressPool = generateCodeSnippets(Object.values(curvePools));
-	// Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
-	// 	Object.values(addressPool).forEach(code => console.log(code));
-	// })
-	addCodeToSource('v1', Object.values(versionAddressPool['v1']));
+	Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
+		addCodeToSource(version, Object.values(addressPool));
+	})
 	
 });
