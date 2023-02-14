@@ -334,8 +334,8 @@ export function createBridgeDataForBridgeOrder(order: OptimizedMarketBridgeOrder
             break;
         }
         case ERC20BridgeSource.KyberElastic: {
-            const uniswapV3FillData = (order as OptimizedMarketBridgeOrder<FinalUniswapV3FillData>).fillData;
-            bridgeData = encoder.encode([uniswapV3FillData.router, uniswapV3FillData.uniswapPath]);
+            const fillData = (order as OptimizedMarketBridgeOrder<FinalTickDEXMultiPathFillData>).fillData;
+            bridgeData = encoder.encode([fillData.router, fillData.path]);
             break;
         }
         case ERC20BridgeSource.KyberDmm: {

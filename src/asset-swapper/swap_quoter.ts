@@ -138,7 +138,6 @@ export class SwapQuoter {
               }
             : {};
 
-<<<<<<< HEAD
         if (SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3) ||
             BUY_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3)
         ) {
@@ -151,10 +150,6 @@ export class SwapQuoter {
         }
 
         if (SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic) ||
-=======
-        if (
-            SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic) ||
->>>>>>> 3cf1c0f (implement sell quotes)
             BUY_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic)
         ) {
             const kyberElasticQuoterBytecode = _.get(
@@ -163,10 +158,6 @@ export class SwapQuoter {
             );
             defaultCodeOverrides[KYBER_ELASTIC_MULTI_QUOTER_ADDRESS] = { code: kyberElasticQuoterBytecode };
         }
-<<<<<<< HEAD
-=======
-
->>>>>>> 3cf1c0f (implement sell quotes)
         const samplerOverrides = _.assign(
             { block: BlockParamLiteral.Latest, overrides: defaultCodeOverrides },
             options.samplerOverrides,

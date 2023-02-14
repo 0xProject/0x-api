@@ -5,8 +5,8 @@ import { KYBER_ELASTIC_CONFIG_BY_CHAIN_ID } from '../asset-swapper/utils/market_
 import { SamplerContractOperation } from '../asset-swapper/utils/market_operation_utils/sampler_contract_operation';
 import {
     SourceQuoteOperation,
-    UniswapV3FillData,
-    UniswapV3PathAmount,
+    TickDEXMultiPathFillData,
+    PathAmount,
 } from '../asset-swapper/utils/market_operation_utils/types';
 import { NULL_ADDRESS } from '@0x/utils';
 
@@ -15,7 +15,7 @@ interface BridgeSampler<TFillData extends FillData> {
     createSampleBuysOperation(tokenAddressPath: string[], amounts: BigNumber[]): SourceQuoteOperation<TFillData>;
 }
 
-export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
+export class KyberElasticSampler implements BridgeSampler<TickDEXMultiPathFillData> {
     private readonly source: ERC20BridgeSource = ERC20BridgeSource.KyberElastic;
     private readonly samplerContract: ERC20BridgeSamplerContract;
     private readonly quoterAddress: string;
@@ -37,7 +37,7 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
     createSampleSellsOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<UniswapV3FillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         // TODO: rename UniswapV3FillData
         return this.createSamplerOperation(
             this.samplerContract.sampleSellsFromKyberElastic,
@@ -50,7 +50,7 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
     createSampleBuysOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<UniswapV3FillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         return this.createSamplerOperation(
             this.samplerContract.sampleBuysFromKyberElastic,
             'sampleBuysFromKyberElastic',
@@ -63,10 +63,10 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
         amounts: BigNumber[],
         paths: string[],
         gasUsed: BigNumber[],
-    ): UniswapV3PathAmount[] {
+    ): PathAmount[] {
         // TODO: rename
-        return paths.map((uniswapPath, i) => ({
-            uniswapPath,
+        return paths.map((path, i) => ({
+            path,
             inputAmount: amounts[i],
             gasUsed: gasUsed[i].toNumber(),
         }));
@@ -82,13 +82,13 @@ export class KyberElasticSampler implements BridgeSampler<UniswapV3FillData> {
         samplerMethodName: string,
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<UniswapV3FillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         return new SamplerContractOperation({
             source: this.source,
             contract: this.samplerContract,
             function: samplerFunction,
             params: [this.quoterAddress, this.factoryAddress, tokenAddressPath, amounts],
-            callback: (callResults: string, fillData: UniswapV3FillData): BigNumber[] => {
+            callback: (callResults: string, fillData: TickDEXMultiPathFillData): BigNumber[] => {
                 const [paths, gasUsed, samples] = this.samplerContract.getABIDecodedReturnData<
                     [string[], BigNumber[], BigNumber[]]
                 >(samplerMethodName, callResults);
