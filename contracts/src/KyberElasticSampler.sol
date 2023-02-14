@@ -24,8 +24,6 @@ import "./interfaces/IMultiQuoter.sol";
 import "./interfaces/IKyberElastic.sol";
 import "./KyberElasticCommon.sol";
 
-// import "@0x/contracts-erc20/contracts/src/v06/IERC20TokenV06.sol";
-
 contract KyberElasticSampler is KyberElasticCommon {
     /// @dev Sample sell quotes from KyberElastic.
     /// @param factory KyberElastic factory contract.

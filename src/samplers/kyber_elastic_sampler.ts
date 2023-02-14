@@ -38,7 +38,6 @@ export class KyberElasticSampler implements BridgeSampler<TickDEXMultiPathFillDa
         tokenAddressPath: string[],
         amounts: BigNumber[],
     ): SourceQuoteOperation<TickDEXMultiPathFillData> {
-        // TODO: rename UniswapV3FillData
         return this.createSamplerOperation(
             this.samplerContract.sampleSellsFromKyberElastic,
             'sampleSellsFromKyberElastic',
@@ -64,7 +63,6 @@ export class KyberElasticSampler implements BridgeSampler<TickDEXMultiPathFillDa
         paths: string[],
         gasUsed: BigNumber[],
     ): PathAmount[] {
-        // TODO: rename
         return paths.map((path, i) => ({
             path,
             inputAmount: amounts[i],

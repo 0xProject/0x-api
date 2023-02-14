@@ -141,7 +141,7 @@ export class SwapQuoter {
         if (SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3) ||
             BUY_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3)
         ) {
-            // Allow the UniV3 MultiQuoter bytecode to be written to a specic address
+            // Allow the UniV3 MultiQuoter bytecode to be written to a specific address
             const univ3MultiQuoterBytecode = _.get(
                 artifacts.UniswapV3MultiQuoter,
                 'compilerOutput.evm.deployedBytecode.object',

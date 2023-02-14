@@ -2025,7 +2025,13 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     },
     [ERC20BridgeSource.BancorV3]: () => 250e3, // revisit gas costs with wrap/unwrap
 
-    [ERC20BridgeSource.KyberElastic]: () => 250e3, // TODO: fix, but do we even need this with accurate gas estimates from the sampler contract?
+    [ERC20BridgeSource.KyberElastic]: (fillData?: FillData) => {
+        const uniFillData = fillData as TickDEXMultiPathFillData | FinalTickDEXMultiPathFillData;
+        if (isFinalPathFillData(uniFillData)) {
+            return uniFillData.gasUsed;
+        }
+        return 250e3;
+    },
     [ERC20BridgeSource.KyberDmm]: (fillData?: FillData) => {
         let gas = 170e3;
         const path = (fillData as UniswapV2FillData).tokenAddressPath;
