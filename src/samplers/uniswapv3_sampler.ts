@@ -4,8 +4,8 @@ import { UNISWAPV3_CONFIG_BY_CHAIN_ID } from '../asset-swapper/utils/market_oper
 import { SamplerContractOperation } from '../asset-swapper/utils/market_operation_utils/sampler_contract_operation';
 import {
     SourceQuoteOperation,
-    UniswapV3FillData,
-    UniswapV3PathAmount,
+    TickDEXMultiPathFillData,
+    PathAmount,
 } from '../asset-swapper/utils/market_operation_utils/types';
 
 interface BridgeSampler<TFillData extends FillData> {
@@ -13,23 +13,23 @@ interface BridgeSampler<TFillData extends FillData> {
     createSampleBuysOperation(tokenAddressPath: string[], amounts: BigNumber[]): SourceQuoteOperation<TFillData>;
 }
 
-export class UniswapV3Sampler implements BridgeSampler<UniswapV3FillData> {
+export class UniswapV3Sampler implements BridgeSampler<TickDEXMultiPathFillData> {
     private readonly source: ERC20BridgeSource = ERC20BridgeSource.UniswapV3;
     private readonly samplerContract: ERC20BridgeSamplerContract;
     private readonly chainId: ChainId;
-    private readonly quoterAddress: string;
+    private readonly factoryAddress: string;
     private readonly routerAddress: string;
 
     constructor(chainId: ChainId, samplerContract: ERC20BridgeSamplerContract) {
         this.chainId = chainId;
         this.samplerContract = samplerContract;
-        ({ quoter: this.quoterAddress, router: this.routerAddress } = UNISWAPV3_CONFIG_BY_CHAIN_ID[chainId]);
+        ({ factory: this.factoryAddress, router: this.routerAddress } = UNISWAPV3_CONFIG_BY_CHAIN_ID[chainId]);
     }
 
     createSampleSellsOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<UniswapV3FillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         return this.createSamplerOperation(
             this.samplerContract.sampleSellsFromUniswapV3,
             'sampleSellsFromUniswapV3',
@@ -41,7 +41,7 @@ export class UniswapV3Sampler implements BridgeSampler<UniswapV3FillData> {
     createSampleBuysOperation(
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<UniswapV3FillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         return this.createSamplerOperation(
             this.samplerContract.sampleBuysFromUniswapV3,
             'sampleBuysFromUniswapV3',
@@ -54,9 +54,9 @@ export class UniswapV3Sampler implements BridgeSampler<UniswapV3FillData> {
         amounts: BigNumber[],
         paths: string[],
         gasUsed: BigNumber[],
-    ): UniswapV3PathAmount[] {
-        return paths.map((uniswapPath, i) => ({
-            uniswapPath,
+    ): PathAmount[] {
+        return paths.map((path, i) => ({
+            path,
             inputAmount: amounts[i],
             gasUsed: gasUsed[i].toNumber(),
         }));
@@ -71,13 +71,13 @@ export class UniswapV3Sampler implements BridgeSampler<UniswapV3FillData> {
         samplerMethodName: string,
         tokenAddressPath: string[],
         amounts: BigNumber[],
-    ): SourceQuoteOperation<UniswapV3FillData> {
+    ): SourceQuoteOperation<TickDEXMultiPathFillData> {
         return new SamplerContractOperation({
             source: this.source,
             contract: this.samplerContract,
             function: samplerFunction,
-            params: [this.quoterAddress, tokenAddressPath, amounts],
-            callback: (callResults: string, fillData: UniswapV3FillData): BigNumber[] => {
+            params: [this.factoryAddress, tokenAddressPath, amounts],
+            callback: (callResults: string, fillData: TickDEXMultiPathFillData): BigNumber[] => {
                 const [paths, gasUsed, samples] = this.samplerContract.getABIDecodedReturnData<
                     [string[], BigNumber[], BigNumber[]]
                 >(samplerMethodName, callResults);

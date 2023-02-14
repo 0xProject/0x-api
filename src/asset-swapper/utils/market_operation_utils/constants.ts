@@ -16,8 +16,8 @@ import {
     CurveFunctionSelectors,
     CurveInfo,
     DODOFillData,
-    FinalUniswapV3FillData,
-    isFinalUniswapV3FillData,
+    FinalTickDEXMultiPathFillData,
+    isFinalPathFillData,
     LidoFillData,
     LidoInfo,
     MakerPsmFillData,
@@ -26,7 +26,7 @@ import {
     PsmInfo,
     SynthetixFillData,
     UniswapV2FillData,
-    UniswapV3FillData,
+    TickDEXMultiPathFillData,
     WOOFiFillData,
 } from './types';
 
@@ -41,6 +41,7 @@ export const ONE_SECOND_MS = 1000;
 const NULL_BYTES = '0x';
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const SAMPLER_ADDRESS = '0x5555555555555555555555555555555555555555';
+export const UNISWAP_V3_MULTIQUOTER_ADDRESS = '0x5555555555555555555555555555555555555556';
 export const COMPARISON_PRICE_DECIMALS = 10;
 
 // TODO(kimpers): Consolidate this implementation with the one in @0x/token-metadata
@@ -1640,31 +1641,31 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN = valueByChainId(
 export const UNISWAPV3_CONFIG_BY_CHAIN_ID = valueByChainId(
     {
         [ChainId.Mainnet]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Goerli]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.PolygonMumbai]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Polygon]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Optimism]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
         [ChainId.Arbitrum]: {
-            quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
+            factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
             router: '0xe592427a0aece92de3edee1f18e0157c05861564',
         },
     },
-    { quoter: NULL_ADDRESS, router: NULL_ADDRESS },
+    { factory: NULL_ADDRESS, router: NULL_ADDRESS },
 );
 
 export const AAVE_V2_SUBGRAPH_URL_BY_CHAIN_ID = valueByChainId(
@@ -2018,12 +2019,12 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
         return gas;
     },
     [ERC20BridgeSource.UniswapV3]: (fillData?: FillData) => {
-        const uniFillData = fillData as UniswapV3FillData | FinalUniswapV3FillData;
+        const uniFillData = fillData as TickDEXMultiPathFillData | FinalTickDEXMultiPathFillData;
         // NOTE: This base value was heuristically chosen by looking at how much it generally
         // underestimated gas usage
         const base = 34e3; // 34k base
         let gas = base;
-        if (isFinalUniswapV3FillData(uniFillData)) {
+        if (isFinalPathFillData(uniFillData)) {
             gas += uniFillData.gasUsed;
         } else {
             // NOTE: We don't actually know which of the paths would be used in the router
