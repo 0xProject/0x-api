@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { readFileSync, writeFileSync } from "fs";
+import { execSync, spawn } from 'child_process';
 import axios from "axios";
 const curve_factory_crypto = "https://api.curve.fi/api/getPools/ethereum/factory-crypto";
 const curve_factory = "https://api.curve.fi/api/getPools/ethereum/factory";
@@ -12,6 +13,7 @@ import {
 from '../src/asset-swapper/utils/market_operation_utils/curve'
 import { CurveFunctionSelectors, CurveInfo } from "../src/asset-swapper/utils/market_operation_utils/types";
 import { version } from "uuid-validate";
+import { exit } from "process";
 
 const MIN_TVL = 500000
 
@@ -162,8 +164,10 @@ return `    '${pool.address}': ${fnName}({
     }),`
 }
 
+type VersionAddressPool = {[version: string]: {[address: string]: string} }
+
 const generateCodeSnippets = (pools: CurvePool[]) => {
-	const versionAddressPool: {[version: string]: {[address: string]: string} } = {};
+	const versionAddressPool: VersionAddressPool = {};
 	versionAddressPool['v1'] = {};
 	versionAddressPool['v2'] = {};
 	pools.forEach(pool => {
@@ -180,8 +184,8 @@ const generateCodeSnippets = (pools: CurvePool[]) => {
 	return versionAddressPool;
 }
 
-const CURVE_SOURCE_FILE = '../src/asset-swapper/utils/market_operation_utils/curve.ts'
-const addCodeToSource = (version: string, snippets: string[]) => {
+const CURVE_SOURCE_FILE = './src/asset-swapper/utils/market_operation_utils/curve.ts'
+const addPoolsToSource = (version: string, snippets: string[]) => {
 	const anchorString = `\/\/ ANCHOR FOR MAINNET ${version.toUpperCase()} DO NOT DELETE`;
 	const anchor = new RegExp(`.*${anchorString}`, 'g');
 	const sourceToModify = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
@@ -191,13 +195,77 @@ const addCodeToSource = (version: string, snippets: string[]) => {
 	writeFileSync(CURVE_SOURCE_FILE, newSource);
 }
 
+const versionToVarName: { [version: string]: string} = {
+	'v1': 'CURVE_MAINNET_INFOS',
+	'v2': 'CURVE_V2_MAINNET_INFOS',
+}
+
+const createCurveInfos = (version: string, snippet: string) => {
+return `export const ${versionToVarName[version]}: { [name: string]: CurveInfo } = {
+	${snippet}
+};
+`
+}
+
+const createSingleEntryCurveInfo = (version: string, snippet: string) => {
+	const sourceCode = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
+	const emptyBlock = createCurveInfos(version === 'v1' ? 'v2' : 'v1', '');
+	const newCode = `${sourceCode}\n${createCurveInfos(version, snippet)}\n${emptyBlock}`
+	writeFileSync(CURVE_SOURCE_FILE, newCode);
+}
+
+const renameVar = (version: string) => {
+	const varName = versionToVarName[version];
+	const re = new RegExp(`${varName}`, 'g');
+	const sourceCode = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
+	const newCode = sourceCode.replace(re, `${varName}_TMP`);
+	writeFileSync(CURVE_SOURCE_FILE, newCode);
+}
+
+const testNewCurvePools = (versionAddressPool: VersionAddressPool) => {
+	const sourceBackup = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
+	Object.keys(versionAddressPool).forEach(renameVar);
+	Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
+		Object.entries(addressPool).forEach(([address, snippet]) => {
+			console.log(`starting test for curve pool ${address}`)
+			createSingleEntryCurveInfo(version, snippet)
+			const res = execSync('yarn build');
+			console.log('' + res);
+			const apiProcess = spawn('yarn start');
+			console.log(`the pid is ${apiProcess.pid}`);
+			execSync('sleep 60');
+			apiProcess.kill();
+			exit(1)
+
+			// build source
+			// run 0x-api in background
+			// configure simbot
+			// run simbot for x seconds
+			// kill 0x-api process
+			// check for successful trades
+			
+			// writeFileSync(CURVE_SOURCE_FILE, sourceBackup);
+		})
+	})
+
+	// Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
+
+
+
+	// });
+
+}
+
 getCurvePools().then((curvePools: {[name: string]: CurvePool}) => {
 
 	const curveInfos = generateCurveInfoMainnet(Object.values(curvePools));
 
 	const versionAddressPool = generateCodeSnippets(Object.values(curvePools));
-	Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
-		addCodeToSource(version, Object.values(addressPool));
-	})
+	testNewCurvePools(versionAddressPool);
+
+	// once all the tests pass update the code files
+	// Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
+	// 	addPoolsToSource(version, Object.values(addressPool));
+	// })
 	
 });
