@@ -232,13 +232,12 @@ const testNewCurvePools = (versionAddressPool: VersionAddressPool) => {
 			const res = execSync('yarn build');
 			console.log('' + res);
 			const apiProcess = spawn('yarn start');
+			apiProcess.
 			console.log(`the pid is ${apiProcess.pid}`);
 			execSync('sleep 60');
 			apiProcess.kill();
 			exit(1)
 
-			// build source
-			// run 0x-api in background
 			// configure simbot
 			// run simbot for x seconds
 			// kill 0x-api process
