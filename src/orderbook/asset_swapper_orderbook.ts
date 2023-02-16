@@ -12,7 +12,7 @@ export class AssetSwapperOrderbook extends Orderbook {
     /**
      * Returns matching limit orders.
      *
-     *  NOTE: If the request to orderbook fails, it returns an empty array.
+     *  NOTE: If the request to orderbook service fails, it returns an empty array.
      */
     public async getOrdersAsync(
         makerToken: string,
@@ -36,7 +36,7 @@ export class AssetSwapperOrderbook extends Orderbook {
                         makerToken,
                         errorMessage: err.message,
                     },
-                    'Request to Orderbook failed',
+                    'Request to OrderBookService failed',
                 );
 
                 return {
