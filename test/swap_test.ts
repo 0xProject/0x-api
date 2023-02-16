@@ -641,8 +641,12 @@ function expectCorrectQuoteResponse(
         }
 
         if (prop === 'debugData') {
-            const { samplerGasUsage, blockNumber,...rest } = quoteResponse[property];
-            const { samplerGasUsage: expectedSamplerGasUsage, blockNumber: expectedBlockNumber,...expectedRest } = expectedResponse[property];
+            const { samplerGasUsage, blockNumber, ...rest } = quoteResponse[property];
+            const {
+                samplerGasUsage: expectedSamplerGasUsage,
+                blockNumber: expectedBlockNumber,
+                ...expectedRest
+            } = expectedResponse[property];
             console.log(samplerGasUsage, expectedSamplerGasUsage);
             console.log(blockNumber, expectedBlockNumber);
             expect(samplerGasUsage).gt(expectedSamplerGasUsage * 0.5, 'samplerGasUsage is too low');
