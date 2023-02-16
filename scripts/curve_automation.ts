@@ -10,7 +10,9 @@ import {
     CURVE_FANTOM_POOLS, CURVE_V2_FANTOM_POOLS, CURVE_OPTIMISM_POOLS, CURVE_V2_ARBITRUM_POOLS}
 from '../src/asset-swapper/utils/market_operation_utils/curve'
 import { CurveFunctionSelectors, CurveInfo } from "../src/asset-swapper/utils/market_operation_utils/types";
+import { delay } from "lodash";
 
+const apiKey = 'EB9X88T9PHNANG5VF3YYZ7CDWP4WD46HNE'
 const MIN_TVL = 500000
 let CURVE_MAINNET_INFOS: { [name: string]: CurveInfo } = {}
 
@@ -73,7 +75,6 @@ function SantizeCurvePool(name: string){
 	return name.trim();
 }
 
-
 //queries all curve pools and filters by TVL
 export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 	const curvePools: {[name: string]: CurvePool} = {};
@@ -107,52 +108,78 @@ export async function getCurvePools(): Promise<{[name: string]: CurvePool}> {
 	return curvePools
 }
 
+async function getGasSchedule(address: string) {
+	const url = `https://api.etherscan.io/api?module=logs&action=getLogs&address=${address}&page=1&offset=1000&apikey=${apiKey}`
+	let retryCount = 0;
+	const maxRetries = 3;
+	let waitTime = (2 ** retryCount) * 1000;
+	//console.log(address)
+	while (retryCount < maxRetries) {
+		try {
+		const response = await axios.get(url);
+		const logs = response.data.result;
+		if (Array.isArray(logs)) {
+			const totalGas = logs.reduce(
+			(acc: number, log: { gasUsed: string }) => acc + parseInt(log.gasUsed, 16),
+			0
+			);
+			const averageGas = totalGas / logs.length;
+			return averageGas;
+		} else {
+			return 600e3;
+		}
+		} catch (error) {
+		console.log(`Error getting logs: ${error.message}`);
+
+		if (error.response && error.response.status === 429) {
+			console.log(`Rate limit reached. Retrying in ${waitTime / 1000} seconds...`);
+			retryCount++;
+			await new Promise((resolve) => setTimeout(resolve, waitTime));
+			waitTime = (2 ** retryCount) * 1000;
+		} else {
+			console.log('Unknown error. Aborting...');
+			break;
+		}
+		}
+	}
+}
+
 //takes in a curve pool and updates CURVE_MAINNET_INFOS
 async function generateCurveInfoMainnet(pools: CurvePool[]) {
-	//getting rate limited on etherscan even with Pro API Key
-	// Connect to Ethereum network
-    //const provider = ethers.getDefaultProvider();
-
-	//get contract abi
-	//const address = pool.address
-	//const url = `https://api.etherscan.io/api?module=contract&action=getabi&address=${address}&apikey=${apiKey}`
-	//const res = await axios.get(url)
-	//const abi = JSON.parse(res.data.result)
-
-	//classify curve pool
 
 	const curveInfos: {[name: string]: CurveInfo} = {}
-	pools.forEach(pool => {
+	for (const pool of pools) {
+		const gas = await getGasSchedule(pool.address)
 		if (pool.isMetaPool) {
 			curveInfos[pool.address] = createCurveExchangeUnderlyingPool({
 				tokens: pool.coinsAddresses,
 				pool: pool.address,
-				gasSchedule: 600e3,
+				gasSchedule:  gas ? gas : 600e3,
 			})
 		}
 		else if (pool.id.includes('v2')){
 			curveInfos[pool.address] = createCurveExchangeV2Pool({
 				tokens: pool.coinsAddresses,
 				pool: pool.address,
-				gasSchedule: 330e3,
+				gasSchedule: gas ? gas : 300e3,
 			})
 		}
 		else {
 			curveInfos[pool.address] = createCurveExchangePool({
 				tokens: pool.coinsAddresses,
 				pool: pool.address,
-				gasSchedule: 600e3,
+				gasSchedule: gas ? gas : 600e3,
 			})
 		} 
-	})
+	}
 	return curveInfos;
 }
 
 getCurvePools().then(async (curvePools: {[name: string]: CurvePool}) => {
 
 	const curveInfos = await generateCurveInfoMainnet(Object.values(curvePools));
-	//JSON.stringify(curveInfos)
+	console.log(curveInfos)
+	JSON.stringify(curveInfos)
 	console.log(JSON.stringify(curveInfos, null, 2))
-	//return curvePools
-	
+	return curvePools
 });
