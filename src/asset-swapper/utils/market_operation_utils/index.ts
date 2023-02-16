@@ -158,6 +158,10 @@ export class MarketOperationUtils {
             ),
         );
 
+        if (tokenAmountPerWei.isZero()) {
+            NO_CONVERSION_TO_NATIVE_FOUND.labels('getTokenAmountPerWei', opts?.endpoint ?? 'N/A').inc();
+        }
+
         return tokenAmountPerWei;
     }
 

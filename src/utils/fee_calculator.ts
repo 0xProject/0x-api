@@ -288,6 +288,7 @@ function _calculateGasFee(opts: {
     }
 
     // TODO: Throw error for mainnet if we can't get sell token to native token conversion rate (sellTokenAmountPerWei is 0)
+    
 
     // Check the number of on-chain transfer necessary for fee
     const feeRecipients = new Set<string>();
