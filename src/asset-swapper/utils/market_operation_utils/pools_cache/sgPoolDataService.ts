@@ -19,7 +19,7 @@ const queryWithLinear = gql`
             poolType
             swapFee
             totalShares
-            tokens (orderBy: index) {
+            tokens(orderBy: index) {
                 address
                 balance
                 decimals
