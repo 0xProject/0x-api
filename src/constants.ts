@@ -28,6 +28,7 @@ export const POSITIVE_SLIPPAGE_FEE_TRANSFORMER_GAS = new BigNumber(30000);
 export const ONE_GWEI = new BigNumber(1000000000);
 export const AFFILIATE_DATA_SELECTOR = '869584cd';
 export const DEFAULT_META_TX_MIN_ALLOWED_SLIPPAGE = 0.001;
+export const AVG_MULTIPLEX_TRANFORM_ERC_20_GAS = new BigNumber(933e3);
 
 // API namespaces
 export const SRA_PATH = '/sra/v4';

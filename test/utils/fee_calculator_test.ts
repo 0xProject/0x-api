@@ -14,7 +14,7 @@ describe('calculateGaslessFees', () => {
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
-                sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                sellTokenAmountPerWei: new BigNumber(1),
                 gasPrice: new BigNumber(10e9),
                 quoteGasEstimate: new BigNumber(20e3),
             });
@@ -35,7 +35,7 @@ describe('calculateGaslessFees', () => {
                 },
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
-                sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                sellTokenAmountPerWei: new BigNumber(1),
                 gasPrice: new BigNumber(10e9),
                 quoteGasEstimate: new BigNumber(20e3),
             });
@@ -58,7 +58,7 @@ describe('calculateGaslessFees', () => {
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
-                sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                sellTokenAmountPerWei: new BigNumber(1),
                 gasPrice: new BigNumber(10e9),
                 quoteGasEstimate: new BigNumber(20e3),
             });
@@ -79,7 +79,7 @@ describe('calculateGaslessFees', () => {
                 },
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
-                sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                sellTokenAmountPerWei: new BigNumber(1),
                 gasPrice: new BigNumber(10e9),
                 quoteGasEstimate: new BigNumber(20e3),
             });
@@ -113,7 +113,7 @@ describe('calculateGaslessFees', () => {
                 },
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
-                sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                sellTokenAmountPerWei: new BigNumber(1),
                 gasPrice: new BigNumber(10e9),
                 quoteGasEstimate: new BigNumber(20e3),
             });
@@ -142,7 +142,7 @@ describe('calculateGaslessFees', () => {
                     },
                     sellToken: WETH_TOKEN_ADDRESS,
                     sellTokenAmount: new BigNumber(10e3),
-                    sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                    sellTokenAmountPerWei: new BigNumber(1),
                     gasPrice: new BigNumber(10e9),
                     quoteGasEstimate: new BigNumber(20e3),
                 });
@@ -156,7 +156,7 @@ describe('calculateGaslessFees', () => {
                 feeConfigs: {},
                 sellToken: WETH_TOKEN_ADDRESS,
                 sellTokenAmount: new BigNumber(10e3),
-                sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                sellTokenAmountPerWei: new BigNumber(1),
                 gasPrice: new BigNumber(10e9),
                 quoteGasEstimate: new BigNumber(20e3),
             });
@@ -189,7 +189,7 @@ describe('calculateGaslessFees', () => {
                     },
                     sellToken: WETH_TOKEN_ADDRESS,
                     sellTokenAmount: new BigNumber(1e16),
-                    sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                    sellTokenAmountPerWei: new BigNumber(1),
                     gasPrice: new BigNumber(10e9),
                     quoteGasEstimate: new BigNumber(20e3),
                 });
@@ -230,7 +230,7 @@ describe('calculateGaslessFees', () => {
                     },
                     sellToken: WETH_TOKEN_ADDRESS,
                     sellTokenAmount: new BigNumber(1e16),
-                    sellTokenAmountPerBaseUnitNativeToken: new BigNumber(1),
+                    sellTokenAmountPerWei: new BigNumber(1),
                     gasPrice: new BigNumber(10e9),
                     quoteGasEstimate: new BigNumber(20e3),
                 });

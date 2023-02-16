@@ -158,6 +158,13 @@ export class SwapQuoter {
     }
 
     /**
+     * Returns the token amount per wei by checking token <-> native token in sampler
+     */
+    public async getTokenAmountPerWei(token: string, options: Partial<SwapQuoteRequestOpts>): Promise<BigNumber> {
+        return await this._marketOperationUtils.getTokenAmountPerWei(token, options);
+    }
+
+    /**
      * Get a `SwapQuote` containing all information relevant to fulfilling a swap between a desired ERC20 token address and ERC20 owned by a provided address.
      * You can then pass the `SwapQuote` to a `SwapQuoteConsumer` to execute a buy, or process SwapQuote for on-chain consumption.
      * @param   makerToken       The address of the maker asset

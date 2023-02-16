@@ -216,7 +216,7 @@ export class MetaTransactionService implements IMetaTransactionService {
             endpoint,
             isUnwrap: false,
             isWrap: false,
-            metaTransactionVersion: 'v1',
+            metaTransactionVersion: params.metaTransactionVersion,
             sellToken: params.sellTokenAddress,
             shouldSellEntireBalance: false,
             skipValidation: true,
@@ -271,6 +271,7 @@ export class MetaTransactionService implements IMetaTransactionService {
             buyTokenAddress: params.buyTokenAddress,
             sellTokenAddress: params.sellTokenAddress,
             taker: params.takerAddress,
+            fees: quote.fees,
         };
     }
 
