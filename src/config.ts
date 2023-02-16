@@ -1,4 +1,5 @@
 import { assert } from '@0x/assert';
+import { ChainId } from '@0x/contract-addresses';
 import { TokenMetadatasForChains, valueByChainId } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
 import * as fs from 'fs';
@@ -7,22 +8,8 @@ import { linearBuckets } from 'prom-client';
 import * as validateUUID from 'uuid-validate';
 
 import {
-    BlockParamLiteral,
-    ChainId,
-    DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID,
-    OrderPrunerPermittedFeeTypes,
-    RfqMakerAssetOfferings,
-    SamplerOverrides,
-    SOURCE_FLAGS,
-    SwapQuoteRequestOpts,
-    SwapQuoterOpts,
-    SwapQuoterRfqOpts,
-} from './asset-swapper';
-import {
-    DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
     DEFAULT_LOGGER_INCLUDE_TIMESTAMP,
     DEFAULT_META_TX_MIN_ALLOWED_SLIPPAGE,
-    DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     DEFAULT_ZERO_EX_GAS_API_URL,
     HEALTHCHECK_PATH,
     METRICS_PATH,
@@ -30,7 +17,6 @@ import {
     ONE_HOUR_MS,
     ONE_MINUTE_MS,
     ORDERBOOK_PATH,
-    QUOTE_ORDER_EXPIRATION_BUFFER_MS,
     TEN_MINUTES_MS,
     TX_BASE_GAS,
 } from './constants';
@@ -99,34 +85,6 @@ const getIntegratorIdFromLabel = (label: string): string | undefined => {
         }
     }
 };
-
-type RfqOrderType = 'rfq' | 'otc';
-
-/**
- * The JSON config for each Market Maker, providing information including URIs, type of order supported and authentication.
- */
-interface RfqMakerConfig {
-    makerId: string;
-    label: string;
-    rfqmMakerUri: string;
-    rfqmOrderTypes: RfqOrderType[];
-    rfqtMakerUri: string;
-    rfqtOrderTypes: RfqOrderType[];
-    apiKeyHashes: string[];
-}
-
-/**
- * A list of type RfqMakerConfig, read from the RFQ_MAKER_CONFIGS env variable
- */
-export const RFQ_MAKER_CONFIGS: RfqMakerConfig[] = (() => {
-    try {
-        const makerConfigs = resolveEnvVar<RfqMakerConfig[]>('RFQ_MAKER_CONFIGS', EnvVarType.JsonStringList, []);
-        schemaUtils.validateSchema(makerConfigs, schemas.rfqMakerConfigListSchema);
-        return makerConfigs;
-    } catch (e) {
-        throw new Error(`RFQ_MAKER_CONFIGS was defined but is not valid JSON per the schema: ${e}`);
-    }
-})();
 
 // Log level for pino.js
 export const LOG_LEVEL: string = _.isEmpty(process.env.LOG_LEVEL)
@@ -293,7 +251,7 @@ export const RFQT_REGISTRY_PASSWORDS: string[] = resolveEnvVar<string[]>(
     [],
 );
 
-const RFQT_INTEGRATORS: Integrator[] = INTEGRATORS_ACL.filter((i) => i.rfqt);
+export const RFQT_INTEGRATORS: Integrator[] = INTEGRATORS_ACL.filter((i) => i.rfqt);
 export const RFQT_INTEGRATOR_IDS: string[] = INTEGRATORS_ACL.filter((i) => i.rfqt).map((i) => i.integratorId);
 export const RFQT_API_KEY_WHITELIST: string[] = getApiKeyWhitelistFromIntegratorsAcl('rfqt');
 
@@ -314,21 +272,6 @@ export const ALT_RFQ_MM_ENDPOINT: string | undefined = _.isEmpty(process.env.ALT
 export const ALT_RFQ_MM_API_KEY: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_API_KEY)
     ? undefined
     : assertEnvVarType('ALT_RFQ_MM_API_KEY', process.env.ALT_RFQ_MM_API_KEY, EnvVarType.NonEmptyString);
-const ALT_RFQ_MM_PROFILE: string | undefined = _.isEmpty(process.env.ALT_RFQ_MM_PROFILE)
-    ? undefined
-    : assertEnvVarType('ALT_RFQ_MM_PROFILE', process.env.ALT_RFQ_MM_PROFILE, EnvVarType.NonEmptyString);
-
-export const RFQT_MAKER_ASSET_OFFERINGS = resolveEnvVar<RfqMakerAssetOfferings>(
-    'RFQT_MAKER_ASSET_OFFERINGS',
-    EnvVarType.RfqMakerAssetOfferings,
-    {},
-);
-
-export const RFQM_MAKER_ASSET_OFFERINGS = resolveEnvVar<RfqMakerAssetOfferings>(
-    'RFQM_MAKER_ASSET_OFFERINGS',
-    EnvVarType.RfqMakerAssetOfferings,
-    {},
-);
 
 export const META_TX_EXPIRATION_BUFFER_MS = TEN_MINUTES_MS;
 
@@ -393,8 +336,6 @@ export const MAX_PER_PAGE = 1000;
 
 export const PROTOCOL_FEE_MULTIPLIER = new BigNumber(0);
 
-export const RFQT_PROTOCOL_FEE_GAS_PRICE_MAX_PADDING_MULTIPLIER = 1.2;
-
 const UNWRAP_GAS_BY_CHAIN_ID = valueByChainId<BigNumber>(
     {
         // NOTE: FTM uses a different WFTM implementation than WETH which uses more gas
@@ -406,122 +347,13 @@ const UNWRAP_WETH_GAS = UNWRAP_GAS_BY_CHAIN_ID[CHAIN_ID];
 export const UNWRAP_QUOTE_GAS = TX_BASE_GAS.plus(UNWRAP_WETH_GAS);
 export const WRAP_QUOTE_GAS = UNWRAP_QUOTE_GAS;
 
-const FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD = new BigNumber(150e3);
-const EXCHANGE_PROXY_OVERHEAD_NO_VIP = () => FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
-const MULTIPLEX_BATCH_FILL_SOURCE_FLAGS =
-    SOURCE_FLAGS.Uniswap_V2 |
-    SOURCE_FLAGS.SushiSwap |
-    SOURCE_FLAGS.RfqOrder |
-    SOURCE_FLAGS.Uniswap_V3 |
-    SOURCE_FLAGS.OtcOrder;
-const MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS = SOURCE_FLAGS.Uniswap_V2 | SOURCE_FLAGS.SushiSwap | SOURCE_FLAGS.Uniswap_V3;
-const EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED = (sourceFlags: bigint) => {
-    if ([SOURCE_FLAGS.Uniswap_V2, SOURCE_FLAGS.SushiSwap].includes(sourceFlags)) {
-        // Uniswap and forks VIP
-        return TX_BASE_GAS;
-    } else if (
-        [
-            SOURCE_FLAGS.SushiSwap,
-            SOURCE_FLAGS.PancakeSwap,
-            SOURCE_FLAGS.PancakeSwap_V2,
-            SOURCE_FLAGS.BakerySwap,
-            SOURCE_FLAGS.ApeSwap,
-        ].includes(sourceFlags) &&
-        CHAIN_ID === ChainId.BSC
-    ) {
-        // PancakeSwap and forks VIP
-        return TX_BASE_GAS;
-    } else if (SOURCE_FLAGS.Uniswap_V3 === sourceFlags) {
-        // Uniswap V3 VIP
-        return TX_BASE_GAS.plus(5e3);
-    } else if (SOURCE_FLAGS.Curve === sourceFlags) {
-        // Curve pseudo-VIP
-        return TX_BASE_GAS.plus(40e3);
-    } else if (SOURCE_FLAGS.RfqOrder === sourceFlags) {
-        // RFQ VIP
-        return TX_BASE_GAS.plus(5e3);
-    } else if (SOURCE_FLAGS.OtcOrder === sourceFlags) {
-        // OtcOrder VIP
-        // NOTE: Should be 15k cheaper after the first tx from txOrigin than RfqOrder
-        // Use 5k less for now as not to over bias
-        return TX_BASE_GAS;
-    } else if ((MULTIPLEX_BATCH_FILL_SOURCE_FLAGS | sourceFlags) === MULTIPLEX_BATCH_FILL_SOURCE_FLAGS) {
-        if ((sourceFlags & SOURCE_FLAGS.OtcOrder) === SOURCE_FLAGS.OtcOrder) {
-            // Multiplex that has OtcOrder
-            return TX_BASE_GAS.plus(10e3);
-        }
-        // Multiplex batch fill
-        return TX_BASE_GAS.plus(15e3);
-    } else if (
-        (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | sourceFlags) ===
-        (MULTIPLEX_MULTIHOP_FILL_SOURCE_FLAGS | SOURCE_FLAGS.MultiHop)
-    ) {
-        // Multiplex multi-hop fill
-        return TX_BASE_GAS.plus(25e3);
-    } else {
-        return FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD;
-    }
-};
-
-const NEON_ROUTER_NUM_SAMPLES = 14;
-// TODO(kimpers): Due to an issue with the Rust router we want to use equidistant samples when using the Rust router
 const DEFAULT_SAMPLE_DISTRIBUTION_BASE = 1;
-
-const SAMPLE_DISTRIBUTION_BASE: number = _.isEmpty(process.env.SAMPLE_DISTRIBUTION_BASE)
+export const SAMPLE_DISTRIBUTION_BASE: number = _.isEmpty(process.env.SAMPLE_DISTRIBUTION_BASE)
     ? DEFAULT_SAMPLE_DISTRIBUTION_BASE
     : assertEnvVarType('SAMPLE_DISTRIBUTION_BASE', process.env.SAMPLE_DISTRIBUTION_BASE, EnvVarType.Float);
 
-export const ASSET_SWAPPER_MARKET_ORDERS_OPTS: Partial<SwapQuoteRequestOpts> = {
-    bridgeSlippage: DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
-    maxFallbackSlippage: DEFAULT_FALLBACK_SLIPPAGE_PERCENTAGE,
-    numSamples: 13,
-    sampleDistributionBase: SAMPLE_DISTRIBUTION_BASE,
-    neonRouterNumSamples: NEON_ROUTER_NUM_SAMPLES,
-    exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_FULLY_FEATURED,
-    shouldGenerateQuoteReport: true,
-};
-
-export const ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP: Partial<SwapQuoteRequestOpts> = {
-    ...ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-    exchangeProxyOverhead: EXCHANGE_PROXY_OVERHEAD_NO_VIP,
-};
-
 export const CHAIN_HAS_VIPS = (chainId: ChainId) => {
     return [ChainId.Mainnet, ChainId.BSC].includes(chainId);
-};
-
-const SAMPLER_OVERRIDES: SamplerOverrides | undefined = (() => {
-    switch (CHAIN_ID) {
-        case ChainId.Ganache:
-            return { overrides: {}, block: BlockParamLiteral.Latest };
-        default:
-            return undefined;
-    }
-})();
-
-let SWAP_QUOTER_RFQT_OPTS: SwapQuoterRfqOpts = {
-    integratorsWhitelist: RFQT_INTEGRATORS,
-    txOriginBlacklist: RFQT_TX_ORIGIN_BLACKLIST,
-};
-
-if (ALT_RFQ_MM_API_KEY && ALT_RFQ_MM_PROFILE) {
-    SWAP_QUOTER_RFQT_OPTS = {
-        ...SWAP_QUOTER_RFQT_OPTS,
-        altRfqCreds: {
-            altRfqApiKey: ALT_RFQ_MM_API_KEY,
-            altRfqProfile: ALT_RFQ_MM_PROFILE,
-        },
-    };
-}
-
-export const SWAP_QUOTER_OPTS: Partial<SwapQuoterOpts> = {
-    chainId: CHAIN_ID,
-    expiryBufferMs: QUOTE_ORDER_EXPIRATION_BUFFER_MS,
-    rfqt: SWAP_QUOTER_RFQT_OPTS,
-    zeroExGasApiUrl: ZERO_EX_GAS_API_URL,
-    permittedOrderFeeTypes: new Set([OrderPrunerPermittedFeeTypes.NoFees]),
-    samplerOverrides: SAMPLER_OVERRIDES,
-    tokenAdjacencyGraph: DEFAULT_TOKEN_ADJACENCY_GRAPH_BY_CHAIN_ID[CHAIN_ID],
 };
 
 export const defaultHttpServiceConfig: HttpServiceConfig = {
@@ -701,35 +533,6 @@ function assertEnvVarType(name: string, value: string | undefined, expectedType:
         case EnvVarType.JsonStringList: {
             assert.isString(name, value);
             return JSON.parse(value);
-        }
-        case EnvVarType.RfqMakerAssetOfferings: {
-            const offerings: RfqMakerAssetOfferings = JSON.parse(value);
-            for (const makerEndpoint in offerings) {
-                assert.isWebUri('market maker endpoint', makerEndpoint);
-
-                const assetOffering = offerings[makerEndpoint];
-                assert.isArray(`value in maker endpoint mapping, for index ${makerEndpoint},`, assetOffering);
-                assetOffering.forEach((assetPair, i) => {
-                    assert.isArray(`asset pair array ${i} for maker endpoint ${makerEndpoint}`, assetPair);
-                    assert.assert(
-                        assetPair.length === 2,
-                        `asset pair array ${i} for maker endpoint ${makerEndpoint} does not consist of exactly two elements.`,
-                    );
-                    assert.isETHAddressHex(
-                        `first token address for asset pair ${i} for maker endpoint ${makerEndpoint}`,
-                        assetPair[0],
-                    );
-                    assert.isETHAddressHex(
-                        `second token address for asset pair ${i} for maker endpoint ${makerEndpoint}`,
-                        assetPair[1],
-                    );
-                    assert.assert(
-                        assetPair[0] !== assetPair[1],
-                        `asset pair array ${i} for maker endpoint ${makerEndpoint} has identical assets`,
-                    );
-                });
-            }
-            return offerings;
         }
         default:
             throw new Error(`Unrecognised EnvVarType: ${expectedType} encountered for variable ${name}.`);

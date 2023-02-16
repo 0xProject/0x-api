@@ -8,7 +8,6 @@ import {
     RfqOrderFields,
     Signature,
 } from '@0x/protocol-utils';
-import { TakerRequestQueryParamsUnnested } from '@0x/quote-server';
 import { Fee } from '@0x/quote-server/lib/src/types';
 import { BigNumber } from '@0x/utils';
 import {
@@ -303,13 +302,6 @@ export interface SwapQuoteRequestOpts extends Omit<GetMarketOrdersOpts, 'gasPric
     rfqt?: RfqRequestOpts;
 }
 
-/**
- * A mapping from RFQ-T/M quote provider URLs to the trading pairs they support.
- * The value type represents an array of supported asset pairs, with each array element encoded as a 2-element array of token addresses.
- */
-export interface RfqMakerAssetOfferings {
-    [endpoint: string]: [string, string][];
-}
 export interface AltOffering {
     id: string;
     baseAsset: string;
@@ -337,11 +329,6 @@ export interface Integrator {
 export interface SwapQuoterRfqOpts {
     integratorsWhitelist: Integrator[];
     txOriginBlacklist: Set<string>;
-    altRfqCreds?: {
-        altRfqApiKey: string;
-        altRfqProfile: string;
-    };
-    warningLogger?: LogFunction;
 }
 
 export type AssetSwapperContractAddresses = ContractAddresses;
@@ -398,20 +385,6 @@ export enum MarketOperation {
 export enum OrderPrunerPermittedFeeTypes {
     NoFees = 'NO_FEES',
     TakerDenominatedTakerFee = 'TAKER_DENOMINATED_TAKER_FEE',
-}
-
-/**
- * Represents a mocked RFQ-T/M maker responses.
- */
-export interface MockedRfqQuoteResponse {
-    endpoint: string;
-    requestApiKey: string;
-    requestParams: TakerRequestQueryParamsUnnested;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
-    responseData: any;
-    responseCode: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: fix me!
-    callback?: (config: any) => Promise<any>;
 }
 
 export interface SamplerOverrides {
@@ -610,12 +583,6 @@ export interface GetMarketOrdersOpts {
      */
     bridgeSlippage: number;
     /**
-     * The maximum price slippage allowed in the fallback quote. If the slippage
-     * between the optimal quote and the fallback quote is greater than this
-     * percentage, no fallback quote will be provided.
-     */
-    maxFallbackSlippage: number;
-    /**
      * Number of samples to take for each DEX quote.
      */
     numSamples: number;
@@ -639,11 +606,6 @@ export interface GetMarketOrdersOpts {
      * Exchange proxy gas overhead based on source flag.
      */
     exchangeProxyOverhead: ExchangeProxyOverhead;
-    /**
-     * Whether to pad the quote with a redundant fallback quote using different
-     * sources. Defaults to `true`.
-     */
-    allowFallback: boolean;
     /**
      * Options for RFQT such as takerAddress, intent on filling
      */
@@ -723,11 +685,7 @@ export abstract class Orderbook {
         takerToken: string,
         pruneFn?: (o: SignedLimitOrder) => boolean,
     ): Promise<SignedLimitOrder[]>;
-    public abstract getBatchOrdersAsync(
-        makerTokens: string[],
-        takerToken: string,
-        pruneFn?: (o: SignedLimitOrder) => boolean,
-    ): Promise<SignedLimitOrder[][]>;
+
     public async destroyAsync(): Promise<void> {
         return;
     }

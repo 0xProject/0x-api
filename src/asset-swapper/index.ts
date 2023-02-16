@@ -20,10 +20,8 @@ export {
     AltRfqMakerAssetOfferings,
     AssetSwapperContractAddresses,
     MarketOperation,
-    MockedRfqQuoteResponse,
     OrderPrunerPermittedFeeTypes,
     RfqFirmQuoteValidator,
-    RfqMakerAssetOfferings,
     RfqRequestOpts,
     SamplerOverrides,
     SignedNativeOrder,
@@ -70,7 +68,5 @@ export { GasPriceUtils } from './utils/gas_price_utils';
 export { jsonifyFillData, ExtendedQuoteReport } from './utils/quote_report_generator';
 export { QuoteRequestor } from './utils/quote_requestor';
 export { ERC20BridgeSamplerContract, BalanceCheckerContract, FakeTakerContract } from '../wrappers';
-
-export { rfqtMocker, RfqtQuoteEndpoint } from './utils/rfqt_mocker';
 
 export { adjustOutput } from './utils/market_operation_utils/fills';
