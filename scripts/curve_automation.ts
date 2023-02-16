@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, createWriteStream} from "fs";
 import { execSync, spawn } from 'child_process';
 import axios from "axios";
 const curve_factory_crypto = "https://api.curve.fi/api/getPools/ethereum/factory-crypto";
@@ -184,7 +184,10 @@ const generateCodeSnippets = (pools: CurvePool[]) => {
 	return versionAddressPool;
 }
 
-const CURVE_SOURCE_FILE = './src/asset-swapper/utils/market_operation_utils/curve.ts'
+const ROOT_DIR = process.env.ZERO_EX_REPOS;
+const CURVE_SOURCE_FILE =`${ROOT_DIR}/src/asset-swapper/utils/market_operation_utils/curve.ts`
+const API_LOG_FILE = `${ROOT_DIR}/scripts/log/0x-api.log`
+
 const addPoolsToSource = (version: string, snippets: string[]) => {
 	const anchorString = `\/\/ ANCHOR FOR MAINNET ${version.toUpperCase()} DO NOT DELETE`;
 	const anchor = new RegExp(`.*${anchorString}`, 'g');
@@ -222,6 +225,54 @@ const renameVar = (version: string) => {
 	writeFileSync(CURVE_SOURCE_FILE, newCode);
 }
 
+// yarn start-ab \
+//     -U "matcha=https://api.0x.org/swap/v1/quote" \
+//     -u "dev=http://localhost:3000/swap/v1/quote" \
+//     --swap-value 1 10 100 1000 10000 100000 1000000 5000000 10000000 \
+//     -p USDC/DAI \
+//     -p USDC/FRAX \
+//     -p USDC/LUSD \
+//     -p USDT/DAI \
+//     -p USDT/USDC \
+//     -p WBTC/USDC \
+//     -p WBTC/USDT \
+//     -p WETH/DAI \
+//     -p WETH/icETH \
+//     -p WETH/MATIC \
+//     -p WETH/SAND \
+//     -p WETH/stETH \
+//     -p WETH/USDC \
+//     -p WETH/USDT \
+//     -p WETH/WBTC \
+//     -p XMON/WETH
+
+
+const runSimbot = (tokenAddresses: string[]) => {
+
+	const tokenList = tokenAddresses.map((token, index) => {
+		return `TOKEN_${index}=${token}`
+	})
+	
+	const nodeRPC = process.env.ETHEREUM_RPC_URL;
+	const partialCommand = 'yarn start-ab'
+	const args = [
+		'-u', 'dev=http://localhost:3000/swap/v1/quote?includeSources=Curve,Curve_V2',
+		'--swap-value', '1000 10000 100000 1000000',
+		'-p', 'USDC/DAI',
+		'--token-address-list', tokenList,
+		'-d', '60s',
+		'--swap-wait', '5',
+	];
+	const fullCommand = `${partialCommand}${args.join(' ')}`
+	const env = {
+		...process.env,
+		NODE_RPC: nodeRPC, 
+	}
+	execSync()
+	
+
+}
+
 const testNewCurvePools = (versionAddressPool: VersionAddressPool) => {
 	const sourceBackup = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
 	Object.keys(versionAddressPool).forEach(renameVar);
@@ -232,10 +283,15 @@ const testNewCurvePools = (versionAddressPool: VersionAddressPool) => {
 			const res = execSync('yarn build');
 			console.log('' + res);
 			const apiProcess = spawn('yarn start');
-			apiProcess.
+			const zrxLogStream = createWriteStream(API_LOG_FILE, {flags: 'a'});
+			apiProcess.stdout.pipe(zrxLogStream);
+			apiProcess.stderr.pipe(zrxLogStream);
 			console.log(`the pid is ${apiProcess.pid}`);
+
+
 			execSync('sleep 60');
 			apiProcess.kill();
+			zrxLogStream.close();
 			exit(1)
 
 			// configure simbot
