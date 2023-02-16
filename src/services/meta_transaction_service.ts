@@ -77,6 +77,7 @@ export class MetaTransactionService implements IMetaTransactionService {
             allowanceTarget: quote.allowanceTarget,
             sellTokenToEthRate: quote.sellTokenToEthRate,
             buyTokenToEthRate: quote.buyTokenToEthRate,
+            fees: quote.fees,
         };
 
         // Generate meta-transaction
