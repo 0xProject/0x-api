@@ -164,19 +164,19 @@ export class SwapService implements ISwapService {
         sellTokenDecimals: number,
         swapQuote: SwapQuote,
         affiliateFee: AffiliateFee,
-        metaTransactionFeeAmount: BigNumber,
+        sellTokenFeeAmount: BigNumber,
     ): { price: BigNumber; guaranteedPrice: BigNumber } {
         const { makerAmount, totalTakerAmount } = swapQuote.bestCaseQuoteInfo;
         const { totalTakerAmount: guaranteedTotalTakerAmount, makerAmount: guaranteedMakerAmount } =
             swapQuote.worstCaseQuoteInfo;
         const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyTokenDecimals);
         const unitTakerAmount = Web3Wrapper.toUnitAmount(
-            totalTakerAmount.plus(metaTransactionFeeAmount),
+            totalTakerAmount.plus(sellTokenFeeAmount),
             sellTokenDecimals,
         );
         const guaranteedUnitMakerAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAmount, buyTokenDecimals);
         const guaranteedUnitTakerAmount = Web3Wrapper.toUnitAmount(
-            guaranteedTotalTakerAmount.plus(metaTransactionFeeAmount),
+            guaranteedTotalTakerAmount.plus(sellTokenFeeAmount),
             sellTokenDecimals,
         );
         const affiliateFeeUnitMakerAmount = guaranteedUnitMakerAmount.times(
