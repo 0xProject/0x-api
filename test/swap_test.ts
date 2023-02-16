@@ -647,8 +647,6 @@ function expectCorrectQuoteResponse(
                 blockNumber: expectedBlockNumber,
                 ...expectedRest
             } = expectedResponse[property];
-            console.log(samplerGasUsage, expectedSamplerGasUsage);
-            console.log(blockNumber, expectedBlockNumber);
             expect(samplerGasUsage).gt(expectedSamplerGasUsage * 0.5, 'samplerGasUsage is too low');
             expect(samplerGasUsage).lt(expectedSamplerGasUsage * 1.5, 'samplerGasUsage is too high');
             expect(blockNumber).gt(expectedBlockNumber * 0.5, 'blockNumber is too low');
