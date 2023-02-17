@@ -426,11 +426,6 @@ export class SwapService implements ISwapService {
 
         if (metaTransactionVersion !== undefined && marketSide === MarketOperation.Buy) {
             // Use sell token as fee
-
-            // This check is only intended for compile time type checking
-            if (!sellAmount) {
-                throw new Error('sellAmount is undefined when market direction is sell');
-            }
             feeToken = sellToken;
 
             ({
@@ -440,7 +435,7 @@ export class SwapService implements ISwapService {
                 sellTokenFeeOnChainTransferGas,
             } = this._getSellTokenFees(
                 sellToken,
-                sellAmount,
+                totalTakerAmount,
                 swapQuote.takerAmountPerEth,
                 gasPrice,
                 new BigNumber(worstCaseGas),
