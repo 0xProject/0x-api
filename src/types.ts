@@ -466,6 +466,7 @@ export type RfqtV2Quote = {
 
 export interface RfqtV2Request {
     assetFillAmount: BigNumber;
+    bucket?: BigNumber;
     chainId: number;
     integratorId: string;
     intentOnFilling: boolean;

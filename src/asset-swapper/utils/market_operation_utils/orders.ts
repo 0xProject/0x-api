@@ -1,4 +1,9 @@
-import { BridgeProtocol, encodeBridgeSourceId, FillQuoteTransformerOrderType } from '@0x/protocol-utils';
+import {
+    BridgeProtocol,
+    encodeBridgeSourceId,
+    FillQuoteTransformerOrderType,
+    OtcOrderFields,
+} from '@0x/protocol-utils';
 import { AbiEncoder, BigNumber } from '@0x/utils';
 import _ = require('lodash');
 
@@ -15,6 +20,8 @@ import {
     OptimizedOrder,
     OptimizedNativeOrder,
     FillBase,
+    NativeOrderWithFillableAmounts,
+    OptimizedOtcOrder,
 } from '../../types';
 
 import { MAX_UINT256, ZERO_AMOUNT } from './constants';
@@ -587,6 +594,53 @@ export function createBridgeOrder(
     };
 }
 
+export function createNativeOptimizedMultihopOrder(
+    fill: Fill<NativeFillData>,
+    multiHop: NativeOrderWithFillableAmounts[],
+    side: MarketOperation,
+): OptimizedOtcOrder[] {
+    let optimizedOtcOrders: OptimizedOtcOrder[] = [];
+    multiHop.map((order, index) => {
+        let optimizedOtcOrder: OptimizedOtcOrder;
+        let otcFillData: NativeOtcOrderFillData;
+        let otcFill: Omit<Fill<FillData>, 'flags' | 'fillData' | 'sourcePathId' | 'source' | 'type'>;
+        order.order = order.order as OtcOrderFields;
+        let [makerAmount, takerAmount] = getMultiHopFillTokenAmounts(order, side);
+
+        otcFill = {
+            gas: 85000,
+            input: order.fillableTakerAmount,
+            output: order.fillableMakerAmount,
+            adjustedOutput:
+                Number(order.fillableTakerFeeAmount) === 0
+                    ? new BigNumber(order.fillableMakerAmount)
+                    : new BigNumber(
+                          Number(order.fillableMakerAmount) +
+                              Number(order.fillableMakerAmount) * Number(order.fillableTakerFeeAmount),
+                      ),
+        };
+
+        otcFillData = {
+            order: order.order,
+            signature: order.signature,
+            maxTakerTokenFillAmount: order.fillableTakerAmount,
+        };
+        optimizedOtcOrder = {
+            type: FillQuoteTransformerOrderType.Otc,
+            source: ERC20BridgeSource.Native,
+            makerToken: order.order.makerToken,
+            takerToken: order.order.takerToken,
+            makerAmount: makerAmount,
+            takerAmount: takerAmount,
+            fillData: otcFillData,
+            fill: otcFill,
+        };
+        optimizedOtcOrders.push(optimizedOtcOrder);
+    });
+
+    return optimizedOtcOrders;
+}
+
 function toFillBase(fill: Fill): FillBase {
     return _.pick(fill, ['input', 'output', 'adjustedOutput', 'gas']);
 }
@@ -635,4 +689,20 @@ export function getMakerTakerTokens(pathContext: PathContext): {
     const makerToken = side === MarketOperation.Sell ? outputToken : inputToken;
     const takerToken = side === MarketOperation.Sell ? inputToken : outputToken;
     return { makerToken, takerToken };
+}
+
+function getMultiHopFillTokenAmounts(
+    fill: NativeOrderWithFillableAmounts,
+    side: MarketOperation,
+): [BigNumber, BigNumber] {
+    return [
+        // Maker asset amount.
+        side === MarketOperation.Sell
+            ? fill.order.makerAmount.integerValue(BigNumber.ROUND_DOWN)
+            : fill.order.takerAmount,
+        // Taker asset amount.
+        side === MarketOperation.Sell
+            ? fill.order.takerAmount
+            : fill.order.makerAmount.integerValue(BigNumber.ROUND_UP),
+    ];
 }

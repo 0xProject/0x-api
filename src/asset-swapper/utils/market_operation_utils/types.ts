@@ -329,6 +329,8 @@ export interface RawQuotes {
     rfqtIndicativeQuotes: V4RFQIndicativeQuoteMM[];
     twoHopQuotes: DexSample<MultiHopFillData>[][];
     dexQuotes: DexSample<FillData>[][];
+    multihopNativeOrders?: NativeOrderWithFillableAmounts[];
+    multiHopOtcSourceOrders?: NativeOrderWithFillableAmounts[];
 }
 
 export interface GenerateOptimizedOrdersOpts {

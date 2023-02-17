@@ -3,6 +3,7 @@ import { BlockParam, ContractAddresses, GethCallOverrides } from '@0x/contract-w
 import {
     FillQuoteTransformerOrderType,
     LimitOrderFields,
+    OtcOrder,
     OtcOrderFields,
     RfqOrder,
     RfqOrderFields,
@@ -127,6 +128,23 @@ export interface NativeOrderFillableAmountFields {
     fillableMakerAmount: BigNumber;
     fillableTakerAmount: BigNumber;
     fillableTakerFeeAmount: BigNumber;
+}
+
+/**
+ * fillableMakerAmount: Amount of makerAsset that is fillable
+ * fillableTakerAmount: Amount of takerAsset that is fillable
+ * fillableTakerFeeAmount: Amount of takerFee paid to fill fillableTakerAmount
+ * multiHopOrders: Array of SignedOtcOrders
+ * multiHopOrderSignatures: Array of signatures that map to each multiHopOrder
+ * type: the type of trade determined by the fqt
+ */
+export interface MultihopNativeOrderFillableAmountFields {
+    fillableMakerAmount: BigNumber;
+    fillableTakerAmount: BigNumber;
+    fillableTakerFeeAmount: BigNumber;
+    multiHopOrders: OtcOrder[];
+    multiHopOrderSignatures: Signature[];
+    type: FillQuoteTransformerOrderType.Otc;
 }
 
 /**

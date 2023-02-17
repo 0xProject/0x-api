@@ -1022,6 +1022,20 @@ export const NATIVE_FEE_TOKEN_AMOUNT_BY_CHAIN_ID = valueByChainId(
     ONE_ETHER,
 );
 
+export const RFQT_MUTIHOP_INTERMEDIATE_TOKENS_BY_CHAIN_ID = valueByChainId<string[]>(
+    {
+        [ChainId.Mainnet]: [
+            MAINNET_TOKENS.WETH,
+            MAINNET_TOKENS.DAI,
+            MAINNET_TOKENS.BUSD,
+            MAINNET_TOKENS.WBTC,
+            MAINNET_TOKENS.USDC,
+            MAINNET_TOKENS.USDT,
+        ],
+    },
+    [],
+);
+
 const MOBIUSMONEY_CELO_SHARED: CurveInfo = {
     exchangeFunctionSelector: CurveFunctionSelectors.swap,
     sellQuoteFunctionSelector: CurveFunctionSelectors.calculateSwap,
