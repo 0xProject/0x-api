@@ -170,10 +170,7 @@ export class SwapService implements ISwapService {
         const { totalTakerAmount: guaranteedTotalTakerAmount, makerAmount: guaranteedMakerAmount } =
             swapQuote.worstCaseQuoteInfo;
         const unitMakerAmount = Web3Wrapper.toUnitAmount(makerAmount, buyTokenDecimals);
-        const unitTakerAmount = Web3Wrapper.toUnitAmount(
-            totalTakerAmount.plus(sellTokenFeeAmount),
-            sellTokenDecimals,
-        );
+        const unitTakerAmount = Web3Wrapper.toUnitAmount(totalTakerAmount.plus(sellTokenFeeAmount), sellTokenDecimals);
         const guaranteedUnitMakerAmount = Web3Wrapper.toUnitAmount(guaranteedMakerAmount, buyTokenDecimals);
         const guaranteedUnitTakerAmount = Web3Wrapper.toUnitAmount(
             guaranteedTotalTakerAmount.plus(sellTokenFeeAmount),
@@ -348,6 +345,10 @@ export class SwapService implements ISwapService {
                 providedGasPrice = await this._swapQuoter.getGasPriceEstimationOrThrowAsync();
             }
 
+            // Only get `sellTokenAmountPerWei` when necessary
+            const sellTokenAmountPerWei = feeConfigs?.gasFee
+                ? await this._swapQuoter.getTokenAmountPerWei(sellToken, {})
+                : undefined;
             // Need to calculate all fees in order to adjust `sellAmount` before passing it down to sampler & router
             ({
                 sellTokenFees,
@@ -357,7 +358,7 @@ export class SwapService implements ISwapService {
             } = this._getSellTokenFees(
                 sellToken,
                 sellAmount,
-                await this._swapQuoter.getTokenAmountPerWei(sellToken, {}), // get sell token ammount per wei
+                sellTokenAmountPerWei,
                 providedGasPrice,
                 AVG_MULTIPLEX_TRANFORM_ERC_20_GAS, // use historic average gas cost for multiplex & transformERC20
                 feeConfigs,
@@ -905,7 +906,7 @@ export class SwapService implements ISwapService {
     private _getSellTokenFees(
         sellToken: string,
         sellAmount: BigNumber,
-        sellTokenAmountPerWei: BigNumber,
+        sellTokenAmountPerWei: BigNumber | undefined,
         gasPrice: BigNumber,
         quoteGasEstimate: BigNumber,
         feeConfigs: FeeConfigs | undefined,

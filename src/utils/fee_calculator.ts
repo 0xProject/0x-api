@@ -51,7 +51,7 @@ export function calculateFees(opts: {
     onChainFeeTransferType: 'affiliateFee' | 'transferFrom';
     sellToken: string;
     sellTokenAmount: BigNumber;
-    sellTokenAmountPerWei: BigNumber;
+    sellTokenAmountPerWei: BigNumber | undefined;
     gasPrice: BigNumber;
     quoteGasEstimate: BigNumber;
 }): {
@@ -276,7 +276,7 @@ function _calculateZeroExFee(opts: {
 function _calculateGasFee(opts: {
     gasFeeConfig?: GasFeeConfig;
     sellToken: string;
-    sellTokenAmountPerWei: BigNumber;
+    sellTokenAmountPerWei: BigNumber | undefined;
     gasPrice: BigNumber;
     quoteGasEstimate: BigNumber;
     onChainFeeTransferType: 'affiliateFee' | 'transferFrom';
@@ -286,9 +286,11 @@ function _calculateGasFee(opts: {
     if (!opts.gasFeeConfig) {
         return undefined;
     }
+    if (!opts.sellTokenAmountPerWei) {
+        throw new Error(`Undefined sellTokenAmountPerWei when gas fee config is not undefined ${opts.gasFeeConfig}`);
+    }
 
     // TODO: Throw error for mainnet if we can't get sell token to native token conversion rate (sellTokenAmountPerWei is 0)
-    
 
     // Check the number of on-chain transfer necessary for fee
     const feeRecipients = new Set<string>();
