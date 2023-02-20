@@ -10,7 +10,7 @@ remappings = [
     '@0x/contracts-zero-ex/=../node_modules/@0x/contracts-zero-ex/',
     '@uniswap/v3-core/=../node_modules/@uniswap/v3-core/',
     '@uniswap/v3-periphery/=../node_modules/@uniswap/v3-periphery/',
-    '@kyberelastic/=../node_modules/@kybernetwork/ks-elastic-sc/contracts/'
+    '@kybernetwork/=../node_modules/@kybernetwork/'
 ]
 allow_paths = ["../node_modules"]
 cache_path = 'foundry-cache'
