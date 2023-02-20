@@ -329,7 +329,6 @@ export interface Integrator {
 export interface SwapQuoterRfqOpts {
     integratorsWhitelist: Integrator[];
     txOriginBlacklist: Set<string>;
-    warningLogger?: LogFunction;
 }
 
 export type AssetSwapperContractAddresses = ContractAddresses;
@@ -686,11 +685,7 @@ export abstract class Orderbook {
         takerToken: string,
         pruneFn?: (o: SignedLimitOrder) => boolean,
     ): Promise<SignedLimitOrder[]>;
-    public abstract getBatchOrdersAsync(
-        makerTokens: string[],
-        takerToken: string,
-        pruneFn?: (o: SignedLimitOrder) => boolean,
-    ): Promise<SignedLimitOrder[][]>;
+
     public async destroyAsync(): Promise<void> {
         return;
     }

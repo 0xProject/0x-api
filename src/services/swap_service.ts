@@ -214,11 +214,6 @@ export class SwapService implements ISwapService {
 
         this._swapQuoterOpts = {
             ...SWAP_QUOTER_OPTS,
-            rfqt: {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-                ...SWAP_QUOTER_OPTS.rfqt!,
-                warningLogger: logger.warn.bind(logger),
-            },
             contractAddresses,
         };
 
@@ -541,7 +536,9 @@ export class SwapService implements ISwapService {
             buyTokenToEthRate,
             quoteReport,
             blockNumber: swapQuote.blockNumber,
-            debugData: params.isDebugEnabled ? { samplerGasUsage: swapQuote.samplerGasUsage } : undefined,
+            debugData: params.isDebugEnabled
+                ? { samplerGasUsage: swapQuote.samplerGasUsage, blockNumber: swapQuote.blockNumber }
+                : undefined,
         };
 
         if (apiSwapQuote.buyAmount.lte(new BigNumber(0))) {
