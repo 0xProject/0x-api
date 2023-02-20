@@ -58,6 +58,11 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig & { poolsToIgnore?: string[] 
         poolsToIgnore: [
             '0xbd482ffb3e6e50dc1c437557c3bea2b68f3683ee', // a pool made by an external dev who was playing with a novel rate provider mechanism in production.
         ],
+        lbpRaisingTokens: [
+            '0x6b175474e89094c44da98b954eedeac495271d0f', // DAI
+            '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
+            '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
+        ],
     },
     [ChainId.Polygon]: {
         chainId: ChainId.Polygon,
@@ -76,6 +81,11 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig & { poolsToIgnore?: string[] 
         poolsToIgnore: [
             '0x600bd01b6526611079e12e1ff93aba7a3e34226f', // This pool has rateProviders with incorrect scaling
         ],
+        lbpRaisingTokens: [
+            '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063', // DAI
+            '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // USDC
+            '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270', // WMATIC
+        ],
     },
     [ChainId.Arbitrum]: {
         chainId: ChainId.Arbitrum,
@@ -86,6 +96,11 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig & { poolsToIgnore?: string[] 
                 symbol: 'weth',
                 address: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
             },
+        ],
+        lbpRaisingTokens: [
+            '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1', // DAI
+            '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8', // USDC
+            '0x82af49447d8a07e3bd95bd0d56f35241523fbab1', // WETH
         ],
     },
     [ChainId.Goerli]: {
@@ -108,6 +123,11 @@ const SOR_CONFIG: Record<BalancerChains, SorConfig & { poolsToIgnore?: string[] 
                 symbol: 'weth',
                 address: '0x4200000000000000000000000000000000000006',
             },
+        ],
+        lbpRaisingTokens: [
+            '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1', // DAI
+            '0x7f5c764cbc14f9669b88837ca1490cca17c31607', // USDC
+            '0x4200000000000000000000000000000000000006', // WETH
         ],
     },
     [ChainId.Fantom]: {
