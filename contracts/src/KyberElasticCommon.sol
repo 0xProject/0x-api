@@ -6,8 +6,7 @@ import "./interfaces/IMultiQuoter.sol";
 
 
 contract KyberElasticCommon {
-    /// @dev Arbitrary gas limit for KyberElastic calls (TODO: revisit)
-    uint256 private constant QUOTE_GAS = 700e3;
+    uint256 private constant POOL_FILTERING_QUOTE_GAS = 450e3;
 
     /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
     function _getPoolPaths(
@@ -80,9 +79,9 @@ contract KyberElasticCommon {
         address outputToken,
         uint256 inputAmount
     ) internal view returns (IPool[2] memory topPools, uint256[2] memory outputAmounts) {
-        address[] memory path = new address[](2);
-        path[0] = inputToken;
-        path[1] = outputToken;
+        address[] memory tokenPath = new address[](2);
+        tokenPath[0] = inputToken;
+        tokenPath[1] = outputToken;
 
         uint256[] memory inputAmounts = new uint256[](1);
         inputAmounts[0] = inputAmount;
@@ -96,9 +95,9 @@ contract KyberElasticCommon {
 
             IPool[] memory poolPath = new IPool[](1);
             poolPath[0] = pool;
-            bytes memory uniswapPath = _toPath(path, poolPath);
+            bytes memory dexPath = _toPath(tokenPath, poolPath);
 
-            try multiQuoter.quoteExactMultiInput{gas: QUOTE_GAS}(factory, uniswapPath, inputAmounts) returns (
+            try multiQuoter.quoteExactMultiInput{gas: POOL_FILTERING_QUOTE_GAS}(factory, dexPath, inputAmounts) returns (
                 uint256[] memory amountsOut,
                 uint256[] memory /* gasEstimate */
             ) {

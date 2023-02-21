@@ -2026,9 +2026,9 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     [ERC20BridgeSource.BancorV3]: () => 250e3, // revisit gas costs with wrap/unwrap
 
     [ERC20BridgeSource.KyberElastic]: (fillData?: FillData) => {
-        const uniFillData = fillData as TickDEXMultiPathFillData | FinalTickDEXMultiPathFillData;
-        if (isFinalPathFillData(uniFillData)) {
-            return uniFillData.gasUsed;
+        const dexFillData = fillData as TickDEXMultiPathFillData | FinalTickDEXMultiPathFillData;
+        if (isFinalPathFillData(dexFillData)) {
+            return dexFillData.gasUsed;
         }
         return 250e3;
     },

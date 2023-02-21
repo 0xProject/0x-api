@@ -607,11 +607,11 @@ function createFinalBridgeOrderFillDataFromCollapsedFill(fill: Fill): FillData {
         case ERC20BridgeSource.KyberElastic:
         case ERC20BridgeSource.UniswapV3: {
             const fd = fill.fillData as TickDEXMultiPathFillData;
-            const { path: uniswapPath, gasUsed } = getBestUniswapV3PathAmountForInputAmount(fd, fill.input);
+            const { path: dexPath, gasUsed } = getBestUniswapV3PathAmountForInputAmount(fd, fill.input);
             const finalFillData: FinalTickDEXMultiPathFillData = {
                 router: fd.router,
                 tokenAddressPath: fd.tokenAddressPath,
-                path: uniswapPath,
+                path: dexPath,
                 gasUsed,
             };
             return finalFillData;

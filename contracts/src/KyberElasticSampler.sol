@@ -48,18 +48,18 @@ contract KyberElasticSampler is KyberElasticCommon {
                 continue;
             }
 
-            bytes memory uniswapPath = _toPath(path, poolPaths[i]);
+            bytes memory dexPath = _toPath(path, poolPaths[i]);
 
             (uint256[] memory amountsOut, uint256[] memory gasEstimate) = quoter.quoteExactMultiInput(
                 factory,
-                uniswapPath,
+                dexPath,
                 inputAmounts
             );
 
             for (uint256 j = 0; j < outputAmounts.length; ++j) {
                 if (outputAmounts[j] < amountsOut[j]) {
                     outputAmounts[j] = amountsOut[j];
-                    paths[j] = uniswapPath;
+                    paths[j] = dexPath;
                     gasEstimates[j] = gasEstimate[j];
                 }
             }
