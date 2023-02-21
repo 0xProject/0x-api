@@ -10,10 +10,6 @@ import {
     PersistentSignedOrderV4Entity,
     RfqMakerPairs,
     RfqMakerPairsUpdateTimeHash,
-    RfqmJobEntity,
-    RfqmQuoteEntity,
-    RfqmTransactionSubmissionEntity,
-    RfqmWorkerHeartbeatEntity,
     SignedOrderV4Entity,
 } from './entities';
 
@@ -26,10 +22,6 @@ const entities = [
     PersistentSignedOrderV4Entity,
     RfqMakerPairs,
     RfqMakerPairsUpdateTimeHash,
-    RfqmWorkerHeartbeatEntity,
-    RfqmQuoteEntity,
-    RfqmJobEntity,
-    RfqmTransactionSubmissionEntity,
     OrderWatcherSignedOrderEntity,
 ];
 
@@ -46,7 +38,7 @@ const config: ConnectionOptions | undefined =
                   max: 15,
                   statement_timeout: 10000,
               },
-              migrations: ['./lib/migrations/*.js'],
+              migrations: ['./__build__/migrations/*.js'],
               ...(POSTGRES_READ_REPLICA_URIS
                   ? {
                         replication: {
