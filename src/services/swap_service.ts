@@ -16,7 +16,6 @@ import {
     artifacts,
     AssetSwapperContractAddresses,
     BlockParamLiteral,
-    ChainId,
     ContractAddresses,
     FakeTakerContract,
     GetMarketOrdersRfqOpts,
@@ -36,17 +35,19 @@ import { ExchangeProxyContractOpts } from '../asset-swapper/types';
 import {
     ALT_RFQ_MM_API_KEY,
     ALT_RFQ_MM_ENDPOINT,
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS,
-    ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
     CHAIN_HAS_VIPS,
     CHAIN_ID,
     RFQT_REQUEST_MAX_RESPONSE_MS,
-    SWAP_QUOTER_OPTS,
     UNWRAP_QUOTE_GAS,
     WRAP_QUOTE_GAS,
     ZERO_EX_FEE_RECIPIENT_ADDRESS,
     ZERO_EX_FEE_TOKENS,
 } from '../config';
+import {
+    ASSET_SWAPPER_MARKET_ORDERS_OPTS,
+    ASSET_SWAPPER_MARKET_ORDERS_OPTS_NO_VIP,
+    SWAP_QUOTER_OPTS,
+} from '../options';
 import {
     DEFAULT_QUOTE_SLIPPAGE_PERCENTAGE,
     DEFAULT_VALIDATION_GAS_LIMIT,
@@ -81,6 +82,7 @@ import { serviceUtils, getBuyTokenPercentageFeeOrZero } from '../utils/service_u
 import { SlippageModelFillAdjustor } from '../utils/slippage_model_fill_adjustor';
 import { SlippageModelManager } from '../utils/slippage_model_manager';
 import { utils } from '../utils/utils';
+import { ChainId } from '@0x/contract-addresses';
 
 const PRICE_IMPACT_TOO_HIGH = new Counter({
     name: 'price_impact_too_high',
@@ -212,11 +214,6 @@ export class SwapService implements ISwapService {
 
         this._swapQuoterOpts = {
             ...SWAP_QUOTER_OPTS,
-            rfqt: {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-                ...SWAP_QUOTER_OPTS.rfqt!,
-                warningLogger: logger.warn.bind(logger),
-            },
             contractAddresses,
         };
 
@@ -539,7 +536,9 @@ export class SwapService implements ISwapService {
             buyTokenToEthRate,
             quoteReport,
             blockNumber: swapQuote.blockNumber,
-            debugData: params.isDebugEnabled ? { samplerGasUsage: swapQuote.samplerGasUsage } : undefined,
+            debugData: params.isDebugEnabled
+                ? { samplerGasUsage: swapQuote.samplerGasUsage, blockNumber: swapQuote.blockNumber }
+                : undefined,
         };
 
         if (apiSwapQuote.buyAmount.lte(new BigNumber(0))) {

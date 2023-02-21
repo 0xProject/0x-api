@@ -14,7 +14,7 @@ import supertest from 'supertest';
 import { getAppAsync } from '../src/app';
 import { getDefaultAppDependenciesAsync } from '../src/runners/utils';
 import { AppDependencies } from '../src/types';
-import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ChainId, ERC20BridgeSource, LimitOrderFields } from '../src/asset-swapper';
+import { BUY_SOURCE_FILTER_BY_CHAIN_ID, ERC20BridgeSource, LimitOrderFields } from '../src/asset-swapper';
 import * as config from '../src/config';
 import { AFFILIATE_FEE_TRANSFORMER_GAS, GAS_LIMIT_BUFFER_MULTIPLIER, SWAP_PATH } from '../src/constants';
 import { getDBConnectionOrThrow } from '../src/db_connection';
@@ -41,6 +41,7 @@ import { constructRoute, httpGetAsync } from './utils/http_utils';
 import { MockOrderWatcher } from './utils/mock_order_watcher';
 import { getRandomSignedLimitOrderAsync } from './utils/orders';
 import { StatusCodes } from 'http-status-codes';
+import { ChainId } from '@0x/contract-addresses';
 
 // Force reload of the app avoid variables being polluted between test suites
 // Warning: You probably don't want to move this
@@ -366,6 +367,7 @@ describe(SUITE_NAME, () => {
             expectCorrectQuoteResponse(response, {
                 debugData: {
                     samplerGasUsage: 130_000, // approximate: +- 50%
+                    blockNumber: 100, // approximate: +- 50%
                 },
             });
         });
@@ -639,11 +641,16 @@ function expectCorrectQuoteResponse(
         }
 
         if (prop === 'debugData') {
-            const { samplerGasUsage, ...rest } = quoteResponse[property];
-            const { samplerGasUsage: expectedSamplerGasUsage, ...expectedRest } = expectedResponse[property];
-            console.log(samplerGasUsage, expectedSamplerGasUsage);
+            const { samplerGasUsage, blockNumber, ...rest } = quoteResponse[property];
+            const {
+                samplerGasUsage: expectedSamplerGasUsage,
+                blockNumber: expectedBlockNumber,
+                ...expectedRest
+            } = expectedResponse[property];
             expect(samplerGasUsage).gt(expectedSamplerGasUsage * 0.5, 'samplerGasUsage is too low');
             expect(samplerGasUsage).lt(expectedSamplerGasUsage * 1.5, 'samplerGasUsage is too high');
+            expect(blockNumber).gt(expectedBlockNumber * 0.5, 'blockNumber is too low');
+            expect(blockNumber).lt(expectedBlockNumber * 1.5, 'blockNumber is too high');
             expect(rest).to.be.deep.eq(expectedRest);
             continue;
         }

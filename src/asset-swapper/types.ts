@@ -302,13 +302,6 @@ export interface SwapQuoteRequestOpts extends Omit<GetMarketOrdersOpts, 'gasPric
     rfqt?: RfqRequestOpts;
 }
 
-/**
- * A mapping from RFQ-T/M quote provider URLs to the trading pairs they support.
- * The value type represents an array of supported asset pairs, with each array element encoded as a 2-element array of token addresses.
- */
-export interface RfqMakerAssetOfferings {
-    [endpoint: string]: [string, string][];
-}
 export interface AltOffering {
     id: string;
     baseAsset: string;
@@ -336,11 +329,6 @@ export interface Integrator {
 export interface SwapQuoterRfqOpts {
     integratorsWhitelist: Integrator[];
     txOriginBlacklist: Set<string>;
-    altRfqCreds?: {
-        altRfqApiKey: string;
-        altRfqProfile: string;
-    };
-    warningLogger?: LogFunction;
 }
 
 export type AssetSwapperContractAddresses = ContractAddresses;
@@ -698,11 +686,7 @@ export abstract class Orderbook {
         takerToken: string,
         pruneFn?: (o: SignedLimitOrder) => boolean,
     ): Promise<SignedLimitOrder[]>;
-    public abstract getBatchOrdersAsync(
-        makerTokens: string[],
-        takerToken: string,
-        pruneFn?: (o: SignedLimitOrder) => boolean,
-    ): Promise<SignedLimitOrder[][]>;
+
     public async destroyAsync(): Promise<void> {
         return;
     }
