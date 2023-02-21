@@ -57,6 +57,8 @@ import {
     NULL_BYTES,
     ONE,
     ONE_MINUTE_MS,
+    TRANSFER_FROM_GAS,
+    TRANSFER_GAS,
     ZERO,
 } from '../constants';
 import {
@@ -356,13 +358,14 @@ export class SwapService implements ISwapService {
                 sellTokenFeeOnChainTransfers: sellTokenFeeAmounts,
                 sellTokenFeeOnChainTransferGas,
             } = this._getSellTokenFees(
+                feeConfigs,
                 sellToken,
                 sellAmount,
                 sellTokenAmountPerWei,
                 providedGasPrice,
                 AVG_MULTIPLEX_TRANFORM_ERC_20_GAS, // use historic average gas cost for multiplex & transformERC20
-                feeConfigs,
-                metaTransactionVersion === 'v1' ? 'affiliateFee' : 'transferFrom',
+                metaTransactionVersion === 'v1' ? TRANSFER_GAS : TRANSFER_FROM_GAS, // meta-transaction v1 uses affiliate fee transformer which calls `transformerTransfer` for on-chain fee transfer.
+                // meta-transaction v2 uses `FixinTokenSpender._transferERC20TokensFrom`.
             ));
 
             if (sellAmount.lte(sellTokenFeeAmount)) {
@@ -435,13 +438,14 @@ export class SwapService implements ISwapService {
                 sellTokenFeeOnChainTransfers: sellTokenFeeAmounts,
                 sellTokenFeeOnChainTransferGas,
             } = this._getSellTokenFees(
+                feeConfigs,
                 sellToken,
                 totalTakerAmount,
                 swapQuote.takerAmountPerEth,
                 gasPrice,
-                new BigNumber(worstCaseGas),
-                feeConfigs,
-                metaTransactionVersion === 'v1' ? 'affiliateFee' : 'transferFrom',
+                new BigNumber(worstCaseGas), // use worst case faux gas estimate from quote
+                metaTransactionVersion === 'v1' ? TRANSFER_GAS : TRANSFER_FROM_GAS, // meta-transaction v1 uses affiliate fee transformer which calls `transformerTransfer` for on-chain fee transfer.
+                // meta-transaction v2 uses `FixinTokenSpender._transferERC20TokensFrom`.
             ));
         }
 
@@ -893,24 +897,24 @@ export class SwapService implements ISwapService {
     /**
      * Get sell token fee and corresponding on-chain transfers.
      *
+     * @param feeConfigs Fee configs object.
      * @param sellToken Sell token address.
      * @param sellAmount Sell amount.
      * @param sellTokenAmountPerWei Sell token token amount per 1 wei native token.
      * @param gasPrice Gas price.
      * @param quoteGasEstimate Gas estimate for swap quote.
-     * @param feeConfigs Fee configs object.
-     * @param metaTransactionVersion Version of meta-transaction.
+     * @param gasPerOnChainTransfer The gas cost per on-chain transfer.
      * @returns Fees object, total sell token amount to charge, sell token on-chain transfer and the gas
      *          used for on-chain transfers.
      */
     private _getSellTokenFees(
+        feeConfigs: FeeConfigs | undefined,
         sellToken: string,
         sellAmount: BigNumber,
         sellTokenAmountPerWei: BigNumber | undefined,
         gasPrice: BigNumber,
         quoteGasEstimate: BigNumber,
-        feeConfigs: FeeConfigs | undefined,
-        onChainFeeTransferType: 'affiliateFee' | 'transferFrom',
+        gasPerOnChainTransfer: BigNumber,
     ): {
         sellTokenFees: Fees | undefined; // fees object to return to the caller
         sellTokenFeeAmount: BigNumber; // total sell token fee to charge
@@ -919,12 +923,12 @@ export class SwapService implements ISwapService {
     } {
         const { fees, totalOnChainFeeAmount, onChainTransfers, onChainTransfersGas } = calculateFees({
             feeConfigs,
-            onChainFeeTransferType,
             sellToken,
             sellTokenAmount: sellAmount,
             sellTokenAmountPerWei,
-            gasPrice: gasPrice,
+            gasPrice,
             quoteGasEstimate,
+            gasPerOnChainTransfer,
         });
 
         const sellTokenFees = fees;

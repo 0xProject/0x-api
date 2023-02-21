@@ -1,6 +1,6 @@
 import { BigNumber } from '@0x/utils';
 import { AffiliateFeeType } from '../asset-swapper';
-import { AFFILIATE_FEE_TRANSFORMER_GAS, ZERO } from '../constants';
+import { ZERO } from '../constants';
 import {
     GasFee,
     GasFeeConfig,
@@ -11,21 +11,6 @@ import {
     VolumeBasedFee,
     VolumeBasedFeeConfig,
 } from '../types';
-
-/**
- * `_transferERC20TokensFrom` estimated gas (used by `FixinTokenSpender`):
- * - Decrease balance of the owner (SLOAD + SSTORE): 24,000
- * - Increase balance of the spender (SLOAD + SSTORE): 24,000
- * - Update allowance of the spender (SLOAD + SSTORE): 24,000
- */
-const TRANSFER_FROM_GAS = new BigNumber(72e3);
-
-/**
- * `transformerTransfer` estimated gas (used by `AffiliateFeeTransformer`):
- * - Decrease balance of the owner (SLOAD + SSTORE): 24,000
- * - Increase balance of the spender (SLOAD + SSTORE): 24,000
- */
-const TRANSFER_GAS = new BigNumber(48e3);
 
 interface OnChainTransfer {
     feeToken: string;
@@ -38,22 +23,22 @@ interface OnChainTransfer {
  * Calculate fees object which contains total fee amount and a breakdown of integrator, 0x and gas fees.
  *
  * @param opts feeConfigs: Fee configs parsed from input.
- *             onChainFeeTransferType: The way the on-chain fee will be transferred.
  *             sellToken: Address of the sell token.
  *             sellTokenAmount: Amount of the sell token.
- *             sellTokenAmountPerWei: Amount of sell token per base unit native token.
+ *             sellTokenAmountPerWei: Amount of sell token per wei.
  *             gasPrice: Estimated gas price.
  *             quoteGasEstimate: The gas estimate to fill the quote.
+ *             gasPerOnChainTransfer: The gas cost per on-chain transfer.
  * @returns Fee object, the total on-chain fee amount, on-chain transfers and the gas associated with on-chain transfers.
  */
 export function calculateFees(opts: {
     feeConfigs: FeeConfigs | undefined;
-    onChainFeeTransferType: 'affiliateFee' | 'transferFrom';
     sellToken: string;
     sellTokenAmount: BigNumber;
     sellTokenAmountPerWei: BigNumber | undefined;
     gasPrice: BigNumber;
     quoteGasEstimate: BigNumber;
+    gasPerOnChainTransfer: BigNumber;
 }): {
     fees: Fees | undefined;
     totalOnChainFeeAmount: BigNumber;
@@ -88,7 +73,7 @@ export function calculateFees(opts: {
         sellTokenAmountPerWei: opts.sellTokenAmountPerWei,
         gasPrice: opts.gasPrice,
         quoteGasEstimate: opts.quoteGasEstimate,
-        onChainFeeTransferType: opts.onChainFeeTransferType,
+        gasPerOnChainTransfer: opts.gasPerOnChainTransfer,
         integratorFee,
         zeroExFee,
     });
@@ -101,7 +86,7 @@ export function calculateFees(opts: {
 
     return {
         fees,
-        ..._calculateTotalOnChainFees(fees, opts.onChainFeeTransferType),
+        ..._calculateTotalOnChainFees(fees, opts.gasPerOnChainTransfer),
     };
 }
 
@@ -109,12 +94,12 @@ export function calculateFees(opts: {
  * Calculate fees that needs to be transferred on-chain.
  *
  * @param fees Fees object.
- * @param onChainFeeTransferType The way the on-chain fee will be transferred.
+ * @param gasPerOnChainTransfer: The gas cost per on-chain transfer.
  * @returns On-chain fee amount, transfers and corresponding gas cost.
  */
 function _calculateTotalOnChainFees(
     fees: Fees,
-    onChainFeeTransferType: 'affiliateFee' | 'transferFrom',
+    gasPerOnChainTransfer: BigNumber,
 ): {
     totalOnChainFeeAmount: BigNumber;
     onChainTransfers: OnChainTransfer[];
@@ -182,22 +167,7 @@ function _calculateTotalOnChainFees(
         });
     }
 
-    let onChainTransfersGas = ZERO;
-    switch (onChainFeeTransferType) {
-        case 'transferFrom':
-            onChainTransfersGas = TRANSFER_FROM_GAS.times(feeRecipientToOnChainTransfer.size);
-            break;
-        case 'affiliateFee':
-            onChainTransfersGas = AFFILIATE_FEE_TRANSFORMER_GAS.plus(TRANSFER_FROM_GAS).times(
-                feeRecipientToOnChainTransfer.size,
-            );
-            break;
-        default:
-            ((_: never) => {
-                throw new Error('unreachable');
-            })(onChainFeeTransferType);
-    }
-
+    const onChainTransfersGas = gasPerOnChainTransfer.times(feeRecipientToOnChainTransfer.size);
     const onChainTransfers = [...feeRecipientToOnChainTransfer.values()];
     return {
         totalOnChainFeeAmount: onChainTransfers.reduce(
@@ -279,7 +249,7 @@ function _calculateGasFee(opts: {
     sellTokenAmountPerWei: BigNumber | undefined;
     gasPrice: BigNumber;
     quoteGasEstimate: BigNumber;
-    onChainFeeTransferType: 'affiliateFee' | 'transferFrom';
+    gasPerOnChainTransfer: BigNumber;
     integratorFee?: VolumeBasedFee;
     zeroExFee?: VolumeBasedFee | IntegratorShareFee;
 }): GasFee | undefined {
@@ -319,23 +289,9 @@ function _calculateGasFee(opts: {
         feeRecipients.add(opts.gasFeeConfig.feeRecipient);
     }
 
-    const numTransferFromForFee = feeRecipients.size;
+    const numOnChainTransfer = feeRecipients.size;
     // Add the on-chain transfer gas cost
-    let estimatedGas = opts.quoteGasEstimate;
-    switch (opts.onChainFeeTransferType) {
-        case 'transferFrom':
-            estimatedGas = estimatedGas.plus(TRANSFER_FROM_GAS.times(numTransferFromForFee));
-            break;
-        case 'affiliateFee':
-            estimatedGas = estimatedGas.plus(
-                AFFILIATE_FEE_TRANSFORMER_GAS.plus(TRANSFER_GAS).times(numTransferFromForFee),
-            );
-            break;
-        default:
-            ((_: never) => {
-                throw new Error('unreachable');
-            })(opts.onChainFeeTransferType);
-    }
+    const estimatedGas = opts.quoteGasEstimate.plus(opts.gasPerOnChainTransfer.times(numOnChainTransfer));
 
     return {
         type: 'gas',
