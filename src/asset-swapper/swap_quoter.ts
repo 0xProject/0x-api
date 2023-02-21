@@ -139,7 +139,8 @@ export class SwapQuoter {
               }
             : {};
 
-        if (SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3) ||
+        if (
+            SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3) ||
             BUY_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.UniswapV3)
         ) {
             // Allow the UniV3 MultiQuoter bytecode to be written to a specific address
@@ -150,7 +151,8 @@ export class SwapQuoter {
             defaultCodeOverrides[UNISWAP_V3_MULTIQUOTER_ADDRESS] = { code: univ3MultiQuoterBytecode };
         }
 
-        if (SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic) ||
+        if (
+            SELL_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic) ||
             BUY_SOURCE_FILTER_BY_CHAIN_ID[chainId].isAllowed(ERC20BridgeSource.KyberElastic)
         ) {
             const kyberElasticQuoterBytecode = _.get(

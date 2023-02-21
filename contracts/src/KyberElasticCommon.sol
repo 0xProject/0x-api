@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IKyberElastic.sol";
 import "./interfaces/IMultiQuoter.sol";
 
-
 contract KyberElasticCommon {
     uint256 private constant POOL_FILTERING_QUOTE_GAS = 450e3;
 
@@ -97,10 +96,9 @@ contract KyberElasticCommon {
             poolPath[0] = pool;
             bytes memory dexPath = _toPath(tokenPath, poolPath);
 
-            try multiQuoter.quoteExactMultiInput{gas: POOL_FILTERING_QUOTE_GAS}(factory, dexPath, inputAmounts) returns (
-                uint256[] memory amountsOut,
-                uint256[] memory /* gasEstimate */
-            ) {
+            try
+                multiQuoter.quoteExactMultiInput{gas: POOL_FILTERING_QUOTE_GAS}(factory, dexPath, inputAmounts)
+            returns (uint256[] memory amountsOut, uint256[] memory /* gasEstimate */) {
                 // Keeping track of the top 2 pools.
                 if (amountsOut[0] > outputAmounts[0]) {
                     outputAmounts[1] = outputAmounts[0];
