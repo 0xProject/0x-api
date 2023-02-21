@@ -337,7 +337,7 @@ export class SwapService implements ISwapService {
         if (metaTransactionVersion !== undefined && marketSide === MarketOperation.Sell) {
             // Use sell token as fee
 
-            // The check is only intended for compile time type checking
+            // Narrow the type
             if (!sellAmount) {
                 throw new Error('sellAmount is undefined when market direction is sell');
             }
@@ -379,15 +379,9 @@ export class SwapService implements ISwapService {
                     },
                     'sellAmount <= sell token fee amount',
                 );
-                throw new InsufficientFundsError(`sellAmount too small`);
+                throw new InsufficientFundsError('sellAmount insufficient to cover fees');
             }
         }
-
-        const amount =
-            marketSide === MarketOperation.Sell
-                ? sellAmount?.minus(sellTokenFeeAmount)
-                : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
-                  buyAmount!.times(getBuyTokenPercentageFeeOrZero(affiliateFee) + 1).integerValue(BigNumber.ROUND_DOWN);
 
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
             ...swapQuoteRequestOpts,
@@ -408,6 +402,14 @@ export class SwapService implements ISwapService {
                     : new IdentityFillAdjustor(),
             endpoint: endpoint,
         };
+
+        const amount =
+            marketSide === MarketOperation.Sell
+                ? // substract the sell token fee amount from sell amount before passing it down to sampler & router
+                  // since the actual ammount being traded is sellAmount - sellTokenFeeAmount
+                  sellAmount?.minus(sellTokenFeeAmount)
+                : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TODO: fix me!
+                  buyAmount!.times(getBuyTokenPercentageFeeOrZero(affiliateFee) + 1).integerValue(BigNumber.ROUND_DOWN);
 
         // Fetch the Swap quote
         const swapQuote = await this._swapQuoter.getSwapQuoteAsync(
@@ -899,10 +901,11 @@ export class SwapService implements ISwapService {
     /**
      * Get sell token fee and corresponding on-chain transfers.
      *
-     * @param feeConfigs Fee configs object.
+     * @param feeConfigs Fee configs object. Undefined if `feeConfigs` is not provided in the request.
      * @param sellToken Sell token address.
      * @param sellAmount Sell amount.
-     * @param sellTokenAmountPerWei Sell token token amount per 1 wei native token.
+     * @param sellTokenAmountPerWei Sell token token amount per 1 wei native token. Undefined if `feeConfigs.gasFee` is not provided
+     *                              since we don't have to fetch sell token amount per wei before sampler.
      * @param gasPrice Gas price.
      * @param quoteGasEstimate Gas estimate for swap quote.
      * @param gasPerOnChainTransfer The gas cost per on-chain transfer.
