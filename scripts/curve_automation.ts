@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
-import { readFileSync, writeFileSync, createWriteStream} from "fs";
-import { execSync, spawn } from 'child_process';
+import { readFileSync, writeFileSync, createWriteStream, constants as FS_CONST} from "fs";
+import { ChildProcessWithoutNullStreams, execSync, spawn } from 'child_process';
 import axios from "axios";
 const curve_factory_crypto = "https://api.curve.fi/api/getPools/ethereum/factory-crypto";
 const curve_factory = "https://api.curve.fi/api/getPools/ethereum/factory";
@@ -164,29 +164,44 @@ return `    '${pool.address}': ${fnName}({
     }),`
 }
 
-type VersionAddressPool = {[version: string]: {[address: string]: string} }
+type VersionAddressPool = {[version: string]: {[address: string]: string} };
+type VersionPool = {[version: string]: CurvePool[]};
 
-const generateCodeSnippets = (pools: CurvePool[]) => {
-	const versionAddressPool: VersionAddressPool = {};
-	versionAddressPool['v1'] = {};
-	versionAddressPool['v2'] = {};
+const generatedCodeForPool = (pool: CurvePool): string => {
+	if (pool.isMetaPool) {
+		return generateCodeBlock(pool, 'createCurveExchangeUnderlyingPool', '600e3');
+	}
+	else if (pool.id.includes('v2')){
+		return generateCodeBlock(pool, 'createCurveExchangeV2Pool', '330e3');
+	}
+	else {
+		return generateCodeBlock(pool, 'createCurveExchangePool', '600e3');
+	} 
+}
+
+const poolByVersion = (pools: CurvePool[]): VersionPool => {
+	const versionPool: VersionPool = {};
+	versionPool['v1'] = [];
+	versionPool['v2'] = [];
 	pools.forEach(pool => {
 		if (pool.isMetaPool) {
-			versionAddressPool['v1'][pool.address] = generateCodeBlock(pool, 'createCurveExchangeUnderlyingPool', '600e3');
+			versionPool['v1'].push(pool);
 		}
 		else if (pool.id.includes('v2')){
-			versionAddressPool['v2'][pool.address] = generateCodeBlock(pool, 'createCurveExchangeV2Pool', '330e3');
+			versionPool['v2'].push(pool);
 		}
 		else {
-			versionAddressPool['v1'][pool.address] = generateCodeBlock(pool, 'createCurveExchangePool', '600e3');
+			versionPool['v1'].push(pool);
 		} 
 	})
-	return versionAddressPool;
+	return versionPool
 }
 
 const ROOT_DIR = process.env.ZERO_EX_REPOS;
-const CURVE_SOURCE_FILE =`${ROOT_DIR}/src/asset-swapper/utils/market_operation_utils/curve.ts`
-const API_LOG_FILE = `${ROOT_DIR}/scripts/log/0x-api.log`
+const CURVE_SOURCE_FILE =`${ROOT_DIR}/0x-api/src/asset-swapper/utils/market_operation_utils/curve.ts`
+const API_LOG_FILE = `${ROOT_DIR}/0x-api/scripts/logs/0x-api.log`
+const RESULTS_FILE = `${ROOT_DIR}/0x-api/scripts/logs/auto_curve.log`
+const SIMBOT_DIR = `${ROOT_DIR}/0x-api-simbot/`
 
 const addPoolsToSource = (version: string, snippets: string[]) => {
 	const anchorString = `\/\/ ANCHOR FOR MAINNET ${version.toUpperCase()} DO NOT DELETE`;
@@ -219,33 +234,11 @@ const createSingleEntryCurveInfo = (version: string, snippet: string) => {
 
 const renameVar = (version: string) => {
 	const varName = versionToVarName[version];
-	const re = new RegExp(`${varName}`, 'g');
+	const re = new RegExp(`${varName}:`, 'g');
 	const sourceCode = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
-	const newCode = sourceCode.replace(re, `${varName}_TMP`);
+	const newCode = sourceCode.replace(re, `${varName}_TMP:`);
 	writeFileSync(CURVE_SOURCE_FILE, newCode);
 }
-
-// yarn start-ab \
-//     -U "matcha=https://api.0x.org/swap/v1/quote" \
-//     -u "dev=http://localhost:3000/swap/v1/quote" \
-//     --swap-value 1 10 100 1000 10000 100000 1000000 5000000 10000000 \
-//     -p USDC/DAI \
-//     -p USDC/FRAX \
-//     -p USDC/LUSD \
-//     -p USDT/DAI \
-//     -p USDT/USDC \
-//     -p WBTC/USDC \
-//     -p WBTC/USDT \
-//     -p WETH/DAI \
-//     -p WETH/icETH \
-//     -p WETH/MATIC \
-//     -p WETH/SAND \
-//     -p WETH/stETH \
-//     -p WETH/USDC \
-//     -p WETH/USDT \
-//     -p WETH/WBTC \
-//     -p XMON/WETH
-
 
 const runSimbot = (tokenAddresses: string[]) => {
 
@@ -254,13 +247,14 @@ const runSimbot = (tokenAddresses: string[]) => {
 	})
 	
 	const nodeRPC = process.env.ETHEREUM_RPC_URL;
-	const partialCommand = 'yarn start-ab'
+	const partialCommand = 'yarn start-ab '
+	// TODO: fix this once simbot supports ABC=0x....
 	const args = [
 		'-u', 'dev=http://localhost:3000/swap/v1/quote?includeSources=Curve,Curve_V2',
 		'--swap-value', '1000 10000 100000 1000000',
 		'-p', 'USDC/DAI',
-		'--token-address-list', tokenList,
-		'-d', '60s',
+		// '--token-address-list', tokenList,
+		'-d', '20s',
 		'--swap-wait', '5',
 	];
 	const fullCommand = `${partialCommand}${args.join(' ')}`
@@ -268,59 +262,120 @@ const runSimbot = (tokenAddresses: string[]) => {
 		...process.env,
 		NODE_RPC: nodeRPC, 
 	}
-	execSync()
-	
-
+	const buf = execSync(fullCommand, { env, cwd: SIMBOT_DIR });
+	const res = '' + buf;
+	return res;
 }
 
-const testNewCurvePools = (versionAddressPool: VersionAddressPool) => {
+type VersionPoolSimbotSuccess= {[version: string]: {[poolAddress: string]: boolean}};
+
+const testNewCurvePools = (versionPool: VersionPool): VersionPoolSimbotSuccess => {
+	const ret: VersionPoolSimbotSuccess = {
+		'v1': {},
+		'v2': {},
+	};
 	const sourceBackup = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
-	Object.keys(versionAddressPool).forEach(renameVar);
-	Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
-		Object.entries(addressPool).forEach(([address, snippet]) => {
-			console.log(`starting test for curve pool ${address}`)
-			createSingleEntryCurveInfo(version, snippet)
-			const res = execSync('yarn build');
-			console.log('' + res);
-			const apiProcess = spawn('yarn start');
-			const zrxLogStream = createWriteStream(API_LOG_FILE, {flags: 'a'});
-			apiProcess.stdout.pipe(zrxLogStream);
-			apiProcess.stderr.pipe(zrxLogStream);
-			console.log(`the pid is ${apiProcess.pid}`);
+	Object.keys(versionPool).forEach(renameVar);
 
+	try {
+		Object.entries(versionPool).forEach(([version, pools]) => {
+			pools.forEach(pool => {
+				let apiProcess: ChildProcessWithoutNullStreams | null = null;
+				const zrxLogStream = createWriteStream(API_LOG_FILE, {flags: 'a'});
+				try {
+					console.log(`starting test for curve pool ${pool.address}`)
+					const snippet = generatedCodeForPool(pool)
+					createSingleEntryCurveInfo(version, snippet)
+					const res = execSync('yarn build');
+					console.log('' + res);
+					apiProcess = spawn('yarn', ['start']);
+					apiProcess.stdout.pipe(zrxLogStream);
+					apiProcess.stderr.pipe(zrxLogStream);
+					console.log(`the pid is ${apiProcess.pid}`);
 
-			execSync('sleep 60');
-			apiProcess.kill();
-			zrxLogStream.close();
-			exit(1)
-
-			// configure simbot
-			// run simbot for x seconds
-			// kill 0x-api process
-			// check for successful trades
-			
-			// writeFileSync(CURVE_SOURCE_FILE, sourceBackup);
+					const simbotResutls = runSimbot(pool.coins);
+					console.log(simbotResutls);
+					const matches = [...simbotResutls.matchAll(/BUY|SELL/g)];
+					const numMatches = matches.length
+					console.log('numMatches', numMatches);
+					ret[version][pool.address] = numMatches > 0;
+					console.log('ret', ret[version][pool.address]);
+				} catch (e) {
+					console.log('an error',e);
+				} finally {
+					if (apiProcess) {
+						apiProcess.kill();
+					}
+					zrxLogStream.close();
+					writeFileSync(CURVE_SOURCE_FILE, sourceBackup);
+				}
+				// TODO: remove only used to short circuit for testing
+				throw new Error('blah')
+			})
 		})
-	})
 
-	// Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
+	} finally {
+		const results: string[] = [];
+		Object.entries(ret).forEach(([version, poolAddress]) => {
+			Object.entries(poolAddress).forEach(([address,success]) => {
+				results.push(`${version},${address},${success}`)
+			})
+		})
+		console.log('going to write results to file');
+		writeFileSync(RESULTS_FILE, results.join('\n'));
+	}
 
-
-
-	// });
-
+	return ret;
 }
+
+// const testNewCurvePools = (versionAddressPool: VersionAddressPool) => {
+// 	const sourceBackup = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
+// 	Object.keys(versionAddressPool).forEach(renameVar);
+// 	Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
+// 		Object.entries(addressPool).forEach(([address, snippet]) => {
+// 			console.log(`starting test for curve pool ${address}`)
+// 			createSingleEntryCurveInfo(version, snippet)
+// 			const res = execSync('yarn build');
+// 			console.log('' + res);
+// 			const apiProcess = spawn('yarn start');
+// 			const zrxLogStream = createWriteStream(API_LOG_FILE, {flags: 'a'});
+// 			apiProcess.stdout.pipe(zrxLogStream);
+// 			apiProcess.stderr.pipe(zrxLogStream);
+// 			console.log(`the pid is ${apiProcess.pid}`);
+
+// 			runSimbot()
+
+
+
+// 			apiProcess.kill();
+// 			zrxLogStream.close();
+// 			exit(1)
+
+// 			// configure simbot
+// 			// run simbot for x seconds
+// 			// kill 0x-api process
+// 			// check for successful trades
+			
+// 			// writeFileSync(CURVE_SOURCE_FILE, sourceBackup);
+// 		})
+// 	})
+
+// 	// Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
+
+
+
+// 	// });
+
+// }
 
 getCurvePools().then((curvePools: {[name: string]: CurvePool}) => {
 
 	const curveInfos = generateCurveInfoMainnet(Object.values(curvePools));
+	const versionPool = poolByVersion(Object.values(curvePools));
 
-	const versionAddressPool = generateCodeSnippets(Object.values(curvePools));
-	testNewCurvePools(versionAddressPool);
+	testNewCurvePools(versionPool);
 
-	// once all the tests pass update the code files
-	// Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
-	// 	addPoolsToSource(version, Object.values(addressPool));
-	// })
+	
+
 	
 });
