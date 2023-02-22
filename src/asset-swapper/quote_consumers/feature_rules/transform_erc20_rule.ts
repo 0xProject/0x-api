@@ -29,7 +29,6 @@ import { IZeroExContract } from '@0x/contract-wrappers';
 import { TransformerNonces } from '../types';
 import { AbstractFeatureRule } from './abstract_feature_rule';
 import * as _ from 'lodash';
-import { ZERO } from '../../../constants';
 
 // Transformation of `TransformERC20` feature.
 interface ERC20Transformation {
@@ -103,10 +102,8 @@ export class TransformERC20Rule extends AbstractFeatureRule {
             // Adjust the sell amount by the fee for meta-transaction v1. We don't need to adjust the amount for v2
             // since fee transfer won't happen in `transformERC20`
             if (metaTransactionVersion === 'v1') {
-                const totalSellTokenFeeAmount = sellTokenAffiliateFees.reduce(
-                    (totalSellTokenFeeAmount, sellTokenAffiliateFees) =>
-                        totalSellTokenFeeAmount.plus(sellTokenAffiliateFees.sellTokenFeeAmount),
-                    ZERO,
+                const totalSellTokenFeeAmount = BigNumber.sum(
+                    ...sellTokenAffiliateFees.map((fee) => fee.sellTokenFeeAmount),
                 );
                 sellAmount = sellAmount.plus(totalSellTokenFeeAmount);
             }

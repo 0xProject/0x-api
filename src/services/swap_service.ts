@@ -368,6 +368,8 @@ export class SwapService implements ISwapService {
                 // meta-transaction v2 uses `FixinTokenSpender._transferERC20TokensFrom`.
             ));
 
+            // Throw if `sellAmount` is not able to cover fees charged in sell tokens. This is most likely to happen
+            // if the trade size is too small.
             if (sellAmount.lte(sellTokenFeeAmount)) {
                 logger.info(
                     {
@@ -941,7 +943,8 @@ export class SwapService implements ISwapService {
         const sellTokenFeeOnChainTransfers: AffiliateFeeAmount[] = onChainTransfers
             .map((onChainTransfer) => {
                 return {
-                    feeType: onChainTransfer.affilateFeeType,
+                    // The affiliate fee type does not matter for `sellTokenFee`. It's only included for type compatibility.
+                    feeType: AffiliateFeeType.GaslessFee,
                     recipient: onChainTransfer.feeRecipient,
                     buyTokenFeeAmount: ZERO,
                     sellTokenFeeAmount: onChainTransfer.feeAmount,

@@ -38,6 +38,8 @@ import { QuoteRequestor } from './utils/quote_requestor';
 import { assert } from './utils/utils';
 import { calculateQuoteInfo } from './utils/quote_info';
 import { SignedLimitOrder } from '../asset-swapper';
+import { isNativeSymbolOrAddress, isNativeWrappedSymbolOrAddress } from '@0x/token-metadata';
+import { CHAIN_ID } from '../config';
 
 export class SwapQuoter {
     public readonly provider: ZeroExProvider;
@@ -159,10 +161,16 @@ export class SwapQuoter {
     }
 
     /**
-     * Returns the token amount per wei by checking token <-> native token in sampler
+     * Returns the token amount per wei by checking token <-> native token in sampler. Note that the function name & output ends with `PerWei`
+     * instead of `AmountPerEth` which is a legacy naming convention used in the repo that intends to mean per wei.
      */
     public async getTokenAmountPerWei(token: string, options: Partial<SwapQuoteRequestOpts>): Promise<BigNumber> {
-        return await this._marketOperationUtils.getTokenAmountPerWei(token, options);
+        // Return 1 if `token` is native or wrapped native token
+        if (isNativeSymbolOrAddress(token, CHAIN_ID) || isNativeWrappedSymbolOrAddress(token, CHAIN_ID)) {
+            return new BigNumber(1);
+        }
+
+        return this._marketOperationUtils.getTokenAmountPerWei(token, options);
     }
 
     /**

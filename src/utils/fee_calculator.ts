@@ -1,5 +1,4 @@
 import { BigNumber } from '@0x/utils';
-import { AffiliateFeeType } from '../asset-swapper';
 import { ZERO } from '../constants';
 import {
     GasFee,
@@ -16,7 +15,6 @@ interface OnChainTransfer {
     feeToken: string;
     feeAmount: BigNumber;
     feeRecipient: string;
-    affilateFeeType: AffiliateFeeType;
 }
 
 /**
@@ -132,7 +130,6 @@ function _calculateTotalOnChainFees(
             feeRecipient: fees.integratorFee.feeRecipient,
             feeToken: fees.integratorFee.feeToken,
             feeAmount: currentIntegratorFeeAmount.plus(fees.integratorFee.feeAmount.minus(zeroExFeeAdjustment)),
-            affilateFeeType: AffiliateFeeType.PercentageFee,
         });
     }
     // 0x fee
@@ -148,7 +145,6 @@ function _calculateTotalOnChainFees(
             feeRecipient: fees.zeroExFee.feeRecipient,
             feeToken: fees.zeroExFee.feeToken,
             feeAmount: currentZeroExFeeAmount.plus(fees.zeroExFee.feeAmount),
-            affilateFeeType: AffiliateFeeType.PercentageFee,
         });
     }
     // Gas fee
@@ -163,17 +159,13 @@ function _calculateTotalOnChainFees(
             feeRecipient: fees.gasFee.feeRecipient,
             feeToken: fees.gasFee.feeToken,
             feeAmount: currentGasFeeAmount.plus(fees.gasFee.feeAmount),
-            affilateFeeType: AffiliateFeeType.GaslessFee,
         });
     }
 
     const onChainTransfersGas = gasPerOnChainTransfer.times(feeRecipientToOnChainTransfer.size);
     const onChainTransfers = [...feeRecipientToOnChainTransfer.values()];
     return {
-        totalOnChainFeeAmount: onChainTransfers.reduce(
-            (totalOnChainFeeAmount, onChainTransfer) => totalOnChainFeeAmount.plus(onChainTransfer.feeAmount),
-            ZERO,
-        ),
+        totalOnChainFeeAmount: BigNumber.sum(...onChainTransfers.map((onChainTransfer) => onChainTransfer.feeAmount)),
         onChainTransfers,
         onChainTransfersGas,
     };
