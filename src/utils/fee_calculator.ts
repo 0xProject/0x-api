@@ -165,7 +165,10 @@ function _calculateTotalOnChainFees(
     const onChainTransfersGas = gasPerOnChainTransfer.times(feeRecipientToOnChainTransfer.size);
     const onChainTransfers = [...feeRecipientToOnChainTransfer.values()];
     return {
-        totalOnChainFeeAmount: BigNumber.sum(...onChainTransfers.map((onChainTransfer) => onChainTransfer.feeAmount)),
+        totalOnChainFeeAmount: onChainTransfers.reduce(
+            (totalOnChainFeeAmount, onChainTransfer) => totalOnChainFeeAmount.plus(onChainTransfer.feeAmount),
+            ZERO,
+        ),
         onChainTransfers,
         onChainTransfersGas,
     };
@@ -260,7 +263,7 @@ function _calculateGasFee(opts: {
         opts.integratorFee &&
         opts.integratorFee.billingType === 'on-chain' &&
         opts.integratorFee.feeRecipient &&
-        opts.integratorFee.feeAmount.gt(0)
+        opts.integratorFee.feeAmount.gt(ZERO)
     ) {
         feeRecipients.add(opts.integratorFee.feeRecipient);
     }
@@ -268,7 +271,7 @@ function _calculateGasFee(opts: {
         opts.zeroExFee &&
         opts.zeroExFee.billingType === 'on-chain' &&
         opts.zeroExFee.feeRecipient &&
-        opts.zeroExFee.feeAmount.gt(0)
+        opts.zeroExFee.feeAmount.gt(ZERO)
     ) {
         feeRecipients.add(opts.zeroExFee.feeRecipient);
     }
