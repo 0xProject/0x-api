@@ -124,7 +124,7 @@ function generateCurveInfoMainnet(pools: CurvePool[]) {
 
 	//classify curve pool
 
-	const curveInfos: {[name: string]: CurveInfo} = {}
+	const curveInfos: {[address: string]: CurveInfo} = {}
 	pools.forEach(pool => {
 		if (pool.isMetaPool) {
 			curveInfos[pool.address] = createCurveExchangeUnderlyingPool({
@@ -164,10 +164,18 @@ return `    '${pool.address}': ${fnName}({
     }),`
 }
 
+// const generateCodeBlock = (pool: CurvePool, fnName: string, gas: string) => {
+// return `    '${pool.address}': ${fnName}({
+//         tokens: ${generateTokenList(pool.coinsAddresses)},
+//         pool: '${pool.address}',
+//         gasSchedule: ${gas},
+//     }),`
+// }
+
 type VersionAddressPool = {[version: string]: {[address: string]: string} };
 type VersionPool = {[version: string]: CurvePool[]};
 
-const generatedCodeForPool = (pool: CurvePool): string => {
+const generateCodeForPool = (pool: CurvePool): string => {
 	if (pool.isMetaPool) {
 		return generateCodeBlock(pool, 'createCurveExchangeUnderlyingPool', '600e3');
 	}
@@ -203,14 +211,25 @@ const API_LOG_FILE = `${ROOT_DIR}/0x-api/scripts/logs/0x-api.log`
 const RESULTS_FILE = `${ROOT_DIR}/0x-api/scripts/logs/auto_curve.log`
 const SIMBOT_DIR = `${ROOT_DIR}/0x-api-simbot/`
 
-const addPoolsToSource = (version: string, snippets: string[]) => {
+// const addPoolsToSource = (version: string, snippets: string[]) => {
+// 	const anchorString = `\/\/ ANCHOR FOR MAINNET ${version.toUpperCase()} DO NOT DELETE`;
+// 	const anchor = new RegExp(`.*${anchorString}`, 'g');
+// 	const sourceToModify = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
+// 	const codeToAdd = `${snippets.join('\n')}\n    ${anchorString}`
+// 	const newSource = sourceToModify.replace(anchor, codeToAdd);
+// 	console.log(newSource);
+// 	writeFileSync(CURVE_SOURCE_FILE, newSource);
+// }
+
+const addPoolsToSource = (version: string, pools: CurvePool[]) => {
+	const snippets = pools.map(generateCodeForPool)
 	const anchorString = `\/\/ ANCHOR FOR MAINNET ${version.toUpperCase()} DO NOT DELETE`;
 	const anchor = new RegExp(`.*${anchorString}`, 'g');
 	const sourceToModify = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
 	const codeToAdd = `${snippets.join('\n')}\n    ${anchorString}`
 	const newSource = sourceToModify.replace(anchor, codeToAdd);
-	console.log(newSource);
 	writeFileSync(CURVE_SOURCE_FILE, newSource);
+
 }
 
 const versionToVarName: { [version: string]: string} = {
@@ -275,16 +294,16 @@ const testNewCurvePools = (versionPool: VersionPool): VersionPoolSimbotSuccess =
 		'v2': {},
 	};
 	const sourceBackup = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
-	Object.keys(versionPool).forEach(renameVar);
 
 	try {
 		Object.entries(versionPool).forEach(([version, pools]) => {
 			pools.forEach(pool => {
+				['v1', 'v2'].forEach(renameVar);
 				let apiProcess: ChildProcessWithoutNullStreams | null = null;
 				const zrxLogStream = createWriteStream(API_LOG_FILE, {flags: 'a'});
 				try {
 					console.log(`starting test for curve pool ${pool.address}`)
-					const snippet = generatedCodeForPool(pool)
+					const snippet = generateCodeForPool(pool)
 					createSingleEntryCurveInfo(version, snippet)
 					const res = execSync('yarn build');
 					console.log('' + res);
@@ -301,7 +320,7 @@ const testNewCurvePools = (versionPool: VersionPool): VersionPoolSimbotSuccess =
 					ret[version][pool.address] = numMatches > 0;
 					console.log('ret', ret[version][pool.address]);
 				} catch (e) {
-					console.log('an error',e);
+					console.log('an error', e);
 				} finally {
 					if (apiProcess) {
 						apiProcess.kill();
@@ -310,7 +329,7 @@ const testNewCurvePools = (versionPool: VersionPool): VersionPoolSimbotSuccess =
 					writeFileSync(CURVE_SOURCE_FILE, sourceBackup);
 				}
 				// TODO: remove only used to short circuit for testing
-				throw new Error('blah')
+				// throw new Error('blah')
 			})
 		})
 
@@ -328,54 +347,28 @@ const testNewCurvePools = (versionPool: VersionPool): VersionPoolSimbotSuccess =
 	return ret;
 }
 
-// const testNewCurvePools = (versionAddressPool: VersionAddressPool) => {
-// 	const sourceBackup = readFileSync(CURVE_SOURCE_FILE, {encoding: 'utf8'});
-// 	Object.keys(versionAddressPool).forEach(renameVar);
-// 	Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
-// 		Object.entries(addressPool).forEach(([address, snippet]) => {
-// 			console.log(`starting test for curve pool ${address}`)
-// 			createSingleEntryCurveInfo(version, snippet)
-// 			const res = execSync('yarn build');
-// 			console.log('' + res);
-// 			const apiProcess = spawn('yarn start');
-// 			const zrxLogStream = createWriteStream(API_LOG_FILE, {flags: 'a'});
-// 			apiProcess.stdout.pipe(zrxLogStream);
-// 			apiProcess.stderr.pipe(zrxLogStream);
-// 			console.log(`the pid is ${apiProcess.pid}`);
-
-// 			runSimbot()
-
-
-
-// 			apiProcess.kill();
-// 			zrxLogStream.close();
-// 			exit(1)
-
-// 			// configure simbot
-// 			// run simbot for x seconds
-// 			// kill 0x-api process
-// 			// check for successful trades
-			
-// 			// writeFileSync(CURVE_SOURCE_FILE, sourceBackup);
-// 		})
-// 	})
-
-// 	// Object.entries(versionAddressPool).forEach(([version, addressPool]) => {
-
-
-
-// 	// });
-
-// }
 
 getCurvePools().then((curvePools: {[name: string]: CurvePool}) => {
 
-	const curveInfos = generateCurveInfoMainnet(Object.values(curvePools));
-	const versionPool = poolByVersion(Object.values(curvePools));
+	const curvePoolsByAddress = Object.fromEntries(Object.values(curvePools).map(pool => [pool.address, pool]));
+	// const versionPool = poolByVersion(Object.values(curvePools));
 
-	testNewCurvePools(versionPool);
+	// TODO remove me after testing
+	let versionPool = poolByVersion(Object.values(curvePools));
+	const tmp =  versionPool['v1'];
+	versionPool = { 'v1': [tmp[0], tmp[1]] };
 
-	
 
+	const versionPoolResult = testNewCurvePools(versionPool);
+	Object.entries(versionPoolResult).forEach(([version, poolResults]) => {
+		const poolAddresses = Object.entries(poolResults).filter(([_, success]) => {
+			return success;
+		}).map(([left, _]) => left);
+		const poolsToAdd = poolAddresses.map(address => {
+			return curvePoolsByAddress[address];
+		})
+		addPoolsToSource(version, poolsToAdd);
+
+	})
 	
 });
