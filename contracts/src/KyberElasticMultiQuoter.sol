@@ -47,7 +47,9 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
         bool isExactInput; // true = input qty, false = output qty
         uint128 baseL; // the cached base pool liquidity without reinvestment liquidity
         uint128 reinvestL; // the cached reinvestment liquidity
-        uint256 amountsIndex;
+        uint256 amountsIndex; // index at which amount we're currently swapping to
+        uint256 gasAggregate; // amount of gas used up to the current tick
+        uint256 gasResidual; // amount of gas used between current tick and current price 
     }
 
     // TODO: same as uniswapv3 multiquoter logic. see if we can make generic.
@@ -186,7 +188,10 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
             swapData.currentTick,
             swapData.nextTick
         ) = _getInitialSwapData(pool, willUpTick);
+
         swapData.amountsIndex = 0;
+        swapData.gasAggregate = 0;
+        swapData.gasResidual = 0;
 
         // verify limitSqrtP
         if (willUpTick) {
@@ -237,16 +242,18 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
                 swapData.reinvestL += deltaL.toUint128();
             }
 
-            // if price has not reached the next sqrt price
+            // if price has not reached the next sqrt price (still liquidity in current tick)
             if (swapData.sqrtP != swapData.nextSqrtP) {
                 swapData.currentTick = TickMath.getTickAtSqrtRatio(swapData.sqrtP);
                 if (swapData.amountsIndex == amounts.length - 1) {
                     break;
                 }
+
+                // use max since we want to over estimate
+                swapData.gasResidual = max(swapData.gasResidual, gasBefore - gasleft());
             } else {
                 swapData.currentTick = willUpTick ? tempNextTick : tempNextTick - 1;
 
-                // if tempNextTick is not next initialized tick
                 if (tempNextTick == swapData.nextTick) {
                     (swapData.baseL, swapData.nextTick) = _updateLiquidityAndCrossTick(
                         pool,
@@ -255,6 +262,8 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
                         willUpTick
                     );
                 }
+                swapData.gasAggregate += (gasBefore - gasleft());
+                gasBefore = gasleft();
             }
             if (swapData.specifiedAmount == 0) {
                 (result.amounts0[swapData.amountsIndex], result.amounts1[swapData.amountsIndex]) = isToken0 ==
@@ -262,7 +271,7 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
                     ? (amounts[swapData.amountsIndex], swapData.returnedAmount)
                     : (swapData.returnedAmount, amounts[swapData.amountsIndex]);
 
-                result.gasEstimates[swapData.amountsIndex] = gasBefore - gasleft();
+                result.gasEstimates[swapData.amountsIndex] = swapData.gasAggregate + swapData.gasResidual;
 
                 if (swapData.amountsIndex == amounts.length - 1) {
                     return (result);
@@ -279,7 +288,11 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
                 : (swapData.returnedAmount, amounts[i]);
         }
 
-        result.gasEstimates[swapData.amountsIndex] = gasBefore - gasleft();
+        result.gasEstimates[swapData.amountsIndex] = swapData.gasAggregate + swapData.gasResidual;
+    }
+
+    function max(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a : b;
     }
 
     /// @dev Update liquidity net data and do cross tick
