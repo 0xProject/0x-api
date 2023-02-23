@@ -335,54 +335,33 @@ export class SwapService implements ISwapService {
         let sellTokenFeeAmounts: AffiliateFeeAmount[] = []; // sell token fee amounts used by affiliate fee transformer
         let sellTokenFeeOnChainTransferGas = ZERO; // the gas cost for transferring sell token fee on-chain
         if (metaTransactionVersion !== undefined && marketSide === MarketOperation.Sell) {
-            // Use sell token as fee
-
             // Narrow the type
             if (!sellAmount) {
                 throw new Error('sellAmount is undefined when market direction is sell');
             }
-
+            // Use sell token as fee
             feeToken = sellToken;
             if (!providedGasPrice) {
                 providedGasPrice = await this._swapQuoter.getGasPriceEstimationOrThrowAsync();
             }
 
-            // Only get `sellTokenAmountPerWei` when necessary
-            const sellTokenAmountPerWei = feeConfigs?.gasFee
-                ? await this._swapQuoter.getTokenAmountPerWei(sellToken, {})
-                : undefined;
             // Need to calculate all fees in order to adjust `sellAmount` before passing it down to sampler & router
             ({
                 sellTokenFees,
                 sellTokenFeeAmount,
                 sellTokenFeeOnChainTransfers: sellTokenFeeAmounts,
                 sellTokenFeeOnChainTransferGas,
-            } = this._getSellTokenFees(
+            } = await this._getSellTokenFees(
+                marketSide,
                 feeConfigs,
                 sellToken,
                 sellAmount,
-                sellTokenAmountPerWei,
+                undefined,
                 providedGasPrice,
                 AVG_MULTIPLEX_TRANFORM_ERC_20_GAS, // use historic average gas cost for multiplex & transformERC20
                 metaTransactionVersion === 'v1' ? TRANSFER_GAS : TRANSFER_FROM_GAS, // meta-transaction v1 uses affiliate fee transformer which calls `transformerTransfer` for on-chain fee transfer.
                 // meta-transaction v2 uses `FixinTokenSpender._transferERC20TokensFrom`.
             ));
-
-            // Throw if `sellAmount` is not able to cover fees charged in sell tokens. This is most likely to happen
-            // if the trade size is too small.
-            if (sellAmount.lte(sellTokenFeeAmount)) {
-                logger.info(
-                    {
-                        sellTokenFees,
-                        sellTokenFeeAmount,
-                        sellTokenFeeAmounts,
-                        sellTokenFeeOnChainTransferGas,
-                        sellAmount,
-                    },
-                    'sellAmount <= sell token fee amount',
-                );
-                throw new InsufficientFundsError('sellAmount insufficient to cover fees');
-            }
         }
 
         const assetSwapperOpts: Partial<SwapQuoteRequestOpts> = {
@@ -441,7 +420,8 @@ export class SwapService implements ISwapService {
                 sellTokenFeeAmount,
                 sellTokenFeeOnChainTransfers: sellTokenFeeAmounts,
                 sellTokenFeeOnChainTransferGas,
-            } = this._getSellTokenFees(
+            } = await this._getSellTokenFees(
+                marketSide,
                 feeConfigs,
                 sellToken,
                 totalTakerAmount,
@@ -903,6 +883,7 @@ export class SwapService implements ISwapService {
     /**
      * Get sell token fee and corresponding on-chain transfers.
      *
+     * @param marketSide Indicates if it's a sell or a buy operation.
      * @param feeConfigs Fee configs object. Undefined if `feeConfigs` is not provided in the request.
      * @param sellToken Sell token address.
      * @param sellAmount Sell amount.
@@ -914,7 +895,8 @@ export class SwapService implements ISwapService {
      * @returns Fees object, total sell token amount to charge, sell token on-chain transfer and the gas
      *          used for on-chain transfers.
      */
-    private _getSellTokenFees(
+    private async _getSellTokenFees(
+        marketSide: MarketOperation,
         feeConfigs: FeeConfigs | undefined,
         sellToken: string,
         sellAmount: BigNumber,
@@ -922,12 +904,21 @@ export class SwapService implements ISwapService {
         gasPrice: BigNumber,
         quoteGasEstimate: BigNumber,
         gasPerOnChainTransfer: BigNumber,
-    ): {
+    ): Promise<{
         sellTokenFees: Fees | undefined; // fees object to return to the caller
         sellTokenFeeAmount: BigNumber; // total sell token fee to charge
         sellTokenFeeOnChainTransfers: AffiliateFeeAmount[]; // sell token fee amounts used by affiliate fee transformer
         sellTokenFeeOnChainTransferGas: BigNumber; // the gas cost for transferring sell token fee on-chain
-    } {
+    }> {
+        /**
+         * Only get `sellTokenAmountPerWei` when:
+         * - it's not provided and
+         * - it's a sell operation and
+         * - gas fee config is present
+         */
+        if (sellTokenAmountPerWei === undefined && marketSide === MarketOperation.Sell && feeConfigs?.gasFee) {
+            sellTokenAmountPerWei = await this._swapQuoter.getTokenAmountPerWei(sellToken, {});
+        }
         const { fees, totalOnChainFeeAmount, onChainTransfers, onChainTransfersGas } = calculateFees({
             feeConfigs,
             sellToken,
@@ -952,6 +943,22 @@ export class SwapService implements ISwapService {
             })
             .filter((onChainFeeTransfer) => onChainFeeTransfer.sellTokenFeeAmount.gt(ZERO));
         const sellTokenFeeOnChainTransferGas = onChainTransfersGas;
+
+        // Throw if `sellAmount` is not able to cover fees charged in sell tokens for a sell operation. This is most likely to happen
+        // if the trade size is too small.
+        if (marketSide === MarketOperation.Sell && sellAmount.lte(sellTokenFeeAmount)) {
+            logger.info(
+                {
+                    sellTokenFees,
+                    sellTokenFeeAmount,
+                    sellTokenFeeOnChainTransfers,
+                    sellTokenFeeOnChainTransferGas,
+                    sellAmount,
+                },
+                'sellAmount <= sell token fee amount',
+            );
+            throw new InsufficientFundsError('sellAmount insufficient to cover fees');
+        }
 
         return {
             sellTokenFees,
