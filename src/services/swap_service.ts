@@ -341,10 +341,7 @@ export class SwapService implements ISwapService {
             }
             // Use sell token as fee
             feeToken = sellToken;
-            if (!providedGasPrice) {
-                providedGasPrice = await this._swapQuoter.getGasPriceEstimationOrThrowAsync();
-            }
-
+            providedGasPrice = providedGasPrice ?? (await this._swapQuoter.getGasPriceEstimationOrThrowAsync());
             // Need to calculate all fees in order to adjust `sellAmount` before passing it down to sampler & router
             ({
                 sellTokenFees,
@@ -356,11 +353,12 @@ export class SwapService implements ISwapService {
                 feeConfigs,
                 sellToken,
                 sellAmount,
-                undefined,
+                undefined, // sell token amount per wei is not known yet
                 providedGasPrice,
                 AVG_MULTIPLEX_TRANFORM_ERC_20_GAS, // use historic average gas cost for multiplex & transformERC20
-                metaTransactionVersion === 'v1' ? TRANSFER_GAS : TRANSFER_FROM_GAS, // meta-transaction v1 uses affiliate fee transformer which calls `transformerTransfer` for on-chain fee transfer.
+                // meta-transaction v1 uses affiliate fee transformer which calls `transformerTransfer` for on-chain fee transfer.
                 // meta-transaction v2 uses `FixinTokenSpender._transferERC20TokensFrom`.
+                metaTransactionVersion === 'v1' ? TRANSFER_GAS : TRANSFER_FROM_GAS,
             ));
         }
 
@@ -428,8 +426,9 @@ export class SwapService implements ISwapService {
                 swapQuote.takerAmountPerEth,
                 gasPrice,
                 new BigNumber(worstCaseGas), // use worst case faux gas estimate from quote
-                metaTransactionVersion === 'v1' ? TRANSFER_GAS : TRANSFER_FROM_GAS, // meta-transaction v1 uses affiliate fee transformer which calls `transformerTransfer` for on-chain fee transfer.
+                // meta-transaction v1 uses affiliate fee transformer which calls `transformerTransfer` for on-chain fee transfer.
                 // meta-transaction v2 uses `FixinTokenSpender._transferERC20TokensFrom`.
+                metaTransactionVersion === 'v1' ? TRANSFER_GAS : TRANSFER_FROM_GAS,
             ));
         }
 
@@ -887,8 +886,7 @@ export class SwapService implements ISwapService {
      * @param feeConfigs Fee configs object. Undefined if `feeConfigs` is not provided in the request.
      * @param sellToken Sell token address.
      * @param sellAmount Sell amount.
-     * @param sellTokenAmountPerWei Sell token token amount per 1 wei native token. Undefined if `feeConfigs.gasFee` is not provided
-     *                              since we don't have to fetch sell token amount per wei before sampler.
+     * @param sellTokenAmountPerWei Sell token token amount per 1 wei native token. Undefined if it's not availabe yet.
      * @param gasPrice Gas price.
      * @param quoteGasEstimate Gas estimate for swap quote.
      * @param gasPerOnChainTransfer The gas cost per on-chain transfer.
