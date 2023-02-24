@@ -251,7 +251,9 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
 
                 // use max since we want to over estimate
                 swapData.gasResidual = max(swapData.gasResidual, gasBefore - gasleft());
+                gasBefore = gasleft();
             } else {
+                gasBefore = gasleft();
                 swapData.currentTick = willUpTick ? tempNextTick : tempNextTick - 1;
 
                 if (tempNextTick == swapData.nextTick) {
@@ -262,7 +264,8 @@ contract KyberElasticMultiQuoter is IMultiQuoter {
                         willUpTick
                     );
                 }
-                swapData.gasAggregate += (gasBefore - gasleft());
+                swapData.gasAggregate += (gasBefore - gasleft() + swapData.gasResidual);
+                swapData.gasResidual = 0;
                 gasBefore = gasleft();
             }
             if (swapData.specifiedAmount == 0) {

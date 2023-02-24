@@ -2022,13 +2022,13 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     [ERC20BridgeSource.KyberElastic]: (fillData?: FillData) => {
         const dexFillData = fillData as TickDEXMultiPathFillData | FinalTickDEXMultiPathFillData;
         if (isFinalPathFillData(dexFillData)) {
-            // the 1.5 coefficient is based on linear regression
+            // the coefficient is based on linear regression
             // y = a*x + b where y is actual gas used and x is the raw gas estimate
-            // for test data, b was calculated to be ~100k
-            // in practice, we set b to 150k (FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD) 
-            return dexFillData.gasUsed * 1.5;
+            // for test data, b was calculated to be ~250k
+            // since FILL_QUOTE_TRANSFORMER_GAS_OVERHEAD == 150k, we set b to 100k
+            return dexFillData.gasUsed * 4 + 100e3;
         }
-        return 250e3;
+        return 150e3; // average taken from test data
     },
     [ERC20BridgeSource.KyberDmm]: (fillData?: FillData) => {
         let gas = 170e3;
