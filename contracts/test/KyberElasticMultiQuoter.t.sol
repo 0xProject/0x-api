@@ -6,7 +6,7 @@ import "../src/KyberElasticMultiQuoter.sol";
 import "../src/KyberElasticCommon.sol";
 import {IPool, IFactory} from "../src/interfaces/IKyberElastic.sol";
 
-contract TestKyberElasticSampler is Test, KyberElasticCommon {
+contract TestKyberElasticMultiQuoter is Test, KyberElasticCommon {
     // NOTE: Example test command: forge test --fork-url $ETH_RPC_URL --fork-block-number 16400073 --etherscan-api-key $ETHERSCAN_API_KEY --match-contract "KyberElastic"
     // TODO: investigate small swap amounts ~$20 showing differences of ~$.01 (5 bps).
     uint256 constant ERROR_THRESHOLD_10_BPS = .001e18;

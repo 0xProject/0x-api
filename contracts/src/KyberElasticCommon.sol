@@ -7,7 +7,7 @@ import "./interfaces/IMultiQuoter.sol";
 contract KyberElasticCommon {
     uint256 private constant POOL_FILTERING_QUOTE_GAS = 450e3;
 
-    /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involinvg zero address(es).
+    /// @dev Returns `poolPaths` to sample against. The caller is responsible for not using path involving zero address(es).
     function _getPoolPaths(
         IMultiQuoter quoter,
         IFactory factory,

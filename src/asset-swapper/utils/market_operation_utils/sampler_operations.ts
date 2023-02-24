@@ -1713,10 +1713,6 @@ export class SamplerOperations {
                         if (REBASING_TOKENS.has(takerToken) || REBASING_TOKENS.has(makerToken)) {
                             return [];
                         }
-                        const { factory, router } = KYBER_ELASTIC_CONFIG_BY_CHAIN_ID[this.chainId];
-                        if (!isValidAddress(router) || !isValidAddress(factory)) {
-                            return [];
-                        }
                         return [
                             [takerToken, makerToken],
                             ...intermediateTokens.map((t) => [takerToken, t, makerToken]),
@@ -2065,10 +2061,6 @@ export class SamplerOperations {
                     case ERC20BridgeSource.KyberElastic: {
                         // Rebasing tokens lead to a high revert rate.
                         if (REBASING_TOKENS.has(takerToken) || REBASING_TOKENS.has(makerToken)) {
-                            return [];
-                        }
-                        const { factory, router } = KYBER_ELASTIC_CONFIG_BY_CHAIN_ID[this.chainId];
-                        if (!isValidAddress(router) || !isValidAddress(factory)) {
                             return [];
                         }
                         return [
