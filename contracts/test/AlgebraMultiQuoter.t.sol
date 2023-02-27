@@ -18,7 +18,7 @@ contract TestAlgebraMultiQuoter is Test, AlgebraCommon {
 
     IAlgebraPool constant WMATIC_WETH_POOL = IAlgebraPool(0x479e1B71A702a595e19b6d5932CD5c863ab57ee0);
     IAlgebraPool constant WMATIC_DAI_POOL = IAlgebraPool(0x6BaEad5Db7FeE6D5c9F0Ca07Bb5038C4cD279F5c);
-    
+
     IAlgebraFactory constant factory = IAlgebraFactory(0x411b0fAcC3489691f28ad58c47006AF5E3Ab3A28);
     address constant poolDeployer = 0x2D98E2FA9da15aa6dC9581AB097Ced7af697CB92;
 
@@ -85,9 +85,7 @@ contract TestAlgebraMultiQuoter is Test, AlgebraCommon {
         testAllAmountsAndPathsForBuysAndSells(tokenPath);
     }
 
-    function testAllAmountsAndPathsForBuysAndSells(
-        IERC20TokenV06[] memory tokenPath
-    ) private {
+    function testAllAmountsAndPathsForBuysAndSells(IERC20TokenV06[] memory tokenPath) private {
         uint256 algebraQuoterGasUsage;
         uint256 multiQuoterGasUsage;
 

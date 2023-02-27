@@ -26,7 +26,7 @@ import "./interfaces/IAlgebra.sol";
 
 contract AlgebraCommon {
     function toAlgebraPath(IERC20TokenV06[] memory tokenPath) internal pure returns (bytes memory algebraPath) {
-        require (tokenPath.length >= 2, "AlgebraCommon/invalid path lengths");
+        require(tokenPath.length >= 2, "AlgebraCommon/invalid path lengths");
 
         // Algebra paths are tightly packed as
         // [token0, token1, token2, ... ]

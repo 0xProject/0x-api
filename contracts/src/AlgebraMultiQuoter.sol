@@ -24,11 +24,10 @@ import "@cryptoalgebra/periphery/contracts/libraries/Path.sol";
 
 import "./interfaces/IAlgebra.sol";
 
-
 contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
     // TODO: both quoteExactMultiInput and quoteExactMultiOutput revert at the end of the quoting logic
     // and return results encodied into a revert reason. The revert should be removed and replaced with
-    // a normal return statement whenever UniswapV3Sampler and KyberElasticSampler stop having the 
+    // a normal return statement whenever UniswapV3Sampler and KyberElasticSampler stop having the
     // two pool filtering logic. AlgebraMultiQuoter has the same revert logic in order to have a common
     // interface across tick based AMM MultiQuoters.
     using SafeCast for uint256;
@@ -95,10 +94,7 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
         uint256[] memory amountsIn
     ) public view override {
         for (uint256 i = 0; i < amountsIn.length - 1; ++i) {
-            require(
-                amountsIn[i] <= amountsIn[i + 1],
-                "AlgebraMultiQuoter/amountsIn must be monotonically increasing"
-            );
+            require(amountsIn[i] <= amountsIn[i + 1], "AlgebraMultiQuoter/amountsIn must be monotonically increasing");
         }
 
         uint256[] memory gasEstimates = new uint256[](amountsIn.length);
@@ -283,16 +279,17 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
             step.sqrtPriceNextX96 = TickMath.getSqrtRatioAtTick(step.tickNext);
 
             // compute values to swap to the target tick, price limit, or point where input/output amount is exhausted
-            (state.sqrtPriceX96, step.amountIn, step.amountOut, step.feeAmount) = PriceMovementMath.movePriceTowardsTarget(
-                zeroForOne,
-                state.sqrtPriceX96,
-                (zeroForOne == (step.sqrtPriceNextX96 < sqrtPriceLimitX96))
-                    ? sqrtPriceLimitX96
-                    : step.sqrtPriceNextX96,
-                state.liquidity,
-                state.amountSpecifiedRemaining,
-                fee
-            );
+            (state.sqrtPriceX96, step.amountIn, step.amountOut, step.feeAmount) = PriceMovementMath
+                .movePriceTowardsTarget(
+                    zeroForOne,
+                    state.sqrtPriceX96,
+                    (zeroForOne == (step.sqrtPriceNextX96 < sqrtPriceLimitX96))
+                        ? sqrtPriceLimitX96
+                        : step.sqrtPriceNextX96,
+                    state.liquidity,
+                    state.amountSpecifiedRemaining,
+                    fee
+                );
 
             if (exactInput) {
                 state.amountSpecifiedRemaining -= (step.amountIn + step.feeAmount).toInt256();
@@ -326,7 +323,7 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
                 (result.amounts0[state.amountsIndex], result.amounts1[state.amountsIndex]) = zeroForOne == exactInput
                     ? (amounts[state.amountsIndex], state.amountCalculated)
                     : (state.amountCalculated, amounts[state.amountsIndex]);
-                
+
                 if (state.sqrtPriceX96 != step.sqrtPriceNextX96) {
                     result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(
                         state.gasAggregate + (step.gasBefore - gasleft())
@@ -345,12 +342,12 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
             }
         }
 
-            for (uint256 i = state.amountsIndex; i < amounts.length; ++i) {
-                (result.amounts0[i], result.amounts1[i]) = zeroForOne == exactInput
-                    ? (amounts[i] - state.amountSpecifiedRemaining, state.amountCalculated)
-                    : (state.amountCalculated, amounts[i] - state.amountSpecifiedRemaining);
-                result.gasEstimates[i] = scaleMultiswapGasEstimate(state.gasAggregate);
-            }
+        for (uint256 i = state.amountsIndex; i < amounts.length; ++i) {
+            (result.amounts0[i], result.amounts1[i]) = zeroForOne == exactInput
+                ? (amounts[i] - state.amountSpecifiedRemaining, state.amountCalculated)
+                : (state.amountCalculated, amounts[i] - state.amountSpecifiedRemaining);
+            result.gasEstimates[i] = scaleMultiswapGasEstimate(state.gasAggregate);
+        }
     }
 
     /// @notice Returns the multiswap gas estimate scaled to AlgebraPool:swap estimates
@@ -384,7 +381,7 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
         }
 
         if (lte) {
-        // unpacking not made into a separate function for gas and contract size savings
+            // unpacking not made into a separate function for gas and contract size savings
             int16 rowNumber;
             uint8 bitNumber;
             assembly {
@@ -395,7 +392,7 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
 
             if (_row != 0) {
                 tick -= int24(255 - getMostSignificantBit(_row));
-                return (tick * tickSpacing , true);
+                return (tick * tickSpacing, true);
             } else {
                 tick -= int24(bitNumber);
                 return (tick * tickSpacing, false);
@@ -429,13 +426,34 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
     function getSingleSignificantBit(uint256 word) internal pure returns (uint8 singleBitPos) {
         assembly {
             singleBitPos := iszero(and(word, 0x5555555555555555555555555555555555555555555555555555555555555555))
-            singleBitPos := or(singleBitPos, shl(7, iszero(and(word, 0x00000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF))))
-            singleBitPos := or(singleBitPos, shl(6, iszero(and(word, 0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF))))
-            singleBitPos := or(singleBitPos, shl(5, iszero(and(word, 0x00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF))))
-            singleBitPos := or(singleBitPos, shl(4, iszero(and(word, 0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF))))
-            singleBitPos := or(singleBitPos, shl(3, iszero(and(word, 0x00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF))))
-            singleBitPos := or(singleBitPos, shl(2, iszero(and(word, 0x0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F))))
-            singleBitPos := or(singleBitPos, shl(1, iszero(and(word, 0x3333333333333333333333333333333333333333333333333333333333333333))))
+            singleBitPos := or(
+                singleBitPos,
+                shl(7, iszero(and(word, 0x00000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)))
+            )
+            singleBitPos := or(
+                singleBitPos,
+                shl(6, iszero(and(word, 0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF)))
+            )
+            singleBitPos := or(
+                singleBitPos,
+                shl(5, iszero(and(word, 0x00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF)))
+            )
+            singleBitPos := or(
+                singleBitPos,
+                shl(4, iszero(and(word, 0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF)))
+            )
+            singleBitPos := or(
+                singleBitPos,
+                shl(3, iszero(and(word, 0x00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF)))
+            )
+            singleBitPos := or(
+                singleBitPos,
+                shl(2, iszero(and(word, 0x0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F)))
+            )
+            singleBitPos := or(
+                singleBitPos,
+                shl(1, iszero(and(word, 0x3333333333333333333333333333333333333333333333333333333333333333)))
+            )
         }
     }
 
