@@ -325,12 +325,10 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
                     : (state.amountCalculated, amounts[state.amountsIndex]);
 
                 if (state.sqrtPriceX96 != step.sqrtPriceNextX96) {
-                    result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(
-                        state.gasAggregate + (step.gasBefore - gasleft())
-                    );
+                    result.gasEstimates[state.amountsIndex] = state.gasAggregate + (step.gasBefore - gasleft());
                 } else {
                     // we are moving to the next tick
-                    result.gasEstimates[state.amountsIndex] = scaleMultiswapGasEstimate(state.gasAggregate);
+                    result.gasEstimates[state.amountsIndex] = state.gasAggregate;
                 }
 
                 if (state.amountsIndex == amounts.length - 1) {
@@ -346,17 +344,8 @@ contract AlgebraMultiQuoter is IAlgebraMultiQuoter {
             (result.amounts0[i], result.amounts1[i]) = zeroForOne == exactInput
                 ? (amounts[i] - state.amountSpecifiedRemaining, state.amountCalculated)
                 : (state.amountCalculated, amounts[i] - state.amountSpecifiedRemaining);
-            result.gasEstimates[i] = scaleMultiswapGasEstimate(state.gasAggregate);
+            result.gasEstimates[i] = state.gasAggregate;
         }
-    }
-
-    /// @notice Returns the multiswap gas estimate scaled to AlgebraPool:swap estimates
-    /// TODO: set the parameters after running a linear regression between QuoterV2 gas estimates and unscaled
-    /// gas estimates from multiswap
-    /// @param multiSwapEstimate the gas estimate from multiswap
-    /// @return swapEstimate the gas estimate equivalent for UniswapV3Pool:swap
-    function scaleMultiswapGasEstimate(uint256 multiSwapEstimate) private pure returns (uint256 swapEstimate) {
-        return multiSwapEstimate;
     }
 
     /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either
