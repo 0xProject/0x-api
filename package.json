@@ -117,6 +117,8 @@
         "@0x/web3-wrapper": "^8.0.0",
         "@balancer-labs/sor": "^4.1.1-beta.2",
         "@bancor/sdk": "0.2.10",
+        "@cryptoalgebra/core": "^2.0.0",
+        "@cryptoalgebra/periphery": "^1.0.0",
         "@ethersproject/abi": "^5.0.1",
         "@ethersproject/address": "^5.0.1",
         "@ethersproject/contracts": "^5.7.0",
