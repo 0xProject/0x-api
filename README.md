@@ -4,6 +4,15 @@
 [![Twitter](https://img.shields.io/badge/follow-twitter-brightgreen)](https://twitter.com/0xProject)
 [![Continuous Integration](https://github.com/0xProject/0x-api/workflows/Build%20and%20Test/badge.svg)](https://github.com/0xProject/0x-api/actions?query=workflow%3A%22Build+and+Test%22+branch%3Amaster)
 
+⚠️ DEPRECATION NOTICE ⚠️
+
+This repository is no longer maintained by the 0x team. It will remain available for download and use, but we will not be providing any further support
+For more information please see [our blog post](https://blog.0x.org/0x-protocol-a-preview-of-whats-to-come/).
+
+If you are looking to access Swap API, please contact the 0x team via the contact form in [0x.org](https://0x.org).
+
+---
+
 ![alt text](https://raw.githubusercontent.com/0xProject/0x-api/master/0x-api.png '0x API')
 
 ## Table of contents
