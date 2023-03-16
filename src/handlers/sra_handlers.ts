@@ -152,7 +152,7 @@ function validateAssetTokenOrThrow(allowedTokens: string[], tokenAddress: string
         throw new ValidationError([
             {
                 field,
-                code: ValidationErrorCodes.ValueOutOfRange,
+                code: ValidationErrorCodes.TokenNotSupported,
                 reason: `${tokenAddress} not supported`,
             },
         ]);
