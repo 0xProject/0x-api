@@ -3,6 +3,7 @@
 [![Chat with us on Discord](https://img.shields.io/badge/chat-Discord-blueViolet.svg)](https://discord.com/invite/d3FTX3M)
 [![Twitter](https://img.shields.io/badge/follow-twitter-brightgreen)](https://twitter.com/0xProject)
 [![Continuous Integration](https://github.com/0xProject/0x-api/workflows/Build%20and%20Test/badge.svg)](https://github.com/0xProject/0x-api/actions?query=workflow%3A%22Build+and+Test%22+branch%3Amaster)
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
 
 ⚠️ DEPRECATION NOTICE ⚠️
 
