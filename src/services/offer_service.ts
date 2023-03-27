@@ -1,11 +1,10 @@
 import { BigNumber } from '@0x/utils';
 import { Contract } from '@ethersproject/contracts';
-import { InfuraProvider } from '@ethersproject/providers';
 import { ContractCallContext, ContractCallResults, Multicall } from 'ethereum-multicall';
 import * as _ from 'lodash';
 import { Connection } from 'typeorm';
 
-import { CHAIN_ID, INFURA_API_KEY, OfferLiquidityType, OfferStatus } from '../config';
+import { Web3Provider, OfferLiquidityType, OfferStatus } from '../config';
 import { NULL_ADDRESS, NULL_TEXT, QUOTE_ORDER_EXPIRATION_BUFFER_MS } from '../constants';
 import * as divaContractABI from '../diva-abis/DivaContractABI.json';
 import * as PermissionedPositionTokenABI from '../diva-abis/PermissionedPositionTokenABI.json';
@@ -147,8 +146,7 @@ export class OfferService {
     // tslint:disable-next-line:prefer-function-over-method
     public async appendActualFillableTakerAmountAsync(apiEntities: any[], offerLiquidityType: string): Promise<any[]> {
         // Get provider to call web3 function
-        const provider = new InfuraProvider(CHAIN_ID, INFURA_API_KEY);
-        const multicall = new Multicall({ ethersProvider: provider, tryAggregate: true });
+        const multicall = new Multicall({ ethersProvider: Web3Provider, tryAggregate: true });
         const callData: ContractCallContext[] = [];
 
         apiEntities.map((apiEntity) => {
@@ -284,12 +282,11 @@ export class OfferService {
     // tslint:disable-next-line:prefer-function-over-method
     public async postOfferLiquidityAsync(offerLiquidityEntity: any, offerLiquidityType: string): Promise<any> {
         // Get provider to call web3 function
-        const provider = new InfuraProvider(offerLiquidityEntity.chainId, INFURA_API_KEY);
         // Get DIVA contract to call web3 function
         const divaContract = new Contract(
             offerLiquidityEntity.verifyingContract || NULL_ADDRESS,
             divaContractABI,
-            provider,
+            Web3Provider,
         );
 
         // Get parameters of pool using pool id
@@ -302,7 +299,7 @@ export class OfferService {
         const longToken = parameters[0].longToken;
 
         // Get PermissionedPositionToken contract to call web3 function
-        const permissionedPositionContract = new Contract(longToken as string, PermissionedPositionTokenABI, provider);
+        const permissionedPositionContract = new Contract(longToken as string, PermissionedPositionTokenABI, Web3Provider);
         // Get PermissionedERC721Token address
         let permissionedERC721Token = NULL_ADDRESS;
 
@@ -399,8 +396,7 @@ export class OfferService {
     // tslint:disable-next-line:prefer-function-over-method
     public async checkVaildateOffersAsync(): Promise<void> {
         // Get provider to call web3 function
-        const provider = new InfuraProvider(CHAIN_ID, INFURA_API_KEY);
-        const multicall = new Multicall({ ethersProvider: provider, tryAggregate: true });
+        const multicall = new Multicall({ ethersProvider: Web3Provider, tryAggregate: true });
         const callData: ContractCallContext[] = [];
 
         // Check validate of offerCreateContingentPools
