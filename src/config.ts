@@ -1,7 +1,7 @@
 import { assert } from '@0x/assert';
-import { AlchemyProvider, InfuraProvider } from '@ethersproject/providers';
 import { nativeWrappedTokenSymbol, TokenMetadatasForChains, valueByChainId } from '@0x/token-metadata';
 import { BigNumber } from '@0x/utils';
+import { AlchemyProvider, InfuraProvider } from '@ethersproject/providers';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import { linearBuckets } from 'prom-client';
@@ -265,11 +265,12 @@ export const ETHEREUM_RPC_URL = assertEnvVarType(
 );
 
 // Ethereum RPC Url list
-export const Web3Provider = CHAIN_ID === 137
-    ? new AlchemyProvider(CHAIN_ID, ALCHEMY_POLYGON_API_KEY)
-    : CHAIN_ID === 80001
-    ? new AlchemyProvider(CHAIN_ID, ALCHEMY_MUMBAI_API_KEY)
-    : new InfuraProvider(CHAIN_ID, INFURA_API_KEY);
+export const Web3Provider =
+    CHAIN_ID === 137
+        ? new AlchemyProvider(CHAIN_ID, ALCHEMY_POLYGON_API_KEY)
+        : CHAIN_ID === 80001
+        ? new AlchemyProvider(CHAIN_ID, ALCHEMY_MUMBAI_API_KEY)
+        : new InfuraProvider(CHAIN_ID, INFURA_API_KEY);
 
 // Timeout in seconds to wait for an RPC request (default 5000)
 export const RPC_REQUEST_TIMEOUT = _.isEmpty(process.env.RPC_REQUEST_TIMEOUT)

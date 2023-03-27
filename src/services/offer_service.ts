@@ -4,7 +4,7 @@ import { ContractCallContext, ContractCallResults, Multicall } from 'ethereum-mu
 import * as _ from 'lodash';
 import { Connection } from 'typeorm';
 
-import { Web3Provider, OfferLiquidityType, OfferStatus } from '../config';
+import { OfferLiquidityType, OfferStatus, Web3Provider } from '../config';
 import { NULL_ADDRESS, NULL_TEXT, QUOTE_ORDER_EXPIRATION_BUFFER_MS } from '../constants';
 import * as divaContractABI from '../diva-abis/DivaContractABI.json';
 import * as PermissionedPositionTokenABI from '../diva-abis/PermissionedPositionTokenABI.json';
@@ -299,7 +299,11 @@ export class OfferService {
         const longToken = parameters[0].longToken;
 
         // Get PermissionedPositionToken contract to call web3 function
-        const permissionedPositionContract = new Contract(longToken as string, PermissionedPositionTokenABI, Web3Provider);
+        const permissionedPositionContract = new Contract(
+            longToken as string,
+            PermissionedPositionTokenABI,
+            Web3Provider,
+        );
         // Get PermissionedERC721Token address
         let permissionedERC721Token = NULL_ADDRESS;
 
