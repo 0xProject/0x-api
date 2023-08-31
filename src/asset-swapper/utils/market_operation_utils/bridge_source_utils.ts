@@ -30,6 +30,7 @@ import {
     SADDLE_ARBITRUM_INFOS,
     SHELL_POOLS_BY_CHAIN_ID,
     SHIBASWAP_ROUTER_BY_CHAIN_ID,
+    SOULSWAP_ROUTER_BY_CHAIN_ID,
     SPIRITSWAP_ROUTER_BY_CHAIN_ID,
     SPOOKYSWAP_ROUTER_BY_CHAIN_ID,
     SUSHISWAP_ROUTER_BY_CHAIN_ID,
@@ -481,6 +482,7 @@ export function uniswapV2LikeRouterAddress(
         | ERC20BridgeSource.Pangolin
         | ERC20BridgeSource.UbeSwap
         | ERC20BridgeSource.MorpheusSwap
+        | ERC20BridgeSource.SoulSwap
         | ERC20BridgeSource.SpookySwap
         | ERC20BridgeSource.SpiritSwap
         | ERC20BridgeSource.BiSwap
@@ -520,6 +522,8 @@ export function uniswapV2LikeRouterAddress(
             return UBESWAP_ROUTER_BY_CHAIN_ID[chainId];
         case ERC20BridgeSource.MorpheusSwap:
             return MORPHEUSSWAP_ROUTER_BY_CHAIN_ID[chainId];
+        case ERC20BridgeSource.SoulSwap:
+            return SOULSWAP_ROUTER_BY_CHAIN_ID[chainId];
         case ERC20BridgeSource.SpookySwap:
             return SPOOKYSWAP_ROUTER_BY_CHAIN_ID[chainId];
         case ERC20BridgeSource.SpiritSwap:

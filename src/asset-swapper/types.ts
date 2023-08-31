@@ -501,6 +501,7 @@ export enum ERC20BridgeSource {
     UbeSwap = 'UbeSwap',
     MobiusMoney = 'MobiusMoney',
     // Fantom
+    SoulSwap = 'SoulSwap',
     SpiritSwap = 'SpiritSwap',
     SpookySwap = 'SpookySwap',
     Beethovenx = 'Beethovenx',
