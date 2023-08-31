@@ -159,6 +159,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID: Record<ChainId, SourceFilters> = {
         ERC20BridgeSource.Pangolin,
         ERC20BridgeSource.TraderJoe,
         ERC20BridgeSource.SushiSwap,
+        ERC20BridgeSource.SoulSwap,
         ERC20BridgeSource.Curve,
         ERC20BridgeSource.CurveV2,
         ERC20BridgeSource.KyberDmm,
@@ -175,6 +176,7 @@ export const SELL_SOURCE_FILTER_BY_CHAIN_ID: Record<ChainId, SourceFilters> = {
         ERC20BridgeSource.Curve,
         ERC20BridgeSource.CurveV2,
         ERC20BridgeSource.MorpheusSwap,
+        ERC20BridgeSource.SoulSwap,
         ERC20BridgeSource.SpiritSwap,
         ERC20BridgeSource.SpookySwap,
         ERC20BridgeSource.SushiSwap,
@@ -312,6 +314,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID: Record<ChainId, SourceFilters> = {
         ERC20BridgeSource.Pangolin,
         ERC20BridgeSource.TraderJoe,
         ERC20BridgeSource.SushiSwap,
+        ERC20BridgeSource.SoulSwap,
         ERC20BridgeSource.Curve,
         ERC20BridgeSource.CurveV2,
         ERC20BridgeSource.KyberDmm,
@@ -328,6 +331,7 @@ export const BUY_SOURCE_FILTER_BY_CHAIN_ID: Record<ChainId, SourceFilters> = {
         ERC20BridgeSource.Curve,
         ERC20BridgeSource.CurveV2,
         ERC20BridgeSource.MorpheusSwap,
+        ERC20BridgeSource.SoulSwap,
         ERC20BridgeSource.SpiritSwap,
         ERC20BridgeSource.SpookySwap,
         ERC20BridgeSource.SushiSwap,
@@ -390,8 +394,8 @@ export const FEE_QUOTE_SOURCES_BY_CHAIN_ID = valueByChainId<ERC20BridgeSource[]>
         [ChainId.Goerli]: [ERC20BridgeSource.UniswapV2, ERC20BridgeSource.SushiSwap],
         [ChainId.PolygonMumbai]: [ERC20BridgeSource.UniswapV3],
         [ChainId.Polygon]: [ERC20BridgeSource.QuickSwap, ERC20BridgeSource.SushiSwap, ERC20BridgeSource.UniswapV3],
-        [ChainId.Avalanche]: [ERC20BridgeSource.Pangolin, ERC20BridgeSource.TraderJoe, ERC20BridgeSource.SushiSwap],
-        [ChainId.Fantom]: [ERC20BridgeSource.SpiritSwap, ERC20BridgeSource.SpookySwap, ERC20BridgeSource.SushiSwap],
+        [ChainId.Avalanche]: [ERC20BridgeSource.Pangolin, ERC20BridgeSource.TraderJoe, ERC20BridgeSource.SoulSwap, ERC20BridgeSource.SushiSwap],
+        [ChainId.Fantom]: [ERC20BridgeSource.SoulSwap, ERC20BridgeSource.SpiritSwap, ERC20BridgeSource.SpookySwap, ERC20BridgeSource.SushiSwap],
         [ChainId.Celo]: [ERC20BridgeSource.UbeSwap, ERC20BridgeSource.SushiSwap],
         [ChainId.Optimism]: [ERC20BridgeSource.UniswapV3],
         [ChainId.Arbitrum]: [ERC20BridgeSource.UniswapV3, ERC20BridgeSource.SushiSwap],
@@ -1789,6 +1793,14 @@ export const MORPHEUSSWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     NULL_ADDRESS,
 );
 
+export const SOULSWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
+    {
+        [ChainId.Avalanche]: '0xa4594460a9d3d41e8b85542d34e23adabc3c86ef',
+        [ChainId.Fantom]: '0x6b3d631b87fe27af29efec61d2ab8ce4d621ccbf',
+    },
+    NULL_ADDRESS,
+);
+
 export const SPIRITSWAP_ROUTER_BY_CHAIN_ID = valueByChainId<string>(
     {
         [ChainId.Fantom]: '0x16327e3fbdaca3bcf7e38f5af2599d2ddc33ae52',
@@ -2170,6 +2182,7 @@ export const DEFAULT_GAS_SCHEDULE: GasSchedule = {
     // Fantom
     //
     [ERC20BridgeSource.MorpheusSwap]: uniswapV2CloneGasSchedule,
+    [ERC20BridgeSource.SoulSwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.SpiritSwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.SpookySwap]: uniswapV2CloneGasSchedule,
     [ERC20BridgeSource.Yoshi]: uniswapV2CloneGasSchedule,
